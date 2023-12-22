@@ -14,7 +14,13 @@ EzAppScSeuratCombine <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodScSeuratCombine
                   name <<- "EzAppScSeuratCombine"
-                  appDefaults <<- rbind(npcs=ezFrame(Type="numeric", 
+                  appDefaults <<- rbind(
+                                        nfeatures = ezFrame(
+                                        Type = "numeric",
+                                        DefaultValue = 3000,
+                                        Description = "number of variable genes for SCT"
+                                        ),
+                                        npcs=ezFrame(Type="numeric", 
                                                     DefaultValue=30, 
                                                     Description="The maximal dimensions to use for reduction"),
                                         pcGenes = ezFrame(

@@ -14,7 +14,13 @@ EzAppSpatialSeurat <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSpatialSeurat
                   name <<- "EzAppSpatialSeurat"
-                  appDefaults <<- rbind(npcs=ezFrame(Type="numeric", 
+                  appDefaults <<- rbind(
+                      nfeatures = ezFrame(
+                          Type = "numeric",
+                          DefaultValue = 3000,
+                          Description = "number of variable genes for SCT"
+                      ),
+                      npcs=ezFrame(Type="numeric", 
                                                     DefaultValue=20,
                                                     Description="The maximal dimensions to use for reduction"),
                                         pcGenes=ezFrame(Type="charVector", 

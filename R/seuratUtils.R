@@ -11,7 +11,7 @@ seuratStandardSCTPreprocessing <- function(scData, param, assay="RNA", seed=38) 
   vars.to.regress <- getSeuratVarsToRegress(param)
   ## generate normalized slots for the RNA assay
   scData <- NormalizeData(scData, normalization.method = "LogNormalize", scale.factor=10000, verbose=FALSE)
-  scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=3000)
+  scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)
   scData <- ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
   ## generate the SCT assay
   scData <- SCTransform(scData, vst.flavor="v2", vars.to.regress = vars.to.regress, seed.use = seed, verbose = FALSE,
@@ -62,7 +62,8 @@ seuratClustering <- function(scData, param){
 }
 
 seuratStandardWorkflow <- function(scData, param, reduction="pca", ident.name="ident") {
-  scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
+  scData <- RunPCA(object=scData, verbose=FALSE)
+  #scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
   if(!('Spatial' %in% as.vector(Seurat::Assays(scData)))){
     scData <- RunTSNE(object = scData, reduction = reduction, dims = 1:param$npcs)
   }
