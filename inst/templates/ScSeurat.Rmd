@@ -155,19 +155,49 @@ if (length(qcList) > 1){
 }
 
 qcStats <- ezFrame("Number of Cells"=integer(0), 
-                      "Min Pass Value"=integer(0), "Max Pass Value"=integer(0), Fraction = integer(0))
-qcStats[ "Library Size", ] <- c(c(sum(allCellsMeta$qc.lib), 
-                               range(allCellsMeta$nCount_RNA[allCellsMeta$useCell])) %>% as.integer(), round(sum(allCellsMeta$qc.lib)/nrow(allCellsMeta), 2))
-qcStats[ "Expressed genes", ]<- c(c(sum(allCellsMeta$qc.nexprs), 
-                               range(allCellsMeta$nFeature_RNA[allCellsMeta$useCell])) %>% as.integer(), round(sum(allCellsMeta$qc.nexprs)/nrow(allCellsMeta), 2))
-qcStats[ "Mitochondrial Percent", ]<- c(c(sum(allCellsMeta$qc.mito), 
-                               range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer(), round(sum(allCellsMeta$qc.mito)/nrow(allCellsMeta), 2))
-qcStats[ "Ribosomal protein Percent", ]<- c(c(sum(allCellsMeta$qc.riboprot), 
-                               range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer(), round(sum(allCellsMeta$qc.riboprot)/nrow(allCellsMeta), 2))
-qcStats[ "Doublets", ]<- c(sum(allCellsMeta$qc.doublet), NA, NA, round(sum(allCellsMeta$qc.doublet)/nrow(allCellsMeta), 2))
-qcStats[ "Total removed", ]<- c(sum(!allCellsMeta$useCell), NA, NA, round(sum(!allCellsMeta$useCell)/nrow(allCellsMeta), 2))
-qcStats[ "Cells remaining", ]<- c(sum(allCellsMeta$useCell), NA, NA, round(sum(allCellsMeta$useCell)/nrow(allCellsMeta), 2))
-
+                   "Min Pass Value"=integer(0), 
+                   "Max Pass Value"=integer(0), 
+                   Fraction = integer(0))
+qcStats[ "Library Size", ] <- c(
+  c(sum(allCellsMeta$qc.lib), range(allCellsMeta$nCount_RNA[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.lib)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Expressed genes", ] <- c(
+  c(sum(allCellsMeta$qc.nexprs), range(allCellsMeta$nFeature_RNA[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.nexprs)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Mitochondrial Percent", ] <- c(
+  c(sum(allCellsMeta$qc.mito), range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.mito)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Ribosomal protein Percent", ] <- c(
+  c(sum(allCellsMeta$qc.riboprot), range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.riboprot)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Doublets", ] <- c(
+  sum(allCellsMeta$qc.doublet), 
+  NA, 
+  NA, 
+  round(sum(allCellsMeta$qc.doublet) / nrow(allCellsMeta), 2)
+)
+qcStats[ "Total removed (auto)", ] <- c(
+  sum(!allCellsMeta$useCell), 
+  NA, 
+  NA, 
+  round(sum(!allCellsMeta$useCell)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Total removed (manual)", ] <- c(
+  sum(allCellsMeta$useCell) - ncol(scData), 
+  NA, 
+  NA, 
+  round((sum(allCellsMeta$useCell) - ncol(scData))/nrow(allCellsMeta), 2)
+)
+qcStats[ "Cells remaining", ] <- c(
+  sum(ncol(scData)), 
+  NA, 
+  NA, 
+  round(sum(ncol(scData))/nrow(allCellsMeta), 2)
+)
 
 kable(qcStats,
       row.names=TRUE,
