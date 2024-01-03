@@ -7,6 +7,39 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     fastqInfo[['Name']] = ''
     fastqInfo[['ReadCount']] = 0
     colnames(fastqInfo)[grep('scientific_name', colnames(fastqInfo))] = 'Species'
+    
+    ##Filter for included or excluded samples:
+    if(!is.null(param$excludedSamples)){
+        excludedSamples <- as.vector(gsub(' ', '', limma::strsplit2(param$excludedSamples, split = ',')))
+        toExclude <- which(fastqInfo[['sample_accession']] %in% excludedSamples)
+        if(length(toExclude) > 0){
+            cat('Samples excluded:')
+            print(fastqInfo[toExclude,'sample_accession'])
+            fastqInfo <- fastqInfo[-c(toExclude),]
+        }
+    }
+    
+    if(!is.null(param$includedSamples)){
+        includedSamples <- as.vector(gsub(' ', '', limma::strsplit2(param$includedSamples, split = ',')))
+        toInclude <- which(fastqInfo[['sample_accession']] %in% includedSamples)
+        if(length(toInclude) > 0){
+            cat('Samples included:')
+            print(fastqInfo[toInclude,'sample_accession'])
+            fastqInfo <- fastqInfo[c(toInclude),]
+        }
+    }
+    
+    ###Filter fastqInfo for empty fastq_ftp entries
+    toRemove <- which(fastqInfo[['fastq_ftp']] == '')
+    
+    if(length(toRemove) > 0){
+        cat('Samples removed because of missing raw data:')
+        print(fastqInfo[toRemove,])
+        fastqInfo <- fastqInfo[-c(toRemove),]
+    }
+    
+    
+    
     setwdNew(rownames(input$meta))
     
     for (i in 1:nrow(fastqInfo)){
@@ -152,6 +185,17 @@ EzAppENA <-
                         "Initializes the application using its specific defaults."
                         runMethod <<- ezMethodGetEnaData
                         name <<- "EzAppENA"
+                        appDefaults <<- rbind(
+                            excludedSamples = ezFrame(
+                                Type = "character",
+                                DefaultValue = NULL,
+                                Description = 'sample_accession SAMN-ids for samples to exclude'
+                            ),
+                            includedSamples = ezFrame(
+                                Type = "character",
+                                DefaultValue = NULL,
+                                Description = 'sample_accession SAMN-ids for samples to include'
+                            ))
                     }
                 )
     )

@@ -14,6 +14,11 @@ EzAppScSeuratFilterClusters <-
                   runMethod <<- ezMethodScSeuratFilterClusters
                   name <<- "EzAppScSeuratFilterClusters"
                   appDefaults <<- rbind(
+                    nfeatures = ezFrame(
+                          Type = "numeric",
+                          DefaultValue = 3000,
+                          Description = "number of variable genes for SCT"
+                      ),
                     npcs = ezFrame(
                       Type = "numeric",
                       DefaultValue = 20,
