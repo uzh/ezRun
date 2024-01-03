@@ -74,6 +74,13 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         xml <- xmlParse(paste0(sampleID, '.xml'))
         sampleInfo <- xmlToList(xml)
         fastqInfo[['Name']][i] <- sampleInfo$SAMPLE$TITLE
+        ##Clean sampleNames
+        fastqInfo[['Name']][i] <- gsub('\\#', '_', fastqInfo[['Name']][i])
+        fastqInfo[['Name']][i] <- gsub(' ', '_', fastqInfo[['Name']][i])
+        fastqInfo[['Name']][i] <- gsub('\\(', '_', fastqInfo[['Name']][i])
+        fastqInfo[['Name']][i] <- gsub('\\)', '_', fastqInfo[['Name']][i])
+        fastqInfo[['Name']][i] <- gsub(':', '_', fastqInfo[['Name']][i])
+        
         sampleAttributes <- xmlToDataFrame(xmlRoot(xml)[[1]][[5]])
         sampleAttributes <- sampleAttributes[grep('ENA',sampleAttributes$TAG, invert = TRUE),]
         
