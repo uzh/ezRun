@@ -162,9 +162,9 @@ qcStats[ "Mitochondrial Percent", ]<- c(sum(allCellsMeta$qc.mito),
 qcStats[ "Ribosomal protein Percent", ]<- c(sum(allCellsMeta$qc.riboprot), 
                                range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer()
 qcStats[ "Doublets", ]<- c(sum(allCellsMeta$qc.doublet), NA, NA)
-qcStats[ "Total removed", ]<- c(sum(!allCellsMeta$useCell), NA, NA)
-qcStats[ "Cells remaining", ]<- c(sum(allCellsMeta$useCell), NA, NA)
-
+qcStats[ "Total removed (auto)", ]<- c(sum(!allCellsMeta$useCell), NA, NA)
+qcStats[ "Total removed (manual)", ]<- c(sum(allCellsMeta$useCell) - ncol(scData), NA, NA)
+qcStats[ "Cells remaining", ]<- c(ncol(scData), NA, NA)
 
 kable(qcStats,
       row.names=TRUE,
