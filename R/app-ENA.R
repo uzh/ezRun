@@ -8,6 +8,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     fastqInfo[['ReadCount']] = 0
     colnames(fastqInfo)[grep('scientific_name', colnames(fastqInfo))] = 'Species'
     
+    
     ##Filter for included or excluded samples:
     if(!is.null(param$excludedSamples)){
         excludedSamples <- as.vector(gsub(' ', '', limma::strsplit2(param$excludedSamples, split = ',')))
@@ -38,6 +39,15 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         fastqInfo <- fastqInfo[-c(toRemove),]
     }
     
+    ##Check sequencing mode and keep only supported mode in mixed cases
+    pairedDataPos <- grep(';',fastqInfo$fastq_ftp)
+    if(length(pairedDataPos) > 0 & length(pairedDataPos) != nrow(fastqInfo)){
+        if(param$supportedMode == 'paired'){
+            fastqInfo <- fastqInfo[pairedDataPos,]
+        } else if(param$supportedMode == 'single'){
+            fastqInfo <- fastqInfo[-c(pairedDataPos),]
+        }
+    }
     
     
     setwdNew(rownames(input$meta))
