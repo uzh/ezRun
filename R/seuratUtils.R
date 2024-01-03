@@ -11,7 +11,7 @@ seuratStandardSCTPreprocessing <- function(scData, param, assay="RNA", seed=38) 
   vars.to.regress <- getSeuratVarsToRegress(param)
   ## generate normalized slots for the RNA assay
   scData <- NormalizeData(scData, normalization.method = "LogNormalize", scale.factor=10000, verbose=FALSE)
-  scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=3000)
+  scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)
   scData <- ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
   ## generate the SCT assay
   scData <- SCTransform(scData, vst.flavor="v2", vars.to.regress = vars.to.regress, seed.use = seed, verbose = FALSE,
@@ -62,7 +62,8 @@ seuratClustering <- function(scData, param){
 }
 
 seuratStandardWorkflow <- function(scData, param, reduction="pca", ident.name="ident") {
-  scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
+  scData <- RunPCA(object=scData, verbose=FALSE)
+  #scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
   if(!('Spatial' %in% as.vector(Seurat::Assays(scData)))){
     scData <- RunTSNE(object = scData, reduction = reduction, dims = 1:param$npcs)
   }
@@ -130,14 +131,14 @@ cellClustWithCorrection <- function (scDataList, param) {
   #2.1. # Select the most variable features to use for integration
   integ_features <- SelectIntegrationFeatures(object.list = scDataList, nfeatures = 3000)
   
-  if (param$integrationMethod %in% c("RPCA", "Classic")) {
+  if (param$integrationMethod %in% c("RPCA", "CCA")) {
     #2.2. Prepare the SCT list object for integration
     scDataList <- PrepSCTIntegration(object.list = scDataList, anchor.features = integ_features)
     if(param$integrationMethod == 'RPCA'){
       scDataList <- lapply(X = scDataList, FUN = RunPCA, features = integ_features)
     }
     #2.3. Find anchors
-    if(param$integrationMethod == 'Classic'){
+    if(param$integrationMethod == 'CCA'){
       integ_anchors <- FindIntegrationAnchors(object.list = scDataList, normalization.method = "SCT", 
                                               anchor.features = integ_features, dims = 1:param$npcs)
     } else if(param$integrationMethod == 'RPCA'){
@@ -402,7 +403,7 @@ getSeuratMarkersAndAnnotate <- function(scData, param) {
   
   # run Azimuth
   if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none"){
-    scDataAzi <- RunAzimuth(scData, param$Azimuth) ## TODO support ADT
+    scDataAzi <- RunAzimuth(scData, param$Azimuth, assay="RNA") ## TODO support ADT
     
     ##Rename annotion levels if neccessary:
     colnames(scDataAzi@meta.data) <- sub('level_', 'l', colnames(scDataAzi@meta.data))

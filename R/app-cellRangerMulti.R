@@ -41,6 +41,27 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   if (ezIsSpecified(param$controlSeqs)) 
     unlink(refDir, recursive = TRUE)
   
+  #8. Optional removal of the bam files
+  if(!param$keepBam){
+      print(ezSystem('find . -name "*.bam" -type f'))
+      ezSystem('find . -name "*.bam" -type f -delete')
+  }
+  
+  #9. Generate expanded dataset.tsv:
+  ds <- output$meta
+  samplePath <- file.path(sampleName, 'per_sample_outs')
+  subSampleDirs <- list.dirs(samplePath, recursive = FALSE)
+  subSamples <- basename(subSampleDirs)
+  expandedDS <- data.frame(Name = subSamples, Species = ds$Species, 
+                                                refBuild = ds$refBuild, refFeatureFile = ds$refFeatureFile, 
+                                                featureLevel = ds$featureLevel, transcriptTypes = ds$transcriptTypes)
+  expandedDS[['ResultDir [File]']] <- file.path(sub('/srv/gstore/projects/', '', samplePath), subSamples)
+  expandedDS[['Report [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'web_summary.html')
+  expandedDS[['CountMatrix [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'count', 'sample_filtered_feature_bc_matrix')
+  expandedDS[['Condition [Factor]']] = c('')
+  expandedDS[['Order Id [B-Fabric]']] = ds[['Order Id [B-Fabric]']]
+  ezWrite.table(expandedDS, file.path(sampleName, 'expanded_dataset.tsv'), row.names = FALSE)
+  
   return("Success")
 }
 
@@ -93,7 +114,7 @@ prepareFastqData <- function(input, param) {
                                featureDirs=dataInfo[["multiDirs"]]))
   }
   #2.4 Multiplexing
-  if ("Multiplexing" %in% libraryTypes) {
+  if ("Multiplexing" %in% libraryTypes && !("fixedRNA" %in% libraryTypes)) {
     dataInfo <- getCellRangerMultiData(input, "MultiDataDir", sampleName)
     dirList <- c(dirList, list(multiplexName=dataInfo[["multiName"]],
                                multiplexDirs=dataInfo[["multiDirs"]]))
@@ -169,7 +190,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     # add chemistry since it can result in an error otherwise (CellRanger 7.2)
     # TODO: Review down the line if this is necessary. Best case, we can remove
     # it to let CellRanger automatically choose the chemistry
-    chemistry <- ifelse(length(getSampleMultiplexFiles(input) > 1), "MFRP", "SFRP")
+    chemistry <- ifelse("Multiplexing" %in% libraryTypes, "MFRP", "SFRP")
     fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
     fileContents <- append(fileContents, c(""))
   }
@@ -185,7 +206,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents, sprintf("reference,%s", featureRefFile))
     fileContents <- append(fileContents, c(""))
   }
-  if ("Multiplexing" %in% libraryTypes) {
+  if ("Multiplexing" %in% libraryTypes && !("fixedRNA" %in% libraryTypes)) {
     multiplexBarcodeFile <- tempfile(pattern = "multi_barcode_set", tmpdir = ".", fileext = ".csv")
     multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
     fileContents <- append(fileContents, 
@@ -213,7 +234,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$featureName, dirList$featureDirs, "Antibody Capture"))
   }  
-  if ("Multiplexing" %in% libraryTypes) {
+  if ("Multiplexing" %in% libraryTypes && !("fixedRNA" %in% libraryTypes)) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$multiplexName, dirList$multiplexDirs, "Multiplexing Capture"))
   }
@@ -290,6 +311,11 @@ EzAppCellRangerMulti <-
                       Type = "charVector",
                       DefaultValue = "",
                       Description = "control sequences to add"
+                    ),
+                    keepBam = ezFrame(
+                        Type = "logical",
+                        DefaultValue = FALSE,
+                        Description = "keep bam file produced by CellRanger"
                     )
                   )
                 }

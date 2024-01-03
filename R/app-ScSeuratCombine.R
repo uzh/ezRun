@@ -14,7 +14,13 @@ EzAppScSeuratCombine <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodScSeuratCombine
                   name <<- "EzAppScSeuratCombine"
-                  appDefaults <<- rbind(npcs=ezFrame(Type="numeric", 
+                  appDefaults <<- rbind(
+                                        nfeatures = ezFrame(
+                                        Type = "numeric",
+                                        DefaultValue = 3000,
+                                        Description = "number of variable genes for SCT"
+                                        ),
+                                        npcs=ezFrame(Type="numeric", 
                                                     DefaultValue=30, 
                                                     Description="The maximal dimensions to use for reduction"),
                                         pcGenes = ezFrame(
@@ -28,8 +34,8 @@ EzAppScSeuratCombine <-
                                                                 DefaultValue="TRUE",
                                                                 Description="Perform batch correction."),
                                         integrationMethod=ezFrame(Type="character", 
-                                                                  DefaultValue="Classic", 
-                                                                  Description="Choose integration method in Seurat (Classic or RPCA)"),
+                                                                  DefaultValue="CCA", 
+                                                                  Description="Choose integration method in Seurat (CCA or RPCA)"),
                                         enrichrDatabase=ezFrame(Type = "charVector", 
                                                                 DefaultValue = "", 
                                                                 Description="enrichR databases to search"),

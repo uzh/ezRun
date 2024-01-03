@@ -14,6 +14,11 @@ EzAppScSeurat <-
                   runMethod <<- ezMethodScSeurat
                   name <<- "EzAppScSeurat"
                   appDefaults <<- rbind(
+                    nfeatures = ezFrame(
+                      Type = "numeric",
+                      DefaultValue = 3000,
+                      Description = "number of variable genes for SCT"
+                  ),
                     npcs = ezFrame(
                       Type = "numeric",
                       DefaultValue = 20,
@@ -218,7 +223,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
       rawCts <- rawCts$`Gene Expression`
       rawCts <- rawCts[featInfo$gene_id,]
     }
-    
+      
     if (("SCDataOrigin" %in% input$colNames) && 
         input$getColumn("SCDataOrigin") == 'BDRhapsody') {
       rawCts <- rawCts[featInfo$gene_id,]
@@ -228,6 +233,9 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
       rawCts <- rawCts[featInfo$gene_id,]
     }
     
+     if(length(setdiff(rownames(rawCts), featInfo$gene_id)) > 0){
+      rawCts <- rawCts[featInfo$gene_id,] 
+     }
     stopifnot(rownames(rawCts) == featInfo$gene_id)
     emptyStats <- emptyDrops(rawCts[!featInfo$isMito & !featInfo$isRiboprot, ],
                              BPPARAM=BPPARAM, niters=1e5)

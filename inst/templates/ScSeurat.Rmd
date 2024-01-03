@@ -62,6 +62,9 @@ if (file.exists("cells.AUC.rds")){
 }
 if (file.exists("enrichRout.rds")){
   enrichRout <- readRDS("enrichRout.rds")
+  if(length(enrichRout) == 1){ ##enrichR call creates empty file
+     enrichRout <- NULL 
+  }
 } else {
   enrichRout <- NULL
 }
@@ -152,19 +155,49 @@ if (length(qcList) > 1){
 }
 
 qcStats <- ezFrame("Number of Cells"=integer(0), 
-                      "Min Pass Value"=integer(0), "Max Pass Value"=integer(0))
-qcStats[ "Library Size", ] <- c(sum(allCellsMeta$qc.lib), 
-                               range(allCellsMeta$nCount_RNA[allCellsMeta$useCell])) %>% as.integer()
-qcStats[ "Expressed genes", ]<- c(sum(allCellsMeta$qc.nexprs), 
-                               range(allCellsMeta$nFeature_RNA[allCellsMeta$useCell])) %>% as.integer()
-qcStats[ "Mitochondrial Percent", ]<- c(sum(allCellsMeta$qc.mito), 
-                               range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer()
-qcStats[ "Ribosomal protein Percent", ]<- c(sum(allCellsMeta$qc.riboprot), 
-                               range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer()
-qcStats[ "Doublets", ]<- c(sum(allCellsMeta$qc.doublet), NA, NA)
-qcStats[ "Total removed (auto)", ]<- c(sum(!allCellsMeta$useCell), NA, NA)
-qcStats[ "Total removed (manual)", ]<- c(sum(allCellsMeta$useCell) - ncol(scData), NA, NA)
-qcStats[ "Cells remaining", ]<- c(ncol(scData), NA, NA)
+                   "Min Pass Value"=integer(0), 
+                   "Max Pass Value"=integer(0), 
+                   Fraction = integer(0))
+qcStats[ "Library Size", ] <- c(
+  c(sum(allCellsMeta$qc.lib), range(allCellsMeta$nCount_RNA[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.lib)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Expressed genes", ] <- c(
+  c(sum(allCellsMeta$qc.nexprs), range(allCellsMeta$nFeature_RNA[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.nexprs)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Mitochondrial Percent", ] <- c(
+  c(sum(allCellsMeta$qc.mito), range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.mito)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Ribosomal protein Percent", ] <- c(
+  c(sum(allCellsMeta$qc.riboprot), range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.riboprot)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Doublets", ] <- c(
+  sum(allCellsMeta$qc.doublet), 
+  NA, 
+  NA, 
+  round(sum(allCellsMeta$qc.doublet) / nrow(allCellsMeta), 2)
+)
+qcStats[ "Total removed (auto)", ] <- c(
+  sum(!allCellsMeta$useCell), 
+  NA, 
+  NA, 
+  round(sum(!allCellsMeta$useCell)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Total removed (manual)", ] <- c(
+  sum(allCellsMeta$useCell) - ncol(scData), 
+  NA, 
+  NA, 
+  round((sum(allCellsMeta$useCell) - ncol(scData))/nrow(allCellsMeta), 2)
+)
+qcStats[ "Cells remaining", ] <- c(
+  sum(ncol(scData)), 
+  NA, 
+  NA, 
+  round(sum(ncol(scData))/nrow(allCellsMeta), 2)
+)
 
 kable(qcStats,
       row.names=TRUE,
@@ -183,17 +216,6 @@ We also excluded genes that are lowly or not expressed in our system, as they do
 cat("genes kept:", nrow(scData))
 ```
 
-#### Diagnostic plots after filtering
-
-```{r QC plots after filtering, fig.height=4, fig.width=16}
-VlnPlot(scData, features=c("nCount_RNA"), group.by="Sample", ncol = 4)
-VlnPlot(scData, features=c("nFeature_RNA", "percent_mito", "percent_riboprot"), group.by="Sample", ncol = 4)
-```
-
-```{r QC plot mito after filtering, fig.align='center'}
-FeatureScatter(scData, feature1="nCount_RNA", feature2="percent_mito") + scale_x_log10() + ggtitle("")
-```
-
 
 #### Dimensionality reduction
 
@@ -201,10 +223,19 @@ Dimensionality reduction aims to reduce the number of separate dimensions in the
 
 The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
 
-```{r, fig.align='center'}
-ElbowPlot(scData)
-```
+```{r, fig.align='center', fig.width=14}
+pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
+cumu <- cumsum(pct)
+plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
 
+# Elbow plot
+p <- ggplot(plot_df, aes(cumu, pct, label = rank, color = rank > param$npcs))
+p <- p + geom_vline(xintercept = cumu[param$npcs], color = "grey") + geom_text() 
+p <- p + xlab(paste("Variance based on 50 PCs of", param$nfeatures, "features")) +  ylab("Cumulative variance in % explained per PC") 
+p <- p + theme_bw() + labs(color = paste("PC >", param$npcs))
+p <- p + annotate(geom="text", y=max(plot_df$pct), x=max(plot_df$cumu[param$npcs]), label=paste('Variance used:', round(plot_df$cumu[param$npcs], digits = 2), '%'), color="red")
+p
+```
 
 <br/>
 
@@ -560,8 +591,11 @@ try({
 
 ```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=6}
 DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap")
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")
+if('Azimuth.celltype.l2' %in% colnames(scData@meta.data))
+  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")
+if('Azimuth.celltype.l3' %in% colnames(scData@meta.data))
 DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap")
+if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
 DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap")
 ```
 
