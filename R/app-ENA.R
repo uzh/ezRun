@@ -10,7 +10,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     
     
     ##Filter for included or excluded samples:
-    if(!is.null(param$excludedSamples)){
+    if(param$excludedSamples != ''){
         excludedSamples <- as.vector(gsub(' ', '', limma::strsplit2(param$excludedSamples, split = ',')))
         toExclude <- which(fastqInfo[['sample_accession']] %in% excludedSamples)
         if(length(toExclude) > 0){
@@ -20,7 +20,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         }
     }
     
-    if(!is.null(param$includedSamples)){
+    if(param$includedSamples != ''){
         includedSamples <- as.vector(gsub(' ', '', limma::strsplit2(param$includedSamples, split = ',')))
         toInclude <- which(fastqInfo[['sample_accession']] %in% includedSamples)
         if(length(toInclude) > 0){
@@ -198,14 +198,13 @@ EzAppENA <-
                         appDefaults <<- rbind(
                             excludedSamples = ezFrame(
                                 Type = "character",
-                                DefaultValue = NULL,
-                                Description = 'sample_accession SAMN-ids for samples to exclude'
-                            ),
+                                DefaultValue = "",
+                                Description = 'sample_accession SAMN-ids for samples to exclude'),
                             includedSamples = ezFrame(
                                 Type = "character",
-                                DefaultValue = NULL,
-                                Description = 'sample_accession SAMN-ids for samples to include'
-                            ))
+                                DefaultValue = "",
+                                Description = 'sample_accession SAMN-ids for samples to include')
+                            )
                     }
                 )
     )
