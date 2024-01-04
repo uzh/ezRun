@@ -180,7 +180,7 @@ qcStats[ "Doublets", ] <- c(
   NA, 
   round(sum(allCellsMeta$qc.doublet) / nrow(allCellsMeta), 2)
 )
-qcStats[ "Total removed (auto)", ] <- c(
+qcStats[ "Total removed (thresholding)", ] <- c(
   sum(!allCellsMeta$useCell), 
   NA, 
   NA, 
@@ -203,7 +203,8 @@ kable(qcStats,
       row.names=TRUE,
       caption="Number of cells removed") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "float_right")
+                position = "float_right") %>%
+  kableExtra::group_rows(group_label = "Cells Removed by QC Thresholds", start_row = 1, end_row = 5)
 ```
 
 <br/>
