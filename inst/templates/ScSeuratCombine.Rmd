@@ -44,12 +44,13 @@ if (file.exists("singler.results.rds")){
 } else {
   singler.results <- NULL
 }
-if (file.exists("aziResults.rds")){
-  aziResults <- readRDS("aziResults.rds")
-  scData <- AddMetaData(scData, aziResults)
+
+if ("Azimuth.celltype.l1" %in% colnames(scData@meta.data)){
+    aziResults <- TRUE    
 } else {
-  aziResults <- NULL
+    aziResults <- NULL
 }
+    
 if (file.exists("cells.AUC.rds")){
   cells.AUC <- readRDS("cells.AUC.rds")
 } else {
@@ -404,6 +405,7 @@ cat("\n\n")
 ### Azimuth 
 
 ```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=6}
+DimPlot(scData, reduction="umap", group.by="Batch")
 DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap")
 if ("Azimuth.celltype.l2" %in% colnames(scData@meta.data))
     DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")

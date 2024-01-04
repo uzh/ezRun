@@ -101,6 +101,10 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   # Load the data and prepare metadata for integration
   scDataList <- lapply(names(filePath), function(sm) {
     scData <- readRDS(filePath[sm])
+    if(file.exists(file.path(filePath[sm],'aziResults.rds'))){
+        aziResults <- readRDS(file.path(filePath[sm],'aziResults.rds'))
+        scData <- AddMetaData(scData, aziResults)
+    }
     scData$Sample <- sm
     # If we have new information in the Condition column, add it to the dataset
     if (all(scData$Condition == "NA" | scData$Condition == "") || 
