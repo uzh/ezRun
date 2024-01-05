@@ -129,7 +129,7 @@ cellClustWithCorrection <- function (scDataList, param) {
   
   #2. Data integration
   #2.1. # Select the most variable features to use for integration
-  integ_features <- SelectIntegrationFeatures(object.list = scDataList, nfeatures = 3000)
+  integ_features <- SelectIntegrationFeatures(object.list = scDataList, nfeatures = param$nfeatures)
   
   if (param$integrationMethod %in% c("RPCA", "CCA")) {
     #2.2. Prepare the SCT list object for integration

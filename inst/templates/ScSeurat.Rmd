@@ -68,6 +68,12 @@ if (file.exists("enrichRout.rds")){
 } else {
   enrichRout <- NULL
 }
+if (file.exists("cellsPerGeneFraction.rds")){
+    cellsPerGeneFraction <-  readRDS("cellsPerGeneFraction.rds")
+} else {
+  cellsPerGeneFraction <- NULL
+}
+
 
 # Process the posMarkers
 posMarkers$gene = as.factor(posMarkers$gene)
@@ -146,6 +152,8 @@ plotColData(xxAll, x="nCount_RNA", y="doubletScore", colour_by="discard") + scal
 A standard approach is to filter cells with a low amount of reads as well as genes that are present in at least a certain amount of cells. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality cells. 
 When the parameter values of nreads, ngenes and perc_mito are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding cells that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Cells with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
 
+<div class = "row">
+<div class = "col-md-6">
 ```{r low quality cells}
 library(UpSetR)
 qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
@@ -153,7 +161,11 @@ qcList <- qcList[sapply(qcList, length) > 0]
 if (length(qcList) > 1){
   UpSetR::upset(fromList(qcList), nsets = 5)
 }
+```
+</div>
 
+<div class = "col-md-6">
+```{r echo=FALSE}
 qcStats <- ezFrame("Number of Cells"=integer(0), 
                    "Min Pass Value"=integer(0), 
                    "Max Pass Value"=integer(0), 
@@ -202,21 +214,39 @@ qcStats[ "Cells remaining", ] <- c(
 kable(qcStats,
       row.names=TRUE,
       caption="Number of cells removed") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "float_right") %>%
-  kableExtra::group_rows(group_label = "Cells Removed by QC Thresholds", start_row = 1, end_row = 5)
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% kableExtra::group_rows(group_label = "Cells Removed by QC Thresholds", start_row = 1, end_row = 5)
 ```
+</div>
+</div>
 
 <br/>
 
 #### Gene filtering
 
-We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
+We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r 100*param$cellsFraction` % of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
 
-```{r gene filtering}
-cat("genes kept:", nrow(scData))
+```{r, fig.align='center', fig.width=14}
+cat("total genes:", nrow(cellsPerGeneFraction), "\n")
+cat("genes kept:", nrow(scData), ", fraction:", round(nrow(scData)/nrow(cellsPerGeneFraction), digits = 2), " \n")
+if(!is.null(cellsPerGeneFraction)) {
+    p = ggplot(cellsPerGeneFraction, aes(frac)) + geom_histogram(
+        aes(y = after_stat(density)),
+        colour = "black",
+        fill = "white",
+        binwidth = 0.005
+    )
+    p = p + geom_vline(
+        aes(xintercept = param$cellsFraction),
+        color = "red",
+        linetype = "dashed",
+        size = 1
+    )
+    p = p + geom_density(alpha = .2, fill = "#FF6666") + labs(x = "Fraction") + ggtitle('Fraction of cells per gene')
+    p
+}
 ```
 
+<br/>
 
 #### Dimensionality reduction
 
@@ -233,7 +263,7 @@ plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
 p <- ggplot(plot_df, aes(cumu, pct, label = rank, color = rank > param$npcs))
 p <- p + geom_vline(xintercept = cumu[param$npcs], color = "grey") + geom_text() 
 p <- p + xlab(paste("Variance based on 50 PCs of", param$nfeatures, "features")) +  ylab("Cumulative variance in % explained per PC") 
-p <- p + theme_bw() + labs(color = paste("PC >", param$npcs))
+p <- p + theme_bw() + labs(color = paste("PC >", param$npcs)) + theme(legend.position = "bottom")
 p <- p + annotate(geom="text", y=max(plot_df$pct), x=max(plot_df$cumu[param$npcs]), label=paste('Variance used:', round(plot_df$cumu[param$npcs], digits = 2), '%'), color="red")
 p
 ```

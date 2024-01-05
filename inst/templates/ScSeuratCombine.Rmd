@@ -85,7 +85,7 @@ The UMAPs and the barplot below can help us to visualize if the clusters are bal
 
 <br/><br/>
 
-```{r UMAP and barplot batch, fig.width=8, fig.height=5}
+```{r UMAP and barplot batch, fig.width=10, fig.height=7}
 if(!('Batch' %in% colnames(scData@meta.data)))
     scData@meta.data[['Batch']] <- scData@meta.data[['Sample']]
 DimPlot(scData, reduction =  "umap_noCorrected", group.by = "Batch")
@@ -93,7 +93,8 @@ cellIdents_perBatch = data.frame(scData@meta.data[,c("ident_noCorrected", "Batch
 barplot = ggplot(data=cellIdents_perBatch, aes(x=cellIdents_perBatch[,1], fill=Batch)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Batch")
 cells_prop = cellsProportion(scData, groupVar1 = "ident_noCorrected", groupVar2 = "Batch")
-kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per batch") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per batch") %>% kable_styling(bootstrap_options = "striped") %>% scroll_box(width = "100%", height = "800px")
+#bootstrap_options = "striped", full_width = F, position = "float_right"
 ```
 
 ```{r UMAP per Cluster before correction}
@@ -112,7 +113,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per co
 
 ### Clustering
 
-```{r no_integration, eval = !param$batchCorrection,results='asis'}
+```{r no_integration, eval = param$integrationMethod=='none',results='asis'}
 cat("We started by merging all the samples in one dataset and then used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.")
 if(ezIsSpecified(param$SCT.regress.CellCycle) && 
       param$SCT.regress.CellCycle) {
@@ -124,7 +125,7 @@ cat("The UMAPs below place similar cells together in low-dimensional space. The 
 ```
 
 
-```{r integration, eval = param$batchCorrection,results='asis'}
+```{r integration, eval = param$integrationMethod!='none',results='asis'}
 cat("After inspecting the datasets and observing that cells clustered by sample we decided to integrate samples using shared highly variable genes. Oftentimes, when clustering cells from multiple conditions there are condition-specific clusters and integration can help ensure the same cell types cluster together.\n We started by normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes in each sample separately. For this, we used the SCtransform method from the Seurat package which accounts for cellular sequencing depth, or nUMIs by default.")
 cat("\n")
 if(ezIsSpecified(param$SCT.regress.CellCycle) && 
@@ -134,7 +135,8 @@ if(ezIsSpecified(param$SCT.regress.CellCycle) &&
 cat("\n")
 cat("To integrate, we applied the following steps:")
 cat("\n\n")
-cat("**1. Perform canonical correlation analysis (CCA):** CCA identifies shared sources of variation between the conditions/groups. It is a form of PCA, in that it identifies the greatest sources of variation in the data, but only if it is shared or conserved across the conditions/groups (using the 3000 most variant genes from each sample).")
+cat(paste("**1. Perform integration method",param$integrationMethod, "**")) 
+    #CCA identifies shared sources of variation between the conditions/groups. It is a form of PCA, in that it identifies the greatest sources of variation in the data, #but only if it is shared or conserved across the conditions/groups (using the 3000 most variant genes from each sample).")
 cat("\n\n")
 cat("**2. Identify anchors or mutual nearest neighbors (MNNs) across datasets (sometimes incorrect anchors are identified):** MNNs are like good friends. For each cell in one sample, the cell's closest neighbor in the other sample is identified based on gene expression values as it's best neighbor.The reciprical analysis is performed, and if the two cells are 'best friends' in both directions, then those cells will be marked as anchors to 'anchor' the two datasets together.")
 cat("\n\n")
@@ -161,7 +163,8 @@ barplot + labs(x="Cluster", y = "Number of cells", fill = "Batch")
 #cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2="Batch")
 cells_prop = cellsProportion(scData, groupVar1 = "ident", groupVar2="Batch")
 
-kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+#kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per batch") %>% kable_styling(bootstrap_options = "striped") %>% scroll_box(width = "100%", height = "800px")
 ```
 
 ```{r UMAP per Condition after correction, eval=length(unique(scData$Batch)) != length(unique(scData$Condition))}
@@ -181,8 +184,18 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 DimPlot(scData, reduction="umap", group.by="ident", label = TRUE)
 ```
 
-```{r, fig.align='center'}
-ElbowPlot(scData, ndims = param$npcs)
+```{r, fig.align='center', fig.width=14}
+pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
+cumu <- cumsum(pct)
+plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
+
+# Elbow plot
+p <- ggplot(plot_df, aes(cumu, pct, label = rank, color = rank > param$npcs))
+p <- p + geom_vline(xintercept = cumu[param$npcs], color = "grey") + geom_text() 
+p <- p + xlab(paste("Variance based on 50 PCs of", param$nfeatures, "features")) +  ylab("Cumulative variance in % explained per PC") 
+p <- p + theme_bw() + labs(color = paste("PC >", param$npcs)) + theme(legend.position = "bottom")
+p <- p + annotate(geom="text", y=max(plot_df$pct), x=max(plot_df$cumu[param$npcs]), label=paste('Variance used:', round(plot_df$cumu[param$npcs], digits = 2), '%'), color="red")
+p
 ```
 
 ### Cluster assessment
@@ -218,7 +231,7 @@ One of the most important parameters when clustering is k, the number of nearest
 Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
 
 ```{r, fig.align='center', fig.width=6, fig.height=8}
-if(param$batchCorrection == TRUE & param$integrationMethod != "Harmony") {
+if(!(param$integrationMethod %in% c("none","Harmony"))) {
    clustree::clustree(scData, prefix = "integrated_snn_res.")
 } else {
   clustree::clustree(scData, prefix = "SCT_snn_res.")
@@ -485,7 +498,7 @@ AUCell_plotTSNE(tSNE=cellsUmap,
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "batchCorrection")]
+param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "integrationMethod")]
 ```
 
 ### SessionInfo

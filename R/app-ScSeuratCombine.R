@@ -30,9 +30,6 @@ EzAppScSeuratCombine <-
                                         resolution=ezFrame(Type="numeric", 
                                                            DefaultValue=0.6,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
-                                        batchCorrection=ezFrame(Type="logical", 
-                                                                DefaultValue="TRUE",
-                                                                Description="Perform batch correction."),
                                         integrationMethod=ezFrame(Type="character", 
                                                                   DefaultValue="CCA", 
                                                                   Description="Choose integration method in Seurat (CCA or RPCA)"),
@@ -101,8 +98,9 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   # Load the data and prepare metadata for integration
   scDataList <- lapply(names(filePath), function(sm) {
     scData <- readRDS(filePath[sm])
-    if(file.exists(file.path(filePath[sm],'aziResults.rds'))){
-        aziResults <- readRDS(file.path(filePath[sm],'aziResults.rds'))
+    aziFilePath <- file.path(dirname(filePath[sm]),'aziResults.rds')
+    if(file.exists(aziFilePath)){
+        aziResults <- readRDS(aziFilePath)
         scData <- AddMetaData(scData, aziResults)
     }
     scData$Sample <- sm
@@ -173,7 +171,7 @@ seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
   }
   
   scData_noCorrected <- cellClustNoCorrection(scDataList, param)
-  if (param$batchCorrection) {
+  if (param$integrationMethod!='none') {
     scData_corrected = cellClustWithCorrection(scDataList, param)
     #in order to compute the markers we switch again to the original assay
     DefaultAssay(scData_corrected) <- "SCT"

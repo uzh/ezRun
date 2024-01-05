@@ -251,9 +251,11 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   
   ## remove low expressed genes
   num.cells <- param$cellsFraction * ncol(scData) # if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
-  is.expressed <- Matrix::rowSums(GetAssayData(scData, layer="counts") >= param$nUMIs) >= num.cells
+  cellsPerGene <- Matrix::rowSums(GetAssayData(scData, layer="counts") >= param$nUMIs)
+  is.expressed <- cellsPerGene >= num.cells
+  cellsPerGeneFraction <- data.frame(frac = cellsPerGene/ncol(scData), row.names = rownames(cellsPerGene))
   scData <- scData[is.expressed,]
-
+  
   ## Add Cell Cycle information to Seurat object as metadata columns
   scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM)
   ## Get information on which variables to regress out in scaling/SCT
@@ -289,8 +291,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
   
   makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, 
-                enrichRout=anno$enrichRout, cells.AUC=anno$cells.AUC, 
-                singler.results=anno$singler.results, aziResults=anno$aziResults,
+                cellsPerGeneFraction = cellsPerGeneFraction, enrichRout=anno$enrichRout, 
+                cells.AUC=anno$cells.AUC, singler.results=anno$singler.results, aziResults=anno$aziResults,
                 pathwayActivity=anno$pathwayActivity, TFActivity=anno$TFActivity,
                 rmdFile = "ScSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
   #remove no longer used objects
