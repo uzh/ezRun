@@ -95,6 +95,10 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
     filePath <- filePath_course
   names(filePath) <- input$getNames()
   
+  if (length(filePath) < 2) {
+    stop("need at least two samples to combine.")
+  }
+  
   # Load the data and prepare metadata for integration
   scDataList <- lapply(names(filePath), function(sm) {
     scData <- readRDS(filePath[sm])
