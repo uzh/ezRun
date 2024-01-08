@@ -34,6 +34,7 @@ library(AUCell)
 library(ezRun)
 library(HDF5Array)
 library(enrichR)
+library(patchwork)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 # clusterInfoFile <- "clusterInfos.xlsx" # -- not used
@@ -277,9 +278,15 @@ In order to find clusters of cells we first built a graph called K-nearest neigh
 
 We can visualize the distribution of clusters in the TSNE and UMAP plots. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
 
-```{r}
-DimPlot(scData, reduction="tsne", label = TRUE)
-DimPlot(scData, reduction="umap", label = TRUE)
+```{r,  fig.height=8, fig.width=20}
+p1 <- DimPlot(scData, reduction="tsne", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
+p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
+
+p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
+p2 <- LabelClusters(p2, id = "ident",  fontface = "bold", color = "black", size = 6)
+
+p1 + p2 + plot_annotation(
+) + plot_layout(nrow = 1)
 ```
 
 <br/><br/>
@@ -290,7 +297,7 @@ The number of cells in each cluster and sample is represented in this barplot.
 
 ```{r number of cells in each cluster}
 cellIdents_perSample <- data.frame(ident = Idents(scData), Sample=scData$Sample)
-barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Sample)) + geom_bar(stat="Count")
+barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Sample)) + geom_bar(stat="Count") + NoLegend()
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample") + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
 
 
@@ -310,7 +317,9 @@ We can explore whether the cells cluster by the different cell cycle phases. In 
 if (any(!is.na(scData$CellCycle))){
   DimPlot(scData, label=FALSE, group.by= "CellCycle")
 }
-DimPlot(scData, reduction="umap", label = TRUE)
+p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
+p2 <- LabelClusters(p2, id = "ident",  fontface = "bold", color = "black", size = 6)
+p2
 ```
 
 ```{r uninteresting variation, fig.width=6, fig.height=6}
