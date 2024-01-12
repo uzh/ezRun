@@ -48,23 +48,23 @@ ezMethodCrisprScreenQC <- function(input, output, param){
         system2("mageck", args = c("count", "-l", refFile, "--fastq", inputFiles[i], "-n", sampleNames[i]))
         resultFile <- paste0(sampleNames[i], '.count.txt')
         if(file.exists(resultFile)){
-        counts <- ezRead.table(resultFile, row.names = NULL)
-        counts[['Lib']] = sub('--.*', '', counts$sgRNA)
-        countsPerLib[[i]] <- tapply(counts$sample1, INDEX = counts$Lib, FUN = sum)
-        topFeatureResults[[i]] <- counts[order(counts$sample1, decreasing = TRUE),][1:param$topFeatures,]
+            counts <- ezRead.table(resultFile, row.names = NULL)
+            counts[['Lib']] = sub('--.*', '', counts$sgRNA)
+            countsPerLib[[i]] <- tapply(counts$sample1, INDEX = counts$Lib, FUN = sum)
+            topFeatureResults[[i]] <- counts[order(counts$sample1, decreasing = TRUE),][1:param$topFeatures,]
+        } else {
+            samplesToRemove <- c(samplesToRemove, sampleNames[i])
+        }
         fq <- readFastq(inputFiles[i])
         reads <- sread(fq)
         consMatrix <- consensusMatrix(reads, as.prob = TRUE)
         consMatrix <- consMatrix[rownames(consMatrix) %in% c('A', 'C','G','T'),]
         PWMs[[i]] <- makePWM(consMatrix)
-        } else {
-           samplesToRemove <- c(samplesToRemove, sampleNames[i])
-        }
     }
+    names(PWMs) <- sampleNames
     if(length(samplesToRemove) > 0){
         sampleNames <- sampleNames[!(sampleNames %in% samplesToRemove)]
     }
-    names(PWMs) <- sampleNames
     names(topFeatureResults) <- sampleNames
     names(countsPerLib) <- sampleNames
     sgRNAPerLib <- table(counts[['Lib']])
