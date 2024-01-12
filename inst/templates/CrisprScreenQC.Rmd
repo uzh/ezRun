@@ -77,9 +77,11 @@ countsPerLib <- data$countsPerLib
     myTable <- c()
 for (nm in names(topFeatureResults)){
     topFeatureResult <- data.frame(topFeatureResults[[nm]])
-    topFeatureResult[['Sample']] = nm
-    colnames(topFeatureResult) <- c('sgRNA', 'Gene', 'Count', 'Library', 'Sample')
-    myTable <- rbind(myTable, topFeatureResult)
+    if(nrow(topFeatureResult)>0){
+        topFeatureResult[['Sample']] = nm
+        colnames(topFeatureResult) <- c('sgRNA', 'Gene', 'Count', 'Library', 'Sample')
+        myTable <- rbind(myTable, topFeatureResult)
+    }
 }
 ezInteractiveTableRmd(myTable)
 ```
