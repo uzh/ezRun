@@ -35,6 +35,7 @@ library(ezRun)
 library(HDF5Array)
 library(enrichR)
 library(patchwork)
+library(SCpubr)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 # clusterInfoFile <- "clusterInfos.xlsx" # -- not used
@@ -105,7 +106,7 @@ We use several common QC metrics to identify low-quality cells based on their ex
 3. The proportions of mitochondrial and ribosomal genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
 
 <br/>
-```{r}
+```{r prepare QC}
 xxAll <- SingleCellExperiment(colData = allCellsMeta)
 xxAll$discard <- !xxAll$useCell
 scData.unfiltered <- CreateSeuratObject(ezMatrix(0, rows=1:10, cols=rownames(allCellsMeta)), meta.data = allCellsMeta)
@@ -166,7 +167,7 @@ if (length(qcList) > 1){
 </div>
 
 <div class = "col-md-6">
-```{r echo=FALSE}
+```{r qc table, echo=FALSE}
 qcStats <- ezFrame("Number of Cells"=integer(0), 
                    "Min Pass Value"=integer(0), 
                    "Max Pass Value"=integer(0), 
@@ -226,7 +227,7 @@ kable(qcStats,
 
 We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r 100*param$cellsFraction` % of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
 
-```{r, fig.align='center', fig.width=14}
+```{r gene qc, fig.align='center', fig.width=14, results='asis'}
 cat("total genes:", nrow(cellsPerGeneFraction), "\n")
 cat("genes kept:", nrow(scData), ", fraction:", round(nrow(scData)/nrow(cellsPerGeneFraction), digits = 2), " \n")
 if(!is.null(cellsPerGeneFraction)) {
@@ -255,7 +256,7 @@ Dimensionality reduction aims to reduce the number of separate dimensions in the
 
 The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
 
-```{r, fig.align='center', fig.width=14}
+```{r scree plot, fig.align='center', fig.width=14}
 pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
 cumu <- cumsum(pct)
 plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
@@ -278,7 +279,7 @@ In order to find clusters of cells we first built a graph called K-nearest neigh
 
 We can visualize the distribution of clusters in the TSNE and UMAP plots. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
 
-```{r,  fig.height=8, fig.width=20}
+```{r clustering plot1, fig.height=8, fig.width=20}
 p1 <- DimPlot(scData, reduction="tsne", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
 p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
 
@@ -313,7 +314,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
-```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$CellCycle)}
+```{r cell cycle, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$CellCycle)}
 if (any(!is.na(scData$CellCycle))){
   DimPlot(scData, label=FALSE, group.by= "CellCycle")
 }
@@ -343,24 +344,22 @@ print(FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
 
 ```
 
-```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$DecontX_contFrac)}
+```{r decontx, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$DecontX_contFrac)}
 VlnPlot(scData, features ="DecontX_contFrac", y.max=1) + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
 FeaturePlot(scData, features="DecontX_contFrac", label = TRUE)
 ```
 
-```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$SoupX_contFrac)}
+```{r soupx, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$SoupX_contFrac)}
 VlnPlot(scData, features ="SoupX_contFrac", y.max=1) + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
 FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
-
 ```
 
-```{r, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$negLog10CellPValue)}
+```{r cell probability, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$negLog10CellPValue)}
 VlnPlot(scData, features ="negLog10CellPValue") + ggtitle("negative log10 Cell PValue") + NoLegend()
 FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
-
 ```
 
-```{r, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)*3/4, c(6, 18)), eval=ezIsSpecified(param$controlSeqs)}
+```{r control seq plot, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)*3/4, c(6, 18)), eval=ezIsSpecified(param$controlSeqs)}
 genesToPlot <- gsub("_", "-", param$controlSeqs)
 genesToPlot <- intersect(genesToPlot, rownames(scData))
 if (length(genesToPlot) > 0){
@@ -373,7 +372,7 @@ if (length(genesToPlot) > 0){
 One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected. 
 Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
 
-```{r, fig.align='center', fig.width=6, fig.height=8}
+```{r clustree, fig.align='center', fig.width=6, fig.height=8}
 clustree::clustree(scData, prefix = paste0(DefaultAssay(scData), "_snn_res."))
 ```
 
@@ -398,16 +397,28 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 
 <br/>
 
-```{r heatmap, fig.width=12, fig.height=length(levels(Idents(scData)))}
+```{r marker plot setup}
 top5 <- posMarkers %>% 
   group_by(cluster) %>%
   slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
 genesToPlot <- intersect(genesToPlot, rownames(scData))
+```
 
+#### Heatmap & DotPlot
+
+```{r marker heatmap, fig.width=12, fig.height=length(levels(Idents(scData)))}
 DoHeatmap(scData, features=unique(genesToPlot))
 DotPlot(scData, features=genesToPlot) + coord_flip() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+```
+
+#### Group-wise DE Plot
+
+```{r marker groupwise plot, fig.width=13, fig.height=length(levels(Idents(scData)))}
+do_GroupwiseDEPlot(sample = scData,
+                   de_genes = posMarkers %>% mutate(gene=as.character(gene)),
+                   min.cutoff = 1)
 ```
 
 ```{r plot of user genes, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)/5, c(6, 12)), eval=ezIsSpecified(param$controlSeqs)}
