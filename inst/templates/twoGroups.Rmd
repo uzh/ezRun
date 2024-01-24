@@ -377,11 +377,6 @@ knitr::kable(as.data.frame(settings),
 ```
 
 #### Cluster plot
-```{r javascript, echo=FALSE, results='asis', eval=!debug}
-jsFile <- system.file("extdata/enrichr.js", package = "ezRun", mustWork = TRUE)
-invisible(file.copy(from = jsFile, to = basename(jsFile), overwrite = TRUE))
-cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
-```
 
 ```{r cluster, echo=FALSE, message=FALSE, fig.width=max(8,4+0.15*ncol(se)), fig.height=10, fig.retina=2, warning=FALSE, eval=!debug && !hasMassiveFeats}
 ## for clustering we use a moderated logSignal

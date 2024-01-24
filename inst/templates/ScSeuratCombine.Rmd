@@ -66,15 +66,23 @@ if (file.exists("enrichRout.rds")){
   enrichRout <- NULL
 }
 
+
+posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
+# Process the posMarkers
+posMarkers$gene = as.factor(posMarkers$gene)
+# make sure the loaded cluster uses proper integer ordering if all levels are integer!
+clusterSet <- posMarkers$cluster %>% as.integer() %>% unique() %>% sort(na.last=TRUE)
+if (any(is.na(clusterSet))){
+  posMarkers$cluster = as.factor(posMarkers$cluster)
+} else {
+  posMarkers$cluster = factor(posMarkers$cluster, levels=clusterSet)
+}
+
+
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 pvalue_allMarkers <- 0.05
 ```
 
-```{r javascript, results='asis'}
-jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
-invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
-cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
-```
 
 ## Analysis results {.tabset}
 
@@ -251,9 +259,6 @@ cat("We found positive markers that defined clusters compared to all other cells
 #### Expression differences of cluster marker genes
 
 ```{r pos markers}
-posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
-posMarkers$cluster = as.factor(posMarkers$cluster)
-posMarkers$gene = as.factor(posMarkers$gene)
 ezInteractiveTableRmd(posMarkers, digits=4)
 ```
 

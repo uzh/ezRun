@@ -96,7 +96,7 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
       readSet = switch(nm,
                        multiMatchTargetTypeCounts="Uniquely and multi-matching reads:",
                        uniqueMatchTargetTypeCounts="Uniquely matching reads:")
-      cat("###", paste(readSet, "Match Count Percentages"), "\n")
+      cat("\n###", paste(readSet, "Match Count Percentages"), "\n")
       tct = getTypeCountTable(resultList, nm)
       ezWrite.table(tct, file=paste0(nm, ".txt"), digits=4)
       tpt = as.matrix(tct)

@@ -65,12 +65,6 @@ if (ncol(rawData) < 2){
 }
 ```
 
-```{r javascript, echo=FALSE, results='asis', eval=TRUE}
-jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
-invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
-cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
-```
-
 
 ```{r prepare signal, include=FALSE}
 assays(rawData)$signal <- shiftZeros(ezNorm(assays(rawData)$counts,

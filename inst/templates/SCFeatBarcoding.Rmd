@@ -53,12 +53,6 @@ if (file.exists("singler.results.rds")){
 ```
 
 
-```{r javascript, echo=FALSE, results='asis'}
-jsFile = system.file("extdata/enrichr.js", package="ezRun", mustWork=TRUE)
-invisible(file.copy(from=jsFile, to=basename(jsFile), overwrite=TRUE))
-cat(paste0("<SCRIPT language=\"JavaScript\" SRC=\"", basename(jsFile), "\"></SCRIPT>"))
-```
-
 ```{r}
 output <- metadata(sce.singlets)$output
 species <- getSpecies(param$refBuild)
