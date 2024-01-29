@@ -269,7 +269,8 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 <br/>
 
 ```{r marker plot setup}
-top5 <- posMarkers %>% 
+top5 <- posMarkers %>%
+  mutate(cluster = as.numeric(as.character(cluster))) %>%  # Convert cluster to numeric
   group_by(cluster) %>%
   slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
