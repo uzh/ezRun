@@ -405,7 +405,7 @@ if(file.exists("cluster-heatmap-clusterMembers.txt")){
 ## MDS Plot
 ```{r MDS section, echo=FALSE, results='asis', message=FALSE, eval=TRUE}
 if(ncol(rawData) <= 3){
-  cat("MDS plot is not possible with fewer than 3 samples. \n")
+  cat("MDS plot is not possible with fewer than 4 samples. \n")
 }
 ```
 
