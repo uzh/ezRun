@@ -45,9 +45,24 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   sampleDir <- paste(sampleDirs, collapse = ",")
   spaceRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-spaceRanger")
   spaceRangerFolder <- gsub('\\.', '_', spaceRangerFolder)
-  if(sampleName != sampleNameFQ){
+  
+  if(length(sampleNameFQ) == 1){
+    if(sampleName != sampleNameFQ){
       sampleName <- sampleNameFQ
-  }
+    }
+  } else if(any(sampleNameFQ != sampleName)){
+      #2.1 Fix FileNames
+      cwd <- getwd()
+      sampleNameFQ <- file.path(strsplit(sampleDir, ',')[[1]], sampleNameFQ)
+      for (fileLevelDir in sampleNameFQ) {
+              setwd(fileLevelDir)
+              cmd <- paste('rename', 
+                           paste0('s/', basename(fileLevelDir),'/',sampleName, '/g'), 
+                           paste0(basename(fileLevelDir),'*.gz'))
+              ezSystem(cmd)
+          }
+          setwd(cwd)
+      }
   
   inputCols <- colnames(input$meta)
   
