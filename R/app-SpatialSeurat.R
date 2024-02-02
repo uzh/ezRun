@@ -98,6 +98,8 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   on.exit(setwd(cwd), add=TRUE)
   library(Seurat)
   library(scater)
+  library(Azimuth)
+  #library(loupeR)
   
   cmDir <- input$getFullPaths("CountMatrix")
   featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
@@ -123,6 +125,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   remove(res)
   
   scDataRes <- runBasicProcessing(scData,input, featInfo, param)
+  cellsPerGeneFraction <- scDataRes[['cellsPerGeneFraction']]
   scData <- scDataRes[['scData']]
   scData.unfiltered <- scDataRes[['scData.unfiltered']]
   remove(scDataRes)
@@ -147,11 +150,38 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   spatialPosMarkers <- intersect(clusterMarkers$gene, spatialMarkers$GeneSymbol)
   clusterMarkers[which(clusterMarkers$gene %in% spatialPosMarkers), 'isSpatialMarker'] = TRUE
   
+  # run Azimuth
+  if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none"){
+      environment(MyDietSeurat) <- asNamespace('Seurat')
+      assignInNamespace("DietSeurat", MyDietSeurat, ns = "Seurat")
+      rna_assay <- CreateAssay5Object(counts = GetAssayData(scData, assay = 'Spatial', layer = 'counts'))
+      scData[["RNA"]] <- scData[["Spatial"]] #rna_assay
+      
+      scDataAzi <- RunAzimuth(scData, param$Azimuth, assay="RNA") ## TODO support ADT
+      
+      ##Rename annotation levels if neccessary:
+      colnames(scDataAzi@meta.data) <- sub('level_', 'l', colnames(scDataAzi@meta.data))
+      
+      aziNames <- setdiff(colnames(scDataAzi@meta.data), colnames(scData@meta.data))
+      aziResults <- data.frame(
+          Azimuth.celltype.l1=scDataAzi@meta.data[ , grep("l1$", aziNames, value=TRUE)],
+          Azimuth.celltype.l2=scDataAzi@meta.data[ , grep("l2$", aziNames, value=TRUE)],
+          Azimuth.celltype.l3=scDataAzi@meta.data[ , grep("l3$", aziNames, value=TRUE)],
+          Azimuth.celltype.l4=scDataAzi@meta.data[ , grep("l4$", aziNames, value=TRUE)],
+          row.names=colnames(scDataAzi))
+      scData[["RNA"]] <- NULL
+      saveRDS(aziResults, "aziResults.rds")
+      remove(scDataAzi)
+  } else {
+      aziResults <- NULL
+  }
+  
   #Save some results in external files
   geneMeansPerCluster <- data.frame(AverageExpression(scData, group.by = 'ident')$SCT)
   geneMeans <-  data.frame(AverageExpression(scData, group.by = 'Sample')$SCT)
   
-  dataFiles <- saveExternalFiles(list(cluster_markers=clusterMarkers, spatial_markers=data.frame(spatialMarkers), gene_means = geneMeans, gene_means_per_cluster = geneMeansPerCluster))
+  dataFiles <- saveExternalFiles(list(cluster_markers=clusterMarkers, spatial_markers=data.frame(spatialMarkers), 
+                                      gene_means = geneMeans, gene_means_per_cluster = geneMeansPerCluster))
   
   saveRDS(scData, "scData.rds")
   allCellsMeta <- scData.unfiltered@meta.data
@@ -162,9 +192,10 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   saveRDS(param, "param.rds")
   saveRDS(input, "input.rds")
   saveRDS(scDataRaw, "scData.raw.rds")
+  saveRDS(cellsPerGeneFraction, "cellsPerGeneFraction.rds")
   remove(scDataRaw, scData.unfiltered, scData)
   gc()
-  makeRmdReport(dataFiles=dataFiles, rmdFile = "SpatialSeurat.Rmd", reportTitle = param$name) 
+  makeRmdReport(dataFiles=dataFiles, output=output, rmdFile = "SpatialSeurat.Rmd", reportTitle = param$name) 
   return("Success")
 }
 
@@ -176,10 +207,128 @@ runBasicProcessing <- function(scData, input, featInfo, param){
     scData_list <- filterCellsAndGenes(scData, param) # return sce objects filtered and unfiltered to show the QC metrics later in the rmd
     scData <- scData_list$scData
     scData.unfiltered <- scData_list$scData.unfiltered
+    cellsPerGeneFraction <- scData_list$cellsPerGeneFraction
     rm(scData_list)
-    
     scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM, assay = 'Spatial')
     scData.unfiltered <- addCellCycleToSeurat(scData.unfiltered, param$refBuild, BPPARAM, assay = 'Spatial')
     scData <- seuratClusteringV3(scData, param, assay="Spatial")
-    return(list(scData = scData, scData.unfiltered = scData.unfiltered))
+    return(list(scData = scData, scData.unfiltered = scData.unfiltered, cellsPerGeneFraction = cellsPerGeneFraction))
+}
+
+MyDietSeurat <- function (object, layers = NULL, features = NULL, assays = NULL, 
+                          dimreducs = NULL, graphs = NULL, misc = TRUE, counts = deprecated(), 
+                          data = deprecated(), scale.data = deprecated(), ...) 
+{
+    CheckDots(...)
+    dep.args <- c(counts = counts, data = data, scale.data = scale.data)
+    for (lyr in names(x = dep.args)) {
+        if (is_present(arg = dep.args[[lyr]])) {
+            if (is.null(x = layers)) {
+                layers <- unique(x = unlist(x = lapply(X = Assays(object = object), 
+                                                       FUN = function(x) {
+                                                           return(Layers(object = object[[x]]))
+                                                       })))
+            }
+            deprecate_soft(when = "5.0.0", what = paste0("DietSeurat(", 
+                                                         lyr, " = )"), with = "DietSeurat(layers = )")
+            layers <- if (isTRUE(x = dep.args[[lyr]])) {
+                c(layers, lyr)
+            }
+            else {
+                Filter(f = function(x) x != lyr, x = layers)
+            }
+        }
+    }
+    object <- UpdateSlots(object = object)
+    assays <- assays %||% Assays(object = object)
+    assays <- intersect(x = assays, y = Assays(object = object))
+    if (!length(x = assays)) {
+        abort(message = "No assays provided were found in the Seurat object")
+    }
+    if (!DefaultAssay(object = object) %in% assays) {
+        abort(message = "The default assay is slated to be removed, please change the default assay")
+    }
+    layers <- layers %||% assays
+    layers <- .PropagateList(x = layers, names = assays)
+    for (assay in names(x = layers)) {
+        layers[[assay]] <- tryCatch(expr = Layers(object = object[[assay]], 
+                                                  search = layers[[assay]]), error = function(...) {
+                                                      return(character(length = 0L))
+                                                  })
+    }
+    layers <- Filter(f = length, x = layers)
+    if (!length(x = layers)) {
+        abort(message = "None of the requested layers found")
+    }
+    for (assay in Assays(object = object)) {
+        if (!(assay %in% assays)) {
+            object[[assay]] <- NULL
+            next
+        }
+        layers.rm <- setdiff(x = Layers(object = object[[assay]]), 
+                             y = layers[[assay]])
+        if (length(x = layers.rm)) {
+            if (inherits(x = object[[assay]], what = "Assay") && 
+                all(c("counts", "data") %in% layers.rm)) {
+                abort(message = "Cannot remove both 'counts' and 'data' from v3 Assays")
+            }
+            for (lyr in layers.rm) {
+                suppressWarnings(object <- tryCatch(expr = {
+                    object[[assay]][[lyr]] <- NULL
+                    object
+                }, error = function(e) {
+                    if (lyr == "data") {
+                        object[[assay]][[lyr]] <- sparseMatrix(i = 1, 
+                                                               j = 1, x = 1, dims = dim(object[[assay]][[lyr]]), 
+                                                               dimnames = dimnames(object[[assay]][[lyr]]))
+                    }
+                    else {
+                        slot(object = object[[assay]], name = lyr) <- new(Class = "dgCMatrix")
+                    }
+                    message("Converting layer ", lyr, " in assay ", 
+                            assay, " to empty dgCMatrix")
+                    object
+                }))
+            }
+        }
+        if (!is.null(x = features)) {
+            features.assay <- intersect(x = features, y = rownames(x = object[[assay]]))
+            if (!length(x = features.assay)) {
+                warn(message = paste0("No features found in assay ", 
+                                      sQuote(x = assay), ", removing..."))
+                object[[assay]] <- NULL
+                next
+            }
+            
+            fixModel = FALSE
+            if('SCTModel.list' %in% slotNames(object[[assay]])){
+                myModel <- object[[assay]]@SCTModel.list$refmodel
+                fixModel = TRUE
+            }
+            suppressWarnings(object[[assay]] <- subset(x = object[[assay]], 
+                                                       features = features.assay))
+            if(fixModel){
+                object[[assay]]@SCTModel.list$refmodel <- myModel
+            }
+        }
+    }
+    if (!isTRUE(x = misc)) {
+        slot(object = object, name = "misc") <- list()
+    }
+    all.objects <- .FilterObjects(object = object, classes.keep = c("DimReduc", 
+                                                                    "Graph"))
+    objects.to.remove <- all.objects[!all.objects %in% c(dimreducs, 
+                                                         graphs)]
+    for (ob in objects.to.remove) {
+        object[[ob]] <- NULL
+    }
+    cells.keep <- list()
+    for (assay in Assays(object = object)) {
+        cells.keep[[assay]] <- colnames(x = object[[assay]])
+    }
+    cells.keep <- intersect(colnames(x = object), unlist(cells.keep))
+    if (length(cells.keep) <- ncol(x = object)) {
+        object <- subset(object, cells = cells.keep)
+    }
+    return(object)
 }

@@ -32,13 +32,29 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 param = readRDS("param.rds")
 scData <- readRDS("scData.rds")
 scData.unfiltered_spatial <- readRDS("scData.unfiltered.rds")
+scData.unfiltered_spatial@images$slice1@scale.factors$lowres=scData@images$slice1@scale.factors$lowres
 scDataRaw <- readRDS("scData.raw.rds")
 allCellsMeta <- readRDS("allCellsMeta.rds")
 if(is.null(param$imageEnlargementFactor)){
     param$imageEnlargementFactor <- 1
+} else if(param$imageEnlargementFactor > 2){
+    param$imageEnlargementFactor <- 2
 }
+
 coord <- GetTissueCoordinates(object = scData@images$slice1)
 myRatio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
+
+if (file.exists("cellsPerGeneFraction.rds")){
+    cellsPerGeneFraction <-  readRDS("cellsPerGeneFraction.rds")
+} else {
+  cellsPerGeneFraction <- NULL
+}
+if (file.exists("aziResults.rds")){
+  aziResults <- readRDS("aziResults.rds")
+  scData <- AddMetaData(scData, aziResults)
+} else {
+  aziResults <- NULL
+}
 ```
 
 ## Analysis results {.tabset}
@@ -70,7 +86,6 @@ A key assumption here is that the QC metrics are independent of the biological s
 The violin plots represent the spots that were kept (FALSE) and the ones that were discarded (TRUE) after QC filtering. The QC metrics were also plot onto the tissue section.
 
 ```{r QC plots1, fig.height=4}
-### TODO the plotColData would be much more informative!!!
 plotColData(xxAll, x="Sample", y="nCount_Spatial", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
 
 ```
@@ -125,44 +140,115 @@ plot0 + plot1 + plot2 + plot_layout(nrow = 1, ncol = 3)
 A standard approach is to filter spots with a low amount of reads as well as genes that are present in at least a certain amount of spots. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying spots, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality spots. 
 When the parameter values of nreads, ngenes, perc_mito and perc_ribo are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding spots that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Spots with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
 
-```{r low quality cells}
+<div class = "row">
+<div class = "col-md-6">
+```{r low quality spots}
 library(UpSetR)
 qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
 qcList <- qcList[sapply(qcList, length) > 0]
 if (length(qcList) > 1){
   UpSetR::upset(fromList(qcList), nsets = 5)
 }
+```
+</div>
 
+<div class = "col-md-6">
+```{r echo=FALSE}
 qcStats <- ezFrame("Number of Spots"=integer(0), 
-                      "Min Pass Value"=integer(0), "Max Pass Value"=integer(0))
-qcStats[ "Library Size", ] <- c(sum(allCellsMeta$qc.lib), 
-                               range(allCellsMeta$nCount_Spatial[allCellsMeta$useCell])) %>% as.integer()
-qcStats[ "Expressed genes", ]<- c(sum(allCellsMeta$qc.nexprs), 
-                               range(allCellsMeta$nFeature_Spatial[allCellsMeta$useCell])) %>% as.integer()
-qcStats[ "Mitochondrial Percent", ]<- c(sum(allCellsMeta$qc.mito), 
-                               range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer()
-qcStats[ "Ribosomal protein Percent", ]<- c(sum(allCellsMeta$qc.riboprot), 
-                               range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer()
-qcStats[ "Total removed", ]<- c(sum(!allCellsMeta$useCell), NA, NA)
-qcStats[ "Spots remaining", ]<- c(sum(allCellsMeta$useCell), NA, NA)
-
+                   "Min Pass Value"=integer(0), 
+                   "Max Pass Value"=integer(0), 
+                   Fraction = integer(0))
+qcStats[ "Library Size", ] <- c(
+  c(sum(allCellsMeta$qc.lib), range(allCellsMeta$nCount_Spatial[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.lib)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Expressed genes", ] <- c(
+  c(sum(allCellsMeta$qc.nexprs), range(allCellsMeta$nFeature_Spatial[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.nexprs)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Mitochondrial Percent", ] <- c(
+  c(sum(allCellsMeta$qc.mito), range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.mito)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Ribosomal protein Percent", ] <- c(
+  c(sum(allCellsMeta$qc.ribo), range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.ribo)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Total removed (thresholding)", ] <- c(
+  sum(!allCellsMeta$useCell), 
+  NA, 
+  NA, 
+  round(sum(!allCellsMeta$useCell)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Total removed (manual)", ] <- c(
+  sum(allCellsMeta$useCell) - ncol(scData), 
+  NA, 
+  NA, 
+  round((sum(allCellsMeta$useCell) - ncol(scData))/nrow(allCellsMeta), 2)
+)
+qcStats[ "Spots remaining", ] <- c(
+  sum(ncol(scData)), 
+  NA, 
+  NA, 
+  round(sum(ncol(scData))/nrow(allCellsMeta), 2)
+)
 
 kable(qcStats,
       row.names=TRUE,
       caption="Number of spots removed") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "float_right")
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% kableExtra::group_rows(group_label = "Spots Removed by QC Thresholds", start_row = 1, end_row = 5)
 ```
-
+</div>
+</div>
 <br/>
+
 
 #### Gene filtering
 
-We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r param$cellsPercentage` percent of the spots. In case one or more rare cell populations are expected we might need to decrease the percentage of spots.
+We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r 100*param$cellsFraction` % of the spots. In case one or more rare cell populations are expected we might need to decrease the percentage of spots.
 
-```{r gene filtering}
-cat("genes kept:", nrow(scData))
+```{r, fig.align='center', fig.width=14}
+cat("total genes:", nrow(cellsPerGeneFraction), "\n")
+cat("genes kept:", nrow(scData), ", fraction:", round(nrow(scData)/nrow(cellsPerGeneFraction), digits = 2), " \n")
+if(!is.null(cellsPerGeneFraction)) {
+    p = ggplot(cellsPerGeneFraction, aes(frac)) + geom_histogram(
+        aes(y = after_stat(density)),
+        colour = "black",
+        fill = "white",
+        binwidth = 0.005
+    )
+    p = p + geom_vline(
+        aes(xintercept = param$cellsFraction),
+        color = "red",
+        linetype = "dashed",
+        size = 1
+    )
+    p = p + geom_density(alpha = .2, fill = "#FF6666") + labs(x = "Fraction") + ggtitle('Fraction of spots per gene')
+    p
+}
 ```
+
+#### Dimensionality reduction
+
+Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
+
+The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
+
+```{r, fig.align='center', fig.width=14}
+pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
+cumu <- cumsum(pct)
+plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
+
+# Elbow plot
+p <- ggplot(plot_df, aes(cumu, pct, label = rank, color = rank > param$npcs))
+p <- p + geom_vline(xintercept = cumu[param$npcs], color = "grey") + geom_text() 
+p <- p + xlab(paste("Variance based on 50 PCs of", param$nfeatures, "features")) +  ylab("Cumulative variance in % explained per PC") 
+p <- p + theme_bw() + labs(color = paste("PC >", param$npcs)) + theme(legend.position = "bottom")
+p <- p + annotate(geom="text", y=max(plot_df$pct), x=max(plot_df$cumu[param$npcs]), label=paste('Variance used:', round(plot_df$cumu[param$npcs], digits = 2), '%'), color="red")
+p
+```
+
+<br/>
 
 ### Clustering
 
@@ -195,14 +281,24 @@ The number of spots in each cluster and sample is represented in this barplot.
 
 <br/>
 
+<div class = "row">
+<div class = "col-md-6">
 ```{r number of cells in each cluster}
 cellIdents_perSample <- as.data.frame(scData@meta.data[,c('seurat_clusters', 'Batch')])
-barplot = ggplot(data=cellIdents_perSample, aes(x=seurat_clusters, fill=Batch)) + geom_bar(stat="Count")
+barplot = ggplot(data=cellIdents_perSample, aes(x=seurat_clusters, fill=Batch)) + geom_bar(stat="Count") +NoLegend()
 barplot + labs(x="Cluster", y = "Number of spots", fill = "Batch")
-
-cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Batch")
-kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F) #, position = "float_right")
 ```
+</div>
+
+<div class = "col-md-6">
+```{r, echo=FALSE}
+cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Batch")
+kable(cells_prop, row.names=FALSE, format="html", caption="Spot proportions") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+</div>
+</div>
+<br/>
 
 ### Cluster assessment
 
@@ -254,18 +350,6 @@ We used the SCtransform method from the Seurat package for normalizing, estimati
 As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes.
 
 <br/>
-
-##### Principal component analysis
-
-Next, we perform PCA on the scaled data. By default, only the previously determined variable features are used as input but can be defined using the pcGenes argument if you wish to choose a different subset. Seurat clusters spots based on their PCA scores. The top principal components, therefore, represent a robust compression of the dataset. The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
-
-```{r, fig.align='center'}
-ElbowPlot(scData, ndims = 50)
-```
-
-<br/>
-
-
 
 
 ### Cluster markers
@@ -324,6 +408,28 @@ for(gene in top.features) {
    print(sp)
 }
 ```
+
+### Azimuth 
+```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=10}
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap")
+SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor = 2 * param$imageEnlargementFactor) + labs(fill = "Azimuth.celltype.l1") + theme(aspect.ratio = myRatio)
+
+if('Azimuth.celltype.l2' %in% colnames(scData@meta.data)){
+    DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")
+    SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor = 2 * param$imageEnlargementFactor) + labs(fill = "Azimuth.celltype.l2") + theme(aspect.ratio = myRatio)
+}
+if('Azimuth.celltype.l3' %in% colnames(scData@meta.data)){
+    DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap")
+    SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor = 2 * param$imageEnlargementFactor) + labs(fill = "Azimuth.celltype.l3") + theme(aspect.ratio = myRatio)
+}
+if('Azimuth.celltype.l4' %in% colnames(scData@meta.data)){
+    DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap")
+    SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor = 2 * param$imageEnlargementFactor) + labs(fill = "Azimuth.celltype.l4") + theme(aspect.ratio = myRatio)
+}
+```
+
+### Interactive
+[simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSpatial", "/?data=",output$getColumn("SC Cluster Report"), "/scData.rds")}`){target="_blank"}
 
 
 ### Data availability
