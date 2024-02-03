@@ -161,14 +161,23 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
       
       ##Rename annotation levels if neccessary:
       colnames(scDataAzi@meta.data) <- sub('level_', 'l', colnames(scDataAzi@meta.data))
-      
-      aziNames <- setdiff(colnames(scDataAzi@meta.data), colnames(scData@meta.data))
-      aziResults <- data.frame(
-          Azimuth.celltype.l1=scDataAzi@meta.data[ , grep("l1$", aziNames, value=TRUE)],
-          Azimuth.celltype.l2=scDataAzi@meta.data[ , grep("l2$", aziNames, value=TRUE)],
-          Azimuth.celltype.l3=scDataAzi@meta.data[ , grep("l3$", aziNames, value=TRUE)],
-          Azimuth.celltype.l4=scDataAzi@meta.data[ , grep("l4$", aziNames, value=TRUE)],
+      if(param$Azimuth=='mousecortexref'){
+          aziNames <- setdiff(colnames(scDataAzi@meta.data), colnames(scData@meta.data))
+          aziResults <- data.frame(
+              Azimuth.celltype.l1=scDataAzi@meta.data[ , grep("predicted.class$", aziNames, value=TRUE)],
+              Azimuth.celltype.l2=scDataAzi@meta.data[ , grep("predicted.cluster$", aziNames, value=TRUE)],
+              Azimuth.celltype.l3=scDataAzi@meta.data[ , grep("predicted.subclass$", aziNames, value=TRUE)],
+              Azimuth.celltype.l4=scDataAzi@meta.data[ , grep("predicted.cross_species_cluster$", aziNames, value=TRUE)],
+              row.names=colnames(scDataAzi))
+      } else {
+            aziNames <- setdiff(colnames(scDataAzi@meta.data), colnames(scData@meta.data))
+            aziResults <- data.frame(
+              Azimuth.celltype.l1=scDataAzi@meta.data[ , grep("l1$", aziNames, value=TRUE)],
+              Azimuth.celltype.l2=scDataAzi@meta.data[ , grep("l2$", aziNames, value=TRUE)],
+              Azimuth.celltype.l3=scDataAzi@meta.data[ , grep("l3$", aziNames, value=TRUE)],
+              Azimuth.celltype.l4=scDataAzi@meta.data[ , grep("l4$", aziNames, value=TRUE)],
           row.names=colnames(scDataAzi))
+      }
       scData[["RNA"]] <- NULL
       saveRDS(aziResults, "aziResults.rds")
       remove(scDataAzi)
