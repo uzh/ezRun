@@ -50,9 +50,13 @@ if (file.exists("cellsPerGeneFraction.rds")){
 } else {
   cellsPerGeneFraction <- NULL
 }
-if (file.exists("aziResults.rds") && ncol(aziResults)){
+if (file.exists("aziResults.rds")){
   aziResults <- readRDS("aziResults.rds")
-  scData <- AddMetaData(scData, aziResults)
+  if(ncol(aziResults) > 0){
+    scData <- AddMetaData(scData, aziResults)
+  } else {
+  aziResults <- NULL   
+  }
 } else {
   aziResults <- NULL
 }
