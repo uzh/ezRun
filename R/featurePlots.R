@@ -8,6 +8,160 @@
 
 
 
+ezImportCellRangerBam <- function (file, selection, regionTag=c("E", "N", "I"), CBvalues=NULL) 
+{
+  #based on Gviz:::.import.bam.alignments
+  
+  ## define the extra tags to read from the cellranger bam file
+  myTags <- c("xf", "RE", "CB")
+  #https://support.10xgenomics.com/single-cell-gene-expression/software/pipelines/latest/output/bam
+  xfIsRepresentative <- 8
+  
+  ## do the normal processing of input
+  indNames <- c(sub("\\.bam$", ".bai", file), paste(file, 
+                                                    "bai", sep = "."))
+  index <- NULL
+  for (i in indNames) {
+    if (file.exists(i)) {
+      index <- i
+      break
+    }
+  }
+  if (is.null(index)) {
+    stop("Unable to find index for BAM file '", file, "'. You can build an index using the following command:\n\t", 
+         "library(Rsamtools)\n\tindexBam(\"", file, "\")")
+  }
+  pairedEnd <- parent.env(environment())[["._isPaired"]]
+  if (is.null(pairedEnd)) {
+    pairedEnd <- TRUE
+  }
+  flag <- parent.env(environment())[["._flag"]]
+  if (is.null(flag)) {
+    flag <- scanBamFlag(isUnmappedQuery = FALSE)
+  }
+  bf <- BamFile(file, index = index, asMates = pairedEnd)
+  param <- ScanBamParam(which = selection, what = scanBamWhat(), 
+                        tag = c("MD", myTags), flag = flag #, ## read the extratags too
+                        #tagFilter=ifelse(is.null(CBvalues), list(), list(CB=CBvalues))
+  ) ## NOTE: tagFilter might be slow, in that case, one should read in all and filter later
+  reads <- if (as.character(seqnames(selection)[1]) %in% names(scanBamHeader(bf)$targets)) 
+    scanBam(bf, param = param)[[1]]
+  else list()
+  
+  ## my modification: filter the alignments based on the xf and the RE tag
+  useAlignment <- bitwAnd(reads$tag$xf, xfIsRepresentative) == xfIsRepresentative & reads$tag$RE %in% regionTag
+  if (!is.null(CBvalues)){
+    message("use CBvalues: ", length(CBvalues))
+    message(paste(mean(reads$tag$CB %in% CBvalues), collapse = " ")) 
+    useAlignment <- useAlignment & reads$tag$CB %in% CBvalues
+  }
+  for (nm in setdiff(names(reads), "tag")){
+    reads[[nm]] <- reads[[nm]][useAlignment]
+  }
+  for (nm in names(reads$tag)){
+    reads$tag[[nm]] <- reads$tag[[nm]][useAlignment]
+  }
+  ## alignments filtered
+  
+  ## normal processing goes on
+  md <- if (is.null(reads$tag$MD)) 
+    rep(as.character(NA), length(reads$pos))
+  else reads$tag$MD
+  if (length(reads$pos)) {
+    layed_seq <- sequenceLayer(reads$seq, reads$cigar)
+    region <- unlist(bamWhich(param), use.names = FALSE)
+    ans <- stackStrings(layed_seq, start(region), end(region), 
+                        shift = reads$pos - 1L, Lpadding.letter = "+", Rpadding.letter = "+")
+    names(ans) <- seq_along(reads$qname)
+  }
+  else {
+    ans <- DNAStringSet()
+  }
+  return(GRanges(seqnames = if (is.null(reads$rname)) character() else reads$rname, 
+                 strand = if (is.null(reads$strand)) character() else reads$strand, 
+                 ranges = IRanges(start = reads$pos, width = reads$qwidth), 
+                 id = if (is.null(reads$qname)) character() else reads$qname, 
+                 cigar = if (is.null(reads$cigar)) character() else reads$cigar, 
+                 mapq = if (is.null(reads$mapq)) integer() else reads$mapq, 
+                 flag = if (is.null(reads$flag)) integer() else reads$flag, 
+                 md = md, seq = ans, isize = if (is.null(reads$isize)) integer() else reads$isize, 
+                 groupid = if (pairedEnd) if (is.null(reads$groupid)) integer() else reads$groupid else seq_along(reads$pos), 
+                 status = if (pairedEnd) {
+                   if (is.null(reads$mate_status)) factor(levels = c("mated", 
+                                                                     "ambiguous", "unmated")) else reads$mate_status
+                 } else {
+                   rep(factor("unmated", levels = c("mated", "ambiguous", 
+                                                    "unmated")), length(reads$pos))
+                 }))
+}
+
+
+
+plotCellRangerCoverage = function(gRanges, bamFiles, txdb, regionTag=c("E", "N", "I"), CBList=NULL,
+                                  height=10, width=20, plotType = c("coverage", "sashimi")){
+  require(Gviz)
+  require(GenomicFeatures)
+  require(S4Vectors)
+  if (is.null(names(bamFiles))){
+    names(bamFiles) = sub(".bam", "", basename(bamFiles))
+  }
+  options(ucscChromosomeNames=FALSE)
+  
+  
+  ### the approach using alTrackObjects
+  alTrackList = list()
+  if (is.null(CBList)){
+    myImportFun <- function(file, selection) {}
+    body(myImportFun) <- substitute(ezImportCellRangerBam(file, selection, myRegionTag), 
+                                    list(myRegionTag=force(regionTag)))
+    for (nm in names(bamFiles)){
+      alTrackList[[nm]] <- AlignmentsTrack(bamFiles[nm], name=nm, isPaired = FALSE,
+                                           type = plotType, importFunction = myImportFun)
+    }
+  } else {
+    stopifnot(length(bamFiles) == 1)
+    for (nm in names(CBList)){
+      ## defining import function with preset arguments for the region and the barcodes; this is needed because they will be evaluated only later on plotTracks in a different environment
+      ## see https://stackoverflow.com/questions/15627701/r-scope-force-variable-substitution-in-function-without-local-environment?rq=1
+      myImportFun <- function(file, selection) {}
+      body(myImportFun) <- substitute(ezImportCellRangerBam(file, selection, myRegionTag, myCB), 
+                                      list(myRegionTag=force(regionTag), myCB=force(CBList[[nm]])))
+      alTrackList[[nm]] <- AlignmentsTrack(bamFiles[1], name=nm, isPaired = FALSE,
+                                           type = plotType, importFunction = force(myImportFun))
+    }
+  }
+  pdfFiles = character()
+  #plotList <- list()
+  grList = split(gRanges, seqnames(gRanges))
+  chrom = names(grList)[1]
+  for (chrom in names(grList)){
+    gr = grList[[chrom]]
+    if (length(gr) == 0){
+      next
+    }
+    if (is.null(names(gr))){
+      stop("genomic ranges must have names")
+    }
+    geneTrack = GeneRegionTrack(range=txdb, chrom=chrom, name="Gene Model", transcriptAnnotation="symbol")
+    nm = names(gr)[1]
+    for (i in 1:length(gr)){
+      message(names(gr)[i])
+      trackList = list(GenomeAxisTrack(), geneTrack)
+      for (sm in names(alTrackList)){
+        trackList[[sm]] = alTrackList[[sm]]
+      }
+      pf = paste0(names(gr)[i], "-coverage.pdf")
+      pdf(file=pf, width=width, height=height)
+      #plotList[[names(gr)[i]]] <- 
+      plotTracks(trackList, from=start(gr)[i], to=end(gr)[i], ylim=c(0,40),
+                 lwd=1, main=paste(names(gr)[i], paste(regionTag, collapse = "-")))
+      dev.off()
+      pdfFiles[names(gr)[i]] = pf
+    }
+  }
+  return(pdfFiles)
+}
+
 
 
 #' Title
