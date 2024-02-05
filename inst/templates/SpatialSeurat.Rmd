@@ -50,13 +50,9 @@ if (file.exists("cellsPerGeneFraction.rds")){
 } else {
   cellsPerGeneFraction <- NULL
 }
+
 if (file.exists("aziResults.rds")){
   aziResults <- readRDS("aziResults.rds")
-  if(ncol(aziResults) > 0){
-    scData <- AddMetaData(scData, aziResults)
-  } else {
-  aziResults <- NULL   
-  }
 } else {
   aziResults <- NULL
 }
@@ -285,8 +281,9 @@ p1 + p2 + plot_annotation(
 
 We can also plot each cluster separately
 
-```{r, fig.height=10, fig.width=28}
-SpatialDimPlot(scData, cells.highlight = CellsByIdentities(scData), facet.highlight = TRUE, pt.size.factor = 3 * param$imageEnlargementFactor, ncol = 4, cols.highlight = c('red', 'white')) & theme(aspect.ratio = myRatio)
+```{r, fig.height=25, fig.width=25}
+SpatialDimPlot(scData, cells.highlight = CellsByIdentities(scData), facet.highlight = TRUE, pt.size.factor = 3 * param$imageEnlargementFactor, 
+               ncol = 3, cols.highlight = c('red', 'white')) & theme(aspect.ratio = myRatio)
 ```
 
 

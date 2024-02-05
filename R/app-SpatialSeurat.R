@@ -180,6 +180,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
       }
       scData[["RNA"]] <- NULL
       saveRDS(aziResults, "aziResults.rds")
+      scData <- AddMetaData(scData, aziResults)
       remove(scDataAzi)
   } else {
       aziResults <- NULL
