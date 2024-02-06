@@ -106,7 +106,7 @@ The PDF also shows plots with the sgRNA counts for the top 10 genes. These value
 #### MAGeCKFlute
 The R package [MAGeCKFlute](https://www.bioconductor.org/packages/release/bioc/html/MAGeCKFlute.html)  processes MAGeCK RRA results (“gene_summary” and “sgrna_summary”) with the function FluteRRA, which identifies positively and negatively selected genes and performs functional analysis.
 
-[Summary Report of MAGeCKFlute](`r summaryLink`){target="_blank"}
+[Summary Report of MAGeCKFlute](`r fluteLink`){target="_blank"}
 
 
 ### Parameters
