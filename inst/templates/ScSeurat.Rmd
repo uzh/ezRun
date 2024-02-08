@@ -650,6 +650,10 @@ DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, redu
 
 ### Interactive
 
+[single cell explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("SC Cluster Report"), "/scData.rds")}`){target="_blank"}
+
+
+Previous Shiny apps (no longer recommended):
 
 [simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_exploreSeurat_app", "/?data=",output$getColumn("SC Cluster Report"), "/scData.rds")}`){target="_blank"}
 
