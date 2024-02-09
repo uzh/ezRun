@@ -42,7 +42,7 @@ ezMethodEdger <- function(input = NA, output = NA, param = NA) {
     output = output, param = param, deResult = deResult,
     rmdFile = "twoGroups.Rmd", reportTitle = param$comparison
   )
-  rmStatus <- file.remove(list.files(pattern="enrich-.*rds"))
+  rmStatus <- file.remove(list.files(pattern="enrichr-.*rds"))
   return("Success")
 }
 
