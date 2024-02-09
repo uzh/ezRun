@@ -35,6 +35,7 @@ library(htmlwidgets)
 library(tidyverse)
 library(readxl)
 library(BiocParallel)
+library(DOSE)
 
 BPPARAM <- BiocParallel::MulticoreParam(workers = param$cores)
 register(BPPARAM)
