@@ -391,7 +391,8 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
   scData$qc.mito <- qc.mito
   scData$qc.ribo <- qc.ribo
   scData.unfiltered <- scData
-  scData <- scData[, -which(discard)]
+  if(any(discard))
+    scData <- scData[, -which(discard)]
   
   # Genes filtering
   ## remove low expressed genes
