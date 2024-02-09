@@ -55,7 +55,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   expandedDS <- data.frame(Name = subSamples, Species = ds$Species, 
                                                 refBuild = ds$refBuild, refFeatureFile = ds$refFeatureFile, 
                                                 featureLevel = ds$featureLevel, transcriptTypes = ds$transcriptTypes)
-  expandedDS[['ResultDir [File]']] <- file.path(sub('/srv/gstore/projects/', '', samplePath), subSamples)
+  expandedDS[['ResultDir [File]']] <- file.path(sub('/srv/gstore/projects/', param[['resultDir']], samplePath), subSamples)
   expandedDS[['Report [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'web_summary.html')
   expandedDS[['CountMatrix [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'count', 'sample_filtered_feature_bc_matrix')
   expandedDS[['Condition [Factor]']] = c('')
