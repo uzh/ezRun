@@ -36,11 +36,6 @@ scData.unfiltered_spatial <- readRDS("scData.unfiltered.rds")
 scData.unfiltered_spatial@images$slice1@scale.factors$lowres=scData@images$slice1@scale.factors$lowres
 scDataRaw <- readRDS("scData.raw.rds")
 allCellsMeta <- readRDS("allCellsMeta.rds")
-if(is.null(param$imageEnlargementFactor)){
-    param$imageEnlargementFactor <- 1
-} else if(param$imageEnlargementFactor > 2){
-    param$imageEnlargementFactor <- 2
-}
 
 coord <- GetTissueCoordinates(object = scData@images$slice1)
 myRatio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
@@ -114,10 +109,10 @@ if (!is.null(xxAll$percent_riboprot)){
 a.) cropped version
 
 ```{r QC plots3, fig.width=20, fig.height=10}
-plot5 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nCount_Spatial", pt.size.factor = 2 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
-plot6 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nFeature_Spatial",  pt.size.factor = 2 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
-plot7 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_mito",  pt.size.factor = 2 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
-plot8 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_riboprot",  pt.size.factor = 2 * param$imageEnlargementFactor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
+plot5 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nCount_Spatial", pt.size.factor =  param$pt.size.factor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
+plot6 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nFeature_Spatial",  pt.size.factor =  param$pt.size.factor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
+plot7 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_mito",  pt.size.factor =  param$pt.size.factor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
+plot8 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_riboprot",  pt.size.factor =  param$pt.size.factor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
 
 plot6 + plot8 + plot7 + plot5 + plot_layout(nrow = 2, ncol = 2)
 ```
@@ -272,7 +267,7 @@ scData$seurat_clusters <- Idents(scData)
 
 p1 <- DimPlot(scData, label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
 p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 5)
-p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor = 2 * param$imageEnlargementFactor) +
+p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor =  param$pt.size.factor) +
   labs(fill = "seurat_clusters") + theme(aspect.ratio = myRatio)
 
 p1 + p2 + plot_annotation(
@@ -282,7 +277,7 @@ p1 + p2 + plot_annotation(
 We can also plot each cluster separately
 
 ```{r, fig.height=25, fig.width=25}
-SpatialDimPlot(scData, cells.highlight = CellsByIdentities(scData), facet.highlight = TRUE, pt.size.factor = 3 * param$imageEnlargementFactor, 
+SpatialDimPlot(scData, cells.highlight = CellsByIdentities(scData), facet.highlight = TRUE, pt.size.factor =  param$pt.size.factor, 
                ncol = 3, cols.highlight = c('red', 'white')) & theme(aspect.ratio = myRatio)
 ```
 
@@ -386,7 +381,7 @@ for (eachCluster in levels(posMarkers$cluster)) {
   markersPerCluster <- head(markersPerCluster, 5)
   eachMarker <- markersPerCluster[1]
   for (eachMarker in markersPerCluster) {
-    sp = SpatialFeaturePlot(object = scData, features = eachMarker, alpha = c(0.1, 1), pt.size.factor = 3 * param$imageEnlargementFactor) + theme(aspect.ratio = myRatio)
+    sp = SpatialFeaturePlot(object = scData, features = eachMarker, alpha = c(0.1, 1), pt.size.factor =  param$pt.size.factor) + theme(aspect.ratio = myRatio)
     print(sp)
   }
   cat("\n")
@@ -401,7 +396,7 @@ We also identify molecular features that correlate with spatial location within 
 spatialMarkers = read_tsv("spatial_markers.tsv")
 top.features <- head(spatialMarkers$GeneSymbol, 20)
 for(gene in top.features) {
-   sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1), pt.size.factor = 3 * param$imageEnlargementFactor) + theme(aspect.ratio = myRatio)
+   sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1), pt.size.factor =  param$pt.size.factor) + theme(aspect.ratio = myRatio)
    print(sp)
 }
 ```
@@ -414,7 +409,7 @@ p1 <- DimPlot(scData, label = FALSE, pt.size = 1.5) + labs(color = "ident")
 p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 3)
 p1
 
-p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 2, pt.size.factor = param$imageEnlargementFactor, group.by = "Azimuth.celltype.l1") + labs(fill = "Azimuth.celltype.l1") + theme(aspect.ratio = myRatio)
+p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 2, pt.size.factor = param$pt.size.factor, group.by = "Azimuth.celltype.l1") + labs(fill = "Azimuth.celltype.l1") + theme(aspect.ratio = myRatio)
 p2
 ```
 
@@ -423,7 +418,7 @@ scData$ident = scData$Azimuth.celltype.l2
 p1 <- DimPlot(scData, label = FALSE, pt.size = 1.5) + labs(color = "ident")
 p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 3)
 p1
-p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 2, pt.size.factor = param$imageEnlargementFactor, group.by = "Azimuth.celltype.l2") + labs(fill = "Azimuth.celltype.l2") + theme(aspect.ratio = myRatio)
+p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 2, pt.size.factor = param$pt.size.factor, group.by = "Azimuth.celltype.l2") + labs(fill = "Azimuth.celltype.l2") + theme(aspect.ratio = myRatio)
 p2
 ```
 
@@ -432,7 +427,7 @@ scData$ident = scData$Azimuth.celltype.l3
 p1 <- DimPlot(scData, label = FALSE, pt.size = 1.5) + labs(color = "ident")
 p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 3)
 p1
-p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 2, pt.size.factor = param$imageEnlargementFactor, group.by = "Azimuth.celltype.l3") + labs(fill = "Azimuth.celltype.l3") + theme(aspect.ratio = myRatio)
+p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 2, pt.size.factor = param$pt.size.factor, group.by = "Azimuth.celltype.l3") + labs(fill = "Azimuth.celltype.l3") + theme(aspect.ratio = myRatio)
 p2
 ```
 
@@ -441,7 +436,7 @@ scData$ident = scData$Azimuth.celltype.l4
 p1 <- DimPlot(scData, label = FALSE, pt.size = 1.5) + labs(color = "ident")
 p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 3)
 p1
-p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 2, pt.size.factor = param$imageEnlargementFactor, group.by = "Azimuth.celltype.l4") + labs(fill = "Azimuth.celltype.l4") + theme(aspect.ratio = myRatio)
+p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 2, pt.size.factor = param$pt.size.factor, group.by = "Azimuth.celltype.l4") + labs(fill = "Azimuth.celltype.l4") + theme(aspect.ratio = myRatio)
 p2
 ```
 

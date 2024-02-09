@@ -85,8 +85,13 @@ EzAppSpatialSeurat <-
                                             Type = "numeric",
                                             DefaultValue = 0.05,
                                             Description = "pValue for marker detection"
+                                        ),
+                                        param$pt.size.factor = ezFrame(
+                                            Type = "numeric",
+                                            DefaultValue = 2,
+                                            Description = "pt.size.factor for spatial plots"
                                         )
-                                        )
+                                    )
                 }
               )
   )
@@ -123,6 +128,8 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   scDataRaw <- res[['scDataRaw']]
   param <- res[['param']]
   remove(res)
+  if(is.na(param$pt.size.factor)) 
+      param$pt.size.factor <- 2*param$imageEnlargementFactor
   
   scDataRes <- runBasicProcessing(scData,input, featInfo, param)
   cellsPerGeneFraction <- scDataRes[['cellsPerGeneFraction']]
