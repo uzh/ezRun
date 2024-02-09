@@ -86,9 +86,9 @@ EzAppSpatialSeurat <-
                                             DefaultValue = 0.05,
                                             Description = "pValue for marker detection"
                                         ),
-                                        param$pt.size.factor = ezFrame(
+                                        pt.size.factor = ezFrame(
                                             Type = "numeric",
-                                            DefaultValue = 2,
+                                            DefaultValue = NA,
                                             Description = "pt.size.factor for spatial plots"
                                         )
                                     )
