@@ -121,11 +121,11 @@ plot6 + plot8 + plot7 + plot5 + plot_layout(nrow = 2, ncol = 2)
 b.) based on all spots without image based filtering by SpaceRanger
 
 ```{r QC plots4, fig.width=26, fig.height=10}
-imageDims <- dim(GetImage(scDataRaw)[[1]])
-my_pt.size.factor <- min(imageDims[1]/240, 5)
+#imageDims <- dim(GetImage(scDataRaw)[[1]])
+#my_pt.size.factor <- min(imageDims[1]/240, 5)
 plot0 <- SpatialFeaturePlot(scDataRaw, features = "nCount_Spatial", pt.size.factor = 0) + NoLegend()
-plot1 <- SpatialFeaturePlot(scDataRaw, features = "nCount_Spatial", pt.size.factor = my_pt.size.factor, min.cutoff = 'q1', max.cutoff = 'q50', alpha = 0.5) + theme(legend.position = "right") 
-plot2 <- SpatialFeaturePlot(scDataRaw, features = "nFeature_Spatial", pt.size.factor = my_pt.size.factor, min.cutoff = 'q1', max.cutoff = 'q50',  alpha = 0.5) + theme(legend.position = "right")
+plot1 <- SpatialFeaturePlot(scDataRaw, features = "nCount_Spatial", pt.size.factor = param$pt.size.factor, min.cutoff = 'q1', max.cutoff = 'q50', alpha = 0.5) + theme(legend.position = "right") 
+plot2 <- SpatialFeaturePlot(scDataRaw, features = "nFeature_Spatial", pt.size.factor = param$pt.size.factor, min.cutoff = 'q1', max.cutoff = 'q50',  alpha = 0.5) + theme(legend.position = "right")
 
 plot0 + plot1 + plot2 + plot_layout(nrow = 1, ncol = 3)
 ```

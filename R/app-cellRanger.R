@@ -153,8 +153,11 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   }
   
   if(!param$keepBam){
-      ezSystem(paste('rm', file.path(sampleName, "possorted_genome_bam.bam")))
-      ezSystem(paste('rm', file.path(sampleName, "possorted_genome_bam.bam.bai")))
+      bamFile <- file.path(sampleName, "possorted_genome_bam.bam")
+      if(exists(bamFile)){
+        ezSystem(paste('rm', bamFile))
+        ezSystem(paste('rm', paste0(bamFile,'.bai')))
+      }
   }
   
   return("Success")
