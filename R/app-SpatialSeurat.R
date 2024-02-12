@@ -194,11 +194,15 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   }
   
   #Save some results in external files
-  geneMeansPerCluster <- data.frame(AverageExpression(scData, group.by = 'ident')$SCT)
-  geneMeans <-  data.frame(AverageExpression(scData, group.by = 'Sample')$SCT)
+  bulkSignalPerCluster <- data.frame(GeneSymbol = rownames(scData), AggregateExpression(scData, group.by = 'ident')$SCT)
+  bulkSignalPerSample <-  data.frame(GeneSymbol = rownames(scData), AggregateExpression(scData, group.by = 'Sample')$SCT)
+  
+  
+ ###Add TPM, add HVG annotation to base tables, enrichR links for HVG and top 1000 genes per sample 
+  
   
   dataFiles <- saveExternalFiles(list(cluster_markers=clusterMarkers, spatial_markers=data.frame(spatialMarkers), 
-                                      gene_means = geneMeans, gene_means_per_cluster = geneMeansPerCluster))
+                                      bulkSignalPerSample = bulkSignalPerSample, bulkSignalPerCluster = bulkSignalPerCluster))
   
   saveRDS(scData, "scData.rds")
   allCellsMeta <- scData.unfiltered@meta.data

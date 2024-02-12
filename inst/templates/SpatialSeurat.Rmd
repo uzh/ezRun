@@ -447,13 +447,13 @@ p2
 
 ### Data availability
 
-##### Mean expression of every gene across the spots in each cluster
+##### Aggregated expression of every gene across the spots in each cluster
 
-[geneMeanPerCluster](gene_means_per_cluster.tsv)
+[geneExprPerCluster](bulkSignalPerCluster.tsv)
 
-##### Mean expression of every gene across all the spots
+##### Aggregated expression of every gene across all the spots
 
-[geneMeans](gene_means.tsv)
+[geneExprPerSample](bulkSignalPerSample.tsv)
 
 ##### Positive markers of each cluster
 
