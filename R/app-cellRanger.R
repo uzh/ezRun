@@ -141,8 +141,8 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   if (ezIsSpecified(param$controlSeqs)) 
     unlink(refDir, recursive = TRUE)
   
-  #8. Calculate alignment stats from the BAM file
-  if(param$bamStats){
+  #8. Calculate alignment stats from the BAM file for GEX
+  if(param$bamStats && param$TenXLibrary == "GEX"){
     genomeBam <- file.path(sampleName, "possorted_genome_bam.bam")
     if (file.exists(genomeBam)){
       alignStats <- computeBamStatsSC(genomeBam, ram=param$ram)
@@ -151,8 +151,9 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       }
     }
   }
-  
-  if(!param$keepBam){
+
+  # for GEX libraries
+  if(!param$keepBam && param$TenXLibrary == "GEX"){
       bamFile <- file.path(sampleName, "possorted_genome_bam.bam")
       if(exists(bamFile)){
         ezSystem(paste('rm', bamFile))
