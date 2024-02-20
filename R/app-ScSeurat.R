@@ -167,7 +167,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   } else if(param$cellbender){
     cts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_filtered_seurat.h5'), use.names = FALSE)
   }
-  featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
+  featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
+  featInfo <- featInfo[,1:3]  # in cases where additional column exist, e.g. CellRangerARC output
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
   featInfo$isRiboprot = grepl(  "(?i)^RPS|^RPL", featInfo$gene_name)
@@ -203,7 +204,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData$cellBarcode <- sub(".*_", "", colnames(scData))
   scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM, ribosomalGenes = featInfo[rownames(scData), "isRibosomal"])
   
-  ## use empty drops to test for ambient
+  ## use empty drops to test for ambient       
   if ("UnfilteredCountMatrix" %in% input$colNames) {
     rawDir <- input$getFullPaths("UnfilteredCountMatrix")
     if (file.exists(file.path(rawDir, param$geneCountModel))) {
