@@ -706,7 +706,8 @@ if (isTRUE(param$runGO)) {
         position = "left")
     )
   cat("\n\n")
-  cat(paste0("[Download Excel file of complete ORA results](", oraFile, ")"))
+  if(exists(oraFile))
+    cat(paste0("[Download Excel file of complete ORA results](", oraFile, ")"))
   cat("\n\n")
 }
 ```
@@ -718,6 +719,8 @@ if (isTRUE(param$runGO)) {
     for (sig in names(enrichResult[[onto]])) {
       cat("#####", sig, "{.tabset}", "\n")
       if (is.na(enrichResult[[onto]][[sig]][1][[1]])) {
+        cat('\n No significant GO terms detected.')
+        cat("\n\n")
         next
       } else {
         erp <- enrichResultPlots[[onto]][[sig]]
@@ -859,7 +862,8 @@ if (isTRUE(param$runGO)) {
         full_width = F,
         position = "left"))
   cat("\n\n")
-  cat(paste0("[Download Excel file of complete GSEA results](", gseaFile, ")"))
+  if(exists(gseaFile))
+    cat(paste0("[Download Excel file of complete GSEA results](", gseaFile, ")"))
   cat("\n\n")
 }
 ```
@@ -869,6 +873,8 @@ if (isTRUE(param$runGO)) {
   for (onto in names(enrichResultGSEA)) {
     cat("####", onto, "{.tabset}", "\n")
     if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
+      cat('\n No significant GO terms detected.')
+      cat("\n\n")
       next
     } else {
       erp <- enrichResultGSEAPlots[[onto]]
