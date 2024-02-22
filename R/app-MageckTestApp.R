@@ -60,13 +60,17 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   system2("mageck", args=opt)
   
   # add official gene symbol to gene_summary file for human samples
-  if(param$species == 'hsa'){
+  if(param$species %in% c('hsa','mmu')){
     dat <- ezRead.table(file.path(param$comparison,paste0(param$comparison, '.gene_summary.txt')), row.names=NULL)
-    dat[['OfficialGeneSymbol']] = '-'
+    dat[['GeneSymbol_Addgene']] = dat[['ID']]
         for (j in 1:nrow(dat)){
-            gene <- alias2Symbol(dat$id)
+            if(param$species == 'hsa'){
+                gene <- alias2Symbol(dat$id[j], species = "Hs")
+            } else if(param$species == 'mmu') {
+                gene <- alias2Symbol(dat$id[j], species = "Mm")
+            }
             if(length(gene)==1L)
-            dat[['OfficialGeneSymbol']][j] <- gene
+            dat[['ID']][j] <- gene
         }
     ezWrite.table(dat, file.path(param$comparison,paste0(param$comparison, '.gene_summary.txt')), row.names = FALSE)
   }
