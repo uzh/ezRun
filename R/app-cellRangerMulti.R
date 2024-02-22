@@ -55,7 +55,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   expandedDS <- data.frame(Name = subSamples, Species = ds$Species, 
                                                 refBuild = ds$refBuild, refFeatureFile = ds$refFeatureFile, 
                                                 featureLevel = ds$featureLevel, transcriptTypes = ds$transcriptTypes)
-  expandedDS[['ResultDir [File]']] <- file.path(sub('/srv/gstore/projects/', param[['resultDir']], samplePath), subSamples)
+  expandedDS[['ResultDir [File]']] <- file.path(param[['resultDir']], samplePath, subSamples)
   expandedDS[['Report [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'web_summary.html')
   expandedDS[['CountMatrix [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'count', 'sample_filtered_feature_bc_matrix')
   expandedDS[['Condition [Factor]']] = c('')
@@ -246,12 +246,11 @@ buildMultiConfigFile <- function(input, param, dirList) {
     sampleMultiplexFiles <- getSampleMultiplexFiles(input)
     names(sampleMultiplexFiles) <- paste0('^', sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles)), '$')
     sampleMultiplexFile <- sampleMultiplexFiles[which(sapply(names(sampleMultiplexFiles), grepl, sampleName))]
-    sampleMultiplexMapping <- read_csv(sampleMultiplexFile)
+    sampleMultiplexMapping <- read_csv(sampleMultiplexFile, show_col_types = FALSE)
     concatCols <- function(y) {return(paste(as.character(y), collapse=","))}
     if(!("fixedRNA" %in% libraryTypes)){
         # Load multiplex barcode set and subset
-        multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", 
-                                              param$MultiplexBarcodeSet))
+        multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", param$MultiplexBarcodeSet), show_col_types = FALSE)
         multiplexBarcodeSet <- multiplexBarcodeSet %>%
         filter(id %in% sampleMultiplexMapping$cmo_ids)
         data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
