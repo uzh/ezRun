@@ -176,18 +176,26 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
 }
 
 createDataset <- function(fastqInfo, myPath, paired = FALSE){
+    
+    if(ncol(fastqInfo) > 10){
+        xtraCols <- fastqInfo[,11:ncol(fastqInfo)]
+        colnames(fastqInfo[,11:ncol(fastqInfo)])
+    } else {
+        xtraCols <- data.frame(sample_accession = fastqInfo$sample_accession)
+        
+    }
     if (!paired){
         dataset = data.frame(Name = gsub(' ', '_', fastqInfo$Name), Read1 = file.path(myPath, basename(fastqInfo$fastq_ftp)), 
                              md5sum = fastqInfo$fastq_md5, Species = fastqInfo$Species, 
-                             ReadCount = fastqInfo$ReadCount, fastqInfo[,11:ncol(fastqInfo)], stringsAsFactors = FALSE)
-        colnames(dataset) = c('Name', 'Read1 [File]', 'md5sum', 'Species', 'Read Count', colnames(fastqInfo)[11:ncol(fastqInfo)])
+                             ReadCount = fastqInfo$ReadCount, xtraCols, stringsAsFactors = FALSE)
+        colnames(dataset) = c('Name', 'Read1 [File]', 'md5sum', 'Species', 'Read Count', colnames(xtraCols))
         #dataset = dataset[,-c(6)]
     } else {
         dataset = data.frame(Name = gsub(' ', '_', fastqInfo$Name), Read1 = file.path(myPath, sapply(strsplit(fastqInfo$fastq_ftp, ';'), basename)[1,]),
                              Read2 = file.path(myPath, sapply(strsplit(fastqInfo$fastq_ftp, ';'), basename)[2,]),
                              md5sum = fastqInfo$fastq_md5, Species = fastqInfo$Species, 
-                             ReadCount = fastqInfo$ReadCount, fastqInfo[,11:ncol(fastqInfo)], stringsAsFactors = FALSE)
-        colnames(dataset) = c('Name', 'Read1 [File]', 'Read2 [File]', 'md5sum', 'Species', 'Read Count', colnames(fastqInfo)[11:ncol(fastqInfo)])
+                             ReadCount = fastqInfo$ReadCount, xtraCols, stringsAsFactors = FALSE)
+        colnames(dataset) = c('Name', 'Read1 [File]', 'Read2 [File]', 'md5sum', 'Species', 'Read Count', colnames(xtraCols))
         #dataset = dataset[,-c(7)]
     }
     return(dataset)
