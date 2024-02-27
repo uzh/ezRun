@@ -88,6 +88,7 @@ if (any(is.na(clusterSet))){
 }
 
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
+clusterNameNChar = max(nchar(levels(Idents(scData))))
 ```
 
 
@@ -312,7 +313,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
-```{r cell cycle, fig.width=10, fig.height=8, eval=!is.null(scData@meta.data$CellCycle)}
+```{r cell cycle, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10), eval=!is.null(scData@meta.data$CellCycle)}
 if (any(!is.na(scData$CellCycle))){
   DimPlot(scData, label=FALSE, group.by= "CellCycle")
 }
@@ -321,7 +322,7 @@ p2 <- LabelClusters(p2, id = "ident",  fontface = "bold", color = "black", size 
 p2
 ```
 
-```{r uninteresting variation, fig.width=10, fig.height=10}
+```{r uninteresting variation, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10)}
 VlnPlot(scData, features ="nCount_RNA", log=TRUE) + ggtitle("Number of UMIs vs ident") + NoLegend()
 FeaturePlot(scData, features="nCount_RNA", label = TRUE)
 
@@ -343,17 +344,17 @@ VlnPlot(scData, features ="doubletScore") + ggtitle("DoubletScore vs ident") + N
 FeaturePlot(scData, features="doubletScore", label = TRUE)
 ```
 
-```{r decontx, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$DecontX_contFrac)}
+```{r decontx, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10), eval=!is.null(scData@meta.data$DecontX_contFrac)}
 VlnPlot(scData, features ="DecontX_contFrac", y.max=1) + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
 FeaturePlot(scData, features="DecontX_contFrac", label = TRUE)
 ```
 
-```{r soupx, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$SoupX_contFrac)}
+```{r soupx, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10), eval=!is.null(scData@meta.data$SoupX_contFrac)}
 VlnPlot(scData, features ="SoupX_contFrac", y.max=1) + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
 FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
 ```
 
-```{r cell probability, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$negLog10CellPValue)}
+```{r cell probability, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10), eval=!is.null(scData@meta.data$negLog10CellPValue)}
 VlnPlot(scData, features ="negLog10CellPValue") + ggtitle("negative log10 Cell PValue") + NoLegend()
 FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
 ```
