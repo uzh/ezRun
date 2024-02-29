@@ -306,7 +306,7 @@ ezMethodSubsampleFastq <- function(input = NA, output = NA, param = NA, n = 1e6)
 
   dataset <- input$meta
   samples <- rownames(dataset)
-  lapply(samples, function(sm, input, output, param, n) {
+  parallel::mclapply(samples, function(sm, input, output, param, n) {
     subsampleFastqFile(input$getFullPaths("Read1")[sm],
                       output$getColumn("Read1")[sm],
                       nReads=n)
@@ -315,7 +315,7 @@ ezMethodSubsampleFastq <- function(input = NA, output = NA, param = NA, n = 1e6)
                         output$getColumn("Read2")[sm],
                         nReads=n)
     }
-  }, input = input, output = output, param = param, n)
+  }, input = input, output = output, param = param, n, mc.cores = param$cores)
   return(output)
 }
 

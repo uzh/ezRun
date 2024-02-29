@@ -16,6 +16,8 @@ knitr::opts_chunk$set(echo = TRUE)
 require(knitr)
 require(kableExtra)
 require(plotly)
+require(seqLogo)
+require(ezRun)
 
 output <- readRDS("output.rds")
 param <- readRDS("param.rds")
@@ -26,6 +28,7 @@ virusResult <- readRDS("virusResult.rds")
 refseqResult = readRDS("refseqResult.rds")
 krakenResult <- readRDS("krakenResult.rds")
 rRNAstrandResult <- readRDS("rRNAstrandResult.rds")
+PWMresult <- readRDS("PWMs.rds")
 dataset = input$meta
 samples = input$getNames()
 
@@ -316,43 +319,24 @@ if(param[['virusCheck']]){
 }
 ```
 
-
-### RIN
-
-#### RIN vs Read Count
-```{r rin1, echo=FALSE, message=FALSE, warning=FALSE}
-if (nrow(dataset) > 1){
-  rinCol <- colnames(dataset)[grep('^RIN', colnames(dataset))]
-  if(length(rinCol) == 1){
-    a <- makeScatterplot(dataset, colname1 = rinCol, colname2='Read Count')
-    a
-  }
+### Read Patterns R1
+```{r, echo=FALSE, include=TRUE, warning=FALSE, message=TRUE, eval=!debug, fig.height=5, fig.width=20, results="asis"}
+PWMs <- PWMresult[['R1']]
+for (nm in names(PWMs)){
+        cat(nm, "\n \n")
+        seqLogo(PWMs[[nm]])
+        cat("\n \n")
 }
 ```
 
-#### RIN vs LibConc
-```{r rin2, echo=FALSE, message=FALSE, warning=FALSE}
-if (nrow(dataset) > 1){
-  rinCol <- colnames(dataset)[grep('^RIN', colnames(dataset))]
-  if(length(rinCol) == 1){
-    libQuant <- colnames(dataset)[grep('LibConc_100_800bp', colnames(dataset))]  
-    if(length(libQuant) == 1){
-      b <- makeScatterplot(dataset, colname1 = rinCol, colname2=libQuant)
-      b
-    }
-  }
-}
-```
+### Read Patterns R2
+```{r, echo=FALSE, include=TRUE, warning=FALSE, message=TRUE, eval=length(PWMresult) == 2, fig.height=5, fig.width=20, results="asis"}
+PWMs <- PWMresult[['R2']]
 
-#### RIN vs rRNA content
-```{r rin3, echo=FALSE, message=FALSE, warning=FALSE}
-if (nrow(dataset) > 1){
-  rinCol <- colnames(dataset)[grep('RIN', colnames(dataset))]
-  if(length(rinCol) == 1){
-    dataset[['rRNA_Percent']] <- (rRNAstrandResult$Sense + rRNAstrandResult$Antisense) / rRNAstrandResult$`Read Count` * 100
-    c <- makeScatterplot(dataset, colname1 = rinCol, colname2='rRNA_Percent')
-    c
-  }
+for (nm in names(PWMs)){
+        cat(nm, "\n \n")
+        seqLogo(PWMs[[nm]])
+        cat("\n \n")
 }
 ```
 
