@@ -652,17 +652,20 @@ DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, redu
 
 ### Interactive
 
+The link below will take you to an interactive Shiny app which can be used to make 
+production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
+
 [single cell explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("SC Cluster Report"), "/scData.rds")}`){target="_blank"}
 
+#### Previous Shiny apps (<span style='color: red;'>no longer recommended</span>)
 
-Previous Shiny apps (no longer recommended):
+These apps are no longer maintained. Use at your own risk, or for legacy datasets.
 
 [simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_exploreSeurat_app", "/?data=",output$getColumn("SC Cluster Report"), "/scData.rds")}`){target="_blank"}
 
 [iSEE explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_iSEE", "/?data=",output$getColumn("SC Cluster Report"))}`){target="_blank"}
 
 ### Data availability
-
 
 [clusterInfos.xlsx](clusterInfos.xlsx) -- use this xls file to manually relabel the clusters
 

@@ -490,6 +490,15 @@ AUCell_plotTSNE(tSNE=cellsUmap,
 
 ### Interactive explorer
 
+The link below will take you to an interactive Shiny app which can be used to make 
+production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
+
+[single cell explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("Report"), "/scData.rds")}`){target="_blank"}
+
+#### Previous Shiny apps (<span style='color: red;'>no longer recommended</span>)
+
+These apps are no longer maintained. Use at your own risk, or for legacy datasets.
+
 [simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_exploreSeurat_app", "/?data=",output$getColumn("Report"), "/scData.rds")}`){target="_blank"}
 
 [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("Report"),"/sce_h5")}`){target="_blank"}
