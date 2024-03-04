@@ -37,7 +37,7 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
   noDupBam <- tempfile(pattern = "nodup_", tmpdir = ".", fileext = ".bam")
   message("Remove duplicates...")
   if(param$markDuplicates){
-         dupBam(inBam = bamFile, outBam = noDupBam, operation = "remove")
+         dupBam(inBam = bamFile, outBam = noDupBam, operation = "remove", ram = param$ram)
   } else{
         outBam = noDupBam
         file.copy(from=bamFile, to=outBam, overwrite=TRUE)
@@ -86,17 +86,19 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
 }
 
 ### Make or remove duplicated in bam file
-dupBam <- function(inBam, outBam, operation = c("mark", "remove")) {
+dupBam <- function(inBam, outBam, operation = c("mark", "remove"), ram = 20) {
   operation <- match.arg(operation)
-  cmd <- paste(
-    prepareJavaTools("picard"), "MarkDuplicates",
-    paste0("I=", inBam),
-    paste0("O=", outBam),
-    paste0("M=", tempfile()),
-    paste0(
-      "REMOVE_DUPLICATES=",
-      if_else(operation == "mark", "false", "true")
-    ),
+  javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", ram, "g")
+  
+  cmd <- paste(javaCall, " -jar ", Sys.getenv("Picard_jar"), 
+               "MarkDuplicates",
+                paste0("I=", inBam),
+                paste0("O=", outBam),
+                paste0("M=", tempfile()),
+                paste0(
+                "REMOVE_DUPLICATES=",
+                if_else(operation == "mark", "false", "true")
+                ),
     "> /dev/null 2>&1"
   )
   ezSystem(cmd)
