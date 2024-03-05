@@ -52,6 +52,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     
     setwdNew(rownames(input$meta))
     
+    fastqInfo$Name <- fastqInfo$sample_accession ## use the accession as a fallback
     for (i in 1:nrow(fastqInfo)){
         #download ERR xml File
         cmd = paste0("curl -o ", fastqInfo$run_accession[i],".xml ", "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",fastqInfo$run_accession[i],"?download=true\'")
@@ -73,28 +74,21 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         ezSystem(cmd)
         xml <- xmlParse(paste0(sampleID, '.xml'))
         sampleInfo <- xmlToList(xml)
-        fastqInfo[['Name']][i] <- sampleInfo$SAMPLE$TITLE
-        ##Clean sampleNames
-        fastqInfo[['Name']][i] <- gsub('\\#', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- gsub(' ', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- gsub('\\(', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- gsub('\\)', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- gsub(':', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- gsub(',', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- gsub(';', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- paste(fastqInfo[['Name']][i], sampleID, sep = '_')
-            
-        sampleAttributes <- xmlToDataFrame(xmlRoot(xml)[[1]][[5]])
-        sampleAttributes <- sampleAttributes[grep('ENA',sampleAttributes$TAG, invert = TRUE),]
-        
-        if(!is.null(nrow(sampleAttributes)) && nrow(sampleAttributes) > 0){
+        if (!is.null(sampleInfo$SAMPLE$TITLE)){
+          cleanName <- gsub("[\\# \\(\\):,;", "_", sampleInfo$SAMPLE$TITLE)
+          fastqInfo[['Name']][i] <- paste(cleanName, sampleID, sep = '_')
+          sampleAttributes <- xmlToDataFrame(xmlRoot(xml)[[1]][[5]])
+          sampleAttributes <- sampleAttributes[grep('ENA',sampleAttributes$TAG, invert = TRUE),]
+          
+          if(!is.null(nrow(sampleAttributes)) && nrow(sampleAttributes) > 0){
             for (j in 1:nrow(sampleAttributes)){
-                attrName <- as.character(sampleAttributes[j, 1])
-                if (is.null(fastqInfo[[attrName]])){
-                    fastqInfo[[attrName]] = '-'
-                }
-                fastqInfo[i, attrName] = as.character(sampleAttributes[j,2])
+              attrName <- as.character(sampleAttributes[j, 1])
+              if (is.null(fastqInfo[[attrName]])){
+                fastqInfo[[attrName]] = '-'
+              }
+              fastqInfo[i, attrName] = as.character(sampleAttributes[j,2])
             }
+          }
         }
         
         if(grepl(';',fastqInfo$fastq_ftp[i])) {
@@ -148,7 +142,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         ##TODO: Recompute md5sums after pooling & handle PairedEnd data
         ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
     }
-    
+     
     if(param$tarOutput){
     for (i in 1:nrow(dataset)){
         mySample <- dataset[i,'Name']
