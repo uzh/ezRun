@@ -62,7 +62,7 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   # add official gene symbol to gene_summary file for human samples
   if(param$species %in% c('hsa','mmu')){
     dat <- ezRead.table(file.path(param$comparison,paste0(param$comparison, '.gene_summary.txt')), row.names=NULL)
-    dat[['GeneSymbol_Addgene']] = dat[['ID']]
+    dat[['GeneSymbol_Addgene']] = dat[['id']]
         for (j in 1:nrow(dat)){
             gene <- c()
             if(param$species == 'hsa'){
@@ -71,8 +71,9 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
                 gene <- alias2Symbol(dat$id[j], species = "Mm")
             }
             if(length(gene)==1L)
-            dat[['ID']][j] <- gene
+            dat[['id']][j] <- gene
         }
+    dat <- dat[!duplicated(dat$id),]
     ezWrite.table(dat, file.path(param$comparison,paste0(param$comparison, '.gene_summary.txt')), row.names = FALSE)
   }
   
