@@ -95,13 +95,16 @@ summaryLink <- paste0(param$comparison, '_summary.pdf')
 fluteLink <- file.path('MAGeCKFlute_output', 'FluteRRA_output.pdf')
 ```
 
-#### Basic Report 
 
-The PDF shows plots of the top 10 negatively and positively selected genes. We can see the top genes ranked by RRA scores or p value. These values come from the gene summary file.
+```{r, results='asis', eval = !exists(summaryLink)}
+cat('#### Basic Report \n\n')
 
-The PDF also shows plots with the sgRNA counts for the top 10 genes. These values are the normalized counts for each sgRNA from the sgRNA summary file. With these plots we can see if the counts of all the sgRNAs for these top genes are changing similarly.
+cat('The PDF shows plots of the top 10 negatively and positively selected genes. We can see the top genes ranked by RRA scores or p value. These values come from the gene summary file. \n\n')
 
-[Summary Report of MAGeCK Test](`r summaryLink`){target="_blank"}
+cat('The PDF also shows plots with the sgRNA counts for the top 10 genes. These values are the normalized counts for each sgRNA from the sgRNA summary file. With these plots we can see if the counts of all the sgRNAs for these top genes are changing similarly. \n\n')
+
+cat('[Summary Report of MAGeCK Test](',summaryLink,') \n\n')
+```
 
 #### MAGeCKFlute
 The R package [MAGeCKFlute](https://www.bioconductor.org/packages/release/bioc/html/MAGeCKFlute.html)  processes MAGeCK RRA results (“gene_summary” and “sgrna_summary”) with the function FluteRRA, which identifies positively and negatively selected genes and performs functional analysis.
