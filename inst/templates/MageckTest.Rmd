@@ -96,7 +96,7 @@ fluteLink <- file.path('MAGeCKFlute_output', 'FluteRRA_output.pdf')
 ```
 
 
-```{r, results='asis', eval = !exists(summaryLink)}
+```{r, results='asis', eval = exists(summaryLink)}
 cat('#### Basic Report \n\n')
 
 cat('The PDF shows plots of the top 10 negatively and positively selected genes. We can see the top genes ranked by RRA scores or p value. These values come from the gene summary file. \n\n')

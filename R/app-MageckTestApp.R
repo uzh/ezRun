@@ -64,6 +64,7 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
     dat <- ezRead.table(file.path(param$comparison,paste0(param$comparison, '.gene_summary.txt')), row.names=NULL)
     dat[['GeneSymbol_Addgene']] = dat[['ID']]
         for (j in 1:nrow(dat)){
+            gene <- c()
             if(param$species == 'hsa'){
                 gene <- alias2Symbol(dat$id[j], species = "Hs")
             } else if(param$species == 'mmu') {
