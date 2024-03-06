@@ -17,6 +17,11 @@ EzAppSpatialSeuratSlides <-
                   appDefaults <<- rbind(npcs=ezFrame(Type="numeric", 
                                                     DefaultValue=30, 
                                                     Description="The maximal dimensions to use for reduction"),
+                                        nfeatures = ezFrame(
+                                            Type = "numeric",
+                                            DefaultValue = 3000,
+                                            Description = "number of variable genes for SCT"
+                                        ),
                                         pcGenes = ezFrame(
                                           Type = "charVector",
                                           DefaultValue = "",
@@ -33,8 +38,8 @@ EzAppSpatialSeuratSlides <-
                                                                 DefaultValue="TRUE",
                                                                 Description="Perform batch correction."),
                                         integrationMethod=ezFrame(Type="character", 
-                                                                  DefaultValue="Classic", 
-                                                                  Description="Choose integration method in Seurat (Classic or RPCA)"),
+                                                                  DefaultValue="CCA", 
+                                                                  Description="Choose integration method in Seurat"),
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcox", 
                                                           Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"),
