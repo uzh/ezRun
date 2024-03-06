@@ -27,7 +27,7 @@ EzAppSpaceRanger <-
   )
 
 ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
-
+  library(Seurat)
   sampleName <- input$getNames()
   
   sampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
@@ -135,8 +135,15 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
       ezSystem('find . -name "*.bam" -type f -delete')
   }
   
+  cmDir <- file.path(finalSampleName, 'filtered_feature_bc_matrix')
+  cts <- Read10X(cmDir, gene.column = 1)
+  bulkData <- rowSums(data.frame(cts))
+  bulkData <- data.frame(Identifier = names(bulkData), matchCounts = bulkData)
+  countFile <- paste0(sampleName,'-counts.txt')
+  ezWrite.table(bulkData, file.path(sampleName, countFile), row.names = FALSE)
   return("Success")
 }
+
 getFastqDirs <- function(input, column, sampleName) {
   fastqDirs <- strsplit(input$getColumn(column), ",")[[sampleName]]
   fastqDirs <- file.path(input$dataRoot, fastqDirs)
