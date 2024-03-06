@@ -132,6 +132,9 @@ cellClustWithCorrection <- function (scDataList, param) {
   integ_features <- SelectIntegrationFeatures(object.list = scDataList, nfeatures = param$nfeatures)
   
   if (param$integrationMethod %in% c("RPCA", "CCA")) {
+      for (i in 1:length(scDataList)){
+          scDataList[[i]] <- ScaleData(scDataList[[i]], features = integ_features)
+      }
     #2.2. Prepare the SCT list object for integration
     scDataList <- PrepSCTIntegration(object.list = scDataList, anchor.features = integ_features)
     if(param$integrationMethod == 'RPCA'){
