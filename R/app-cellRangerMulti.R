@@ -40,7 +40,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   }
   file.rename(file.path(cellRangerFolder, "outs"), sampleName)
   unlink(cellRangerFolder, recursive = TRUE)
-  if (ezIsSpecified(param$controlSeqs)) {
+  if (ezIsSpecified(param$controlSeqs) || ezIsSpecified(param$secondRef)) {
     futile.logger::flog.info(sprintf("Removing %s", refDir))
     unlink(refDir, recursive = TRUE)
   }
