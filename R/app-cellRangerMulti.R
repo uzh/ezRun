@@ -12,7 +12,9 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   sampleDirs <- dirList$sampleDirs
 
   #3. Create the multi configuration file and command
-  configFileName <- buildMultiConfigFile(input, param, dirList)
+  conf <- buildMultiConfigFile(input, param, dirList)
+  configFileName <- conf$configFileName
+  refDir <- conf$refDir
   
   cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
   #3. Build command
@@ -38,13 +40,15 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   }
   file.rename(file.path(cellRangerFolder, "outs"), sampleName)
   unlink(cellRangerFolder, recursive = TRUE)
-  if (ezIsSpecified(param$controlSeqs)) 
+  if (ezIsSpecified(param$controlSeqs)) {
+    futile.logger::flog.info(sprintf("Removing %s", refDir))
     unlink(refDir, recursive = TRUE)
+  }
   
   #8. Optional removal of the bam files
   if(!param$keepBam){
-      print(ezSystem('find . -name "*.bam" -type f'))
-      ezSystem('find . -name "*.bam" -type f -delete')
+    futile.logger::flog.info(ezSystem('find . -name "*.bam" -type f'))
+    ezSystem('find . -name "*.bam" -type f -delete')
   }
   
   #9. Generate expanded dataset.tsv:
@@ -148,6 +152,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
   configFileName <- tempfile(pattern = "multi_config", tmpdir = ".", fileext = ".csv")
   fileConn <- file(configFileName)
   fileContents <- c()
+  refDir <- NULL
   
   libraryTypes <- as.vector(str_split(param$TenXLibrary, ",", simplify=TRUE))
   
@@ -252,20 +257,20 @@ buildMultiConfigFile <- function(input, param, dirList) {
     sampleMultiplexMapping <- read_csv(sampleMultiplexFile, show_col_types = FALSE)
     concatCols <- function(y) {return(paste(as.character(y), collapse=","))}
     if(!("fixedRNA" %in% libraryTypes)){
-        # Load multiplex barcode set and subset
-        multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", param$MultiplexBarcodeSet), show_col_types = FALSE)
-        multiplexBarcodeSet <- multiplexBarcodeSet %>%
-        filter(id %in% sampleMultiplexMapping$cmo_ids)
-        data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
-    
-        fileContents <- append(fileContents, c("[samples]", "sample_id,cmo_ids"))
-        
-        fileContents <- append(fileContents, 
+      # Load multiplex barcode set and subset
+      multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", param$MultiplexBarcodeSet), show_col_types = FALSE)
+      multiplexBarcodeSet <- multiplexBarcodeSet %>%
+      filter(id %in% sampleMultiplexMapping$cmo_ids)
+      data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
+  
+      fileContents <- append(fileContents, c("[samples]", "sample_id,cmo_ids"))
+      
+      fileContents <- append(fileContents, 
                            apply(sampleMultiplexMapping, 1, concatCols))
     } else if("fixedRNA" %in% libraryTypes){
-        sampleMultiplexMapping$description = sampleMultiplexMapping$sample_id
-        fileContents <- append(fileContents, c("[samples]", "sample_id,probe_barcode_ids,description"))
-        fileContents <- append(fileContents, apply(sampleMultiplexMapping, 1, concatCols))
+      sampleMultiplexMapping$description = sampleMultiplexMapping$sample_id
+      fileContents <- append(fileContents, c("[samples]", "sample_id,probe_barcode_ids,description"))
+      fileContents <- append(fileContents, apply(sampleMultiplexMapping, 1, concatCols))
     }
   }
   
@@ -273,7 +278,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
   writeLines(fileContents, fileConn)
   close(fileConn)
   
-  return(configFileName)
+  return(list(configFileName=configFileName, refDir=refDir))
 }
 
 ##' @author Noé, Falko
