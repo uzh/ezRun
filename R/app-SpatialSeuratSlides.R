@@ -114,10 +114,11 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   for (j in 1:length(SpatialMarkersList)){
       spatialMarkersList[[j]][['GeneSymbol']] = rownames(spatialMarkersList[[j]])
       spatialMarkersList[[j]][['SampleID']] = names(spatialMarkersList)[j]
-      spatialMarkers <- rbind(spatialMarkers, spatialMarkersList[[j]][1:10,])
+      spatialMarkersList[[j]] = spatialMarkersList[[j]][!is.na(SpatialMarkersList[[j]]$MeanRank),]
+      spatialMarkers <- rbind(spatialMarkers, spatialMarkersList[[j]])
   }
   
-  spatialPosMarkers <- intersect(posMarkers$gene, spatialMarkers$GeneSymbol)
+  spatialPosMarkers <- intersect(posMarkers$gene, unique(spatialMarkers$GeneSymbol))
   posMarkers[which(posMarkers$gene %in% spatialPosMarkers), 'isSpatialMarker'] = TRUE
  
   #Save some results in external files 
