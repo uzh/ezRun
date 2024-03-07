@@ -106,21 +106,22 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   posMarkers[['isSpatialMarker']] = FALSE
   #spatially variable genes
-  spatialMarkersList <- list()
-  res <- spatialMarkers(scData, selection.method = 'markvariogram')
-  spatialMarkersList[['markvariogram']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'Markvariogram')
-  res <- spatialMarkers(scData, selection.method = 'moransi')
-  spatialMarkersList[['moransi']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'MoransI')
-  spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('GeneSymbol', 'Rank','Method')], 
-                          spatialMarkersList[['moransi']][,c('GeneSymbol', 'Rank','Method')])
-  spatialMarkers <- spatialMarkers %>% spread(Method, Rank)
-  spatialMarkers[['MeanRank']] <- apply(spatialMarkers[,c('Markvariogram','MoransI')],1,mean)
-  spatialMarkers <- spatialMarkers[order(spatialMarkers$MeanRank),]
+  
+  filePath_spatialMarkers <- sub('scData.rds', 'spatial_markers.tsv',filePath)
+  spatialMarkersList <- lapply(filePath_spatialMarkers,ezRead.table)
+  names(spatialMarkersList) <- names(scDataList)
+  spatialMarkers <- c()
+  for (j in 1:length(SpatialMarkersList)){
+      spatialMarkersList[[j]][['GeneSymbol']] = rownames(spatialMarkersList[[j]])
+      spatialMarkersList[[j]][['SampleID']] = names(spatialMarkersList)[j]
+      spatialMarkers <- rbind(spatialMarkers, spatialMarkersList[[j]][1:10,])
+  }
+  
   spatialPosMarkers <- intersect(posMarkers$gene, spatialMarkers$GeneSymbol)
   posMarkers[which(posMarkers$gene %in% spatialPosMarkers), 'isSpatialMarker'] = TRUE
  
   #Save some results in external files 
-  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, spatial_markers=data.frame(spatialMarkers)))
+  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, spatial_markers=spatialMarkers))
   saveRDS(scData, "scData.rds")
   saveRDS(param, "param.rds")
   
