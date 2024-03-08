@@ -186,7 +186,10 @@ buildMultiConfigFile <- function(input, param, dirList) {
     headerSection[grep('reference_genome', headerSection)] = paste0('#reference_genome=',basename(refDir))
     probeInfo <- ezRead.table(myProbesetFile, sep = ',', row.names = NULL, skip = maxHeaderLine)
     if (ezIsSpecified(param$customProbesFile) && param$customProbesFile != '') {
-      probeInfo <- bind_rows(list(probeInfo, ezRead.table(file.path(param$dataRoot, param$customProbesFile), sep=',', row.names=NULL)))
+      customProbes <- ezRead.table(file.path(param$dataRoot, param$customProbesFile), sep=',', row.names=NULL) %>%
+        mutate(gene_id=ifelse(startsWith(gene_id, "Gene_"), gene_id, paste0("Gene_", gene_id)),
+               probe_id=ifelse(startsWith(probe_id, "Gene_"), probe_id, paste0("Gene_", probe_id)))
+      probeInfo <- bind_rows(list(probeInfo, customProbes))
     }
     annotation <- ezRead.table(file.path(refDir, 'star', 'geneInfo.tab'), row.names = NULL, skip = 1, header = FALSE)
     intersectionGenes <- intersect(annotation$V1, probeInfo$gene_id)
