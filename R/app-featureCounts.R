@@ -101,7 +101,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
         gtfFile <- gtfFileTmp
       }
       
-      extraGR <- makeExtraControlSeqGR(param$controlSeqs)
+      extraGR <- makeExtraControlSeqGR(param)
       gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
                              fileext = ".gtf")
       on.exit(file.remove(gtfExtraFn), add=TRUE)
@@ -237,7 +237,7 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
     
   if(ezIsSpecified(param$controlSeqs)){
     ## control sequences
-    extraGR <- makeExtraControlSeqGR(param$controlSeqs)
+    extraGR <- makeExtraControlSeqGR(param)
     gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
                            fileext = ".gtf")
     on.exit(file.remove(gtfExtraFn), add=TRUE)
