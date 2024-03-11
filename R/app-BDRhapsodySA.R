@@ -220,7 +220,7 @@ getBdWtaReference <- function(param) {
     file.copy(from = param$ezRef@refFeatureFile, to = gtfFile)
   }
   if (ezIsSpecified(param$controlSeqs)) {
-    extraGR <- makeExtraControlSeqGR(param$controlSeqs)
+    extraGR <- makeExtraControlSeqGR(param)
     gtfExtraFn <- tempfile(
       pattern = "extraSeqs", tmpdir = getwd(),
       fileext = ".gtf"
