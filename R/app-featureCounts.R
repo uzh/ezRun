@@ -42,16 +42,6 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     rtracklayer::export(gtf, gtfFile)
     on.exit(file.remove(gtfFile), add=TRUE)
 
-    if(ezIsSpecified(param$controlSeqs)){
-      ## control sequences
-      extraGR <- makeExtraControlSeqGR(param$controlSeqs)
-      gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
-                             fileext = ".gtf")
-      on.exit(file.remove(gtfExtraFn), add=TRUE)
-      export.gff2(extraGR, con=gtfExtraFn)
-      ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
-    }
-
     countResult = featureCounts(localBamFile, annot.inbuilt=NULL,
                                           annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                                           GTF.featureType='gene',
@@ -101,6 +91,22 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                     row.names=FALSE, col.names=FALSE)
       }
     }
+    
+    if(ezIsSpecified(param$controlSeqs)){
+      ## control sequences
+      gtfFileRemote <- gtfFile
+      gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
+      file.copy(from=gtfFileRemote, to=gtfFile)
+      on.exit(file.remove(gtfFile), add=TRUE)
+      
+      extraGR <- makeExtraControlSeqGR(param$controlSeqs)
+      gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
+                             fileext = ".gtf")
+      on.exit(file.remove(gtfExtraFn), add=TRUE)
+      export.gff2(extraGR, con=gtfExtraFn)
+      ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
+    }
+    
     countResult = featureCounts(localBamFile, annot.inbuilt=NULL,
                               annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                               GTF.featureType=param$gtfFeatureType,
