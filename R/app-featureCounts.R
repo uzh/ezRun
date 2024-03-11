@@ -94,10 +94,12 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     
     if(ezIsSpecified(param$controlSeqs)){
       ## control sequences
-      gtfFileRemote <- gtfFile
-      gtfFile = paste(Sys.getpid(), "genes.gtf", sep="-")
-      file.copy(from=gtfFileRemote, to=gtfFile)
-      on.exit(file.remove(gtfFile), add=TRUE)
+      gtfFileTmp <- paste(Sys.getpid(), "genes.gtf", sep="-")
+      if (gtfFileTmp != gtfFile) {
+        file.copy(from=gtfFile, to=gtfFileTmp)
+        on.exit(file.remove(gtfFile), add=TRUE)
+        gtfFile <- gtfFileTmp
+      }
       
       extraGR <- makeExtraControlSeqGR(param$controlSeqs)
       gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
