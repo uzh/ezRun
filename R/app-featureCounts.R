@@ -42,6 +42,16 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     rtracklayer::export(gtf, gtfFile)
     on.exit(file.remove(gtfFile), add=TRUE)
 
+    if(ezIsSpecified(param$controlSeqs)){
+      ## control sequences
+      extraGR <- makeExtraControlSeqGR(param$controlSeqs)
+      gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
+                             fileext = ".gtf")
+      on.exit(file.remove(gtfExtraFn), add=TRUE)
+      export.gff2(extraGR, con=gtfExtraFn)
+      ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
+    }
+
     countResult = featureCounts(localBamFile, annot.inbuilt=NULL,
                                           annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                                           GTF.featureType='gene',
