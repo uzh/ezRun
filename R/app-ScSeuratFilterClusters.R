@@ -133,7 +133,7 @@ ezMethodScSeuratFilterClusters <- function(input = NA, output = NA, param = NA,
   if (!all(toKeep)) {
     scData <- scData[, toKeep]
     DefaultAssay(scData) <- "RNA"
-    scData <- DietSeurat(scData, assays="RNA")
+    scData <- DietSeurat(scData, assays="RNA", layers="counts")
     
     ## Get information on which variables to regress out in scaling/SCT
     scData <- seuratStandardSCTPreprocessing(scData, param)
@@ -142,7 +142,7 @@ ezMethodScSeuratFilterClusters <- function(input = NA, output = NA, param = NA,
     scData <- seuratStandardWorkflow(scData, param, ident.name="seurat_clusters")
   }
 
-  if ("cellType" %in% scData@meta.data) {
+  if ("cellType" %in% colnames(scData@meta.data)) {
     # in case where the input dataset is labeled
     Idents(scData) <- scData$cellType
   }
