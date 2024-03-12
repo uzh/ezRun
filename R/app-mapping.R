@@ -229,34 +229,9 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       sep = " "
     )
   }
-  genomeFn <- param$ezRef@refFastaFile
-  
-  if (ezIsSpecified(param$controlSeqs)) {
-    ## control sequences
-    controlSeqsLocalFn <- tempfile(
-      pattern = "controlSeqs", tmpdir = getwd(), fileext = ".fa"
-    )
-    writeXStringSet(getControlSeqs(param$controlSeqs), filepath = controlSeqsLocalFn)
-    defer(file.remove(controlSeqsLocalFn))
-    
-    genomeLocalFn <- tempfile(
-      pattern = "genome", tmpdir = getwd(), fileext = ".fa"
-    )
-    file.copy(from = genomeFn, to = genomeLocalFn)
-    writeXStringSet(getControlSeqs(param$controlSeqs),
-                    filepath = genomeLocalFn,
-                    append = TRUE
-    )
-    dictFile <- sub(".fa$", ".dict", genomeLocalFn)
-    cmd <- str_c(
-      prepareJavaTools("picard"), "CreateSequenceDictionary",
-      str_c("R=", genomeLocalFn), str_c("O=", dictFile),
-      sep = " "
-    )
-    ezSystem(cmd)
-    
-    genomeFn <- genomeLocalFn
-    defer(file.remove(c(genomeLocalFn, dictFile)))
+
+  if (ezIsSpecified(param$secondRef)) {
+    stopifnot(file.exists(param$secondRef))
   }
   
 
@@ -266,8 +241,8 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
     if (param$paired) trimmedInput$getColumn("Read2"),
     "--twopassMode", if_else(param$twopassMode, "Basic", "None"),
     "--runThreadN", param$cores, param$cmdOptions,
-    ifelse(ezIsSpecified(param$controlSeqs),
-           str_c("--genomeFastaFiles", controlSeqsLocalFn, sep = " "), ""),
+    ifelse(ezIsSpecified(param$secondRef),
+           str_c("--genomeFastaFiles", param$secondRef, sep = " "), ""),
     "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
     "--outSAMattrRGline", str_c("ID:", trimmedInput$getNames()), str_c("SM:", trimmedInput$getNames()),
     if_else(str_detect(trimmedInput$getColumn("Read1"), "\\.gz$"), "--readFilesCommand zcat", ""),
