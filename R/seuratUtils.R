@@ -224,7 +224,6 @@ posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
   markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE, latent.vars = vars.to.regress, return.thresh = pvalue_allMarkers)
   ## Significant markers
   cm <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
-  cm$p_val_adj <- ifelse(cm$p_val_adj < 1e-100, 1e-100, cm$p_val_adj)  # smaller p-value
   cm$cluster <- as.factor(cm$cluster)
   diff_pct = abs(cm$pct.1-cm$pct.2)
   cm$diff_pct <- diff_pct

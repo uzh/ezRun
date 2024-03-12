@@ -417,7 +417,9 @@ DotPlot(scData, features=genesToPlot) + coord_flip() +
 
 ```{r marker groupwise plot, fig.width=13, fig.height=length(levels(Idents(scData)))}
 do_GroupwiseDEPlot(sample = scData,
-                   de_genes = posMarkers %>% mutate(gene=as.character(gene)),
+                   de_genes = posMarkers %>% 
+                     mutate(gene=as.character(gene),
+                            p_val_adj=ifelse(p_val_adj < 1e-100, 1e-100, p_val_adj)),
                    min.cutoff = 1)
 ```
 
