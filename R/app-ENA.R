@@ -104,6 +104,11 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     myPath = output$meta[['ENA Result [File]']]
     dataset <- createDataset(fastqInfo, myPath, paired = paired)
     
+    if (sum(dataset[['Read Count']])==0) {
+        dataset[['Read Count']] <- countReadsInFastq(basename(fastqInfo$fastq_ftp))
+    }
+    
+    
     if(length(dataset$Name) == length(unique(dataset$Name))){
         ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
     } else {
