@@ -245,6 +245,9 @@ getSpatialSeuratMarkersAndAnnotate <- function(scData, param){
     if (species == "Human" | species == "Mouse") {
         genesPerCluster <- split(markers$gene, markers$cluster)
         enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, param$enrichrDatabase)
+        if(length(enrichRout) == 0){
+            enrichRout <- NULL
+        }
         #cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, layer="counts"), species, param$tissue, BPPARAM = BPPARAM)
         cells.AUC <- NULL
         #singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, layer="data"), Idents(scData), param$SingleR, BPPARAM = BPPARAM)
