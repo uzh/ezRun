@@ -97,6 +97,22 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
     cmd <- paste(cmd, paste0("--probe-set=", file.path(getwd(), outputFile)))
   }
   
+  if(param$panelFile!=''){
+      cmd <- sub("--fastqs=.*--localmem=","--localmem=", cmd)
+      myFile <- file.path('/srv/GT/databases/10x/Visium/panels',param$panelFile)
+      cmd <- paste(cmd, "--feature-ref", myFile)
+      
+      panelSampleDirs <- getFastqDirs(input, "PanelRawDataDir", sampleName)
+      panelSampleNameFQ <- sub('.tar', '', basename(panelSampleDirs))
+      
+      panelSampleDirs <- tarExtract(panelSampleDirs, prependUnique=TRUE)
+      panelSampleDirs <- normalizePath(panelSampleDirs)
+      
+      librariesDS <- data.frame(fastqs = c(sampleDir, panelSampleDirs), sample = c(sampleName, panelSampleNameFQ), library_type = c('Gene Expression','Antibody Capture'))
+      write_csv(librariesDS, 'libraries.csv')      
+      cmd <- paste(cmd, "--libraries=libraries.csv")
+  }
+  
   tryCatch(
     {
     json_paths <- input$getFullPaths("loupe-alignment")
