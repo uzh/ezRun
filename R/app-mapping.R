@@ -339,10 +339,10 @@ getSTARReference <- function(param) {
         pattern = "genes", tmpdir = getwd(),
         fileext = ".gtf"
       )
-      gtf1 <- ezReadGff(param$ezRef["refFeatureFile"])
-      gtf2 <- ezReadGff(secondGtf)
+      gtf1 <- ezRead.table(param$ezRef["refFeatureFile"], quote="", sep="\t", comment.char = "#", row.names = NULL, header = FALSE)
+      gtf2 <- ezRead.table(secondGtf, quote="", sep="\t", comment.char = "#", row.names = NULL, header = FALSE)
       ## if the same chromosome name shows up in both GTF files, we can't concatenate them
-      stopifnot(length(intersect(gtf1$seqid, gtf2$seqid)) == 0)
+      stopifnot(length(intersect(gtf1$V1, gtf2$V1)) == 0) ## first column holds the seqid
       ezSystem(paste("cp", param$ezRef["refFeatureFile"], gtfFile))
       ezSystem(paste("cat", secondGtf, ">>", gtfFile))
       
