@@ -149,11 +149,17 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   if(!param$keepBam){
       print(ezSystem('find . -name "*.bam" -type f'))
       ezSystem('find . -name "*.bam" -type f -delete')
+      ezSystem('find . -name "*.bam.bai" -type f -delete')
   }
   
   cmDir <- file.path(finalSampleName, 'filtered_feature_bc_matrix')
   cts <- Read10X(cmDir, gene.column = 1)
-  bulkData <- rowSums(data.frame(cts))
+  if(is.list(cts)){
+      cts <- cts[['Gene Expression']]
+      bulkData <- apply(cts,1,sum)
+  } else {
+    bulkData <- rowSums(data.frame(cts))
+  }
   bulkData <- data.frame(Identifier = names(bulkData), matchCounts = bulkData)
   countFile <- paste0(finalSampleName,'-counts.txt')
   ezWrite.table(bulkData, file.path(finalSampleName, countFile), row.names = FALSE)

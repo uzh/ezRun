@@ -105,7 +105,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   library(scater)
   library(Azimuth)
   library(enrichR)
-  #library(loupeR)
+  library(loupeR)
   
   cmDir <- input$getFullPaths("CountMatrix")
   featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
@@ -187,6 +187,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
                 cells.AUC=anno$cells.AUC, singler.results=anno$singler.results, aziResults=anno$aziResults,
                 pathwayActivity=anno$pathwayActivity, TFActivity=anno$TFActivity,
                 rmdFile = "SpatialSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
+  create_loupe_from_seurat(scData, output_name = input$getNames())
   remove(scDataRaw, scData.unfiltered, scData)
   gc()
   return("Success")

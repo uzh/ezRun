@@ -35,13 +35,14 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
 spatialMarkers <- readxl::read_xlsx("spatialMarkers.xlsx")
 param <- readRDS("param.rds")
+input <- readRDS("input.rds")
 output <- readRDS("output.rds")
 scData <- readRDS("scData.rds")
 scData.unfiltered_spatial <- readRDS("scData.unfiltered.rds")
 scData.unfiltered_spatial@images$slice1@scale.factors$lowres=scData@images$slice1@scale.factors$lowres
 scDataRaw <- readRDS("scData.raw.rds")
 allCellsMeta <- readRDS("allCellsMeta.rds")
-
+sampleName <- input$getNames()
 
 coord <- GetTissueCoordinates(object = scData@images$slice1)
 myRatio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
@@ -551,6 +552,8 @@ p2
 [spatialMarkers](spatial_markers.tsv)
 
 ##### The final Seurat Object is [here](scData.rds)
+
+##### LoupeBrowserObject [here](`r paste0(sampleName,'.cloupe')`)
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
