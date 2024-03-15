@@ -345,8 +345,6 @@ getSTARReference <- function(param) {
       stopifnot(length(intersect(gtf1$V1, gtf2$V1)) == 0) ## first column holds the seqid
       ezSystem(paste("cp", param$ezRef["refFeatureFile"], gtfFile))
       ezSystem(paste("cat", secondGtf, ">>", gtfFile))
-      
-      data.table::fread()
       genomeFastaFiles <- paste(param$ezRef["refFastaFile"], param$secondRef)
       refDir <- file.path(getwd(), "Custom_STARIndex")
     } else {
