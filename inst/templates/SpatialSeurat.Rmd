@@ -39,12 +39,13 @@ input <- readRDS("input.rds")
 output <- readRDS("output.rds")
 scData <- readRDS("scData.rds")
 scData.unfiltered_spatial <- readRDS("scData.unfiltered.rds")
-scData.unfiltered_spatial@images$slice1@scale.factors$lowres=scData@images$slice1@scale.factors$lowres
+imageName <- names(scData.unfiltered_spatial@images)
+scData.unfiltered_spatial@images[[imageName]]@scale.factors$lowres=scData@images[[imageName]]@scale.factors$lowres
 scDataRaw <- readRDS("scData.raw.rds")
 allCellsMeta <- readRDS("allCellsMeta.rds")
 sampleName <- input$getNames()
 
-coord <- GetTissueCoordinates(object = scData@images$slice1)
+coord <- GetTissueCoordinates(object = scData@images[[imageName]])
 myRatio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
 
 if (file.exists("cellsPerGeneFraction.rds")){

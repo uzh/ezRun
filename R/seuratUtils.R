@@ -70,6 +70,8 @@ seuratStandardWorkflow <- function(scData, param, reduction="pca", ident.name="i
   scData <- RunUMAP(object=scData, reduction = reduction, dims = 1:param$npcs)
   scData <- FindNeighbors(object = scData, reduction = reduction, dims = 1:param$npcs, verbose=FALSE)
   scData <- FindClusters(object=scData, resolution = seq(from = 0.2, to = 1, by = 0.2), verbose=FALSE)  #calculate clusters for a set of resolutions
+  if(param$resolution > 1)
+     scData <- FindClusters(object=scData, resolution = param$resolution, verbose=FALSE)
   Idents(scData) <- scData@meta.data[,paste0(DefaultAssay(scData), "_snn_res.", param$resolution)]  #but keep as the current clusters the ones obtained with the resolution set by the user
   scData[[ident.name]] <- Idents(scData)
   return(scData)

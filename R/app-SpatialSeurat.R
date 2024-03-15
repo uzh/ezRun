@@ -31,6 +31,9 @@ EzAppSpatialSeurat <-
                                           DefaultValue = FALSE,
                                           Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."
                                         ),
+                                        enrichrDatabase = ezFrame(
+                                            Type = "charVector", DefaultValue = "", Description="enrichR databases to search"
+                                        ),
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcoxon", 
                                                           Description="Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."),
@@ -45,7 +48,7 @@ EzAppSpatialSeurat <-
                                           Description = "Used in calculating cluster markers: Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells."
                                         ),
                                         resolution=ezFrame(Type="numeric", 
-                                                           DefaultValue=0.5,
+                                                           DefaultValue=0.6,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         cellsFraction=ezFrame(Type="numeric", 
                                                                 DefaultValue=0.05, 
@@ -245,6 +248,9 @@ getSpatialSeuratMarkersAndAnnotate <- function(scData, param){
     if (species == "Human" | species == "Mouse") {
         genesPerCluster <- split(markers$gene, markers$cluster)
         enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, param$enrichrDatabase)
+        if(length(enrichRout) == 0){
+            enrichRout <- NULL
+        }
         #cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, layer="counts"), species, param$tissue, BPPARAM = BPPARAM)
         cells.AUC <- NULL
         #singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, layer="data"), Idents(scData), param$SingleR, BPPARAM = BPPARAM)
