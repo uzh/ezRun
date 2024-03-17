@@ -157,4 +157,4 @@ minFlycodeLength	numeric	33
 FCminFreq	numeric	4	
 markDuplicates	logical	TRUE	
 writeIgvLink	logical	TRUE
-enrichrDatabase charVector      enrichR databases to search
+enrichrDatabase	charVector		enrichR databases to search
