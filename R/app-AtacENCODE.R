@@ -23,12 +23,12 @@ EzAppAtacENCODE <-
 
 ezMethodAtacENCODE <- function(input=NA, output=NA, param=NA){
     require(rjson)
-    #    require(Herper)
-   #local_CondaEnv("encode-atac-seq-pipeline", pathToMiniConda = "/usr/local/ngseq/miniconda3")
   #setwdNew(basename(output$getColumn("Report")))
   sampleName <- input$getNames()
   createJson(input, param)
   
+  require(Herper)
+  out <- tryCatch(local_CondaEnv("encode-atac-seq-pipeline", pathToMiniConda = "/usr/local/ngseq/miniconda3"), error = function(e) NULL)
   cmd <- paste('caper run /usr/local/ngseq/opt/atac-seq-pipeline/atac.wdl -i atac.json')
   system(cmd)
   
