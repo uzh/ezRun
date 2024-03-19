@@ -44,8 +44,8 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     }
     bamFile <- input$getFullPaths("BAM")
     outBam <- basename(output$getColumn("BAM"))
-    if(param$markDuplicates){
-      dupBam(inBam=bamFile, outBam=outBam, operation="remove", ram = param$bam)
+    if(param$removeDuplicates){
+      dupBam(inBam=bamFile, outBam=outBam, operation="remove", ram = param$ram)
     } else {
       file.copy(from=bamFile, to=outBam, overwrite=TRUE)
       Rsamtools::indexBam(outBam)

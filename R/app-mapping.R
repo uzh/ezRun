@@ -229,34 +229,17 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       sep = " "
     )
   }
-  genomeFn <- param$ezRef@refFastaFile
-  
-  if (ezIsSpecified(param$controlSeqs)) {
-    ## control sequences
-    controlSeqsLocalFn <- tempfile(
-      pattern = "controlSeqs", tmpdir = getwd(), fileext = ".fa"
-    )
-    writeXStringSet(getControlSeqs(param$controlSeqs), filepath = controlSeqsLocalFn)
-    defer(file.remove(controlSeqsLocalFn))
-    
-    genomeLocalFn <- tempfile(
-      pattern = "genome", tmpdir = getwd(), fileext = ".fa"
-    )
-    file.copy(from = genomeFn, to = genomeLocalFn)
-    writeXStringSet(getControlSeqs(param$controlSeqs),
-                    filepath = genomeLocalFn,
-                    append = TRUE
-    )
-    dictFile <- sub(".fa$", ".dict", genomeLocalFn)
-    cmd <- str_c(
-      prepareJavaTools("picard"), "CreateSequenceDictionary",
-      str_c("R=", genomeLocalFn), str_c("O=", dictFile),
-      sep = " "
-    )
-    ezSystem(cmd)
-    
-    genomeFn <- genomeLocalFn
-    defer(file.remove(c(genomeLocalFn, dictFile)))
+
+  ## we use the --genomeFastaFiles option only if we have spliced sequences; 
+  ## if we have .fa and .gtf we build a separate index
+  if (ezIsSpecified(param$secondRef)) {
+    stopifnot(file.exists(param$secondRef))
+    secondGtf <- sub(".fa", ".gtf", param$secondRef)
+    if (!file.exists(secondGtf)){
+      genomeFastaFileOption <- str_c("--genomeFastaFiles", param$secondRef, sep = " ")
+    }  else {
+      genomeFastaFileOption <- ""
+    }
   }
   
 
@@ -266,8 +249,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
     if (param$paired) trimmedInput$getColumn("Read2"),
     "--twopassMode", if_else(param$twopassMode, "Basic", "None"),
     "--runThreadN", param$cores, param$cmdOptions,
-    ifelse(ezIsSpecified(param$controlSeqs),
-           str_c("--genomeFastaFiles", controlSeqsLocalFn, sep = " "), ""),
+    genomeFastaFileOption,
     "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
     "--outSAMattrRGline", str_c("ID:", trimmedInput$getNames()), str_c("SM:", trimmedInput$getNames()),
     if_else(str_detect(trimmedInput$getColumn("Read1"), "\\.gz$"), "--readFilesCommand zcat", ""),
@@ -342,18 +324,39 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
 getSTARReference <- function(param) {
   if (ezIsSpecified(param$ezRef["refIndex"])) {
     refDir <- param$ezRef["refIndex"]
-  } else {
-    if (!ezIsSpecified(param$ezRef["refFeatureFile"])) {
-      stop("refFeatureFile not defined")
-    }
-    refDir <- sub(".gtf$", "_STARIndex", param$ezRef["refFeatureFile"])
-    if (ezIsSpecified(param$spikeInSet)) {
-      refDir <- paste(refDir, param$spikeInSet, sep = "_")
+    stopfinot(file.exists(file.path(refDir, "SAindex")))
+    return(refDir)
+  }
+  if (!ezIsSpecified(param$ezRef["refFeatureFile"])) {
+    stop("refFeatureFile not defined")
+  }
+  
+  if (ezIsSpecified(param$secondRef)) {
+    stopifnot(file.exists(param$secondRef))
+    secondGtf <- sub(".fa", ".gtf", param$secondRef)
+    if (file.exists(secondGtf)) {
+      gtfFile <- tempfile(
+        pattern = "genes", tmpdir = getwd(),
+        fileext = ".gtf"
+      )
+      gtf1 <- ezRead.table(param$ezRef["refFeatureFile"], quote="", sep="\t", comment.char = "#", row.names = NULL, header = FALSE)
+      gtf2 <- ezRead.table(secondGtf, quote="", sep="\t", comment.char = "#", row.names = NULL, header = FALSE)
+      ## if the same chromosome name shows up in both GTF files, we can't concatenate them
+      stopifnot(length(intersect(gtf1$V1, gtf2$V1)) == 0) ## first column holds the seqid
+      ezSystem(paste("cp", param$ezRef["refFeatureFile"], gtfFile))
+      ezSystem(paste("cat", secondGtf, ">>", gtfFile))
+      genomeFastaFiles <- paste(param$ezRef["refFastaFile"], param$secondRef)
+      refDir <- file.path(getwd(), "Custom_STARIndex")
+    } else {
+      gtfFile <- param$ezRef["refFeatureFile"]
+      genomeFastaFiles <- param$ezRef["refFastaFile"]
+      refDir <- sub(".gtf$", "_STARIndex", param$ezRef["refFeatureFile"])
     }
   }
+  
   ## random sleep to avoid parallel ref building
   Sys.sleep(runif(1, max = 20))
-
+  
   lockFile <- paste0(refDir, ".lock")
   i <- 0
   while (file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT) {
@@ -393,19 +396,8 @@ getSTARReference <- function(param) {
   } else {
     genomeChrBinNbits <- ""
   }
-
+  
   job <- ezJobStart("STAR genome build")
-  if (ezIsSpecified(param$spikeInSet)) {
-    spikeInFasta <- paste0(SPIKEINS_ROOT, "/", param$spikeInSet, "/", param$spikeInSet, ".fa")
-    spikeInGtf <- paste0(SPIKEINS_ROOT, "/", param$spikeInSet, "/", param$spikeInSet, ".gtf")
-    gtfFile <- file.path(refDir, "genesAndSpikes.gtf")
-    ezSystem(paste("cp", param$ezRef["refFeatureFile"], gtfFile))
-    ezSystem(paste("cat", spikeInGtf, ">>", gtfFile))
-    genomeFastaFiles <- paste(param$ezRef["refFastaFile"], spikeInFasta)
-  } else {
-    gtfFile <- param$ezRef["refFeatureFile"]
-    genomeFastaFiles <- param$ezRef["refFastaFile"]
-  }
   cmd <- paste(
     "STAR", "--runMode genomeGenerate --genomeDir", refDir, binOpt, indexNBasesOpt, genomeChrBinNbits,
     "--limitGenomeGenerateRAM", format(param$ram * 1e9, scientific = FALSE),

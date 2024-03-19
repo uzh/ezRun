@@ -92,7 +92,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
       }
     }
     
-    if(ezIsSpecified(param$controlSeqs)){
+    if(ezIsSpecified(param$secondRef)){
       ## control sequences
       gtfFileTmp <- paste(Sys.getpid(), "genes.gtf", sep="-")
       if (gtfFileTmp != gtfFile) {

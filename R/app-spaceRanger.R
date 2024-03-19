@@ -97,6 +97,22 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
     cmd <- paste(cmd, paste0("--probe-set=", file.path(getwd(), outputFile)))
   }
   
+  if(param$panelFile!=''){
+      cmd <- sub("--fastqs=.*--localmem=","--localmem=", cmd)
+      myFile <- file.path('/srv/GT/databases/10x/Visium/panels',param$panelFile)
+      cmd <- paste(cmd, "--feature-ref", myFile)
+      
+      panelSampleDirs <- getFastqDirs(input, "PanelRawDataDir", sampleName)
+      panelSampleNameFQ <- sub('.tar', '', basename(panelSampleDirs))
+      
+      panelSampleDirs <- tarExtract(panelSampleDirs, prependUnique=TRUE)
+      panelSampleDirs <- normalizePath(panelSampleDirs)
+      
+      librariesDS <- data.frame(fastqs = c(sampleDir, panelSampleDirs), sample = c(sampleName, panelSampleNameFQ), library_type = c('Gene Expression','Antibody Capture'))
+      write_csv(librariesDS, 'libraries.csv')      
+      cmd <- paste(cmd, "--libraries=libraries.csv")
+  }
+  
   tryCatch(
     {
     json_paths <- input$getFullPaths("loupe-alignment")
@@ -133,14 +149,20 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   if(!param$keepBam){
       print(ezSystem('find . -name "*.bam" -type f'))
       ezSystem('find . -name "*.bam" -type f -delete')
+      ezSystem('find . -name "*.bam.bai" -type f -delete')
   }
   
   cmDir <- file.path(finalSampleName, 'filtered_feature_bc_matrix')
   cts <- Read10X(cmDir, gene.column = 1)
-  bulkData <- rowSums(data.frame(cts))
+  if(is.list(cts)){
+      cts <- cts[['Gene Expression']]
+      bulkData <- apply(cts,1,sum)
+  } else {
+    bulkData <- rowSums(data.frame(cts))
+  }
   bulkData <- data.frame(Identifier = names(bulkData), matchCounts = bulkData)
-  countFile <- paste0(sampleName,'-counts.txt')
-  ezWrite.table(bulkData, file.path(sampleName, countFile), row.names = FALSE)
+  countFile <- paste0(finalSampleName,'-counts.txt')
+  ezWrite.table(bulkData, file.path(finalSampleName, countFile), row.names = FALSE)
   return("Success")
 }
 

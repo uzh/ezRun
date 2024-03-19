@@ -25,19 +25,27 @@ library(clustree)
 library(ezRun)
 library(scater)
 library(SingleCellExperiment)
+library(enrichR)
+library(SCpubr)
+
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
 
 ```{r}
+posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
+spatialMarkers <- readxl::read_xlsx("spatialMarkers.xlsx")
 param <- readRDS("param.rds")
+input <- readRDS("input.rds")
 output <- readRDS("output.rds")
 scData <- readRDS("scData.rds")
 scData.unfiltered_spatial <- readRDS("scData.unfiltered.rds")
-scData.unfiltered_spatial@images$slice1@scale.factors$lowres=scData@images$slice1@scale.factors$lowres
+imageName <- names(scData.unfiltered_spatial@images)
+scData.unfiltered_spatial@images[[imageName]]@scale.factors$lowres=scData@images[[imageName]]@scale.factors$lowres
 scDataRaw <- readRDS("scData.raw.rds")
 allCellsMeta <- readRDS("allCellsMeta.rds")
+sampleName <- input$getNames()
 
-coord <- GetTissueCoordinates(object = scData@images$slice1)
+coord <- GetTissueCoordinates(object = scData@images[[imageName]])
 myRatio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
 
 if (file.exists("cellsPerGeneFraction.rds")){
@@ -45,12 +53,30 @@ if (file.exists("cellsPerGeneFraction.rds")){
 } else {
   cellsPerGeneFraction <- NULL
 }
-
+if (file.exists("enrichRout.rds")){
+  enrichRout <- readRDS("enrichRout.rds")
+  if(length(enrichRout) == 1){ ##enrichR call creates empty file
+     enrichRout <- NULL 
+  }
+} else {
+  enrichRout <- NULL
+}
 if (file.exists("aziResults.rds")){
   aziResults <- readRDS("aziResults.rds")
 } else {
   aziResults <- NULL
 }
+
+# Process the posMarkers
+posMarkers$gene = as.factor(posMarkers$gene)
+# make sure the loaded cluster uses proper integer ordering if all levels are integer!
+clusterSet <- posMarkers$cluster %>% as.integer() %>% unique() %>% sort(na.last=TRUE)
+if (any(is.na(clusterSet))){
+  posMarkers$cluster = as.factor(posMarkers$cluster)
+} else {
+  posMarkers$cluster = factor(posMarkers$cluster, levels=clusterSet)
+}
+posMarkers$p_val_adj[posMarkers$p_val_adj==0] <- min(posMarkers$p_val_adj[posMarkers$p_val_adj>0])
 ```
 
 ## Analysis results {.tabset}
@@ -121,11 +147,11 @@ plot6 + plot8 + plot7 + plot5 + plot_layout(nrow = 2, ncol = 2)
 b.) based on all spots without image based filtering by SpaceRanger
 
 ```{r QC plots4, fig.width=26, fig.height=10}
-#imageDims <- dim(GetImage(scDataRaw)[[1]])
-#my_pt.size.factor <- min(imageDims[1]/240, 5)
+imageDims <- dim(GetImage(scDataRaw)[[1]])
+my_pt.size.factor <- min(max(imageDims[1]/600,1), param$pt.size.factor)
 plot0 <- SpatialFeaturePlot(scDataRaw, features = "nCount_Spatial", pt.size.factor = 0) + NoLegend()
-plot1 <- SpatialFeaturePlot(scDataRaw, features = "nCount_Spatial", pt.size.factor = param$pt.size.factor, min.cutoff = 'q1', max.cutoff = 'q50', alpha = 0.5) + theme(legend.position = "right") 
-plot2 <- SpatialFeaturePlot(scDataRaw, features = "nFeature_Spatial", pt.size.factor = param$pt.size.factor, min.cutoff = 'q1', max.cutoff = 'q50',  alpha = 0.5) + theme(legend.position = "right")
+plot1 <- SpatialFeaturePlot(scDataRaw, features = "nCount_Spatial", pt.size.factor = my_pt.size.factor, min.cutoff = 'q1', max.cutoff = 'q50', alpha = 0.5) + theme(legend.position = "right") 
+plot2 <- SpatialFeaturePlot(scDataRaw, features = "nFeature_Spatial", pt.size.factor = my_pt.size.factor, min.cutoff = 'q1', max.cutoff = 'q50',  alpha = 0.5) + theme(legend.position = "right")
 
 plot0 + plot1 + plot2 + plot_layout(nrow = 1, ncol = 3)
 ```
@@ -342,8 +368,6 @@ clustree::clustree(scData, prefix = "SCT_snn_res.")
 
 <br/>
 
-
-
 ### Cluster markers
 
 ```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
@@ -354,16 +378,42 @@ cat("We found positive markers that defined clusters compared to all other spots
 cat("We found positive markers that defined clusters compared to all other spots via differential expression using a logistic regression test and including in the model the cell cycle as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the spots in the tested cluster and the rest of the spots and an adjusted p-value < 0.05 were declared as significant.")
 ```
 
-#### Expression differences of cluster marker genes
-
 ```{r pos markers}
-posMarkers = read_tsv("cluster_markers.tsv")
-posMarkers$cluster = as.factor(posMarkers$cluster)
-posMarkers$gene = as.factor(posMarkers$gene)
-ezInteractiveTableRmd(posMarkers, digits=4)
+ezInteractiveTableRmd(data.frame(posMarkers), digits=10)
 ```
 
-### Markers plots
+### Marker plots
+
+Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
+
+<br/>
+
+```{r marker plot setup}
+top5 <- posMarkers %>% 
+  group_by(cluster) %>%
+  slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
+genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
+genesToPlot <- intersect(genesToPlot, rownames(scData))
+```
+
+#### Heatmap & DotPlot
+
+```{r marker heatmap, fig.width=12, fig.height=length(levels(Idents(scData)))}
+DoHeatmap(scData, features=unique(genesToPlot))
+DotPlot(scData, features=genesToPlot) + coord_flip() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+```
+
+#### Group-wise DE Plot
+
+```{r marker groupwise plot, fig.width=13, fig.height=length(levels(Idents(scData)))}
+do_GroupwiseDEPlot(sample = scData,
+                   de_genes = posMarkers %>% mutate(gene=as.character(gene)),
+                   min.cutoff = 1)
+```
+
+
+### Top Markers
 
 We plot on the tissue the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
@@ -390,15 +440,54 @@ for (eachCluster in levels(posMarkers$cluster)) {
 
 ### Spatially Variable Genes plots 
 
-We also identify molecular features that correlate with spatial location within a tissue. Here we show the expression of the top 20 features identified by this measure. The full list can be found in the Data availability section.
+We also identify molecular features that correlate with spatial location within a tissue. Here we show the expression of the top 10 features identified by this measure. The full list can be found in the Data availability section.
 
 ```{r spatial markers plots, results='asis', fig.width=5, fig.height=5}
-spatialMarkers = read_tsv("spatial_markers.tsv")
-top.features <- head(spatialMarkers$GeneSymbol, 20)
+top.features <- head(spatialMarkers$GeneSymbol, 10)
 for(gene in top.features) {
-   sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1), pt.size.factor =  param$pt.size.factor) + theme(aspect.ratio = myRatio)
+   sp = SpatialFeaturePlot(object = scData, features = gene, alpha = c(0.1, 1), pt.size.factor = param$pt.size.factor) + theme(aspect.ratio = myRatio)
    print(sp)
 }
+```
+
+### EnrichR
+
+Cell type scoring using the EnrichR tool. This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters.
+
+```{r query online enrichR version, echo=FALSE, results='asis'}
+markersPerClusterTable <- c()
+eachCluster <- 0
+for (eachCluster in levels(posMarkers$cluster)) {
+  markersPerCluster <- dplyr::filter(posMarkers, cluster == eachCluster) %>%
+    dplyr::arrange(desc(avg_log2FC))
+  markersPerCluster <- head(markersPerCluster, min(nrow(markersPerCluster), 500))
+  markersPerClusterTable <- rbind(markersPerClusterTable,markersPerCluster)
+}
+
+genesPerCluster <- split(markersPerClusterTable$gene, markersPerClusterTable$cluster)
+jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+```
+
+
+```{r enrichr markers, echo=FALSE, results='asis'}
+enrichrTable <- tibble(Cluster=names(genesPerCluster),
+                         "# of posMarkers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls)
+if (!is.null(enrichRout)){
+  enrichRTerm <- as.data.frame(do.call(rbind, lapply(enrichRout, as.vector)))
+  enrichRTerm <- map_df(enrichRTerm, ~ map_df(.x, ~ replace(.x, is.null(.x), NA)), .id = "database")
+  enrichRTerm <- enrichRTerm %>%
+    group_by(., Cluster, database) %>%
+    summarise(topTerms = paste(Term, collapse = "; ")) %>%
+    as.data.frame()
+  enrichRTerm <- dcast(enrichRTerm, ... ~ database)
+  enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
+}
+kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment")) %>%
+kable_styling("striped", full_width = F, position = "left")
 ```
 
 ### Azimuth 
@@ -464,6 +553,8 @@ p2
 [spatialMarkers](spatial_markers.tsv)
 
 ##### The final Seurat Object is [here](scData.rds)
+
+##### LoupeBrowserObject [here](`r paste0(sampleName,'.cloupe')`)
 
 ### Parameters
 ```{r report parameters, echo=FALSE}

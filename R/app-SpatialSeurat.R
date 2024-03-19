@@ -31,6 +31,9 @@ EzAppSpatialSeurat <-
                                           DefaultValue = FALSE,
                                           Description="Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."
                                         ),
+                                        enrichrDatabase = ezFrame(
+                                            Type = "charVector", DefaultValue = "", Description="enrichR databases to search"
+                                        ),
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcoxon", 
                                                           Description="Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."),
@@ -45,7 +48,7 @@ EzAppSpatialSeurat <-
                                           Description = "Used in calculating cluster markers: Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells."
                                         ),
                                         resolution=ezFrame(Type="numeric", 
-                                                           DefaultValue=0.5,
+                                                           DefaultValue=0.6,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         cellsFraction=ezFrame(Type="numeric", 
                                                                 DefaultValue=0.05, 
@@ -83,7 +86,7 @@ EzAppSpatialSeurat <-
                                         ),
                                         pvalue_allMarkers = ezFrame(
                                             Type = "numeric",
-                                            DefaultValue = 0.05,
+                                            DefaultValue = 0.01,
                                             Description = "pValue for marker detection"
                                         ),
                                         pt.size.factor = ezFrame(
@@ -104,7 +107,8 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   library(Seurat)
   library(scater)
   library(Azimuth)
-  #library(loupeR)
+  library(enrichR)
+  library(loupeR)
   
   cmDir <- input$getFullPaths("CountMatrix")
   featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
@@ -137,91 +141,63 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   scData.unfiltered <- scDataRes[['scData.unfiltered']]
   remove(scDataRes)
   
+  # get markers and annotations
+  anno <- getSpatialSeuratMarkersAndAnnotate(scData, param)
   
-  #positive cluster markers
-  clusterMarkers <- posClusterMarkers(scData, param$pvalue_allMarkers, param)
-  clusterMarkers[['isSpatialMarker']] = FALSE 
-  #spatially variable genes
-  spatialMarkersList <- list()
-  message('Find spatial Markers using markvariogram')
-  res <- spatialMarkers(scData, selection.method = 'markvariogram')
-  spatialMarkersList[['markvariogram']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'Markvariogram')
-  message('Find spatial Markers using moransi method')
-  res <- spatialMarkers(scData, selection.method = 'moransi')
-  spatialMarkersList[['moransi']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'MoransI')
-  spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('GeneSymbol', 'Rank','Method')], spatialMarkersList[['moransi']][,c('GeneSymbol', 'Rank','Method')])
-  spatialMarkers <- spatialMarkers %>% spread(Method, Rank)
-  spatialMarkers[['MeanRank']] <- apply(spatialMarkers[,c('Markvariogram','MoransI')],1,mean)
-  spatialMarkers <- spatialMarkers[order(spatialMarkers$MeanRank),]
+  # save markers
+  clusterMarkers <- anno$clusterMarkers
+  writexl::write_xlsx(clusterMarkers, path="posMarkers.xlsx")
   
-  spatialPosMarkers <- intersect(clusterMarkers$gene, spatialMarkers$GeneSymbol)
-  clusterMarkers[which(clusterMarkers$gene %in% spatialPosMarkers), 'isSpatialMarker'] = TRUE
+  spatialMarkers <- anno$spatialMarkers
+  writexl::write_xlsx(spatialMarkers, path="spatialMarkers.xlsx")
   
-  # run Azimuth
-  if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none"){
-      environment(MyDietSeurat) <- asNamespace('Seurat')
-      assignInNamespace("DietSeurat", MyDietSeurat, ns = "Seurat")
-      rna_assay <- CreateAssay5Object(counts = GetAssayData(scData, assay = 'Spatial', layer = 'counts'))
-      scData[["RNA"]] <- scData[["Spatial"]] #rna_assay
-      
-      scDataAzi <- RunAzimuth(scData, param$Azimuth, assay="RNA") ## TODO support ADT
-      
-      ##Rename annotation levels if neccessary:
-      colnames(scDataAzi@meta.data) <- sub('level_', 'l', colnames(scDataAzi@meta.data))
-      if(param$Azimuth=='mousecortexref'){
-          aziNames <- setdiff(colnames(scDataAzi@meta.data), colnames(scData@meta.data))
-          aziResults <- data.frame(
-              Azimuth.celltype.l1=scDataAzi@meta.data[ , grep("predicted.class$", aziNames, value=TRUE)],
-              Azimuth.celltype.l2=scDataAzi@meta.data[ , grep("predicted.cluster$", aziNames, value=TRUE)],
-              Azimuth.celltype.l3=scDataAzi@meta.data[ , grep("predicted.subclass$", aziNames, value=TRUE)],
-              Azimuth.celltype.l4=scDataAzi@meta.data[ , grep("predicted.cross_species_cluster$", aziNames, value=TRUE)],
-              row.names=colnames(scDataAzi))
-      } else {
-            aziNames <- setdiff(colnames(scDataAzi@meta.data), colnames(scData@meta.data))
-            aziResults <- data.frame(
-              Azimuth.celltype.l1=scDataAzi@meta.data[ , grep("l1$", aziNames, value=TRUE)],
-              Azimuth.celltype.l2=scDataAzi@meta.data[ , grep("l2$", aziNames, value=TRUE)],
-              Azimuth.celltype.l3=scDataAzi@meta.data[ , grep("l3$", aziNames, value=TRUE)],
-              Azimuth.celltype.l4=scDataAzi@meta.data[ , grep("l4$", aziNames, value=TRUE)],
-          row.names=colnames(scDataAzi))
-      }
-      scData[["RNA"]] <- NULL
-      saveRDS(aziResults, "aziResults.rds")
-      scData <- AddMetaData(scData, aziResults)
-      remove(scDataAzi)
-  } else {
-      aziResults <- NULL
+  if(!is.null(anno$aziResults)){
+    scData <- AddMetaData(scData, anno$aziResults)
   }
+  ## generate template for manual cluster annotation -----
+  ## we only deal with one sample
+  stopifnot(length(input$getNames()) == 1)
+  clusterInfos <- ezFrame(Sample=input$getNames(), Cluster=levels(Idents(scData)), ClusterLabel="")
+  if (!is.null(anno$singler.results)){
+      clusterInfos$SinglerCellType <- anno$singler.results$singler.results.cluster[clusterInfos$Cluster, "pruned.labels"]
+  }
+  nTopMarkers <- 10
+  topMarkers <- clusterMarkers %>% group_by(cluster) %>%
+      slice_max(n = nTopMarkers, order_by = avg_log2FC)
+  topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
+  clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
+  clusterInfoFile <- "clusterInfos.xlsx"
+  writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
   
   #Save some results in external files
   bulkSignalPerCluster <- data.frame(GeneSymbol = rownames(scData), AggregateExpression(scData, group.by = 'ident')$SCT)
   bulkSignalPerSample <-  data.frame(GeneSymbol = rownames(scData), AggregateExpression(scData, group.by = 'Sample')$SCT)
   
   
- ###Add TPM, add HVG annotation to base tables, enrichR links for HVG and top 1000 genes per sample 
+ ###Add TPM, add HVG annotation to base tables, enrichR links for HVG and top 1000 genes per sample
+  dataFiles <- saveExternalFiles(list(bulkSignalPerSample = bulkSignalPerSample, bulkSignalPerCluster = bulkSignalPerCluster))
   
-  
-  dataFiles <- saveExternalFiles(list(cluster_markers=clusterMarkers, spatial_markers=data.frame(spatialMarkers), 
-                                      bulkSignalPerSample = bulkSignalPerSample, bulkSignalPerCluster = bulkSignalPerCluster))
-  
-  saveRDS(scData, "scData.rds")
   allCellsMeta <- scData.unfiltered@meta.data
   allCellsMeta$Sample <- allCellsMeta$Batch
   allCellsMeta$useCell <- !allCellsMeta$discard
-  saveRDS(allCellsMeta, 'allCellsMeta.rds')
   saveRDS(scData.unfiltered, "scData.unfiltered.rds")
-  saveRDS(param, "param.rds")
   saveRDS(input, "input.rds")
   saveRDS(scDataRaw, "scData.raw.rds")
   saveRDS(cellsPerGeneFraction, "cellsPerGeneFraction.rds")
+ 
+  makeRmdReport(dataFiles=dataFiles, param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, 
+                cellsPerGeneFraction = cellsPerGeneFraction, enrichRout=anno$enrichRout, 
+                cells.AUC=anno$cells.AUC, singler.results=anno$singler.results, aziResults=anno$aziResults,
+                pathwayActivity=anno$pathwayActivity, TFActivity=anno$TFActivity,
+                rmdFile = "SpatialSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
+  create_loupe_from_seurat(scData, output_name = input$getNames())
   remove(scDataRaw, scData.unfiltered, scData)
   gc()
-  makeRmdReport(dataFiles=dataFiles, output=output, rmdFile = "SpatialSeurat.Rmd", reportTitle = param$name) 
   return("Success")
 }
 
 runBasicProcessing <- function(scData, input, featInfo, param){
-    scData@meta.data$Condition <- input$getColumn("Condition")
+    scData$Condition <- unname(input$getColumn("Condition"))
     scData@meta.data$Sample <- input$getNames()
     scData[["Spatial"]] <- AddMetaData(object = scData[["Spatial"]], metadata = featInfo[rownames(scData), ])
     
@@ -234,6 +210,127 @@ runBasicProcessing <- function(scData, input, featInfo, param){
     scData.unfiltered <- addCellCycleToSeurat(scData.unfiltered, param$refBuild, BPPARAM, assay = 'Spatial')
     scData <- seuratClusteringV3(scData, param, assay="Spatial")
     return(list(scData = scData, scData.unfiltered = scData.unfiltered, cellsPerGeneFraction = cellsPerGeneFraction))
+}
+
+
+getSpatialSeuratMarkersAndAnnotate <- function(scData, param){
+    #positive cluster markers
+    clusterMarkers <- posClusterMarkersSpatial(scData, param)
+    clusterMarkers[['isSpatialMarker']] = FALSE
+    #spatially variable genes
+    spatialMarkersList <- list()
+    message('Find spatial Markers using markvariogram')
+    res <- spatialMarkers(scData, selection.method = 'markvariogram')
+    spatialMarkersList[['markvariogram']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'Markvariogram')
+    message('Find spatial Markers using moransi method')
+    res <- spatialMarkers(scData, selection.method = 'moransi')
+    spatialMarkersList[['moransi']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'MoransI')
+    spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('GeneSymbol', 'Rank','Method')], spatialMarkersList[['moransi']][,c('GeneSymbol', 'Rank','Method')])
+    spatialMarkers <- spatialMarkers %>% spread(Method, Rank)
+    spatialMarkers[['MeanRank']] <- apply(spatialMarkers[,c('Markvariogram','MoransI')],1,mean)
+    spatialMarkers <- spatialMarkers[order(spatialMarkers$MeanRank),]
+    
+    spatialPosMarkers <- intersect(clusterMarkers$gene, spatialMarkers$GeneSymbol)
+    clusterMarkers[which(clusterMarkers$gene %in% spatialPosMarkers), 'isSpatialMarker'] = TRUE
+    clusterMarkers$cluster = as.factor(clusterMarkers$cluster)
+    
+    markers <- c()
+    eachCluster <- 0
+    for (eachCluster in levels(clusterMarkers$cluster)) {
+        markersPerCluster <- dplyr::filter(clusterMarkers, cluster == eachCluster) %>%
+            dplyr::arrange(desc(avg_log2FC))
+        markersPerCluster <- head(markersPerCluster, min(nrow(markersPerCluster), 500))
+        markers <- rbind(markers,markersPerCluster)
+    }
+    
+    # cell types annotation is only supported for Human and Mouse at the moment
+    species <- getSpecies(param$refBuild)
+    if (species == "Human" | species == "Mouse") {
+        genesPerCluster <- split(markers$gene, markers$cluster)
+        enrichRout <- querySignificantClusterAnnotationEnrichR(genesPerCluster, param$enrichrDatabase)
+        if(length(enrichRout) == 0){
+            enrichRout <- NULL
+        }
+        #cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, layer="counts"), species, param$tissue, BPPARAM = BPPARAM)
+        cells.AUC <- NULL
+        #singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, layer="data"), Idents(scData), param$SingleR, BPPARAM = BPPARAM)
+        #for (r in names(singler.results)) {
+        #    scData[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
+        #    scData[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
+        #}
+        singler.results <- NULL
+    } else {
+        cells.AUC <- NULL
+        singler.results <- NULL
+        enrichRout <- NULL
+    }
+    
+    ## SCpubr advanced plots, can currently only be computed for human and mouse
+    if (ezIsSpecified(param$computePathwayTFActivity) && 
+        as.logical(param$computePathwayTFActivity) &&
+        (species == "Human" | species == "Mouse")) {
+        pathwayActivity <- computePathwayActivityAnalysis(cells = scData, species = species)
+        TFActivity <- computeTFActivityAnalysis(cells = scData, species = species)
+    } else {
+        pathwayActivity <- NULL
+        TFActivity <- NULL
+        futile.logger::flog.info("Skipping pathway and TF activity")
+    }
+    
+    # run Azimuth
+    if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none"){
+        environment(MyDietSeurat) <- asNamespace('Seurat')
+        assignInNamespace("DietSeurat", MyDietSeurat, ns = "Seurat")
+        rna_assay <- CreateAssay5Object(counts = GetAssayData(scData, assay = 'Spatial', layer = 'counts'))
+        scData[["RNA"]] <- scData[["Spatial"]] #rna_assay
+        
+        scDataAzi <- RunAzimuth(scData, param$Azimuth, assay="RNA") ## TODO support ADT
+        
+        ##Rename annotation levels if neccessary:
+        colnames(scDataAzi@meta.data) <- sub('level_', 'l', colnames(scDataAzi@meta.data))
+        if(param$Azimuth=='mousecortexref'){
+            aziNames <- setdiff(colnames(scDataAzi@meta.data), colnames(scData@meta.data))
+            aziResults <- data.frame(
+                Azimuth.celltype.l1=scDataAzi@meta.data[ , grep("predicted.class$", aziNames, value=TRUE)],
+                Azimuth.celltype.l2=scDataAzi@meta.data[ , grep("predicted.cluster$", aziNames, value=TRUE)],
+                Azimuth.celltype.l3=scDataAzi@meta.data[ , grep("predicted.subclass$", aziNames, value=TRUE)],
+                Azimuth.celltype.l4=scDataAzi@meta.data[ , grep("predicted.cross_species_cluster$", aziNames, value=TRUE)],
+                row.names=colnames(scDataAzi))
+        } else {
+            aziNames <- setdiff(colnames(scDataAzi@meta.data), colnames(scData@meta.data))
+            aziResults <- data.frame(
+                Azimuth.celltype.l1=scDataAzi@meta.data[ , grep("l1$", aziNames, value=TRUE)],
+                Azimuth.celltype.l2=scDataAzi@meta.data[ , grep("l2$", aziNames, value=TRUE)],
+                Azimuth.celltype.l3=scDataAzi@meta.data[ , grep("l3$", aziNames, value=TRUE)],
+                Azimuth.celltype.l4=scDataAzi@meta.data[ , grep("l4$", aziNames, value=TRUE)],
+                row.names=colnames(scDataAzi))
+        }
+        scData[["RNA"]] <- NULL
+    } else {
+        aziResults <- NULL
+    }
+    return(list(clusterMarkers=clusterMarkers, spatialMarkers=spatialMarkers, cells.AUC=cells.AUC, singler.results=singler.results,
+                enrichRout=enrichRout, pathwayActivity=pathwayActivity, TFActivity=TFActivity,
+                aziResults=aziResults))
+}
+
+posClusterMarkersSpatial <- function(scData, param) {
+    vars.to.regress = NULL
+    if(param$name == "SCOneSample" & param$DE.method == "LR") #For the one sample app, we will regress out cell cycle if the test is LR
+        vars.to.regress <- c("CellCycleS", "CellCycleG2M")
+    else if(param$name == "SCReportMerging" & param$DE.method == "LR") #for multiple samples we will regress out either the cell cycle, plate or both if the test is LR
+        vars.to.regress <- param$DE.regress
+    
+    markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE, latent.vars = vars.to.regress,min.pct = param$min.pct, return.thresh = param$pvalue_allMarkers, logfc.threshold = param$logfc.threshold)
+    ## Significant markers
+    cm <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
+    cm$cluster <- as.factor(cm$cluster)
+    diff_pct = abs(cm$pct.1-cm$pct.2)
+    cm$diff_pct <- diff_pct
+    cm <- cm[order(cm$diff_pct, decreasing = TRUE),] %>% mutate_if(is.numeric, round, digits=30)
+    cm <- cm[cm$p_val_adj < param$pvalue_allMarkers,]
+    rownames(cm) <- NULL
+    return(cm)
 }
 
 MyDietSeurat <- function (object, layers = NULL, features = NULL, assays = NULL, 

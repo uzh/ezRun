@@ -67,7 +67,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
             }
         sampleID <- xmlToList(runInfo)$RUN$RUN_LINKS[[2]]$XREF_LINK$ID
         
-        if(is.list(sampleID)){
+        if(is.list(sampleID)|any(grepl('^ERP',sampleID))){
             sampleID <- fastqInfo$sample_accession[i]
         }
         cmd = paste0("curl -o ", sampleID,".xml ", "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",sampleID,"?download=true\'")
@@ -75,7 +75,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         xml <- xmlParse(paste0(sampleID, '.xml'))
         sampleInfo <- xmlToList(xml)
         if (!is.null(sampleInfo$SAMPLE$TITLE)){
-          cleanName <- gsub("[\\# \\(\\):,;", "_", sampleInfo$SAMPLE$TITLE)
+          cleanName <- gsub("[\\# \\(\\):,;]", "_", sampleInfo$SAMPLE$TITLE)
           fastqInfo[['Name']][i] <- paste(cleanName, sampleID, sep = '_')
           sampleAttributes <- xmlToDataFrame(xmlRoot(xml)[[1]][[5]])
           sampleAttributes <- sampleAttributes[grep('ENA',sampleAttributes$TAG, invert = TRUE),]
@@ -103,6 +103,11 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     }
     myPath = output$meta[['ENA Result [File]']]
     dataset <- createDataset(fastqInfo, myPath, paired = paired)
+    
+    if (sum(dataset[['Read Count']])==0) {
+        dataset[['Read Count']] <- countReadsInFastq(basename(fastqInfo$fastq_ftp))
+    }
+    
     
     if(length(dataset$Name) == length(unique(dataset$Name))){
         ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
