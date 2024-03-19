@@ -27,9 +27,9 @@ ezMethodAtacENCODE <- function(input=NA, output=NA, param=NA){
   sampleName <- input$getNames()
   createJson(input, param)
   
-  require(Herper)
-  out <- tryCatch(local_CondaEnv("encode-atac-seq-pipeline", pathToMiniConda = "/usr/local/ngseq/miniconda3"), error = function(e) NULL)
-  cmd <- paste('caper run /usr/local/ngseq/opt/atac-seq-pipeline/atac.wdl -i atac.json')
+  #require(Herper)
+  #out <- tryCatch(local_CondaEnv("encode-atac-seq-pipeline", pathToMiniConda = "/usr/local/ngseq/miniconda3"), error = function(e) NULL)
+  cmd <- paste('caper run /usr/local/ngseq/src/atac-seq-pipeline/atac.wdl -i atac.json --singularity')
   system(cmd)
   
   ##find qc.html
