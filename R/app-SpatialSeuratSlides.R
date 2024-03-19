@@ -106,13 +106,13 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   posMarkers[['isSpatialMarker']] = FALSE
   #spatially variable genes
-  
-  filePath_spatialMarkers <- sub('scData.rds', 'spatial_markers.tsv',filePath)
-  spatialMarkersList <- lapply(filePath_spatialMarkers,ezRead.table)
+  require(readxl)
+  filePath_spatialMarkers <- sub('scData.rds', 'spatialMarkers.xlsx',filePath)
+  spatialMarkersList <- lapply(filePath_spatialMarkers,read_xlsx)
   names(spatialMarkersList) <- names(scDataList)
   spatialMarkers <- c()
   for (j in 1:length(spatialMarkersList)){
-      spatialMarkersList[[j]][['GeneSymbol']] = rownames(spatialMarkersList[[j]])
+      spatialMarkersList[[j]][['GeneSymbol']] = spatialMarkersList[[j]]$GeneSymbol
       spatialMarkersList[[j]][['SampleID']] = names(spatialMarkersList)[j]
       spatialMarkersList[[j]] = spatialMarkersList[[j]][!is.na(spatialMarkersList[[j]]$MeanRank),]
       spatialMarkers <- rbind(spatialMarkers, spatialMarkersList[[j]])
