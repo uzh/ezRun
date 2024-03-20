@@ -353,7 +353,6 @@ getSTARReference <- function(param) {
       genomeFastaFiles <- param$ezRef["refFastaFile"]
       refDir <- sub(".gtf$", "_STARIndex", param$ezRef["refFeatureFile"])
     }
-  }
   
   ## random sleep to avoid parallel ref building
   Sys.sleep(runif(1, max = 20))
