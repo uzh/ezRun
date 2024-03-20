@@ -22,8 +22,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
     "cellranger multi", paste0("--id=", cellRangerFolder),
     paste0("--localmem=", param$ram),
     paste0("--localcores=", param$cores),
-    paste0("--csv=", configFileName),
-    if(grep('^8', basename(param$CellRangerVersion))){paste0("--create-bam true")}
+    paste0("--csv=", configFileName)
   )
   
   #4. Add additional cellranger options if specified
@@ -165,6 +164,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     refDir <- getCellRangerGEXReference(param)
     fileContents <- append(fileContents, "[gene-expression]")
     fileContents <- append(fileContents, sprintf("reference,%s", refDir))
+    fileContents <- append(fileContents, paste("create-bam,true"))
     if (ezIsSpecified(param$expectedCells)) {
       fileContents <- append(fileContents, 
                              sprintf("expect-cells,%s", param$expectedCells))
