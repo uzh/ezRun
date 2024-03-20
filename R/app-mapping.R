@@ -237,9 +237,9 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
     secondGtf <- sub(".fa", ".gtf", param$secondRef)
     if (!file.exists(secondGtf)){
       genomeFastaFileOption <- str_c("--genomeFastaFiles", param$secondRef, sep = " ")
-    }  else {
-      genomeFastaFileOption <- ""
     }
+  } else {
+    genomeFastaFileOption <- ""
   }
   
 
