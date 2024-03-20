@@ -108,7 +108,7 @@ ezMethodScSeuratLabelClusters <- function(input = NA, output = NA, param = NA,
   Idents(scData) <- scData$cellType
   
   # get markers and annotations
-  anno <- getSeuratMarkersAndAnnotate(scData, param)
+  anno <- getSeuratMarkersAndAnnotate(scData, param, BPPARAM = BPPARAM)
   
   # save markers
   markers <- anno$markers

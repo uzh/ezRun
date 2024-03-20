@@ -148,7 +148,7 @@ ezMethodScSeuratFilterClusters <- function(input = NA, output = NA, param = NA,
   }
   
   # get markers and annotations
-  anno <- getSeuratMarkersAndAnnotate(scData, param)
+  anno <- getSeuratMarkersAndAnnotate(scData, param, BPPARAM = BPPARAM)
   
   # save markers
   markers <- anno$markers

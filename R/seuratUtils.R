@@ -370,7 +370,7 @@ getSeuratMarkers <- function(scData, param) {
   return(markers)
 }
 
-getSeuratMarkersAndAnnotate <- function(scData, param) {
+getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
   # function for general annotation of Seurat objects
   markers <- getSeuratMarkers(scData, param)
   

@@ -96,7 +96,7 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   Idents(scData) <- scData$cellType
   
   # perform all of the analysis
-  anno <- getSeuratMarkersAndAnnotate(scData, param)
+  anno <- getSeuratMarkersAndAnnotate(scData, param, BPPARAM = BPPARAM)
   
   # save the markers
   writexl::write_xlsx(anno$markers, path="posMarkers.xlsx")

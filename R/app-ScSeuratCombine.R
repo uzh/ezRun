@@ -192,7 +192,7 @@ seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
   scData <- PrepSCTFindMarkers(scData)
   
   # get annotation information
-  anno <- getSeuratMarkersAndAnnotate(scData, param)
+  anno <- getSeuratMarkersAndAnnotate(scData, param, BPPARAM = BPPARAM)
   
   return(list(scData=scData, 
               markers=anno$markers,
