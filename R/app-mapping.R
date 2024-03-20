@@ -324,7 +324,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
 getSTARReference <- function(param) {
   if (ezIsSpecified(param$ezRef["refIndex"])) {
     refDir <- param$ezRef["refIndex"]
-    stopfinot(file.exists(file.path(refDir, "SAindex")))
+    stopifnot(file.exists(file.path(refDir, "SAindex")))
     return(refDir)
   }
   if (!ezIsSpecified(param$ezRef["refFeatureFile"])) {
@@ -347,6 +347,7 @@ getSTARReference <- function(param) {
       ezSystem(paste("cat", secondGtf, ">>", gtfFile))
       genomeFastaFiles <- paste(param$ezRef["refFastaFile"], param$secondRef)
       refDir <- file.path(getwd(), "Custom_STARIndex")
+        }
     } else {
       gtfFile <- param$ezRef["refFeatureFile"]
       genomeFastaFiles <- param$ezRef["refFastaFile"]
