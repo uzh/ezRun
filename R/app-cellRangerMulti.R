@@ -22,8 +22,8 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
     "cellranger multi", paste0("--id=", cellRangerFolder),
     paste0("--localmem=", param$ram),
     paste0("--localcores=", param$cores),
-    paste0("--csv=", configFileName)
-    if(grep('^8', basename(param$CellRangerVersion))){paste0("--create-bam true")},
+    paste0("--csv=", configFileName),
+    if(grep('^8', basename(param$CellRangerVersion))){paste0("--create-bam true")}
   )
   
   #4. Add additional cellranger options if specified
