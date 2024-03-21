@@ -5,6 +5,18 @@ checkAndCleanAntibody <- function(object){
     return (object)
 }
 
+autoEstContTfidfMin <- function(sc, tfidfMin){
+    while (tfidfMin > 0){
+        scOut  <- try({ autoEstCont(sc, tfidfMin=tfidfMin, forceAccept=T, doPlot=FALSE)})
+        if (length(class(scOut)) == 1 && class(scOut) == "try-error"){
+            tfidfMin = tfidfMin -  0.3
+        } else {
+            break
+        }
+    }
+    return(scOut)
+}
+
 addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, threads=1){
   library(celda)
   library(SoupX)
