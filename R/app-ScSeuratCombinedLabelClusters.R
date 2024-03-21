@@ -70,6 +70,7 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   if(!file.exists(filePath[1])) 
     filePath <- filePath_course
   names(filePath) <- input$getNames()
+  stopifnot("App only supports single integrated dataset!" = length(input$getNames()) == 1)
   
   # Load previous dataset
   scData <- readRDS(file.path(input$getFullPaths("Report"), "scData.rds"))
@@ -86,14 +87,14 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   clusterAnno <- readxl::read_xlsx(clusterAnnoFn) %>% 
     as_tibble() %>%
     dplyr::select(1:3) %>% # remove all other columns
-    dplyr::rename(c("Sample"=1, "Cluster"=2, "ClusterLabel"=3)) %>%
-    dplyr::filter(Sample == input$getNames())
+    dplyr::rename(c("_"=1, "Cluster"=2, "ClusterLabel"=3)) # we don't use the first column
   labelMap <- as.character(clusterAnno$ClusterLabel)
   names(labelMap) <- as.character(clusterAnno$Cluster)
   
   # Do the renaming
-  scData$cellType <- unname(labelMap[as.character(Idents(scData))])
-  Idents(scData) <- scData$cellType
+  scData$cellTypeIntegrated <- unname(labelMap[as.character(Idents(scData))])
+  Idents(scData) <- scData$cellTypeIntegrated
+  scData$ident <- Idents(scData)
   
   # perform all of the analysis
   anno <- getSeuratMarkersAndAnnotate(scData, param, BPPARAM = BPPARAM)
