@@ -7,7 +7,8 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, threads=1){
   sce <- SingleCellExperiment(assays=list(counts=GetAssayData(scData, layer="counts")), colData = scData@meta.data)
   sce$clusters <- Idents(scData)
   ## decontx
-  ctsClean <- decontX(sce, z=sce$clusters) %>% decontXcounts(sce)
+  ctsClean <- decontX(sce, z=sce$clusters)
+  ctsClean <- decontXcounts(ctsClean)
   contaminationFraction <- (colSums2(counts(sce)) - colSums2(ctsClean)) / colSums2(counts(sce))
   scData <- AddMetaData(scData, metadata = contaminationFraction, col.name = paste0("DecontX_contFrac"))
   ## SoupX
