@@ -1,4 +1,9 @@
-
+checkAndCleanAntibody <- function(object){
+    if (is.list(object)){
+        object <- object$`Gene Expression`
+    }
+    return (object)
+}
 
 addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, threads=1){
   library(celda)
