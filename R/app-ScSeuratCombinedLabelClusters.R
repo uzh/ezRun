@@ -92,8 +92,9 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   names(labelMap) <- as.character(clusterAnno$Cluster)
   
   # Do the renaming
-  scData$cellType <- unname(labelMap[as.character(Idents(scData))])
-  Idents(scData) <- scData$cellType
+  scData$cellTypeIntegrated <- unname(labelMap[as.character(Idents(scData))])
+  Idents(scData) <- scData$cellTypeIntegrated
+  scData$ident <- Idents(scData)
   
   # perform all of the analysis
   anno <- getSeuratMarkersAndAnnotate(scData, param, BPPARAM = BPPARAM)
