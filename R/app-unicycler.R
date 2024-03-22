@@ -46,7 +46,7 @@ EzAppUnicycler <-
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodSpades
+                  runMethod <<- ezMethodUnicycler
                   name <<- "EzAppUnicycler"
                   appDefaults <<- rbind(
                     pathToLong = ezFrame(Type="character", DefaultValue="", Description="Specify path to the FASTA or FASTQ file for your long reads."),
