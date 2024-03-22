@@ -76,7 +76,8 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   scData <- readRDS(file.path(input$getFullPaths("Report"), "scData.rds"))
   oldParams <- readRDS(file.path(input$getFullPaths("Report"), "param.rds"))
   param <- ezUpdateMissingParam(param, oldParams)
-  
+  param$refBuild <- oldParams$refBuild
+
   # load cluster annotation file
   clusterAnnoFn <- file.path(param$dataRoot, param$ClusterAnnotationFile)
   if (ezIsSpecified(param$ClusterAnnotationFile)) {
