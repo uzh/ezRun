@@ -889,3 +889,26 @@ ezSessionInfo <- function(){
     
     print(sessionInfo())
 }
+
+##' @title Updates one list with another list.
+##' @description Updates a list with the values from another list if the list is missing them or if the values are NULL/NA
+##' @param list1 a list or ezParam object
+##' @param with_list a list or ezParam object which with to update list1
+##' @template roxygen-template
+##' @examples
+##' l1 <- list(a = 1, b = c("foo", "bar", "bar"), c = 3, e="foo", f="clause")
+##' l2 <- list(a = 1, b = c("baz", "qux"), d = 3, f=NULL)
+##' ezUpdateMissingParam(l2, l1)
+##' # Returns list(a = 1, b = c("baz", "qux"), d = 3, f = "clause", c = 3, e = "foo")
+ezUpdateMissingParam <- function(list1, with_list) {
+  filled <- list1
+  for (i in names(with_list)) {
+    if (((i %in% names(list1)) && 
+         (all(is.na(list1[[i]])) || all(is.null(list1[[i]])))) ||
+        !(i %in% names(list1))) {
+      filled[[i]] <- with_list[[i]]
+    }
+  }
+  return(filled)
+}
+
