@@ -1,10 +1,10 @@
 ezMethodUnicycler = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
-  opt = param$cmdOptions
+  
   sampleName = input$getNames()
   ##stopifnot((param$paired))
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
   basicOpts <- param$unicyclerOpt
-  if (param$paired & param$long=="YES"){
+  if (param$long == "YES" & param$paired == "true"){
     read1 = trimmedInput$getColumn("Read1")
     read2 = trimmedInput$getColumn("Read2")
     long=param$pathToLong
@@ -12,7 +12,7 @@ ezMethodUnicycler = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     cmd = paste("unicycler", readOpt, basicOpts, "--keep 0",
                 "--mode", param$mode, "-o", "unicycler", '-t', ezThreads(), opt)
     ezSystem(cmd) 
-    } else if (param$paired & param$long="NO") {
+    } else if (param$long == "NO" & param$paired == "true") {
     read1 = trimmedInput$getColumn("Read1")
     read2 = trimmedInput$getColumn("Read2")
     readOpt = paste("-1", read1, "-2", read2)
