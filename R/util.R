@@ -902,7 +902,7 @@ ezSessionInfo <- function(){
 ##' # Returns list(a = 1, b = c("baz", "qux"), d = 3, f = "clause", c = 3, e = "foo")
 ezUpdateMissingParam <- function(list1, with_list) {
   filled <- list1
-  for (i in names(with_list)) {
+  for (i in setdiff(names(with_list), "ezRef")) {
     if (((i %in% names(list1)) && 
          (all(is.na(list1[[i]])) || all(is.null(list1[[i]])))) ||
         !(i %in% names(list1))) {
