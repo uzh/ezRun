@@ -9,29 +9,31 @@ ezMethodUnicycler = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     read2 = trimmedInput$getColumn("Read2")
     long=param$pathToLong
     readOpt = paste("-1", read1, "-2", read2, "-l", long)
-    cmd = paste("unicycler", readOpt, basicOpts, "--keep 0",
-                "--mode", param$mode, "-o", "unicycler", '-t', ezThreads(), opt)
+    cmd = paste("unicycler", readOpt, basicOpts, "--keep 1",
+                "--mode", param$mode, "-o", "unicycler", '-t', ezThreads())
     ezSystem(cmd) 
     } else if (param$long == "NO" & param$paired == "true") {
     read1 = trimmedInput$getColumn("Read1")
     read2 = trimmedInput$getColumn("Read2")
     readOpt = paste("-1", read1, "-2", read2)
-    cmd = paste("unicycler", readOpt, basicOpts, "--keep 0",
-                "--mode", param$mode, "-o", "unicycler", '-t', ezThreads(), opt)
+    cmd = paste("unicycler", readOpt, basicOpts, "--keep 1",
+                "--mode", param$mode, "-o", "unicycler", '-t', ezThreads())
     ezSystem(cmd)
     } else {
     read1 = trimmedInput$getColumn("Read1")
     readOpt = paste("-s", read1)
-    cmd = paste("unicycler", readOpt, basicOpts, "--keep 0",
-                "--mode", param$mode, "-o", "unicycler", '-t', ezThreads(), opt)
+    cmd = paste("unicycler", readOpt, basicOpts, "--keep 1",
+                "--mode", param$mode, "-o", "unicycler", '-t', ezThreads())
     ezSystem(cmd)
-  }
+    }
   wddir <- "."
   gfafile <- file.path(wddir, "unicycler/assembly.gfa")
+  ezSystem(paste("cp", gfafile, basename(output$getColumn("Graph"))))
   afile <- file.path(wddir, "unicycler/assembly.fasta")
+  ezSystem(paste("cp", afile, basename(output$getColumn("Assembly"))))
   logfile <- file.path(wddir, "unicycler/unicycler.log")
+  ezSystem(paste("cp", logfile, basename(output$getColumn("Log"))))
   ezSystem(paste("mv", "unicycler", sampleName))
-  ezSystem(cmd)
   return("Success")
 }
 
