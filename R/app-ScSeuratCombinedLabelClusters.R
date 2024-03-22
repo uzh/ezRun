@@ -104,7 +104,7 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   
   # Save some results in external files
   reportTitle <- 'SCReport - MultipleSamples based on Seurat'
-  makeRmdReport(param=param, output=output, scData=results$scData, 
+  makeRmdReport(param=param, output=output, scData=scData, 
                 enrichRout=anno$enrichRout, TFActivity=anno$TFActivity, 
                 pathwayActivity=anno$pathwayActivity, aziResults=anno$aziResults,
                 cells.AUC=anno$cells.AUC, singler.results=anno$singler.results,
