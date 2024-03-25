@@ -28,9 +28,9 @@ ezMethodUnicycler = function(input=NA, output=NA, param=NA, htmlFile="00index.ht
     }
   wddir <- "."
   gfafile <- file.path(wddir, "unicycler/assembly.gfa")
-  ezSystem(paste("cp", gfafile, basename(output$getColumn("Draft"))))
+  ezSystem(paste("cp", gfafile, basename(output$getColumn("Graph"))))
   afile <- file.path(wddir, "unicycler/assembly.fasta")
-  ezSystem(paste("cp", afile, basename(output$getColumn("Assembly"))))
+  ezSystem(paste("cp", afile, basename(output$getColumn("Draft"))))
   logfile <- file.path(wddir, "unicycler/unicycler.log")
   ezSystem(paste("cp", logfile, basename(output$getColumn("Log"))))
   ezSystem(paste("mv", "unicycler", sampleName))
