@@ -150,8 +150,10 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   require(ChIPpeakAnno)
   require(ShortRead)
 
-  data = ezRead.table(peakFile, comment.char = "#", row.names = NULL)
-  if (nrow(data) == 0){
+  data <- c()
+  tryCatch(expr = {data = ezRead.table(peakFile, comment.char = "#", row.names = NULL)}, 
+           error = function(e){message(paste("No peaks detected. Skip peak annotation"))})
+  if (is.null(data)){
     return(NULL)
   }
   data = data[order(data$chr,data$start), ]
