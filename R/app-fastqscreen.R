@@ -261,21 +261,26 @@ map_and_count_refseq <- function(param, files, workDir="refseqResult", readCount
   ezSystem(paste('samtools bam2fq', bamFile, '>', inputFastq))
   outputCountFile <-  file.path(workDir, "refSeq_Counts.txt")
   cmd = paste('bowtie2 -x', REFSEQ_mRNA_REF, '-U', inputFastq, bowtie2options, "-p", param$cores, '-t --no-unal', '2> ', paste0(workDir, '/bowtie2.err'), '| grep ^@ -v|cut -f1,3,12', '|sed s/AS:i://g >', outputCountFile)
-  ezSystem(cmd)
+  tryCatch(expr = {ezSystem(cmd)}, 
+           error = function(e) {message('No reads aligned to RefSeq')})
   gc()
   completeOutputCountFile <-  file.path(workDir, "refSeq_Counts_allSamples.txt")
-  ezSystem(paste('sort -k1', outputCountFile, '>', completeOutputCountFile))
-  system(paste('join -j 1 -o 1.1,1.2,1.3,2.2', completeOutputCountFile, readToReadGroupFile,'>', outputCountFile)) #ezSystem thinks that it fails
-  file.remove(completeOutputCountFile, bamFile, inputFastq, readToReadGroupFile)
+  if(file.exists(outputCountFile) && file.size(outputCountFile) > 0){
+    ezSystem(paste('sort -k1', outputCountFile, '>', completeOutputCountFile))
+    system(paste('join -j 1 -o 1.1,1.2,1.3,2.2', completeOutputCountFile, readToReadGroupFile,'>', outputCountFile)) #ezSystem thinks that it fails
+    file.remove(completeOutputCountFile, bamFile, inputFastq, readToReadGroupFile)
   
-  countFiles <- character()
-  for (nm in names(files)) {
-    countFiles[nm] <- paste0(workDir, "/", nm, "-counts.txt")
-    writeLines("ReadID\tRefSeqID\tAlignmentScore\tName", countFiles[nm])
-    system(paste('grep', paste0('\" ', nm, '$\"'), outputCountFile, '|sed s/[[:blank:]]/\\\t/g >>', countFiles[nm]))
+    countFiles <- character()
+    for (nm in names(files)) {
+        countFiles[nm] <- paste0(workDir, "/", nm, "-counts.txt")
+        writeLines("ReadID\tRefSeqID\tAlignmentScore\tName", countFiles[nm])
+        system(paste('grep', paste0('\" ', nm, '$\"'), outputCountFile, '|sed s/[[:blank:]]/\\\t/g >>', countFiles[nm]))
+    }
+    countList = collectBowtie2Output(param, countFiles, readCount, virusResult = FALSE)
+    return(countList)
+  } else {
+      return(NULL)
   }
-  countList = collectBowtie2Output(param, countFiles, readCount, virusResult = FALSE)
-  return(countList)
 }
 
 

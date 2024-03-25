@@ -25,7 +25,11 @@ input <- readRDS("input.rds")
 rawScreenResult <- readRDS("rawScreenResult.rds")
 procScreenResult <- readRDS("procScreenResult.rds")
 virusResult <- readRDS("virusResult.rds")
-refseqResult = readRDS("refseqResult.rds")
+if(file.exists('refseqResult.rds')){
+    refseqResult = readRDS("refseqResult.rds")
+} else {
+    refseqResult = NULL
+}
 krakenResult <- readRDS("krakenResult.rds")
 rRNAstrandResult <- readRDS("rRNAstrandResult.rds")
 PWMresult <- readRDS("PWMs.rds")
@@ -101,7 +105,7 @@ for (nm in samples){
 A mapping against all mRNAs in RefSeq can be useful to estimate the fraction reads which is specific for exonic regions. Furthermore contaminations with other species e.g. due to xenograft experiments can be discovered.
 
 
-```{r mRNAMultiSample prepare, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
+```{r mRNAMultiSample prepare, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!is.null(refseqResult)}
 refseqSamples <- names(refseqResult)
 names(refseqSamples) <- refseqSamples
 
@@ -122,7 +126,7 @@ if(length(refseqSamples) > 1){
 
 #### 1. MultiSample Barplots for top hits
 
-```{r RefTopHit1 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+```{r RefTopHit1 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE, eval=!is.null(refseqResult)}
 if(length(refseqSamples) > 1){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
   topSpecies <- sort(tapply(readFractionPerSample$UniqueSpeciesPercent, readFractionPerSample$species, sum), decreasing = TRUE)
@@ -141,7 +145,7 @@ if(length(refseqSamples) > 1){
 }
 ```
 
-```{r RefTopHit2 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+```{r RefTopHit2 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE, eval=!is.null(refseqResult)}
 if(length(refseqSamples) > 1){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
   if (length(topSpecies) > 1){
@@ -158,7 +162,7 @@ if(length(refseqSamples) > 1){
 }
 ```
 
-```{r RefTopHit3 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+```{r RefTopHit3 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE, eval=!is.null(refseqResult)}
 if(length(refseqSamples) > 2){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
   if (length(topSpecies) > 2){
@@ -177,7 +181,7 @@ if(length(refseqSamples) > 2){
 
 #### 2. Per sample barplots
 
-```{r mRNAPerSample, echo=FALSE, results='hide', warning=FALSE, message=TRUE, eval=!debug}
+```{r mRNAPerSample, echo=FALSE, results='hide', warning=FALSE, message=TRUE, eval=!is.null(refseqResult)}
 if(length(refseqSamples) > 100){
   message('Skipped: > 100 Samples')
 } else {
