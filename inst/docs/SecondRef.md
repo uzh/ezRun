@@ -8,8 +8,8 @@ The parameter let's you specify additional reference sequences beyond the refere
 
 The parameter needs to point to a fasta file that is readable at runtime. Suggested locations are
 
-* /srv/gstore/projects/p<current project>/<extraSequences or any other informative name>
-* /srv/GT/databases/extra_references/<your informative folder name>
+* `/srv/gstore/projects/p<current project>/<extraSequences or any other informative name>`
+* `/srv/GT/databases/extra_references/<your informative folder name>`
 
 Preferred is the location on gstore because that provides persistent storage.
 
@@ -36,5 +36,5 @@ Always a temporary ref is built.
 
 ### Kallisto
 
-Not yeat supported.
+Not yet supported.
 
