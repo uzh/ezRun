@@ -19,20 +19,12 @@ ezMethodBdRhapsodySA <- function(input = NA, output = NA, param = NA) {
   #2. Generate the yml file
   bdYmlFile <- makeBdYmlFile(input, param, bdRef)
   
-  #3.1 Copy over the necessary workflow
-  pipelineCwl <- sprintf("rhapsody_pipeline_%s.cwl", param$version)
-  ezSystem(sprintf(
-    "cp /srv/GT/software/BD_Rhapsody/cwl/v%s/%s .", 
-    param$version, pipelineCwl)
-  )
-  
   #3. Build command
   cmd <- paste(
-    "cwltool",
+    "rhapsody",
+    "pipeline",
     "--tmpdir-prefix ./bd_sa_tmp/",
     "--outdir", sampleName,
-    "--singularity",
-    pipelineCwl,
     bdYmlFile
   )
   
@@ -139,6 +131,43 @@ makeBdYmlFile <- function(input, param, bdRef) {
   return(bdYaml)
 }
 
+
+makeBdRhapRefYmlFile <- function(fasta_path, gtf_path, archive_prefix, param) {
+  require(yaml)
+  
+  # define file locations and general parameters
+  bdParams <- list(
+    "cwl:tools"="Rhapsody",
+    "Genome_fasta"=list(
+      list("class"="File",
+           "location"=fasta_path)
+    ),
+    "Gtf"=list(
+      list("class"="File",
+           "location"=gtf_path)
+    ),
+    "Archive_prefix"=archive_prefix,
+    "Maximum_Threads"=param$cores,
+    "Filtering_off"=FALSE,
+    "Extra_STAR_params"="",
+    "ResourceRequirement"=list(
+      ramMin=param$ram, 
+      tmpdirMin=param$scratch, 
+      outdirMin=param$scratch
+    )
+  )
+  
+  bdYaml <- "bd_sa_make_ref.yaml"
+  write_yaml(bdParams, bdYaml, handlers=list(
+    logical = function(x) {
+      result <- ifelse(x, "true", "false")
+      class(result) <- "verbatim"
+      return(result)
+    }
+  ))
+  return(bdYaml)
+}
+
 getFastqDirs <- function(input, column, sampleName) {
   fastqDirs <- strsplit(input$getColumn(column), ",")[[sampleName]]
   fastqDirs <- file.path(input$dataRoot, fastqDirs)
@@ -231,18 +260,11 @@ getBdWtaReference <- function(param) {
   }
   
   # Download the cwl for building the reference
-  referenceCwlFile <- sprintf("make_rhap_reference_%s.cwl", param$version)
-  ezSystem(sprintf("cp /srv/GT/software/BD_Rhapsody/cwl/v%s/Extra_Utilities/%s .", param$version,referenceCwlFile))
   cmd <- paste(
-    "cwltool",
+    "rhapsody", 
+    "makeRhapReference",
     "--tmpdir-prefix ./tmp_ref/",
-    "--singularity",
-    referenceCwlFile,
-    getJobConfig(param),
-    "--Genome_fasta", genomeLocalFn,
-    "--Gtf", gtfFile,
-    "--Archive_prefix", basename(refDir),
-    "--Maximum_threads", param$cores
+    makeBdRhapRefYmlFile(genomeLocalFn, gtfFile, basename(refDir), param)
   )
   ezSystem(cmd)
   
