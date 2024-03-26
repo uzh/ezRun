@@ -330,7 +330,12 @@ getSTARReference <- function(param) {
   if (!ezIsSpecified(param$ezRef["refFeatureFile"])) {
     stop("refFeatureFile not defined")
   }
-  
+
+  ## default values  
+  gtfFile <- param$ezRef["refFeatureFile"]
+  genomeFastaFiles <- param$ezRef["refFastaFile"]
+  refDir <- sub(".gtf$", "_STARIndex", param$ezRef["refFeatureFile"])
+  ## update if second .fa and .gtf exists
   if (ezIsSpecified(param$secondRef)) {
     stopifnot(file.exists(param$secondRef))
     secondGtf <- sub(".fa", ".gtf", param$secondRef)
@@ -347,12 +352,8 @@ getSTARReference <- function(param) {
       ezSystem(paste("cat", secondGtf, ">>", gtfFile))
       genomeFastaFiles <- paste(param$ezRef["refFastaFile"], param$secondRef)
       refDir <- file.path(getwd(), "Custom_STARIndex")
-        }
-    } else {
-      gtfFile <- param$ezRef["refFeatureFile"]
-      genomeFastaFiles <- param$ezRef["refFastaFile"]
-      refDir <- sub(".gtf$", "_STARIndex", param$ezRef["refFeatureFile"])
     }
+  }
   
   ## random sleep to avoid parallel ref building
   Sys.sleep(runif(1, max = 20))
