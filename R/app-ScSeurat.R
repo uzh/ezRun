@@ -259,9 +259,11 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     emptyStats <- emptyDrops(rawCts, BPPARAM=BPPARAM, niters=1e5)
     scData$negLog10CellPValue <- pmin(scData$negLog10CellPValue, -log10(emptyStats[colnames(scData), "PValue"]))
     scData@meta.data$negLog10CellPValue[is.na(scData$negLog10CellPValue)] <- 0
+    scData$qc.empty <- FALSE
     
     if(param$maxEmptyDropPValue < 1){
-    scData <- subset(scData, cells = rownames(scData@meta.data)[scData$negLog10CellPValue > -log10(param$maxEmptyDropPValue)])
+        scData$qc.empty[scData$negLog10CellPValue > -log10(param$maxEmptyDropPValue)] <- TRUE
+        scData$useCell[scData$negLog10CellPValue > -log10(param$maxEmptyDropPValue)] <- FALSE
     }
     remove(rawCts)
   }

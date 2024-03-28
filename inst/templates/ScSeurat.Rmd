@@ -193,6 +193,12 @@ qcStats[ "Doublets", ] <- c(
   NA, 
   round(sum(allCellsMeta$qc.doublet) / nrow(allCellsMeta), 2)
 )
+qcStats[ "Empty Droplets", ] <- c(
+  sum(allCellsMeta$qc.empty), 
+  NA, 
+  NA, 
+  round(sum(allCellsMeta$qc.empty) / nrow(allCellsMeta), 2)
+)
 qcStats[ "Total removed (thresholding)", ] <- c(
   sum(!allCellsMeta$useCell), 
   NA, 
