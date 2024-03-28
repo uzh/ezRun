@@ -365,8 +365,10 @@ getSeuratMarkers <- function(scData, param) {
   )
   ## Significant markers
   markers <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
+  markers <- markers[markers$p_val_adj < param$pvalue_allMarkers,]
   markers$cluster <- as.factor(markers$cluster)
   markers$diff_pct = abs(markers$pct.1-markers$pct.2)
+  markers <- markers[markers$diff_pct >= param$min.diff.pct,]
   markers <- markers[order(markers$diff_pct, decreasing = TRUE),]
   return(markers)
 }

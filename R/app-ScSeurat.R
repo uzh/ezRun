@@ -44,10 +44,20 @@ EzAppScSeurat <-
                       DefaultValue = 0.1,
                       Description = "Used in calculating cluster markers: The minimum fraction of cells in either of the two tested populations."
                     ),
+                    min.diff.pct = ezFrame(
+                      Type = "numeric",
+                      DefaultValue = 0,
+                      Description = "Used for filtering cluster markers: The minimum difference of cell fraction of the two tested populations."
+                    ),
                     logfc.threshold = ezFrame(
                       Type = "numeric",
                       DefaultValue = 0.25,
                       Description = "Used in calculating cluster markers: Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells."
+                    ),
+                    pvalue_allMarkers = ezFrame(
+                      Type = "numeric",
+                      DefaultValue = 0.01,
+                      Description = "Used for filtering cluster markers: adjusted pValue threshold for marker detection"
                     ),
                     resolution = ezFrame(
                       Type = "numeric",
