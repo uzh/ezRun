@@ -277,6 +277,23 @@ p
 
 <br/>
 
+The dimension reduction is based on the top `r param$nfeatures` highly variable genes.
+
+```{r exploreHVGs, echo=FALSE, results='asis'}
+HVGs <- VariableFeatures(object = scData)
+
+jsCall = paste0('enrich({list: "', paste(HVGs, collapse="\\n"), '", popup: true});')
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+
+
+enrichrTable <- tibble(GeneSet='HVGs',
+                         "# of HVGs"=length(HVGs),
+                         "Enrichr link"=enrichrCalls)
+kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment")) %>%
+kable_styling("striped", full_width = F, position = "left")
+```
 
 ### Clustering
 

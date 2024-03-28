@@ -11,7 +11,25 @@ seuratStandardSCTPreprocessing <- function(scData, param, assay="RNA", seed=38) 
   vars.to.regress <- getSeuratVarsToRegress(param)
   ## generate normalized slots for the RNA assay
   scData <- NormalizeData(scData, normalization.method = "LogNormalize", scale.factor=10000, verbose=FALSE)
-  scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)
+  species <- getSpecies(param$refBuild)
+  if(ezIsSpecified(param$featSelectionMethod) && param$featSelectionMethod == 'STACAS'){
+    require(STACAS)
+    require(SignatuR)
+    if(species == 'Human'){
+        my.genes.blocklist <- c(GetSignature(SignatuR$Hs$Blocklists),
+                          GetSignature(SignatuR$Hs$Compartments))
+    } else if(species == 'Mouse'){
+        my.genes.blocklist <- c(GetSignature(SignatuR$Mm$Blocklists),
+                          GetSignature(SignatuR$Mm$Compartments))
+    } else {
+        message('Selection method STACAS not supported for this species! Use default method instead.')
+        scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)  
+    }
+    scData <- FindVariableFeatures.STACAS(scData, nfeat = param$nfeatures, genesBlockList = my.genes.blocklist)
+  } else {
+    scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)
+  }
+  
   scData <- ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
   ## generate the SCT assay
   scData <- SCTransform(scData, vst.flavor="v2", vars.to.regress = vars.to.regress, seed.use = seed, verbose = FALSE,
@@ -25,6 +43,7 @@ seuratClustering <- function(scData, param){
                               x.low.cutoff=param$x.low.cutoff,
                               x.high.cutoff=param$x.high.cutoff,
                               y.cutoff=param$y.cutoff)
+  
   scData <- ScaleData(object = scData, do.par=TRUE,
                       vars.to.regress = param$vars.to.regress,
                       num.cores=param$cores)
