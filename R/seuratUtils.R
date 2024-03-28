@@ -406,6 +406,8 @@ getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
   
   # run Azimuth
   if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none"){
+    environment(MyDietSeurat) <- asNamespace('Seurat')
+    assignInNamespace("DietSeurat", MyDietSeurat, ns = "Seurat")
     scDataAzi <- RunAzimuth(scData, param$Azimuth, assay="RNA") ## TODO support ADT
     
     ##Rename annotion levels if neccessary:

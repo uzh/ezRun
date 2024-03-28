@@ -640,16 +640,16 @@ try({
 })
 ```
 
-### Azimuth 
+```{r azimuth, eval=!is.null(aziResults), fig.width=14, fig.height=12}
+options(ggrepel.max.overlaps = Inf)
 
-```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=6}
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap")
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap") + NoLegend()
 if('Azimuth.celltype.l2' %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")
+  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")  + NoLegend()
 if('Azimuth.celltype.l3' %in% colnames(scData@meta.data))
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap")
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap")  + NoLegend()
 if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap")
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap")  + NoLegend()
 ```
 
 ### Interactive
