@@ -262,8 +262,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     scData$qc.empty <- FALSE
     
     if(param$maxEmptyDropPValue < 1){
-        scData$qc.empty[scData$negLog10CellPValue > -log10(param$maxEmptyDropPValue)] <- TRUE
-        scData$useCell[scData$negLog10CellPValue > -log10(param$maxEmptyDropPValue)] <- FALSE
+        scData$qc.empty[scData$negLog10CellPValue < -log10(param$maxEmptyDropPValue)] <- TRUE
+        scData$useCell[scData$negLog10CellPValue < -log10(param$maxEmptyDropPValue)] <- FALSE
     }
     remove(rawCts)
   }
