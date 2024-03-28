@@ -89,6 +89,11 @@ EzAppScSeurat <-
                       DefaultValue = FALSE,
                       Description = "Whether we should keep cells suspected of being doublets. Set to TRUE only for QC purposes."
                     ),
+                    maxEmptyDropPValue = ezFrame(
+                      Type = "numeric",
+                      DefaultValue = 1,
+                      Description = "filter droplets based on DropletUtils::emptyDrops method"
+                    ),
                     cellsFraction = ezFrame(
                       Type = "numeric",
                       DefaultValue = 0.01,
@@ -254,6 +259,10 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     emptyStats <- emptyDrops(rawCts, BPPARAM=BPPARAM, niters=1e5)
     scData$negLog10CellPValue <- pmin(scData$negLog10CellPValue, -log10(emptyStats[colnames(scData), "PValue"]))
     scData@meta.data$negLog10CellPValue[is.na(scData$negLog10CellPValue)] <- 0
+    
+    if(param$maxEmptyDropPValue < 1){
+    scData <- subset(scData, cells = rownames(scData@meta.data)[scData$negLog10CellPValue > -log10(param$maxEmptyDropPValue)])
+    }
     remove(rawCts)
   }
   allCellsMeta <- scData@meta.data
