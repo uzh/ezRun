@@ -72,7 +72,8 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
                paste0("--fastqs=", sampleDir),
                paste0("--sample=", sampleName),
                paste0("--localmem=", param$ram),
-               paste0("--localcores=", param$cores))
+               paste0("--localcores=", param$cores),
+               if(grepl('^3', basename(param$SpaceRangerVersion))){paste0("--create-bam true")})
   
   if('Image' %in% inputCols & grepl('tif$|tiff$|jpeg$|jpg$',input$getFullPaths("Image"))){
       cmd <- paste(cmd, paste0("--image=", input$getFullPaths("Image")))
