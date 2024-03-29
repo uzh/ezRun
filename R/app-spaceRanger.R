@@ -154,7 +154,15 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   }
   
   cmDir <- file.path(finalSampleName, 'filtered_feature_bc_matrix')
-  cts <- Read10X(cmDir, gene.column = 1)
+  if(dir.exists(cmDir)){
+    cts <- Read10X(cmDir, gene.column = 1)
+  } else { ##visium HD data
+      setwd(finalSampleName)
+      system('ln -s binned_outputs/square_016um/filtered_feature_bc_matrix .')
+      setwd('..')
+      cmDir <- file.path(finalSampleName, 'binned_outputs/square_016um/filtered_feature_bc_matrix')
+      cts <- Read10X(cmDir, gene.column = 1)
+  }
   if(is.list(cts)){
       cts <- cts[['Gene Expression']]
       bulkData <- apply(cts,1,sum)
