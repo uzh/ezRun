@@ -89,6 +89,16 @@ EzAppSpatialSeurat <-
                                             DefaultValue = 0.01,
                                             Description = "pValue for marker detection"
                                         ),
+                                        featSelectionMethod = ezFrame(
+                                        Type = "character",
+                                        DefaultValue = "STACAS",
+                                        Description = "use default method or black list genes"
+                                        ),
+                                        nfeatures = ezFrame(
+                                        Type = "numeric",
+                                        DefaultValue = 3000,
+                                        Description = "number of variable genes for SCT"
+                                        ),
                                         pt.size.factor = ezFrame(
                                             Type = "numeric",
                                             DefaultValue = NA,
@@ -109,6 +119,24 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   library(Azimuth)
   library(enrichR)
   library(loupeR)
+  library(future)
+  library(BiocParallel)
+  
+  
+  if (param$cores > 1){
+      BPPARAM <- MulticoreParam(workers = param$cores)
+  } else {
+      ## scDblFinder fails with many cells and MulticoreParam
+      BPPARAM <- SerialParam() 
+  }
+  register(BPPARAM)
+  require(future)
+  plan("multicore", workers = param$cores)
+  set.seed(38)
+  future.seed = TRUE
+  options(future.rng.onMisuse="ignore")
+  options(future.globals.maxSize = param$ram*1024^3)
+  
   
   cmDir <- input$getFullPaths("CountMatrix")
   featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
@@ -135,14 +163,14 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   if(is.na(param$pt.size.factor)) 
       param$pt.size.factor <- 2*param$imageEnlargementFactor
   
-  scDataRes <- runBasicProcessing(scData,input, featInfo, param)
+  scDataRes <- runBasicProcessing(scData,input, featInfo, param, BPPARAM)
   cellsPerGeneFraction <- scDataRes[['cellsPerGeneFraction']]
   scData <- scDataRes[['scData']]
   scData.unfiltered <- scDataRes[['scData.unfiltered']]
   remove(scDataRes)
   
   # get markers and annotations
-  anno <- getSpatialSeuratMarkersAndAnnotate(scData, param)
+  anno <- getSpatialSeuratMarkersAndAnnotate(scData, param, BPPARAM)
   
   # save markers
   clusterMarkers <- anno$clusterMarkers
@@ -196,7 +224,7 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   return("Success")
 }
 
-runBasicProcessing <- function(scData, input, featInfo, param){
+runBasicProcessing <- function(scData, input, featInfo, param, BPPARAM){
     scData$Condition <- unname(input$getColumn("Condition"))
     scData@meta.data$Sample <- input$getNames()
     scData[["Spatial"]] <- AddMetaData(object = scData[["Spatial"]], metadata = featInfo[rownames(scData), ])
@@ -208,12 +236,16 @@ runBasicProcessing <- function(scData, input, featInfo, param){
     rm(scData_list)
     scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM, assay = 'Spatial')
     scData.unfiltered <- addCellCycleToSeurat(scData.unfiltered, param$refBuild, BPPARAM, assay = 'Spatial')
-    scData <- seuratClusteringV3(scData, param, assay="Spatial")
+    
+    scData <- seuratStandardSCTPreprocessing(scData, param, assay="Spatial")
+    ## defaultAssay is now SCT
+    scData <- seuratStandardWorkflow(scData, param, ident.name="seurat_clusters")
+    #scData <- seuratClusteringV3(scData, param, assay="Spatial")
     return(list(scData = scData, scData.unfiltered = scData.unfiltered, cellsPerGeneFraction = cellsPerGeneFraction))
 }
 
 
-getSpatialSeuratMarkersAndAnnotate <- function(scData, param){
+getSpatialSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM){
     #positive cluster markers
     clusterMarkers <- posClusterMarkersSpatial(scData, param)
     clusterMarkers[['isSpatialMarker']] = FALSE
