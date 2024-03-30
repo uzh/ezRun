@@ -674,7 +674,7 @@ try({
 
 ### Azimuth
 
-```{r azimuth, eval=!is.null(aziResults), fig.width=14, fig.height=12}
+```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=10}
 options(ggrepel.max.overlaps = Inf)
 
 DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap") + NoLegend()

@@ -432,15 +432,15 @@ cat("\n\n")
 
 ### Azimuth 
 
-```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=6}
+```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=10}
 DimPlot(scData, reduction="umap", group.by="Batch")
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap")
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap") + NoLegend()
 if ("Azimuth.celltype.l2" %in% colnames(scData@meta.data))
-    DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")
+    DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap") + NoLegend()
 if ("Azimuth.celltype.l3" %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap")
+  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap") + NoLegend()
 if ("Azimuth.celltype.l4" %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap")
+  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap") + NoLegend()
 ```
 
 ### AUCell

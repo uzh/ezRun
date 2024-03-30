@@ -34,6 +34,9 @@ seuratStandardSCTPreprocessing <- function(scData, param, assay="RNA", seed=38) 
   ## generate the SCT assay
   scData <- SCTransform(scData, vst.flavor="v2", vars.to.regress = vars.to.regress, assay = assay, seed.use = seed, verbose = FALSE,
                         return.only.var.genes=FALSE)
+  if(!is.null(vars.to.regress)){
+    DefaultAssay(scData) <- 'SCT'  
+  }
   return(scData)
 }
 
