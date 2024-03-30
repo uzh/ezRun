@@ -57,6 +57,11 @@ EzAppScSeuratCombine <-
                                           DefaultValue = 0.1,
                                           Description = "Used in calculating cluster markers: The minimum fraction of cells in either of the two tested populations."
                                         ),
+                                        min.diff.pct = ezFrame(
+                                            Type = "numeric",
+                                            DefaultValue = 0,
+                                            Description = "Used in filtering cluster markers"
+                                        ),
                                         logfc.threshold = ezFrame(
                                           Type = "numeric",
                                           DefaultValue = 0.25,
