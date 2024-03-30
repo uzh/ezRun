@@ -432,15 +432,43 @@ cat("\n\n")
 
 ### Azimuth 
 
-```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=10}
-DimPlot(scData, reduction="umap", group.by="Batch")
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap") + NoLegend()
-if ("Azimuth.celltype.l2" %in% colnames(scData@meta.data))
-    DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap") + NoLegend()
-if ("Azimuth.celltype.l3" %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap") + NoLegend()
-if ("Azimuth.celltype.l4" %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap") + NoLegend()
+```{r azimuth, eval=!is.null(aziResults), fig.width=9, fig.height=9}
+p1 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "ident")
+LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
+
+
+p2 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap", pt.size = 1.5) 
+if(length(unique(scData@meta.data$Azimuth.celltype.l1))>10){
+    LabelClusters(p2, id = "Azimuth.celltype.l1",  fontface = "bold", color = "black", size = 5) + NoLegend()
+} else {
+        LabelClusters(p2, id = "Azimuth.celltype.l1",  fontface = "bold", color = "black", size = 5)
+    }
+
+if ("Azimuth.celltype.l2" %in% colnames(scData@meta.data)){
+    p3 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap", pt.size = 1.5) 
+    if(length(unique(scData@meta.data$Azimuth.celltype.l2))>10){
+    LabelClusters(p3, id = "Azimuth.celltype.l2",  fontface = "bold", color = "black", size = 5) + NoLegend()
+    } else {
+        LabelClusters(p3, id = "Azimuth.celltype.l2",  fontface = "bold", color = "black", size = 5)
+    }
+}
+if ("Azimuth.celltype.l3" %in% colnames(scData@meta.data)){
+  p4 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap", pt.size = 1.5)
+  if(length(unique(scData@meta.data$Azimuth.celltype.l3))>10){
+    LabelClusters(p4, id = "Azimuth.celltype.l3",  fontface = "bold", color = "black", size = 5) + NoLegend()
+  } else {
+      LabelClusters(p4, id = "Azimuth.celltype.l3",  fontface = "bold", color = "black", size = 5)
+  }
+  
+  }
+if ("Azimuth.celltype.l4" %in% colnames(scData@meta.data)){
+  p5 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap", pt.size = 1.5)
+    if(length(unique(scData@meta.data$Azimuth.celltype.l4))>10){
+    LabelClusters(p5, id = "Azimuth.celltype.l4",  fontface = "bold", color = "black", size = 5) + NoLegend()
+    } else {
+        LabelClusters(p5, id = "Azimuth.celltype.l4",  fontface = "bold", color = "black", size = 5)
+    }
+}
 ```
 
 ### AUCell
@@ -513,6 +541,8 @@ These apps are no longer maintained. Use at your own risk, or for legacy dataset
 [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("Report"),"/sce_h5")}`){target="_blank"}
 
 ### Data availability
+
+[clusterInfos.xlsx](clusterInfos.xlsx) -- use this xls file to manually relabel the clusters
 
 ##### Positive markers of each cluster
 

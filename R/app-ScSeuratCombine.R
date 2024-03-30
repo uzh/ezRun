@@ -155,6 +155,19 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   # perform all of the analysis
   results <- seuratIntegrateDataAndAnnotate(scDataList, input, output, param)
   
+  # generate ClusterInfos table
+  clusterInfos <- ezFrame(Samples=paste(input$getNames(),collapse=','), Cluster=levels(Idents(results$scData)), ClusterLabel="")
+  if (!is.null(results$singler.results)){
+      clusterInfos$SinglerCellType <- results$singler.results$singler.results.cluster[clusterInfos$Cluster, "pruned.labels"]
+  }
+  nTopMarkers <- 10
+  topMarkers <- results$markers %>% group_by(cluster) %>%
+      slice_max(n = nTopMarkers, order_by = avg_log2FC)
+  topMarkerString <- sapply(split(topMarkers$gene, topMarkers$cluster), paste, collapse=", ")
+  clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
+  clusterInfoFile <- "clusterInfos.xlsx"
+  writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
+  
   # save the markers
   writexl::write_xlsx(results$markers, path="posMarkers.xlsx")
   
@@ -170,7 +183,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
 }
 
 seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
-  pvalue_allMarkers <- 0.05
+  pvalue_allMarkers <- param$pvalue_allMarkers
   
   if(ezIsSpecified(param$chosenClusters)){
     for(eachSample in names(param$chosenClusters)){
