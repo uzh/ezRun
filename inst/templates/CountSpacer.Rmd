@@ -39,15 +39,19 @@ debug <- FALSE
 
 ### Diagnostic plots
 
-```{r plots, fig.width=10, fig.height=10, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
+```{r plots, fig.width=4, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 readFilteringStats = unlist(stats)[1:3]/10^6
 barplot(readFilteringStats, main = 'Read Filtering Stats', ylab = 'Reads in [M]', col = c('darkblue', 'royalblue', 'lightblue'))
+```
 
+```{r plots, fig.width=5, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 mappingStats = unlist(stats)[4:length(stats)]
 par(mar=c(5.1,6.1,4.1,2.1))
 barplot(mappingStats/10^6, las  = 1, main = 'Read Mapping Stats', ylab = 'Reads in [M]', col = 'royalblue')
 par(mar=c(5.1,4.1,4.1,2.1))
+```
 
+```{r plots, fig.width=5, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 p <- ggplot(data, aes(x=group, y=counts))
   p <- p + geom_violin(fill="royalblue", alpha= 0.5, trim = FALSE, adjust = 0.5) 
   p <- p + geom_boxplot(width = 0.1)
