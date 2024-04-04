@@ -42,9 +42,6 @@ debug <- FALSE
 ```{r, fig.width=4, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 readFilteringStats = unlist(stats)[1:3]/10^6
 barplot(readFilteringStats, main = 'Read Filtering Stats', ylab = 'Reads in [M]', col = c('darkblue', 'royalblue', 'lightblue'))
-```
-
-```{r, fig.width=5, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 mappingStats = unlist(stats)[4:length(stats)]
 par(mar=c(5.1,6.1,4.1,2.1))
 barplot(mappingStats/10^6, las  = 1, main = 'Read Mapping Stats', ylab = 'Reads in [M]', col = 'royalblue')
@@ -62,7 +59,9 @@ p <- ggplot(data, aes(x=group, y=counts))
   h <- ggplot(dict, aes(x=log2(1+Count))) + geom_histogram(binwidth=0.1)
   h <- h +  ggtitle(paste0(sampleName, '-Histogram')) + ylab('Number of sgRNAs') + xlab('Log2 count per sgRNA')
   print(h)
+```
   
+```{r, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
   plot(sortedCounts, pch = c(15), cex = 0.7, main = paste(sampleName, '- sgCount Overview'), ylab = 'log2(sgRNA Count)', ylim = c(0, max(max(sortedCounts), 1.05*upperCutOff)))
   abline(h = mean(sortedCounts))
   abline(h = upperCutOff, lty = 2)
