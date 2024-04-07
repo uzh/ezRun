@@ -147,6 +147,11 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   }
   ezWrite.table(targetView, paste0(sampleName,'-targetBasedResult.txt') ,row.names = FALSE)
   
+  ## Export files as RDS
+  saveRDS(param, 'param.rds')
+  saveRDS(dict, 'dict.rds')
+  saveRDS(stats, 'stats.rds')
+  
   ## Copy the style files and templates
   styleFiles <- file.path(system.file("templates", package="ezRun"),
                           c("fgcz.css", "CountSpacer.Rmd",
@@ -235,7 +240,13 @@ EzAppCountSpacer <-
                   name <<- "EzAppCountSpacer"
                   appDefaults <<- rbind(
                     minReadLength = ezFrame(Type = "integer", DefaultValue = 18,
-                                          Description = "minimum length of sgRNA"))
+                                          Description = "minimum length of sgRNA"),
+                    nmad = ezFrame(
+                        Type = "numeric",
+                        DefaultValue = 2,
+                        Description = "Median absolute deviation (MAD)"
+                    )
+                    )
                     }
               )
   )
