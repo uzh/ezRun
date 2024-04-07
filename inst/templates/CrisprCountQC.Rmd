@@ -248,7 +248,7 @@ plot_ly(toPlot, x=~samples, y=~presentCounts, type="bar",
 require(DescTools)
 giniPerSample <- apply(assays(rawData)$counts,2, Gini)
 
-par(mar=c(10.1,4.1,4.1,2.1))
+par(mar=c(15.1,4.1,4.1,2.1))
 barplot(giniPerSample, col='royalblue', las = 2, ylab = 'Gini-index for raw counts')
 par(mar=c(5.1,4.1,4.1,2.1))
 ```

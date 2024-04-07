@@ -72,7 +72,7 @@ p <- ggplot(data, aes(x=group, y=counts))
   text(length(sortedCounts)*0.05, 1.05*mean(sortedCounts), bquote(mu==.(mu)), cex = 0.8)
   text(length(sortedCounts)*0.8, 1.02*upperCutOff, paste0('#',up_sgRNAs, ' (',relUp_sgRNA,'%)' ), cex = 0.8)
   text(length(sortedCounts)*0.15, 0.96*lowerCutOff, paste0('#',down_sgRNAs, ' (',relDown_sgRNA,'%)' ), cex = 0.8)
-  text(0, max(sortedCounts)*0.95, paste('Gini-index=', Gini(dict$Count)))
+  text(length(sortedCounts)*0.1, max(sortedCounts)*0.95, paste0('Gini-index=', round(Gini(dict$Count)),digits=3), cex = 0.8)
 ```
 
 ### Data availability
