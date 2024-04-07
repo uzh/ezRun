@@ -4,8 +4,6 @@
 # Public License Version 3, June 2007.
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
-
-
 ezMethodMageckCountQC = function(input=NA, output=NA, param=NA,
                            htmlFile="00index.html"){
     setwdNew(basename(output$getColumn("Report")))
@@ -13,8 +11,8 @@ ezMethodMageckCountQC = function(input=NA, output=NA, param=NA,
     param$expressionName <- 'sample1'
     rawData <- loadMageckCountDataset(input, param)
     metadata(rawData)$output <- output
-    makeRmdReport(rawData=rawData, rmdFile="CountQC.Rmd", 
-                  reportTitle="CountQC", selfContained = TRUE)
+    makeRmdReport(rawData=rawData, rmdFile="CrisprCountQC.Rmd", 
+                  reportTitle="ExploreCounts", selfContained = TRUE)
     return("Success")
 }
 
