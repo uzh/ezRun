@@ -18,9 +18,9 @@ ezMethodPsortb = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   outfile <- list.files(paste0(wddir, "/", sampleName), pattern="_psortb_.*\\.txt")
   outfile <- file.path(wddir, sampleName, outfile)
   ezSystem(paste("cp", outfile, basename(output$getColumn("PsortbOut"))))
-  proteins <- list.files(paste0(wddir, "/", sampleName), pattern=".proteins")
-  proteins <- file.path(wddir, sampleName, proteins)
-  ezSystem(paste("cp", proteins, basename(output$getColumn("Proteins"))))
+  # proteins <- list.files(paste0(wddir, "/", sampleName), pattern=".proteins")
+  # proteins <- file.path(wddir, sampleName, proteins)
+  # ezSystem(paste("cp", proteins, basename(output$getColumn("Proteins"))))
   return("Success")
 }
 
