@@ -97,6 +97,7 @@ The UMAPs and the barplot below can help us to visualize if the clusters are bal
 if(!('Batch' %in% colnames(scData@meta.data)))
     scData@meta.data[['Batch']] <- scData@meta.data[['Sample']]
 DimPlot(scData, reduction =  "umap_noCorrected", group.by = "Batch")
+DimPlot(scData, reduction="umap_noCorrected", group.by="ident_noCorrected", label = TRUE)
 cellIdents_perBatch = data.frame(scData@meta.data[,c("ident_noCorrected", "Batch")])
 barplot = ggplot(data=cellIdents_perBatch, aes(x=cellIdents_perBatch[,1], fill=Batch)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Batch")
@@ -105,9 +106,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per ba
 #bootstrap_options = "striped", full_width = F, position = "float_right"
 ```
 
-```{r UMAP per Cluster before correction}
-DimPlot(scData, reduction="umap_noCorrected", group.by="ident_noCorrected", label = TRUE)
-```
+
 
 ```{r UMAP and barplot Condition, eval=length(unique(scData$Batch)) != length(unique(scData$Condition)) ,fig.width=8, fig.height=5}
 #if there are only two samples these plots are the same as the previous ones
@@ -162,10 +161,12 @@ cat("The UMAPs below place similar cells together in low-dimensional space after
 <br/>
 
 
-```{r UMAP per Batch after correction}
+```{r UMAP per Batch after correction,fig.width=9, fig.height=7}
 DimPlot(scData, reduction="umap", group.by="Batch")
-cellIdents_perBatch = data.frame(scData@meta.data[,c("ident", "Batch")])
+p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "ident")
+LabelClusters(p2, id = "ident",  fontface = "bold", color = "black", size = 6)
 
+cellIdents_perBatch = data.frame(scData@meta.data[,c("ident", "Batch")])
 barplot = ggplot(data=cellIdents_perBatch, aes(x=cellIdents_perBatch[,1], fill=Batch)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Batch")
 cells_prop = cellsProportion(scData, groupVar1 = "ident", groupVar2="Batch")
@@ -187,10 +188,6 @@ cells_prop = cellsProportion(scData, groupVar1 = "ident", groupVar2="Condition")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
-```{r UMAP per Cluster after correction}
-#DimPlot(scData, reduction="umap", group.by="seurat_clusters", label = TRUE)
-DimPlot(scData, reduction="umap", group.by="ident", label = TRUE)
-```
 
 ```{r, fig.align='center', fig.width=14}
 pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
