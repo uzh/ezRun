@@ -12,7 +12,7 @@ ezMethodPsortb = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   sampleName = input$getNames()
   proteins = input$getFullPaths("Proteins")
   ezSystem(paste("mkdir", sampleName))
-  cmd = paste("/usr/local/ngseq/src/psortb/psortb_app -i", proteins, "-r", sampleName, org, "--output terse", opt, "1>", paste0(sampleName,"_psortb.log"))
+  cmd = paste("/usr/local/ngseq/src/psortb/psortb_app -i", proteins, "-r", sampleName, org, "--output terse", "-s /usr/local/ngseq/src/psortb/psortb.sif", opt, "1>", paste0(sampleName,"_psortb.log"))
   ezSystem(cmd)
   wddir <- "."
   outfile <- list.files(paste0(wddir, "/", sampleName), pattern="_psortb_.*\\.txt")
