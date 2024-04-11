@@ -74,6 +74,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         ezSystem(cmd)
         xml <- xmlParse(paste0(sampleID, '.xml'))
         sampleInfo <- xmlToList(xml)
+        
         if (!is.null(sampleInfo$SAMPLE$TITLE)){
           cleanName <- gsub("[\\# \\(\\):,;]", "_", sampleInfo$SAMPLE$TITLE)
           fastqInfo[['Name']][i] <- paste(cleanName, sampleID, sep = '_')
@@ -89,6 +90,21 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
               fastqInfo[i, attrName] = as.character(sampleAttributes[j,2])
             }
           }
+        } else {
+            tryCatch({
+                experimentID <- xmlToList(runInfo)[[1]]$EXPERIMENT_REF$.attrs
+                cmd = paste0("curl -o ", experimentID,".xml ", "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",experimentID,"?download=true\'")
+                ezSystem(cmd)
+                xml <- xmlParse(paste0(experimentID, '.xml'))
+                experimentInfo <- xmlToList(xml)
+                cleanName <-  gsub("[\\# \\(\\):,;]", "_", experimentInfo$EXPERIMENT$TITLE)
+                fastqInfo[['Name']][i] <- paste(cleanName, sampleID, sep = '_')},
+                warning=function(w) {
+                    message('sample title not available in experiment accession file')
+                    print(w)
+                    return(NA)
+                })
+            }
         }
         
         if(grepl(';',fastqInfo$fastq_ftp[i])) {
