@@ -105,7 +105,6 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
                     return(NA)
                 })
             }
-        }
         
         if(grepl(';',fastqInfo$fastq_ftp[i])) {
             paired = TRUE
@@ -141,7 +140,6 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
                 ezSystem(paste('rm', files_R1[k]))
                 dataset[['Read1 [File]']] = sub(files_R1[k], pooledR1_File, dataset[['Read1 [File]']])
             }
-            #ezSystem(paste('pigz --best', pooledR1_File))
             if(paired){
                 files_R2 <- basename(dataset[['Read2 [File]']][dataset[['Name']] == sampleNames[j]])
                 sampleNames[j] = gsub('\\/', '_', gsub(' ', '_', sampleNames[j]))
@@ -153,9 +151,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
                     ezSystem(paste('rm', files_R2[k]))
                     dataset[['Read2 [File]']] = sub(files_R2[k], pooledR2_File, dataset[['Read2 [File]']])
                 }
-                #ezSystem(paste('pigz --best', pooledR2_File))
             }
-            #files_R2 <- dataset[['Read2 [File]']][dataset[['Name']] == sampleNames[j]]
             dataset[['Read Count']][dataset[['Name']] == sampleNames[j]] = rep(sum(as.numeric(dataset[['Read Count']][dataset[['Name']] == sampleNames[j]])), length(files_R1))
         }
         dataset = dataset[,-grep('md5sum', colnames(dataset))]
@@ -191,7 +187,6 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
 }
 
 createDataset <- function(fastqInfo, myPath, paired = FALSE){
-    
     if(ncol(fastqInfo) > 10){
         xtraCols <- fastqInfo[,11:ncol(fastqInfo)]
         colnames(fastqInfo[,11:ncol(fastqInfo)])
@@ -204,14 +199,12 @@ createDataset <- function(fastqInfo, myPath, paired = FALSE){
                              md5sum = fastqInfo$fastq_md5, Species = fastqInfo$Species, 
                              ReadCount = fastqInfo$ReadCount, xtraCols, stringsAsFactors = FALSE)
         colnames(dataset) = c('Name', 'Read1 [File]', 'md5sum', 'Species', 'Read Count', colnames(xtraCols))
-        #dataset = dataset[,-c(6)]
     } else {
         dataset = data.frame(Name = gsub(' ', '_', fastqInfo$Name), Read1 = file.path(myPath, sapply(strsplit(fastqInfo$fastq_ftp, ';'), basename)[1,]),
                              Read2 = file.path(myPath, sapply(strsplit(fastqInfo$fastq_ftp, ';'), basename)[2,]),
                              md5sum = fastqInfo$fastq_md5, Species = fastqInfo$Species, 
                              ReadCount = fastqInfo$ReadCount, xtraCols, stringsAsFactors = FALSE)
         colnames(dataset) = c('Name', 'Read1 [File]', 'Read2 [File]', 'md5sum', 'Species', 'Read Count', colnames(xtraCols))
-        #dataset = dataset[,-c(7)]
     }
     return(dataset)
 }
