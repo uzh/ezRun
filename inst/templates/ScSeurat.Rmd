@@ -386,7 +386,13 @@ FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
 genesToPlot <- gsub("_", "-", param$controlSeqs)
 genesToPlot <- intersect(genesToPlot, rownames(scData))
 if (length(genesToPlot) > 0){
-  FeaturePlot(scData, genesToPlot) + NoLegend()
+  if (length(genesToPlot) < 20){
+    FeaturePlot(scData, genesToPlot) + NoLegend()
+  } else {
+    DoHeatmap(scData, features=genesToPlot)
+    DotPlot(scData, features=genesToPlot) + coord_flip() +
+      theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  }
 }
 ```
 
