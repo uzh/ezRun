@@ -745,7 +745,7 @@ getDupRateFromBam <- function(bamFile, param=NULL, gtfFn,
   # bamutilLogFn <- paste0(bamDuprmFn, ".log") # bamutil
   on.exit(file.remove(c(inputBam, bamDuprmFn, paste0(bamDuprmFn, ".bai"))))#, picardMetricsFn, bamutilLogFn)))
   
-  dupBam(inBam=inputBam, outBam=bamDuprmFn, operation="mark",ram = param$ram)
+  dupBam(inBam=inputBam, outBam=bamDuprmFn, operation="mark",ram = param$ram/param$cores)
   ## Duplication rate analysis
   dm <- analyzeDuprates(bam=bamDuprmFn, gtf=gtfFn,
                         stranded=switch(stranded, "both"=0, "sense"=1,
