@@ -185,7 +185,7 @@ plotCellRangerCoverage = function(gRanges, bamFiles, txdb, regionTag=c("E", "N",
 #'                          height=20, width=20)
 #'}
 
-plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL, ylim=c(0, 40),
+plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL, ylim=c(0, 40), sizes=NULL,
                                     height=10, width=20,  plotType = c("coverage", "sashimi")){
   require(Gviz)
   require(GenomicFeatures)
@@ -209,7 +209,7 @@ plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL, ylim=c(0, 4
                                          type = plotType)
   }
   pdfFiles = character()
-  grList = split(gRanges, seqnames(gRanges))
+  grList = split(gRanges, as.vector(seqnames(gRanges)))
   chrom = names(grList)[1]
   for (chrom in names(grList)){
     gr = grList[[chrom]]
@@ -221,16 +221,21 @@ plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL, ylim=c(0, 4
     }
     geneTrack = GeneRegionTrack(range=txdb, chrom=chrom, name="Gene Model", transcriptAnnotation="symbol")
     nm = names(gr)[1]
+    if (is.null(sizes)){
+      nPlots <- 2 + length(alTrackList)
+      sizes <- rep(1/nPlots, nPlots)
+    }
     for (i in 1:length(gr)){
       message(names(gr)[i])
       trackList = list(GenomeAxisTrack(), geneTrack)
       for (sm in names(alTrackList)){
         trackList[[sm]] = alTrackList[[sm]]
       }
+      
       pf = paste0(names(gr)[i], "-coverage.pdf")
       pdf(file=pf, width=width, height=height)
       plotTracks(trackList, from=start(gr)[i], to=end(gr)[i], ylim=ylim,
-                 lwd=1)
+                 lwd=1, sizes=sizes)
       dev.off()
       pdfFiles[names(gr)[i]] = pf
     }
