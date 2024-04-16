@@ -185,7 +185,7 @@ plotCellRangerCoverage = function(gRanges, bamFiles, txdb, regionTag=c("E", "N",
 #'                          height=20, width=20)
 #'}
 
-plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL,
+plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL, ylim=c(0, 40),
                                     height=10, width=20,  plotType = c("coverage", "sashimi")){
   require(Gviz)
   require(GenomicFeatures)
@@ -229,7 +229,7 @@ plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL,
       }
       pf = paste0(names(gr)[i], "-coverage.pdf")
       pdf(file=pf, width=width, height=height)
-      plotTracks(trackList, from=start(gr)[i], to=end(gr)[i], ylim=c(0,40),
+      plotTracks(trackList, from=start(gr)[i], to=end(gr)[i], ylim=ylim,
                  lwd=1)
       dev.off()
       pdfFiles[names(gr)[i]] = pf
