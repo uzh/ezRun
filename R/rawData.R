@@ -45,7 +45,8 @@ getTpm <- function(rawData){
   #     stop("scProtocol must be specified in param.")
   #   }
   if(ezIsSpecified(metadata(rawData)$param$scProtocol) && toupper(metadata(rawData)$param$scProtocol) == "10X"){
-    require(scater)
+    require(scuttle)
+    ## if the protocol is 10X, we assume 3'-end tag counts that are independent of transcript length
     tpm <- calculateTPM(rawData, lengths=NULL)
     # }else if(metadata(rawData)$param$scProtocol == "smart-Seq2"){
     #   tpm <- calculateTPM(rawData, effective_length=rowData(rawData)$featWidth)
@@ -53,6 +54,7 @@ getTpm <- function(rawData){
   }else{
     # for bulk, but also valid for single cell
     # scater implementation fails when no counts from one cell
+    # this implementation does not consider extra-norm factors as edgeR::calcNormFactors would produce; those would correct the lib-sizes, i.e. colSums(tpm)
     tpm <- sweep(assays(rawData)$counts * 1e3, MARGIN=1,
                  STATS=rowData(rawData)$featWidth, FUN="/")
     tpm <- sweep(tpm * 1e6, MARGIN=2, STATS=Matrix::colSums(tpm),
