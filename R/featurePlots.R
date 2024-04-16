@@ -186,7 +186,7 @@ plotCellRangerCoverage = function(gRanges, bamFiles, txdb, regionTag=c("E", "N",
 #'}
 
 plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL,
-                                    height=10, width=20){
+                                    height=10, width=20,  plotType = c("coverage", "sashimi")){
   require(Gviz)
   require(GenomicFeatures)
   require(S4Vectors)
@@ -206,7 +206,7 @@ plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL,
   alTrackList = list()
   for (nm in names(bamFiles)){
     alTrackList[[nm]] <- AlignmentsTrack(bamFiles[nm], name=nm, isPaired = FALSE,
-                                         type = c("coverage")) #, "sashimi"))
+                                         type = plotType)
   }
   pdfFiles = character()
   grList = split(gRanges, seqnames(gRanges))
