@@ -80,7 +80,7 @@ if (any(is.na(clusterSet))){
 
 
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
-pvalue_allMarkers <- 0.05
+pvalue_allMarkers <- 0.01
 ```
 
 
@@ -97,6 +97,7 @@ The UMAPs and the barplot below can help us to visualize if the clusters are bal
 if(!('Batch' %in% colnames(scData@meta.data)))
     scData@meta.data[['Batch']] <- scData@meta.data[['Sample']]
 DimPlot(scData, reduction =  "umap_noCorrected", group.by = "Batch")
+DimPlot(scData, reduction="umap_noCorrected", group.by="ident_noCorrected", label = TRUE)
 cellIdents_perBatch = data.frame(scData@meta.data[,c("ident_noCorrected", "Batch")])
 barplot = ggplot(data=cellIdents_perBatch, aes(x=cellIdents_perBatch[,1], fill=Batch)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Batch")
@@ -105,9 +106,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per ba
 #bootstrap_options = "striped", full_width = F, position = "float_right"
 ```
 
-```{r UMAP per Cluster before correction}
-DimPlot(scData, reduction="umap_noCorrected", group.by="ident_noCorrected", label = TRUE)
-```
+
 
 ```{r UMAP and barplot Condition, eval=length(unique(scData$Batch)) != length(unique(scData$Condition)) ,fig.width=8, fig.height=5}
 #if there are only two samples these plots are the same as the previous ones
@@ -161,36 +160,34 @@ cat("The UMAPs below place similar cells together in low-dimensional space after
 ```
 <br/>
 
-```{r UMAP per Batch after correction}
-DimPlot(scData, reduction="umap", group.by="Batch")
-#cellIdents_perBatch = data.frame(scData@meta.data[,c("seurat_clusters", "Batch")])
-cellIdents_perBatch = data.frame(scData@meta.data[,c("ident", "Batch")])
 
+```{r UMAP per Batch after correction,fig.width=9, fig.height=7}
+DimPlot(scData, reduction="umap", group.by="Batch")
+p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "ident")
+LabelClusters(p2, id = "ident",  fontface = "bold", color = "black", size = 6)
+
+cellIdents_perBatch = data.frame(scData@meta.data[,c("ident", "Batch")])
 barplot = ggplot(data=cellIdents_perBatch, aes(x=cellIdents_perBatch[,1], fill=Batch)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Batch")
-#cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2="Batch")
 cells_prop = cellsProportion(scData, groupVar1 = "ident", groupVar2="Batch")
+cluster_prop <- cellsProportion(scData, groupVar1 = "Condition", groupVar2="ident")
+cluster_prop <- cluster_prop[,grep('Condition|_fraction', colnames(cluster_prop))]
 
-#kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per batch") %>% kable_styling(bootstrap_options = "striped") %>% scroll_box(width = "100%", height = "800px")
+
+kable(cluster_prop,row.names=FALSE, format="html",caption="Cell proportions per cluster") %>% kable_styling(bootstrap_options = "striped") %>% scroll_box(width = "100%", height = "100%")
 ```
 
 ```{r UMAP per Condition after correction, eval=length(unique(scData$Batch)) != length(unique(scData$Condition))}
 DimPlot(scData, reduction="umap", group.by="Condition")
-#cellIdents_perCondition = data.frame(scData@meta.data[,c("seurat_clusters", "Condition")])
 cellIdents_perCondition = data.frame(scData@meta.data[,c("ident", "Condition")])
 barplot = ggplot(data=cellIdents_perCondition, aes(x=cellIdents_perCondition[,1], fill=Condition)) + geom_bar(stat="Count")
 barplot + labs(x="Cluster", y = "Number of cells", fill = "Condition")
-#cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2="Condition")
 cells_prop = cellsProportion(scData, groupVar1 = "ident", groupVar2="Condition")
 
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
-```{r UMAP per Cluster after correction}
-#DimPlot(scData, reduction="umap", group.by="seurat_clusters", label = TRUE)
-DimPlot(scData, reduction="umap", group.by="ident", label = TRUE)
-```
 
 ```{r, fig.align='center', fig.width=14}
 pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
@@ -214,7 +211,9 @@ Once we have created the clusters we need to asses if the clustering was driven 
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences.
 
 ```{r, eval =!is.null(scData@meta.data$CellCycle), fig.width=10, fig.height=6}
-DimPlot(scData, label=TRUE, split.by = "CellCycle", reduction="umap")
+if (any(!is.na(scData$CellCycle))){
+    DimPlot(scData, label=TRUE, split.by = "CellCycle", reduction="umap")
+}
 ```
 
 ```{r uninteresting variation, fig.width=6, fig.height=6}
@@ -269,10 +268,17 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 <br/>
 
 ```{r marker plot setup}
+# prepare top 5 markers for each cluster
 top5 <- posMarkers %>%
-  mutate(cluster = as.numeric(as.character(cluster))) %>%  # Convert cluster to numeric
+  mutate(cluster = as.character(cluster))
+if (all(varhandle::check.numeric(top5$cluster))) {
+  top5 <- top5 %>% mutate(cluster = as.numeric(cluster))  # Convert back to numeric if possible
+}
+top5 <- top5 %>%
   group_by(cluster) %>%
   slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
+
+# specifiy genes to plot
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
 genesToPlot <- intersect(genesToPlot, rownames(scData))
 if (ncol(scData) > 3e4) {
@@ -423,15 +429,43 @@ cat("\n\n")
 
 ### Azimuth 
 
-```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=6}
-DimPlot(scData, reduction="umap", group.by="Batch")
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap")
-if ("Azimuth.celltype.l2" %in% colnames(scData@meta.data))
-    DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")
-if ("Azimuth.celltype.l3" %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap")
-if ("Azimuth.celltype.l4" %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap")
+```{r azimuth, eval=!is.null(aziResults), fig.width=9, fig.height=9}
+p1 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "ident")
+LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
+
+
+p2 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap", pt.size = 1.5) 
+if(length(unique(scData@meta.data$Azimuth.celltype.l1))>10){
+    LabelClusters(p2, id = "Azimuth.celltype.l1",  fontface = "bold", color = "black", size = 5) + NoLegend()
+} else {
+        LabelClusters(p2, id = "Azimuth.celltype.l1",  fontface = "bold", color = "black", size = 5)
+    }
+
+if ("Azimuth.celltype.l2" %in% colnames(scData@meta.data)){
+    p3 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap", pt.size = 1.5) 
+    if(length(unique(scData@meta.data$Azimuth.celltype.l2))>10){
+    LabelClusters(p3, id = "Azimuth.celltype.l2",  fontface = "bold", color = "black", size = 5) + NoLegend()
+    } else {
+        LabelClusters(p3, id = "Azimuth.celltype.l2",  fontface = "bold", color = "black", size = 5)
+    }
+}
+if ("Azimuth.celltype.l3" %in% colnames(scData@meta.data)){
+  p4 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap", pt.size = 1.5)
+  if(length(unique(scData@meta.data$Azimuth.celltype.l3))>10){
+    LabelClusters(p4, id = "Azimuth.celltype.l3",  fontface = "bold", color = "black", size = 5) + NoLegend()
+  } else {
+      LabelClusters(p4, id = "Azimuth.celltype.l3",  fontface = "bold", color = "black", size = 5)
+  }
+  
+  }
+if ("Azimuth.celltype.l4" %in% colnames(scData@meta.data)){
+  p5 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap", pt.size = 1.5)
+    if(length(unique(scData@meta.data$Azimuth.celltype.l4))>10){
+    LabelClusters(p5, id = "Azimuth.celltype.l4",  fontface = "bold", color = "black", size = 5) + NoLegend()
+    } else {
+        LabelClusters(p5, id = "Azimuth.celltype.l4",  fontface = "bold", color = "black", size = 5)
+    }
+}
 ```
 
 ### AUCell
@@ -490,11 +524,22 @@ AUCell_plotTSNE(tSNE=cellsUmap,
 
 ### Interactive explorer
 
+The link below will take you to an interactive Shiny app which can be used to make 
+production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
+
+[single cell explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("Report"), "/scData.rds")}`){target="_blank"}
+
+#### Previous Shiny apps (<span style='color: red;'>no longer recommended</span>)
+
+These apps are no longer maintained. Use at your own risk, or for legacy datasets.
+
 [simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_exploreSeurat_app", "/?data=",output$getColumn("Report"), "/scData.rds")}`){target="_blank"}
 
 [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("Report"),"/sce_h5")}`){target="_blank"}
 
 ### Data availability
+
+[clusterInfos.xlsx](clusterInfos.xlsx) -- use this xls file to manually relabel the clusters
 
 ##### Positive markers of each cluster
 

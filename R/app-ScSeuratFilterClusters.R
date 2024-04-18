@@ -128,22 +128,27 @@ ezMethodScSeuratFilterClusters <- function(input = NA, output = NA, param = NA,
   
   # change labels and store in a variable
   toKeep <- unname(labelMap[as.character(Idents(scData))]) != "REMOVE"
-  scData <- scData[, toKeep]
-  DefaultAssay(scData) <- "RNA"
-  scData <- DietSeurat(scData, assays="RNA")
-  
-  ## Get information on which variables to regress out in scaling/SCT
-  scData <- seuratStandardSCTPreprocessing(scData, param)
-  
-  ## defaultAssay is now SCT
-  scData <- seuratStandardWorkflow(scData, param, ident.name="seurat_clusters")
-  if ("cellType" %in% scData@meta.data) {
+  # We don't need to do anything if all clusters from the sample are kept.
+  # Happens if other samples other than this one in the dataset are changed.
+  if (!all(toKeep)) {
+    scData <- scData[, toKeep]
+    DefaultAssay(scData) <- "RNA"
+    scData <- DietSeurat(scData, assays="RNA", layers="counts")
+    
+    ## Get information on which variables to regress out in scaling/SCT
+    scData <- seuratStandardSCTPreprocessing(scData, param)
+    
+    ## defaultAssay is now SCT
+    scData <- seuratStandardWorkflow(scData, param, ident.name="seurat_clusters")
+  }
+
+  if ("cellType" %in% colnames(scData@meta.data)) {
     # in case where the input dataset is labeled
     Idents(scData) <- scData$cellType
   }
   
   # get markers and annotations
-  anno <- getSeuratMarkersAndAnnotate(scData, param)
+  anno <- getSeuratMarkersAndAnnotate(scData, param, BPPARAM = BPPARAM)
   
   # save markers
   markers <- anno$markers

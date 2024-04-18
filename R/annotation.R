@@ -76,21 +76,26 @@ ezFeatureAnnotation = function(param, ids=NULL,
   if(!is.null(ids)){
     if(!all(ids %in% rownames(seqAnno))){
       extraIds <- setdiff(ids, rownames(seqAnno))
+      ## TODO we fill dummy numbers here
+      ## the perfect solution would
+      ## if there is only a fasta file: compute the number from the sequences in the fasta file
+      ## if there is a fasta + gtf file:
+      ## - compute the numbers from the fasta+ gtf file with getTranscriptGcAndWidth
+      ## - aggregate to genes 
+      ## - fill in here
       seqAnno[extraIds, "gene_id"] = extraIds
       seqAnno[extraIds, "type"] = "protein_coding"
-      fastaIds <- sub("^(Gene|Transcript)_", "", extraIds)
-      extraSeqs <- getControlSeqs(fastaIds)
-      seqAnno[extraIds, "transcript_id"] <- sub("^(Gene|Transcript)_", "Transcript", extraIds)
-      seqAnno[extraIds, "gene_name"] = fastaIds
+      seqAnno[extraIds, "transcript_id"] <- extraIds
+      seqAnno[extraIds, "gene_name"] = extraIds
       seqAnno[extraIds, "type"] = "protein_coding"
       seqAnno[extraIds, "biotypes"] = "protein_coding"
       seqAnno[extraIds, "strand"] = "+"
-      seqAnno[extraIds, "seqid"] = fastaIds
+      seqAnno[extraIds, "seqid"] = extraIds
       seqAnno[extraIds, "description"] = ""
-      seqAnno[extraIds, "start"] = as.integer(1)
-      seqAnno[extraIds, "end"] = width(extraSeqs)
-      seqAnno[extraIds, "gc"] = letterFrequency(extraSeqs, letters="GC", as.prob = FALSE)[ ,"G|C"] /width(extraSeqs)
-      seqAnno[extraIds, "featWidth"] = width(extraSeqs)
+      seqAnno[extraIds, "start"] = 1 #as.integer(1)
+      seqAnno[extraIds, "end"] = 1000 #width(extraSeqs)
+      seqAnno[extraIds, "gc"] = 0.5 #letterFrequency(extraSeqs, letters="GC", as.prob = FALSE)[ ,"G|C"] /width(extraSeqs)
+      seqAnno[extraIds, "featWidth"] = 1000 #width(extraSeqs)
       seqAnno[extraIds, "GO BP"] = ""
       seqAnno[extraIds, "GO MF"] = ""
       seqAnno[extraIds, "GO CC"] = ""

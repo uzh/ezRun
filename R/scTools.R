@@ -391,14 +391,17 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
   scData$qc.mito <- qc.mito
   scData$qc.ribo <- qc.ribo
   scData.unfiltered <- scData
-  scData <- scData[, -which(discard)]
+  if(any(discard))
+    scData <- scData[, -which(discard)]
   
   # Genes filtering
+  ## remove low expressed genes
   num.cells <- param$cellsFraction * ncol(scData) # if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
-  is.expressed <- Matrix::rowSums(GetAssayData(scData, layer="counts") >= param$nUMIs) >= num.cells
-  scData.unfiltered[[assay]] <- AddMetaData(object = scData.unfiltered[[assay]], metadata = is.expressed,col.name ='is.expressed')
+  cellsPerGene <- Matrix::rowSums(GetAssayData(scData, layer="counts") >= param$nUMIs)
+  is.expressed <- cellsPerGene >= num.cells
+  cellsPerGeneFraction <- data.frame(frac = cellsPerGene/ncol(scData), row.names = rownames(cellsPerGene))
   scData <- scData[is.expressed,]
-  return(list(scData.unfiltered = scData.unfiltered, scData = scData))
+  return(list(scData.unfiltered = scData.unfiltered, scData = scData, cellsPerGeneFraction = cellsPerGeneFraction))
 }
 
 filterCellsAndGenes.SingleCellExperiment <- function(sce, param) {

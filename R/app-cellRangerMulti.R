@@ -12,7 +12,9 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   sampleDirs <- dirList$sampleDirs
 
   #3. Create the multi configuration file and command
-  configFileName <- buildMultiConfigFile(input, param, dirList)
+  conf <- buildMultiConfigFile(input, param, dirList)
+  configFileName <- conf$configFileName
+  refDir <- conf$refDir
   
   cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
   #3. Build command
@@ -38,13 +40,15 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   }
   file.rename(file.path(cellRangerFolder, "outs"), sampleName)
   unlink(cellRangerFolder, recursive = TRUE)
-  if (ezIsSpecified(param$controlSeqs)) 
+  if (ezIsSpecified(param$controlSeqs) || ezIsSpecified(param$secondRef)) {
+    futile.logger::flog.info(sprintf("Removing %s", refDir))
     unlink(refDir, recursive = TRUE)
+  }
   
   #8. Optional removal of the bam files
   if(!param$keepBam){
-      print(ezSystem('find . -name "*.bam" -type f'))
-      ezSystem('find . -name "*.bam" -type f -delete')
+    futile.logger::flog.info(ezSystem('find . -name "*.bam" -type f'))
+    ezSystem('find . -name "*.bam" -type f -delete')
   }
   
   #9. Generate expanded dataset.tsv:
@@ -55,7 +59,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   expandedDS <- data.frame(Name = subSamples, Species = ds$Species, 
                                                 refBuild = ds$refBuild, refFeatureFile = ds$refFeatureFile, 
                                                 featureLevel = ds$featureLevel, transcriptTypes = ds$transcriptTypes)
-  expandedDS[['ResultDir [File]']] <- file.path(sub('/srv/gstore/projects/', '', samplePath), subSamples)
+  expandedDS[['ResultDir [File]']] <- file.path(param[['resultDir']], samplePath, subSamples)
   expandedDS[['Report [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'web_summary.html')
   expandedDS[['CountMatrix [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'count', 'sample_filtered_feature_bc_matrix')
   expandedDS[['Condition [Factor]']] = c('')
@@ -148,6 +152,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
   configFileName <- tempfile(pattern = "multi_config", tmpdir = ".", fileext = ".csv")
   fileConn <- file(configFileName)
   fileContents <- c()
+  refDir <- NULL
   
   libraryTypes <- as.vector(str_split(param$TenXLibrary, ",", simplify=TRUE))
   
@@ -159,6 +164,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     refDir <- getCellRangerGEXReference(param)
     fileContents <- append(fileContents, "[gene-expression]")
     fileContents <- append(fileContents, sprintf("reference,%s", refDir))
+    fileContents <- append(fileContents, paste("create-bam,true"))
     if (ezIsSpecified(param$expectedCells)) {
       fileContents <- append(fileContents, 
                              sprintf("expect-cells,%s", param$expectedCells))
@@ -180,6 +186,12 @@ buildMultiConfigFile <- function(input, param, dirList) {
     headerSection <- readLines(myProbesetFile, n = maxHeaderLine)
     headerSection[grep('reference_genome', headerSection)] = paste0('#reference_genome=',basename(refDir))
     probeInfo <- ezRead.table(myProbesetFile, sep = ',', row.names = NULL, skip = maxHeaderLine)
+    if (ezIsSpecified(param$customProbesFile) && param$customProbesFile != '') {
+      customProbes <- ezRead.table(file.path(param$dataRoot, param$customProbesFile), sep=',', row.names=NULL) %>%
+        mutate(gene_id=ifelse(startsWith(gene_id, "Gene_"), gene_id, paste0("Gene_", gene_id)),
+               probe_id=ifelse(startsWith(probe_id, "Gene_"), probe_id, paste0("Gene_", probe_id)))
+      probeInfo <- bind_rows(list(probeInfo, customProbes))
+    }
     annotation <- ezRead.table(file.path(refDir, 'star', 'geneInfo.tab'), row.names = NULL, skip = 1, header = FALSE)
     intersectionGenes <- intersect(annotation$V1, probeInfo$gene_id)
     probeInfo <- probeInfo[probeInfo$gene_id %in% intersectionGenes, ]
@@ -246,24 +258,23 @@ buildMultiConfigFile <- function(input, param, dirList) {
     sampleMultiplexFiles <- getSampleMultiplexFiles(input)
     names(sampleMultiplexFiles) <- paste0('^', sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles)), '$')
     sampleMultiplexFile <- sampleMultiplexFiles[which(sapply(names(sampleMultiplexFiles), grepl, sampleName))]
-    sampleMultiplexMapping <- read_csv(sampleMultiplexFile)
+    sampleMultiplexMapping <- read_csv(sampleMultiplexFile, show_col_types = FALSE)
     concatCols <- function(y) {return(paste(as.character(y), collapse=","))}
     if(!("fixedRNA" %in% libraryTypes)){
-        # Load multiplex barcode set and subset
-        multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", 
-                                              param$MultiplexBarcodeSet))
-        multiplexBarcodeSet <- multiplexBarcodeSet %>%
-        filter(id %in% sampleMultiplexMapping$cmo_ids)
-        data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
-    
-        fileContents <- append(fileContents, c("[samples]", "sample_id,cmo_ids"))
-        
-        fileContents <- append(fileContents, 
+      # Load multiplex barcode set and subset
+      multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", param$MultiplexBarcodeSet), show_col_types = FALSE)
+      multiplexBarcodeSet <- multiplexBarcodeSet %>%
+      filter(id %in% sampleMultiplexMapping$cmo_ids)
+      data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
+  
+      fileContents <- append(fileContents, c("[samples]", "sample_id,cmo_ids"))
+      
+      fileContents <- append(fileContents, 
                            apply(sampleMultiplexMapping, 1, concatCols))
     } else if("fixedRNA" %in% libraryTypes){
-        sampleMultiplexMapping$description = sampleMultiplexMapping$sample_id
-        fileContents <- append(fileContents, c("[samples]", "sample_id,probe_barcode_ids,description"))
-        fileContents <- append(fileContents, apply(sampleMultiplexMapping, 1, concatCols))
+      sampleMultiplexMapping$description = sampleMultiplexMapping$sample_id
+      fileContents <- append(fileContents, c("[samples]", "sample_id,probe_barcode_ids,description"))
+      fileContents <- append(fileContents, apply(sampleMultiplexMapping, 1, concatCols))
     }
   }
   
@@ -271,7 +282,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
   writeLines(fileContents, fileConn)
   close(fileConn)
   
-  return(configFileName)
+  return(list(configFileName=configFileName, refDir=refDir))
 }
 
 ##' @author Noé, Falko

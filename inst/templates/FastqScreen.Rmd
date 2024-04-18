@@ -16,6 +16,8 @@ knitr::opts_chunk$set(echo = TRUE)
 require(knitr)
 require(kableExtra)
 require(plotly)
+require(seqLogo)
+require(ezRun)
 
 output <- readRDS("output.rds")
 param <- readRDS("param.rds")
@@ -23,9 +25,14 @@ input <- readRDS("input.rds")
 rawScreenResult <- readRDS("rawScreenResult.rds")
 procScreenResult <- readRDS("procScreenResult.rds")
 virusResult <- readRDS("virusResult.rds")
-refseqResult = readRDS("refseqResult.rds")
+if(file.exists('refseqResult.rds')){
+    refseqResult = readRDS("refseqResult.rds")
+} else {
+    refseqResult = NULL
+}
 krakenResult <- readRDS("krakenResult.rds")
 rRNAstrandResult <- readRDS("rRNAstrandResult.rds")
+PWMresult <- readRDS("PWMs.rds")
 dataset = input$meta
 samples = input$getNames()
 
@@ -98,7 +105,7 @@ for (nm in samples){
 A mapping against all mRNAs in RefSeq can be useful to estimate the fraction reads which is specific for exonic regions. Furthermore contaminations with other species e.g. due to xenograft experiments can be discovered.
 
 
-```{r mRNAMultiSample prepare, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
+```{r mRNAMultiSample prepare, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!is.null(refseqResult)}
 refseqSamples <- names(refseqResult)
 names(refseqSamples) <- refseqSamples
 
@@ -119,7 +126,7 @@ if(length(refseqSamples) > 1){
 
 #### 1. MultiSample Barplots for top hits
 
-```{r RefTopHit1 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+```{r RefTopHit1 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE, eval=!is.null(refseqResult)}
 if(length(refseqSamples) > 1){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
   topSpecies <- sort(tapply(readFractionPerSample$UniqueSpeciesPercent, readFractionPerSample$species, sum), decreasing = TRUE)
@@ -138,7 +145,7 @@ if(length(refseqSamples) > 1){
 }
 ```
 
-```{r RefTopHit2 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+```{r RefTopHit2 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE, eval=!is.null(refseqResult)}
 if(length(refseqSamples) > 1){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
   if (length(topSpecies) > 1){
@@ -155,7 +162,7 @@ if(length(refseqSamples) > 1){
 }
 ```
 
-```{r RefTopHit3 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
+```{r RefTopHit3 plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE, eval=!is.null(refseqResult)}
 if(length(refseqSamples) > 2){
   m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
   if (length(topSpecies) > 2){
@@ -174,7 +181,7 @@ if(length(refseqSamples) > 2){
 
 #### 2. Per sample barplots
 
-```{r mRNAPerSample, echo=FALSE, results='hide', warning=FALSE, message=TRUE, eval=!debug}
+```{r mRNAPerSample, echo=FALSE, results='hide', warning=FALSE, message=TRUE, eval=!is.null(refseqResult)}
 if(length(refseqSamples) > 100){
   message('Skipped: > 100 Samples')
 } else {
@@ -316,43 +323,24 @@ if(param[['virusCheck']]){
 }
 ```
 
-
-### RIN
-
-#### RIN vs Read Count
-```{r rin1, echo=FALSE, message=FALSE, warning=FALSE}
-if (nrow(dataset) > 1){
-  rinCol <- colnames(dataset)[grep('^RIN', colnames(dataset))]
-  if(length(rinCol) == 1){
-    a <- makeScatterplot(dataset, colname1 = rinCol, colname2='Read Count')
-    a
-  }
+### Read Patterns R1
+```{r, echo=FALSE, include=TRUE, warning=FALSE, message=TRUE, eval=!debug, fig.height=5, fig.width=20, results="asis"}
+PWMs <- PWMresult[['R1']]
+for (nm in names(PWMs)){
+        cat(nm, "\n \n")
+        seqLogo(PWMs[[nm]])
+        cat("\n \n")
 }
 ```
 
-#### RIN vs LibConc
-```{r rin2, echo=FALSE, message=FALSE, warning=FALSE}
-if (nrow(dataset) > 1){
-  rinCol <- colnames(dataset)[grep('^RIN', colnames(dataset))]
-  if(length(rinCol) == 1){
-    libQuant <- colnames(dataset)[grep('LibConc_100_800bp', colnames(dataset))]  
-    if(length(libQuant) == 1){
-      b <- makeScatterplot(dataset, colname1 = rinCol, colname2=libQuant)
-      b
-    }
-  }
-}
-```
+### Read Patterns R2
+```{r, echo=FALSE, include=TRUE, warning=FALSE, message=TRUE, eval=length(PWMresult) == 2, fig.height=5, fig.width=20, results="asis"}
+PWMs <- PWMresult[['R2']]
 
-#### RIN vs rRNA content
-```{r rin3, echo=FALSE, message=FALSE, warning=FALSE}
-if (nrow(dataset) > 1){
-  rinCol <- colnames(dataset)[grep('RIN', colnames(dataset))]
-  if(length(rinCol) == 1){
-    dataset[['rRNA_Percent']] <- (rRNAstrandResult$Sense + rRNAstrandResult$Antisense) / rRNAstrandResult$`Read Count` * 100
-    c <- makeScatterplot(dataset, colname1 = rinCol, colname2='rRNA_Percent')
-    c
-  }
+for (nm in names(PWMs)){
+        cat(nm, "\n \n")
+        seqLogo(PWMs[[nm]])
+        cat("\n \n")
 }
 ```
 

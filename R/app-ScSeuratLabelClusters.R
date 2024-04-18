@@ -100,13 +100,15 @@ ezMethodScSeuratLabelClusters <- function(input = NA, output = NA, param = NA,
   # load cell data
   allCellsMeta <- readRDS(file.path(input$getFullPaths("SC Cluster Report"), "allCellsMeta.rds"))
   scData <- readRDS(input$getFullPaths("SC Seurat"))
-  
+  param_scSeurat <- readRDS(file.path(dirname(input$getFullPaths("SC Seurat")), 'param.rds'))
+  param$npcs <- param_scSeurat$npcs
+  param$nfeatures <- param_scSeurat$nfeatures
   # change labels and store in a variable
   scData$cellType <- unname(labelMap[as.character(Idents(scData))])
   Idents(scData) <- scData$cellType
   
   # get markers and annotations
-  anno <- getSeuratMarkersAndAnnotate(scData, param)
+  anno <- getSeuratMarkersAndAnnotate(scData, param, BPPARAM = BPPARAM)
   
   # save markers
   markers <- anno$markers

@@ -88,6 +88,7 @@ if (any(is.na(clusterSet))){
 }
 
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
+clusterNameNChar = max(nchar(levels(Idents(scData))))
 ```
 
 
@@ -192,6 +193,12 @@ qcStats[ "Doublets", ] <- c(
   NA, 
   round(sum(allCellsMeta$qc.doublet) / nrow(allCellsMeta), 2)
 )
+qcStats[ "Empty Droplets", ] <- c(
+  sum(allCellsMeta$qc.empty), 
+  NA, 
+  NA, 
+  round(sum(allCellsMeta$qc.empty) / nrow(allCellsMeta), 2)
+)
 qcStats[ "Total removed (thresholding)", ] <- c(
   sum(!allCellsMeta$useCell), 
   NA, 
@@ -270,6 +277,23 @@ p
 
 <br/>
 
+The dimension reduction is based on the top `r param$nfeatures` highly variable genes.
+
+```{r exploreHVGs, echo=FALSE, results='asis'}
+HVGs <- VariableFeatures(object = scData)
+
+jsCall = paste0('enrich({list: "', paste(HVGs, collapse="\\n"), '", popup: true});')
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+
+
+enrichrTable <- tibble(GeneSet='HVGs',
+                         "# of HVGs"=length(HVGs),
+                         "Enrichr link"=enrichrCalls)
+kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment")) %>%
+kable_styling("striped", full_width = F, position = "left")
+```
 
 ### Clustering
 
@@ -312,16 +336,16 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
-```{r cell cycle, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$CellCycle)}
+```{r cell cycle, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10), eval=!is.null(scData@meta.data$CellCycle)}
 if (any(!is.na(scData$CellCycle))){
   DimPlot(scData, label=FALSE, group.by= "CellCycle")
 }
-p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
+p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters") + NoLegend()
 p2 <- LabelClusters(p2, id = "ident",  fontface = "bold", color = "black", size = 6)
 p2
 ```
 
-```{r uninteresting variation, fig.width=6, fig.height=6}
+```{r uninteresting variation, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10)}
 VlnPlot(scData, features ="nCount_RNA", log=TRUE) + ggtitle("Number of UMIs vs ident") + NoLegend()
 FeaturePlot(scData, features="nCount_RNA", label = TRUE)
 
@@ -337,22 +361,23 @@ FeaturePlot(scData, features="percent_riboprot", label = TRUE)
 if (!is.null(scData@meta.data$percent_ribosomal)){
 print(VlnPlot(scData, features ="percent_ribosomal") + ggtitle("Ribosomal RNA percentage vs ident") + NoLegend())
 print(FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
-  
 }
 
+VlnPlot(scData, features ="doubletScore") + ggtitle("DoubletScore vs ident") + NoLegend()
+FeaturePlot(scData, features="doubletScore", label = TRUE)
 ```
 
-```{r decontx, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$DecontX_contFrac)}
+```{r decontx, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10), eval=!is.null(scData@meta.data$DecontX_contFrac)}
 VlnPlot(scData, features ="DecontX_contFrac", y.max=1) + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
 FeaturePlot(scData, features="DecontX_contFrac", label = TRUE)
 ```
 
-```{r soupx, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$SoupX_contFrac)}
+```{r soupx, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10), eval=!is.null(scData@meta.data$SoupX_contFrac)}
 VlnPlot(scData, features ="SoupX_contFrac", y.max=1) + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
 FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
 ```
 
-```{r cell probability, fig.width=6, fig.height=6, eval=!is.null(scData@meta.data$negLog10CellPValue)}
+```{r cell probability, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10), eval=!is.null(scData@meta.data$negLog10CellPValue)}
 VlnPlot(scData, features ="negLog10CellPValue") + ggtitle("negative log10 Cell PValue") + NoLegend()
 FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
 ```
@@ -361,7 +386,13 @@ FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
 genesToPlot <- gsub("_", "-", param$controlSeqs)
 genesToPlot <- intersect(genesToPlot, rownames(scData))
 if (length(genesToPlot) > 0){
-  FeaturePlot(scData, genesToPlot) + NoLegend()
+  if (length(genesToPlot) < 20){
+    FeaturePlot(scData, genesToPlot) + NoLegend()
+  } else {
+    DoHeatmap(scData, features=genesToPlot)
+    DotPlot(scData, features=genesToPlot) + coord_flip() +
+      theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  }
 }
 ```
 
@@ -370,7 +401,7 @@ if (length(genesToPlot) > 0){
 One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected. 
 Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
 
-```{r clustree, fig.align='center', fig.width=6, fig.height=8}
+```{r clustree, fig.align='center', fig.width=8, fig.height=8}
 clustree::clustree(scData, prefix = paste0(DefaultAssay(scData), "_snn_res."))
 ```
 
@@ -415,7 +446,9 @@ DotPlot(scData, features=genesToPlot) + coord_flip() +
 
 ```{r marker groupwise plot, fig.width=13, fig.height=length(levels(Idents(scData)))}
 do_GroupwiseDEPlot(sample = scData,
-                   de_genes = posMarkers %>% mutate(gene=as.character(gene)),
+                   de_genes = posMarkers %>% 
+                     mutate(gene=as.character(gene),
+                            p_val_adj=ifelse(p_val_adj < 1e-100, 1e-100, p_val_adj)),
                    min.cutoff = 1)
 ```
 
@@ -437,7 +470,16 @@ if (length(genesToPlot) > 0){
 Cell type scoring using the EnrichR tool. This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters.
 
 ```{r query online enrichR version, echo=FALSE, results='asis'}
-genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
+markersPerClusterTable <- c()
+eachCluster <- 0
+for (eachCluster in levels(posMarkers$cluster)) {
+  markersPerCluster <- dplyr::filter(posMarkers, cluster == eachCluster) %>%
+    dplyr::arrange(desc(avg_log2FC))
+  markersPerCluster <- head(markersPerCluster, min(nrow(markersPerCluster), 500))
+  markersPerClusterTable <- rbind(markersPerClusterTable,markersPerCluster)
+}
+
+genesPerCluster <- split(markersPerClusterTable$gene, markersPerClusterTable$cluster)
 jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
                          "'>Analyse at Enrichr website</a>")
@@ -636,27 +678,36 @@ try({
 })
 ```
 
-### Azimuth 
+### Azimuth
 
-```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=6}
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap")
+```{r azimuth, eval=!is.null(aziResults), fig.width=10, fig.height=10}
+options(ggrepel.max.overlaps = Inf)
+
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap") + NoLegend()
 if('Azimuth.celltype.l2' %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")
+  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")  + NoLegend()
 if('Azimuth.celltype.l3' %in% colnames(scData@meta.data))
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap")
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap")  + NoLegend()
 if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap")
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap")  + NoLegend()
 ```
 
 ### Interactive
 
+The link below will take you to an interactive Shiny app which can be used to make 
+production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
+
+[single cell explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("SC Cluster Report"), "/scData.rds")}`){target="_blank"}
+
+#### Previous Shiny apps (<span style='color: red;'>no longer recommended</span>)
+
+These apps are no longer maintained. Use at your own risk, or for legacy datasets.
 
 [simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_exploreSeurat_app", "/?data=",output$getColumn("SC Cluster Report"), "/scData.rds")}`){target="_blank"}
 
 [iSEE explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_iSEE", "/?data=",output$getColumn("SC Cluster Report"))}`){target="_blank"}
 
 ### Data availability
-
 
 [clusterInfos.xlsx](clusterInfos.xlsx) -- use this xls file to manually relabel the clusters
 

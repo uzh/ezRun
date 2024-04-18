@@ -91,6 +91,24 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                     row.names=FALSE, col.names=FALSE)
       }
     }
+    
+    if(ezIsSpecified(param$secondRef)){
+      ## control sequences
+      gtfFileTmp <- paste(Sys.getpid(), "genes.gtf", sep="-")
+      if (gtfFileTmp != gtfFile) {
+        file.copy(from=gtfFile, to=gtfFileTmp)
+        on.exit(file.remove(gtfFile), add=TRUE)
+        gtfFile <- gtfFileTmp
+      }
+      
+      extraGR <- makeExtraControlSeqGR(param)
+      gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
+                             fileext = ".gtf")
+      on.exit(file.remove(gtfExtraFn), add=TRUE)
+      export.gff2(extraGR, con=gtfExtraFn)
+      ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
+    }
+    
     countResult = featureCounts(localBamFile, annot.inbuilt=NULL,
                               annot.ext=gtfFile, isGTFAnnotationFile=TRUE,
                               GTF.featureType=param$gtfFeatureType,
@@ -219,7 +237,7 @@ ezMethodSingleCellFeatureCounts <- function(input=NA, output=NA, param=NA){
     
   if(ezIsSpecified(param$controlSeqs)){
     ## control sequences
-    extraGR <- makeExtraControlSeqGR(param$controlSeqs)
+    extraGR <- makeExtraControlSeqGR(param)
     gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
                            fileext = ".gtf")
     on.exit(file.remove(gtfExtraFn), add=TRUE)

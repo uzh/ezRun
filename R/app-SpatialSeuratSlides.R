@@ -17,6 +17,11 @@ EzAppSpatialSeuratSlides <-
                   appDefaults <<- rbind(npcs=ezFrame(Type="numeric", 
                                                     DefaultValue=30, 
                                                     Description="The maximal dimensions to use for reduction"),
+                                        nfeatures = ezFrame(
+                                            Type = "numeric",
+                                            DefaultValue = 3000,
+                                            Description = "number of variable genes for SCT"
+                                        ),
                                         pcGenes = ezFrame(
                                           Type = "charVector",
                                           DefaultValue = "",
@@ -33,8 +38,8 @@ EzAppSpatialSeuratSlides <-
                                                                 DefaultValue="TRUE",
                                                                 Description="Perform batch correction."),
                                         integrationMethod=ezFrame(Type="character", 
-                                                                  DefaultValue="Classic", 
-                                                                  Description="Choose integration method in Seurat (Classic or RPCA)"),
+                                                                  DefaultValue="CCA", 
+                                                                  Description="Choose integration method in Seurat"),
                                         DE.method=ezFrame(Type="charVector", 
                                                           DefaultValue="wilcox", 
                                                           Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"),
@@ -101,21 +106,23 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   posMarkers[['isSpatialMarker']] = FALSE
   #spatially variable genes
-  spatialMarkersList <- list()
-  res <- spatialMarkers(scData, selection.method = 'markvariogram')
-  spatialMarkersList[['markvariogram']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'Markvariogram')
-  res <- spatialMarkers(scData, selection.method = 'moransi')
-  spatialMarkersList[['moransi']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'MoransI')
-  spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('GeneSymbol', 'Rank','Method')], 
-                          spatialMarkersList[['moransi']][,c('GeneSymbol', 'Rank','Method')])
-  spatialMarkers <- spatialMarkers %>% spread(Method, Rank)
-  spatialMarkers[['MeanRank']] <- apply(spatialMarkers[,c('Markvariogram','MoransI')],1,mean)
-  spatialMarkers <- spatialMarkers[order(spatialMarkers$MeanRank),]
-  spatialPosMarkers <- intersect(posMarkers$gene, spatialMarkers$GeneSymbol)
+  require(readxl)
+  filePath_spatialMarkers <- sub('scData.rds', 'spatialMarkers.xlsx',filePath)
+  spatialMarkersList <- lapply(filePath_spatialMarkers,read_xlsx)
+  names(spatialMarkersList) <- names(scDataList)
+  spatialMarkers <- c()
+  for (j in 1:length(spatialMarkersList)){
+      spatialMarkersList[[j]][['GeneSymbol']] = spatialMarkersList[[j]]$GeneSymbol
+      spatialMarkersList[[j]][['SampleID']] = names(spatialMarkersList)[j]
+      spatialMarkersList[[j]] = spatialMarkersList[[j]][!is.na(spatialMarkersList[[j]]$MeanRank),]
+      spatialMarkers <- rbind(spatialMarkers, spatialMarkersList[[j]])
+  }
+  
+  spatialPosMarkers <- intersect(posMarkers$gene, unique(spatialMarkers$GeneSymbol))
   posMarkers[which(posMarkers$gene %in% spatialPosMarkers), 'isSpatialMarker'] = TRUE
  
   #Save some results in external files 
-  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, spatial_markers=data.frame(spatialMarkers)))
+  dataFiles = saveExternalFiles(list(pos_markers=posMarkers, spatial_markers=spatialMarkers))
   saveRDS(scData, "scData.rds")
   saveRDS(param, "param.rds")
   

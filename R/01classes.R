@@ -430,19 +430,23 @@ cleanForFreeDiskSpace <- function(param){
     return(TRUE)
   }
   
-  freeSpace = getGigabyteFree(".")
-  i = 0
-  while(getGigabyteFree(".") < param$scratch & i < 200){
-    if(getGigabyteTotal(".") > 1024){
-      ## For big nodes with more than 1TB scratch, only clean for trxcopy
-      message("Clean for trxcopy!")
-      cleanOldestDir(dirPath="/scratch", user="trxcopy")
-    }else{
-      message("Clean for all users!")
-      cleanOldestDir(dirPath="/scratch", user=NULL)
+  if (getGigabyteFree(".") > param$scratch){
+    return(TRUE)
+  }
+  if(getGigabyteTotal(".") > 5000){
+    ## For big nodes with more than 5TB scratch, only clean for trxcopy
+    message("Clean for trxcopy!")
+    unusedDirs <- findUnusedDirs("/scratch", user="trxcopy")
+  } else {
+    message("Clean for all users!")
+    unusedDirs <- findUnusedDirs("/scratch", user=NULL)
+  }
+  for (i in 1:nrow(unusedDirs)) {
+    message("remove: ", rownames(unusedDirs)[i])
+    unlink(rownames(unusedDirs)[i], recursive=TRUE, force=TRUE)
+    if (getGigabyteFree(".") > param$scratch ){
+      break
     }
-    Sys.sleep(1)
-    i = i + 1
   }
   if (getGigabyteFree(".") < param$scratch){
     if (ezValidMail(param$mail)){
@@ -455,7 +459,6 @@ cleanForFreeDiskSpace <- function(param){
            text="Please free up space manually!")
     stop("actual free disk space is less than required")
   }
-
   return(TRUE)
 }
 
@@ -470,8 +473,8 @@ getGigabyteTotal = function(dirPath){
   as.numeric(strsplit(ezSystem(paste("df", dirPath), intern=TRUE, echo=FALSE), " +")[[2]][2]) / 1e6
 }
 
-### Clean the oldest, not used dir
-cleanOldestDir <- function(dirPath, user=NULL){
+
+findUnusedDirs <- function(dirPath, user=NULL){
   allDirs <- list.dirs(path=dirPath, recursive=FALSE)
   
   ## Don't clean symlinks
@@ -479,12 +482,9 @@ cleanOldestDir <- function(dirPath, user=NULL){
   
   ## Don't clean smrt* , pacbio stuff
   allDirs <- grep("(smrt|pacbio)", allDirs, invert = TRUE, value=TRUE)
-
+  
   ## Don't clean rstudio folders
   allDirs <- grep("rstudio$", allDirs, invert = TRUE, value=TRUE)
-  
-  ## Don't clean **.GT folder; created by grid engine
-  allDirs <- grep("GT$", allDirs, invert = TRUE, value=TRUE)
   
   allInfo <- file.info(allDirs)
   if(!is.null(user)){
@@ -492,14 +492,14 @@ cleanOldestDir <- function(dirPath, user=NULL){
   }
   
   ## Check being used or not
-  isUsed <- suppressWarnings(lapply(paste("lsof", rownames(allInfo)), 
-                                    system, intern=TRUE))
-  isUsed <- lengths(isUsed) != 0L
-  if(!all(isUsed)){
-    allInfo <- allInfo[!isUsed, ]
+  isNotUsed <- sapply(rownames(allInfo), function(dirName){
+    system(paste("lsof", dirName, " | wc -l"), intern = TRUE) == "0"
+  })
+  allInfo <- allInfo[isNotUsed, , drop=FALSE]
+  if(nrow(allInfo) > 0){
     ## order by ctime
-    allInfo <- allInfo[order(allInfo$ctime), ]
-    message("Deleting ", rownames(allInfo)[1])
-    unlink(rownames(allInfo)[1], recursive=TRUE, force=TRUE)
+    allInfo <- allInfo[order(allInfo$ctime), ,drop=FALSE]
   }
+  return(allInfo)
 }
+

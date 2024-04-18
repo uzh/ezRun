@@ -44,8 +44,8 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     }
     bamFile <- input$getFullPaths("BAM")
     outBam <- basename(output$getColumn("BAM"))
-    if(param$markDuplicates){
-      dupBam(inBam=bamFile, outBam=outBam, operation="remove")
+    if(param$removeDuplicates){
+      dupBam(inBam=bamFile, outBam=outBam, operation="remove", ram = param$ram)
     } else {
       file.copy(from=bamFile, to=outBam, overwrite=TRUE)
       Rsamtools::indexBam(outBam)
@@ -150,8 +150,10 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   require(ChIPpeakAnno)
   require(ShortRead)
 
-  data = ezRead.table(peakFile, comment.char = "#", row.names = NULL)
-  if (nrow(data) == 0){
+  data <- c()
+  tryCatch(expr = {data = ezRead.table(peakFile, comment.char = "#", row.names = NULL)}, 
+           error = function(e){message(paste("No peaks detected. Skip peak annotation"))})
+  if (is.null(data)){
     return(NULL)
   }
   data = data[order(data$chr,data$start), ]
@@ -163,9 +165,15 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   
   gtfFile = param$ezRef@refFeatureFile
   gtf = rtracklayer::import(gtfFile)
-  idx = gtf$type == 'gene'
-  if(!any(idx)){
-    idx = gtf$type =='start_codon'
+  if('gene' %in% unique(gtf$type)){
+    idx = gtf$type == 'gene'
+  } else if('transcript' %in% unique(gtf$type)) {
+      idx = gtf$type == 'transcript'
+  } else if('start_codon' %in% unique(gtf$type)){
+      idx = gtf$type =='start_codon'
+  } else {
+      message('gtf is incompatabible. Peak annotation skipped!')
+      return(NULL)
   }
   gtf = gtf[idx]
   if(grepl('gtf$',gtfFile)){

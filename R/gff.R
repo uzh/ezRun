@@ -495,6 +495,11 @@ getTranscriptGcAndWidth <- function(param=NULL, genomeFn=NULL, featureFn=NULL){
     genomeFn <- param$ezRef["refFastaFile"]
     featureFn <- param$ezRef["refFeatureFile"]
   }
+  ## try to support use with secondRef...
+  # if (is.null(featureFn)){
+  #   geneSeq <- getSeq(FaFile(genomeFn)) 
+  #   data <- tibble(transcript_id=transcripts, featWidth=txWidth, gcCount=gcCount)
+  # }
   gff <- import(featureFn)
   exons <- gff[gff$type == "exon"]
   transcripts <- exons$transcript_id

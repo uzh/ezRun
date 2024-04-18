@@ -22,7 +22,8 @@ library(reshape2)
 library(tidyverse)
 library(ezRun)
 library(writexl)
-library(plotly)
+library(ggplot2)
+library(ggiraph)
 ```
 
 ```{r prepare data RNABamStats, include=FALSE}
@@ -168,9 +169,9 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
   }
   xx <- reshape2::melt(covValues, varnames=c("Sample", "Percentile"))
   xx$Sample = as.factor(xx$Sample)
-  gbcp <- ggplot(data=xx, aes(x=Percentile, y=value)) + geom_line(aes(color=Sample)) + 
-    scale_colour_manual(values=sampleColors) + 
-    labs(x="percentile of gene (5'->3')", y="relative coverage") + ggtitle("genebody coverage")
+  gbcp <- ggplot(data=xx, aes(x=Percentile, y=value))
+  gbcp <-  gbcp + geom_line_interactive(aes(color=Sample,tooltip = Sample, data_id = Sample)) 
+  gbcp <-  gbcp + scale_colour_manual(values=sampleColors) + labs(x="percentile of gene (5'->3')", y="relative coverage") + ggtitle("genebody coverage")
   
   
   print(ggplot(data=xx, 
@@ -196,7 +197,9 @@ if (!is.null(tlc)){
 
 ```{r interactive gene coverage body plot, message = FALSE, echo = FALSE, warning=FALSE, fig.width=12, fig.height=7}
 if(exists('gbcp'))
- ggplotly(gbcp)
+  girafe(ggobj = gbcp, options = list(
+    opts_hover_inv(css = "opacity:0.1;"),
+    opts_hover(css = "stroke-width:2;"), opts_sizing(rescale = TRUE, width = .5)))
 ```
 
 
@@ -218,8 +221,11 @@ if(!is.null(resultList[[1]][["Junction"]])){
           junctionDF <- rbind(junctionDF, cbind(resultList[[sm]][["Junction"]][["junctionSaturation"]][[nm]], sm))
         }
         junctionDF <- data.frame(readFraction = rownames(junctionDF), Junctions <- as.numeric(junctionDF[,1]), Sample = as.factor(junctionDF[,2]))
-        junctionPlots[[nm]] <- ggplot(data=junctionDF, aes(x=readFraction, y=Junctions, group = Sample)) + geom_line(aes(col=Sample)) + geom_point(aes(col=Sample), size = 1)
-        junctionPlots[[nm]] <- ggplotly(junctionPlots[[nm]] + labs(x="percent of total reads", y="Number of splicing junctions (K)") + ggtitle(nm))
+        junctionPlots[[nm]] <- ggplot(data=junctionDF, aes(x=readFraction, y=Junctions, group = Sample))
+        junctionPlots[[nm]] <- junctionPlots[[nm]] + geom_line_interactive(aes(color=Sample,tooltip = Sample, data_id = Sample)) + geom_point(aes(col=Sample), size = 1)
+        junctionPlots[[nm]] <- junctionPlots[[nm]] + labs(x="percent of total reads", y="Number of splicing junctions (K)") + ggtitle(nm)
+        junctionPlots[[nm]] <- girafe(ggobj = junctionPlots[[nm]], options = list(opts_hover_inv(css = "opacity:0.1;"), opts_hover(css = "stroke-width:2;"), opts_sizing(rescale = TRUE, width = .6)))
+        
   }
 }
 ```
@@ -312,7 +318,9 @@ if(!is.null(resultList[[1]][["dupRate"]])){
   }
   dupResult$Intercept = as.numeric(dupResult$Intercept)
   dupResult$Slope = as.numeric(dupResult$Slope)
-  dupPlot <- ggplotly(ggplot(data = dupResult, aes(x=Slope, y=Intercept)) + geom_point(aes(col=Sample), size = 2) + ggtitle('MultiSample Plot'))
+  dupPlot <- ggplot(data = dupResult, mapping = aes(x = Slope, y = Intercept, tooltip = Sample, data_id = Sample))
+  dupPlot <- dupPlot + geom_point_interactive(aes(col=Sample), size = 2, hover_nearest = TRUE) + ggtitle('MultiSample Plot')
+  dupPlot <- girafe(ggobj = dupPlot, options = list(opts_sizing(rescale = TRUE, width = .7)))
 }
 ```
 

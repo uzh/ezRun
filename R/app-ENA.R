@@ -52,6 +52,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     
     setwdNew(rownames(input$meta))
     
+    fastqInfo$Name <- fastqInfo$sample_accession ## use the accession as a fallback
     for (i in 1:nrow(fastqInfo)){
         #download ERR xml File
         cmd = paste0("curl -o ", fastqInfo$run_accession[i],".xml ", "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",fastqInfo$run_accession[i],"?download=true\'")
@@ -66,36 +67,44 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
             }
         sampleID <- xmlToList(runInfo)$RUN$RUN_LINKS[[2]]$XREF_LINK$ID
         
-        if(is.list(sampleID)){
+        if(is.list(sampleID)|any(grepl('^ERP',sampleID))){
             sampleID <- fastqInfo$sample_accession[i]
         }
         cmd = paste0("curl -o ", sampleID,".xml ", "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",sampleID,"?download=true\'")
         ezSystem(cmd)
         xml <- xmlParse(paste0(sampleID, '.xml'))
         sampleInfo <- xmlToList(xml)
-        fastqInfo[['Name']][i] <- sampleInfo$SAMPLE$TITLE
-        ##Clean sampleNames
-        fastqInfo[['Name']][i] <- gsub('\\#', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- gsub(' ', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- gsub('\\(', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- gsub('\\)', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- gsub(':', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- gsub(',', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- gsub(';', '_', fastqInfo[['Name']][i])
-        fastqInfo[['Name']][i] <- paste(fastqInfo[['Name']][i], sampleID, sep = '_')
-            
-        sampleAttributes <- xmlToDataFrame(xmlRoot(xml)[[1]][[5]])
-        sampleAttributes <- sampleAttributes[grep('ENA',sampleAttributes$TAG, invert = TRUE),]
         
-        if(!is.null(nrow(sampleAttributes)) && nrow(sampleAttributes) > 0){
+        if (!is.null(sampleInfo$SAMPLE$TITLE)){
+          cleanName <- gsub("[\\# \\(\\):,;]", "_", sampleInfo$SAMPLE$TITLE)
+          fastqInfo[['Name']][i] <- paste(cleanName, sampleID, sep = '_')
+          sampleAttributes <- xmlToDataFrame(xmlRoot(xml)[[1]][[5]])
+          sampleAttributes <- sampleAttributes[grep('ENA',sampleAttributes$TAG, invert = TRUE),]
+          
+          if(!is.null(nrow(sampleAttributes)) && nrow(sampleAttributes) > 0){
             for (j in 1:nrow(sampleAttributes)){
-                attrName <- as.character(sampleAttributes[j, 1])
-                if (is.null(fastqInfo[[attrName]])){
-                    fastqInfo[[attrName]] = '-'
-                }
-                fastqInfo[i, attrName] = as.character(sampleAttributes[j,2])
+              attrName <- as.character(sampleAttributes[j, 1])
+              if (is.null(fastqInfo[[attrName]])){
+                fastqInfo[[attrName]] = '-'
+              }
+              fastqInfo[i, attrName] = as.character(sampleAttributes[j,2])
             }
-        }
+          }
+        } else {
+            tryCatch({
+                experimentID <- xmlToList(runInfo)[[1]]$EXPERIMENT_REF$.attrs
+                cmd = paste0("curl -o ", experimentID,".xml ", "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",experimentID,"?download=true\'")
+                ezSystem(cmd)
+                xml <- xmlParse(paste0(experimentID, '.xml'))
+                experimentInfo <- xmlToList(xml)
+                cleanName <-  gsub("[\\# \\(\\):,;]", "_", experimentInfo$EXPERIMENT$TITLE)
+                fastqInfo[['Name']][i] <- paste(cleanName, sampleID, sep = '_')},
+                warning=function(w) {
+                    message('sample title not available in experiment accession file')
+                    print(w)
+                    return(NA)
+                })
+            }
         
         if(grepl(';',fastqInfo$fastq_ftp[i])) {
             paired = TRUE
@@ -109,6 +118,11 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     }
     myPath = output$meta[['ENA Result [File]']]
     dataset <- createDataset(fastqInfo, myPath, paired = paired)
+    
+    if (sum(dataset[['Read Count']])==0) {
+        dataset[['Read Count']] <- countReadsInFastq(basename(fastqInfo$fastq_ftp))
+    }
+    
     
     if(length(dataset$Name) == length(unique(dataset$Name))){
         ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
@@ -126,7 +140,6 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
                 ezSystem(paste('rm', files_R1[k]))
                 dataset[['Read1 [File]']] = sub(files_R1[k], pooledR1_File, dataset[['Read1 [File]']])
             }
-            #ezSystem(paste('pigz --best', pooledR1_File))
             if(paired){
                 files_R2 <- basename(dataset[['Read2 [File]']][dataset[['Name']] == sampleNames[j]])
                 sampleNames[j] = gsub('\\/', '_', gsub(' ', '_', sampleNames[j]))
@@ -138,9 +151,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
                     ezSystem(paste('rm', files_R2[k]))
                     dataset[['Read2 [File]']] = sub(files_R2[k], pooledR2_File, dataset[['Read2 [File]']])
                 }
-                #ezSystem(paste('pigz --best', pooledR2_File))
             }
-            #files_R2 <- dataset[['Read2 [File]']][dataset[['Name']] == sampleNames[j]]
             dataset[['Read Count']][dataset[['Name']] == sampleNames[j]] = rep(sum(as.numeric(dataset[['Read Count']][dataset[['Name']] == sampleNames[j]])), length(files_R1))
         }
         dataset = dataset[,-grep('md5sum', colnames(dataset))]
@@ -148,7 +159,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         ##TODO: Recompute md5sums after pooling & handle PairedEnd data
         ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
     }
-    
+     
     if(param$tarOutput){
     for (i in 1:nrow(dataset)){
         mySample <- dataset[i,'Name']
@@ -176,19 +187,24 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
 }
 
 createDataset <- function(fastqInfo, myPath, paired = FALSE){
+    if(ncol(fastqInfo) > 10){
+        xtraCols <- fastqInfo[,11:ncol(fastqInfo)]
+        colnames(fastqInfo[,11:ncol(fastqInfo)])
+    } else {
+        xtraCols <- data.frame(sample_accession = fastqInfo$sample_accession)
+        
+    }
     if (!paired){
         dataset = data.frame(Name = gsub(' ', '_', fastqInfo$Name), Read1 = file.path(myPath, basename(fastqInfo$fastq_ftp)), 
                              md5sum = fastqInfo$fastq_md5, Species = fastqInfo$Species, 
-                             ReadCount = fastqInfo$ReadCount, fastqInfo[,11:ncol(fastqInfo)], stringsAsFactors = FALSE)
-        colnames(dataset) = c('Name', 'Read1 [File]', 'md5sum', 'Species', 'Read Count', colnames(fastqInfo)[11:ncol(fastqInfo)])
-        #dataset = dataset[,-c(6)]
+                             ReadCount = fastqInfo$ReadCount, xtraCols, stringsAsFactors = FALSE)
+        colnames(dataset) = c('Name', 'Read1 [File]', 'md5sum', 'Species', 'Read Count', colnames(xtraCols))
     } else {
         dataset = data.frame(Name = gsub(' ', '_', fastqInfo$Name), Read1 = file.path(myPath, sapply(strsplit(fastqInfo$fastq_ftp, ';'), basename)[1,]),
                              Read2 = file.path(myPath, sapply(strsplit(fastqInfo$fastq_ftp, ';'), basename)[2,]),
                              md5sum = fastqInfo$fastq_md5, Species = fastqInfo$Species, 
-                             ReadCount = fastqInfo$ReadCount, fastqInfo[,11:ncol(fastqInfo)], stringsAsFactors = FALSE)
-        colnames(dataset) = c('Name', 'Read1 [File]', 'Read2 [File]', 'md5sum', 'Species', 'Read Count', colnames(fastqInfo)[11:ncol(fastqInfo)])
-        #dataset = dataset[,-c(7)]
+                             ReadCount = fastqInfo$ReadCount, xtraCols, stringsAsFactors = FALSE)
+        colnames(dataset) = c('Name', 'Read1 [File]', 'Read2 [File]', 'md5sum', 'Species', 'Read Count', colnames(xtraCols))
     }
     return(dataset)
 }

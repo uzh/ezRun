@@ -44,10 +44,20 @@ EzAppScSeurat <-
                       DefaultValue = 0.1,
                       Description = "Used in calculating cluster markers: The minimum fraction of cells in either of the two tested populations."
                     ),
+                    min.diff.pct = ezFrame(
+                      Type = "numeric",
+                      DefaultValue = 0,
+                      Description = "Used for filtering cluster markers: The minimum difference of cell fraction of the two tested populations."
+                    ),
                     logfc.threshold = ezFrame(
                       Type = "numeric",
                       DefaultValue = 0.25,
                       Description = "Used in calculating cluster markers: Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells."
+                    ),
+                    pvalue_allMarkers = ezFrame(
+                      Type = "numeric",
+                      DefaultValue = 0.01,
+                      Description = "Used for filtering cluster markers: adjusted pValue threshold for marker detection"
                     ),
                     resolution = ezFrame(
                       Type = "numeric",
@@ -78,6 +88,11 @@ EzAppScSeurat <-
                       Type = "logical",
                       DefaultValue = FALSE,
                       Description = "Whether we should keep cells suspected of being doublets. Set to TRUE only for QC purposes."
+                    ),
+                    maxEmptyDropPValue = ezFrame(
+                      Type = "numeric",
+                      DefaultValue = 1,
+                      Description = "filter droplets based on DropletUtils::emptyDrops method"
                     ),
                     cellsFraction = ezFrame(
                       Type = "numeric",
@@ -167,7 +182,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   } else if(param$cellbender){
     cts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_filtered_seurat.h5'), use.names = FALSE)
   }
-  featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
+  featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
+  featInfo <- featInfo[,1:3]  # in cases where additional column exist, e.g. CellRangerARC output
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
   featInfo$isRiboprot = grepl(  "(?i)^RPS|^RPL", featInfo$gene_name)
@@ -203,7 +219,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData$cellBarcode <- sub(".*_", "", colnames(scData))
   scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM, ribosomalGenes = featInfo[rownames(scData), "isRibosomal"])
   
-  ## use empty drops to test for ambient
+  ## use empty drops to test for ambient       
   if ("UnfilteredCountMatrix" %in% input$colNames) {
     rawDir <- input$getFullPaths("UnfilteredCountMatrix")
     if (file.exists(file.path(rawDir, param$geneCountModel))) {
@@ -243,6 +259,12 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     emptyStats <- emptyDrops(rawCts, BPPARAM=BPPARAM, niters=1e5)
     scData$negLog10CellPValue <- pmin(scData$negLog10CellPValue, -log10(emptyStats[colnames(scData), "PValue"]))
     scData@meta.data$negLog10CellPValue[is.na(scData$negLog10CellPValue)] <- 0
+    scData$qc.empty <- FALSE
+    
+    if(param$maxEmptyDropPValue < 1){
+        scData$qc.empty[scData$negLog10CellPValue < -log10(param$maxEmptyDropPValue)] <- TRUE
+        scData$useCell[scData$negLog10CellPValue < -log10(param$maxEmptyDropPValue)] <- FALSE
+    }
     remove(rawCts)
   }
   allCellsMeta <- scData@meta.data
@@ -269,7 +291,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   }
   
   # get markers and annotations
-  anno <- getSeuratMarkersAndAnnotate(scData, param)
+  anno <- getSeuratMarkersAndAnnotate(scData, param, BPPARAM = BPPARAM)
   
   # save markers
   markers <- anno$markers

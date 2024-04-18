@@ -566,7 +566,7 @@ if (param$runPseudoTime) {
 ### Interactive explorer
 
 ```{r make shiny data, echo=FALSE}
-saveRDS(scData, file = basename(output$getColumn("Live Report")))
+qs::qsave(x = scData, file = basename(output$getColumn("Live Report")), nthreads = 4)
 ```
 
 [Shiny explorer](`r output$getColumn("Live Report")`)

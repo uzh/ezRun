@@ -19,46 +19,54 @@ library(DT)
 library(htmltools)
 library(pheatmap)
 library(ggplot2)
-## ----------------------------------------------
-## debug
-# title:  "`r metadata(sce)$param$name`"
-# sce <- readRDS("/srv/gstore/projects/p3271/SCCountQC_41088_2019-11-12--14-43-47/1834_SCCountQC/sce.rds")
-
+library(DescTools)
 debug <- FALSE
-
-#param <- metadata(sce)$param
+#dict <- ezRead.table('/srv/gstore/projects/p33200/CountSpacer_Baggen_2021_2024-04-07--14-01-14/QC_Screen/QC_Screen-sgRNA_counts.txt', row.names = #NULL)
+dict <- readRDS('dict.rds')
+res <- dict[!dict$isControl,]
+param <- readRDS('param.rds')
+sortedCounts = log2(1+sort(res$Count))
+upperCutOff = param$nmad+mean(sortedCounts)
+lowerCutOff = mean(sortedCounts)-param$nmad
+stats <- readRDS('stats.rds')
+data = data.frame(group = rep('Count', nrow(dict)), counts = c(dict$Count))
 ```
 
 ## CountSpacer Result {.tabset}
 
 ### Overview
 
-* Total Number of sgRNAs: `r nrow(dict)`
-* Median Reads per sgRNA = `r median(dict$Count)`
-* Mean Reads per sgRNA = `r mean(dict$Count)`
+* Total Number of sgRNAs: `r nrow(res)`
+* Median Reads per sgRNA = `r median(res$Count)`
+* Mean Reads per sgRNA = `r mean(res$Count)`
 
 ### Diagnostic plots
 
-```{r plots, fig.width=10, fig.height=10, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
+```{r, fig.width=7, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 readFilteringStats = unlist(stats)[1:3]/10^6
 barplot(readFilteringStats, main = 'Read Filtering Stats', ylab = 'Reads in [M]', col = c('darkblue', 'royalblue', 'lightblue'))
-
 mappingStats = unlist(stats)[4:length(stats)]
 par(mar=c(5.1,6.1,4.1,2.1))
 barplot(mappingStats/10^6, las  = 1, main = 'Read Mapping Stats', ylab = 'Reads in [M]', col = 'royalblue')
 par(mar=c(5.1,4.1,4.1,2.1))
+```
 
+```{r, fig.width=6, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 p <- ggplot(data, aes(x=group, y=counts))
   p <- p + geom_violin(fill="royalblue", alpha= 0.5, trim = FALSE, adjust = 0.5) 
   p <- p + geom_boxplot(width = 0.1)
   p <- p +  ggtitle(paste0(sampleName, '-ReadCount Distribution')) + ylab('ReadCount per sgRNA')
-  p <- p + theme(plot.title = element_text(size=15, face="bold"), axis.title.x =element_blank(), axis.text.x = element_text(angle=45,hjust=1))
+#  p <- p + theme(plot.title = element_text(size=12, face="bold"), axis.title.x =element_blank(), axis.text.x = element_text(angle=45,hjust=1))
   print(p)
+```
 
+```{r, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
   h <- ggplot(dict, aes(x=log2(1+Count))) + geom_histogram(binwidth=0.1)
   h <- h +  ggtitle(paste0(sampleName, '-Histogram')) + ylab('Number of sgRNAs') + xlab('Log2 count per sgRNA')
   print(h)
+```
   
+```{r, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
   plot(sortedCounts, pch = c(15), cex = 0.7, main = paste(sampleName, '- sgCount Overview'), ylab = 'log2(sgRNA Count)', ylim = c(0, max(max(sortedCounts), 1.05*upperCutOff)))
   abline(h = mean(sortedCounts))
   abline(h = upperCutOff, lty = 2)
@@ -66,6 +74,7 @@ p <- ggplot(data, aes(x=group, y=counts))
   text(length(sortedCounts)*0.05, 1.05*mean(sortedCounts), bquote(mu==.(mu)), cex = 0.8)
   text(length(sortedCounts)*0.8, 1.02*upperCutOff, paste0('#',up_sgRNAs, ' (',relUp_sgRNA,'%)' ), cex = 0.8)
   text(length(sortedCounts)*0.15, 0.96*lowerCutOff, paste0('#',down_sgRNAs, ' (',relDown_sgRNA,'%)' ), cex = 0.8)
+  text(length(sortedCounts)*0.1, max(sortedCounts)*0.95, paste0('Gini-index=', round(Gini(res$Count),digits=3)), cex = 0.8)
 ```
 
 ### Data availability

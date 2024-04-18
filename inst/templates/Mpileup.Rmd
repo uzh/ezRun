@@ -3,7 +3,7 @@ title: "`r if (exists('reportTitle')) reportTitle else 'Mpileup'`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
-    self_contained: false
+    self_contained: true
     lib_dir: rmarkdownLib
     includes:
       in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
@@ -39,7 +39,7 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 
 ### Sample Clustering 
-```{r clustering, echo=FALSE, eval=length(samples) > 3, fig.width=min(5 + length(samples)*0.2, 20)}
+```{r clustering, echo=FALSE, eval=length(samples) > 3, fig.width=min(5 + length(samples)*0.33, 20), fig.height = 8}
 
 idxMat = ezMatrix(match(gt, c("0/0", "0/1", "1/1")) -2, rows=rownames(gt), cols=colnames(gt))
 d = dist(t(idxMat))
@@ -47,13 +47,14 @@ if (all(!is.na(d))){
   hc=hclust(d, method="ward.D2" );
   hcd = as.dendrogram(hclust(d, method="ward.D2"), hang=-0.1)
   hcd = colorClusterLabels(hcd, sampleColors)
+  par(cex=1.3, mar=c(12, 4.1, 4.1, 2.1))
   plot(hcd, main="Cluster by Genotype", xlab="")
 }
 ```
 
 ### Variants by Chromosomes
 
-```{r chrom variants, echo=FALSE, eval=nrow(gt) >0, fig.width=min(5 + length(samples)*0.2, 20)}
+```{r chrom variants, echo=FALSE, eval=nrow(gt) >0, fig.width=min(5 + length(samples)*0.33, 20), fig.height = min(5 + length(samples)*0.2, 15)}
 
 chrom = sub(":.*", "", rownames(gt))
 pos = as.integer(sub("_.*", "", sub(".*:", "", rownames(gt))))
@@ -62,7 +63,7 @@ idxList = split(1:nrow(gt), chrom)
 snpColors = c("0/0"="blue", "0/1"="darkgrey", "1/1"="red")
 chromUse = sort(chromSizes[isRealChrom], decreasing = TRUE)
 for (ch in names(chromUse)){
-  par(mar=c(4.1, 10, 4.1, 2.1))
+  par(mar=c(4.1, 12, 4.1, 2.1))
   plot(0, 0, type="n", main=paste("Chromsome", ch), xlab="pos", xlim=c(1, chromSizes[ch]), ylim=c(0, 3*ncol(gt)),
        axes=FALSE, frame=FALSE, xaxs="i", yaxs="i", ylab="")
   axis(1)

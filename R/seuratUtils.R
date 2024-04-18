@@ -11,10 +11,28 @@ seuratStandardSCTPreprocessing <- function(scData, param, assay="RNA", seed=38) 
   vars.to.regress <- getSeuratVarsToRegress(param)
   ## generate normalized slots for the RNA assay
   scData <- NormalizeData(scData, normalization.method = "LogNormalize", scale.factor=10000, verbose=FALSE)
-  scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)
+  species <- getSpecies(param$refBuild)
+  if(ezIsSpecified(param$featSelectionMethod) && param$featSelectionMethod == 'STACAS'){
+    require(STACAS)
+    require(SignatuR)
+    if(species == 'Human'){
+        my.genes.blocklist <- c(GetSignature(SignatuR$Hs$Blocklists),
+                          GetSignature(SignatuR$Hs$Compartments))
+    } else if(species == 'Mouse'){
+        my.genes.blocklist <- c(GetSignature(SignatuR$Mm$Blocklists),
+                          GetSignature(SignatuR$Mm$Compartments))
+    } else {
+        message('Selection method STACAS not supported for this species! Use default method instead.')
+        scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)  
+    }
+    scData <- FindVariableFeatures.STACAS(scData, nfeat = param$nfeatures, genesBlockList = my.genes.blocklist)
+  } else {
+    scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)
+  }
+  
   scData <- ScaleData(scData, vars.to.regress = vars.to.regress, verbose=FALSE, do.scale=FALSE)
   ## generate the SCT assay
-  scData <- SCTransform(scData, vst.flavor="v2", vars.to.regress = vars.to.regress, seed.use = seed, verbose = FALSE,
+  scData <- SCTransform(scData, vst.flavor="v2", vars.to.regress = vars.to.regress, assay = assay, seed.use = seed, verbose = FALSE,
                         return.only.var.genes=FALSE)
   return(scData)
 }
@@ -25,6 +43,7 @@ seuratClustering <- function(scData, param){
                               x.low.cutoff=param$x.low.cutoff,
                               x.high.cutoff=param$x.high.cutoff,
                               y.cutoff=param$y.cutoff)
+  
   scData <- ScaleData(object = scData, do.par=TRUE,
                       vars.to.regress = param$vars.to.regress,
                       num.cores=param$cores)
@@ -69,7 +88,8 @@ seuratStandardWorkflow <- function(scData, param, reduction="pca", ident.name="i
   }
   scData <- RunUMAP(object=scData, reduction = reduction, dims = 1:param$npcs)
   scData <- FindNeighbors(object = scData, reduction = reduction, dims = 1:param$npcs, verbose=FALSE)
-  scData <- FindClusters(object=scData, resolution = seq(from = 0.2, to = 1, by = 0.2), verbose=FALSE)  #calculate clusters for a set of resolutions
+  myResolutions <- sort(unique(round(c(seq(from = 0.2, to = 1, by = 0.2), param$resolution), 1)))
+  scData <- FindClusters(object=scData, resolution = myResolutions, verbose=FALSE)  #calculate clusters for a set of resolutions
   Idents(scData) <- scData@meta.data[,paste0(DefaultAssay(scData), "_snn_res.", param$resolution)]  #but keep as the current clusters the ones obtained with the resolution set by the user
   scData[[ident.name]] <- Idents(scData)
   return(scData)
@@ -132,6 +152,9 @@ cellClustWithCorrection <- function (scDataList, param) {
   integ_features <- SelectIntegrationFeatures(object.list = scDataList, nfeatures = param$nfeatures)
   
   if (param$integrationMethod %in% c("RPCA", "CCA")) {
+      for (i in 1:length(scDataList)){
+          scDataList[[i]] <- ScaleData(scDataList[[i]], features = integ_features)
+      }
     #2.2. Prepare the SCT list object for integration
     scDataList <- PrepSCTIntegration(object.list = scDataList, anchor.features = integ_features)
     if(param$integrationMethod == 'RPCA'){
@@ -221,7 +244,6 @@ posClusterMarkers <- function(scData, pvalue_allMarkers, param) {
   markers <- FindAllMarkers(object=scData, test.use = param$DE.method, only.pos=TRUE, latent.vars = vars.to.regress, return.thresh = pvalue_allMarkers)
   ## Significant markers
   cm <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
-  #cm <- cm[cm$p_val_adj < 0.05, ]
   cm$cluster <- as.factor(cm$cluster)
   diff_pct = abs(cm$pct.1-cm$pct.2)
   cm$diff_pct <- diff_pct
@@ -362,13 +384,15 @@ getSeuratMarkers <- function(scData, param) {
   )
   ## Significant markers
   markers <- markers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
+  markers <- markers[markers$p_val_adj < param$pvalue_allMarkers,]
   markers$cluster <- as.factor(markers$cluster)
   markers$diff_pct = abs(markers$pct.1-markers$pct.2)
+  markers <- markers[markers$diff_pct >= param$min.diff.pct,]
   markers <- markers[order(markers$diff_pct, decreasing = TRUE),]
   return(markers)
 }
 
-getSeuratMarkersAndAnnotate <- function(scData, param) {
+getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
   # function for general annotation of Seurat objects
   markers <- getSeuratMarkers(scData, param)
   
@@ -403,6 +427,8 @@ getSeuratMarkersAndAnnotate <- function(scData, param) {
   
   # run Azimuth
   if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none"){
+    environment(MyDietSeurat) <- asNamespace('Seurat')
+    assignInNamespace("DietSeurat", MyDietSeurat, ns = "Seurat")
     scDataAzi <- RunAzimuth(scData, param$Azimuth, assay="RNA") ## TODO support ADT
     
     ##Rename annotion levels if neccessary:

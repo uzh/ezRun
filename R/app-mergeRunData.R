@@ -43,7 +43,12 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     dataset2 = dataset2[,commonCols]
     dataset1[[matchCol]] = gsub('/', '_', dataset1[[matchCol]])
     dataset2[[matchCol]] = gsub('/', '_', dataset2[[matchCol]])
-
+    
+    if(!('Read2 [File]' %in% commonCols) && param$paired) {
+        message('At least run is not in paired end mode. Read2 is ignored!')
+        param$paired = FALSE
+    }
+    
     #SampleData to Pool:
     intersectNames = intersect(dataset1[[matchCol]], dataset2[[matchCol]])
     uniqSet1 = setdiff(dataset1[[matchCol]], dataset2[[matchCol]])
@@ -62,6 +67,7 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
         cmd = paste('cat', file1, file2, '>', mergedFile)
         ezSystem(cmd)
         
+        
         if(param[['paired']]){
             file1 = file.path(param[['dataRoot']], dataset1[dataset1[[matchCol]] == intersectNames[i], 'Read2 [File]'])
             file2 = file.path(param[['dataRoot']], dataset2[dataset2[[matchCol]] == intersectNames[i], 'Read2 [File]'])
@@ -69,8 +75,8 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
             mergedFile = paste0(outputRunName, intersectNames[i], '_R2.fastq.gz')
             cmd = paste('cat', file1, file2, '>', mergedFile)
             ezSystem(cmd)
+            }
         }
-    }
     
     ###Create new dataset
     dataset = rbind(dataset1, dataset2)

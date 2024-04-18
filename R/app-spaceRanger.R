@@ -27,7 +27,7 @@ EzAppSpaceRanger <-
   )
 
 ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
-
+  library(Seurat)
   sampleName <- input$getNames()
   
   sampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
@@ -45,9 +45,24 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   sampleDir <- paste(sampleDirs, collapse = ",")
   spaceRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-spaceRanger")
   spaceRangerFolder <- gsub('\\.', '_', spaceRangerFolder)
-  if(sampleName != sampleNameFQ){
+  
+  if(length(sampleNameFQ) == 1){
+    if(sampleName != sampleNameFQ){
       sampleName <- sampleNameFQ
-  }
+    }
+  } else if(any(sampleNameFQ != sampleName)){
+      #2.1 Fix FileNames
+      cwd <- getwd()
+      sampleNameFQ <- file.path(strsplit(sampleDir, ',')[[1]], sampleNameFQ)
+      for (fileLevelDir in sampleNameFQ) {
+              setwd(fileLevelDir)
+              cmd <- paste('rename', 
+                           paste0('s/', basename(fileLevelDir),'/',sampleName, '/g'), 
+                           paste0(basename(fileLevelDir),'*.gz'))
+              ezSystem(cmd)
+          }
+          setwd(cwd)
+      }
   
   inputCols <- colnames(input$meta)
   
@@ -57,9 +72,10 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
                paste0("--fastqs=", sampleDir),
                paste0("--sample=", sampleName),
                paste0("--localmem=", param$ram),
-               paste0("--localcores=", param$cores))
+               paste0("--localcores=", param$cores),
+               if(grepl('^3', basename(param$SpaceRangerVersion))){paste0("--create-bam true")})
   
-  if('Image' %in% inputCols & grepl('tif$|tiff$|jpeg$|jpg$',input$getFullPaths("Image"))){
+  if('Image' %in% inputCols && grepl('btf$|tif$|tiff$|jpeg$|jpg$',input$getFullPaths("Image"))){
       cmd <- paste(cmd, paste0("--image=", input$getFullPaths("Image")))
   }
   
@@ -80,6 +96,22 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
     writeLines(headerSection, outputFile)
     ezWrite.table(probeInfo, outputFile, sep = ',', row.names = FALSE, append = TRUE)
     cmd <- paste(cmd, paste0("--probe-set=", file.path(getwd(), outputFile)))
+  }
+  
+  if(param$panelFile!=''){
+      cmd <- sub("--fastqs=.*--localmem=","--localmem=", cmd)
+      myFile <- file.path('/srv/GT/databases/10x/Visium/panels',param$panelFile)
+      cmd <- paste(cmd, "--feature-ref", myFile)
+      
+      panelSampleDirs <- getFastqDirs(input, "PanelRawDataDir", sampleName)
+      panelSampleNameFQ <- sub('.tar', '', basename(panelSampleDirs))
+      
+      panelSampleDirs <- tarExtract(panelSampleDirs, prependUnique=TRUE)
+      panelSampleDirs <- normalizePath(panelSampleDirs)
+      
+      librariesDS <- data.frame(fastqs = c(sampleDir, panelSampleDirs), sample = c(sampleName, panelSampleNameFQ), library_type = c('Gene Expression','Antibody Capture'))
+      write_csv(librariesDS, 'libraries.csv')      
+      cmd <- paste(cmd, "--libraries=libraries.csv")
   }
   
   tryCatch(
@@ -118,10 +150,31 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   if(!param$keepBam){
       print(ezSystem('find . -name "*.bam" -type f'))
       ezSystem('find . -name "*.bam" -type f -delete')
+      ezSystem('find . -name "*.bam.bai" -type f -delete')
   }
   
+  cmDir <- file.path(finalSampleName, 'filtered_feature_bc_matrix')
+  if(dir.exists(cmDir)){
+    cts <- Read10X(cmDir, gene.column = 1)
+  } else { ##visium HD data
+      setwd(finalSampleName)
+      system('ln -s binned_outputs/square_016um/filtered_feature_bc_matrix .')
+      setwd('..')
+      cmDir <- file.path(finalSampleName, 'binned_outputs/square_016um/filtered_feature_bc_matrix')
+      cts <- Read10X(cmDir, gene.column = 1)
+  }
+  if(is.list(cts)){
+      cts <- cts[['Gene Expression']]
+      bulkData <- apply(cts,1,sum)
+  } else {
+    bulkData <- rowSums(data.frame(cts))
+  }
+  bulkData <- data.frame(Identifier = names(bulkData), matchCounts = bulkData)
+  countFile <- paste0(finalSampleName,'-counts.txt')
+  ezWrite.table(bulkData, file.path(finalSampleName, countFile), row.names = FALSE)
   return("Success")
 }
+
 getFastqDirs <- function(input, column, sampleName) {
   fastqDirs <- strsplit(input$getColumn(column), ",")[[sampleName]]
   fastqDirs <- file.path(input$dataRoot, fastqDirs)

@@ -38,17 +38,20 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
     cellRangerPath <- file.path(input$dataRoot,input$getColumn("ResultDir"))
     cmd <- paste('cp -R',  cellRangerPath, '.')
     ezSystem(cmd)
-    
+
     sampleDir <- basename(cellRangerPath)
     cmd <- paste('rsync -av --remove-source-files', paste0(sampleDir,'/*'), paste0(sampleDir,'/outs'))
     ezSystem(cmd)
-    if(length(list.files('.', pattern = 'sample_alignments.bam$', recursive=TRUE)) == 1L){ #CellRanger Multi Output
-        setwd(file.path(sampleDir, 'outs/count'))
-            system('mv sample_alignments.bam possorted_genome_bam.bam')
-            system('samtools index possorted_genome_bam.bam')
-            system('mv sample_filtered_feature_bc_matrix filtered_feature_bc_matrix')
-            system('mv * ..')
-        setwd('../../..')
+
+    cwd <- getwd()
+    sampleBam <- list.files('.', pattern = 'sample_alignments.bam$', recursive=TRUE)
+    if(length(sampleBam) == 1L) { #CellRanger Multi Output
+        setwd(dirname(sampleBam))
+        system('mv sample_alignments.bam possorted_genome_bam.bam')
+        system('samtools index possorted_genome_bam.bam')
+        system('mv sample_filtered_feature_bc_matrix filtered_feature_bc_matrix')
+        system(sprintf('mv * %s', file.path(cwd, sampleDir, "outs")))
+        setwd(cwd)
     }
     cmd <- paste('velocyto run10x', sampleDir, gtfFile, '-@', param$cores)
     ezSystem(cmd)

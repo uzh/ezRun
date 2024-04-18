@@ -4,6 +4,7 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   require(MAGeCKFlute)
   require(clusterProfiler) 
   require(ggplot2)
+  require(limma)
     
   # Loading the variables
   dataset <- input$meta
@@ -57,6 +58,24 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   }
   # Execute the command
   system2("mageck", args=opt)
+  
+  # add official gene symbol to gene_summary file for human samples
+  if(param$species %in% c('hsa','mmu')){
+    dat <- ezRead.table(file.path(param$comparison,paste0(param$comparison, '.gene_summary.txt')), row.names=NULL)
+    dat[['GeneSymbol_Addgene']] = dat[['id']]
+        for (j in 1:nrow(dat)){
+            gene <- c()
+            if(param$species == 'hsa'){
+                gene <- alias2Symbol(dat$id[j], species = "Hs")
+            } else if(param$species == 'mmu') {
+                gene <- alias2Symbol(dat$id[j], species = "Mm")
+            }
+            if(length(gene)==1L)
+            dat[['id']][j] <- gene
+        }
+    dat <- dat[!duplicated(dat$id),]
+    ezWrite.table(dat, file.path(param$comparison,paste0(param$comparison, '.gene_summary.txt')), row.names = FALSE)
+  }
   
   # We convert the raw outputs to xlsx files
   lapply(c(".sgrna_summary", ".gene_summary"), function(fileComp) {

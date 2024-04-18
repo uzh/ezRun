@@ -8,9 +8,8 @@
 ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
                                 htmlFile = "00index.html") {
 
-
-  # Override the pairing info and treat as single end to be faster
-  param$paired = FALSE
+  require(seqLogo)
+  require(ShortRead)
   
   # Override the virus check parameter for human data
   if ("Species" %in% input$colNames && grepl("^Human|^Homo", input$getColumn("Species")[1])) {
@@ -52,9 +51,39 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
   
   rRNAstrandResult <- get_rRNA_Strandness(param, inputProc)
   krakenResult <- runKraken(param, inputProc)
-
+  
+  sampleNames <- inputProc$getNames()
+  PWMs <- list()
+  PWMs[['R1']] <- list()
+  inputFiles_R1  <- inputProc$getFullPaths("Read1")
+  for (i in 1:length(sampleNames)){
+      fq <- readFastq(inputFiles_R1[i])
+      reads <- sread(fq)
+      consMatrix <- consensusMatrix(reads, as.prob = TRUE)
+      consMatrix <- consMatrix[rownames(consMatrix) %in% c('A', 'C','G','T'),]
+      PWMs[['R1']][[i]] <- makePWM(consMatrix)
+  }
+  names(PWMs[['R1']]) <- sampleNames
+  
+if(param$paired){
+  PWMs[['R2']] <- list()
+  inputFiles_R2  <- inputProc$getFullPaths("Read2")
+  for (i in 1:length(sampleNames)){
+      fq <- readFastq(inputFiles_R2[i])
+      reads <- sread(fq)
+      consMatrix <- consensusMatrix(reads, as.prob = TRUE)
+      consMatrix <- consMatrix[rownames(consMatrix) %in% c('A', 'C','G','T'),]
+      PWMs[['R2']][[i]] <- makePWM(consMatrix)
+  }
+  names(PWMs[['R2']]) <- sampleNames
+}
+  
   file.remove(inputProc$getFullPaths("Read1"))
-  #save.image(file = "fqScreen.RData")
+  file.remove(inputRaw$getFullPaths("Read1"))
+  if(param$paired){  
+    file.remove(inputProc$getFullPaths("Read2"))
+    file.remove(inputRaw$getFullPaths("Read2"))
+  }
   
   setwdNew(basename(output$getColumn("Report")))
   makeRmdReport(
@@ -62,6 +91,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
     input=input,
     rawScreenResult=rawScreenResult, procScreenResult=procScreenResult, virusResult=virusResult,
     rRNAstrandResult=rRNAstrandResult, krakenResult=krakenResult, refseqResult=refseqResult,
+    PWMs = PWMs,
     rmdFile = "FastqScreen.Rmd", reportTitle = paste("Fastq Screen", param$name)
   )
   return("Success")
@@ -231,21 +261,26 @@ map_and_count_refseq <- function(param, files, workDir="refseqResult", readCount
   ezSystem(paste('samtools bam2fq', bamFile, '>', inputFastq))
   outputCountFile <-  file.path(workDir, "refSeq_Counts.txt")
   cmd = paste('bowtie2 -x', REFSEQ_mRNA_REF, '-U', inputFastq, bowtie2options, "-p", param$cores, '-t --no-unal', '2> ', paste0(workDir, '/bowtie2.err'), '| grep ^@ -v|cut -f1,3,12', '|sed s/AS:i://g >', outputCountFile)
-  ezSystem(cmd)
+  tryCatch(expr = {ezSystem(cmd)}, 
+           error = function(e) {message('No reads aligned to RefSeq')})
   gc()
   completeOutputCountFile <-  file.path(workDir, "refSeq_Counts_allSamples.txt")
-  ezSystem(paste('sort -k1', outputCountFile, '>', completeOutputCountFile))
-  system(paste('join -j 1 -o 1.1,1.2,1.3,2.2', completeOutputCountFile, readToReadGroupFile,'>', outputCountFile)) #ezSystem thinks that it fails
-  file.remove(completeOutputCountFile, bamFile, inputFastq, readToReadGroupFile)
+  if(file.exists(outputCountFile) && file.size(outputCountFile) > 0){
+    ezSystem(paste('sort -k1', outputCountFile, '>', completeOutputCountFile))
+    system(paste('join -j 1 -o 1.1,1.2,1.3,2.2', completeOutputCountFile, readToReadGroupFile,'>', outputCountFile)) #ezSystem thinks that it fails
+    file.remove(completeOutputCountFile, bamFile, inputFastq, readToReadGroupFile)
   
-  countFiles <- character()
-  for (nm in names(files)) {
-    countFiles[nm] <- paste0(workDir, "/", nm, "-counts.txt")
-    writeLines("ReadID\tRefSeqID\tAlignmentScore\tName", countFiles[nm])
-    system(paste('grep', paste0('\" ', nm, '$\"'), outputCountFile, '|sed s/[[:blank:]]/\\\t/g >>', countFiles[nm]))
+    countFiles <- character()
+    for (nm in names(files)) {
+        countFiles[nm] <- paste0(workDir, "/", nm, "-counts.txt")
+        writeLines("ReadID\tRefSeqID\tAlignmentScore\tName", countFiles[nm])
+        system(paste('grep', paste0('\" ', nm, '$\"'), outputCountFile, '|sed s/[[:blank:]]/\\\t/g >>', countFiles[nm]))
+    }
+    countList = collectBowtie2Output(param, countFiles, readCount, virusResult = FALSE)
+    return(countList)
+  } else {
+      return(NULL)
   }
-  countList = collectBowtie2Output(param, countFiles, readCount, virusResult = FALSE)
-  return(countList)
 }
 
 

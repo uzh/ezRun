@@ -58,13 +58,13 @@ getPbmm2Reference <- function(param) {
 
     fastaFile <- param$ezRef["refFastaFile"]
     ezSystem(paste("ln -s", fastaFile, "."))
-    cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset HIFI", basename(fastaFile), paste0(basename(refBase), "HIFI.mmi"))
+    cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset HIFI", basename(fastaFile), paste0(basename(refBase), ".HIFI.mmi"))
     ezSystem(cmd)
-    cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset SUBREAD", basename(fastaFile), paste0(basename(refBase),"SUBREAD.mmi"))
+    cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset SUBREAD", basename(fastaFile), paste0(basename(refBase),".SUBREAD.mmi"))
     ezSystem(cmd)
-    cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset ISOSEQ", basename(fastaFile), paste0(basename(refBase),"ISOSEQ.mmi"))
+    cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset ISOSEQ", basename(fastaFile), paste0(basename(refBase),".ISOSEQ.mmi"))
     ezSystem(cmd)
-    cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset UNROLLED", basename(fastaFile), paste0(basename(refBase),"UNROLLED.mmi"))
+    cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset UNROLLED", basename(fastaFile), paste0(basename(refBase),".UNROLLED.mmi"))
     ezSystem(cmd)
     # ezWriteElapsed(job, "done")
     setwd(wd)

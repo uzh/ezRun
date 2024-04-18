@@ -90,13 +90,24 @@ ezInteractiveTableRmd(myTable)
 ### 3. Read Patterns
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, message=TRUE, eval=!debug, fig.height=5, fig.width=20, results="asis"}
 PWMs <- data$PWMs
+consensusSeqs <- c()
 
 for (nm in names(PWMs)){
         cat(nm, "\n \n")
         seqLogo(PWMs[[nm]])
+        cons <- limma::strsplit2(consensus(PWMs[[nm]]), split ='')
+        cons[ic(PWMs[[nm]]) <1] <- 'N'
+        cons <- paste(cons, collapse = '')
+        consensusSeqs <- c(consensusSeqs, cons)
         cat("\n \n")
-  }
+}
+names(consensusSeqs) <- names(PWMs)
 ```
+
+```{r, echo=FALSE, message=FALSE}
+ezInteractiveTableRmd(values=data.frame(Name=names(consensusSeqs), Sequence = consensusSeqs, row.names = NULL))
+```
+
 
 ### Input Dataset
 ```{r, echo=FALSE, message=FALSE}
