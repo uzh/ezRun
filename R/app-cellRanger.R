@@ -156,7 +156,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   # for GEX libraries
   if(!param$keepBam && param$TenXLibrary == "GEX"){
       bamFile <- file.path(sampleName, "possorted_genome_bam.bam")
-      if(exists(bamFile)){
+      if(file.exists(bamFile)){
         ezSystem(paste('rm', bamFile))
         ezSystem(paste('rm', paste0(bamFile,'.bai')))
       }
