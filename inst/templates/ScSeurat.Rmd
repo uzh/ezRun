@@ -449,7 +449,7 @@ do_GroupwiseDEPlot(sample = scData,
                    de_genes = posMarkers %>% 
                      mutate(gene=as.character(gene),
                             p_val_adj=ifelse(p_val_adj < 1e-100, 1e-100, p_val_adj)),
-                   min.cutoff = 1)
+                   min.cutoff = NA) ## setting a min.cutoff may crash the plot in instances where no average expression is above the cutoff
 ```
 
 ```{r plot of user genes, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)/5, c(6, 12)), eval=ezIsSpecified(param$controlSeqs)}
