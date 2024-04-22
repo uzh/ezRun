@@ -7,15 +7,20 @@
 
 ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
   sampleName <- input$getNames()
+  
+  # Setup directories
   RNADirs <- sort(getFastqDirs(input, "RNADataDir", sampleName))
+  ATACDirs <- sort(getFastqDirs(input, "ATACDataDir", sampleName))
   
   #1. extract tar files if they are in tar format
+  ## RNA
   if (all(grepl("\\.tar$", RNADirs))) {
     runRNADirs <- tarExtract(RNADirs, prependUnique=TRUE)
   } else {
     stop("Require rna inputs to be provided in .tar files.")
   }
   
+  ## ATAC
   if (all(grepl("\\.tar$", ATACDirs))) {
     runATACDirs <- tarExtract(ATACDirs, prependUnique=TRUE)
   } else {
@@ -23,14 +28,23 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
   }
   
   #1.1 check validity of inputs
+  ## RNA
   runRNADirs <- normalizePath(runRNADirs)
   
   fileLevelDirs <- normalizePath(list.files(path=runRNADirs, full.names=TRUE))
   if (any(fs::is_file(fileLevelDirs))) {
-    stop(sprintf("Fastq files need to nested inside a folder sharing the samplename. Offending samples: %s", 
+    stop(sprintf("Fastq rna files need to nested inside a folder sharing the samplename. Offending samples: %s", 
                  paste(fileLevelDirs[fs::is_file(fileLevelDirs)], collapse=", ")))
   }
   
+  ## ATAC
+  runATACDirs <- normalizePath(runATACDirs)
+  
+  # fileLevelDirs <- normalizePath(list.files(path=runATACDirs, full.names=TRUE))
+  # if (any(fs::is_file(fileLevelDirs))) {
+  #   stop(sprintf("Fastq atac files need to nested inside a folder sharing the samplename. Offending samples: %s", 
+  #                paste(fileLevelDirs[fs::is_file(fileLevelDirs)], collapse=", ")))
+  # }
   
   #2. Subsample if chosen
   # if (ezIsSpecified(param$nReads) && param$nReads > 0)
@@ -63,10 +77,10 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
           
            
            #3.4. Decompress the sample that contains the atac reads if they are in tar format
-           if (all(grepl("\\.tar$", ATACDirs)))
-             ATACDirs <- tarExtract(ATACDirs)
-           
-           ATACDirs <- normalizePath(ATACDirs)
+           # if (all(grepl("\\.tar$", ATACDirs)))
+           #   ATACDirs <- tarExtract(ATACDirs)
+           # 
+           # ATACDirs <- normalizePath(ATACDirs)
            
            #3.5. Create library file that contains the sample and atac dirs location
            libraryFn <- createLibraryFile(fileLevelDirs, ATACDirs, sampleName, peakName)
@@ -76,14 +90,14 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
            cmd <- paste(
              "cellranger-arc count", 
              paste0("--id=", cellRangerARCFolder),
-             paste0("--transcriptome=", refDir),
+             paste0("--reference=", refDir),
              paste0("--libraries=", libraryFn),
              paste0("--localmem=", param$ram),
              paste0("--localcores=", param$cores),
              if (ezIsSpecified(param$expectedCells)) {paste0("--expect-cells=", param$expectedCells)},
              ifelse(ezIsSpecified(param$includeIntrons) && param$includeIntrons, "--include-introns=true", "--include-introns=false")
            )
-         )
+                
   
   #4. Add additional cellranger-arc options if specified
   if (ezIsSpecified(param$cmdOptions)) {
@@ -122,10 +136,10 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
   #   }
   # }
   
-  # if(!param$keepBam){
+   if(!param$keepBam){
     ezSystem(paste('rm', file.path(sampleName, "gex_possorted_genome_bam.bam")))
     ezSystem(paste('rm', file.path(sampleName, "gex_possorted_genome_bam.bam.bai")))
-  # }
+   }
   
   return("Success")
 }
@@ -202,7 +216,7 @@ computeBamStatsSC = function(bamFile, ram=NULL) {
 }
 
 
-getCellRangerGEXReference <- function(param) {
+getCellRangerARCReference <- function(param) {
   require(rtracklayer)
   cwd <- getwd()
   on.exit(setwd(cwd), add = TRUE)
@@ -315,81 +329,7 @@ getCellRangerGEXReference <- function(param) {
 }
 
 
-## not used any more
-getCellRangerReference <- function(param) {
-  if (ezIsSpecified(param$controlSeqs)) {
-    if (param$TenXLibrary == "VDJ") {
-      stop("VDJ library with extra control sequences is not implemented yet!")
-    }
-    require(rtracklayer)
-    ## make reference genome
-    genomeLocalFn <- tempfile(
-      pattern = "genome", tmpdir = getwd(),
-      fileext = ".fa"
-    )
-    file.copy(from = param$ezRef@refFastaFile, to = genomeLocalFn)
-    writeXStringSet(getControlSeqs(param$controlSeqs),
-                    filepath = genomeLocalFn,
-                    append = TRUE
-    )
-    on.exit(file.remove(genomeLocalFn), add = TRUE)
-    
-    ## make gtf
-    gtfFile <- tempfile(
-      pattern = "genes", tmpdir = getwd(),
-      fileext = ".gtf"
-    )
-    on.exit(file.remove(gtfFile), add = TRUE)
-    
-    file.copy(from = param$ezRef@refFeatureFile, to = gtfFile)
-    extraGR <- makeExtraControlSeqGR(param$controlSeqs)
-    gtfExtraFn <- tempfile(
-      pattern = "extraSeqs", tmpdir = getwd(),
-      fileext = ".gtf"
-    )
-    on.exit(file.remove(gtfExtraFn), add = TRUE)
-    export.gff2(extraGR, con = gtfExtraFn)
-    ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
-    
-    ## build the index
-    refDir <- file.path(getwd(), "10X_customised_Ref")
-    cmd <- paste(
-      "cellranger mkref",
-      paste0("--genome=", basename(refDir)),
-      paste0("--fasta=", genomeLocalFn),
-      paste0("--genes=", gtfFile),
-      paste0("--nthreads=", param$cores)
-    )
-    ezSystem(cmd)
-  } else {
-    ## TODO: automate the reference building
-    refDir <- dirname(param$ezRef["refFeatureFile"])
-    if (param$TenXLibrary == "VDJ") {
-      refDirs <- list.files(
-        path = refDir, pattern = "^10X_Ref.*_VDJ_",
-        full.names = TRUE
-      )
-    } else if (param$TenXLibrary == "GEX") {
-      refDirs <- list.files(
-        path = refDir, pattern = "^10X_Ref.*_GEX_",
-        full.names = TRUE
-      )
-    } else {
-      stop("Unsupported 10X library: ", param$TenXLibrary)
-    }
-    
-    if (length(refDirs) == 0) {
-      stop("No 10X_Ref folder found in", refDir)
-    }
-    if (length(refDirs) > 1) {
-      warning("Multiple 10X_Ref folders in ", refDir)
-    }
-    refDir <- refDirs[1]
-  }
-  return(refDir)
-}
-
-##' @author Opitz, Lennart
+##' @author Paul, Gueguen
 ##' @template app-template
 ##' @templateVar method ezMethodCellRanger(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run
@@ -402,11 +342,6 @@ EzAppCellRangerARC <-
                   runMethod <<- ezMethodCellRangerARC
                   name <<- "EzAppCellRangerARC"
                   appDefaults <<- rbind(
-                    TenXLibrary = ezFrame(
-                      Type = "charVector",
-                      DefaultValue = "GEX+ATAC",
-                      Description = "Library types"
-                    ),
                     chemistry = ezFrame(
                       Type = "character",
                       DefaultValue = "auto",
