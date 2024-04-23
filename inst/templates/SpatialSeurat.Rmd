@@ -135,6 +135,10 @@ if (!is.null(xxAll$percent_riboprot)){
 a.) cropped version
 
 ```{r QC plots3, fig.width=20, fig.height=10}
+if(any(is.nan(scData.unfiltered_spatial$percent_mito))){
+  toKeep <- rownames(scData.unfiltered_spatial@meta.data)[-which(is.nan(scData.unfiltered_spatial$percent_mito))]
+  scData.unfiltered_spatial <- subset(scData.unfiltered_spatial, cells = toKeep)
+}
 plot5 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nCount_Spatial", pt.size.factor =  param$pt.size.factor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
 plot6 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "nFeature_Spatial",  pt.size.factor =  param$pt.size.factor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
 plot7 <- SpatialFeaturePlot(scData.unfiltered_spatial, features = "percent_mito",  pt.size.factor =  param$pt.size.factor) + theme(legend.position = "right") + theme(aspect.ratio = myRatio)
