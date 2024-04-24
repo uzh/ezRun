@@ -318,7 +318,7 @@ load10xSpatialData <- function(input, param){
       param$imageEnlargementFactor <- img@scale.factors$hires/img@scale.factors$lowres
       #img@scale.factors$lowres <- img@scale.factors$hires # it is better to set the scale factors this way.
       
-      if(exists(file.path(input$getFullPaths("ResultDir"), "filtered_feature_bc_matrix.h5"))){
+      if(file.exists(file.path(input$getFullPaths("ResultDir"), "filtered_feature_bc_matrix.h5"))){
         scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), image = img)
       } else {
           require(scCustomize)
@@ -342,7 +342,7 @@ load10xSpatialData <- function(input, param){
   input$getColumn("Condition")
   
   if('Condition' %in% colnames(input$meta)){
-    scData$Condition <- input$getColumn("Condition")
+    scData$Condition <- unname(input$getColumn("Condition"))
   } else {
     scData$Condition <- scData$Batch
   }
