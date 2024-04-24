@@ -231,7 +231,7 @@ getCellRangerARCReference <- function(param) {
       cellRangerBase <- ""
     }
     refDir <- sub(
-      "\\.gtf$", paste0("_10XGEX_SC_", cellRangerBase, "_Index"),
+      "\\.gtf$", paste0("_10XARC_SC_", cellRangerBase, "_Index"),
       param$ezRef["refFeatureFile"]
     )
   }
