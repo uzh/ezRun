@@ -9,38 +9,38 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
   sampleName <- input$getNames()
   
   # Setup directories
-  RNADirs <- sort(getFastqDirs(input, "RNADataDir", sampleName))
-  ATACDirs <- sort(getFastqDirs(input, "ATACDataDir", sampleName))
+  RNADataDir <- sort(getFastqDirs(input, "RNADataDir", sampleName))
+  ATACDataDir <- sort(getFastqDirs(input, "ATACDataDir", sampleName))
   
   #1. extract tar files if they are in tar format
   ## RNA
-  if (all(grepl("\\.tar$", RNADirs))) {
-    runRNADirs <- tarExtract(RNADirs, prependUnique=TRUE)
+  if (all(grepl("\\.tar$", RNADataDir))) {
+    runRNADataDir <- tarExtract(RNADataDir, prependUnique=TRUE)
   } else {
     stop("Require rna inputs to be provided in .tar files.")
   }
   
   ## ATAC
-  if (all(grepl("\\.tar$", ATACDirs))) {
-    runATACDirs <- tarExtract(ATACDirs, prependUnique=TRUE)
+  if (all(grepl("\\.tar$", ATACDataDir))) {
+    runATACDataDir <- tarExtract(ATACDataDir, prependUnique=TRUE)
   } else {
     stop("Require atac inputs to be provided in .tar files.")
   }
   
   #1.1 check validity of inputs
   ## RNA
-  runRNADirs <- normalizePath(runRNADirs)
+  runRNADataDir <- normalizePath(runRNADataDir)
   
-  fileLevelDirs <- normalizePath(list.files(path=runRNADirs, full.names=TRUE))
+  fileLevelDirs <- normalizePath(list.files(path=runRNADataDir, full.names=TRUE))
   if (any(fs::is_file(fileLevelDirs))) {
     stop(sprintf("Fastq rna files need to nested inside a folder sharing the samplename. Offending samples: %s", 
                  paste(fileLevelDirs[fs::is_file(fileLevelDirs)], collapse=", ")))
   }
   
   ## ATAC
-  runATACDirs <- normalizePath(runATACDirs)
+  runATACDataDir <- normalizePath(runATACDataDir)
   
-  # fileLevelDirs <- normalizePath(list.files(path=runATACDirs, full.names=TRUE))
+  # fileLevelDirs <- normalizePath(list.files(path=runATACDataDir, full.names=TRUE))
   # if (any(fs::is_file(fileLevelDirs))) {
   #   stop(sprintf("Fastq atac files need to nested inside a folder sharing the samplename. Offending samples: %s", 
   #                paste(fileLevelDirs[fs::is_file(fileLevelDirs)], collapse=", ")))
@@ -72,18 +72,18 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
 
            
            #3.2. Locate the ATAC sample
-           ATACDirs <- getFastqDirs(input, "ATACDirs", sampleName)
-           peakName <- gsub(".tar", "", basename(ATACDirs))
+           ATACDataDir <- getFastqDirs(input, "ATACDataDir", sampleName)
+           peakName <- gsub(".tar", "", basename(ATACDataDir))
           
            
            #3.4. Decompress the sample that contains the atac reads if they are in tar format
-           # if (all(grepl("\\.tar$", ATACDirs)))
-           #   ATACDirs <- tarExtract(ATACDirs)
+           # if (all(grepl("\\.tar$", ATACDataDir)))
+           #   ATACDataDir <- tarExtract(ATACDataDir)
            # 
-           # ATACDirs <- normalizePath(ATACDirs)
+           # ATACDataDir <- normalizePath(ATACDataDir)
            
            #3.5. Create library file that contains the sample and atac dirs location
-           libraryFn <- createLibraryFile(fileLevelDirs, ATACDirs, sampleName, peakName)
+           libraryFn <- createLibraryFile(fileLevelDirs, ATACDataDir, sampleName, peakName)
           
            
            #3.6. Command
@@ -117,8 +117,8 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
   
   #7. Delete temp files and rename the final cellranger-arc output folder
   unlink(dirname(runDirs), recursive = TRUE)
-  if (exists("ATACDirs")){
-    unlink(basename(ATACDirs))
+  if (exists("ATACDataDir")){
+    unlink(basename(ATACDataDir))
   }
   file.rename(file.path(cellRangerARCFolder, "outs"), sampleName)
   unlink(cellRangerARCFolder, recursive = TRUE)
@@ -163,17 +163,17 @@ subsample <- function(targetDir, param){
   return(subDir)
 }
 
-createLibraryFile <- function(RNADirs, ATACDirs, sampleName, featureName) {
+createLibraryFile <- function(RNADataDir, ATACDataDir, sampleName, featureName) {
   libraryFn <- tempfile(pattern = "library", tmpdir = ".", fileext = ".csv")
   libraryTb <- tibble(
-    fastqs = c(RNADirs, ATACDirs),
+    fastqs = c(RNADataDir, ATACDataDir),
     sample = c(
-      rep(sampleName, length(RNADirs)),
+      rep(sampleName, length(RNADataDir)),
       featureName
     ),
     library_type = c(
-      rep("Gene Expression", length(RNADirs)),
-      rep("Chromatin Accessibility", length(ATACDirs))
+      rep("Gene Expression", length(RNADataDir)),
+      rep("Chromatin Accessibility", length(ATACDataDir))
     )
   )
   write_csv(libraryTb, libraryFn)
