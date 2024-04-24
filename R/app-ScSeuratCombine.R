@@ -153,7 +153,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   })
   
   # perform all of the analysis
-  results <- seuratIntegrateDataAndAnnotate(scDataList, input, output, param)
+  results <- seuratIntegrateDataAndAnnotate(scDataList, input, output, param, BPPARAM)
   
   # generate ClusterInfos table
   clusterInfos <- ezFrame(Samples=paste(input$getNames(),collapse=','), Cluster=levels(Idents(results$scData)), ClusterLabel="")
@@ -182,7 +182,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   
 }
 
-seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param) {
+seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param, BPPARAM = SerialParam()) {
   pvalue_allMarkers <- param$pvalue_allMarkers
   
   if(ezIsSpecified(param$chosenClusters)){
