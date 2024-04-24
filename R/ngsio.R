@@ -284,9 +284,21 @@ load10xSpatialData <- function(input, param){
   require(S4Vectors)
   
   data_raw <- read10xRaw(file.path(input$getFullPaths("ResultDir"), "raw_feature_bc_matrix"))
-  data_slide_info <- read10xSlide(file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_positions.csv"),
-                                  file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_hires_image.png"),
-                                  file.path(input$getFullPaths("ResultDir"),"spatial", "scalefactors_json.json"))
+  
+  if(file.exists(file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_positions.csv"))){
+      tissueFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_positions.csv")
+  } else { #old format
+      tissueFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_positions_list.csv")
+  }
+  
+  if(file.exists(file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_hires_image.png"))){
+      imageFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_hires_image.png")
+  } else { #missing hires image
+      imageFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_lowres_image.png")
+  }
+  scaleFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "scalefactors_json.json")
+  
+  data_slide_info <- read10xSlide(tissueFile, imageFile, scaleFile)
   
   missingBarcodes <- setdiff(data_slide_info$slide$barcode, colnames(data_raw))
   
@@ -305,7 +317,20 @@ load10xSpatialData <- function(input, param){
       img = Read10X_Image(file.path(input$getFullPaths("ResultDir"),"spatial"), image.name = "tissue_hires_image.png")
       param$imageEnlargementFactor <- img@scale.factors$hires/img@scale.factors$lowres
       #img@scale.factors$lowres <- img@scale.factors$hires # it is better to set the scale factors this way.
-      scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), image = img)
+      
+      if(exists(file.path(input$getFullPaths("ResultDir"), "filtered_feature_bc_matrix.h5"))){
+        scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), image = img)
+      } else {
+          require(scCustomize)
+          Create_10X_H5(
+              file.path(input$getFullPaths("ResultDir"),'filtered_feature_bc_matrix'),
+              source_type = "10X",
+              '.',
+              'filtered_feature_bc_matrix.h5'
+          )
+          system('mv filtered_feature_bc_matrix.h5* filtered_feature_bc_matrix.h5')
+          scData <- Load10X_Spatial('.', image = img)
+      }
   }
   
   ## unique cell names when merging two samples
@@ -314,7 +339,13 @@ load10xSpatialData <- function(input, param){
   ## make image name unique
   names(scData@images)[1] <- paste0(input$getNames(),'_S1')
   
-  try(scData$Condition <- input$getColumn("Condition"), silent = TRUE)
+  input$getColumn("Condition")
+  
+  if('Condition' %in% colnames(input$meta)){
+    scData$Condition <- input$getColumn("Condition")
+  } else {
+    scData$Condition <- scData$Batch
+  }
   return(list(scData = scData, scDataRaw = scDataRaw, param = param))
 }
 
