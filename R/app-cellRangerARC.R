@@ -72,7 +72,7 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
 
            
            #3.2. Locate the ATAC sample
-           ATACDirs <- getFastqDirs(input, "ATACDir", sampleName)
+           ATACDirs <- getFastqDirs(input, "ATACDirs", sampleName)
            peakName <- gsub(".tar", "", basename(ATACDirs))
           
            
