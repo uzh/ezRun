@@ -77,10 +77,10 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
           
            
            #3.4. Decompress the sample that contains the atac reads if they are in tar format
-           # if (all(grepl("\\.tar$", ATACDataDir)))
-           #   ATACDataDir <- tarExtract(ATACDataDir)
-           # 
-           # ATACDataDir <- normalizePath(ATACDataDir)
+           if (all(grepl("\\.tar$", ATACDataDir)))
+             ATACDataDir <- tarExtract(ATACDataDir)
+
+           ATACDataDir <- normalizePath(ATACDataDir)
            
            #3.5. Create library file that contains the sample and atac dirs location
            libraryFn <- createLibraryFile(fileLevelDirs, ATACDataDir, sampleName, peakName)
@@ -95,7 +95,7 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
              paste0("--localmem=", param$ram),
              paste0("--localcores=", param$cores),
              if (ezIsSpecified(param$expectedCells)) {paste0("--expect-cells=", param$expectedCells)},
-             ifelse(ezIsSpecified(param$includeIntrons) && param$includeIntrons, "--gex-exclude-introns==false", "--gex-exclude-introns==true")
+             ifelse(ezIsSpecified(param$includeIntrons) && param$includeIntrons, "--gex-exclude-introns=false", "--gex-exclude-introns=true")
            )
                 
   
