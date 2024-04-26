@@ -108,8 +108,6 @@ We use several common QC metrics to identify low-quality cells based on their ex
 ```{r prepare QC}
 xxAll <- SingleCellExperiment(colData = allCellsMeta)
 xxAll$discard <- !xxAll$useCell
-scData.unfiltered <- CreateSeuratObject(ezMatrix(0, rows=1:10, cols=rownames(allCellsMeta)), meta.data = allCellsMeta)
-scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
 ```
 
 
