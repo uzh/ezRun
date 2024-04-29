@@ -276,7 +276,7 @@ For interactive barplots look here:
 
 ```{r, fig.width = 15, fig.height=11, echo=FALSE}
 
-p1 = psmelt(physeq1) %>%
+p1 = psmelt(physeq2) %>%
     ggplot(aes(x = Sample, y = Abundance, fill = Genus)) +
     geom_bar(stat = "identity") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
