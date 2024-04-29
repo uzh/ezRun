@@ -126,7 +126,7 @@ cellClustNoCorrection <- function(scDataList, param) {
     scDataList[[i]] <- SCTransform(scDataList[[i]], vars.to.regress = vars.to.regress,  assay = assay, verbose = TRUE)
   #2. Merge all seurat objects
   scData = merge(x=scDataList[[1]], 
-                 y=tail(scDataList, length(scDataList) - 1), 
+                 y=scDataList[-1], 
                  merge.data=TRUE)
   VariableFeatures(scData) <- unlist(lapply(scDataList, VariableFeatures))
   #3. Dimensionality reduction and clustering
