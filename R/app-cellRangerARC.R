@@ -116,7 +116,7 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
   # }
   
   #7. Delete temp files and rename the final cellranger-arc output folder
-  unlink(dirname(runDirs), recursive = TRUE)
+  unlink(dirname(RNADataDir), recursive = TRUE)
   if (exists("ATACDataDir")){
     unlink(basename(ATACDataDir))
   }
