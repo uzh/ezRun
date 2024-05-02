@@ -164,9 +164,9 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs, soloFeatures){
   ## create readFilesIn
   ### list files: the names are always the same for standard runs. Only the presence of indexes is optional.
   fastqfiles = sort(list.files(sampleDirs,full.names = TRUE,pattern = '.fastq', recursive = TRUE))
-  cDNAfastqs = paste(grep('R2',fastqfiles, value = TRUE), collapse = ',')
-  barcodesfastqs = paste(grep('R1',fastqfiles, value = TRUE), collapse = ',')
-  readFilesIn = trimws(paste(cDNAfastqs, barcodesfastqs, collapse = ' ')) # remove last space, incase indexfastqs is empty.
+  cDNAfastqs = paste(grep('_R2',fastqfiles, value = TRUE), collapse = ',')
+  barcodesfastqs = paste(grep('_R1',fastqfiles, value = TRUE), collapse = ',')
+  readFilesIn = paste(cDNAfastqs, barcodesfastqs, collapse = ' ')
   
   ## create readFilesCommand
   if (unique(file_ext(fastqfiles)) == 'gz') {
