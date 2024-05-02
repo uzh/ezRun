@@ -64,7 +64,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   expandedDS[['CountMatrix [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'count', 'sample_filtered_feature_bc_matrix')
   expandedDS[['Condition [Factor]']] = c('')
   expandedDS[['Order Id [B-Fabric]']] = ds[['Order Id [B-Fabric]']]
-  commonPath <- file.path('/srv/GT/analysis/CM_datasets', param[['resultDir']])
+  commonPath <- file.path('/srv/GT/analysis/CM_datasets', basename(param[['resultDir']]))
   if(!dir.exists(commonPath)){
       dir.create(commonPath)
   }
