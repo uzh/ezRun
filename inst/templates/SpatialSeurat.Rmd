@@ -496,38 +496,38 @@ kable_styling("striped", full_width = F, position = "left")
 
 ### Azimuth 
 
-```{r azimuth, eval=!is.null(aziResults), results='asis', fig.width=15, fig.height=10}
+```{r azimuth, eval=!is.null(aziResults), results='asis', fig.width=10, fig.height=9}
 scData$ident = scData$Azimuth.celltype.l1
 p1 <- DimPlot(scData, label = FALSE, pt.size = 1.5) + labs(color = "ident")
-p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 3)
+p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 2.8)
 p1
 
 p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 2, pt.size.factor = param$pt.size.factor, group.by = "Azimuth.celltype.l1") + labs(fill = "Azimuth.celltype.l1") + theme(aspect.ratio = myRatio)
 p2
 ```
 
-```{r azimuth2, eval=!is.null(aziResults)&&'Azimuth.celltype.l2' %in% colnames(scData@meta.data), results='asis', fig.width=15, fig.height=10}
+```{r azimuth2, eval=!is.null(aziResults)&&'Azimuth.celltype.l2' %in% colnames(scData@meta.data), results='asis', fig.width=10, fig.height=9}
 scData$ident = scData$Azimuth.celltype.l2
 p1 <- DimPlot(scData, label = FALSE, pt.size = 1.5) + labs(color = "ident")
-p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 3)
+p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 2.8)
 p1
 p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 2, pt.size.factor = param$pt.size.factor, group.by = "Azimuth.celltype.l2") + labs(fill = "Azimuth.celltype.l2") + theme(aspect.ratio = myRatio)
 p2
 ```
 
-```{r azimuth3, eval=!is.null(aziResults)&&'Azimuth.celltype.l3' %in% colnames(scData@meta.data), results='asis', fig.width=15, fig.height=10}
+```{r azimuth3, eval=!is.null(aziResults)&&'Azimuth.celltype.l3' %in% colnames(scData@meta.data), results='asis', fig.width=10, fig.height=9}
 scData$ident = scData$Azimuth.celltype.l3
 p1 <- DimPlot(scData, label = FALSE, pt.size = 1.5) + labs(color = "ident")
-p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 3)
+p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 2.8)
 p1
 p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 2, pt.size.factor = param$pt.size.factor, group.by = "Azimuth.celltype.l3") + labs(fill = "Azimuth.celltype.l3") + theme(aspect.ratio = myRatio)
 p2
 ```
 
-```{r azimuth4, eval=!is.null(aziResults)&&'Azimuth.celltype.l4' %in% colnames(scData@meta.data), results='asis', fig.width=15, fig.height=10}
+```{r azimuth4, eval=!is.null(aziResults)&&'Azimuth.celltype.l4' %in% colnames(scData@meta.data), results='asis', fig.width=10, fig.height=9}
 scData$ident = scData$Azimuth.celltype.l4
 p1 <- DimPlot(scData, label = FALSE, pt.size = 1.5) + labs(color = "ident")
-p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 3)
+p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 2.8)
 p1
 p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 2, pt.size.factor = param$pt.size.factor, group.by = "Azimuth.celltype.l4") + labs(fill = "Azimuth.celltype.l4") + theme(aspect.ratio = myRatio)
 p2

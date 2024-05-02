@@ -47,8 +47,8 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   
   #8. Optional removal of the bam files
   if(!param$keepBam){
-    futile.logger::flog.info(ezSystem('find . -name "*.bam" -type f'))
-    ezSystem('find . -name "*.bam" -type f -delete')
+    futile.logger::flog.info(ezSystem('find . -name "*_alignments.bam*" -type f'))
+    ezSystem('find . -name "*_alignments.bam*" -type f -delete')
   }
   
   #9. Generate expanded dataset.tsv:
@@ -64,8 +64,17 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   expandedDS[['CountMatrix [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'count', 'sample_filtered_feature_bc_matrix')
   expandedDS[['Condition [Factor]']] = c('')
   expandedDS[['Order Id [B-Fabric]']] = ds[['Order Id [B-Fabric]']]
-  ezWrite.table(expandedDS, file.path(sampleName, 'expanded_dataset.tsv'), row.names = FALSE)
-  
+  commonPath <- file.path('/srv/GT/analysis/CM_datasets', param[['resultDir']])
+  if(!dir.exists(commonPath)){
+      dir.create(commonPath)
+  }
+  dsPath <- file.path(commonPath, 'expanded_dataset.tsv')
+  if(!file.exists(dsPath)){
+    ezWrite.table(expandedDS, dsPath, row.names = FALSE)
+  } else {
+      ezWrite.table(expandedDS, dsPath, row.names = FALSE, append = TRUE)  
+  }
+  ezSystem(paste('/usr/local/ngseq/bin/g-req copynow -f', dsPath, file.path(param$dataRoot, param[['resultDir']])))
   return("Success")
 }
 
@@ -87,12 +96,20 @@ prepareFastqData <- function(input, param) {
   
   #1.3. Fix FileNames if sampleName in dataset was changed
   fileLevelDirs <- list.files(sampleDirs)
-  if(length(fileLevelDirs) == 1L & fileLevelDirs != sampleName){
-    setwd(sampleDirs)
-    ezSystem(paste('mv', fileLevelDirs, sampleName))
-    cmd <- paste('rename', paste0('s/',fileLevelDirs,'/',sampleName, '/'), paste0(sampleName,'/*.gz'))
-    ezSystem(cmd)
-    setwd('..')
+  if(length(fileLevelDirs) == 1L){
+    if(fileLevelDirs != sampleName){
+        setwd(sampleDirs)
+        ezSystem(paste('mv', fileLevelDirs, sampleName))
+        cmd <- paste('rename', paste0('s/',fileLevelDirs,'/',sampleName, '/'), paste0(sampleName,'/*.gz'))
+        ezSystem(cmd)
+        setwd('..')
+      }
+  } else if(length(fileLevelDirs) > 1L){
+      if(all(fileLevelDirs %in% sampleName)){
+          #...
+      } else {
+          stop('multiple runs and renaming samples is an unsupported case')
+      }
   }
   dirList <- list(sampleName=sampleName, sampleDirs=sampleDirs)
   
