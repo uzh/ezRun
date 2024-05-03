@@ -72,7 +72,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   if(!file.exists(dsPath)){
     ezWrite.table(expandedDS, dsPath, row.names = FALSE)
   } else {
-      ezWrite.table(expandedDS, dsPath, row.names = FALSE, append = TRUE)  
+      ezWrite.table(expandedDS, dsPath, row.names = FALSE, append = TRUE, col.names = FALSE)  
   }
   ezSystem(paste('/usr/local/ngseq/bin/g-req copynow -f', dsPath, file.path(param$dataRoot, param[['resultDir']])))
   return("Success")
