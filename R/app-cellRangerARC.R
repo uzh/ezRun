@@ -137,7 +137,7 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
   # }
   
    if(!param$keepBam){
-     filtesToRemove <- file.path(basename(output$getColumn("ResultDir")), 
+     filesToRemove <- file.path(basename(output$getColumn("ResultDir")), 
                              c("gex_possorted_bam.bam", "gex_possorted_bam.bam.bai", 
                                "atac_possorted_bam.bam", "atac_possorted_bam.bam.bai"))
      unlink(filesToRemove)
