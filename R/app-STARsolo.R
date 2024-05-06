@@ -133,6 +133,7 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
       writeGenericFeature(outputDir, subRawDir, subFilteredDir)
     }
   }
+  unlink(file.path(sampleName,'Solo.out'), recursive = TRUE, force=TRUE, expand=FALSE)
   return("Success")
 }
 
