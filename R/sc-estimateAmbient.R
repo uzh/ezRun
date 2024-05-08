@@ -29,7 +29,7 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, threads=1){
   contaminationFraction <- (colSums2(counts(sce)) - colSums2(ctsClean)) / colSums2(counts(sce))
   scData <- AddMetaData(scData, metadata = contaminationFraction, col.name = paste0("DecontX_contFrac"))
   ## SoupX
-  if (!is.null(rawDir) || file.exists(rawDir)){
+  if (!is.null(rawDir) && file.exists(rawDir)){
     tod <- checkAndCleanAntibody(Seurat::Read10X(rawDir, gene.column = 1))
     featInfo <- ezRead.table(paste0(rawDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
     colnames(featInfo) <- c("ensemblID", "name", "type")
