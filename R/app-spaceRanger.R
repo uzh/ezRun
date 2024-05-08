@@ -93,6 +93,12 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
     annotation <- ezRead.table(file.path(refDir, 'star', 'geneInfo.tab'), row.names = NULL, skip = 1, header = FALSE)
     intersectionGenes <- intersect(annotation$V1, probeInfo$gene_id)
     probeInfo <- probeInfo[probeInfo$gene_id %in% intersectionGenes, ]
+    if (ezIsSpecified(param$customProbesFile) && param$customProbesFile != '') {
+        customProbes <- ezRead.table(file.path(param$dataRoot, param$customProbesFile), sep=',', row.names=NULL) %>%
+            mutate(gene_id=ifelse(startsWith(gene_id, "Gene_"), gene_id, paste0("Gene_", gene_id)),
+                   probe_id=ifelse(startsWith(probe_id, "Gene_"), probe_id, paste0("Gene_", probe_id)))
+        probeInfo <- bind_rows(list(probeInfo, customProbes))
+    }
     writeLines(headerSection, outputFile)
     ezWrite.table(probeInfo, outputFile, sep = ',', row.names = FALSE, append = TRUE)
     cmd <- paste(cmd, paste0("--probe-set=", file.path(getwd(), outputFile)))
