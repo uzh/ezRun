@@ -336,10 +336,7 @@ load10xSpatialData <- function(input, param){
   ## unique cell names when merging two samples
   scData <- RenameCells(scData, new.names = paste(input$getNames(), colnames(scData), sep="___"))
   scData$Batch <- input$getNames()
-  ## make image name unique
-  names(scData@images)[1] <- paste0(input$getNames(),'_S1')
-  
-  input$getColumn("Condition")
+  #input$getColumn("Condition")
   
   if('Condition' %in% colnames(input$meta)){
     scData$Condition <- unname(input$getColumn("Condition"))

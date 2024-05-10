@@ -208,6 +208,9 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   allCellsMeta <- scData.unfiltered@meta.data
   allCellsMeta$Sample <- allCellsMeta$Batch
   allCellsMeta$useCell <- !allCellsMeta$discard
+  ## make image name unique
+  names(scData@images)[1] <- paste0(input$getNames(),'_S1')
+  
   saveRDS(scData.unfiltered, "scData.unfiltered.rds")
   saveRDS(input, "input.rds")
   saveRDS(scDataRaw, "scData.raw.rds")
