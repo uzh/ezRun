@@ -52,6 +52,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   }
   
   #9. Generate expanded dataset.tsv:
+  libraryTypes <- as.vector(str_split(param$TenXLibrary, ",", simplify=TRUE))
   ds <- output$meta
   samplePath <- file.path(sampleName, 'per_sample_outs')
   subSampleDirs <- list.dirs(samplePath, recursive = FALSE)
@@ -62,6 +63,11 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   expandedDS[['ResultDir [File]']] <- file.path(param[['resultDir']], samplePath, subSamples)
   expandedDS[['Report [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'web_summary.html')
   expandedDS[['CountMatrix [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'count', 'sample_filtered_feature_bc_matrix')
+  if ("Multiplexing" %in% libraryTypes) {
+    expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'count', 'sample_raw_feature_bc_matrix')
+  } else {
+      expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(param[['resultDir']], sampleName, 'multi/count', 'sample_raw_feature_bc_matrix')  
+  }
   expandedDS[['Condition [Factor]']] = c('')
   expandedDS[['Order Id [B-Fabric]']] = ds[['Order Id [B-Fabric]']]
   commonPath <- file.path('/srv/GT/analysis/CM_datasets', basename(param[['resultDir']]))
