@@ -39,7 +39,8 @@ input <- readRDS("input.rds")
 output <- readRDS("output.rds")
 scData <- readRDS("scData.rds")
 scData.unfiltered_spatial <- readRDS("scData.unfiltered.rds")
-imageName <- names(scData.unfiltered_spatial@images)
+imageName <- names(scData@images)
+names(scData.unfiltered_spatial@images) <- imageName
 scData.unfiltered_spatial@images[[imageName]]@scale.factors$lowres=scData@images[[imageName]]@scale.factors$lowres
 scDataRaw <- readRDS("scData.raw.rds")
 allCellsMeta <- readRDS("allCellsMeta.rds")
