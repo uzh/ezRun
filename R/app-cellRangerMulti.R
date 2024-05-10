@@ -66,7 +66,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   if ("Multiplexing" %in% libraryTypes) {
     expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'count', 'sample_raw_feature_bc_matrix')
   } else {
-      expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(param[['resultDir']], sampleName, 'multi/count', 'sample_raw_feature_bc_matrix')  
+      expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(param[['resultDir']], sampleName, 'multi/count', 'raw_feature_bc_matrix')  
   }
   expandedDS[['Condition [Factor]']] = c('')
   expandedDS[['Order Id [B-Fabric]']] = ds[['Order Id [B-Fabric]']]
