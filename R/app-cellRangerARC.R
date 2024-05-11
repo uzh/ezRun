@@ -95,7 +95,7 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
              paste0("--localmem=", param$ram),
              paste0("--localcores=", param$cores),
              if (ezIsSpecified(param$expectedCells)) {paste0("--expect-cells=", param$expectedCells)},
-             ifelse(ezIsSpecified(param$excludeIntrons) && param$excludeIntrons, "--gex-exclude-introns")
+             ifelse(ezIsSpecified(param$excludeIntrons) && param$excludeIntrons, "--gex-exclude-introns", "")
            )
                 
   
