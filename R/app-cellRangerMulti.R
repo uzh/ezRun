@@ -92,7 +92,7 @@ prepareFastqData <- function(input, param) {
   
   #1.1. decompress tar files if they are in tar format
   if (all(grepl("\\.tar$", sampleDirs)))
-    sampleDirs <- tarExtract(sampleDirs, )
+    sampleDirs <- tarExtract(sampleDirs)
   
   #1.2. Subsample if chosen
   if (ezIsSpecified(param$nReads) && param$nReads > 0)
