@@ -9,95 +9,73 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
   sampleName <- input$getNames()
   
   # Setup directories
-  RNADataDir <- sort(getFastqDirs(input, "RNADataDir", sampleName))
-  ATACDataDir <- sort(getFastqDirs(input, "ATACDataDir", sampleName))
+  RNADataDir <- input$getColumn("RNADataDir") %>% 
+    strsplit(",") %>% unlist() %>% sort() %>%  ## support multiple komma-separated entreies
+    file.path(input$dataRoot, .)
+  ATACDataDir <- input$getColumn("ATACDataDir") %>% 
+    strsplit(",") %>% unlist() %>% sort() %>%  ## support multiple komma-separated entreies
+    file.path(input$dataRoot, .)
   
   #1. extract tar files if they are in tar format
   ## RNA
   if (all(grepl("\\.tar$", RNADataDir))) {
-    runRNADataDir <- tarExtract(RNADataDir, prependUnique=TRUE)
+    runRNADataDir <- tar2Fastq(RNADataDir, prefix="GEX")
+    ## read folders have structure <prefix>--<run name>/<orig sample name>/<orig sample name>_<sampe lane pattern>*.fastq.gz
+    ## if the "orig sample name> is different from the sampleName, then we rename
+    sampleFqDirs <- list.dirs(runRNADataDir, full.names=TRUE, recursive=FALSE)
+    idx <- which(basename(sampleFqDirs) != sampleName)
+    cwd <- getwd()
+    for (i in idx){
+      myDir <- sampleFqDirs[i]
+      setwd(myDir)
+      cmd <- paste('rename',
+                   paste0('s/', basename(myDir),'/',sampleName, '/g'),
+                   paste0(basename(myDir),'*.gz'))
+      ezSystem(cmd)
+      setwd(cwd)
+    }
   } else {
     stop("Require rna inputs to be provided in .tar files.")
   }
   
   ## ATAC
   if (all(grepl("\\.tar$", ATACDataDir))) {
-    runATACDataDir <- tarExtract(ATACDataDir, prependUnique=TRUE)
+    runATACDataDir <- tar2Fastq(ATACDataDir, prefix="ATAC")
+    ## NOTE: renaming of ATAC samples is not supported
+    if (ezIsSpecified(param$atacLengthR1)){
+      fqFiles <- list.files(runATACDataDir, "_R1.*fastq.gz", full.names = TRUE)
+      sapply(fqFiles, trimFastq, length=param$atacLengthR1)
+    }
+    if (ezIsSpecified(param$atacLengthR2)){
+      fqFiles <- list.files(runATACDataDir, "_R3.*fastq.gz", full.names = TRUE)
+      if (length(fqFiles) == 0){
+        fqFiles <- list.files(runATACDataDir, "_R2.*fastq.gz", full.names = TRUE)
+      }
+      sapply(fqFiles, trimFastq, length=param$atacLengthR2)
+    }
   } else {
     stop("Require atac inputs to be provided in .tar files.")
   }
-  
-  #1.1 check validity of inputs
-  ## RNA
-  runRNADataDir <- normalizePath(runRNADataDir)
-  
-  fileLevelDirs <- normalizePath(list.files(path=runRNADataDir, full.names=TRUE))
-  if (any(fs::is_file(fileLevelDirs))) {
-    stop(sprintf("Fastq rna files need to nested inside a folder sharing the samplename. Offending samples: %s", 
-                 paste(fileLevelDirs[fs::is_file(fileLevelDirs)], collapse=", ")))
-  }
-  
-  ## ATAC
-  runATACDataDir <- normalizePath(runATACDataDir)
-  
-  # fileLevelDirs <- normalizePath(list.files(path=runATACDataDir, full.names=TRUE))
-  # if (any(fs::is_file(fileLevelDirs))) {
-  #   stop(sprintf("Fastq atac files need to nested inside a folder sharing the samplename. Offending samples: %s", 
-  #                paste(fileLevelDirs[fs::is_file(fileLevelDirs)], collapse=", ")))
-  # }
-  
-  #2. Subsample if chosen
-  # if (ezIsSpecified(param$nReads) && param$nReads > 0)
-  #   fileLevelDirs <- sapply(fileLevelDirs, subsample, param)
-  
-  #2.1 Fix FileNames if sampleName in dataset was changed
-  cwd <- getwd()
-  if(any(basename(fileLevelDirs) != sampleName)) {
-    for (fileLevelDir in fileLevelDirs) {
-      setwd(fileLevelDir)
-      cmd <- paste('rename', 
-                   paste0('s/', basename(fileLevelDir),'/',sampleName, '/g'), 
-                   paste0(basename(fileLevelDir),'*.gz'))
-      ezSystem(cmd)
-    }
-    setwd(cwd)
-  }
-  
-  fileLevelDir <- paste(fileLevelDirs, collapse = ",")
+
   cellRangerARCFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger-arc")
-  
   #3.Generate the cellranger command with the required arguments
-           #3.1. Obtain the ARC reference
-           refDir <- getCellRangerARCReference(param)
-
-           
-           #3.2. Locate the ATAC sample
-           ATACDataDir <- getFastqDirs(input, "ATACDataDir", sampleName)
-           peakName <- gsub(".tar", "", basename(ATACDataDir))
-          
-           
-           #3.4. Decompress the sample that contains the atac reads if they are in tar format
-           if (all(grepl("\\.tar$", ATACDataDir)))
-             ATACDataDir <- tarExtract(ATACDataDir)
-
-           ATACDataDir <- normalizePath(ATACDataDir)
-           
-           #3.5. Create library file that contains the sample and atac dirs location
-           libraryFn <- createLibraryFile(fileLevelDirs, ATACDataDir, sampleName, peakName)
-          
-           
-           #3.6. Command
-           cmd <- paste(
-             "cellranger-arc count", 
-             paste0("--id=", cellRangerARCFolder),
-             paste0("--reference=", refDir),
-             paste0("--libraries=", libraryFn),
-             paste0("--localmem=", param$ram),
-             paste0("--localcores=", param$cores),
-             if (ezIsSpecified(param$expectedCells)) {paste0("--expect-cells=", param$expectedCells)},
-             ifelse(ezIsSpecified(param$excludeIntrons) && param$excludeIntrons, "--gex-exclude-introns", "")
-           )
-                
+  #3.1. Obtain the ARC reference
+  refDir <- getCellRangerARCReference(param)
+  
+  #3.5. Create library file that contains the sample and atac dirs location
+  libraryFn <- createARCLibraryFile(runRNADataDir, runATACDataDir)
+  
+  #3.6. Command
+  cmd <- paste(
+    "cellranger-arc count", 
+    paste0("--id=", cellRangerARCFolder),
+    paste0("--reference=", refDir),
+    paste0("--libraries=", libraryFn),
+    paste0("--localmem=", param$ram),
+    paste0("--localcores=", param$cores),
+    if (ezIsSpecified(param$expectedCells)) {paste0("--expect-cells=", param$expectedCells)},
+    ifelse(ezIsSpecified(param$excludeIntrons) && param$excludeIntrons, "--gex-exclude-introns", "")
+  )
   
   #4. Add additional cellranger-arc options if specified
   if (ezIsSpecified(param$cmdOptions)) {
@@ -107,14 +85,7 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
   #5. Execute the command
   ezSystem(cmd)
   
-  # #6. Optional run of VeloCyto
-  # if(param$runVeloCyto){
-  #   gtfFile <- param$ezRef["refFeatureFile"]
-  #   cmd <- paste('velocyto run10x', cellRangerARCFolder, gtfFile, '-@', param$cores)
-  #   ezSystem(cmd)
-  #   ezSystem(paste('mv', file.path(cellRangerARCFolder,'velocyto'),  file.path(cellRangerARCFolder,'outs')))
-  # }
-  
+
   #7. Delete temp files and rename the final cellranger-arc output folder
   #unlink(dirname(RNADataDir), recursive = TRUE)
   if (exists("ATACDataDir")){
@@ -125,17 +96,7 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
   if (ezIsSpecified(param$controlSeqs)) 
     unlink(refDir, recursive = TRUE)
   
-  # #8. Calculate alignment stats from the BAM file
-  # if(param$bamStats){
-  #   genomeBam <- file.path(sampleName, "possorted_genome_bam.bam")
-  #   if (file.exists(genomeBam)){
-  #     alignStats <- computeBamStatsSC(genomeBam, ram=param$ram)
-  #     if (!is.null(alignStats)){
-  #       ezWrite.table(alignStats, file=file.path(sampleName, "CellAlignStats.txt"), head="Barcode")
-  #     }
-  #   }
-  # }
-  
+
    if(!param$keepBam){
      filesToRemove <- file.path(basename(output$getColumn("ResultDir")), 
                              c("gex_possorted_bam.bam", "gex_possorted_bam.bam.bai", 
@@ -146,76 +107,21 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
   return("Success")
 }
 
-getFastqDirs <- function(input, column, sampleName) {
-  fastqDirs <- strsplit(input$getColumn(column), ",")[[sampleName]]
-  fastqDirs <- file.path(input$dataRoot, fastqDirs)
-  return(fastqDirs)
-}
 
-subsample <- function(targetDir, param){
-  subDir = paste0(targetDir, "-sub")
-  dir.create(subDir)
-  fqFiles = list.files(targetDir, pattern = ".fastq.gz", full.names = TRUE, recursive = TRUE)
-  stopifnot(length(fqFiles) <= 4) ## subsample commands below do only work if reads are not split in per-lane files
-  for (fq in fqFiles){
-    fqSub = file.path(subDir, basename(fq))
-    cmd = paste("seqtk sample -s 42 -2", fq, param$nReads, "| pigz --fast -p1 >", fqSub)
-    ezSystem(cmd)
-  }
-  return(subDir)
-}
-
-createLibraryFile <- function(RNADataDir, ATACDataDir, sampleName, featureName) {
-  libraryFn <- tempfile(pattern = "library", tmpdir = ".", fileext = ".csv")
-  libraryTb <- tibble(
-    fastqs = c(RNADataDir, ATACDataDir),
-    sample = c(
-      rep(sampleName, length(RNADataDir)),
-      featureName
-    ),
-    library_type = c(
-      rep("Gene Expression", length(RNADataDir)),
-      rep("Chromatin Accessibility", length(ATACDataDir))
-    )
-  )
-  write_csv(libraryTb, libraryFn)
+createARCLibraryFile <- function(RNADataDir, ATACDataDir) {#}, sampleName, peakName) {
+  libraryFn <- "ARC-library.csv"
+  sampleName <- list.dirs(RNADataDir, recursive = FALSE) %>% basename() %>% unique()
+  peakName <- list.dirs(ATACDataDir, recursive = FALSE) %>% basename() %>% unique()
+  ## all tar files must have the same samplename
+  stopifnot(length(sampleName) == 1)
+  stopifnot(length(peakName) == 1)
+  rnaLib <- tibble(fastqs=normalizePath(RNADataDir), sample=sampleName, library_type="Gene Expression")
+  atacLib <- tibble(fastqs=normalizePath(ATACDataDir), sample=peakName, library_type="Chromatin Accessibility")
+  write_csv(rbind(rnaLib, atacLib), libraryFn)
   return(libraryFn)
 }
 
-computeBamStatsSC = function(bamFile, ram=NULL) {
-  ## compute stats per cell from the bam file
-  if (!is.null(ram)){  
-    nAlign = sum(ezScanBam(bamFile, tag = "CB", 
-                           what = character(0), isUnmappedQuery = FALSE, countOnly = TRUE)$records)
-    if (nAlign / ram > 20e6){
-      message("computeBamStatsSC: not executed - would take too much RAM")
-      return(NULL)
-    }
-  }
-  cb = ezScanBam(bamFile, tag = "CB", 
-                 what = character(0), isUnmappedQuery = FALSE)$tag$CB
-  nReads = table(cb)
-  resultFrame = data.frame(nRead=as.vector(nReads), row.names=names(nReads))
-  x = ezScanBam(bamFile, tag = "UB", 
-                what = character(0), isUnmappedQuery = FALSE)$tag$UB
-  resultFrame$nUmi = as.vector(tapply(x, cb, n_distinct))
-  x = ezScanBam(bamFile, tag = "ts", 
-                what = character(0), isUnmappedQuery = FALSE)$tag$ts
-  if (length(x) == length(cb)){ ## the 5' protocol does not have the ts tag
-    resultFrame$nTso = as.vector(tapply(x > 3, cb, sum, na.rm=TRUE)) ## at least 3 bases
-  }
-  x = ezScanBam(bamFile, tag = "pa", 
-                what = character(0), isUnmappedQuery = FALSE)$tag$pa
-  if (length(x) == length(cb)){ ## the 5' protocol does not have the ts tag
-    resultFrame$nPa = as.vector(tapply(x > 3, cb, sum, na.rm=TRUE))
-  }
-  x = ezScanBam(bamFile, tag = "RE", 
-                what = character(0), isUnmappedQuery = FALSE)$tag$RE
-  resultFrame$nIntergenic = as.vector(tapply(x == "I", cb, sum))
-  resultFrame$nExonic = as.vector(tapply(x == "E", cb, sum))
-  resultFrame$nIntronic = as.vector(tapply(x == "N", cb, sum))
-  return(resultFrame)
-}
+
 
 
 getCellRangerARCReference <- function(param) {

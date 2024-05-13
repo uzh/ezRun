@@ -880,6 +880,20 @@ tarExtract = function(tarArchives, prependUnique=FALSE){
 }
 
 
+tar2Fastq <- function(tarArchives, prefix="run"){
+  fastqDirs = sapply(1:length(tarArchives), function(i){
+    tarArchive <- tarArchives[i]
+    targetDir = paste0(prefix, i, "--", basename(dirname(tarArchive)))
+    res <- untar(tarArchive, exdir = targetDir, tar=system("which tar", intern=TRUE))
+    if (res > 0) {
+      stop(sprintf("There was an error unpacking '%s' into '%s'. See warnings.", scTar, targetDir))
+    }
+    return(targetDir)
+  })
+  return(fastqDirs)
+}
+
+
 ezSessionInfo <- function(){
     ezRunDetails = library(help = ezRun)
     RemoteSha <- sub('.*\\s+','',ezRunDetails$info[[1]][grep('RemoteSha', ezRunDetails$info[[1]])])
