@@ -679,7 +679,7 @@ clusterPheatmap <- function(x, design, param,
            cluster_cols=colDendro,
            show_rownames=isShowRowNames,
            annotation_col = design, annotation_row=annotation_row,
-           annotation_colors = ann_colors, ...)
+           annotation_colors = ann_colors, silent=TRUE, ...)
   
   ans <- list(nClusters=nClusters, clusterNumbers=clusters,
               clusterColors=clusterColors, hcl=clusterInfo$tree_row,
