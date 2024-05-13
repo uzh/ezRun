@@ -11,9 +11,6 @@ ezMethodJoinGenoTypes = function(input=NA, output=NA, param=NA){
     param[['species']] = limma::strsplit2(param$ezRef['refBuild'],'/')[1]
     param[['knownSites']] = list.files(param$ezRef["refVariantsDir"],pattern='vcf.gz$',full.names = T) 
     param[['dbsnpFile']] = param$knownSites[grep('dbsnp.*vcf.gz$', param$knownSites)]
-    param[['snpEffConfig']] = file.path(dirname(param$ezRef["refFeatureFile"]), "snpEff/snpEff.config")
-    snpEffDB = basename(list.dirs(dirname(param$snpEffConfig))) ####bad Hack
-    param[['snpEffDB']] = snpEffDB[grep(param$species, snpEffDB)]
     param[['javaCall']] = paste("java", "-Djava.io.tmpdir=.")
     param[['gatk']] = file.path(Sys.getenv("GATK"),'gatk')
     
@@ -79,7 +76,6 @@ runGatkPipeline = function(caseName, param=NA, datasetCaseList=NULL){
                         "-mode SNP",
                         "--output", paste0(caseName,'_raw.SNPs.recal'),
                         "--tranches-file", paste0(caseName,'_raw.SNPs.tranches'),
-                        "--rscript-file", paste0(caseName,'_recal.SNPs.plots.R'),
                         "--max-attempts 3 --max-gaussians 4",
                         targetOption)
             ezSystem(paste(cmd,'2>>',myLog))
@@ -110,7 +106,6 @@ runGatkPipeline = function(caseName, param=NA, datasetCaseList=NULL){
                         "-mode INDEL",
                         "--output", paste0(caseName,"_raw.InDels.recal"),
                         "--tranches-file", paste0(caseName,"_raw.InDels.tranches"),
-                        "--rscript-file", paste0(caseName,"_recal.InDels.plots.R"),
                         targetOption)
             ezSystem(paste(cmd,'2>>',myLog))
             
@@ -158,21 +153,27 @@ runGatkPipeline = function(caseName, param=NA, datasetCaseList=NULL){
     }
     
     #SnpEff:
-    if(param$annotateVariants){
+    if(param$snpEffDB!=''){
+        ##Remove chr from chromosome names
+        system(paste('cat', gvcfFile, "|sed \'s:chr::g\'>", paste0(gvcfFile,"_noChr")))
+        system(paste('mv', paste0(gvcfFile,"_noChr"), gvcfFile))
         htmlOutputFile = paste0(caseName,'.html')
         if(param$proteinCodingTranscriptsOnly){
             gtfFile = param$ezRef@refFeatureFile
             gtf = rtracklayer::import(gtfFile)
             idx = gtf$type == 'transcript'
             gtf = data.frame(gtf[idx])
-            protCodingTranscripts = gtf$transcript_id[gtf$source=='protein_coding']
+            if('transcript_type' %in% colnames(gtf)){
+                protCodingTranscripts = gtf$transcript_id[gtf$transcript_type=='protein_coding']
+            } else {
+                protCodingTranscripts = gtf$transcript_id[gtf$source=='protein_coding']
+            }
             write.table(protCodingTranscripts, 'protCodingTranscripts.txt',col.names = F, row.names = F, quote =F)
-            cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar","-onlyTr protCodingTranscripts.txt", "-s", htmlOutputFile, 
-                        "-c", param$snpEffConfig, param$snpEffDB, 
-                        "-v", gvcfFile,">", 
+            cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar","-onlyTr protCodingTranscripts.txt", "-stats", htmlOutputFile, 
+                        param$snpEffDB, "-v", gvcfFile,">", 
                         tmpGvcf)
         } else {
-            cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar", "-s", htmlOutputFile, "-c", param$snpEffConfig, param$snpEffDB, 
+            cmd = paste(param$javaCall, "-jar", "$SnpEff/snpEff.jar", "-s", htmlOutputFile, param$snpEffDB, 
                         "-v", gvcfFile,">", 
                         tmpGvcf)
         }
@@ -204,7 +205,7 @@ EzAppJoinGenoTypes <-
                                               vcfFilt.minReadDepth = ezFrame(Type="integer",  DefaultValue=20,  Description="minimum read depth"),
                                               recalibrateVariants = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="recalibrateVariants"),
                                               recalibrateInDels = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="recalibrate InDels"),
-                                              annotateVariants = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="annotate Variants with SnpEff"),
+                                              snpEffDB = ezFrame(Type="character",  DefaultValue='',  Description="SnpEff DB name"),
                                               proteinCodingTranscriptsOnly = ezFrame(Type="logical",  DefaultValue=TRUE,  Description="annotate variants only with protCod variants"),
                                               dbNSFP_file = ezFrame(Type="character",  DefaultValue="", Description="name of dbNSFP file under /srv/GT/databases/dbNSFP"),
                                               dbNSFP_fields = ezFrame(Type="character",  DefaultValue="", Description="info fields for vcf annotation"))
