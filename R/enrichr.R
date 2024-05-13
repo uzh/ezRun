@@ -225,7 +225,7 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
             # libName may be bound after the loop is done rather than immediately. In that case, all
             # results will be saved under the same libName. To avoid that, we have to extract the
             # libName here.
-            saveRDS(x, file=paste0("enrichr-done-", ezTime(), "-debug.rds"))
+            #saveRDS(x, file=paste0("enrichr-done-", ezTime(), "-debug.rds"))
             libName <- sub('^.+backgroundType=([^&]+).*$', '\\1', x$url)
             success[[libName]] <<- tryCatch(
               parseResp(x),
