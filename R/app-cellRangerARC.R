@@ -57,7 +57,7 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
     stop("Require atac inputs to be provided in .tar files.")
   }
 
-  cellRangerARCFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger-arc")
+  cellRangerARCFolder <- str_sub(sampleName, 1, 45)# %>% str_c("-cellRanger-arc")
   #3.Generate the cellranger command with the required arguments
   #3.1. Obtain the ARC reference
   refDir <- getCellRangerARCReference(param)
@@ -92,6 +92,7 @@ ezMethodCellRangerARC <- function(input = NA, output = NA, param = NA) {
     #unlink(basename(ATACDataDir))
   }
   file.rename(file.path(cellRangerARCFolder, "outs"), basename(output$getColumn("ResultDir")))
+  file.copy(libraryFn, basename(output$getColumn("ResultDir")))
   #unlink(cellRangerARCFolder, recursive = TRUE)
   if (ezIsSpecified(param$controlSeqs)) 
     unlink(refDir, recursive = TRUE)
