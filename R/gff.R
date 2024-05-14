@@ -74,6 +74,88 @@ ezGffAttributeField = function (x, field, attrsep = ";", valuesep="=") {
   return(x)
 }
 
+
+## example usage:
+# library(rtracklayer)
+# library(GenomicRanges)
+## assumes ENSEMBL style gtf files
+# gtf <- import("/srv/GT/reference/Equus_caballus/Ensembl/EquCab3/Annotation/Release_111-2024-01-17/Genes/genes.gtf")
+# seqLengths <- data.table::fread("/srv/GT/reference/Equus_caballus/Ensembl/EquCab3/Sequence/WholeGenomeFasta/genome-chromsizes.txt", header = FALSE)
+# seqLengths <- setNames(seqLengths$V2, seqLengths$V1)
+# gtf2 <- extendGtfThreePrime(gff, 2000, seqLengths)
+# export.gff2(gtf2, con="/srv/GT/reference/Equus_caballus/Ensembl/EquCab3/Annotation/Release_111-2024-01-17/Genes/genes_extended2k.gtf")
+
+
+extendGtfThreePrime <- function(gff, extensionWidth, seqLengths){
+  
+  library(rtracklayer)
+  library(GenomicRanges)
+  
+  
+  useType <- gtf$gene_biotype %in% c("protein_coding") ##, "lncRNA") we only extend the UTR of protein_coding
+  
+  gtfUse <- gtf[useType]
+  table(gtfUse$type)
+  
+  chrIdx <- split(1:length(gtfUse), paste(as.vector(seqnames(gtfUse)), as.vector(strand(gtfUse))))
+  
+  
+  nm <- "1 -" # names(chrIdx)[1]
+  for (nm in names(chrIdx)){
+    message(nm)
+    chrName <- sub(" .", "", nm)
+    idx <- chrIdx[[nm]]
+    gtfChrom <- gtfUse[idx]
+    if (grepl("+", nm)){
+      ## positive strand
+      isExon <- gtfChrom$type == "exon"
+      lastExonIds <- tapply(paste(gtfChrom$exon_id, end(gtfChrom))[isExon], gtfChrom$transcript_id[isExon], function(xx){
+        maxIdx <- sub(".* ", "", xx) %>% as.integer() %>% which.max()
+        sub(" .*", "", xx[maxIdx])
+      })
+      toExtend <- gtfChrom$type %in% c( "gene", "transcript", "three_prime_utr") | gtfChrom$exon_id %in% lastExonIds
+      # trStarts which are the limits plus the chromosome end
+      trStarts <- tapply(start(gtfChrom)[isExon], gtfChrom$transcript_id[isExon], min) %>% sort() %>% c(seqLengths[chrName]) %>% unique()
+      
+      itvl <- findInterval(end(gtfChrom)[toExtend], trStarts)
+      newEnd <- pmin(end(gtfChrom)[toExtend] + extensionWidth, trStarts[itvl+1])
+      stopifnot(!is.na(newEnd))
+      
+      end(gtfChrom)[toExtend] <- newEnd
+    } else {
+      ## negative strand
+      isExon <- gtfChrom$type == "exon"
+      lastExonIds <- tapply(paste(gtfChrom$exon_id, end(gtfChrom))[isExon], gtfChrom$transcript_id[isExon], function(xx){
+        maxIdx <- sub(".* ", "", xx) %>% as.integer() %>% which.min()
+        sub(" .*", "", xx[maxIdx])
+      })
+      toExtend <- gtfChrom$type %in% c( "gene", "transcript", "three_prime_utr") | gtfChrom$exon_id %in% lastExonIds
+      # trStarts which are the limits plus the chromosome end
+      trEnds <- tapply(end(gtfChrom)[isExon], gtfChrom$transcript_id[isExon], max) %>% c(1) %>% sort() %>% unique()
+      
+      itvl <- findInterval(start(gtfChrom)[toExtend], trEnds)
+      newThreePrime <- pmax(start(gtfChrom)[toExtend] - extensionWidth, trStarts[itvl])
+      stopifnot(!is.na(newThreePrime))
+      
+      start(gtfChrom)[toExtend] <- newThreePrime
+    }
+    gtfUse[idx] <- gtfChrom
+  }
+  
+  gtf2 <- gtf
+  gtf2[useType] <- gtfUse
+  return(gtf2)
+}
+
+
+
+
+
+
+
+
+
+
 ## TODO: we should use promoters() to replace the following code.
 ## The boundaries of chromosoems should always be checked.
 addPromotersToGff = function(gff, promWidth){
