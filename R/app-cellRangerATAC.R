@@ -58,7 +58,7 @@ ezMethodCellRangerATAC <- function(input=NA, output=NA, param=NA){
 
 getCellRangerATACReference <- function(param){
   refDir <- file.path(param$ezRef["refBuildDir"], "Sequence")
-  refDir <- list.files(refDir, pattern="cellranger-atac", 
+  refDir <- list.files(refDir, pattern="cellranger-arc", 
                        full.names=TRUE, recursive=FALSE)
   if(length(refDir) == 0L){
     stop("Cell Ranger ATAC compatible genome reference is not available. Please download from https://support.10xgenomics.com/single-cell-atac/software/downloads/latest!")
