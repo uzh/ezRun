@@ -93,12 +93,10 @@ extendGtfThreePrime <- function(gff, extensionWidth, seqLengths){
   
   
   useType <- gtf$gene_biotype %in% c("protein_coding") ##, "lncRNA") we only extend the UTR of protein_coding
-  
   gtfUse <- gtf[useType]
-  table(gtfUse$type)
+  #table(gtfUse$type)
   
   chrIdx <- split(1:length(gtfUse), paste(as.vector(seqnames(gtfUse)), as.vector(strand(gtfUse))))
-  
   
   nm <- "1 -" # names(chrIdx)[1]
   for (nm in names(chrIdx)){
@@ -115,11 +113,15 @@ extendGtfThreePrime <- function(gff, extensionWidth, seqLengths){
       })
       toExtend <- gtfChrom$type %in% c( "gene", "transcript", "three_prime_utr") | gtfChrom$exon_id %in% lastExonIds
       # trStarts which are the limits plus the chromosome end
-      trStarts <- tapply(start(gtfChrom)[isExon], gtfChrom$transcript_id[isExon], min) %>% sort() %>% c(seqLengths[chrName]) %>% unique()
+      trStarts <- tapply(start(gtfChrom)[isExon], gtfChrom$transcript_id[isExon], min) %>% c(seqLengths[chrName]) %>% unique()%>% sort()
+      
+      ## starts of next exons .... this would look int any exon
+      ## nextExonStarts <- start(gtfChrom)[isExon] %>% c(seqLengths[chrName]) %>% unique() %>% sort()
       
       itvl <- findInterval(end(gtfChrom)[toExtend], trStarts)
       newEnd <- pmin(end(gtfChrom)[toExtend] + extensionWidth, trStarts[itvl+1])
       stopifnot(!is.na(newEnd))
+      message("#extensions truncated: ", sum( (newEnd - end(gtfChrom)[toExtend]) < extensionWidth), " / ", length(newEnd), "\n")
       
       end(gtfChrom)[toExtend] <- newEnd
     } else {
@@ -130,12 +132,17 @@ extendGtfThreePrime <- function(gff, extensionWidth, seqLengths){
         sub(" .*", "", xx[maxIdx])
       })
       toExtend <- gtfChrom$type %in% c( "gene", "transcript", "three_prime_utr") | gtfChrom$exon_id %in% lastExonIds
-      # trStarts which are the limits plus the chromosome end
+      # trEnds which are in the limits plus the chromosome start
       trEnds <- tapply(end(gtfChrom)[isExon], gtfChrom$transcript_id[isExon], max) %>% c(1) %>% sort() %>% unique()
+      
+      ## starts of next exons .... this would look int any exon
+      ## nextExonEnds <- end(gtfChrom)[isExon] %>% c(1) %>% unique() %>% sort()
       
       itvl <- findInterval(start(gtfChrom)[toExtend], trEnds)
       newThreePrime <- pmax(start(gtfChrom)[toExtend] - extensionWidth, trStarts[itvl])
       stopifnot(!is.na(newThreePrime))
+      message("# extensions truncated: ", sum( (start(gtfChrom)[toExtend] - newThreePrime) < extensionWidth), " / ", length(newThreePrime), "\n")
+      
       
       start(gtfChrom)[toExtend] <- newThreePrime
     }
