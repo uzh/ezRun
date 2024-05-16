@@ -242,7 +242,7 @@ getCellRangerGEXReference <- function(param) {
   cwd <- getwd()
   on.exit(setwd(cwd), add = TRUE)
   
-  if (ezIsSpecified(param$controlSeqs) | ezIsSpecified(param$secondRef | ezIsSpecified(param$extendThreePrime))) {
+  if (ezIsSpecified(param$controlSeqs) | ezIsSpecified(param$secondRef) | ezIsSpecified(param$extendThreePrime)) {
     refDir <- file.path(getwd(), "10X_customised_Ref")
   } else {
     if (ezIsSpecified(param$transcriptTypes)) {
