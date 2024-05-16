@@ -242,7 +242,7 @@ getCellRangerGEXReference <- function(param) {
   cwd <- getwd()
   on.exit(setwd(cwd), add = TRUE)
   
-  if (ezIsSpecified(param$controlSeqs) | ezIsSpecified(param$secondRef)) {
+  if (ezIsSpecified(param$controlSeqs) | ezIsSpecified(param$secondRef | ezIsSpecified(param$extendThreePrime))) {
     refDir <- file.path(getwd(), "10X_customised_Ref")
   } else {
     if (ezIsSpecified(param$transcriptTypes)) {
@@ -334,7 +334,15 @@ getCellRangerGEXReference <- function(param) {
     export.gff2(extraGR, con = gtfExtraFn)
     ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
   }
-  
+
+  if (ezIsSpecified(param$extendThreePrime)) {
+    gtf <- rtracklayer::import(gtfFile)
+    seqLengths <- readDNAStringSet("/srv/GT/reference/Equus_caballus/Ensembl/EquCab3/Sequence/WholeGenomeFasta/genome.fa")
+    seqLengths <- setNames(width(seqLengths), names(seqLengths))
+    gtf <- extendGtfThreePrime(gtf, as.integer(param$extendThreePrime), seqLengths)
+    rtracklayer::export.gff2(gtf, con=gtfFile)
+  }
+
   cmd <- paste(
     "cellranger mkref",
     paste0("--genome=", basename(refDir)),
@@ -343,7 +351,6 @@ getCellRangerGEXReference <- function(param) {
     paste0("--nthreads=", param$cores)
   )
   ezSystem(cmd)
-  
   file.remove(gtfFile)
   
   return(refDir)
@@ -393,80 +400,6 @@ getCellRangerVDJReference <- function(param) {
   )
   ezSystem(cmd)
   
-  return(refDir)
-}
-
-## not used any more
-getCellRangerReference <- function(param) {
-  if (ezIsSpecified(param$controlSeqs)) {
-    if (param$TenXLibrary == "VDJ") {
-      stop("VDJ library with extra control sequences is not implemented yet!")
-    }
-    require(rtracklayer)
-    ## make reference genome
-    genomeLocalFn <- tempfile(
-      pattern = "genome", tmpdir = getwd(),
-      fileext = ".fa"
-    )
-    file.copy(from = param$ezRef@refFastaFile, to = genomeLocalFn)
-    writeXStringSet(getControlSeqs(param$controlSeqs),
-                    filepath = genomeLocalFn,
-                    append = TRUE
-    )
-    on.exit(file.remove(genomeLocalFn), add = TRUE)
-    
-    ## make gtf
-    gtfFile <- tempfile(
-      pattern = "genes", tmpdir = getwd(),
-      fileext = ".gtf"
-    )
-    on.exit(file.remove(gtfFile), add = TRUE)
-    
-    file.copy(from = param$ezRef@refFeatureFile, to = gtfFile)
-    extraGR <- makeExtraControlSeqGR(param$controlSeqs)
-    gtfExtraFn <- tempfile(
-      pattern = "extraSeqs", tmpdir = getwd(),
-      fileext = ".gtf"
-    )
-    on.exit(file.remove(gtfExtraFn), add = TRUE)
-    export.gff2(extraGR, con = gtfExtraFn)
-    ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
-    
-    ## build the index
-    refDir <- file.path(getwd(), "10X_customised_Ref")
-    cmd <- paste(
-      "cellranger mkref",
-      paste0("--genome=", basename(refDir)),
-      paste0("--fasta=", genomeLocalFn),
-      paste0("--genes=", gtfFile),
-      paste0("--nthreads=", param$cores)
-    )
-    ezSystem(cmd)
-  } else {
-    ## TODO: automate the reference building
-    refDir <- dirname(param$ezRef["refFeatureFile"])
-    if (param$TenXLibrary == "VDJ") {
-      refDirs <- list.files(
-        path = refDir, pattern = "^10X_Ref.*_VDJ_",
-        full.names = TRUE
-      )
-    } else if (param$TenXLibrary == "GEX") {
-      refDirs <- list.files(
-        path = refDir, pattern = "^10X_Ref.*_GEX_",
-        full.names = TRUE
-      )
-    } else {
-      stop("Unsupported 10X library: ", param$TenXLibrary)
-    }
-    
-    if (length(refDirs) == 0) {
-      stop("No 10X_Ref folder found in", refDir)
-    }
-    if (length(refDirs) > 1) {
-      warning("Multiple 10X_Ref folders in ", refDir)
-    }
-    refDir <- refDirs[1]
-  }
   return(refDir)
 }
 
