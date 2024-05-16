@@ -90,8 +90,7 @@ extendGtfThreePrime <- function(gff, extensionWidth, seqLengths){
   
   library(rtracklayer)
   library(GenomicRanges)
-  
-  
+
   useType <- gtf$gene_biotype %in% c("protein_coding") ##, "lncRNA") we only extend the UTR of protein_coding
   gtfUse <- gtf[useType]
   #table(gtfUse$type)
@@ -119,7 +118,9 @@ extendGtfThreePrime <- function(gff, extensionWidth, seqLengths){
       ## nextExonStarts <- start(gtfChrom)[isExon] %>% c(seqLengths[chrName]) %>% unique() %>% sort()
       
       itvl <- findInterval(end(gtfChrom)[toExtend], trStarts)
-      newEnd <- pmin(end(gtfChrom)[toExtend] + extensionWidth, trStarts[itvl+1])
+      newEnd <- (end(gtfChrom)[toExtend] + extensionWidth) %>% 
+        pmin(trStarts[itvl+1] - 1) %>% ## must be before next transcript
+        pmax(end(gtfChrom)[toExtend]) ## can't be shorter than before
       stopifnot(!is.na(newEnd))
       message("#extensions truncated: ", sum( (newEnd - end(gtfChrom)[toExtend]) < extensionWidth), " / ", length(newEnd), "\n")
       
@@ -139,12 +140,14 @@ extendGtfThreePrime <- function(gff, extensionWidth, seqLengths){
       ## nextExonEnds <- end(gtfChrom)[isExon] %>% c(1) %>% unique() %>% sort()
       
       itvl <- findInterval(start(gtfChrom)[toExtend], trEnds)
-      newThreePrime <- pmax(start(gtfChrom)[toExtend] - extensionWidth, trStarts[itvl])
-      stopifnot(!is.na(newThreePrime))
-      message("# extensions truncated: ", sum( (start(gtfChrom)[toExtend] - newThreePrime) < extensionWidth), " / ", length(newThreePrime), "\n")
+      newStart <- (start(gtfChrom)[toExtend] - extensionWidth) %>%
+        pmax(trEnds[itvl] + 1) %>% pmin(start(gtfChrom)[toExtend])
+
+      stopifnot(!is.na(newStart))
+      message("# extensions truncated: ", sum( (start(gtfChrom)[toExtend] - newStart) < extensionWidth), " / ", length(newStart), "\n")
       
       
-      start(gtfChrom)[toExtend] <- newThreePrime
+      start(gtfChrom)[toExtend] <- newStart
     }
     gtfUse[idx] <- gtfChrom
   }
