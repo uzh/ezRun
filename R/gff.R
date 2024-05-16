@@ -103,7 +103,7 @@ extendGtfThreePrime <- function(gtf, extensionWidth, seqLengths){
     chrName <- sub(" .", "", nm)
     idx <- chrIdx[[nm]]
     gtfChrom <- gtfUse[idx]
-    if (grepl("+", nm)){
+    if (grepl("+", nm, fixed=TRUE)){
       ## positive strand
       isExon <- gtfChrom$type == "exon"
       lastExonIds <- tapply(paste(gtfChrom$exon_id, end(gtfChrom))[isExon], gtfChrom$transcript_id[isExon], function(xx){

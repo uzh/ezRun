@@ -337,7 +337,7 @@ getCellRangerGEXReference <- function(param) {
 
   if (ezIsSpecified(param$extendThreePrime)) {
     gtf <- rtracklayer::import(gtfFile)
-    seqLengths <- readDNAStringSet("/srv/GT/reference/Equus_caballus/Ensembl/EquCab3/Sequence/WholeGenomeFasta/genome.fa")
+    seqLengths <- readDNAStringSet(genomeLocalFn)
     seqLengths <- setNames(width(seqLengths), names(seqLengths))
     gtf <- extendGtfThreePrime(gtf, as.integer(param$extendThreePrime), seqLengths)
     rtracklayer::export.gff2(gtf, con=gtfFile)
