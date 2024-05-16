@@ -86,7 +86,7 @@ ezGffAttributeField = function (x, field, attrsep = ";", valuesep="=") {
 # export.gff2(gtf2, con="/srv/GT/reference/Equus_caballus/Ensembl/EquCab3/Annotation/Release_111-2024-01-17/Genes/genes_extended2k.gtf")
 
 
-extendGtfThreePrime <- function(gff, extensionWidth, seqLengths){
+extendGtfThreePrime <- function(gtf, extensionWidth, seqLengths){
   
   library(rtracklayer)
   library(GenomicRanges)
