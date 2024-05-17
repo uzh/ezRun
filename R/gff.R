@@ -90,11 +90,11 @@ extendGtfThreePrime <- function(gtf, extensionWidth, seqLengths){
   
   library(rtracklayer)
   library(GenomicRanges)
-
+  
   useType <- gtf$gene_biotype %in% c("protein_coding") ##, "lncRNA") we only extend the UTR of protein_coding
   gtfUse <- gtf[useType]
   #table(gtfUse$type)
-  
+
   chrIdx <- split(1:length(gtfUse), paste(as.vector(seqnames(gtfUse)), as.vector(strand(gtfUse))))
   
   nm <- "1 -" # names(chrIdx)[1]
@@ -106,13 +106,18 @@ extendGtfThreePrime <- function(gtf, extensionWidth, seqLengths){
     if (grepl("+", nm, fixed=TRUE)){
       ## positive strand
       isExon <- gtfChrom$type == "exon"
-      lastExonIds <- tapply(paste(gtfChrom$exon_id, end(gtfChrom))[isExon], gtfChrom$transcript_id[isExon], function(xx){
-        maxIdx <- sub(".* ", "", xx) %>% as.integer() %>% which.max()
-        sub(" .*", "", xx[maxIdx])
-      })
-      toExtend <- gtfChrom$type %in% c( "gene", "transcript", "three_prime_utr") | gtfChrom$exon_id %in% lastExonIds
+      rowIdxList <- tapply((1:length(gtfChrom))[isExon], gtfChrom$transcript_id[isExon], function(x){x})
+      lastExonPos <- tapply(end(gtfChrom)[isExon], gtfChrom$transcript_id[isExon], which.max)
+      lastExonIdx <- mapply(function(x, i){x[i]}, rowIdxList, lastExonPos)
+      #stopifnot(!is.null(gfChrom$exon_id) && all(!is.na(gtfChrom$exon_id[isExon]))) ## we need the exon_ids
+      # lastExonIds <- tapply(paste(gtfChrom$exon_id, end(gtfChrom))[isExon], gtfChrom$transcript_id[isExon], function(xx){
+      #   maxIdx <- sub(".* ", "", xx) %>% as.integer() %>% which.max()
+      #   sub(" .*", "", xx[maxIdx])
+      # })
+      #toExtend <- gtfChrom$type %in% c( "gene", "transcript", "three_prime_utr") | gtfChrom$exon_id %in% lastExonIds
+      toExtend <- c(which(gtfChrom$type %in% c( "gene", "transcript", "three_prime_utr")), lastExonIdx)
       # trStarts which are the limits plus the chromosome end
-      trStarts <- tapply(start(gtfChrom)[isExon], gtfChrom$transcript_id[isExon], min) %>% c(seqLengths[chrName]) %>% unique()%>% sort()
+      trStarts <- tapply(start(gtfChrom)[isExon], gtfChrom$transcript_id[isExon], min) %>% c(seqLengths[chrName]+1) %>% unique()%>% sort()
       
       ## starts of next exons .... this would look int any exon
       ## nextExonStarts <- start(gtfChrom)[isExon] %>% c(seqLengths[chrName]) %>% unique() %>% sort()
@@ -128,13 +133,18 @@ extendGtfThreePrime <- function(gtf, extensionWidth, seqLengths){
     } else {
       ## negative strand
       isExon <- gtfChrom$type == "exon"
-      lastExonIds <- tapply(paste(gtfChrom$exon_id, end(gtfChrom))[isExon], gtfChrom$transcript_id[isExon], function(xx){
-        maxIdx <- sub(".* ", "", xx) %>% as.integer() %>% which.min()
-        sub(" .*", "", xx[maxIdx])
-      })
-      toExtend <- gtfChrom$type %in% c( "gene", "transcript", "three_prime_utr") | gtfChrom$exon_id %in% lastExonIds
+      # lastExonIds <- tapply(paste(gtfChrom$exon_id, end(gtfChrom))[isExon], gtfChrom$transcript_id[isExon], function(xx){
+      #   maxIdx <- sub(".* ", "", xx) %>% as.integer() %>% which.min()
+      #   sub(" .*", "", xx[maxIdx])
+      # })
+      # toExtend <- gtfChrom$type %in% c( "gene", "transcript", "three_prime_utr") | gtfChrom$exon_id %in% lastExonIds
+      rowIdxList <- tapply((1:length(gtfChrom))[isExon], gtfChrom$transcript_id[isExon], function(x){x})
+      lastExonPos <- tapply(start(gtfChrom)[isExon], gtfChrom$transcript_id[isExon], which.min)
+      lastExonIdx <- mapply(function(x, i){x[i]}, rowIdxList, lastExonPos)
+      toExtend <- c(which(gtfChrom$type %in% c( "gene", "transcript", "three_prime_utr")), lastExonIdx)
+      
       # trEnds which are in the limits plus the chromosome start
-      trEnds <- tapply(end(gtfChrom)[isExon], gtfChrom$transcript_id[isExon], max) %>% c(1) %>% sort() %>% unique()
+      trEnds <- tapply(end(gtfChrom)[isExon], gtfChrom$transcript_id[isExon], max) %>% c(0) %>% sort() %>% unique()
       
       ## starts of next exons .... this would look int any exon
       ## nextExonEnds <- end(gtfChrom)[isExon] %>% c(1) %>% unique() %>% sort()
