@@ -302,7 +302,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   stopifnot(length(input$getNames()) == 1)
   clusterInfos <- ezFrame(Sample=input$getNames(), Cluster=levels(Idents(scData)), ClusterLabel="")
   if (!is.null(anno$aziResults)){
-    for (nm in grep("celltype", colnames(anno$aziResults), values=TRUE)){
+    for (nm in grep("celltype", colnames(anno$aziResults), value=TRUE)){
       cellCounts <- table(cluster=scData$seurat_clusters, sample=anno$aziResults[[nm]])
       cellPerc <- sweep(cellCounts, 1, rowSums(cellCounts), "/")
       percMat <- as.matrix(cellPerc)
