@@ -441,6 +441,7 @@ getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
       Azimuth.celltype.l3=scDataAzi@meta.data[ , grep("l3$", aziNames, value=TRUE)],
       Azimuth.celltype.l4=scDataAzi@meta.data[ , grep("l4$", aziNames, value=TRUE)],
       row.names=colnames(scDataAzi))
+    ## TODO: score should also be stored
     remove(scDataAzi)
   } else {
     aziResults <- NULL

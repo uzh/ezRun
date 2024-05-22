@@ -301,6 +301,15 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   ## we only deal with one sample
   stopifnot(length(input$getNames()) == 1)
   clusterInfos <- ezFrame(Sample=input$getNames(), Cluster=levels(Idents(scData)), ClusterLabel="")
+  if (!is.null(anno$aziResults)){
+    for (nm in grep("celltype", colnames(anno$aziResults), values=TRUE)){
+      cellCounts <- table(cluster=scData$seurat_clusters, sample=anno$aziResults[[nm]])
+      cellPerc <- sweep(cellCounts, 1, rowSums(cellCounts), "/")
+      percMat <- as.matrix(cellPerc)
+      newLabels <- apply(percMat, 1, function(x){colnames(percMat)[x >0.5]}) %>% unlist()
+      clusterInfos[[nm]] <- clusterInfos$Cluster %>% as.character() %>% recode(!!!newLabels)
+    }
+  }
   if (!is.null(anno$singler.results)){
     clusterInfos$SinglerCellType <- anno$singler.results$singler.results.cluster[clusterInfos$Cluster, "pruned.labels"]
   }
