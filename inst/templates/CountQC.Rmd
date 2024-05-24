@@ -339,7 +339,7 @@ if(ncol(rawData) > 3){
     xTmp <- arrange(xTmp, Cluster)
     write_tsv(xTmp, file="cluster-heatmap-clusterMembers.txt")
 
-    clusterResult$pheatmap$gtable
+    plot(clusterResult$pheatmap$gtable)
   
     if (doGo(param, seqAnno)){
       clusterResult = goClusterResults(assays(rawData)$log2signalCentered[varFeatures, ],
