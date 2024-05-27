@@ -56,6 +56,11 @@ EzAppSpatialSeuratSlides <-
                                           DefaultValue = 0.25,
                                           Description = "Used in calculating cluster markers: Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells."
                                         ),
+                                        pt.size.factor = ezFrame(
+                                            Type = "numeric",
+                                            DefaultValue = 1,
+                                            Description = "pt.size.factor for spatial plots"
+                                        ),
                                         maxSamplesSupported=ezFrame(Type="numeric", 
                                                               DefaultValue=5, 
                                                               Description="Maximum number of samples to compare"))
