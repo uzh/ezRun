@@ -149,7 +149,9 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   require(rtracklayer)
   require(ChIPpeakAnno)
   require(ShortRead)
-
+  require(ChIPseeker)
+  require(GenomicFeatures)
+  
   data <- c()
   tryCatch(expr = {data = ezRead.table(peakFile, comment.char = "#", row.names = NULL)}, 
            error = function(e){message(paste("No peaks detected. Skip peak annotation"))})
@@ -164,7 +166,9 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   }
   
   gtfFile = param$ezRef@refFeatureFile
-  gtf = rtracklayer::import(gtfFile)
+  myTxDB <- makeTxDbFromGFF(file=gtfFile, format='gtf')
+  
+  gtf <- rtracklayer::import(gtfFile)
   if('gene' %in% unique(gtf$type)){
     idx = gtf$type == 'gene'
   } else if('transcript' %in% unique(gtf$type)) {
@@ -184,6 +188,7 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   names(gtf) = names_gtf
   peaksRD = makeGRangesFromDataFrame(data, keep.extra.columns = TRUE)
   names(peaksRD) = mcols(peaksRD)$name
+  annot_ChIPseeker <- annotatePeak(peaksRD, TxDb=myTxDB, tssRegion=c(-1000, 1000), verbose=FALSE)
   annotatedPeaks <- annotatePeakInBatch(peaksRD,
                                         AnnotationData = gtf,
                                         output='nearestStart',
@@ -204,14 +209,20 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
     annotatedPeaks = merge(annotatedPeaks, localAnnotation, by.x='feature',
                            by.y='gene_id',all.x=T)
   }
-  annotatedPeaks = annotatedPeaks[order(annotatedPeaks$"-log10(pvalue)",
-                                        decreasing=T), ]
   colnames(annotatedPeaks) = gsub('-log10','_-log10', colnames(annotatedPeaks))
   seqs = readDNAStringSet(peakSeqFile)
   dustyScores = data.frame(ID = names(seqs), dustyScore_peakSequence = dustyScore(seqs), stringsAsFactors = F)
   annotatedPeaks = merge(annotatedPeaks, dustyScores, by.x = 'name', by.y = 'ID', all.x = TRUE)
-  annotatedPeaks = annotatedPeaks[!duplicated(annotatedPeaks$name),]
-  ezWrite.table(annotatedPeaks, peakFile, row.names = F)
+  
+  annot_ChIPseeker <- data.frame(annot_ChIPseeker@anno)
+  keepCol_ChIPSeeker <- c("name", "annotation", "geneId", "transcriptId", "distanceToTSS", "geneChr", "geneStart", "geneEnd", "geneLength", "geneStrand")
+  annot_ChIPseeker <- annot_ChIPseeker[,keepCol_ChIPSeeker]
+  colnames(annot_ChIPseeker)[2:ncol(annot_ChIPseeker)] <- paste0('ChIPSeeker_', colnames(annot_ChIPseeker)[2:ncol(annot_ChIPseeker)])
+  annotatedPeaks <- merge(annotatedPeaks, annot_ChIPseeker, by.x = 'name', by.y = 'name', all.x = TRUE)
+  annotatedPeaks <- annotatedPeaks[!duplicated(annotatedPeaks$name),]
+  annotatedPeaks <- annotatedPeaks[order(annotatedPeaks[['_-log10(pvalue)']],decreasing=TRUE),]
+  
+  writexl::write_xlsx(annotatedPeaks, peakFile)
   return('done')
 }
 

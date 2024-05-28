@@ -51,6 +51,17 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
   file.remove(c(noDupBam, paste0(noDupBam, ".bai")))
 
   if (param$shiftATAC) {
+     cmd <-  paste('alignmentSieve --bam', noDupNoMTNOLowBam,
+      '--outFile', paste0(noDupNoMTNOLowBam, '_shifted'),
+      '--ATACshift','-p', param$cores,
+      '--smartLabels',
+      '--filterMetrics shift.log')
+      ezSystem(cmd)
+      cmd <- paste('mv', paste0(noDupNoMTNOLowBam, '_shifted'), noDupNoMTNOLowBam)
+      ezSystem(cmd)
+  }
+  
+    if(FALSE){
     require(ATACseqQC)
     what <- c("qname", "flag", "mapq", "isize", "seq", "qual", "mrnm")
     tags <- c("AS", "XN", "XM", "XO", "XG", "NM", "MD", "YS", "YT")
@@ -59,6 +70,7 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
       isUnmappedQuery = FALSE,
       isNotPassingQualityControls = FALSE
     )
+    #scanBamParam <- ScanBamParam(flag = flag, tag = tags, what = what, which = GRanges(seqname, IRanges(afrom, ato)))
     scanBamParam <- ScanBamParam(flag = flag, tag = tags, what = what)
     message("Reading nodup noMT bam file...")
     reads <- readGAlignmentPairs(file = noDupNoMTNOLowBam, param = scanBamParam)
