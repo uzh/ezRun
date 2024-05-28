@@ -59,6 +59,11 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
       ezSystem(cmd)
       cmd <- paste('mv', paste0(noDupNoMTNOLowBam, '_shifted'), noDupNoMTNOLowBam)
       ezSystem(cmd)
+      file.remove(c(paste0(noDupNoMTNOLowBam, ".bai")))
+      sortBam(noDupNoMTNOLowBam, paste0(noDupNoMTNOLowBam, '_sorted'), maxMemory=1024*param$ram)
+      cmd <- paste('mv', paste0(noDupNoMTNOLowBam, '_sorted.bam'), noDupNoMTNOLowBam)
+      ezSystem(cmd)
+      indexBam(noDupNoMTNOLowBam)
   }
   
     if(FALSE){
