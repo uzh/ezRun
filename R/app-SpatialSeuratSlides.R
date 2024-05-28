@@ -131,7 +131,7 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   saveRDS(scData, "scData.rds")
   saveRDS(param, "param.rds")
   
-  makeRmdReport(dataFiles=dataFiles, rmdFile = "SpatialSeuratSlides.Rmd", reportTitle = param$name) 
+  makeRmdReport(dataFiles=dataFiles, output=output, rmdFile = "SpatialSeuratSlides.Rmd", reportTitle = param$name) 
   return("Success")
   
 }

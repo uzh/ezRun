@@ -33,7 +33,9 @@ if(is.null(param$pt.size.factor)){
     param$pt.size.factor = 2
 }
 scData <- readRDS("scData.rds")
-DefaultAssay(scData) = "SCT" 
+DefaultAssay(scData) = "SCT"
+
+output <- readRDS("output.rds")
 ```
 
 ## Analysis results {.tabset}
