@@ -33,6 +33,7 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, threads=1){
     tod <- checkAndCleanAntibody(Seurat::Read10X(rawDir, gene.column = 1))
     featInfo <- ezRead.table(paste0(rawDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
     colnames(featInfo) <- c("ensemblID", "name", "type")
+    featInfo <- featInfo[featInfo$type=='Gene Expression',]
     rownames(tod) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$ensemblID, names=featInfo$name))
     commGenes <- intersect(rownames(tod), rownames(counts(sce)))
     sc <- SoupChannel(tod[commGenes, ], counts(sce)[commGenes, ])
