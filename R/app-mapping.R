@@ -439,15 +439,18 @@ ezMethodBWA <- function(input = NA, output = NA, param = NA) {
   refIdx <- getBWAReference(param)
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
+  sampleName <- sub(".bam", "", basename(bamFile))
+  readGroupOpt <- paste0("\'@RG\\tID:",sampleName,"\\tSM:",sampleName,"\\tLB:",sampleName,"\\tPL:ILLUMINA\'")
+  
   if (param$algorithm == "aln") {
     cmd <- paste(
-      "bwa", param$algorithm, param$cmdOptions, "-t", param$cores,
+      "bwa", param$algorithm, param$cmdOptions, "-R", readGroupOpt, "-t", param$cores,
       refIdx, trimmedInput$getColumn("Read1"), ">", "read1.sai", "2> bwa.log"
     )
     ezSystem(cmd)
     if (param$paired) {
       cmd <- paste(
-        "bwa", param$algorithm, param$cmdOptions, "-t", param$cores,
+        "bwa", param$algorithm, param$cmdOptions, "-R", readGroupOpt, "-t", param$cores,
         refIdx, trimmedInput$getColumn("Read2"), ">", "read2.sai", "2> bwa.log"
       )
       ezSystem(cmd)
@@ -471,12 +474,13 @@ ezMethodBWA <- function(input = NA, output = NA, param = NA) {
       stop("paired is not supported for algorithm bwasw")
     }
     cmd <- paste(
-      "bwa", param$algorithm, param$cmdOptions, "-t", param$cores,
+      "bwa", param$algorithm, param$cmdOptions, "-R", readGroupOpt, "-t", param$cores,
       refIdx, trimmedInput$getColumn("Read1"),
       if (param$paired) trimmedInput$getColumn("Read2"),
       "2> bwa.log", "|", "samtools", "view -S -b -", " > aligned.bam"
     )
-    ezSystem(cmd)
+    message(cmd)
+    system(cmd)
   }
   file.remove(trimmedInput$getColumn("Read1"))
   if (param$paired) {
