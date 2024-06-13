@@ -93,6 +93,9 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
         } else {
             tryCatch({
                 experimentID <- xmlToList(runInfo)[[1]]$EXPERIMENT_REF$.attrs
+                if(length(experimentID) > 1){
+                    experimentID <- experimentID['accession']
+                }
                 cmd = paste0("curl -o ", experimentID,".xml ", "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",experimentID,"?download=true\'")
                 ezSystem(cmd)
                 xml <- xmlParse(paste0(experimentID, '.xml'))
