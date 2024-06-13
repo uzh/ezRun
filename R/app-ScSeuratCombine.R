@@ -135,7 +135,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
         dplyr::filter(Sample == sm)
       labelMap <- as.character(clusterAnno$ClusterLabel)
       names(labelMap) <- as.character(clusterAnno$Cluster)
-      scData$stacasLabelColumn <- unname(labelMap[as.character(scData$seurat_clusters)])
+      scData$stacasLabelColumn <- unname(labelMap[as.character(Idents(scData))])
     }
     # Also add the other factors in the input dataset to the objects
     if (ezIsSpecified(param$additionalFactors)) {
