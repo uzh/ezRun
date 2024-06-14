@@ -19,8 +19,11 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
                 "Mus musculus (mouse)"="mm",
                 "Caenorhabditis elegans (worm)"="ce",
                 "Drosophila melanogaster (fruitfly)"="dm")
-    isGsize <- grepl(input$getColumn("Species"), names(gsizes),
-                     ignore.case = TRUE)
+    species <- input$getColumn("Species")
+    if(species == ''){
+        species = 'undefined'
+    }
+    isGsize <- grepl(species, names(gsizes),ignore.case = TRUE)
     if(any(isGsize)){
       message("Use predefined gsize: ", gsizes[isGsize])
       gsize <- gsizes[isGsize]
