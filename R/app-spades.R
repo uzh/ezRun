@@ -27,6 +27,16 @@ ezMethodSpades = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
     ezSystem(cmd)
   }
   wddir <- "."
+  if (grepl("--rna", opt)) {
+    sfile <- file.path(wddir, "spades/transcripts.fasta")
+    cfile <- file.path(wddir, "spades/hard_filtered_transcripts.fasta")
+    if (file.exists(sfile)){
+      ezSystem(paste("cp", "spades/transcripts.fasta", basename(output$getColumn("Draft"))))
+    } else if (file.exists(cfile)){
+      ezSystem(paste("cp", "spades/hard_filtered_transcripts.fasta", basename(output$getColumn("Draft"))))
+    }
+    ezSystem(paste("mv", "spades", sampleName))
+  } else {
   sfile <- file.path(wddir, "spades/scaffolds.fasta")
   cfile <- file.path(wddir, "spades/contigs.fasta")
   if (file.exists(sfile)){
@@ -35,7 +45,7 @@ ezMethodSpades = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   	ezSystem(paste("cp", "spades/contigs.fasta", basename(output$getColumn("Draft"))))
   }
   ezSystem(paste("mv", "spades", sampleName))
-  ezSystem(cmd)
+  }
   return("Success")
 }
 
