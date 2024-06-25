@@ -216,12 +216,13 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   saveRDS(scDataRaw, "scData.raw.rds")
   saveRDS(cellsPerGeneFraction, "cellsPerGeneFraction.rds")
  
+  tryCatch(create_loupe_from_seurat(scData, output_name = input$getNames()), error = function(e) message('LoupeFile creation failed'))
   makeRmdReport(dataFiles=dataFiles, param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, 
                 cellsPerGeneFraction = cellsPerGeneFraction, enrichRout=anno$enrichRout, 
                 cells.AUC=anno$cells.AUC, singler.results=anno$singler.results, aziResults=anno$aziResults,
                 pathwayActivity=anno$pathwayActivity, TFActivity=anno$TFActivity,
                 rmdFile = "SpatialSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
-  create_loupe_from_seurat(scData, output_name = input$getNames())
+  
   remove(scDataRaw, scData.unfiltered, scData)
   gc()
   return("Success")
