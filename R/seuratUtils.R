@@ -18,14 +18,15 @@ seuratStandardSCTPreprocessing <- function(scData, param, assay="RNA", seed=38) 
     if(species == 'Human'){
         my.genes.blocklist <- c(GetSignature(SignatuR$Hs$Blocklists),
                           GetSignature(SignatuR$Hs$Compartments))
+        scData <- FindVariableFeatures.STACAS(scData, nfeat = param$nfeatures, genesBlockList = my.genes.blocklist)
     } else if(species == 'Mouse'){
         my.genes.blocklist <- c(GetSignature(SignatuR$Mm$Blocklists),
                           GetSignature(SignatuR$Mm$Compartments))
+        scData <- FindVariableFeatures.STACAS(scData, nfeat = param$nfeatures, genesBlockList = my.genes.blocklist)
     } else {
         message('Selection method STACAS not supported for this species! Use default method instead.')
         scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)  
     }
-    scData <- FindVariableFeatures.STACAS(scData, nfeat = param$nfeatures, genesBlockList = my.genes.blocklist)
   } else {
     scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)
   }
