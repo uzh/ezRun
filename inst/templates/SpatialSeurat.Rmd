@@ -47,7 +47,8 @@ allCellsMeta <- readRDS("allCellsMeta.rds")
 sampleName <- input$getNames()
 
 coord <- GetTissueCoordinates(object = scData@images[[imageName]])
-myRatio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
+#myRatio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
+myRatio <- (max(coord$x) - min(coord$x)) / (max(coord$y) - min(coord$y))
 
 if (file.exists("cellsPerGeneFraction.rds")){
     cellsPerGeneFraction <-  readRDS("cellsPerGeneFraction.rds")
