@@ -126,7 +126,6 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   if (param$cores > 1){
       BPPARAM <- MulticoreParam(workers = param$cores)
   } else {
-      ## scDblFinder fails with many cells and MulticoreParam
       BPPARAM <- SerialParam() 
   }
   register(BPPARAM)
@@ -160,8 +159,11 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
   scDataRaw <- res[['scDataRaw']]
   param <- res[['param']]
   remove(res)
-  if(is.na(param$pt.size.factor)) 
-      param$pt.size.factor <- 2*param$imageEnlargementFactor
+  if(is.na(param$pt.size.factor)) {
+      img <- scData@images[[1]]
+      spotDiameter <- img@scale.factors$spot * img@scale.factors$hires
+      param$pt.size.factor = min(spotDiameter * 0.17, 2*param$imageEnlargementFactor)
+  }
   
   scDataRes <- runBasicProcessing(scData,input, featInfo, param, BPPARAM)
   cellsPerGeneFraction <- scDataRes[['cellsPerGeneFraction']]

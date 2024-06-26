@@ -318,6 +318,7 @@ load10xSpatialData <- function(input, param){
       param$imageEnlargementFactor <- img@scale.factors$hires/img@scale.factors$lowres
       img@scale.factors$lowres <- img@scale.factors$hires # it is better to set the scale factors this way.
       
+      
       if(file.exists(file.path(input$getFullPaths("ResultDir"), "filtered_feature_bc_matrix.h5"))){
         scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), image = img)
       } else {
