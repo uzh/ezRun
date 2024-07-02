@@ -12,21 +12,20 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     opt = paste(opt,'-f BAMPE')
   ## With BAMPE file, --shift cannot be set.
   dataset = input$meta
-
+  
   ## -g option: mappable genome size
   ## TODO: the MACS2 defaults should be used or the user should be asked
   if(!grepl("-g", opt)){
-      gsize <- sum(as.numeric(fasta.seqlengths(param$ezRef["refFastaFile"])))
-      gsize <- round(gsize * 0.8)
-      message("Use calculated gsize: ", gsize)
-    }
+    gsize <- sum(as.numeric(fasta.seqlengths(param$ezRef["refFastaFile"])))
+    gsize <- round(gsize * 0.8)
+    message("Use calculated gsize: ", gsize)
     opt <- paste(opt, "-g", ezIntString(gsize))
   }
   ## --keep-dup: behavior towards duplicate tags at the exact same location
   if(!grepl("--keep-dup", opt)){
     opt <- paste(opt, "--keep-dup all")
   }
-
+  
   if(param$mode == "ChIP-seq"){
     ## --extsize: extend reads in 5'->3' direction to fix-sized fragments when model building is deactivated.
     ## This size is taken from sushi app.
@@ -41,11 +40,11 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       file.copy(from=bamFile, to=outBam, overwrite=TRUE)
       Rsamtools::indexBam(outBam)
     }
-
+    
     if (isTRUE(param$useControl)){
       if(!any(grepl("Control", input$colNames, ignore.case = TRUE)))
         stop("The parameter 'useControl' is 'true' but no column named 'Control [File]' is available.")
-
+      
       cmd = paste("macs2", "callpeak -t", outBam,
                   "-c", input$getFullPaths("Control"),
                   "-B", opt,"-n", output$getNames())
@@ -73,16 +72,16 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   }else if(param$mode == "ATAC-seq"){
     if(!param$paired)
       stop("For ATAC-seq, we only support paired-end data.")
-
+    
     ## --extsize: extend reads in 5'->3' direction to fix-sized fragments.
     if(!grepl("--extsize", opt)){
       ## https://github.com/taoliu/MACS/issues/145
       opt <- paste(opt, "--extsize 200")
     }
-
+    
     ## Preprocess ATAC-seq bam file
     atacBamProcess(input=input, output=output, param=param)
-
+    
     cmd = paste("macs2", "callpeak -t", basename(output$getColumn("BAM")),
                 opt, "-n", output$getNames())
     ezSystem(cmd)
@@ -93,7 +92,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   }else{
     stop("MACS2 only supports ChIP-seq or ATAC-seq data.")
   }
-
+  
   peakBedFile = basename(output$getColumn("BED"))
   if (grepl('broad', opt)){
     file.rename(from=paste0(output$getNames(),"_peaks.broadPeak"),
@@ -150,10 +149,10 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
     return(NULL)
   }
   data = data[order(data$chr,data$start), ]
-
+  
   if(!param$annotatePeaks){
-      ezWrite.table(data, peakFile, row.names = F)
-      return('done')
+    ezWrite.table(data, peakFile, row.names = F)
+    return('done')
   }
   
   gtfFile = param$ezRef@refFeatureFile
@@ -163,12 +162,12 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   if('gene' %in% unique(gtf$type)){
     idx = gtf$type == 'gene'
   } else if('transcript' %in% unique(gtf$type)) {
-      idx = gtf$type == 'transcript'
+    idx = gtf$type == 'transcript'
   } else if('start_codon' %in% unique(gtf$type)){
-      idx = gtf$type =='start_codon'
+    idx = gtf$type =='start_codon'
   } else {
-      message('gtf is incompatabible. Peak annotation skipped!')
-      return(NULL)
+    message('gtf is incompatabible. Peak annotation skipped!')
+    return(NULL)
   }
   gtf = gtf[idx]
   if(grepl('gtf$',gtfFile)){
@@ -192,7 +191,7 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   colnames(annotatedPeaks) = c("peak", "feature", "feature_strand",
                                "feature_start", "feature_end",
                                "insideFeature", "distancetoFeature")
-
+  
   annotatedPeaks = merge(data, annotatedPeaks,by.x='name', by.y='peak', all.x=T)
   localAnnotation <- ezFeatureAnnotation(param, dataFeatureType="gene")
   localAnnotation = unique(localAnnotation[, grep('^gene_id$|^description$|name$|symbol$|^type$',colnames(localAnnotation),ignore.case=TRUE)])
