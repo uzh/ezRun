@@ -14,25 +14,13 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   dataset = input$meta
 
   ## -g option: mappable genome size
+  ## TODO: the MACS2 defaults should be used or the user should be asked
   if(!grepl("-g", opt)){
-    gsizes <- c("Homo sapiens (human)"="hs",
-                "Mus musculus (mouse)"="mm",
-                "Caenorhabditis elegans (worm)"="ce",
-                "Drosophila melanogaster (fruitfly)"="dm")
-    species <- input$getColumn("Species")
-    if(species == ''){
-        species = 'undefined'
-    }
-    isGsize <- grepl(species, names(gsizes),ignore.case = TRUE)
-    if(any(isGsize)){
-      message("Use predefined gsize: ", gsizes[isGsize])
-      gsize <- gsizes[isGsize]
-    }else{
       gsize <- sum(as.numeric(fasta.seqlengths(param$ezRef["refFastaFile"])))
       gsize <- round(gsize * 0.8)
       message("Use calculated gsize: ", gsize)
     }
-    opt <- paste(opt, "-g", gsize)
+    opt <- paste(opt, "-g", ezIntString(gsize))
   }
   ## --keep-dup: behavior towards duplicate tags at the exact same location
   if(!grepl("--keep-dup", opt)){
