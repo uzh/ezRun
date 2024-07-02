@@ -692,7 +692,7 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
     ezSystem(paste("cat ", deduplicationReportFile, ">>", reportFile))
   }
 
-  cmd <- paste("bismark_methylation_extractor", ifelse(param$paired, "-p", "-s"), "--comprehensive", bamFileNameBismark)
+  cmd <- paste("bismark_methylation_extractor", ifelse(param$paired, "-p", "-s"), "--comprehensive --gzip", bamFileNameBismark)
   ezSystem(cmd)
   cmd <- paste("samtools", "view -S -b ", bamFileNameBismark, " > bismark.bam")
   ezSystem(cmd)
@@ -716,11 +716,15 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
     ezSystem(paste("touch", paste0(names(bamFile), ".M-bias_R2.png")))
   }
 
-  CpGFile <- list.files(".", pattern = "^CpG.*txt$")
+  CpGFile <- list.files(".", pattern = "^CpG.*txt.gz$")
+  ezSystem(paste('gunzip',CpGFile))
+  CpGFile <- sub('.gz', '', CpGFile)
+  
   cmd <- paste("bismark2bedGraph --scaffolds", CpGFile, "-o", names(bamFile))
   ezSystem(cmd)
   ezSystem(paste("mv ", CpGFile, paste0(names(bamFile), ".CpG_context.txt")))
-
+  ezSystem(paste('gunzip', paste0(names(bamFile), ".CpG_context.txt")))
+  
   splittingReportFile <- list.files(".", pattern = "splitting_report.txt$")
   ezSystem(paste("cat ", splittingReportFile, ">>", reportFile))
   ## write an igv link
