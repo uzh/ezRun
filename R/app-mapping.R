@@ -723,7 +723,7 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
   cmd <- paste("bismark2bedGraph --scaffolds", CpGFile, "-o", names(bamFile))
   ezSystem(cmd)
   ezSystem(paste("mv ", CpGFile, paste0(names(bamFile), ".CpG_context.txt")))
-  ezSystem(paste('gunzip', paste0(names(bamFile), ".CpG_context.txt")))
+  #ezSystem(paste('pigz --best', paste0(names(bamFile), ".CpG_context.txt")))
   
   splittingReportFile <- list.files(".", pattern = "splitting_report.txt$")
   ezSystem(paste("cat ", splittingReportFile, ">>", reportFile))

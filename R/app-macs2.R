@@ -19,7 +19,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     gsize <- sum(as.numeric(fasta.seqlengths(param$ezRef["refFastaFile"])))
     gsize <- round(gsize * 0.8)
     message("Use calculated gsize: ", gsize)
-    opt <- paste(opt, "-g", ezIntString(gsize))
+    opt <- paste(opt, "-g", as.character(gsize))
   }
   ## --keep-dup: behavior towards duplicate tags at the exact same location
   if(!grepl("--keep-dup", opt)){
