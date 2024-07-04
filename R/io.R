@@ -14,8 +14,7 @@
 ##' @examples 
 ##' ezIntString(4.5e7)
 ezIntString = function(x){
-  stopifnot(as.integer(x) == x) ## must be an integer number; can be in numeric (floating point) format.
-  format(x, scientific=FALSE, trim=TRUE)
+  format(round(x), scientific=FALSE, trim=TRUE)
 }
 
 ##' @title Converts a number into a character representing millions
