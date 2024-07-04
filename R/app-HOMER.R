@@ -38,33 +38,21 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
     
     stopifnot(param$sampleGroup != param$refGroup)
     
-    ## I don't have better names in mind for now. Just use first and second
-    firstSamples <- input$getNames()[input$getColumn(param$grouping) %in% 
-                                         param$sampleGroup]
-    secondSamples <- input$getNames()[input$getColumn(param$grouping) %in% 
-                                          param$refGroup]
-    
-    useSamples = c(firstSamples, secondSamples)
-    input <- input$subset(useSamples)
-    
     bamFiles <- input$getFullPaths("BAM")
-    localBamFiles <- sapply(bamFiles, getBamLocally)
-    localSamFiles <- sub('.bam$', '.sam', localBamFiles)
-    
-    for (i in 1:length(localBamFiles)){
-        cmd <- paste('samtools view -h', localBamFiles[i], '>', localSamFiles[i])
-        ezSystem(cmd)
-    }
-    
-    mcmapply(makeTagDirectory, inBam=localSamFiles, 
-             outputDir=names(localBamFiles),
-             MoreArgs=list(genome=param$refBuildHOMER),
-             mc.cores=param$cores)
-    
-    if(all(localBamFiles != bamFiles))
-        file.remove(c(localBamFiles, paste0(localBamFiles, ".bai")))
-    
-    if(length(firstSamples) >= 2L || length(secondSamples) >= 2L){
+    targetSamples <- input$getNames()[input$getColumn(param$grouping) %in% 
+                                         param$sampleGroup]
+    baseSamples <- input$getNames()[input$getColumn(param$grouping) %in% 
+                                          param$refGroup]
+    targetTagDirs <- mcmapply(makeTagDirectory, inBam=bamFiles[targetSamples], 
+                              outputDir=paste0(targetSamples, "_tag"),
+                              MoreArgs=list(genome=param$refBuildHOMER),
+                              mc.cores=min(param$cores, 4))
+    baseTagDirs <- mcmapply(makeTagDirectory, inBam=bamFiles[baseSamples], 
+                              outputDir=paste0(baseSamples, "_tag"),
+                              MoreArgs=list(genome=param$refBuildHOMER),
+                              mc.cores=min(param$cores, 4))
+
+    if(length(targetSamples) >= 2L || length(baseSamples) >= 2L){
         ## The experiments with replicates
         outputFile <- basename(output$getColumn("DiffPeak"))
         cmd <- paste("getDifferentialPeaksReplicates.pl -DESeq2", 
@@ -72,8 +60,8 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
                      "-all",
                      ifelse(param$balanced, "-balanced", ""),
                      "-style", param$style)
-        cmd <- paste(cmd, "-t", paste(firstSamples, collapse=" "),
-                     "-b", paste(secondSamples, collapse=" "),
+        cmd <- paste(cmd, "-t", paste(targetTagDirs, collapse=" "),
+                     "-b", paste(baseTagDirs, collapse=" "),
                      param$cmdOptions,
                      "> fullResult.tsv")
         ezSystem(cmd)
@@ -85,22 +73,25 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
             colnames(homerResult) <- gsub('bg vs. target ', '', colnames(homerResult))
             colnames(homerResult) <- gsub('adj. p-value', 'fdr', colnames(homerResult))
             
-            homerResult <- homerResult[homerResult[['Log2 Fold Change']] >= log2(param$repFoldChange) | homerResult[['Log2 Fold Change']] <= -log2(param$repFoldChange), ]
-            homerResult <- homerResult[homerResult[['fdr']] <= param$repFDR, ]
+            doKeep <- abs(homerResult[['Log2 Fold Change']]) >= log2(param$repFoldChange) & homerResult[['fdr']] <= param$repFDR
+            homerResult <- homerResult[doKeep, ]
             if(nrow(homerResult) > 0){
                 resultFile <- paste0(param$sampleGroup, '_over_', param$refGroup,'_', sub('txt$', 'xlsx', outputFile))
                 writexl::write_xlsx(homerResult, resultFile)
                 ezWrite.table(homerResult, outputFile, row.names = FALSE)
                 
                 peakBedFile <- 'HomerPeaks.bed'
-                bed <- data.frame(chr = homerResult$Chr, start = homerResult$Start, end = homerResult$End, name = homerResult[['Gene Name']], score = homerResult[['Peak Score']], strand = homerResult$Strand)
+                refFasta <- file.path(Sys.getenv("HOMER"), 'data/genomes', param$refBuildHOMER, 'genome.fa')
+                fai <- ezRead.table(paste0(refFasta, ".fai"), header = FALSE)
+                colnames(fai) <- c("LENGTH", "OFFSET", "LINEBASES", "LINEWDITH")
+                homerResult <- homerResult[homerResult$Chr %in% rownames(fai), ]
+                bed <- data.frame(chr = homerResult$Chr, start = homerResult$Start, end = homerResult$End, name = homerResult[['Gene Name']], 
+                                  score = homerResult[['Peak Score']], strand = homerResult$Strand)
                 bed <- bed[bed$start > 0,]
                 ezWrite.table(bed, peakBedFile, row.names = FALSE, col.names = FALSE)
                 
                 peakSeqFile <- 'HomerPeaks.fa'
-                homerDir <- ezSystem('echo $HOMER', intern = TRUE)
-                
-                refFasta <- file.path(homerDir, 'data/genomes', param$refBuildHOMER, 'genome.fa')
+
                 cmd <- paste("bedtools", " getfasta -fi", refFasta, "-bed ", peakBedFile, "-name -fo ", peakSeqFile)
                 ezSystem(cmd)
             }
@@ -113,11 +104,10 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
         #cmd <- paste("annotatePeaks.pl tss", param$ezRef["refFastaFile"], 
         #             "-gtf", param$ezRef["refFeatureFile"], "> tss.txt")
         
-        if(param$refBuildHOMER == 'hg38'){
-            param$refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_37-2021-05-04'
-        } else if(param$refBuildHomer == 'mm10'){
-            param$refBuild = 'Mus_musculus/GENCODE/GRCm38.p6/Annotation/Release_M23-2019-11-05'
-        }
+      param$refBuild <- switch(param$refBuildHOMER,
+              'hg38'= 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_37-2021-05-04',
+              'mm10' = 'Mus_musculus/GENCODE/GRCm38.p6/Annotation/Release_M23-2019-11-05',
+              stop("unsupported refBuildHOMER"))
         param$ezRef <- NULL
         param <- ezParam(param)
         localAnnotation <- ezFeatureAnnotation(param, dataFeatureType="gene")
@@ -137,14 +127,14 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
         }
         names(gtf) = names_gtf
         if(param$peakMode){
-            cmd <- paste("findPeaks", firstSamples, "-style", param$style, "-o auto")
+            cmd <- paste("findPeaks", targetTagDirs, "-style", param$style, "-o auto")
             system(cmd)
-            cmd <- paste("findPeaks", secondSamples, "-style", param$style, "-o auto")
+            cmd <- paste("findPeaks", baseTagDirs, "-style", param$style, "-o auto")
             system(cmd)
-            cmd <- paste("mergePeaks -d 100", file.path(firstSamples, "peaks.txt"), file.path(secondSamples, "peaks.txt"), "> mergedPeakFile.txt")
+            cmd <- paste("mergePeaks -d 100", file.path(targetTagDirs, "peaks.txt"), file.path(baseTagDirs, "peaks.txt"), "> mergedPeakFile.txt")
             system(cmd)
             cmd <- paste("getDifferentialPeaks mergedPeakFile.txt",
-                     firstSamples, secondSamples, param$cmdOptions, '-F 0', '-P 1', 
+                         targetTagDirs, baseTagDirs, param$cmdOptions, '-F 0', '-P 1', 
                      "> fullResult.tsv")
             system(cmd)
             cmd <- paste("annotatePeaks.pl fullResult.tsv", param$refBuildHOMER, "-annStats annoStats.txt", "> annotatedPeaks.txt")
@@ -167,12 +157,12 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
                      "> tss.txt")
             ezSystem(cmd)
         cmd <- paste("getDifferentialPeaks", "tss.txt",
-                     firstSamples, secondSamples, param$cmdOptions, '-F 0', '-P 1', 
+                     targetTagDirs, baseTagDirs, param$cmdOptions, '-F 0', '-P 1', 
                      "> fullResult.tsv")
             ezSystem(cmd)
         
         cmd <- paste("getDifferentialPeaks", "tss.txt",
-                     secondSamples, firstSamples, param$cmdOptions, '-F 0', '-P 1', 
+                     baseTagDirs, targetTagDirs, param$cmdOptions, '-F 0', '-P 1', 
                      "> fullResult_reverse.tsv")
             ezSystem(cmd)
         
@@ -221,16 +211,16 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
             ezSystem(cmd)
         }
     }
-    file.remove(localSamFiles)
-    unlink(names(localBamFiles), recursive=TRUE) ## clean the tag directory
-    
+
   return("Success")
 }
 
 makeTagDirectory <- function(inBam, outputDir, genome=NULL, checkGC=FALSE,
                              isAntisense=FALSE, strandedPaired=FALSE){
-  cmd <- paste("makeTagDirectory", outputDir, paste(inBam, collapse=" "),
-               "-format sam")
+  localSamFile <- sub(".bam$", ".sam", basename(inBam))
+  stopifnot(!file.exists(localSamFile))
+  ezSystem(paste('samtools view -h', inBam, '>', localSamFile))
+  cmd <- paste("makeTagDirectory", outputDir, localSamFile, "-format sam")
   if(!is.null(genome)){
     cmd <- paste(cmd, "-genome", genome)
   }
@@ -242,4 +232,6 @@ makeTagDirectory <- function(inBam, outputDir, genome=NULL, checkGC=FALSE,
   if(isTRUE(strandedPaired))
     cmd <- paste(cmd, "-sspe")
   ezSystem(cmd)
+  file.remove(localSamFile)
+  return(outputDir)
 }
