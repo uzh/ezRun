@@ -157,7 +157,7 @@ bam2bw <- function(file,
 
   if (method == "Bioconductor") {
     ## Better compatability; single-base resolutio;
-    ## Slower; higher RAM comsuption
+    ## Slower; higher RAM consumption
     require(rtracklayer)
     require(GenomicAlignments)
     if (paired) {

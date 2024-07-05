@@ -64,10 +64,23 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
 ##'   \item{ezRef@@refFastaFile}{ a character specifying the file path to the fasta file.}
 ##' }
 getBowtie2Reference <- function(param) {
-  refBase <- ifelse(param$ezRef["refIndex"] == "",
-    file.path(param$ezRef["refBuildDir"], "Sequence/BOWTIE2Index/genome"),
-    param$ezRef["refIndex"]
-  )
+  ## the refBase specifies the common stem of the index files with suffix .bt2
+  if (ezIsSpecified(param$ezRef["refIndex"])) {
+    refBase <- param$ezRef["refIndex"]
+    stopifnot(file.exists(dirname(refBase)))
+    return(stopifnot)
+  }
+  ## default values
+  refBase <- file.path(param$ezRef["refBuildDir"], "Sequence/BOWTIE2Index/genome")
+  genomeFastaFiles <- param$ezRef["refFastaFile"]
+  ## update defaults if second ref exists
+  ## build a temporary index if a second reference exists
+  if (ezIsSpecified(param$secondRef)) {
+    stopifnot(file.exists(param$secondRef))
+    genomeFastaFiles <- paste0(genomeFastaFiles, ",", param$secondRef)
+    refBase <- file.path(getwd(), "BOWTIE2Index/customGenome")
+  }
+  
   ## check the ref
   lockFile <- file.path(dirname(refBase), "lock")
   if (!file.exists(dirname(refBase))) {
@@ -77,9 +90,7 @@ getBowtie2Reference <- function(param) {
     wd <- getwd()
     setwd(dirname(refBase))
 
-    fastaFile <- param$ezRef["refFastaFile"]
-    ezSystem(paste("ln -s", fastaFile, "."))
-    cmd <- paste("bowtie2-build", "--threads", as.numeric(param$cores), "-f", basename(fastaFile), basename(refBase))
+    cmd <- paste("bowtie2-build", "--seed 42 --threads", as.numeric(param$cores), "-f", genomeFastaFiles, basename(refBase))
     ezSystem(cmd)
     # ezWriteElapsed(job, "done")
     setwd(wd)
@@ -97,8 +108,8 @@ getBowtie2Reference <- function(param) {
   }
   ## there is no lock file
   refFiles <- list.files(dirname(refBase), basename(refBase))
-  if (length(refFiles) < 3) {
-    ## we assume the index is built and complete
+  if (length(refFiles) < 2) {
+    ## too few files, we assume the index is incomplete
     stop(paste("index not available: ", refBase))
   }
   return(refBase)
