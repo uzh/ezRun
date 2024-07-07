@@ -60,7 +60,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       ezSystem(paste("samtools idxstats", outBam, "> idxStats.txt"))
       idxStats <- ezRead.table("idxStats.txt", header=FALSE)
       idxStats <- idxStats[rownames(idxStats) != "*", ] ## remove the unmapeed
-      write_tsv(idxStats %>% dplyr::select(1:2), file = "chromSizes.txt", col_names = FALSE)
+      ezWrite.table(idxStats %>% dplyr::select(1), file = "chromSizes.txt", col.names = FALSE)
       cmd = paste("bedGraphToBigWig", bdgSorted, "chromSizes.txt",
                   paste0(output$getNames(), "_processed.bw"))
       ezSystem(cmd)
