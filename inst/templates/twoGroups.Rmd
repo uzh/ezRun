@@ -402,8 +402,6 @@ if (sum(use) > param$minGenesForClustering) {
   xCentered <- xCentered[, order(param$grouping)]
   sampleColors <- getSampleColors(param$grouping)[order(param$grouping)]
 
-  clusterPng <- "cluster-heatmap.png"
-  clusterPdf <- "cluster-heatmap.pdf"
 
   nClusters <- 6
   clusterColors <- hcl.colors(nClusters, palette = "Spectral")
@@ -411,14 +409,11 @@ if (sum(use) > param$minGenesForClustering) {
 
   design <- design[, c(param$groupingName, setdiff(colnames(design), param$groupingName)), drop = FALSE]
 
-  plotCmd <- expression({
-    clusterPheatmap(xCentered, design, param, clusterColors,
-      lim = c(-param$logColorRange, param$logColorRange),
-      doClusterColumns = FALSE, sampleColors = sampleColors
-    )
-  })
-  eval(plotCmd)
-
+  clusterResult <- clusterPheatmap(xCentered, design, param, clusterColors,
+                                   lim = c(-param$logColorRange, param$logColorRange),
+                                   doClusterColumns = FALSE, sampleColors = sampleColors)
+  plot(clusterResult$pheatmap$gtable)
+  
   if (isTRUE(param$runGO)) {
     clusterResult <- goClusterResults(xCentered, param, clusterResult,
       seqAnno = seqAnno,
