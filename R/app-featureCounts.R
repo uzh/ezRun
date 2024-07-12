@@ -117,6 +117,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                                                   "transcript"="transcript_id",
                                                   "isoform"="transcript_id",
                                                   "exon"="exon_id",
+                                                  "orf"="orf_id",
                                                   stop("unsupported feature level: ", param$featureLevel)),
                               useMetaFeatures=param$useMetaFeatures,
                               allowMultiOverlap=param$allowMultiOverlap,
