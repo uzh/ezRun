@@ -282,7 +282,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   cellsPerGeneFraction <- data.frame(frac = cellsPerGene/ncol(scData), row.names = rownames(cellsPerGene))
   scData <- scData[is.expressed,]
   
-  if(param$excludeGenes!=''){
+  if(ezIsSpecified(param$excludeGenes) && param$excludeGenes!=''){
       genesToExclude <- ezRead.table(param$excludeGenes, header = FALSE, row.names = NULL)
       genesToExclude <- unique(genesToExclude$V1)
       genesToKeep <- setdiff(rownames(scData), genesToExclude)
