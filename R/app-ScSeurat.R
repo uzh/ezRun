@@ -132,7 +132,11 @@ EzAppScSeurat <-
                     ),
                     computePathwayTFActivity=ezFrame(Type="logical", 
                                                      DefaultValue="TRUE",
-                                                     Description="Whether we should compute pathway and TF activities.")
+                                                     Description="Whether we should compute pathway and TF activities."),
+                    excludeGenes = ezFrame(
+                      Type = "charVector",
+                      DefaultValue = "",
+                      Description = "file path to txt file with gene symbols to exclude from the analysis")
                   )
                 }
               )
@@ -271,12 +275,19 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   
   scData <- subset(scData, cells=rownames(allCellsMeta)[allCellsMeta$useCell]) # %>% head(n=1000))
   
-  ## remove low expressed genes
+  ## remove lowly expressed genes
   num.cells <- param$cellsFraction * ncol(scData) # if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
   cellsPerGene <- Matrix::rowSums(GetAssayData(scData, layer="counts") >= param$nUMIs)
   is.expressed <- cellsPerGene >= num.cells
   cellsPerGeneFraction <- data.frame(frac = cellsPerGene/ncol(scData), row.names = rownames(cellsPerGene))
   scData <- scData[is.expressed,]
+  
+  if(param$excludeGenes!=''){
+      genesToExclude <- ezRead.table(param$excludeGenes, header = FALSE, row.names = NULL)
+      genesToExclude <- unique(genesToExclude$V1)
+      genesToKeep <- setdiff(rownames(scData), genesToExclude)
+      scData <- subset(scData, features = genesToKeep)
+  }
   
   ## Add Cell Cycle information to Seurat object as metadata columns
   scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM)
