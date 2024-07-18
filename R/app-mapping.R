@@ -27,21 +27,21 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
   if (param$paired) {
     file.remove(trimmedInput$getColumn("Read2"))
   }
-
+  
   if (!is.null(param$markDuplicates) && param$markDuplicates) {
     ezSortIndexBam("bowtie.bam", "sorted.bam",
-      ram = param$ram, removeBam = TRUE,
-      cores = param$cores
+                   ram = param$ram, removeBam = TRUE,
+                   cores = param$cores
     )
     dupBam(inBam = "sorted.bam", outBam = basename(bamFile), operation = "mark", ram = param$ram)
     file.remove("sorted.bam")
   } else {
     ezSortIndexBam("bowtie.bam", basename(bamFile),
-      ram = param$ram,
-      removeBam = TRUE, cores = param$cores
+                   ram = param$ram,
+                   removeBam = TRUE, cores = param$cores
     )
   }
-
+  
   ## write an igv link
   if (param$writeIgvLink) {
     if ("IGV" %in% output$colNames) {
@@ -89,7 +89,7 @@ getBowtie2Reference <- function(param) {
     ezWrite(Sys.info(), con = lockFile)
     wd <- getwd()
     setwd(dirname(refBase))
-
+    
     cmd <- paste("bowtie2-build", "--seed 42 --threads", as.numeric(param$cores), "-f", genomeFastaFiles, basename(refBase))
     ezSystem(cmd)
     # ezWriteElapsed(job, "done")
@@ -122,19 +122,19 @@ getBowtie2Reference <- function(param) {
 ##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppBowtie2 <-
   setRefClass("EzAppBowtie2",
-    contains = "EzApp",
-    methods = list(
-      initialize = function() {
-        "Initializes the application using its specific defaults."
-        runMethod <<- ezMethodBowtie2
-        name <<- "EzAppBowtie2"
-        appDefaults <<- rbind(
-          writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"),
-          markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked"),
-          generateBigWig = ezFrame(Type = "logical", DefaultValue = "FALSE", Description = "should a bigwig file be generated")
-        )
-      }
-    )
+              contains = "EzApp",
+              methods = list(
+                initialize = function() {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodBowtie2
+                  name <<- "EzAppBowtie2"
+                  appDefaults <<- rbind(
+                    writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"),
+                    markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked"),
+                    generateBigWig = ezFrame(Type = "logical", DefaultValue = "FALSE", Description = "should a bigwig file be generated")
+                  )
+                }
+              )
   )
 
 ezMethodBowtie <- function(input = NA, output = NA, param = NA) {
@@ -150,10 +150,10 @@ ezMethodBowtie <- function(input = NA, output = NA, param = NA) {
   )
   ezSystem(cmd)
   ezSortIndexBam("bowtie.bam", basename(bamFile),
-    ram = param$ram, removeBam = TRUE,
-    cores = param$cores
+                 ram = param$ram, removeBam = TRUE,
+                 cores = param$cores
   )
-
+  
   ## write an igv link
   if (param$writeIgvLink) {
     if ("IGV" %in% output$colNames) {
@@ -168,8 +168,8 @@ ezMethodBowtie <- function(input = NA, output = NA, param = NA) {
 ##' @inheritParams getBowtie2Reference
 getBowtieReference <- function(param) {
   refBase <- ifelse(param$ezRef["refIndex"] == "",
-    file.path(param$ezRef["refBuildDir"], "Sequence/BOWTIEIndex/genome"),
-    param$ezRef["refIndex"]
+                    file.path(param$ezRef["refBuildDir"], "Sequence/BOWTIEIndex/genome"),
+                    param$ezRef["refIndex"]
   )
   ## check the ref
   lockFile <- file.path(dirname(refBase), "lock")
@@ -179,7 +179,7 @@ getBowtieReference <- function(param) {
     ezWrite(Sys.info(), con = lockFile)
     wd <- getwd()
     setwd(dirname(refBase))
-
+    
     fastaFile <- param$ezRef["refFastaFile"]
     # job = ezJobStart("bowtie index")
     ezSystem(paste("ln -s", fastaFile, "."))
@@ -219,28 +219,28 @@ getBowtieReference <- function(param) {
 ##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppBowtie <-
   setRefClass("EzAppBowtie",
-    contains = "EzApp",
-    methods = list(
-      initialize = function() {
-        "Initializes the application using its specific defaults."
-        runMethod <<- ezMethodBowtie
-        name <<- "EzAppBowtie"
-        appDefaults <<- rbind(writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"))
-      }
-    )
+              contains = "EzApp",
+              methods = list(
+                initialize = function() {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodBowtie
+                  name <<- "EzAppBowtie"
+                  appDefaults <<- rbind(writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"))
+                }
+              )
   )
 
 ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   refDir <- getSTARReference(param)
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
-
+  
   if (!str_detect(param$cmdOptions, "outSAMattributes")) {
     param$cmdOptions <- str_c(param$cmdOptions, "--outSAMattributes All",
-      sep = " "
+                              sep = " "
     )
   }
-
+  
   ## we use the --genomeFastaFiles option only if we have spliced sequences; 
   ## if we have .fa and .gtf we build a separate index
   if (ezIsSpecified(param$secondRef)) {
@@ -253,7 +253,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
     genomeFastaFileOption <- ""
   }
   
-
+  
   cmd <- str_c(
     "STAR", "--genomeDir", refDir,
     "--readFilesIn", trimmedInput$getColumn("Read1"),
@@ -268,7 +268,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
     sep = " "
   )
   ezSystem(cmd)
-
+  
   nSortThreads <- min(param$cores, 8)
   ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM
   if (str_detect(param$cmdOptions, "--genomeLoad Load")) {
@@ -276,26 +276,26 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   } else {
     sortRam <- param$ram
   }
-
+  
   file.rename(
     from = "Log.final.out",
     to = basename(output$getColumn("STARLog"))
   )
-
+  
   if (!is.null(param$markDuplicates) && param$markDuplicates) {
     ezSortIndexBam("Aligned.out.bam", "sorted.bam",
-      ram = sortRam, removeBam = TRUE,
-      cores = nSortThreads
+                   ram = sortRam, removeBam = TRUE,
+                   cores = nSortThreads
     )
     dupBam(inBam = "sorted.bam", outBam = basename(bamFile), operation = "mark", ram = param$ram)
     file.remove("sorted.bam")
   } else {
     ezSortIndexBam("Aligned.out.bam", basename(bamFile),
-      ram = sortRam,
-      removeBam = TRUE, cores = nSortThreads
+                   ram = sortRam,
+                   removeBam = TRUE, cores = nSortThreads
     )
   }
-
+  
   if (param$getJunctions) {
     file.rename(
       from = "SJ.out.tab",
@@ -306,7 +306,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       to = basename(output$getColumn("Chimerics"))
     )
   }
-
+  
   ## check the strandedness
   ezSystem(str_c(
     "infer_experiment.py", "-r", getReferenceFeaturesBed(param),
@@ -315,7 +315,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   ),
   stopOnFailure = FALSE
   )
-
+  
   ## write an igv link
   if (param$writeIgvLink && "IGV" %in% output$colNames) {
     writeIgvHtml(param, output)
@@ -341,7 +341,7 @@ getSTARReference <- function(param) {
   if (!ezIsSpecified(param$ezRef["refFeatureFile"])) {
     stop("refFeatureFile not defined")
   }
-
+  
   ## default values  
   gtfFile <- param$ezRef["refFeatureFile"]
   genomeFastaFiles <- param$ezRef["refFastaFile"]
@@ -384,11 +384,11 @@ getSTARReference <- function(param) {
     ## we assume the index is built and complete
     return(refDir)
   }
-
+  
   ## no lock file and no refFiles, so we build the reference
   ezWrite(Sys.info(), con = lockFile)
   dir.create(refDir)
-
+  
   fai <- ezRead.table(paste0(param$ezRef["refFastaFile"], ".fai"), header = FALSE)
   colnames(fai) <- c("LENGTH", "OFFSET", "LINEBASES", "LINEWDITH")
   if (nrow(fai) > 50) {
@@ -396,7 +396,7 @@ getSTARReference <- function(param) {
   } else {
     binOpt <- ""
   }
-
+  
   genomeLength <- sum(fai$LENGTH)
   readLength <- 150 ## assumption
   indexNBasesOpt <- paste("--genomeSAindexNbases", min(13, floor(log2(genomeLength) / 2 - 1)))
@@ -430,20 +430,20 @@ getSTARReference <- function(param) {
 ##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppSTAR <-
   setRefClass("EzAppSTAR",
-    contains = "EzApp",
-    methods = list(
-      initialize = function() {
-        "Initializes the application using its specific defaults."
-        runMethod <<- ezMethodSTAR
-        name <<- "EzAppSTAR"
-        appDefaults <<- rbind(
-          getJunctions = ezFrame(Type = "logical", DefaultValue = "FALSE", Description = "should junctions be returned"),
-          writeIgvLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"),
-          markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked with picard"),
-          twopassMode = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "1-pass mapping or basic 2-pass mapping")
-        )
-      }
-    )
+              contains = "EzApp",
+              methods = list(
+                initialize = function() {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodSTAR
+                  name <<- "EzAppSTAR"
+                  appDefaults <<- rbind(
+                    getJunctions = ezFrame(Type = "logical", DefaultValue = "FALSE", Description = "should junctions be returned"),
+                    writeIgvLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"),
+                    markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked with picard"),
+                    twopassMode = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "1-pass mapping or basic 2-pass mapping")
+                  )
+                }
+              )
   )
 
 ezMethodBWA <- function(input = NA, output = NA, param = NA) {
@@ -497,22 +497,22 @@ ezMethodBWA <- function(input = NA, output = NA, param = NA) {
   if (param$paired) {
     file.remove(trimmedInput$getColumn("Read2"))
   }
-
+  
   if (!is.null(param$markDuplicates) && param$markDuplicates) {
     ezSortIndexBam("aligned.bam", "sorted.bam",
-      ram = param$ram, removeBam = TRUE,
-      cores = param$cores
+                   ram = param$ram, removeBam = TRUE,
+                   cores = param$cores
     )
     dupBam(inBam = "sorted.bam", outBam = basename(bamFile), operation = "mark", ram = param$ram)
     file.remove("sorted.bam")
   } else {
     ezSortIndexBam("aligned.bam", basename(bamFile),
-      ram = param$ram,
-      removeBam = TRUE, cores = param$cores
+                   ram = param$ram,
+                   removeBam = TRUE, cores = param$cores
     )
   }
-
-
+  
+  
   ## write an igv link
   if (param$writeIgvLink) {
     if ("IGV" %in% output$colNames) {
@@ -523,7 +523,7 @@ ezMethodBWA <- function(input = NA, output = NA, param = NA) {
 }
 
 ezMethodBWATrimmomatic <- function(input = NA, output = NA, param = NA) { # Perform BWA using fastp for read pre-processing
-
+  
   refIdx <- getBWAReference(param)
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodTrim(input = input, param = param)
@@ -570,12 +570,12 @@ ezMethodBWATrimmomatic <- function(input = NA, output = NA, param = NA) { # Perf
   if (param$paired) {
     file.remove(trimmedInput$getColumn("Read2"))
   }
-
+  
   ezSortIndexBam("aligned.bam", basename(bamFile),
-    ram = param$ram, removeBam = TRUE,
-    cores = param$cores
+                 ram = param$ram, removeBam = TRUE,
+                 cores = param$cores
   )
-
+  
   ## write an igv link
   if (param$writeIgvLink) {
     if ("IGV" %in% output$colNames) {
@@ -590,8 +590,8 @@ ezMethodBWATrimmomatic <- function(input = NA, output = NA, param = NA) { # Perf
 ##' @inheritParams getBowtie2Reference
 getBWAReference <- function(param) {
   refPath <- ifelse(param$ezRef["refIndex"] == "",
-    file.path(param$ezRef["refBuildDir"], "Sequence/BWAIndex/genome.fa"),
-    param$ezRef["refIndex"]
+                    file.path(param$ezRef["refBuildDir"], "Sequence/BWAIndex/genome.fa"),
+                    param$ezRef["refIndex"]
   )
   ## check the ref
   lockFile <- file.path(dirname(refPath), "lock")
@@ -610,7 +610,7 @@ getBWAReference <- function(param) {
     ezWrite(Sys.info(), con = lockFile)
     wd <- getwd()
     setwd(dirname(refPath))
-
+    
     fastaFile <- param$ezRef["refFastaFile"]
     file.symlink(from = fastaFile, to = ".")
     cmd <- paste("bwa", "index", "-a", "bwtsw", basename(fastaFile))
@@ -632,44 +632,94 @@ getBWAReference <- function(param) {
 ##' @seealso \code{\link{ezMethodFastpTrim}}
 EzAppBWA <-
   setRefClass("EzAppBWA",
-    contains = "EzApp",
-    methods = list(
-      initialize = function() {
-        "Initializes the application using its specific defaults."
-        runMethod <<- ezMethodBWA
-        name <<- "EzAppBWA"
-        appDefaults <<- rbind(
-          algorithm = ezFrame(Type = "character", DefaultValue = "mem", Description = "bwa's alignment algorithm. One of aln, bwasw, mem."),
-          writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"),
-          markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked")
-        )
-      }
-    )
+              contains = "EzApp",
+              methods = list(
+                initialize = function() {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodBWA
+                  name <<- "EzAppBWA"
+                  appDefaults <<- rbind(
+                    algorithm = ezFrame(Type = "character", DefaultValue = "mem", Description = "bwa's alignment algorithm. One of aln, bwasw, mem."),
+                    writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated"),
+                    markDuplicates = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should duplicates be marked")
+                  )
+                }
+              )
   )
 
 EzAppBWATrimmomatic <-
   setRefClass("EzAppBWATrimmomatic",
-    contains = "EzApp",
-    methods = list(
-      initialize = function() {
-        "Initializes the application using its specific defaults."
-        runMethod <<- ezMethodBWATrimmomatic
-        name <<- "EzAppBWATrimmomatic"
-        appDefaults <<- rbind(
-          algorithm = ezFrame(Type = "character", DefaultValue = "mem", Description = "bwa's alignment algorithm. One of aln, bwasw, mem."),
-          writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated")
-        )
-      }
-    )
+              contains = "EzApp",
+              methods = list(
+                initialize = function() {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodBWATrimmomatic
+                  name <<- "EzAppBWATrimmomatic"
+                  appDefaults <<- rbind(
+                    algorithm = ezFrame(Type = "character", DefaultValue = "mem", Description = "bwa's alignment algorithm. One of aln, bwasw, mem."),
+                    writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated")
+                  )
+                }
+              )
   )
 
 
+
+ezMethodMinimap2 <- function(input = NA, output = NA, param = NA) {
+  refIdx <- getMinimapReference(param)
+  bamFile <- output$getColumn("BAM")
+  trimmedInput <- ezMethodFastpTrim(input = input, param = param)
+  sampleName <- sub(".bam", "", basename(bamFile))
+  cmd <- paste("minimap2", "-a", param$cmdOptions, refIdx, trimmedInput$getColumn("Read1"), "> output.sam")
+  ezSystem(cmd)
+  ezSortIndexBam("output.sam", basename(bamFile),
+                 ram = param$ram, removeBam = TRUE,
+                 cores = param$cores
+  )
+  file.remove(trimmedInput$getColumn("Read1"))
+  
+  ## write an igv link
+  if (param$writeIgvLink) {
+    if ("IGV" %in% output$colNames) {
+      writeIgvHtml(param, output)
+    }
+  }
+  return("Success")
+}
+
+
+getMinimapReference <- function(param) {
+  ## this does not build a reference but simply uses the genome fasta
+  ## see the getBWAReference as an example on how to build an actual reference
+  return(param$ezRef["refFastaFile"])
+}
+
+
+##' @template app-template
+##' @templateVar method ezMethodMinimap2(input=NA, output=NA, param=NA)
+##' @description Use this reference class to run
+##' @seealso \code{\link{getMinimap2Reference}}
+##' @seealso \code{\link{ezMethodFastpTrim}}
+EzAppMinimap2 <-
+  setRefClass("EzAppMinimap2",
+              contains = "EzApp",
+              methods = list(
+                initialize = function() {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodMinimap2
+                  name <<- "EzAppMinimap2"
+                  appDefaults <<- rbind(
+                    writeIgvSessionLink = ezFrame(Type = "logical", DefaultValue = "TRUE", Description = "should an IGV link be generated")
+                  )
+                }
+              )
+  )
 
 
 
 
 ezMethodBismark <- function(input = NA, output = NA, param = NA) {
-
+  
   ref <- getBismarkReference(param)
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
@@ -702,19 +752,19 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
     deduplicationReportFile <- list.files(".", pattern = "deduplication_report.txt$")
     ezSystem(paste("cat ", deduplicationReportFile, ">>", reportFile))
   }
-
+  
   cmd <- paste("bismark_methylation_extractor", ifelse(param$paired, "-p", "-s"), "--comprehensive --gzip", bamFileNameBismark)
   ezSystem(cmd)
   cmd <- paste("samtools", "view -S -b ", bamFileNameBismark, " > bismark.bam")
   ezSystem(cmd)
   ezSortIndexBam("bismark.bam", basename(bamFile),
-    ram = param$ram, removeBam = TRUE,
-    cores = param$cores
+                 ram = param$ram, removeBam = TRUE,
+                 cores = param$cores
   )
   
   if (param$generateBigWig) {
-      destination = sub("\\.bam$", "_Cov.bw", basename(bamFile), ignore.case = TRUE)
-      bam2bw(file = basename(bamFile), destination = destination, paired = param$paired, method = "Bioconductor", cores = param$cores)
+    destination = sub("\\.bam$", "_Cov.bw", basename(bamFile), ignore.case = TRUE)
+    bam2bw(file = basename(bamFile), destination = destination, paired = param$paired, method = "Bioconductor", cores = param$cores)
   }
   
   mBiasImages <- list.files(".", pattern = "png$")
@@ -726,7 +776,7 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
     ezSystem(paste("touch", paste0(names(bamFile), ".M-bias_R1.png")))
     ezSystem(paste("touch", paste0(names(bamFile), ".M-bias_R2.png")))
   }
-
+  
   CpGFile <- list.files(".", pattern = "^CpG.*txt.gz$")
   ezSystem(paste('gunzip',CpGFile))
   CpGFile <- sub('.gz', '', CpGFile)
@@ -759,8 +809,8 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
 ##' }
 getBismarkReference <- function(param) {
   refBase <- ifelse(param$ezRef["refIndex"] == "",
-    file.path(param$ezRef["refBuildDir"], "Sequence/WholeGenomeFasta/Bisulfite_Genome/CT_conversion"),
-    param$ezRef["refIndex"]
+                    file.path(param$ezRef["refBuildDir"], "Sequence/WholeGenomeFasta/Bisulfite_Genome/CT_conversion"),
+                    param$ezRef["refIndex"]
   )
   ## check the ref
   lockFile <- file.path(dirname(refBase), "lock")
@@ -774,7 +824,7 @@ getBismarkReference <- function(param) {
       "2> bismarkGenomePrep.log"
     )
     ezSystem(cmd)
-
+    
     # ezWriteElapsed(job, "done")
     setwd(wd)
     file.remove(lockFile)
@@ -805,15 +855,15 @@ getBismarkReference <- function(param) {
 ##' @description Use this reference class to run
 EzAppBismark <-
   setRefClass("EzAppBismark",
-    contains = "EzApp",
-    methods = list(
-      initialize = function() {
-        "Initializes the application using its specific defaults."
-        runMethod <<- ezMethodBismark
-        name <<- "EzAppBismark"
-        appDefaults <<- rbind(
-            generateBigWig = ezFrame(Type = "logical", DefaultValue = "FALSE", Description = "should a bigwig coverage file be generated")
-        )
-      }
-    )
+              contains = "EzApp",
+              methods = list(
+                initialize = function() {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodBismark
+                  name <<- "EzAppBismark"
+                  appDefaults <<- rbind(
+                    generateBigWig = ezFrame(Type = "logical", DefaultValue = "FALSE", Description = "should a bigwig coverage file be generated")
+                  )
+                }
+              )
   )
