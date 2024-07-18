@@ -670,7 +670,10 @@ ezMethodMinimap2 <- function(input = NA, output = NA, param = NA) {
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
   sampleName <- sub(".bam", "", basename(bamFile))
-  cmd <- paste("minimap2", "-a", param$cmdOptions, refIdx, trimmedInput$getColumn("Read1"), "> output.sam")
+  cmd <- paste("minimap2", "-a", "-t", param$cores, 
+               "-2", ## use separate threads for input and output
+               "-K 500M", ## that's the default batch size of bases; don't know how to adapt that to the available param$ram
+               param$cmdOptions, refIdx, trimmedInput$getColumn("Read1"), "> output.sam")
   ezSystem(cmd)
   ezSortIndexBam("output.sam", basename(bamFile),
                  ram = param$ram, removeBam = TRUE,
