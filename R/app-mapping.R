@@ -235,6 +235,19 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
   
+  if(ezIsSpecified(param$barcodePattern) && param$barcodePattern!=''){ #Extract UMI
+      require(Herper)
+      local_CondaEnv("umi_tools", pathToMiniConda = "/usr/local/ngseq/miniconda3")
+      ##Extract UMI from R2
+      markedFile_R1 <- sub('R1', 'markedUMI_R1', trimmedInput$getColumn("Read1"))
+      markedFile_R2 <- sub('R2', 'markedUMI_R2', trimmedInput$getColumn("Read2"))
+      cmd <- paste0('umi_tools extract --stdin=',trimmedInput$getColumn("Read2"), ' --read2-in=',trimmedInput$getColumn("Read1"), 
+                    ' --stdout=',markedFile_R2,' --read2-out=',markedFile_R1,' --bc-pattern=', param$barcodePattern)
+      ezSystem(cmd)
+      ezSystem(paste('mv', markedFile_R1, trimmedInput$getColumn("Read1")))
+      ezSystem(paste('mv', markedFile_R2, trimmedInput$getColumn("Read2")))
+  }
+  
   if (!str_detect(param$cmdOptions, "outSAMattributes")) {
     param$cmdOptions <- str_c(param$cmdOptions, "--outSAMattributes All",
                               sep = " "
@@ -306,6 +319,17 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       to = basename(output$getColumn("Chimerics"))
     )
   }
+  
+  if(ezIsSpecified(param$barcodePattern) && param$barcodePattern!=''){ #Deduplicated based on UMI
+      deDupBamFile <- sub('.bam', '_dedup.bam', basename(bamFile))
+      cmd <- paste0('umi_tools dedup --stdin=',basename(bamFile),' --stdout=', deDupBamFile,' --log=',basename(bamFile),'.log', ' --output-stats=',basename(bamFile),'.stats')
+      ezSystem(cmd)
+      ezSystem(paste('mv', deDupBamFile, basename(bamFile)))
+      ezSystem(paste('samtools index', basename(bamFile)))
+      tryCatch({local_CondaEnv("gi_py3.10.9", pathToMiniConda = "/usr/local/ngseq/miniconda3")}, warning = function(warning_condition) {cat('warning')}, 
+               error = function(error_condition) {cat('error')})
+  }
+  
   
   ## check the strandedness
   ezSystem(str_c(
