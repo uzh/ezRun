@@ -184,8 +184,8 @@ plotCellRangerCoverage = function(gRanges, bamFiles, txdb, regionTag=c("E", "N",
 #' plotLocusCoverageProfile(myGeneRange, bamFiles, gtfFile=gtfFile,
 #'                          height=20, width=20)
 #'}
-
-plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL, ylim=c(0, 40), sizes=NULL,
+## sometimes, minimap2, the secondary Alignments in bam files do not have a seq field, and then Gviz crashes while trying to visualize those
+plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL, ylim=c(0, 40), sizes=NULL, isSecondaryAlignment = NA,
                                     height=10, width=20,  plotType = c("coverage", "sashimi")){
   require(Gviz)
   require(GenomicFeatures)
@@ -206,7 +206,9 @@ plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL, ylim=c(0, 4
   alTrackList = list()
   for (nm in names(bamFiles)){
     alTrackList[[nm]] <- AlignmentsTrack(bamFiles[nm], name=nm, isPaired = FALSE,
-                                         type = plotType)
+                                         type = plotType,
+                                         flag = scanBamFlag(isUnmappedQuery = FALSE,
+                                                            isSecondaryAlignment = isSecondaryAlignment))
   }
   pdfFiles = character()
   grList = split(gRanges, as.vector(seqnames(gRanges)))
