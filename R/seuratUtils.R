@@ -16,16 +16,16 @@ seuratStandardSCTPreprocessing <- function(scData, param, assay="RNA", seed=38) 
     require(STACAS)
     require(SignatuR)
     if(species == 'Human'){
-        my.genes.blocklist <- c(GetSignature(SignatuR$Hs$Blocklists),
-                          GetSignature(SignatuR$Hs$Compartments))
-        scData <- FindVariableFeatures.STACAS(scData, nfeat = param$nfeatures, genesBlockList = my.genes.blocklist)
+      my.genes.blocklist <- c(GetSignature(SignatuR$Hs$Blocklists),
+                              GetSignature(SignatuR$Hs$Compartments))
+      scData <- FindVariableFeatures.STACAS(scData, nfeat = param$nfeatures, genesBlockList = my.genes.blocklist)
     } else if(species == 'Mouse'){
-        my.genes.blocklist <- c(GetSignature(SignatuR$Mm$Blocklists),
-                          GetSignature(SignatuR$Mm$Compartments))
-        scData <- FindVariableFeatures.STACAS(scData, nfeat = param$nfeatures, genesBlockList = my.genes.blocklist)
+      my.genes.blocklist <- c(GetSignature(SignatuR$Mm$Blocklists),
+                              GetSignature(SignatuR$Mm$Compartments))
+      scData <- FindVariableFeatures.STACAS(scData, nfeat = param$nfeatures, genesBlockList = my.genes.blocklist)
     } else {
-        message('Selection method STACAS not supported for this species! Use default method instead.')
-        scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)  
+      message('Selection method STACAS not supported for this species! Use default method instead.')
+      scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)  
     }
   } else {
     scData <- FindVariableFeatures(scData, selection.method = "vst", verbose = FALSE, nfeatures=param$nfeatures)
@@ -153,9 +153,9 @@ cellClustWithCorrection <- function (scDataList, param) {
   integ_features <- SelectIntegrationFeatures(object.list = scDataList, nfeatures = param$nfeatures)
   
   if (param$integrationMethod %in% c("RPCA", "CCA")) {
-      for (i in 1:length(scDataList)){
-          scDataList[[i]] <- ScaleData(scDataList[[i]], features = integ_features)
-      }
+    for (i in 1:length(scDataList)){
+      scDataList[[i]] <- ScaleData(scDataList[[i]], features = integ_features)
+    }
     #2.2. Prepare the SCT list object for integration
     scDataList <- PrepSCTIntegration(object.list = scDataList, anchor.features = integ_features)
     if(param$integrationMethod == 'RPCA'){
@@ -426,6 +426,7 @@ getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
     futile.logger::flog.info("Skipping pathway and TF activity")
   }
   
+  
   # run Azimuth
   if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none"){
     environment(MyDietSeurat) <- asNamespace('Seurat')
@@ -448,7 +449,20 @@ getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
     aziResults <- NULL
   }
   
+  
+  # run cellxgene_annotation
+  if (ezIsSpecified(param$cellxgene) && ezIsSpecified(param$column_name_of_cell_label)){
+    environment(MyDietSeurat) <- asNamespace('Seurat')
+    assignInNamespace("DietSeurat", MyDietSeurat, ns = "Seurat")
+    cellxgeneResults <- cellxgene_annotation(scData = scData,param = param)
+    
+  }else {
+    cellxgeneResults <- NULL
+  }
+  
+  
+  
   return(list(markers=markers, cells.AUC=cells.AUC, singler.results=singler.results,
               enrichRout=enrichRout, pathwayActivity=pathwayActivity, TFActivity=TFActivity,
-              aziResults=aziResults))
+              aziResults=aziResults, cellxgeneResults=cellxgeneResults))
 }

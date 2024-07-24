@@ -52,6 +52,19 @@ if (file.exists("aziResults.rds")){
 } else {
   aziResults <- NULL
 }
+
+
+if (file.exists("cellxgeneResults.rds")){
+  cellxgeneResults <- readRDS("cellxgeneResults.rds")
+  scData <- AddMetaData(scData, cellxgeneResults)
+} else {
+  cellxgeneResults <- NULL
+}
+
+
+
+
+
 if (file.exists("singler.results.rds")){
   singler.results <- readRDS("singler.results.rds")
 } else {
@@ -688,6 +701,25 @@ if('Azimuth.celltype.l3' %in% colnames(scData@meta.data))
 DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap")  + NoLegend()
 if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
 DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap")  + NoLegend()
+```
+
+### Cell x gene
+```{r cellxgene, eval=!is.null(cellxgeneResults), fig.width=10, fig.height=10}
+options(ggrepel.max.overlaps = Inf)
+n_celltype <- length(unique(scData$predicted.id.cellxgene.authorlabel))
+sample_name <- names(scData)
+## dimplot of prediction.id.cellxgene.authorlabel
+colz <- rep(DiscretePalette(n = n_celltype , palette = "alphabet2"), 5)
+DimPlot(scData, label = TRUE, repel = TRUE, group.by = 'predicted.id.cellxgene.authorlabel', cols = colz) + 
+        ggtitle(paste(sample_name, "- CellxGene - Predicted ID"))
+
+## plots of mapping score
+FeaturePlot(scData,features = "prediction.score.max", cols = c("lightgrey", "dodgerblue"), pt.size = 1, max.cutoff = 'q97', order = T )+ggtitle(paste(sample_name, "- mapping score"))
+
+## mapping quality by Vlnplots
+VlnPlot(scData, features = 'prediction.score.max', group.by = 'predicted.id.cellxgene.authorlabel') +
+  ggtitle(paste(sample_name, "- prediction.score.max grouped by author's cell label"))
+
 ```
 
 ### Interactive
