@@ -93,7 +93,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     }
     
     if(ezIsSpecified(param$secondRef)){
-      ## control sequences
+      # First create the temp gtf file if it hasn't been already
       gtfFileTmp <- paste(Sys.getpid(), "genes.gtf", sep="-")
       if (gtfFileTmp != gtfFile) {
         file.copy(from=gtfFile, to=gtfFileTmp)
@@ -101,11 +101,22 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
         gtfFile <- gtfFileTmp
       }
       
-      extraGR <- makeExtraControlSeqGR(param)
+      # special handling if we already have a GTF file available
+      secondGtf <- sub(".fa", ".gtf", param$secondRef)
+      # define gtf to store the additional annotation
       gtfExtraFn <- tempfile(pattern="extraSeqs", tmpdir=getwd(),
                              fileext = ".gtf")
       on.exit(file.remove(gtfExtraFn), add=TRUE)
-      export.gff2(extraGR, con=gtfExtraFn)
+      if (file.exists(secondGtf)) {
+        extraFeatures <- ezRead.table(secondGtf, quote="", sep="\t", comment.char = "#", row.names = NULL, header = FALSE)
+        ## if the same chromosome name shows up in both GTF files, we can't concatenate them
+        stopifnot(length(intersect(gtf$V1, extraFeatures$V1)) == 0) ## first column holds the seqid
+        ezSystem(paste("cp", secondGtf, gtfExtraFn))
+      } else {
+        ## control sequences
+        extraGR <- makeExtraControlSeqGR(param)
+        export.gff2(extraGR, con=gtfExtraFn)
+      }
       ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
     }
     
