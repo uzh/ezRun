@@ -207,21 +207,6 @@ ezIsSpecified = function(x){
 }
 
 
-param.test <- list(cellxgene = '37b21763-7f0f-41ae-9001-60bad6e2841d', column_name_of_cell_label = 'cell_label')
-
-
-
-panc8.original <- LoadData("panc8")
-panc8.original <- UpdateSeuratObject(panc8)
-panc8.integrated.smartseq2 <- subset(panc8.original, dataset == "smartseq2")
-panc8.smartseq2.onesample <- subset(panc8.integrated.smartseq2, orig.ident == 'HP1526901T2D')
-panc8.smartseq2.onesample <- SCTransform(panc8.smartseq2.onesample)
-
-
-
-cellxgene_Results_test_results <- cellxgene_annotation(panc8.smartseq2.onesample,param.test)
-
-
 
 
 
