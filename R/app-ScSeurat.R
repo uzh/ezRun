@@ -335,7 +335,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, 
                 cellsPerGeneFraction = cellsPerGeneFraction, enrichRout=anno$enrichRout, 
                 cells.AUC=anno$cells.AUC, singler.results=anno$singler.results, aziResults=anno$aziResults,
-                pathwayActivity=anno$pathwayActivity, TFActivity=anno$TFActivity,
+                pathwayActivity=anno$pathwayActivity, TFActivity=anno$TFActivity, cellxgeneResults=anno$cellxgeneResults,
                 rmdFile = "ScSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()))
   #remove no longer used objects
   rm(scData)
