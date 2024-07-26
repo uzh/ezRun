@@ -47,10 +47,19 @@ cellxgene_annotation <- function(scData, param) {
     ### get the author version cell labels
     dplyr::pull(unharmonised_metadata) |> head(2)
     df <- unharmonised_metadata$unharmonised[[1]]
-    df2 <- df |> 
-      dplyr::select(cell_, cell_label_author) |> 
-      collect() |> 
-      mutate(sample_id = str_extract(cell_, "-\\d+$") %>% str_remove("-"))
+    ### check whether this dataset have the donor_id column
+    donor_id_exists <- if ("donor_id" %in% colnames(df)) TRUE else FALSE
+    if (donor_id_exists) {
+      df2 <- df |> 
+        dplyr::select(cell_, cell_label_author, donor_id) |> 
+        collect()
+    }else{
+      df2 <- df |> 
+        dplyr::select(cell_, cell_label_author) |> 
+        collect() |> 
+        mutate(sample_id = str_extract(cell_, "-\\d+$") %>% str_remove("-"))
+    }
+
     
     ## get the processed ref data
     ### Download panceas dataset, ref one
@@ -72,7 +81,12 @@ cellxgene_annotation <- function(scData, param) {
     ## Downsample reference dataset
     ### split the object by sample
     curated_seurat_object[["RNA"]] <- curated_seurat_object[["originalexp"]]
-    curated_seurat_object.list <- SplitObject(curated_seurat_object, split.by = "sample_id")
+    if(donor_id_exists){
+      curated_seurat_object.list <- SplitObject(curated_seurat_object, split.by = "donor_id")
+    }else{
+      curated_seurat_object.list <- SplitObject(curated_seurat_object, split.by = "sample_id")
+    }
+    
     
     print("The info of the ref seurat object:")
     print(head(curated_seurat_object@meta.data))
@@ -82,8 +96,11 @@ cellxgene_annotation <- function(scData, param) {
     ### choose the 10 biggest sample (test 15 samples and crushed)
     # calculate cell number of every sample
     cell_counts <- sapply(curated_seurat_object.list, ncol)
+    print("Cell number of every sample:")
+    print(cell_counts)
     # number of samples need to be selected
     num_samples_to_select <- min(length(cell_counts), 10)
+  
     # names of top10 samples
     selected_samples <- names(sort(cell_counts, decreasing = TRUE))[1:num_samples_to_select]
     # get selected samples
@@ -141,13 +158,19 @@ cellxgene_annotation <- function(scData, param) {
       print("Available assays:")
       print(assay_names)
       
+      
       # and info of every assay
-      for (assay_name in assay_names) {
-        assay_data <- GetAssayData(sample, assay = assay_name)
-        print(paste("Assay name:", assay_name))
-        print(paste("Number of features:", nrow(assay_data)))
-        print(paste("Number of cells:", ncol(assay_data)))
-        print(paste("Key for assay:", Key(sample[[assay_name]])))
+      if (length(assay_names) == 1) {
+        # go out from if clause
+        message("Only one assay name is present. No other assay name.")
+      } else {
+        for (assay_name in assay_names) {
+          assay_data <- GetAssayData(sample, assay = assay_name)
+          print(paste("Assay name:", assay_name))
+          print(paste("Number of features:", nrow(assay_data)))
+          print(paste("Number of cells:", ncol(assay_data)))
+          print(paste("Key for assay:", Key(sample[[assay_name]])))
+        }
       }
       
       # THe default assay
@@ -206,7 +229,14 @@ ezIsSpecified = function(x){
   !is.null(x) && length(x) > 0 && x[1] != "" && !is.na(x[1]) && x[1] != "NA"
 }
 
+param.test <- list(cellxgene ='71be997d-ff75-41b9-8a9f-1288c865f921', column_name_of_cell_label = 'Manually_curated_celltype')
+param.test.2 <- list(cellxgene ='37b21763-7f0f-41ae-9001-60bad6e2841d', column_name_of_cell_label = 'Manually_curated_celltype')
 
 
+library(SeuratData)
+library("Seurat")
 
+scData.test <- UpdateSeuratObject(LoadData("pbmc3k"))
+
+test.result <- cellxgene_annotation(scData = scData.test, param = param.test)
 
