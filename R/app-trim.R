@@ -91,7 +91,7 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
     )
   }
   ## adapter trimming options
-  if (param[["trimAdapter"]]) {
+  if (ezIsSpecified(param[["trimAdapter"]]) && param[["trimAdapter"]]) {
     if (!is.null(input$meta$Adapter1) && !is.na(input$meta$Adapter1) &&
         input$meta$Adapter1 != "") {
       adapter1 <- DNAStringSet(input$meta$Adapter1)
@@ -122,8 +122,6 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
 
     trimAdapt <- str_c("--adapter_fasta", adaptFile, sep = " ")
   } else {
-    ezSystem("touch adapters.fa")
-    adaptFile <- "adapters.fa"
     trimAdapt <- "--disable_adapter_trimming"
   }
 
@@ -134,8 +132,12 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
     # general options
     "--thread", param$cores,
     # global trimming
-    "--trim_front1", param$trim_front1,
-    "--trim_tail1", param$trim_tail1,
+    if (ezIsSpecified(param$trim_front1)){
+      paste("--trim_front1", param$trim_front1)
+    },
+    if (ezIsSpecified(param$trim_tail1)){
+      paste("--trim_tail1", param$trim_tail1)
+    },
     # quality-based trimming per read
     if_else(param$cut_front,
             str_c("--cut_front", "--cut_front_window_size", param$cut_front_window_size,
@@ -149,16 +151,28 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
             str_c("--cut_tail", "--cut_tail_window_size", param$cut_tail_window_size,
                   "--cut_tail_mean_quality", param$cut_tail_mean_quality, sep = " "),
             ""), # like Trimmomatic's TRAILING
-    "--average_qual", param$average_qual,
+    if (ezIsSpecified(param$average_qual)){
+      paste("--average_qual", param$average_qual)
+    } else {
+     "--disable_quality_filtering" 
+    },
     # adapter trimming
     trimAdapt,
     # read length trimming
-    "--max_len1", param$max_len1,
-    "--max_len2", param$max_len2,
+    if (ezIsSpecified(param$max_len1)){
+      paste("--max_len1", param$max_len1)
+    },
+    if (ezIsSpecified(param$max_len2)){
+      paste("--max_len2", param$max_len2)
+    },
     # polyX
-    "--trim_poly_x", "--poly_x_min_len", param$poly_x_min_len,
+    if (ezIsSpecified(param$poly_x_min_len)){
+      paste("--trim_poly_x", "--poly_x_min_len", param$poly_x_min_len)
+    },
     # read length filtering
-    "--length_required", param$length_required,
+    if (ezIsSpecified(param$length_required)){
+      paste("--length_required", param$length_required)
+    },
     # compression output
     "--compression 4",
     sep = " "
