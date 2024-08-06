@@ -229,14 +229,3 @@ ezIsSpecified = function(x){
   !is.null(x) && length(x) > 0 && x[1] != "" && !is.na(x[1]) && x[1] != "NA"
 }
 
-param.test <- list(cellxgene ='71be997d-ff75-41b9-8a9f-1288c865f921', column_name_of_cell_label = 'Manually_curated_celltype')
-param.test.2 <- list(cellxgene ='37b21763-7f0f-41ae-9001-60bad6e2841d', column_name_of_cell_label = 'Manually_curated_celltype')
-
-
-library(SeuratData)
-library("Seurat")
-
-scData.test <- UpdateSeuratObject(LoadData("pbmc3k"))
-
-test.result <- cellxgene_annotation(scData = scData.test, param = param.test)
-
