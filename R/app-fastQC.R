@@ -29,7 +29,7 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
   }
   
   ## trim the reads to maximum length. Useful for PacBio/ONT long reads with variable read length and very few ultralong reads
-  if (ezIsSpecified(param$max_len1)){
+  if (ezIsSpecified(param$max_len1) && param$max_len1 > 0){
     input <- ezMethodFastpTrim(input = input, param = param)
   }
   
