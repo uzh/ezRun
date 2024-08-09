@@ -55,7 +55,7 @@ getTpm <- function(rawData){
     # for bulk, but also valid for single cell
     # scater implementation fails when no counts from one cell
     # this implementation does not consider extra-norm factors as edgeR::calcNormFactors would produce; those would correct the lib-sizes, i.e. colSums(tpm)
-    tpm <- sweep(assays(rawData)$counts * 1e3, MARGIN=1,
+    tpm <- sweep(assays(rawData)$counts, MARGIN=1,
                  STATS=rowData(rawData)$featWidth, FUN="/")
     tpm <- sweep(tpm * 1e6, MARGIN=2, STATS=Matrix::colSums(tpm),
                  FUN="/")
