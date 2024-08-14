@@ -32,7 +32,7 @@ cellxgene_annotation <- function(scData, param) {
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
   
   lockFile <- paste0(cache_dir, "/", ref_dataset_id, ".lock")
-  refData_building_timeout_minutes < 120
+  refData_building_timeout_minutes <- 120
   i <- 0
   while (file.exists(lockFile) && i < refData_building_timeout_minutes) {
     ### somebody else builds and we wait
