@@ -1,5 +1,5 @@
 
-refData_building_timeout_minutes <- 120
+
 cellxgene_annotation <- function(scData, param) {
   
   # param <- list(cellxgene ='71be997d-ff75-41b9-8a9f-1288c865f921', column_name_of_cell_label = 'Manually_curated_celltype')
@@ -33,7 +33,7 @@ cellxgene_annotation <- function(scData, param) {
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
   
   lockFile <- paste0(cache_dir, "/", ref_dataset_id, ".lock")
-  
+  refData_building_timeout_minutes <- 120
   i <- 0
   while (file.exists(lockFile) && i < refData_building_timeout_minutes) {
     ### somebody else builds and we wait
@@ -77,7 +77,7 @@ cellxgene_annotation <- function(scData, param) {
 
   
   
-buildCuratedCellxGeneRef <- function(ref_dataset_id, cached_dir=cache_dir){
+buildCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir=cache_dir){
 
   
   ## get the unharmonised meta data
