@@ -333,19 +333,15 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   
   ## check the strandedness
   tryCatch({
-    bed <- getReferenceFeaturesBed(param)
-  }, error = function(e) {
-    warning(paste0("Could not get the reference features for the ", 
-                   "strandedness check. Skipping."))
-    bed <- NULL
-  })
-  if (!is.null(bed)) {
     ezSystem(str_c(
-      "infer_experiment.py", "-r", bed,
+      "infer_experiment.py", "-r", getReferenceFeaturesBed(param),
       "-i", basename(bamFile), "-s 1000000",
       sep = " "
     ), stopOnFailure = FALSE)
-  }
+  }, error = function(e) {
+    warning(paste0("Could not get the reference features for the ", 
+                   "strandedness check. Skipping."))
+  })
   
   ## write an igv link
   if (param$writeIgvLink && "IGV" %in% output$colNames) {
