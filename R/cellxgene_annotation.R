@@ -1,5 +1,4 @@
 
-
 cellxgene_annotation <- function(scData, param) {
   
   # param <- list(cellxgene ='71be997d-ff75-41b9-8a9f-1288c865f921', column_name_of_cell_label = 'Manually_curated_celltype')
@@ -34,6 +33,7 @@ cellxgene_annotation <- function(scData, param) {
   
   lockFile <- paste0(cache_dir, "/", ref_dataset_id, ".lock")
   refData_building_timeout_minutes <- 120
+
   i <- 0
   while (file.exists(lockFile) && i < refData_building_timeout_minutes) {
     ### somebody else builds and we wait
