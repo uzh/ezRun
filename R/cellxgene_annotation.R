@@ -48,7 +48,7 @@ cellxgene_annotation <- function(scData, param) {
   if (file.exists(cached_curated_ref_data)) {
     scRef <- qs::qread(cached_curated_ref_data)
   } else {
-    scRef <- buildCuratedCellxGeneRef(ref_dataset_id, cached_dir=cache_dir)
+    scRef <- buildCuratedCellxGeneRef(ref_dataset_id, cached_dir=cache_dir, cell_label_author = param$column_name_of_cell_label)
     qs::qsave(cached_curated_ref_data)
   }
   
@@ -77,7 +77,7 @@ cellxgene_annotation <- function(scData, param) {
 
   
   
-buildCuratedCellxGeneRef <- function(ref_dataset_id, cached_dir=cache_dir){
+buildCuratedCellxGeneRef <- function(ref_dataset_id, cached_dir=cache_dir, cell_label_author = param$column_name_of_cell_label){
 
   
   ## get the unharmonised meta data
