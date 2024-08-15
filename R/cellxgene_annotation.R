@@ -77,11 +77,11 @@ cellxgene_annotation <- function(scData, param) {
 
   
   
-buildCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir=cache_dir){
+buildCuratedCellxGeneRef <- function(ref_dataset_id, cached_dir=cache_dir){
 
   
   ## get the unharmonised meta data
-  metadata <- get_metadata(cache_directory = cache_dir)
+  metadata <- get_metadata(cache_directory = cached_dir)
   curated_single_cell_experiment_object <- metadata |>
     dplyr::filter(
       dataset_id  == param$cellxgene
@@ -96,7 +96,7 @@ buildCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir=cache_dir){
     stop("Failed to get unharmonised metadata. Please select a correct data set id. Please be noticed that do not select from collections.")
   }
   
-  unharmonised_metadata <- get_unharmonised_metadata(curated_single_cell_experiment_object, cache_directory=cache_dir)
+  unharmonised_metadata <- get_unharmonised_metadata(curated_single_cell_experiment_object, cache_directory=cached_dir)
   
   ### get the author version cell labels
   dplyr::pull(unharmonised_metadata) |> head(2)
