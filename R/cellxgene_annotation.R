@@ -61,7 +61,7 @@ cellxgene_annotation <- function(scData, param) {
   
   ## mapping
   scData.anchors <- FindTransferAnchors(reference = scRef, query = scData, dims = 1:30,
-                                        reference.reduction = "pca")
+                                        reference.reduction = "pca", normalization.method = "SCT" )
   
   if (!cell_label_author %in% colnames(scRef@meta.data)) {
     stop("The specified column name for cell labels does not exist in the reference object's metadata.")
