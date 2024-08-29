@@ -26,32 +26,10 @@ cellxgene_annotation <- function(scData, param) {
   #library(glmGamPoi)
   
   
-  cell_label_author <- param$column_name_of_cell_label
-  print(cell_label_author)
-  ref_dataset_id <- param$cellxgene
+  
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
+  scRef <- getCuratedCellxGeneRef(param$cellxgene, cached_dir=cache_dir, cell_label_author = param$column_name_of_cell_label)
   
-  lockFile <- paste0(cache_dir, "/", ref_dataset_id, ".lock")
-  refData_building_timeout_minutes <- 120
-
-  i <- 0
-  while (file.exists(lockFile) && i < refData_building_timeout_minutes) {
-    ### somebody else builds and we wait
-    Sys.sleep(60)
-    i <- i + 1
-  }
-  if (file.exists(lockFile)) {
-    stop(paste("reference building still in progress after", refData_building_timeout_minutes, "min"))
-  }
-  cached_curated_ref_data <- paste0(ref_dataset_id, "-curated.qsd")
-  
-  if (file.exists(cached_curated_ref_data)) {
-    scRef <- qs::qread(cached_curated_ref_data)
-  } else {
-    scRef <- buildCuratedCellxGeneRef(ref_dataset_id, cached_dir=cache_dir, cell_label_author = param$column_name_of_cell_label)
-    
-    qs::qsave(scRef,cached_curated_ref_data)
-  }
   
   ### StandardizeGeneSymbols
   scData <- StandardizeGeneSymbols(scData, slots = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
@@ -78,8 +56,30 @@ cellxgene_annotation <- function(scData, param) {
 
   
   
-buildCuratedCellxGeneRef <- function(ref_dataset_id, cached_dir=cache_dir, cell_label_author = param$column_name_of_cell_label){
+getCuratedCellxGeneRef <- function(ref_dataset_id, cached_dir=cache_dir, cell_label_author){
 
+  lockFile <- paste0(cache_dir, "/", ref_dataset_id, "__", cell_label_author, ".lock")
+  refData_building_timeout_minutes <- 120
+  
+  i <- 0
+  while (file.exists(lockFile) && i < refData_building_timeout_minutes) {
+    ### somebody else builds and we wait
+    Sys.sleep(60)
+    i <- i + 1
+  }
+  if (file.exists(lockFile)) {
+    stop(paste("reference building still in progress after", refData_building_timeout_minutes, "min"))
+  }
+  cached_curated_ref_data <- sub(".lock$", "-curated.qsd", lockFile)
+  
+  if (file.exists(cached_curated_ref_data)) {
+    scRef <- qs::qread(cached_curated_ref_data)
+    return(scRef)
+  }
+  
+  ezWrite(Sys.info(), con = lockFile)
+  on.exit(file.remove(lockFile), add = TRUE)
+  
   
   ## get the unharmonised meta data
   metadata <- get_metadata(cache_directory = cached_dir)
@@ -246,7 +246,9 @@ buildCuratedCellxGeneRef <- function(ref_dataset_id, cached_dir=cache_dir, cell_
   seurat.combined.sct <- IntegrateData(anchorset = anchors, normalization.method = "SCT", dims = 1:30)
   
   seurat.combined.sct <- RunPCA(seurat.combined.sct, verbose = FALSE)
-  seurat.combined.sct <- RunUMAP(seurat.combined.sct, reduction = "pca", dims = 1:30)
-  return(seurat.combined.sct)
+  scRef <- RunUMAP(seurat.combined.sct, reduction = "pca", dims = 1:30)
+  qs::qsave(scRef,cached_curated_ref_data)
+  
+  return(scRef)
 }
 
