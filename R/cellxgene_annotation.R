@@ -32,6 +32,7 @@ cellxgene_annotation <- function(scData, param) {
   
   
   ### StandardizeGeneSymbols
+  ## TODO: Can we always assume the homo sapiens version???
   scData <- StandardizeGeneSymbols(scData, slots = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
   
   # ## Do I need to do SCTransform here? or the scData has alrady done by SCTransform?  No, don't need to .
@@ -83,47 +84,39 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author)
   
   ## get the unharmonised meta data
   metadata <- get_metadata(cache_directory = cache_dir)
-  curated_single_cell_experiment_object <- metadata |>
+  filtered_metadata <- metadata |>
     dplyr::filter(
-      dataset_id  == param$cellxgene
+      dataset_id  == ref_dataset_id
     ) 
-  
-  print("The meta data of the data set:")
-  print(curated_single_cell_experiment_object)
-  
-  
-  ### check whether get a proper metadata
-  if (is.null(head(dplyr::pull(.data = curated_single_cell_experiment_object, var = 1),1))) {
-    stop("Failed to get unharmonised metadata. Please select a correct data set id. Please be noticed that do not select from collections.")
+  nCells <- filtered_metadata %>% pull(file_id) %>% length() 
+  if(nCells == 0){
+    stop(paste("no cells found for dataset: ", ref_dataset_id))
   }
-  
-  unharmonised_metadata <- get_unharmonised_metadata(curated_single_cell_experiment_object, cache_directory=cache_dir)
+
+  unharmonised_metadata <- get_unharmonised_metadata(filtered_metadata, cache_directory=cache_dir)
   
   ### get the author version cell labels
-  dplyr::pull(unharmonised_metadata) |> head(2)
+  #dplyr::pull(unharmonised_metadata) |> head(2)
   df <- unharmonised_metadata$unharmonised[[1]]
-  ### check whether this dataset have the donor_id column
-  donor_id_exists <- if ("donor_id" %in% colnames(df)) TRUE else FALSE
-  if (donor_id_exists) {
-    df2 <- df |> 
-      dplyr::select(cell_, cell_label_author, donor_id) |> 
-      collect()
-  }else{
-    df2 <- df |> 
-      dplyr::select(cell_, cell_label_author) |> 
-      collect() |> 
-      mutate(sample_id = str_extract(cell_, "-\\d+$") %>% str_remove("-"))
+  ### use the donor id if it exists, if not extract it from the sample id
+  if (!"donor_id" %in% colnames(df)){
+    df$foo <- df |> mutate(sample_id = str_extract(cell_, "-\\d+$") %>% str_remove("-"))
   }
-  
+  df2 <- df |> 
+    dplyr::select(cell_, all_of(cell_label_author)) |> 
+    collect()
+  donor_id_exists <- "donor_id" %in% colnames(df)
+  if (donor_id_exists) {
+    df2$donor_id <- df |> dplyr::select(donor_id) %>% pull()
+  } else {
+    df2 <- df2 %>% mutate(donor_id = str_extract(cell_, "-\\d+$") %>% str_remove("-"))
+  }
+
   
   ## get the processed ref data
   ### Download panceas dataset, ref one
   
-  curated_seurat_object <- metadata |>
-    dplyr::filter(
-      dataset_id == ref_dataset_id
-    ) |>
-    get_seurat()
+  curated_seurat_object <- get_seurat(filtered_metadata)
   ### Standardize the ref dataset gene symbols with STACAS
   curated_seurat_object <- StandardizeGeneSymbols(curated_seurat_object,slots = c("counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
   ### merge unharmonised meta data with seurat object
@@ -136,12 +129,8 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author)
   ## Downsample reference dataset
   ### split the object by sample
   curated_seurat_object[["RNA"]] <- curated_seurat_object[["originalexp"]]
-  if(donor_id_exists){
-    curated_seurat_object.list <- SplitObject(curated_seurat_object, split.by = "donor_id")
-  }else{
-    curated_seurat_object.list <- SplitObject(curated_seurat_object, split.by = "sample_id")
-  }
-  
+  curated_seurat_object.list <- SplitObject(curated_seurat_object, split.by = "donor_id")
+
   
   print("The info of the ref seurat object:")
   print(head(curated_seurat_object@meta.data))
