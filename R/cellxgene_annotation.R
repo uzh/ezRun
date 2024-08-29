@@ -28,7 +28,7 @@ cellxgene_annotation <- function(scData, param) {
   
   
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
-  scRef <- getCuratedCellxGeneRef(param$cellxgene, cached_dir=cache_dir, cell_label_author = param$column_name_of_cell_label)
+  scRef <- getCuratedCellxGeneRef(param$cellxgene, cache_dir=cache_dir, cell_label_author = param$column_name_of_cell_label)
   
   
   ### StandardizeGeneSymbols
@@ -56,7 +56,7 @@ cellxgene_annotation <- function(scData, param) {
 
   
   
-getCuratedCellxGeneRef <- function(ref_dataset_id, cached_dir=cache_dir, cell_label_author){
+getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author){
 
   lockFile <- paste0(cache_dir, "/", ref_dataset_id, "__", cell_label_author, ".lock")
   refData_building_timeout_minutes <- 120
@@ -82,7 +82,7 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cached_dir=cache_dir, cell_la
   
   
   ## get the unharmonised meta data
-  metadata <- get_metadata(cache_directory = cached_dir)
+  metadata <- get_metadata(cache_directory = cache_dir)
   curated_single_cell_experiment_object <- metadata |>
     dplyr::filter(
       dataset_id  == param$cellxgene
@@ -97,7 +97,7 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cached_dir=cache_dir, cell_la
     stop("Failed to get unharmonised metadata. Please select a correct data set id. Please be noticed that do not select from collections.")
   }
   
-  unharmonised_metadata <- get_unharmonised_metadata(curated_single_cell_experiment_object, cache_directory=cached_dir)
+  unharmonised_metadata <- get_unharmonised_metadata(curated_single_cell_experiment_object, cache_directory=cache_dir)
   
   ### get the author version cell labels
   dplyr::pull(unharmonised_metadata) |> head(2)
