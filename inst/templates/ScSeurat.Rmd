@@ -502,7 +502,7 @@ enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall,
 enrichrTable <- tibble(Cluster=names(genesPerCluster),
                          "# of posMarkers"=lengths(genesPerCluster),
                          "Enrichr link"=enrichrCalls)
-if (!is.null(enrichRout)){
+if (!is.null(enrichRout) && length(enrichRout) > 0){
   enrichRTerm <- as.data.frame(do.call(rbind, lapply(enrichRout, as.vector)))
   enrichRTerm <- map_df(enrichRTerm, ~ map_df(.x, ~ replace(.x, is.null(.x), NA)), .id = "database")
   enrichRTerm <- enrichRTerm %>%
