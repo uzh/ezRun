@@ -452,8 +452,6 @@ getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
   
   # run cellxgene_annotation
   if (ezIsSpecified(param$cellxgene) && ezIsSpecified(param$column_name_of_cell_label)){
-    environment(MyDietSeurat) <- asNamespace('Seurat')
-    assignInNamespace("DietSeurat", MyDietSeurat, ns = "Seurat")
     cellxgeneResults <- cellxgene_annotation(scData = scData,param = param)
     
   }else {

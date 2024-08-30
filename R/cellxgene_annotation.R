@@ -28,7 +28,8 @@ cellxgene_annotation <- function(scData, param) {
   
   
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
-  scRef <- getCuratedCellxGeneRef(param$cellxgene, cache_dir=cache_dir, cell_label_author = param$column_name_of_cell_label)
+  cell_label_author = param$column_name_of_cell_label
+  scRef <- getCuratedCellxGeneRef(param$cellxgene, cache_dir=cache_dir, cell_label_author = cell_label_author)
   
   
   ### StandardizeGeneSymbols
@@ -132,8 +133,8 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author)
   curated_seurat_object.list <- SplitObject(curated_seurat_object, split.by = "donor_id")
 
   
-  print("The info of the ref seurat object:")
-  print(head(curated_seurat_object@meta.data))
+  #print("The info of the ref seurat object:")
+  #print(head(curated_seurat_object@meta.data))
   
   rm(curated_seurat_object)
   
@@ -152,8 +153,8 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author)
   # delete sample with cell number smaller than 500
   curated_seurat_object.list <- curated_seurat_object.list[sapply(curated_seurat_object.list, function(x) ncol(x) >= 500)]
   
-  print("The info of the ref seurat object.list :")
-  print(head(curated_seurat_object.list[[1]]@meta.data))
+  #print("The info of the ref seurat object.list :")
+  #print(head(curated_seurat_object.list[[1]]@meta.data))
   print("The column name of author's cell labels:")
   print(cell_label_author)
   print("Whether this column is in the ref data set:")
