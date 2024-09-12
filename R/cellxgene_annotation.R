@@ -11,10 +11,6 @@ cellxgene_annotation <- function(scData, param) {
   }
   # run cellxgene_annotation
   
-  library(duckplyr)
-  library(CuratedAtlasQueryR)
-  library(SingleCellExperiment)
-  #library(rlang)
   library(Seurat)
   library(sctransform)
   library(qs)
@@ -23,6 +19,7 @@ cellxgene_annotation <- function(scData, param) {
   library(SeuratData)
   library(ggplot2)
   library(stringr)
+  library(httr)
   #library(glmGamPoi)
   
   
@@ -60,7 +57,7 @@ cellxgene_annotation <- function(scData, param) {
   
 getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author){
 
-  lockFile <- paste0(cache_dir, "/", ref_dataset_id, "__", cell_label_author, ".lock")
+  lockFile <- paste0(cache_dir, "/", gsub("\\.rds$", "", basename(url)), "__", cell_label_author, ".lock")
   refData_building_timeout_minutes <- 120
   
   i <- 0
@@ -72,7 +69,7 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author)
   if (file.exists(lockFile)) {
     stop(paste("reference building still in progress after", refData_building_timeout_minutes, "min"))
   }
-  cached_curated_ref_data <- sub(".lock$", "-curated.qsd", lockFile)
+  cached_curated_ref_data <- sub(".lock$", "-curated.qds", lockFile)
   
   if (file.exists(cached_curated_ref_data)) {
     scRef <- qs::qread(cached_curated_ref_data)
@@ -83,39 +80,31 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author)
   on.exit(file.remove(lockFile), add = TRUE)
   
   
-  ## get the unharmonised meta data
-  metadata <- get_metadata(cache_directory = cache_dir)
-  filtered_metadata <- metadata |>
-    dplyr::filter(
-      dataset_id  == ref_dataset_id
-    ) 
-  nCells <- filtered_metadata %>% pull(file_id) %>% length() 
-  if(nCells == 0){
-    stop(paste("no cells found for dataset: ", ref_dataset_id))
-  }
-
-  unharmonised_metadata <- get_unharmonised_metadata(filtered_metadata, cache_directory=cache_dir)
-  
-  ### get the author version cell labels
-  #dplyr::pull(unharmonised_metadata) |> head(2)
-  df <- unharmonised_metadata$unharmonised[[1]]
-  ### use the donor id if it exists, if not extract it from the sample id
-  if (!"donor_id" %in% colnames(df)){
-    df$foo <- df |> mutate(sample_id = str_extract(cell_, "-\\d+$") %>% str_remove("-"))
-  }
-  df2 <- df |> 
-    dplyr::select(cell_, all_of(cell_label_author)) |> 
-    collect()
-  donor_id_exists <- "donor_id" %in% colnames(df)
-  if (donor_id_exists) {
-    df2$donor_id <- df |> dplyr::select(donor_id) %>% pull()
-  } else {
-    df2 <- df2 %>% mutate(donor_id = str_extract(cell_, "-\\d+$") %>% str_remove("-"))
-  }
-
   
   ## get the processed ref data
   ### Download panceas dataset, ref one
+  
+  timeout_sec <- 3600
+  tmp_download_ref <- paste0(cache_dir, "/", basename(ref_dataset_id))
+  response <- httr::GET(url, write_disk(tmp_download_ref, overwrite = TRUE), timeout(timeout_sec))
+  if (http_status(response)$category == "Success") {
+    cat("Download completed successfully.\n")
+  } else {
+    cat("Download failed. Status code:", http_status(response)$status, "\n")
+  }
+  pancreas_seurat_object <- readRDS(tmp_download_ref)
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   curated_seurat_object <- get_seurat(filtered_metadata)
   ### Standardize the ref dataset gene symbols with STACAS
@@ -238,6 +227,14 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author)
   seurat.combined.sct <- RunPCA(seurat.combined.sct, verbose = FALSE)
   scRef <- RunUMAP(seurat.combined.sct, reduction = "pca", dims = 1:30)
   qs::qsave(scRef,cached_curated_ref_data)
+  
+  
+  # Delete tmp_download_ref
+  if (file.exists(tmp_download_ref)) {
+    file.remove(tmp_download_ref)
+    cat("Temporary downloading file deleted.\n")
+  }
+  
   
   return(scRef)
 }
