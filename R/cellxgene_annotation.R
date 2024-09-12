@@ -1,11 +1,26 @@
 
+# ezIsSpecified = function(x){
+#   !is.null(x) && length(x) > 0 && x[1] != "" && !is.na(x[1]) && x[1] != "NA"
+# }
+# 
+# ezWrite = function(..., sep="", collapse=" ", con=stdout()){
+#   args = list(...)  ## see function message
+#   #args = sapply(args, print)# as.character)
+#   text = paste(sapply(args, paste, collapse=collapse), collapse=sep)
+#   writeLines(text, con=con)
+# }
+# 
+# 
+# param <- list(cellxgene ='https://datasets.cellxgene.cziscience.com/466bbbb6-1fc1-418a-aec4-a26e6753504c.rds', column_name_of_cell_label = 'Manually_curated_celltype', refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_42-2023-01-30')
+# param.test.2 <- list(cellxgene ='https://datasets.cellxgene.cziscience.com/d39144df-fa59-4b63-b07b-9b34613b5c84.rds', column_name_of_cell_label = 'Manually_curated_celltype',refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_42-2023-01-30')
+# system.time({scData <- UpdateSeuratObject(LoadData("pbmc3k"))})
+# test.result <- cellxgene_annotation(scData = scData, param = param)
+
+
+
 cellxgene_annotation <- function(scData, param) {
   
-  # param <- list(cellxgene ='71be997d-ff75-41b9-8a9f-1288c865f921', column_name_of_cell_label = 'Manually_curated_celltype')
-  # # ##param.test.2 <- list(cellxgene ='37b21763-7f0f-41ae-9001-60bad6e2841d', column_name_of_cell_label = 'Manually_curated_celltype')
-  # system.time({scData <- UpdateSeuratObject(LoadData("pbmc3k"))})
-  # test.result <- cellxgene_annotation(scData = scData, param = param)
-  
+
   if (!ezIsSpecified(param$cellxgene) || !ezIsSpecified(param$column_name_of_cell_label)){
     return(NULL)
   }
@@ -16,6 +31,7 @@ cellxgene_annotation <- function(scData, param) {
   library(qs)
   library(STACAS)
   data(EnsemblGeneTable.Hs)
+  data(EnsemblGeneTable.Mm)
   library(SeuratData)
   library(ggplot2)
   library(stringr)
@@ -25,13 +41,24 @@ cellxgene_annotation <- function(scData, param) {
   
   
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
+  #cache_dir = "/scratch/yang/tmp"
   cell_label_author = param$column_name_of_cell_label
-  scRef <- getCuratedCellxGeneRef(param$cellxgene, cache_dir=cache_dir, cell_label_author = cell_label_author)
+  species <- sub("/.*", "", param$refBuild)
+  
+
+  scRef <- getCuratedCellxGeneRef(param$cellxgene, cache_dir=cache_dir, cell_label_author = cell_label_author, species = species)
   
   
   ### StandardizeGeneSymbols
-  ## TODO: Can we always assume the homo sapiens version???
-  scData <- StandardizeGeneSymbols(scData, slots = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
+  if( species == "Homo_sapiens" ){
+    scData <- StandardizeGeneSymbols(scData, slots = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
+  }else if(species == "Mus_musculus"){
+    scData <- StandardizeGeneSymbols(scData, slots = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Mm)
+  }else{
+    stop("We only support mouse and human dataset for using cellxgene annotation")
+  }
+  
+  
   
   # ## Do I need to do SCTransform here? or the scData has alrady done by SCTransform?  No, don't need to .
   # scData <- SCTransform(scData)
@@ -55,9 +82,9 @@ cellxgene_annotation <- function(scData, param) {
 
   
   
-getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author){
+getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author, species){
 
-  lockFile <- paste0(cache_dir, "/", gsub("\\.rds$", "", basename(url)), "__", cell_label_author, ".lock")
+  lockFile <- paste0(cache_dir, "/", gsub("\\.rds$", "", basename(ref_dataset_id)), "__", cell_label_author, ".lock")
   refData_building_timeout_minutes <- 120
   
   i <- 0
@@ -86,39 +113,28 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author)
   
   timeout_sec <- 3600
   tmp_download_ref <- paste0(cache_dir, "/", basename(ref_dataset_id))
-  response <- httr::GET(url, write_disk(tmp_download_ref, overwrite = TRUE), timeout(timeout_sec))
+  response <- httr::GET(ref_dataset_id, write_disk(tmp_download_ref, overwrite = TRUE), timeout(timeout_sec))
   if (http_status(response)$category == "Success") {
     cat("Download completed successfully.\n")
   } else {
     cat("Download failed. Status code:", http_status(response)$status, "\n")
   }
-  pancreas_seurat_object <- readRDS(tmp_download_ref)
-  
+  curated_seurat_object <- readRDS(tmp_download_ref)
   
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  curated_seurat_object <- get_seurat(filtered_metadata)
+
   ### Standardize the ref dataset gene symbols with STACAS
-  curated_seurat_object <- StandardizeGeneSymbols(curated_seurat_object,slots = c("counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
-  ### merge unharmonised meta data with seurat object
-  metadata <- curated_seurat_object@meta.data
-  metadata2 <- metadata %>%
-    left_join(df2, by = c("original_cell_id" = "cell_"))
-  rownames(metadata2) <- rownames(metadata)
-  curated_seurat_object@meta.data <- metadata2
+  if( species == "Homo_sapiens" ){
+    curated_seurat_object <- StandardizeGeneSymbols(curated_seurat_object,slots = c("counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
+  }else if(species == "Mus_musculus"){
+    curated_seurat_object <- StandardizeGeneSymbols(curated_seurat_object,slots = c("counts"), EnsemblGeneTable = EnsemblGeneTable.Mm)
+  }else{
+    stop("We only support mouse and human dataset for using cellxgene annotation")
+  }
+  
   
   ## Downsample reference dataset
-  ### split the object by sample
-  curated_seurat_object[["RNA"]] <- curated_seurat_object[["originalexp"]]
+  ### split the object by donor_id
   curated_seurat_object.list <- SplitObject(curated_seurat_object, split.by = "donor_id")
 
   
@@ -127,7 +143,7 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author)
   
   rm(curated_seurat_object)
   
-  ### choose the 10 biggest sample (test 15 samples and crushed)
+  ### choose the 10 biggest sample 
   # calculate cell number of every sample
   cell_counts <- sapply(curated_seurat_object.list, ncol)
   print("Cell number of every sample:")
