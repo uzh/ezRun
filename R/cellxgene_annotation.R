@@ -146,8 +146,11 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   ### choose the 10 biggest sample 
   # calculate cell number of every sample
   cell_counts <- sapply(curated_seurat_object.list, ncol)
-  print("Cell number of every sample:")
+  print("Cell number of every donor:")
   print(cell_counts)
+  if (!any(cell_counts > 500)) {
+    stop("Please choose a sample with a high enough number of cells, at least one donor_id with more than 500 cells.")
+  }
   # number of samples need to be selected
   num_samples_to_select <- min(length(cell_counts), 10)
   
