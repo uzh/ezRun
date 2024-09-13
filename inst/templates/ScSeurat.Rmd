@@ -509,9 +509,12 @@ if (!is.null(enrichRout) && length(enrichRout) > 0){
     group_by(., Cluster, database) %>%
     summarise(topTerms = paste(Term, collapse = "; ")) %>%
     as.data.frame()
-  enrichRTerm <- dcast(enrichRTerm, ... ~ database)
-  enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
+  if(nrow(enrichRTerm)>0){
+    enrichRTerm <- dcast(enrichRTerm, ... ~ database)
+    enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
+  }
 }
+
 kable(enrichrTable, format="html", escape=FALSE,
         caption=paste0("GeneSet enrichment")) %>%
 kable_styling("striped", full_width = F, position = "left")
