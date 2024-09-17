@@ -711,6 +711,8 @@ DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, redu
 options(ggrepel.max.overlaps = Inf)
 n_celltype <- length(unique(scData$predicted.id.cellxgene.authorlabel))
 sample_name <- names(scData)
+Print("The URL of the reference data is ")
+Print(param$cellxgene)
 ## dimplot of prediction.id.cellxgene.authorlabel
 colz <- rep(DiscretePalette(n = n_celltype , palette = "alphabet2"), 5)
 DimPlot(scData, label = TRUE, repel = TRUE, group.by = 'predicted.id.cellxgene.authorlabel', cols = colz) + 
