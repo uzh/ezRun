@@ -1,4 +1,4 @@
-
+# 
 # ezIsSpecified = function(x){
 #   !is.null(x) && length(x) > 0 && x[1] != "" && !is.na(x[1]) && x[1] != "NA"
 # }
@@ -11,12 +11,15 @@
 # }
 # 
 # 
-# param <- list(cellxgene ='https://datasets.cellxgene.cziscience.com/466bbbb6-1fc1-418a-aec4-a26e6753504c.rds', column_name_of_cell_label = 'Manually_curated_celltype', refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_42-2023-01-30')
-# param.test.2 <- list(cellxgene ='https://datasets.cellxgene.cziscience.com/d39144df-fa59-4b63-b07b-9b34613b5c84.rds', column_name_of_cell_label = 'Manually_curated_celltype',refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_42-2023-01-30')
+# param <- list(cellxgene ='https://datasets.cellxgene.cziscience.com/99dc51ce-83ae-4f1f-ae3c-89f3509168fc.rds', column_name_of_cell_label = 'BICCN_subclass_label')
+# #param.test.2 <- list(cellxgene ='https://datasets.cellxgene.cziscience.com/d39144df-fa59-4b63-b07b-9b34613b5c84.rds', column_name_of_cell_label = 'Manually_curated_celltype',refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_42-2023-01-30')
 # system.time({scData <- UpdateSeuratObject(LoadData("pbmc3k"))})
 # test.result <- cellxgene_annotation(scData = scData, param = param)
-
-
+# 
+# cache_dir = "/scratch/yang/tmp"
+# data(EnsemblGeneTable.Mm)
+# scRef <- getCuratedCellxGeneRef(param$cellxgene, cache_dir=cache_dir, cell_label_author = param$column_name_of_cell_label, species = 'Mus_musculus')
+# 
 
 cellxgene_annotation <- function(scData, param) {
   
@@ -38,16 +41,13 @@ cellxgene_annotation <- function(scData, param) {
   library(httr)
   #library(glmGamPoi)
   
-  
-  
+
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
   #cache_dir = "/scratch/yang/tmp"
   cell_label_author = param$column_name_of_cell_label
   species <- sub("/.*", "", param$refBuild)
   
-
   scRef <- getCuratedCellxGeneRef(param$cellxgene, cache_dir=cache_dir, cell_label_author = cell_label_author, species = species)
-  
   
   ### StandardizeGeneSymbols
   if( species == "Homo_sapiens" ){
@@ -57,11 +57,6 @@ cellxgene_annotation <- function(scData, param) {
   }else{
     stop("We only support mouse and human dataset for using cellxgene annotation")
   }
-  
-  
-  
-  # ## Do I need to do SCTransform here? or the scData has alrady done by SCTransform?  No, don't need to .
-  # scData <- SCTransform(scData)
   
   ## mapping
   scData.anchors <- FindTransferAnchors(reference = scRef, query = scData, dims = 1:30,
@@ -135,8 +130,8 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   
   ## Downsample reference dataset
   ### split the object by donor_id
-  curated_seurat_object.list <- SplitObject(curated_seurat_object, split.by = "donor_id")
 
+  curated_seurat_object.list <- SplitObject(curated_seurat_object, split.by = "donor_id")
   
   #print("The info of the ref seurat object:")
   #print(head(curated_seurat_object@meta.data))
@@ -233,19 +228,35 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
     
   })
   
+  
+  
+  
   ### Performing integration on datasets normalized with SCTransform
   curated_seurat_object.list <- lapply(X = curated_seurat_object.list, FUN = SCTransform, method = "glmGamPoi")
-  features <- SelectIntegrationFeatures(object.list = curated_seurat_object.list, nfeatures = 3000)
+  features <- SelectIntegrationFeatures(object.list = curated_seurat_object.list, nfeatures = 2000)
   curated_seurat_object.list <- PrepSCTIntegration(object.list = curated_seurat_object.list, anchor.features = features)
   curated_seurat_object.list <- lapply(X = curated_seurat_object.list, FUN = RunPCA, features = features)
   
-  anchors <- FindIntegrationAnchors(object.list = curated_seurat_object.list, normalization.method = "SCT",
-                                    anchor.features = features, dims = 1:30, reduction = "rpca", k.anchor = 20)
-  seurat.combined.sct <- IntegrateData(anchorset = anchors, normalization.method = "SCT", dims = 1:30)
   
-  seurat.combined.sct <- RunPCA(seurat.combined.sct, verbose = FALSE)
-  scRef <- RunUMAP(seurat.combined.sct, reduction = "pca", dims = 1:30)
-  qs::qsave(scRef,cached_curated_ref_data)
+  
+  
+  if ( length(curated_seurat_object.list) > 1){
+    anchors <- FindIntegrationAnchors(object.list = curated_seurat_object.list, normalization.method = "SCT",
+                                      anchor.features = features, dims = 1:30, reduction = "rpca", k.anchor = 20)
+    
+    seurat.combined.sct <- IntegrateData(anchorset = anchors, normalization.method = "SCT", dims = 1:30)
+    
+    seurat.combined.sct <- RunPCA(seurat.combined.sct, verbose = FALSE)
+    scRef <- RunUMAP(seurat.combined.sct, reduction = "pca", dims = 1:30)
+    qs::qsave(scRef,cached_curated_ref_data)
+  } else {
+    # If there is only one element in the list(only one donor)
+    scRef <- curated_seurat_object.list[[1]]
+    scRef <- RunPCA(scRef, verbose = FALSE)
+    scRef <- RunUMAP(scRef, reduction = "pca", dims = 1:30)
+    qs::qsave(scRef,cached_curated_ref_data)
+  }
+
   
   
   # Delete tmp_download_ref
