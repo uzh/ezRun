@@ -24,7 +24,8 @@
 cellxgene_annotation <- function(scData, param) {
   
 
-  if (!ezIsSpecified(param$cellxgene) || !ezIsSpecified(param$column_name_of_cell_label)){
+  if (!ezIsSpecified(param$cellxgene_URL) || !ezIsSpecified(param$cellxgene_column_name_of_cell_label
+)){
     return(NULL)
   }
   # run cellxgene_annotation
@@ -44,10 +45,10 @@ cellxgene_annotation <- function(scData, param) {
 
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
   #cache_dir = "/scratch/yang/tmp"
-  cell_label_author = param$column_name_of_cell_label
+  cell_label_author = param$cellxgene_column_name_of_cell_label
   species <- sub("/.*", "", param$refBuild)
   
-  scRef <- getCuratedCellxGeneRef(param$cellxgene, cache_dir=cache_dir, cell_label_author = cell_label_author, species = species)
+  scRef <- getCuratedCellxGeneRef(param$cellxgene_URL, cache_dir=cache_dir, cell_label_author = cell_label_author, species = species)
   
   ### StandardizeGeneSymbols
   if( species == "Homo_sapiens" ){
