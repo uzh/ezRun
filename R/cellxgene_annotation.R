@@ -115,6 +115,7 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
     cat("Download failed. Status code:", http_status(response)$status, "\n")
   }
   curated_seurat_object <- readRDS(tmp_download_ref)
+  file.remove(tmp_download_ref)
   
 
 
@@ -257,15 +258,7 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
     qs::qsave(scRef,cached_curated_ref_data)
   }
 
-  
-  
-  # Delete tmp_download_ref
-  if (file.exists(tmp_download_ref)) {
-    file.remove(tmp_download_ref)
-    cat("Temporary downloading file deleted.\n")
-  }
-  
-  
+
   return(scRef)
 }
 
