@@ -714,8 +714,8 @@ DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, redu
 options(ggrepel.max.overlaps = Inf)
 n_celltype <- length(unique(scData$predicted.id.cellxgene.authorlabel))
 sample_name <- names(scData)
-Print("The URL of the reference data is:")
-Print(param$cellxgene)
+print("The URL of the reference data is:")
+print(param$cellxgene)
 
 ## get the DOI
 d = datasets()
