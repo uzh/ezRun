@@ -91,7 +91,7 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   if (file.exists(lockFile)) {
     stop(paste("reference building still in progress after", refData_building_timeout_minutes, "min"))
   }
-  cached_curated_ref_data <- sub(".lock$", "-curated.qds", lockFile)
+  cached_curated_ref_data <- sub(".lock$", "-curated.qsd", lockFile)
   
   if (file.exists(cached_curated_ref_data)) {
     scRef <- qs::qread(cached_curated_ref_data)
