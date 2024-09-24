@@ -715,12 +715,11 @@ options(ggrepel.max.overlaps = Inf)
 n_celltype <- length(unique(scData$predicted.id.cellxgene.authorlabel))
 sample_name <- names(scData)
 print("The URL of the reference data is:")
-print(param$cellxgene)
-
+print(param$cellxgene_URL)
 ## get the DOI
 d = datasets()
 c = collections()
-dataset_version_id_URL <- gsub("\\.rds$", "", basename(param$cellxgene))
+dataset_version_id_URL <- gsub("\\.rds$", "", basename(param$cellxgene_URL))
 collection_id_URL <- as.character(d |> filter(dataset_version_id == dataset_version_id_URL) |> 
     select(collection_id))
 DOI <- c |> filter(collection_id == collection_id_URL) |> select(doi)
