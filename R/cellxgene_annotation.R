@@ -10,7 +10,6 @@
 #   writeLines(text, con=con)
 # }
 # 
-# 
 # param <- list(cellxgene ='https://datasets.cellxgene.cziscience.com/99dc51ce-83ae-4f1f-ae3c-89f3509168fc.rds', column_name_of_cell_label = 'BICCN_subclass_label')
 # #param.test.2 <- list(cellxgene ='https://datasets.cellxgene.cziscience.com/d39144df-fa59-4b63-b07b-9b34613b5c84.rds', column_name_of_cell_label = 'Manually_curated_celltype',refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_42-2023-01-30')
 # system.time({scData <- UpdateSeuratObject(LoadData("pbmc3k"))})
@@ -19,7 +18,6 @@
 # cache_dir = "/scratch/yang/tmp"
 # data(EnsemblGeneTable.Mm)
 # scRef <- getCuratedCellxGeneRef(param$cellxgene, cache_dir=cache_dir, cell_label_author = param$column_name_of_cell_label, species = 'Mus_musculus')
-# 
 
 cellxgene_annotation <- function(scData, param) {
   
