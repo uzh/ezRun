@@ -10,6 +10,7 @@
 #   writeLines(text, con=con)
 # }
 # 
+#
 # param <- list(cellxgene ='https://datasets.cellxgene.cziscience.com/99dc51ce-83ae-4f1f-ae3c-89f3509168fc.rds', column_name_of_cell_label = 'BICCN_subclass_label')
 # #param.test.2 <- list(cellxgene ='https://datasets.cellxgene.cziscience.com/d39144df-fa59-4b63-b07b-9b34613b5c84.rds', column_name_of_cell_label = 'Manually_curated_celltype',refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_42-2023-01-30')
 # system.time({scData <- UpdateSeuratObject(LoadData("pbmc3k"))})
@@ -39,7 +40,6 @@ cellxgene_annotation <- function(scData, param) {
   library(stringr)
   library(httr)
   #library(glmGamPoi)
-  
 
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
   #cache_dir = "/scratch/yang/tmp"
@@ -100,8 +100,6 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   ezWrite(Sys.info(), con = lockFile)
   on.exit(file.remove(lockFile), add = TRUE)
   
-  
-  
   ## get the processed ref data
   ### Download panceas dataset, ref one
   
@@ -116,7 +114,6 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   curated_seurat_object <- readRDS(tmp_download_ref)
   file.remove(tmp_download_ref)
   
-
 
   ### Standardize the ref dataset gene symbols with STACAS
   if( species == "Homo_sapiens" ){
@@ -133,8 +130,6 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
 
   curated_seurat_object.list <- SplitObject(curated_seurat_object, split.by = "donor_id")
   
-  #print("The info of the ref seurat object:")
-  #print(head(curated_seurat_object@meta.data))
   
   rm(curated_seurat_object)
   
@@ -256,8 +251,6 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
     scRef <- RunUMAP(scRef, reduction = "pca", dims = 1:30)
     qs::qsave(scRef,cached_curated_ref_data)
   }
-
-
   return(scRef)
 }
 
