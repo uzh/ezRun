@@ -10,11 +10,11 @@
 #   writeLines(text, con=con)
 # }
 # 
-#
-# param <- list(cellxgene ='https://datasets.cellxgene.cziscience.com/99dc51ce-83ae-4f1f-ae3c-89f3509168fc.rds', column_name_of_cell_label = 'BICCN_subclass_label')
-# #param.test.2 <- list(cellxgene ='https://datasets.cellxgene.cziscience.com/d39144df-fa59-4b63-b07b-9b34613b5c84.rds', column_name_of_cell_label = 'Manually_curated_celltype',refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_42-2023-01-30')
+# 
+# # The data set https://cellxgene.cziscience.com/e/37b21763-7f0f-41ae-9001-60bad6e2841d.cxg/
+# param.test.2 <- list(cellxgeneUrl ='https://datasets.cellxgene.cziscience.com/d39144df-fa59-4b63-b07b-9b34613b5c84.rds', cellxgeneLabel = 'cell_label',refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_42-2023-01-30')
 # system.time({scData <- UpdateSeuratObject(LoadData("pbmc3k"))})
-# test.result <- cellxgene_annotation(scData = scData, param = param)
+# test.result <- cellxgene_annotation(scData = scData, param = param.test.2 )
 # 
 # cache_dir = "/scratch/yang/tmp"
 # data(EnsemblGeneTable.Mm)
@@ -39,6 +39,7 @@ cellxgene_annotation <- function(scData, param) {
   library(ggplot2)
   library(stringr)
   library(httr)
+  library(harmony)
   #library(glmGamPoi)
 
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
@@ -58,8 +59,14 @@ cellxgene_annotation <- function(scData, param) {
   }
   
   ## mapping
-  scData.anchors <- FindTransferAnchors(reference = scRef, query = scData, dims = 1:30,
-                                        reference.reduction = "harmony2", normalization.method = "SCT" )
+  if ("harmony2" %in% names(scRef@reductions)) {
+    scData.anchors <- FindTransferAnchors(reference = scRef, query = scData, dims = 1:30,
+                                          reference.reduction = "harmony2", normalization.method = "SCT" )
+  } else{
+    scData.anchors <- FindTransferAnchors(reference = scRef, query = scData, dims = 1:30,
+                                          reference.reduction = "pca", normalization.method = "SCT" )
+  }
+
   
   if (!cell_label_author %in% colnames(scRef@meta.data)) {
     stop("The specified column name for cell labels does not exist in the reference object's metadata.")
@@ -256,14 +263,21 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   scRef <- Reduce(function(x, y) merge(x, y), curated_seurat_object.list)
   scRef <- FindVariableFeatures(scRef, selection.method = "vst", nfeatures = 2000)
   scRef <- SCTransform(scRef,assay = "RNA", new.assay.name = "SCT")
+  
   scRef <- RunPCA(scRef, features = VariableFeatures(scRef))
-  scRef <- RunHarmony(scRef, "donor_id")
-  scRef <- RunUMAP(scRef, reduction = "harmony", dims = 1:30)
-  scRef[['harmony2']] <- CreateDimReducObject(embeddings = scRef[['harmony']]@cell.embeddings,
-                                                      key = "harmony2_", 
-                                                      loadings = scRef[['pca']]@feature.loadings, 
-                                                      assay = "RNA")
-  qs::qsave(scRef,cached_curated_ref_data)
+  if (length(unique(scRef$donor_id)) > 1){
+    scRef <- RunHarmony(scRef, "donor_id",assay.use="SCT")
+    scRef <- RunUMAP(scRef, reduction = "harmony", dims = 1:30)
+    scRef[['harmony2']] <- CreateDimReducObject(embeddings = scRef[['harmony']]@cell.embeddings,
+                                                key = "harmony2_", 
+                                                loadings = scRef[['pca']]@feature.loadings, 
+                                                assay = "RNA")
+    qs::qsave(scRef,cached_curated_ref_data)
+  } else{
+    scRef <- RunUMAP(scRef, reduction = "pca", dims = 1:30)
+    qs::qsave(scRef,cached_curated_ref_data)
+  }
+
   return(scRef)
   
 
