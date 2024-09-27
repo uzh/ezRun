@@ -451,7 +451,7 @@ getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
   
   
   # run cellxgene_annotation
-  if (ezIsSpecified(param$cellxgene) && ezIsSpecified(param$column_name_of_cell_label)){
+  if (ezIsSpecified(param$cellxgeneUrl) && ezIsSpecified(param$cellxgeneLabel)){
     cellxgeneResults <- cellxgene_annotation(scData = scData,param = param)
     
   }else {
