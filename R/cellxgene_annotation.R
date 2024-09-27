@@ -59,7 +59,7 @@ cellxgene_annotation <- function(scData, param) {
   
   ## mapping
   scData.anchors <- FindTransferAnchors(reference = scRef, query = scData, dims = 1:30,
-                                        reference.reduction = "pca", normalization.method = "SCT" )
+                                        reference.reduction = "harmony2", normalization.method = "SCT" )
   
   if (!cell_label_author %in% colnames(scRef@meta.data)) {
     stop("The specified column name for cell labels does not exist in the reference object's metadata.")
@@ -225,32 +225,47 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   
   
   
+  ## use the seurat way to do integration, but due to the huge cost of RAM change to use harmony method
   
-  ### Performing integration on datasets normalized with SCTransform
-  curated_seurat_object.list <- lapply(X = curated_seurat_object.list, FUN = SCTransform, method = "glmGamPoi")
-  features <- SelectIntegrationFeatures(object.list = curated_seurat_object.list, nfeatures = 2000)
-  curated_seurat_object.list <- PrepSCTIntegration(object.list = curated_seurat_object.list, anchor.features = features)
-  curated_seurat_object.list <- lapply(X = curated_seurat_object.list, FUN = RunPCA, features = features)
+  # ### Performing integration on datasets normalized with SCTransform
+  # curated_seurat_object.list <- lapply(X = curated_seurat_object.list, FUN = SCTransform, method = "glmGamPoi")
+  # features <- SelectIntegrationFeatures(object.list = curated_seurat_object.list, nfeatures = 2000)
+  # curated_seurat_object.list <- PrepSCTIntegration(object.list = curated_seurat_object.list, anchor.features = features)
+  # curated_seurat_object.list <- lapply(X = curated_seurat_object.list, FUN = RunPCA, features = features)
+  # 
+  # 
+  # 
+  # 
+  # if ( length(curated_seurat_object.list) > 1){
+  #   anchors <- FindIntegrationAnchors(object.list = curated_seurat_object.list, normalization.method = "SCT",
+  #                                     anchor.features = features, dims = 1:30, reduction = "rpca", k.anchor = 20)
+  #   
+  #   seurat.combined.sct <- IntegrateData(anchorset = anchors, normalization.method = "SCT", dims = 1:30)
+  #   
+  #   seurat.combined.sct <- RunPCA(seurat.combined.sct, verbose = FALSE)
+  #   scRef <- RunUMAP(seurat.combined.sct, reduction = "pca", dims = 1:30)
+  #   qs::qsave(scRef,cached_curated_ref_data)
+  # } else {
+  #   # If there is only one element in the list(only one donor)
+  #   scRef <- curated_seurat_object.list[[1]]
+  #   scRef <- RunPCA(scRef, verbose = FALSE)
+  #   scRef <- RunUMAP(scRef, reduction = "pca", dims = 1:30)
+  #   qs::qsave(scRef,cached_curated_ref_data)
+  # }
   
-  
-  
-  
-  if ( length(curated_seurat_object.list) > 1){
-    anchors <- FindIntegrationAnchors(object.list = curated_seurat_object.list, normalization.method = "SCT",
-                                      anchor.features = features, dims = 1:30, reduction = "rpca", k.anchor = 20)
-    
-    seurat.combined.sct <- IntegrateData(anchorset = anchors, normalization.method = "SCT", dims = 1:30)
-    
-    seurat.combined.sct <- RunPCA(seurat.combined.sct, verbose = FALSE)
-    scRef <- RunUMAP(seurat.combined.sct, reduction = "pca", dims = 1:30)
-    qs::qsave(scRef,cached_curated_ref_data)
-  } else {
-    # If there is only one element in the list(only one donor)
-    scRef <- curated_seurat_object.list[[1]]
-    scRef <- RunPCA(scRef, verbose = FALSE)
-    scRef <- RunUMAP(scRef, reduction = "pca", dims = 1:30)
-    qs::qsave(scRef,cached_curated_ref_data)
-  }
+  scRef <- Reduce(function(x, y) merge(x, y), curated_seurat_object.list)
+  scRef <- FindVariableFeatures(scRef, selection.method = "vst", nfeatures = 2000)
+  scRef <- SCTransform(scRef,assay = "RNA", new.assay.name = "SCT")
+  scRef <- RunPCA(scRef, features = VariableFeatures(scRef))
+  scRef <- RunHarmony(scRef, "donor_id")
+  scRef <- RunUMAP(scRef, reduction = "harmony", dims = 1:30)
+  scRef[['harmony2']] <- CreateDimReducObject(embeddings = scRef[['harmony']]@cell.embeddings,
+                                                      key = "harmony2_", 
+                                                      loadings = scRef[['pca']]@feature.loadings, 
+                                                      assay = "RNA")
+  qs::qsave(scRef,cached_curated_ref_data)
   return(scRef)
+  
+
 }
 
