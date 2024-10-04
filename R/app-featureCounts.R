@@ -11,13 +11,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
   require(rtracklayer)
   
   bamFile = input$getFullPaths("BAM")
-  cmd <- str_c(
-    method, "sort", "-l 9", "-m", maxMem, "-@", cores, inBam,
-    "-o", bam,
-    sep = " "
-  )
-  ezSystem(cmd)
-  
+
   if (param$paired){
     ## bamFile is by default sorted by coordinate
     ## featureCount needs paired-end data sorted by read id, but can't do it efficiently by itself
