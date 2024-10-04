@@ -18,9 +18,10 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
     ## sort by read id is not compatible with samtools index
     localBamFile <- basename(bamFile)
     stopifnot(!file.exists(localBamFile))
-    maxMegabyte <- str_c(floor(param$ram * 0.7 / param$cores * 1000), "M")
+    nSortCores <- min(param$cores, 4) ## use at most 4 cores to sort
+    maxMegabyte <- str_c(floor(param$ram * 0.7 / nSortCores * 1000), "M")
     cmd <- paste(
-      "samtools sort", "-n", "-m", maxMegabyte, "-@", param$cores, bamFile,
+      "samtools sort", "-n", "-m", maxMegabyte, "-@", nSortCores, bamFile,
       "-o", localBamFile,
       sep = " "
     )
