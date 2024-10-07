@@ -77,7 +77,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                                           fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
                                           primaryOnly=param$countPrimaryAlignmentsOnly,
                                           countChimericFragments=TRUE,
-                                          chrAliases=NULL,reportReads=NULL,autosort=FALSE)
+                                          chrAliases=NULL,reportReads=NULL)
   }else{
     ## Count exons by gene
     gtfFile = param$ezRef@refFeatureFile
@@ -160,7 +160,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                               fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
                               primaryOnly=param$countPrimaryAlignmentsOnly,
                               countChimericFragments=TRUE,chrAliases=NULL,
-                              reportReads=NULL,,autosort=FALSE)
+                              reportReads=NULL,)
   }
   
   colnames(countResult$counts) = "matchCounts"
