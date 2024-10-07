@@ -27,11 +27,11 @@ EzAppCellBender <-
 ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
     sampleName = input$getNames()
     setwdNew(sampleName)
-    cmDir <- input$getFullPaths("CountMatrix")
-    inputFile <- file.path(dirname(cmDir), 'raw_feature_bc_matrix.h5')
+    cmDir <- input$getFullPaths("UnfilteredCountMatrix")
+    inputFile <- paste0(cmDir,'.h5')
     if(!file.exists(inputFile)){
-        inputFile <- file.path(cmDir, 'raw_feature_bc_matrix.h5')
-    }
+        stop('RawCountMatrix missing! Unsupported InputFormat.')
+    } else
     cmd <- paste("cellbender remove-background",
     "--input", inputFile,
     "--output cellbender.h5")
