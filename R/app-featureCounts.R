@@ -160,7 +160,7 @@ ezMethodFeatureCounts = function(input=NA, output=NA, param=NA){
                               fraction=param$keepMultiHits & !param$countPrimaryAlignmentsOnly,
                               primaryOnly=param$countPrimaryAlignmentsOnly,
                               countChimericFragments=TRUE,chrAliases=NULL,
-                              reportReads=NULL,)
+                              reportReads=NULL)
   }
   
   colnames(countResult$counts) = "matchCounts"
