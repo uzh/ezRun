@@ -188,6 +188,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     cts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_filtered_seurat.h5'), use.names = FALSE)
     inputDS <- ezRead.table(file.path(dirname(dirname(cmDir)),'input_dataset.tsv'))
     cellrangerDir <- file.path(param$dataRoot,inputDS[input$getNames(),'CountMatrix [Link]'])
+    param[['cellrangerDir']] <- cellrangerDir
     featInfo <- ezRead.table(paste0(cellrangerDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
   }
   featInfo <- featInfo[,1:3]  # in cases where additional column exist, e.g. CellRangerARC output
@@ -301,7 +302,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
 
   # estimate ambient first
   if (ezIsSpecified(param$estimateAmbient) && param$estimateAmbient) {
-    scData <- addAmbientEstimateToSeurat(scData, rawDir=rawDir, threads = param$cores)
+    scData <- addAmbientEstimateToSeurat(scData, rawDir=rawDir, param = param)
   }
   
   # get markers and annotations

@@ -17,10 +17,11 @@ autoEstContTfidfMin <- function(sc, tfidfMin){
     return(scOut)
 }
 
-addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, threads=1){
+addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, param=NULL){
   library(celda)
   library(SoupX)
   
+  threads <- param$cores
   sce <- SingleCellExperiment(assays=list(counts=GetAssayData(scData, layer="counts")), colData = scData@meta.data)
   sce$clusters <- Idents(scData)
   ## decontx
@@ -30,8 +31,13 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, threads=1){
   scData <- AddMetaData(scData, metadata = contaminationFraction, col.name = paste0("DecontX_contFrac"))
   ## SoupX
   if (!is.null(rawDir) && file.exists(rawDir)){
-    tod <- checkAndCleanAntibody(Seurat::Read10X(rawDir, gene.column = 1))
-    featInfo <- ezRead.table(paste0(rawDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
+    if(param$cellbender){  
+        tod <- checkAndCleanAntibody(Seurat::Read10X_h5(file.path(dirname(rawDir),'cellbender_filtered_seurat.h5') , use.names = FALSE))
+        featInfo <- ezRead.table(paste0(param$cellrangerDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
+    } else {
+        tod <- checkAndCleanAntibody(Seurat::Read10X(rawDir, gene.column = 1))
+        featInfo <- ezRead.table(paste0(rawDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
+    }
     colnames(featInfo) <- c("ensemblID", "name", "type")
     featInfo <- featInfo[featInfo$type=='Gene Expression',]
     rownames(tod) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$ensemblID, names=featInfo$name))

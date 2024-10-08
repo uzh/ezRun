@@ -743,7 +743,7 @@ p3 <- VlnPlot(scData, features = 'prediction.score.max', group.by = 'predicted.i
 * The URL of the reference data is: `r param$cellxgeneUrl`
 * The DOI of this dataset is: `r paste0("https://doi.org/", DOI)`
 
-```{r cellxgene, eval=!is.null(cellxgeneResults), fig.width=7, fig.height=7}
+```{r cellxgene_2, eval=!is.null(cellxgeneResults), fig.width=7, fig.height=7}
 p1
 p2
 p3
