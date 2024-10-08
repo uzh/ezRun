@@ -709,13 +709,13 @@ DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, redu
 ```
 
 ### Cell x gene
-```{r cellxgene, eval=!is.null(cellxgeneResults), fig.width=10, fig.height=10}
+```{r cellxgene, eval=!is.null(cellxgeneResults), fig.width=7, fig.height=7}
 
 options(ggrepel.max.overlaps = Inf)
 n_celltype <- length(unique(scData$predicted.id.cellxgene.authorlabel))
 sample_name <- names(scData)
-print("The URL of the reference data is:")
-print(param$cellxgeneUrl)
+# print("The URL of the reference data is:")
+# print(param$cellxgeneUrl)
 ## get the DOI
 d = datasets()
 c = collections()
@@ -723,22 +723,30 @@ dataset_version_id_URL <- gsub("\\.rds$", "", basename(param$cellxgeneUrl))
 collection_id_URL <- as.character(d |> filter(dataset_version_id == dataset_version_id_URL) |> 
     select(collection_id))
 DOI <- c |> filter(collection_id == collection_id_URL) |> select(doi)
-print("The DOI of this dataset is:")
-print(paste0("https://doi.org/", DOI))
+# print("The DOI of this dataset is:")
+# print(paste0("https://doi.org/", DOI))
 
 ## dimplot of prediction.id.cellxgene.authorlabel
 colz <- rep(DiscretePalette(n = n_celltype , palette = "alphabet2"), 5)
-DimPlot(scData, label = TRUE, repel = TRUE, group.by = 'predicted.id.cellxgene.authorlabel', cols = colz) + 
+p1 <- DimPlot(scData, label = TRUE, repel = TRUE, group.by = 'predicted.id.cellxgene.authorlabel', cols = colz) + 
         ggtitle(paste(sample_name, "- CellxGene - Predicted ID"))
 
 ## plots of mapping score
-FeaturePlot(scData,features = "prediction.score.max", cols = c("lightgrey", "dodgerblue"), pt.size = 1, max.cutoff = 'q97', order = T )+ggtitle(paste(sample_name, "- mapping score"))
+p2 <- FeaturePlot(scData,features = "prediction.score.max", cols = c("lightgrey", "dodgerblue"), pt.size = 1, max.cutoff = 'q97', order = T )+ggtitle(paste(sample_name, "- mapping score"))
 
 ## mapping quality by Vlnplots
-VlnPlot(scData, features = 'prediction.score.max', group.by = 'predicted.id.cellxgene.authorlabel') +
+p3 <- VlnPlot(scData, features = 'prediction.score.max', group.by = 'predicted.id.cellxgene.authorlabel') +
   ggtitle(paste(sample_name, "- prediction.score.max grouped by author's cell label"))
 
 
+```
+* The URL of the reference data is: `r param$cellxgeneUrl`
+* The DOI of this dataset is: `r paste0("https://doi.org/", DOI)`
+
+```{r cellxgene, eval=!is.null(cellxgeneResults), fig.width=7, fig.height=7}
+p1
+p2
+p3
 ```
 
 ### Interactive
