@@ -1,4 +1,4 @@
-# 
+
 # ezIsSpecified = function(x){
 #   !is.null(x) && length(x) > 0 && x[1] != "" && !is.na(x[1]) && x[1] != "NA"
 # }
@@ -9,16 +9,145 @@
 #   text = paste(sapply(args, paste, collapse=collapse), collapse=sep)
 #   writeLines(text, con=con)
 # }
-# 
-# 
 # # The data set https://cellxgene.cziscience.com/e/37b21763-7f0f-41ae-9001-60bad6e2841d.cxg/
-# param.test.2 <- list(cellxgeneUrl ='https://datasets.cellxgene.cziscience.com/d39144df-fa59-4b63-b07b-9b34613b5c84.rds', cellxgeneLabel = 'cell_label',refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_42-2023-01-30')
-# system.time({scData <- UpdateSeuratObject(LoadData("pbmc3k"))})
+# param.test.2 <- list(cellxgeneUrl ='https://datasets.cellxgene.cziscience.com/b8a80837-155f-4474-89fd-838b78892ecf.rds', cellxgeneLabel = 'celltype_level_3',refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_42-2023-01-30')
+# system.time({scData <- UpdateSeuratObject(pbmc3k)})
 # test.result <- cellxgene_annotation(scData = scData, param = param.test.2 )
 # 
 # cache_dir = "/scratch/yang/tmp"
 # data(EnsemblGeneTable.Mm)
-# scRef <- getCuratedCellxGeneRef(param$cellxgene, cache_dir=cache_dir, cell_label_author = param$column_name_of_cell_label, species = 'Mus_musculus')
+# scRef <- getCuratedCellxGeneRef(param.test.2$cellxgeneUrl, cache_dir=cache_dir, cell_label_author = param.test.2$cellxgeneLabel, species = 'Homo_sapiens')
+
+
+
+## custorm the standardize gene function
+## We want to solve the problem that can't standatize gene name of data matrix if we only have counts matrix
+## And in this case, the output will have the counts matrix which is as same as the data matrix.
+StandardizeGeneSymbols_customer = function(obj, assay=NULL, slots=c("counts","data"),
+                                           EnsemblGeneTable=NULL, EnsemblGeneFile=NULL){
+  
+  if (is.null(assay)) {
+    assay <- DefaultAssay(obj)
+  }
+  #If file is given
+  if (is.null(EnsemblGeneTable)) {
+    if (is.null(EnsemblGeneFile)) {
+      stop("Please provide EnsemblID table or file")
+    }
+    EnsemblGeneTable <- fread(EnsemblGeneFile)
+  } 
+  
+  #Translate Ensembl IDs if necessary
+  
+  genes.in <- rownames(GetAssayData(obj, assay = assay, slot=slots[1]))
+  ngenes <- length(genes.in)
+  
+  ens.count <- length(intersect(genes.in, EnsemblGeneTable[["Gene stable ID"]]))
+  gname.count <- length(intersect(genes.in, EnsemblGeneTable[["Gene name"]]))
+  
+  ncbi.count <- 0
+  if ("NCBI gene (formerly Entrezgene) ID" %in% colnames(EnsemblGeneTable)) {
+    ncbi.count <- length(intersect(genes.in, EnsemblGeneTable[["NCBI gene (formerly Entrezgene) ID"]]))
+  }
+  
+  max <- max(ens.count, gname.count, ncbi.count)
+  if (max < length(genes.in)/2) {
+    warning("Over 50% of genes in input object not found in reference gene table")
+  }
+  
+  gname.format <- FALSE
+  if (max == gname.count) {
+    gname.format <- TRUE
+  }
+  
+  if (max == ens.count) {  #Input object has Ensembl IDs
+    to = "Gene name"
+    from = "Gene stable ID"
+    genes.tr <- EnsemblGeneTable[[to]][match(genes.in, EnsemblGeneTable[[from]])]
+    names(genes.tr) <- genes.in
+    genes.tr <- genes.tr[!is.na(genes.tr) & genes.tr != ""]
+    
+  } else if (max == ncbi.count) {
+    to = "Gene name"
+    from = "NCBI gene (formerly Entrezgene) ID"
+    genes.tr <- EnsemblGeneTable[[to]][match(genes.in, EnsemblGeneTable[[from]])]
+    names(genes.tr) <- genes.in
+    genes.tr <- genes.tr[!is.na(genes.tr) & genes.tr != ""]
+    
+  } else {
+    genes.tr <- genes.in
+    names(genes.tr) <- genes.in
+  }
+  
+  ###### 1. First match dictionary 
+  geneRef_dict <- EnsemblGeneTable[["Gene name"]]
+  names(geneRef_dict) <- EnsemblGeneTable[["Gene Synonym"]]
+  geneRef_dict <- geneRef_dict[!is.null(names(geneRef_dict))]
+  
+  message(paste("Number of genes in input object:", ngenes))
+  genesAllowList1 <- genes.tr[!is.na(genes.tr) & genes.tr != "" &
+                                genes.tr %in% EnsemblGeneTable[["Gene name"]]] #keep genes with standard Gene.name
+  l <- length(genesAllowList1)
+  
+  message(sprintf("Number of genes with standard symbols: %i (%.2f%%)", l, l/ngenes*100))
+  
+  if (l < ngenes & gname.format){
+    message(paste("Examples of non-standard Gene.names:"))
+    ns <- head(genes.tr[!genes.tr %in% EnsemblGeneTable[["Gene name"]]])
+    message(paste(unname(ns), collapse = ","))
+  }
+  
+  ###### 2. Search among synonyms
+  genesAllowList2 <- genes.tr[!genes.tr %in% EnsemblGeneTable[["Gene name"]] & 
+                                genes.tr %in% EnsemblGeneTable[["Gene Synonym"]]] # keep genes with accepted Gene.name synonym
+  genesAllowList2.gn <- geneRef_dict[genesAllowList2] # translate Gene.Synonym to standard Gene.name
+  
+  message(paste("Additional number of genes with accepted Gene name synonym: ",length(genesAllowList2.gn)))
+  
+  ##### 2b. Search by replacing dash (-) with dot (.)
+  genes.dash <- gsub("\\.", "-", genes.tr)
+  genesAllowList2b <- genes.tr[!genes.tr %in% EnsemblGeneTable[["Gene name"]] &
+                                 genes.dash %in% EnsemblGeneTable[["Gene name"]]]
+  genesAllowList2b.gn <- gsub("\\.", "-", genesAllowList2b)
+  message(paste("Additional number of genes after replacing dots: ",length(genesAllowList2b.gn)))
+  
+  #Names of genesAllowList contain IDs in matrix - elements contain the new names
+  genesAllowList <- c(genesAllowList1,genesAllowList2.gn,genesAllowList2b.gn)
+  
+  ###### 3. Check for duplicates
+  is.dup <- duplicated(genesAllowList)
+  genesAllowList <- genesAllowList[!is.dup]
+  message(sprintf("Number of duplicated Gene.name: %i (%.2f%%)", sum(is.dup), sum(is.dup)/ngenes*100))
+  
+  l <- length(genesAllowList)
+  message(sprintf("Final number of genes: %i (%.2f%%)", l, l/ngenes*100))
+  
+  ###### 4. Subset matrix for allowed genes, and translate names
+  matrix <- list()
+  for (s in slots) {
+    if (length(rownames(GetAssayData(obj, assay = assay, slot = s))) == 0) {
+      next  
+    }
+    matrix[[s]] <- GetAssayData(obj, assay = assay, slot=s)
+    rows.select <- rownames(matrix[[s]])[rownames(matrix[[s]]) %in% names(genesAllowList)]
+    matrix[[s]] <- matrix[[s]][rows.select, ]
+    rownames(matrix[[s]]) <- unname(genesAllowList[rows.select])
+  }
+  for (s in slots) {
+    if (s =="counts" || s =="data") {
+      obj <- suppressWarnings(RenameAssays(obj, assay.name=assay, new.assay.name="tmp"))
+      obj[[assay]] <- CreateAssayObject(counts=matrix[[s]], assay=assay)
+      DefaultAssay(obj) <- assay
+      obj[["tmp"]] <- NULL
+    } 
+    else {
+      obj <- SetAssayData(obj, assay = assay, new.data=matrix[[s]], slot=s)
+    }
+  }
+  
+  return(obj)
+}
+
 
 cellxgene_annotation <- function(scData, param) {
   
@@ -43,7 +172,7 @@ cellxgene_annotation <- function(scData, param) {
   #library(glmGamPoi)
 
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
-  #cache_dir = "/scratch/yang/tmp"
+  # cache_dir = "/scratch/yang/tmp"
   cell_label_author = param$cellxgeneLabel
   species <- sub("/.*", "", param$refBuild)
   
@@ -51,20 +180,20 @@ cellxgene_annotation <- function(scData, param) {
   
   ### StandardizeGeneSymbols
   if( species == "Homo_sapiens" ){
-    scData <- StandardizeGeneSymbols(scData, slots = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
+    scData <- StandardizeGeneSymbols_customer(scData, slots = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
   }else if(species == "Mus_musculus"){
-    scData <- StandardizeGeneSymbols(scData, slots = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Mm)
+    scData <- StandardizeGeneSymbols_customer(scData, slots = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Mm)
   }else{
     stop("We only support mouse and human dataset for using cellxgene annotation")
   }
-  
+  scData <- NormalizeData(scData)
   ## mapping
   if ("harmony2" %in% names(scRef@reductions)) {
     scData.anchors <- FindTransferAnchors(reference = scRef, query = scData, dims = 1:30,
-                                          reference.reduction = "harmony2", normalization.method = "SCT" )
+                                          reference.reduction = "harmony2", normalization.method = "LogNormalize" )
   } else{
     scData.anchors <- FindTransferAnchors(reference = scRef, query = scData, dims = 1:30,
-                                          reference.reduction = "pca", normalization.method = "SCT" )
+                                          reference.reduction = "pca", normalization.method = "LogNormalize" )
   }
 
   
@@ -84,7 +213,7 @@ cellxgene_annotation <- function(scData, param) {
   
   
 getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author, species){
-
+  print("start cellxgene")
   lockFile <- paste0(cache_dir, "/", gsub("\\.rds$", "", basename(ref_dataset_id)), "__", cell_label_author, ".lock")
   refData_building_timeout_minutes <- 120
   
@@ -124,9 +253,23 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
 
   ### Standardize the ref dataset gene symbols with STACAS
   if( species == "Homo_sapiens" ){
-    curated_seurat_object <- StandardizeGeneSymbols(curated_seurat_object,slots = c("counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
+    if ("counts" %in%  names(curated_seurat_object@assays$RNA@data) && nrow(curated_seurat_object@assays$RNA@counts) > 0) {
+      # If counts exit
+      curated_seurat_object <- StandardizeGeneSymbols_customer(curated_seurat_object, slots = c("counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
+    } else {
+      # If there is no counts matix
+      curated_seurat_object <- StandardizeGeneSymbols_customer(curated_seurat_object, slots = c("data"), EnsemblGeneTable = EnsemblGeneTable.Hs)
+    }
+    
   }else if(species == "Mus_musculus"){
-    curated_seurat_object <- StandardizeGeneSymbols(curated_seurat_object,slots = c("counts"), EnsemblGeneTable = EnsemblGeneTable.Mm)
+    if ("counts" %in%  names(curated_seurat_object@assays$RNA@data) && nrow(curated_seurat_object@assays$RNA@counts) > 0) {
+      # If counts exit
+      curated_seurat_object <- StandardizeGeneSymbols_customer(curated_seurat_object, slots = c("counts"), EnsemblGeneTable = EnsemblGeneTable.Mm)
+    } else {
+      # If there is no counts matix
+      curated_seurat_object <- StandardizeGeneSymbols_customer(curated_seurat_object, slots = c("data"), EnsemblGeneTable = EnsemblGeneTable.Mm)
+    }
+    
   }else{
     stop("We only support mouse and human dataset for using cellxgene annotation")
   }
@@ -155,6 +298,10 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   selected_samples <- names(sort(cell_counts, decreasing = TRUE))[1:num_samples_to_select]
   # get selected samples
   curated_seurat_object.list <- curated_seurat_object.list[selected_samples]
+  
+  # Remove the null object in the list
+  pancreas_seurat_object_direct.list <- pancreas_seurat_object_direct.list[!sapply(pancreas_seurat_object_direct.list, is.null)]
+  
   # delete sample with cell number smaller than 500
   curated_seurat_object.list <- curated_seurat_object.list[sapply(curated_seurat_object.list, function(x) ncol(x) >= 500)]
   
@@ -261,12 +408,13 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   # }
   
   scRef <- Reduce(function(x, y) merge(x, y), curated_seurat_object.list)
+  scRef <- NormalizeData(scRef)
   scRef <- FindVariableFeatures(scRef, selection.method = "vst", nfeatures = 2000)
-  scRef <- SCTransform(scRef,assay = "RNA", new.assay.name = "SCT")
-  
+  #scRef <- SCTransform(scRef,assay = "RNA", new.assay.name = "SCT")
+  scRef <- ScaleData(scRef)
   scRef <- RunPCA(scRef, features = VariableFeatures(scRef))
   if (length(unique(scRef$donor_id)) > 1){
-    scRef <- RunHarmony(scRef, "donor_id",assay.use="SCT")
+    scRef <- RunHarmony(scRef, "donor_id",assay.use="RNA")
     scRef <- RunUMAP(scRef, reduction = "harmony", dims = 1:30)
     scRef[['harmony2']] <- CreateDimReducObject(embeddings = scRef[['harmony']]@cell.embeddings,
                                                 key = "harmony2_", 
