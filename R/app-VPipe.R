@@ -148,7 +148,7 @@ ezMethodVPipe <- function(input=NA, output=NA, param=NA,
 
 createPangolinScript <- function(fileName){
     cat('#!/bin/bash \n',  file = 'runPangolin.sh')
-    cat('. /usr/local/ngseq/miniconda3/etc/profile.d/conda.sh \n', file = 'runPangolin.sh', append = TRUE)
+    cat('. /usr/local/ngseq/miniforge3/etc/profile.d/conda.sh \n', file = 'runPangolin.sh', append = TRUE)
     cat('conda activate pangolin \n', file = 'runPangolin.sh', append = TRUE)
     cat(paste('pangolin', fileName), file = 'runPangolin.sh', append = TRUE)
 }

@@ -11,7 +11,7 @@ ezMethodCrisprScreenQC <- function(input, output, param){
     require(seqLogo)
     require(ShortRead)
     
-    local_CondaEnv("mageckenv", pathToMiniConda = "/usr/local/ngseq/miniconda3")
+    local_CondaEnv("gi_mageck", pathToMiniConda = "/usr/local/ngseq/miniforge3")
     sgRNADirs <- list.dirs(param$libPath, full.names = TRUE)
     reportDir <- basename(output$getColumn("Report"))
     dir.create(reportDir)

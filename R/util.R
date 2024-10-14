@@ -737,7 +737,7 @@ setEnvironments <- function(tool, envir = parent.frame()) {
   if (!isTRUE(isValidEnvironments(tool))) {
     cmd <- switch(tool,
       "conda" = expression({
-        Sys.setenv("PATH" = paste("/usr/local/ngseq/miniconda3/bin", Sys.getenv("PATH"), sep = ":"))
+        Sys.setenv("PATH" = paste("/usr/local/ngseq/miniforge3/bin", Sys.getenv("PATH"), sep = ":"))
       }),
       "ataqv" = expression({
         Sys.setenv("PATH" = paste("/usr/local/ngseq/packages/Tools/ataqv/1.0.0/bin", Sys.getenv("PATH"), sep = ":"))

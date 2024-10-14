@@ -7,7 +7,7 @@
 
 ezMethodMageckCount <- function(input, output, param){
     require(Herper)
-    local_CondaEnv("mageckenv", pathToMiniConda = "/usr/local/ngseq/miniforge3")
+    local_CondaEnv("gi_mageck", pathToMiniConda = "/usr/local/ngseq/miniforge3")
     sampleName <- input$getNames()
     inputFile  <- input$getFullPaths("Read1")
     param <- getMageckReference(param)

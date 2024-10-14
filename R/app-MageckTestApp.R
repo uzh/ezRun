@@ -50,7 +50,7 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
           as.vector(str_split(param$cmdOptions, "\ +", simplify = TRUE)))
   
   # Load the conda environment
-  local_CondaEnv("mageckenv", pathToMiniConda = "/usr/local/ngseq/miniconda3")
+  local_CondaEnv("gi_mageck", pathToMiniConda = "/usr/local/ngseq/miniforge3")
   
   ctrlFile <- list.files(param$libName, pattern = 'MAGeCK_Ctrl.csv$', full.names = TRUE)
   if(length(ctrlFile) == 1L){

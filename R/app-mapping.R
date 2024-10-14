@@ -237,7 +237,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   
   if(ezIsSpecified(param$barcodePattern) && param$barcodePattern!=''){ #Extract UMI
       require(Herper)
-      local_CondaEnv("umi_tools", pathToMiniConda = "/usr/local/ngseq/miniconda3")
+      local_CondaEnv("gi_umi_tools", pathToMiniConda = "/usr/local/ngseq/miniforge3")
       ##Extract UMI from R2
       markedFile_R1 <- sub('R1', 'markedUMI_R1', trimmedInput$getColumn("Read1"))
       markedFile_R2 <- sub('R2', 'markedUMI_R2', trimmedInput$getColumn("Read2"))
@@ -326,7 +326,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       ezSystem(cmd)
       ezSystem(paste('mv', deDupBamFile, basename(bamFile)))
       ezSystem(paste('samtools index', basename(bamFile)))
-      tryCatch({local_CondaEnv("gi_py3.10.9", pathToMiniConda = "/usr/local/ngseq/miniconda3")}, warning = function(warning_condition) {cat('warning')}, 
+      tryCatch({local_CondaEnv("gi_py3.11.5", pathToMiniConda = "/usr/local/ngseq/miniforge3")}, warning = function(warning_condition) {cat('warning')}, 
                error = function(error_condition) {cat('error')})
   }
   
