@@ -300,7 +300,7 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   curated_seurat_object.list <- curated_seurat_object.list[selected_samples]
   
   # Remove the null object in the list
-  pancreas_seurat_object_direct.list <- pancreas_seurat_object_direct.list[!sapply(pancreas_seurat_object_direct.list, is.null)]
+  curated_seurat_object.list <-  curated_seurat_object.list[!sapply(curated_seurat_object.list, is.null)]
   
   # delete sample with cell number smaller than 500
   curated_seurat_object.list <- curated_seurat_object.list[sapply(curated_seurat_object.list, function(x) ncol(x) >= 500)]
