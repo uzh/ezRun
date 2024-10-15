@@ -46,10 +46,12 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, param=NULL){
     sc <- setClusters(sc, sce$clusters)
     #try({sc1 <- autoEstCont(sc, tfidfMin=1, forceAccept=T, doPlot=FALSE)})
     sc <- autoEstContTfidfMin(sc, tfidfMin=1)
+    if(class(sc)!='try-error'){
     if (!is.null(sc$fit) && "rho" %in% colnames(sc$metaData)){
-      ctsClean <- adjustCounts(sc) ## NOTE: ctsClean might have less genes than sce
-      contaminationFraction <- (colSums2(counts(sce)) - colSums2(ctsClean)) / colSums2(counts(sce))
-      scData <- AddMetaData(scData, metadata = contaminationFraction, col.name = paste0("SoupX_contFrac"))
+        ctsClean <- adjustCounts(sc) ## NOTE: ctsClean might have less genes than sce
+        contaminationFraction <- (colSums2(counts(sce)) - colSums2(ctsClean)) / colSums2(counts(sce))
+        scData <- AddMetaData(scData, metadata = contaminationFraction, col.name = paste0("SoupX_contFrac"))
+        }
     }
   }
   return(scData)
