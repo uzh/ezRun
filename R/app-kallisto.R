@@ -69,7 +69,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
   pathPseudobam = file.path(param$outputDir, "pseudoalignments.bam")
 
   cmd = paste(
-      "kallisto",
+      "export HDF5_DISABLE_VERSION_CHECK=1 kallisto & kallisto",
       "quant",
       opt,
       pathFastqFiles
