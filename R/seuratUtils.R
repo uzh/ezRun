@@ -366,7 +366,7 @@ getSeuratVarsToRegress <- function(param) {
   vars.to.regress <- NULL
   if (ezIsSpecified(param$SCT.regress.CellCycle) && 
       param$SCT.regress.CellCycle) {
-    vars.to.regress <- c("CellCycleS", "CellCycleG2M")
+    vars.to.regress <- c("CC.Difference")
   }
   if (!is.null(param$SCT.regress.var)) {
     vars.to.regress <- c(vars.to.regress, param$SCT.regress.var)

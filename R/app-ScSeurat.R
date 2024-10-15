@@ -299,6 +299,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   
   ## Add Cell Cycle information to Seurat object as metadata columns
   scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM)
+  scData$CC.Difference <- scData$CellCycleS - scData$CellCycleG2M
+  
   ## Get information on which variables to regress out in scaling/SCT
   scData <- seuratStandardSCTPreprocessing(scData, param)
   ## defaultAssay is now SCT
