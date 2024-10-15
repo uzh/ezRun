@@ -180,8 +180,12 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   if (file.exists(file.path(cmDir, param$geneCountModel))){
     cmDir <- file.path(cmDir, param$geneCountModel)
   }
-  if(!ezIsSpecified(param$cellbender)){
-    param$cellbender = FALSE  
+  if(grepl('h5$',cmDir[1])){
+      param$cellbender = TRUE
+  } else {
+      param$cellbender = FALSE 
+  }
+  if(!param$cellbender){
     cts <- Read10X(cmDir, gene.column = 1)
     featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
   } else if(param$cellbender){
