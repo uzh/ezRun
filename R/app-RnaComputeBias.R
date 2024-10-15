@@ -34,6 +34,7 @@ EzAppRnaComputeBias <-
 
 
 ezMethodRnaComputeBias <- function(input, output, param){
+    system('export HDF5_DISABLE_VERSION_CHECK=1 kallisto')
     ezWrite.table(input$meta, 'input_dataset.tsv')
     dsFile <- 'input_dataset.tsv'
     qcSummaryDir = getwd()
