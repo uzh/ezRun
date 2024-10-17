@@ -5,28 +5,26 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-ezMethodFastQC <- function(input = NA, output = NA, param = NA,
-                           htmlFile = "00index.html") {
-  setwdNew(basename(output$getColumn("Report")))
+ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
 
-  # Preprocessing
-  isUBam <- input$readType() == "bam"
-  if (isTRUE(isUBam)) {
-    if (isTRUE(param$perLibrary)) {
-      fastqInput <- ezMethodBam2Fastq(
-        input = input, param = param,
-        OUTPUT_PER_RG = FALSE
-      )
-    } else {
-      ## We only support one uBam when it's per cell mode
-      stopifnot(input$getLength() == 1L)
-      fastqInput <- ezMethodBam2Fastq(
-        input = input, param = param,
-        OUTPUT_PER_RG = TRUE
-      )
-    }
-    input <- fastqInput$copy()
-  }
+  # support for ubam
+  # isUBam <- input$readType() == "bam"
+  # if (isTRUE(isUBam)) {
+  #   if (isTRUE(param$perLibrary)) {
+  #     fastqInput <- ezMethodBam2Fastq(
+  #       input = input, param = param,
+  #       OUTPUT_PER_RG = FALSE
+  #     )
+  #   } else {
+  #     ## We only support one uBam when it's per cell mode
+  #     stopifnot(input$getLength() == 1L)
+  #     fastqInput <- ezMethodBam2Fastq(
+  #       input = input, param = param,
+  #       OUTPUT_PER_RG = TRUE
+  #     )
+  #   }
+  #   input <- fastqInput$copy()
+  # }
   
   ## trim the reads to maximum length. Useful for PacBio/ONT long reads with variable read length and very few ultralong reads
   if (ezIsSpecified(param$max_len1) && param$max_len1 > 0){
@@ -49,13 +47,13 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
   ans4Report[["Read Counts"]] <- readCount
 
   if (sum(dataset$`Read Count`) > 1e9) {
-    doSubsample <- TRUE # subsample to 1Mio reads
-    input <- ezMethodSubsampleFastq(input = input, param = param)
+    input <- ezMethodSubsampleFastq(input = input, param = param, n = 1e6)
     dataset <- input$meta
-  } else {
-    doSubsample <- FALSE
   }
 
+  setwdNew(basename(output$getColumn("FastQC")))
+  
+  
   files <- c()
   for (sm in samples) {
     files[paste0(sm, "_R1")] <- input$getFullPaths("Read1")[sm]
@@ -72,7 +70,7 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
   if (length(filesUse) > 0) {
     cmd <- paste(
       "fastqc", "--extract -o . -t", min(param$cores, 8),
-      "-a", FASTQC_ADAPTERS, "--kmers 7",
+      "-a", FASTQC_ADAPTERS, "--kmers 7", "--dir .", "-q",
       param$cmdOptions, paste(filesUse, collapse = " "),
       "> fastqc.out", "2> fastqc.err"
     )
@@ -85,112 +83,102 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA,
     }
     gc()
   }
-  statusToPng <- c(PASS = "tick.png", WARN = "warning.png", FAIL = "error.png")
-
-  ## Copy the style files and templates
-  styleFiles <- file.path(
-    system.file("templates", package = "ezRun"),
-    c(
-      "fgcz.css", "FastQC.Rmd", "FastQC_overview.Rmd",
-      "fgcz_header.html", "banner.png"
+  
+  if (ezIsSpecified(param$showNativeReports) && param$showNativeReports){
+    
+    statusToPng <- c(PASS = "tick.png", WARN = "warning.png", FAIL = "error.png")
+    ## collect the overview table
+    plots <- c(
+      "Per base sequence quality" = "per_base_quality.png",
+      "Per sequence quality scores" = "per_sequence_quality.png",
+      "Per tile sequence quality" = "per_tile_quality.png",
+      "Per base sequence content" = "per_base_sequence_content.png",
+      "Per sequence GC content" = "per_sequence_gc_content.png",
+      "Per base N content" = "per_base_n_content.png",
+      "Sequence Length Distribution" = "sequence_length_distribution.png",
+      "Sequence Duplication Levels" = "duplication_levels.png",
+      "Adapter Content" = "adapter_content.png"
+#      "Kmer Content" = "kmer_profiles.png"
     )
-  )
-  file.copy(from = styleFiles, to = ".", overwrite = TRUE)
-
-  ## collect the overview table
-  plots <- c(
-    "Per base sequence quality" = "per_base_quality.png",
-    "Per sequence quality scores" = "per_sequence_quality.png",
-    "Per tile sequence quality" = "per_tile_quality.png",
-    "Per base sequence content" = "per_base_sequence_content.png",
-    "Per sequence GC content" = "per_sequence_gc_content.png",
-    "Per base N content" = "per_base_n_content.png",
-    "Sequence Length Distribution" = "sequence_length_distribution.png",
-    "Sequence Duplication Levels" = "duplication_levels.png",
-    "Adapter Content" = "adapter_content.png",
-    "Kmer Content" = "kmer_profiles.png"
-  )
-
-  ## make for each plot type an html report with all samples
-  plotPages <- sub(".png", ".html", plots)
-  for (i in 1:length(plots)) {
-    plotPage <- plotPages[i]
-    pngs <- file.path(reportDirs, "Images", plots[i])
-    rmarkdown::render(
-      input = "FastQC_overview.Rmd", envir = new.env(),
-      output_dir = ".", output_file = plotPage, quiet = TRUE
-    )
-  }
-
-  ## Each sample can have different number of reports.
-  ## Especially per tile sequence quality
-  nrReports <- sapply(
-    reportDirs,
-    function(x) {
-      smy <- ezRead.table(file.path(x, "summary.txt"),
-        row.names = NULL, header = FALSE
+    
+    ## make for each plot type an html report with all samples
+    file.copy(system.file("templates/FastQC_overview.Rmd", package="ezRun"), "FastQC_overview.Rmd")
+    plotPages <- sub(".png", ".html", plots)
+    for (i in 1:length(plots)) {
+      plotPage <- plotPages[i]
+      pngs <- file.path(reportDirs, "Images", plots[i])
+      rmarkdown::render(
+        input = "FastQC_overview.Rmd", envir = new.env(),
+        output_dir = ".", output_file = plotPage, quiet = TRUE
       )
-      nrow(smy)
     }
-  )
-  i <- which.max(nrReports)
-  smy <- ezRead.table(file.path(reportDirs[i], "summary.txt"),
-    row.names = NULL, header = FALSE
-  )
-  rowNames <- paste0(
-    "<a href=", reportDirs, "/fastqc_report.html>",
-    names(files), "</a>"
-  )
-
-  tbl <- ezMatrix("", rows = rowNames, cols = smy[[2]])
-  for (i in 1:nFiles) {
+    
+    ## Each sample can have different number of reports.
+    ## Especially per tile sequence quality
+    nrReports <- sapply(
+      reportDirs,
+      function(x) {
+        smy <- ezRead.table(file.path(x, "summary.txt"),
+                            row.names = NULL, header = FALSE
+        )
+        nrow(smy)
+      }
+    )
+    i <- which.max(nrReports)
     smy <- ezRead.table(file.path(reportDirs[i], "summary.txt"),
-      row.names = NULL, header = FALSE
+                        row.names = NULL, header = FALSE
     )
+    rowNames <- paste0(
+      "<a href=", reportDirs, "/fastqc_report.html>",
+      names(files), "</a>"
+    )
+    
+    tbl <- ezMatrix("", rows = rowNames, cols = smy[[2]])
+    for (i in 1:nFiles) {
+      smy <- ezRead.table(file.path(reportDirs[i], "summary.txt"),
+                          row.names = NULL, header = FALSE
+      )
+      
+      href <- paste0(
+        reportDirs[i], "/fastqc_report.html#M",
+        0:(ncol(tbl) - 1)
+      )[colnames(tbl) %in% smy[[2]]]
+      #img <- paste0(reportDirs[1], "/Icons/", statusToPng[smy[[1]]])
+      tbl[i, colnames(tbl) %in% smy[[2]]] <- paste0(
+        "<a href=", href,
+        ">", smy[[1]], "</a>" #<img src=", img, "></a>"
+      )
+    }
+    colnames(tbl) <- ifelse(colnames(tbl) %in% names(plotPages),
+                            paste0(
+                              "<a href=", plotPages[colnames(tbl)],
+                              ">", colnames(tbl),
+                              "</a>"
+                            ),
+                            colnames(tbl)
+    )
+    
+    ans4Report[["Fastqc quality measures"]] <- tbl
+    
+    # gc()
+    # qualMatrixList <- ezMclapply(files, getQualityMatrix, mc.cores = param$cores)
+    #ans4Report[["Per Base Read Quality"]] <- qualMatrixList
+    
 
-    href <- paste0(
-      reportDirs[i], "/fastqc_report.html#M",
-      0:(ncol(tbl) - 1)
-    )[colnames(tbl) %in% smy[[2]]]
-    img <- paste0(reportDirs[1], "/Icons/", statusToPng[smy[[1]]])
-    tbl[i, colnames(tbl) %in% smy[[2]]] <- paste0(
-      "<a href=", href,
-      "><img src=", img, "></a>"
+    ## generate the main reports
+    file.copy(system.file("templates/FastQC.Rmd", package="ezRun"), "FastQC.Rmd")
+    rmarkdown::render(
+      input = "FastQC.Rmd", envir = new.env(),
+      output_dir = ".", output_file = basename(output$getColumn("FastQC")), quiet = TRUE
     )
+    unlink(paste0(reportDirs, ".zip"), recursive = TRUE)
+  } else {
+    unlink(reportDirs, recursive = TRUE)
+    unlink(paste0(reportDirs, ".html"), recursive = TRUE)
   }
-  colnames(tbl) <- ifelse(colnames(tbl) %in% names(plotPages),
-    paste0(
-      "<a href=", plotPages[colnames(tbl)],
-      ">", colnames(tbl),
-      "</a>"
-    ),
-    colnames(tbl)
-  )
-
-  ans4Report[["Fastqc quality measures"]] <- tbl
-
-  gc()
-  qualMatrixList <- ezMclapply(files, getQualityMatrix, mc.cores = param$cores)
-  ans4Report[["Per Base Read Quality"]] <- qualMatrixList
-
-  ## debug
-  ## save(ans4Report, file="ans4Report.rda")
-
-  ## generate the main reports
-  rmarkdown::render(
-    input = "FastQC.Rmd", envir = new.env(),
-    output_dir = ".", output_file = htmlFile, quiet = TRUE
-  )
-
 
   ## generate multiQC report
-  ezSystem("multiqc .")
-
-  ## Cleaning
-  if (isTRUE(isUBam) || isTRUE(doSubsample)) {
-    file.remove(files)
-  }
-  unlink(paste0(reportDirs, ".zip"), recursive = TRUE)
+  ezSystem("multiqc --outdir ../multi_FastQC .")
 
   return("Success")
 }
@@ -217,7 +205,8 @@ EzAppFastqc <-
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodFastQC
         name <<- "EzAppFastqc"
-        appDefaults <<- rbind(perLibrary = ezFrame(Type = "logical", DefaultValue = TRUE, Description = "Run FastQC per library or per cell for single cell experiment"))
+        appDefaults <<- rbind(perLibrary = ezFrame(Type = "logical", DefaultValue = TRUE, Description = "Run FastQC per library or per cell for single cell experiment"),
+                              showNativeReports=ezFrame(Type = "logical", DefaultValue = FALSE, Description = "Keep the original fastqc report"))
       }
     )
   )

@@ -53,12 +53,12 @@ tbl <- ans4Report[["Fastqc quality measures"]]
 knitr::kable(tbl, col.names=colnames(tbl), row.names=TRUE)
 ```
 
-### Per Base Read Quality
-The black and white heatmaps show the average reads quality  
-over all samples per base.
-The color scale corresponds to the percentage of reads at each reads quality.
+<!-- ### Per Base Read Quality -->
+<!-- The black and white heatmaps show the average reads quality   -->
+<!-- over all samples per base. -->
+<!-- The color scale corresponds to the percentage of reads at each reads quality. -->
 
-```{r avgQualColors, fig.width=16, fig.height=2, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+```{r avgQualColors, fig.width=16, fig.height=2, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=FALSE, include=FALSE}
 qualMatrixList <- ans4Report[["Per Base Read Quality"]]
 plotList <- plotQualityMatrixAsHeatmapGG2(qualMatrixList, 
                                           isR2=grepl("_R2$", names(qualMatrixList)))
@@ -75,7 +75,7 @@ if(isPaired){
 }
 ```
 
-```{r average, fig.width=16, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+```{r average, fig.width=16, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=FALSE}
 if(isPaired){
   grid.arrange(plotList[["R1"]][["Average"]],
                plotList[["R2"]][["Average"]], ncol = 2)
@@ -89,7 +89,7 @@ and the average reads quality per base.
 The red represents a higher percentage of reads over the average, 
 while the blue represents a lower percentage of reads over the average.
 
-```{r diffQualColors, fig.width=16, fig.height=2, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+```{r diffQualColors, fig.width=16, fig.height=2, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=FALSE}
 if(isPaired){
   grid.arrange(plotList[["R1"]][["Diff Qual Colors"]],
                plotList[["R2"]][["Diff Qual Colors"]], ncol = 2)
@@ -98,7 +98,7 @@ if(isPaired){
 }
 ```
 
-```{r sampleDiffQualColors, fig.width=16, echo=FALSE, results='hide', warning=FALSE, message=FALSE}
+```{r sampleDiffQualColors, fig.width=16, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=FALSE}
 sampleIndices <- which(!(names(plotList[["R1"]]) %in%
                        c("Avg Qual Colors", "Average", "Diff Qual Colors")))
 for(sampleIndex in sampleIndices){
@@ -111,45 +111,45 @@ for(sampleIndex in sampleIndices){
 }
 ```
 
-### Correlation
-Correlation between Library concentration measurements and ReadCounts.
-It's only shown when "LibConc_qPCR" or "LibConc_100_800bp" columns exit in `dataset`.
+<!-- ### Correlation -->
+<!-- Correlation between Library concentration measurements and ReadCounts. -->
+<!-- It's only shown when "LibConc_qPCR" or "LibConc_100_800bp" columns exit in `dataset`. -->
 
-```{r correlation, echo=FALSE, warning=FALSE, message=FALSE}
-dataset <- ans4Report[["dataset"]]
-if(nrow(dataset) > 1){
-  plotReadCountToLibConc(dataset,
-                         colname='LibConc_qPCR [Characteristic]')
-  plotReadCountToLibConc(dataset,
-                         colname='LibConc_100_800bp [Characteristic]')
-}
-```
+<!-- ```{r correlation, echo=FALSE, warning=FALSE, message=FALSE} -->
+<!-- dataset <- ans4Report[["dataset"]] -->
+<!-- if(nrow(dataset) > 1){ -->
+<!--   plotReadCountToLibConc(dataset, -->
+<!--                          colname='LibConc_qPCR [Characteristic]') -->
+<!--   plotReadCountToLibConc(dataset, -->
+<!--                          colname='LibConc_100_800bp [Characteristic]') -->
+<!-- } -->
+<!-- ``` -->
 
-### Heatmaps of reads/concentration per cell on the plate
-Sequenced reads or concentration per cell, on the plate layout.
-The current supported plate layout format is "PlateNumber_[A-Z][Integer]", e.g. "1_A2".
-Otherwise, the platelayout is not shown.
+<!-- ### Heatmaps of reads/concentration per cell on the plate -->
+<!-- Sequenced reads or concentration per cell, on the plate layout. -->
+<!-- The current supported plate layout format is "PlateNumber_[A-Z][Integer]", e.g. "1_A2". -->
+<!-- Otherwise, the platelayout is not shown. -->
 
-The heatmap values are in $log10$ scale.
-The colorScale ranges from half of median value to twice of median value.
+<!-- The heatmap values are in $log10$ scale. -->
+<!-- The colorScale ranges from half of median value to twice of median value. -->
 
-```{r plate layout, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
-plateMatrix <- plateStatistics(dataset)
-if(!is.na(plateMatrix)){
-  l <- htmltools::tagList()
-  ## This is the way of plotting plotly figures within a loop in knitr code chunk
-  for(plateName in names(plateMatrix)){
-    for(colname in names(plateMatrix[[plateName]])){
-      p <- heatmapPlate(plateMatrix[[plateName]][[colname]], 
-                        title=paste(plateName, colname, sep=": "),
-                        center=TRUE, log10=TRUE,
-                        width = 500*(1 + sqrt(5))/2, height = 500)
-      l[[paste(plateName, colname, sep=": ")]] <- as_widget(p)
-    }
-  }
-  l
-}
-```
+<!-- ```{r plate layout, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE} -->
+<!-- plateMatrix <- plateStatistics(dataset) -->
+<!-- if(!is.na(plateMatrix)){ -->
+<!--   l <- htmltools::tagList() -->
+<!--   ## This is the way of plotting plotly figures within a loop in knitr code chunk -->
+<!--   for(plateName in names(plateMatrix)){ -->
+<!--     for(colname in names(plateMatrix[[plateName]])){ -->
+<!--       p <- heatmapPlate(plateMatrix[[plateName]][[colname]],  -->
+<!--                         title=paste(plateName, colname, sep=": "), -->
+<!--                         center=TRUE, log10=TRUE, -->
+<!--                         width = 500*(1 + sqrt(5))/2, height = 500) -->
+<!--       l[[paste(plateName, colname, sep=": ")]] <- as_widget(p) -->
+<!--     } -->
+<!--   } -->
+<!--   l -->
+<!-- } -->
+<!-- ``` -->
 
 ### Input Dataset
 ```{r, echo=FALSE, message=FALSE}
