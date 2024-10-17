@@ -171,10 +171,10 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
       input = "FastQC.Rmd", envir = new.env(),
       output_dir = ".", output_file = basename(output$getColumn("FastQC")), quiet = TRUE
     )
-    unlink(paste0(reportDirs, ".zip"), recursive = TRUE)
+    unlink(paste0(reportDirs, ".zip"), recursive = FALSE)
   } else {
-    unlink(reportDirs, recursive = TRUE)
-    unlink(paste0(reportDirs, ".html"), recursive = TRUE)
+    unlink(reportDirs, recursive = FALSE)
+    unlink(paste0(reportDirs, ".html"), recursive = FALSE)
   }
 
   ## generate multiQC report
