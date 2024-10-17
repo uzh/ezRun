@@ -95,8 +95,8 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
     "Per base N content" = "per_base_n_content.png",
     "Sequence Length Distribution" = "sequence_length_distribution.png",
     "Sequence Duplication Levels" = "duplication_levels.png",
-    "Adapter Content" = "adapter_content.png",
-    "Kmer Content" = "kmer_profiles.png"
+    "Adapter Content" = "adapter_content.png"
+    #      "Kmer Content" = "kmer_profiles.png" ## kmers are sometimes mssing
   )
 
   ## make for each plot type an html report with all samples
