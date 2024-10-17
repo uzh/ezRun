@@ -169,7 +169,7 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
     file.copy(system.file("templates/FastQC.Rmd", package="ezRun"), "FastQC.Rmd")
     rmarkdown::render(
       input = "FastQC.Rmd", envir = new.env(),
-      output_dir = ".", output_file = basename(output$getColumn("FastQC")), quiet = TRUE
+      output_dir = ".", output_file = basename(output$getColumn("FastQC Report")), quiet = TRUE
     )
     unlink(paste0(reportDirs, ".zip"), recursive = FALSE)
   } else {
@@ -178,7 +178,7 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   }
 
   ## generate multiQC report
-  ezSystem("multiqc --outdir ../multi_FastQC .")
+  ezSystem(paste0("multiqc --outdir ../", basename(output$getColumn("MultiQC")), " ."))
 
   return("Success")
 }
