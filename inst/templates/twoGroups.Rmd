@@ -56,9 +56,9 @@ hasMassiveFeats <- nrow(seqAnno) >= 200e3
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-## TwoGroupsAnalysis_Result {.tabset}
+# {.tabset}
 
-### Settings
+## Settings
 ```{r setting, echo=FALSE}
 kable(makeCountResultSummary(param, se),
   row.names = TRUE,
@@ -70,7 +70,7 @@ kable(makeCountResultSummary(param, se),
   )
 ```
 
-### Result summary
+## Result summary
 ```{r summary, echo=FALSE}
 settings <- character()
 settings["reference:"] = param$refBuild
@@ -89,7 +89,7 @@ knitr::kable(as.data.frame(settings),
   )
 ```
 
-#### Number of significants by p-value and fold-change
+### Number of significants by p-value and fold-change
 ```{r gene table, echo=FALSE, message=FALSE}
 knitr::kable(makeSignificantCounts(se), row.names = TRUE, format = "html") %>%
   kable_styling(
@@ -117,9 +117,9 @@ liveReportLink <- output$getColumn("Live Report")
 
 [Live Report and Visualizations](`r liveReportLink`){target="_blank"}
 
-### Inspection of significant genes
+## Inspection of significant genes
 
-#### Between-group comparison
+### Between-group comparison
 
 ```{r make scatter data, echo=FALSE, message=FALSE, warning=FALSE}
 scatterData <- makeTestScatterData(param, se)
@@ -231,7 +231,7 @@ if (isTRUE(isTwoGroup) && isFALSE(hasMassiveFeats)) {
 }
 ```
 
-### Inspection of significant genes (Advanced plots)
+## Inspection of significant genes (Advanced plots)
 ```{r volcano FDR, echo=FALSE, message=FALSE, fig.width=9, fig.width=7, eval=!debug, warning=FALSE}
 if (isTRUE(isTwoGroup)) {
   ## warning=FALSE because FDR contains NA. Shall we make them always 1?
@@ -376,7 +376,7 @@ knitr::kable(as.data.frame(settings),
   )
 ```
 
-#### Cluster plot
+### Cluster plot
 
 ```{r cluster, echo=FALSE, message=FALSE, fig.width=max(8,4+0.15*ncol(se)), fig.height=10, fig.retina=2, warning=FALSE, eval=!debug && !hasMassiveFeats}
 ## for clustering we use a moderated logSignal
@@ -483,7 +483,7 @@ if (file.exists("goClusterTable.html")) {
 ```
 
 
-### Enrichr
+## Enrichr
 
 #### Description 
 Enrichr is a web server which collects in one website many different databases that can be interrogated using gene lists. It takes as input a subset of genes passing certain p-value/fold-change thresholds (i.e., differentially expressed genes). **It is recommended to search in one go various databases such as cell type, transcription factors, mutations, diseases.** Further details: [Visit the enrichr bioconductor page](https://bioconductor.org/packages/release/bioc/html/goseq.html)
@@ -583,7 +583,7 @@ if (!doEnrichr(param)) {
 ```
 
 
-### Overrepresentation Analysis (ORA) {.tabset}
+## Overrepresentation Analysis (ORA) {.tabset}
 
 ```{r prepare ora plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultPlots <- list()
@@ -665,9 +665,9 @@ if (isTRUE(param$runGO)) {
 }
 ```
 
-#### Overview 
+### Overview 
 
-##### Description
+#### Description
 The Over Representation Analysis (ORA), also known as the hypergeometric test, gives an estimate of whether a set of selected genes is enriched for genes in specific Gene Ontology categories. It takes as input a subset of genes passing certain p-value/fold-change thresholds (i.e., differentially expressed genes). **It is recommended when the difference between groups is large (e.g., 500+ genes above p-value/fold-change thresholds).** There are many implementations of this test and in SUSHI we use the R package clusterProfiler. Further details: [Visit the clusterProfiler bioconductor page](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html)
 
 Cut Offs: 
@@ -735,7 +735,7 @@ if (isTRUE(param$runGO)) {
 }
 ```
 
-### Gene set enrichment analysis {.tabset}
+## Gene set enrichment analysis {.tabset}
 
 ```{r prepare gsea plots, echo=FALSE, message=FALSE, eval=!debug}
 enrichResultGSEAPlots <- list()
@@ -824,9 +824,9 @@ if (isTRUE(param$runGO)) {
 }
 ```
 
-#### Overview 
+### Overview 
 
-##### Description
+#### Description
 Gene Set Enrichment Analysis (GSEA) calculates an enrichment score for each annotation category (e.g., those in GO BP) by screening all the genes from a differential expression analysis and their associated fold-changes. It does not require a pre-selection based on p-value/fold-change. **It is recommended when the difference between groups is small (i.e., applying thresholds would result in very few genes selected) or when combining results from different experiments.** Similar to the ORA test, we use the package clusterProfiler to perform GSEA analysis in SUSHI. Further details: [Visit the clusterProfiler bioconductor page](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html)
 
 Cut Off:
@@ -888,7 +888,7 @@ if (isTRUE(param$runGO)) {
 }
 ```
 
-### MetaCore 
+## MetaCore 
 ```{r metacore annotate, echo=FALSE, message=FALSE, error=TRUE}
 # If the reference gene annotation file on /srv/GT/reference does not contain ENTREZ IDs
 # then download them from AnnotationHub and write to disk 
@@ -932,14 +932,14 @@ if (exists("resultMetaCore")){
 }
 ```
 
-#### Metacore
+### Metacore
 Metacore is a commercial software that performs gene-set based analysis using a manually curated, proprietary database. It takes as input a subset of genes passing certain p-value/fold-change thresholds (i.e., differentially expressed genes). **It is recommended for the analysis of human, mouse, and rat data. It is best used to gain drug/disease-related information and comprehensive pathway map figures.** 
 
-##### Registration
+#### Registration
 Using MetaCore requires an account. One can be obtained by emailing <sequencing@fgcz.ethz.ch>.
 
 ***
-#### How to use Metacore: quick start
+### How to use Metacore: quick start
 
  1. [Right Click and Save File to Download Expression File for MetaCore](`r metacoreFile`) (`r paste("p <=", param$pValThreshGO)`)
  
@@ -949,7 +949,7 @@ Using MetaCore requires an account. One can be obtained by emailing <sequencing@
  
  4. Select `Pathway Maps` from the `One-click Analysis` tab. 
 
-#### Important notes
+### Important notes
 When uploading the data into MetaCore, select three columns:
 
 * A gene identifier, pick **one** of:
@@ -969,7 +969,7 @@ Please refer to the [FGCZ Wiki](https://fgcz-intranet.uzh.ch/tiki-index.php?page
 MetaCore has numerous tutorials online, including a useful YouTube page:
 <https://www.youtube.com/watch?v=_J_ViIw9wIM&list=PL2tDZtDsVy5xqUibWp-mfl9xuZP4Bhi-v&index=2>
 
-#### MetaCore Compatibility 
+### MetaCore Compatibility 
 MetaCore currently has full pathway support for three core species: **Human**; **mouse**, and; **rat**. Additionally, it can use Entrez IDs as orthologs to analyse a series of non-core species:
 
 - Cow
@@ -994,7 +994,7 @@ MetaCore currently has full pathway support for three core species: **Human**; *
 
 
 
-### Technical bias
+## Technical bias
 We define 4 gene sets 
 
 * high GC: the 5% of the genes with the highest GC content
@@ -1077,12 +1077,12 @@ if (all(c("gc", "featWidth") %in% colnames(x))) {
 
 
 
-### Input dataset
+## Input dataset
 ```{r input, echo=FALSE}
 ezInteractiveTableRmd(values = dataset, digits = 4)
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

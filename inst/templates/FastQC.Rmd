@@ -1,5 +1,5 @@
 ---
-title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+title: "FastQC Report"
 output: 
   html_document:
     self_contained: true
@@ -17,9 +17,9 @@ library(plotly)
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-## FastQC_Result {.tabset}
+#  {.tabset}
 
-### Read Counts
+## Read Counts
 The read counts in each sample.
 
 ```{r readCounts, echo=FALSE}
@@ -45,7 +45,7 @@ if (all(!is.na(readCount))){
 }
 ```
 
-### Fastqc Quality Measures
+## Fastqc Quality Measures
 The summary of [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) reports.
 
 ```{r quality, echo=FALSE, results='asis'}
@@ -151,12 +151,12 @@ for(sampleIndex in sampleIndices){
 <!-- } -->
 <!-- ``` -->
 
-### Input Dataset
+## Input Dataset
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(values=ans4Report[["dataset"]])
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```
