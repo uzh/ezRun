@@ -174,7 +174,7 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
       paste("--length_required", param$length_required)
     },
     # compression output
-    "--compression 4",
+    "--compression", param$fastpCompression,
     sep = " "
   )
 

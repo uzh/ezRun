@@ -76,6 +76,7 @@ trimLeft	integer	0	fixed trimming at the left (5'-end)
 trimRight	integer	0	fixed trimming at the right (3'-end)
 trimAdapter	logical	TRUE	search for the adapters and trim them
 minReadLength	integer	20	minimum read length to keep
+fastpCompression	integer	4	compression rate for fastp
 nReads	integer	-1	if above zero at most that many reads will be used
 max_len1	integer	0	fastp: if read1 is longer than max_len1, then trim read1 at its tail to make it as long as max_len1. Default 0 means no limitation.
 max_len2	integer	0	fastp: if read2 is longer than max_len2, then trim read2 at its tail to make it as long as max_len2. Default 0 means no limitation.
