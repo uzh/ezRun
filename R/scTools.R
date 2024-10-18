@@ -31,7 +31,7 @@ addCellCycleToSeurat <- function(scData, refBuild, BPPARAM, assay = "RNA"){
   }
   cellPhase <- getCellCycle(counts, refBuild, BPPARAM)
   if (!is.null(cellPhase)){
-    cellcycleInfo = data.frame(CellCycle = cellPhase$Phase, CellCycleG1 = cellPhase$G1, CellCycleS = cellPhase$S, CellCycleG2M = cellPhase$G2M, row.names = colnames(scData))
+    cellcycleInfo = data.frame(CellCycle = cellPhase$Phase, CellCycleG1 = cellPhase$G1, CellCycleS = cellPhase$S, CellCycleG2M = cellPhase$G2M, CC.Difference =cellPhase$S-cellPhase$G2M, row.names = colnames(scData))
     scData <- AddMetaData(scData, metadata = cellcycleInfo)
   }
   return(scData)
