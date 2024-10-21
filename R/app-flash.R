@@ -16,7 +16,7 @@ ezMethodFlash = function(input=NA, output=NA, param=NA){
     cmd = paste("flash",trimmedInput$getColumn("Read1"), trimmedInput$getColumn("Read2"),
               "-o",sampleName,'-t',ezThreads(),opt,"1>> ",paste0(sampleName,"_preprocessing.log"))
     ezSystem(cmd)
-    cmd = paste0('pigz --best',sampleName,'.R1.fastq')
+    cmd = paste0('pigz --best ',sampleName,'.R1.fastq')
     ezSystem(cmd)
   } else {
       ezSystem(paste('mv', paste0(sampleName,'-trimmed_R1.fastq.gz'), paste0(sampleName,'.R1.fastq.gz')))
