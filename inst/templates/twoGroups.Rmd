@@ -414,7 +414,7 @@ if (sum(use) > param$minGenesForClustering) {
                                    doClusterColumns = FALSE, sampleColors = sampleColors)
   plot(clusterResult$pheatmap$gtable)
   
-  if (isTRUE(param$runGO)) {
+  if (doGo(param, seqAnno)) {
     clusterResult <- goClusterResults(xCentered, param, clusterResult,
       seqAnno = seqAnno,
       universeProbeIds = rownames(seqAnno)[rowData(se)$isPresentProbe]
