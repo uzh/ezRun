@@ -75,7 +75,6 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(Seurat)
   library(rlist)
   library(HDF5Array)
-  library(scanalysis)
   library(SummarizedExperiment)
   library(SingleCellExperiment)
   library(AUCell)
