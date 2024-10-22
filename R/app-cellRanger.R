@@ -345,6 +345,9 @@ getCellRangerGEXReference <- function(param) {
 
   cmd <- paste(
     "cellranger mkref",
+    "--memgb", param$ram,
+    "--localmem", param$ram,
+    "--disable-ui",
     paste0("--genome=", basename(refDir)),
     paste0("--fasta=", genomeLocalFn),
     paste0("--genes=", gtfFile),
