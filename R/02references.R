@@ -193,7 +193,7 @@ buildRefDir <- function(x, genomeFile, genesFile, keepOriginalIDs = FALSE){
     file.remove(dictFile)
   }
   cmd <- paste("java -Xms1g -Xmx10g -Djava.io.tmpdir=. -jar /misc/ngseq12/packages/Tools/Picard/3.2.0/picard.jar", "CreateSequenceDictionary",
-               paste0("R=", x@refFastaFile), paste0("O=", dictFile))
+               "-R", x@refFastaFile, "-O", dictFile)
   ezSystem(cmd)
 }
 
