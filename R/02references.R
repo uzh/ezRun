@@ -128,7 +128,7 @@ getOrganism <- function(x){
   str_split(x@refBuild, "/")[[1]][1]
 }
 
-buildRefDir <- function(x, genomeFile, genesFile, keepOriginalIDs = FALSE){
+buildRefDir <- function(x, genomeFile, genesFile=NULL, keepOriginalIDs = FALSE){
   # x is EzRef object
   require(rtracklayer)
   require(Rsamtools)
@@ -148,46 +148,12 @@ buildRefDir <- function(x, genomeFile, genesFile, keepOriginalIDs = FALSE){
   ### remove everything after chr id
   names(genome) <- str_replace(names(genome), " .*$", "")
   writeXStringSet(genome, x@refFastaFile)
-
-  ## 2 GTF files:
-  ### features.gtf
-  gtf <- import(genesFile)
-
-  #### some controls over gtf
-  if(is.null(gtf$gene_biotype)){
-    if(is.null(gtf$gene_type)){
-      message("gene_biotype is not available in gtf. Assigning protein_coding.")
-      gtf$gene_biotype <- "protein_coding"
-    }else{
-      ## In GENCODE gtf, there is gene_type, instead of gene_biotype.
-      gtf$gene_biotype <- gtf$gene_type
-      gtf$gene_type <- NULL
-    }
-  }
-  #### GENCODE.gtf: remove the version number from gene_id, transcript_id but keep additional information if available, e.g. ENST00000429181.6_PAR_Y -> ENST00000429181_PAR_Y
-  if(!keepOriginalIDs){
-        gtf$gene_id <- str_replace(gtf$gene_id, "\\.\\d+", "")
-        gtf$transcript_id <- str_replace(gtf$transcript_id, "\\.\\d+", "")
-  }
-  
-  if(is.null(gtf$gene_name)){
-    message("gene_name is not available in gtf. Assigning gene_id.")
-    gtf$gene_name <- gtf$gene_id
-  }
-
-  export(gtf, con=file.path(gtfPath, "features.gtf"))
-  ### genes.gtf
-  export(gtf[gtf$gene_biotype %in% listBiotypes("genes")],
-         con=file.path(gtfPath, "genes.gtf"))
-  ### transcripts.only.gtf
-  export(gtf[gtf$type %in% "transcript"],
-         con=file.path(gtfPath, "transcripts.only.gtf"))
   indexFa(x@refFastaFile)
-
+  
   ## create the chromsizes file
   fai <- read_tsv(str_c(x@refFastaFile, ".fai"), col_names = FALSE)
   write_tsv(fai %>% dplyr::select(1:2), file = x@refChromSizesFile, col_names = FALSE)
-
+  
   dictFile <- str_replace(x@refFastaFile, "\\.fa$", ".dict")
   if (file.exists(dictFile)) {
     file.remove(dictFile)
@@ -195,6 +161,43 @@ buildRefDir <- function(x, genomeFile, genesFile, keepOriginalIDs = FALSE){
   cmd <- paste("java -Xms1g -Xmx10g -Djava.io.tmpdir=. -jar /misc/ngseq12/packages/Tools/Picard/3.2.0/picard.jar", "CreateSequenceDictionary",
                "-R", x@refFastaFile, "-O", dictFile)
   ezSystem(cmd)
+  
+
+  if (!is.null(genesFile)){  
+    ## 2 GTF files:
+    ### features.gtf
+    gtf <- import(genesFile)
+    
+    #### some controls over gtf
+    if(is.null(gtf$gene_biotype)){
+      if(is.null(gtf$gene_type)){
+        message("gene_biotype is not available in gtf. Assigning protein_coding.")
+        gtf$gene_biotype <- "protein_coding"
+      }else{
+        ## In GENCODE gtf, there is gene_type, instead of gene_biotype.
+        gtf$gene_biotype <- gtf$gene_type
+        gtf$gene_type <- NULL
+      }
+    }
+    #### GENCODE.gtf: remove the version number from gene_id, transcript_id but keep additional information if available, e.g. ENST00000429181.6_PAR_Y -> ENST00000429181_PAR_Y
+    if(!keepOriginalIDs){
+      gtf$gene_id <- str_replace(gtf$gene_id, "\\.\\d+", "")
+      gtf$transcript_id <- str_replace(gtf$transcript_id, "\\.\\d+", "")
+    }
+    
+    if(is.null(gtf$gene_name)){
+      message("gene_name is not available in gtf. Assigning gene_id.")
+      gtf$gene_name <- gtf$gene_id
+    }
+    
+    export(gtf, con=file.path(gtfPath, "features.gtf"))
+    ### genes.gtf
+    export(gtf[gtf$gene_biotype %in% listBiotypes("genes")],
+           con=file.path(gtfPath, "genes.gtf"))
+    ### transcripts.only.gtf
+    export(gtf[gtf$type %in% "transcript"],
+           con=file.path(gtfPath, "transcripts.only.gtf"))
+  }    
 }
 
 ##' @describeIn listBiotypes returns the Ensembl gene_biotypes according to more general groups.
