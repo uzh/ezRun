@@ -284,7 +284,7 @@ getStatsFromBam = function(param, bamFile, sm, gff=NULL, repeatsGff=NULL,
   }
   
   if (any(!is.na(gff$transcript_type))){
-    use = use & gff$transcript_type %in% "protein_coding"
+    use = use & gff$transcript_type %in% c("protein_coding", "mRNA")
   }
   
   gff$tsl = ezGffAttributeField(gff$attributes, 
