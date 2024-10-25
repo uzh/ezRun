@@ -377,9 +377,15 @@ getStatsFromBamParallel = function(seqLengths, param, bamFile, sm,
     }
   }
   seqNames <- names(sort(seqLengths, decreasing=TRUE)) ## sorting so that longest job starts first
-  seqNames <- seqNames[nchar(seqNames) <= 6] ## remove non-chromosome sequences that usually have long names
+  ## use heuristics to select only chromosomes: NCBI chromosomes start with NC; others have less than 6
+  if (sum(grepl("^NC_", seqNames))>1) {
+    ## NCBI
+    seqNames <- grep("^NC_", seqNames, value = TRUE)
+  } else {
+    seqNames <- seqNames[nchar(seqNames) <= 6] ## remove non-chromosome sequences that usually have long names
+  }
   if(length(seqNames) == 0) {
-      seqNames <- names(sort(seqLengths, decreasing=TRUE))
+      seqNames <- names(sort(seqLengths, decreasing=TRUE)) %>% head(100)
   }
   names(seqNames) <- seqNames ## set names for lapply
   chromResults = ezMclapply(seqNames, getStatsFromBamSingleChrom, param,
