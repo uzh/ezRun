@@ -5,6 +5,7 @@
 # www.fgcz.ch
 
 ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
+  param$fastpCompression = 9
   ref <- getBowtie2Reference(param)
   bamFile <- output$getColumn("BAM")
   sampleName <- sub(".bam", "", basename(bamFile))
@@ -754,7 +755,7 @@ EzAppMinimap2 <-
 
 
 ezMethodBismark <- function(input = NA, output = NA, param = NA) {
-  
+  param$fastpCompression = 9
   ref <- getBismarkReference(param)
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
