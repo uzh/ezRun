@@ -338,6 +338,7 @@ EzApp <-
                 appExitAction = function(param, output, appName="unknown")
                 {
                   "Executes actions on exit of an application. This includes links to the output and possibly sending an e-mail."
+                  ezSessionInfo()
                   text=.self$outputLinks(output, param)
                   resultName = switch(param$process_mode,
                                       SAMPLE=output$getNames()[1],
