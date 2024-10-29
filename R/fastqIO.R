@@ -138,7 +138,7 @@ fastqs2bam <- function(fastqFns, fastq2Fns = NULL, readGroupNames = NULL,
       fileext = ".bam"
     )
     cmd <- str_c("samtools reheader", tempHeaderFn, bamFn, ">", bamReheaderFn,
-                 ssep = " ")
+                 sep = " ")
     ezSystem(cmd)
 
     file.remove(bamFn)
