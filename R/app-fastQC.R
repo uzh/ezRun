@@ -173,7 +173,7 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
     )
     unlink(paste0(reportDirs, ".zip"), recursive = FALSE)
   } else {
-    unlink(reportDirs, recursive = FALSE)
+    unlink(reportDirs, recursive = TRUE)
     unlink(paste0(reportDirs, ".html"), recursive = FALSE)
   }
 
