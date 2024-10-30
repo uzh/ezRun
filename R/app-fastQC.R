@@ -179,6 +179,7 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
 
   ## generate multiQC report
   ezSystem(paste0("multiqc --outdir ../", basename(output$getColumn("MultiQC")), " ."))
+  unlink(c("fastqc.out", "fastqc.err"))
 
   return("Success")
 }
