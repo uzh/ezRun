@@ -127,6 +127,8 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   #6. Optional run of VeloCyto
   if(param$runVeloCyto){
       gtfFile <- param$ezRef["refFeatureFile"]
+      library(Herper)
+      out <- tryCatch(local_CondaEnv("gi_velocyto", pathToMiniConda = "/usr/local/ngseq/miniforge3"), error = function(e) NULL)
       cmd <- paste('velocyto run10x', cellRangerFolder, gtfFile, '-@', param$cores)
       ezSystem(cmd)
       ezSystem(paste('mv', file.path(cellRangerFolder,'velocyto'),  file.path(cellRangerFolder,'outs')))

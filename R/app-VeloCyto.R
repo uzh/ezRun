@@ -53,6 +53,7 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
         system(sprintf('mv * %s', file.path(cwd, sampleDir, "outs")))
         setwd(cwd)
     }
+    out <- tryCatch(local_CondaEnv("gi_velocyto", pathToMiniConda = "/usr/local/ngseq/miniforge3"), error = function(e) NULL)
     cmd <- paste('velocyto run10x', sampleDir, gtfFile, '-@', param$cores)
     ezSystem(cmd)
     file.copy(file.path(sampleName, 'velocyto', paste0(sampleName,'.loom')), '.')
