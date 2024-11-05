@@ -45,13 +45,13 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       if(!any(grepl("Control", input$colNames, ignore.case = TRUE)))
         stop("The parameter 'useControl' is 'true' but no column named 'Control [File]' is available.")
       
-      cmd = paste("macs2", "callpeak -t", outBam,
+      cmd = paste("macs3", "callpeak -t", outBam,
                   "-c", input$getFullPaths("Control"),
                   "-B", opt,"-n", output$getNames())
       ezSystem(cmd)
       bedgraphFileTreat = paste0(output$getNames(), '_treat_pileup.bdg')
       bedgraphFileControl = paste0(output$getNames(), '_control_lambda.bdg')
-      cmd = paste("macs2", " bdgcmp -t", bedgraphFileTreat,
+      cmd = paste("macs3", " bdgcmp -t", bedgraphFileTreat,
                   "-c", bedgraphFileControl, "-o",
                   paste0(output$getNames(),"_FE.bdg"), "-m FE")
       ezSystem(cmd)
@@ -66,7 +66,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
       ezSystem(cmd)
       ezSystem("rm *.bdg")
     } else {
-      cmd = paste("macs2", "callpeak -t", outBam, opt,
+      cmd = paste("macs3", "callpeak -t", outBam, opt,
                   "-n", output$getNames())
       ezSystem(cmd)
       bam2bw(file=outBam, destination=basename(output$getColumn("BigWigFile")),
@@ -86,7 +86,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
     ## Preprocess ATAC-seq bam file
     atacBamProcess(input=input, output=output, param=param)
     
-    cmd = paste("macs2", "callpeak -t", basename(output$getColumn("BAM")),
+    cmd = paste("macs3", "callpeak -t", basename(output$getColumn("BAM")),
                 opt, "-n", output$getNames())
     ezSystem(cmd)
     bam2bw(file=basename(output$getColumn("BAM")),
@@ -94,7 +94,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
            paired=param$paired,
            method="deepTools", cores=param$cores)
   }else{
-    stop("MACS2 only supports ChIP-seq or ATAC-seq data.")
+    stop("MACS3 only supports ChIP-seq or ATAC-seq data.")
   }
   
   peakBedFile = basename(output$getColumn("BED"))
