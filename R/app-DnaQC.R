@@ -72,7 +72,7 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
     ###TODO: add mappingQuality, GC content, insert size
     #####add duplicate rate plot to lib complexity (calc. optical duplicates with picard)
     metricFn = paste0(sm,'_picardDupReport.txt')
-    cmd <- paste(prepareJavaTools("picard"), "MarkDuplicates",
+    cmd <- paste(sub('java','/usr/local/ngseq/packages/Dev/jdk/21/bin/java',prepareJavaTools("picard")), "MarkDuplicates",
                  paste0("I=", files[sm]),
                  paste0("O=", "toDelete.bam"),
                  paste0("M=", metricFn),
