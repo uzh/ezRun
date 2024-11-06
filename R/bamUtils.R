@@ -105,8 +105,7 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
 ### Make or remove duplicated in bam file
 dupBam <- function(inBam, outBam, operation = c("mark", "remove"), ram = 20) {
   operation <- match.arg(operation)
-  javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", ram, "g")
-  
+  javaCall = paste0("/usr/local/ngseq/packages/Dev/jdk/21/bin/java", " -Djava.io.tmpdir=. -Xmx", ram, "g")
   cmd <- paste(javaCall, " -jar ", Sys.getenv("Picard_jar"), 
                "MarkDuplicates",
                 paste0("I=", inBam),
