@@ -741,12 +741,11 @@ p3 <- VlnPlot(scData, features = 'prediction.score.max', group.by = 'predicted.i
 ```
 
 ```{r cellxgene_2, eval=!is.null(cellxgeneResults), echo=FALSE, message=FALSE, results="asis"}
-paste('\n\n * The URL of the reference data is:', param$cellxgeneUrl)
-paste('\n\n * The DOI of this dataset is:', paste0("https://doi.org/", DOI))
-
+cat("\n\n* The URL of the reference data is:", param$cellxgeneUrl)
+cat("\n\n* The DOI of this dataset is:", ifelse(length(DOI) > 0, paste0("https://doi.org/", DOI), "DOI not available"))
 ```
 
-```{r cellxgene_3, eval=!is.null(cellxgeneResults), fig.width=7, fig.height=7}
+```{r cellxgene_3, eval=!is.null(cellxgeneResults), fig.width=9, fig.height=7}
 p1
 p2
 p3
