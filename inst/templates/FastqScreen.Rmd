@@ -35,7 +35,8 @@ rRNAstrandResult <- readRDS("rRNAstrandResult.rds")
 PWMresult <- readRDS("PWMs.rds")
 dataset = input$meta
 samples = input$getNames()
-
+ans4Report <- dataset[['Read Count']]
+names(ans4Report) <- samples
 debug <- FALSE
 ```
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
@@ -343,6 +344,33 @@ for (nm in names(PWMs)){
         cat("\n \n")
 }
 ```
+
+### Read Counts
+The read counts in each sample.
+
+```{r readCounts, echo=FALSE}
+readCount <- ans4Report[["Read Count"]]
+```
+
+```{r readCountsPlotly, fig.height=7, fig.width=min(max(7, 7+(length(readCount)-20)*0.3), 30), echo=FALSE, message=FALSE, warning=FALSE}
+if (all(!is.na(readCount))){
+  m <- list(
+    l = 80,
+    r = 80,
+    b = 200,
+    t = 100,
+    pad = 0
+  )
+  plot_ly(x=names(readCount), y=readCount, type="bar") %>%
+    layout(title="Total reads",
+           yaxis = list(title = "Counts [Mio]"),
+           margin = m
+    )
+} else {
+  print("read counts not available in sushi dataset; do check individual reports")
+}
+```
+
 
 ### Settings
 ```{r setting, echo=FALSE}
