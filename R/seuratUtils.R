@@ -70,7 +70,7 @@ seuratClustering <- function(scData, param){
                          dims.use = 1:min(param$pcs, length(pc.genes)-1),
                          resolution = param$resolution, print.output = 0, 
                          save.SNN=TRUE, force.recalc=FALSE)
-  scData <- RunTSNE(object=scData, reduction.use = "pca",
+  scData <- RunTSNE(object=scData, reduction.use = "pca", check_duplicates = FALSE,
                     dims.use=1:min(param$pcs, length(pc.genes)-1), tsne.method="Rtsne",
                     perplexity=ifelse(length(scData@ident) > 200, 30, 10),
                     num_threads=param$cores)
@@ -85,7 +85,7 @@ seuratStandardWorkflow <- function(scData, param, reduction="pca", ident.name="i
   scData <- RunPCA(object=scData, verbose=FALSE)
   #scData <- RunPCA(object=scData, npcs = param$npcs, verbose=FALSE)
   if(!('Spatial' %in% as.vector(Seurat::Assays(scData)))){
-    scData <- RunTSNE(object = scData, reduction = reduction, dims = 1:param$npcs)
+    scData <- RunTSNE(object = scData, check_duplicates = FALSE, reduction = reduction, dims = 1:param$npcs)
   }
   scData <- RunUMAP(object=scData, reduction = reduction, dims = 1:param$npcs)
   scData <- FindNeighbors(object = scData, reduction = reduction, dims = 1:param$npcs, verbose=FALSE)
