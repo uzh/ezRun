@@ -169,6 +169,7 @@ cellxgene_annotation <- function(scData, param) {
   library(stringr)
   library(httr)
   library(harmony)
+  library(schard)
   #library(glmGamPoi)
 
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
@@ -247,7 +248,7 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   } else {
     cat("Download failed. Status code:", http_status(response)$status, "\n")
   }
-  curated_seurat_object <- readRDS(tmp_download_ref)
+  curated_seurat_object <- schard::h5ad2seurat(tmp_download_ref)
   file.remove(tmp_download_ref)
   
 
