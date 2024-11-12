@@ -36,7 +36,6 @@ EzAppSCLabelClusters <-
 
 ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
                                 htmlFile = "00index.html") {
-  library(scanalysis)
   library(HDF5Array)
   library(AUCell)
   library(GSEABase)
@@ -44,7 +43,6 @@ ezMethodSCLabelClusters <- function(input = NA, output = NA, param = NA,
   library(Seurat)
   library(SingleCellExperiment)
   library(tidyverse)
-  library(scanalysis)
   require(scDblFinder)
   
   #clusterInfo <- readRDS("clusterInfoFile.rds")

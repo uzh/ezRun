@@ -67,7 +67,6 @@ EzAppSCFeatBarcoding <-
 
 ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA, 
                              htmlFile="00index.html"){
-  library(scanalysis)
   library(HDF5Array)
   library(AUCell)
   library(GSEABase)
@@ -75,7 +74,6 @@ ezMethodSCFeatBarcoding <- function(input=NA, output=NA, param=NA,
   library(Seurat)
   library(SingleCellExperiment)
   library(tidyverse)
-  library(scanalysis)
   require(scDblFinder)
   library(BiocParallel)
 

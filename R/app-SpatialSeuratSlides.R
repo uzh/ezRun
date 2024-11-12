@@ -72,7 +72,6 @@ ezMethodSpatialSeuratSlides = function(input=NA, output=NA, param=NA, htmlFile="
   library(Seurat)
   library(rlist)
   library(HDF5Array)
-  library(scanalysis)
   library(SummarizedExperiment)
   library(SingleCellExperiment)
   

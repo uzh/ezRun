@@ -46,7 +46,6 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   library(Seurat)
   library(rlist)
   library(HDF5Array)
-  library(scanalysis)
   library(SummarizedExperiment)
   library(SingleCellExperiment)
   library(AUCell)
