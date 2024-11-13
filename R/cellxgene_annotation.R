@@ -237,9 +237,7 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   ezWrite(Sys.info(), con = lockFile)
   on.exit(file.remove(lockFile), add = TRUE)
   
-  ## get the processed ref data
-  ### Download panceas dataset, ref one
-  
+  ## Download reference dataset
   timeout_sec <- 3600
   tmp_download_ref <- paste0(cache_dir, "/", basename(ref_dataset_id))
   response <- httr::GET(ref_dataset_id, write_disk(tmp_download_ref, overwrite = TRUE), timeout(timeout_sec))
@@ -247,8 +245,28 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
     cat("Download completed successfully.\n")
   } else {
     cat("Download failed. Status code:", http_status(response)$status, "\n")
+    stop("Failed to download reference dataset")
   }
-  curated_seurat_object <- schard::h5ad2seurat(tmp_download_ref)
+  
+  # Detect file format and load accordingly
+  file_extension <- tolower(tools::file_ext(ref_dataset_id))
+  
+  curated_seurat_object <- switch(file_extension,
+    "rds" = {
+      message("Loading RDS format Seurat object...")
+      readRDS(tmp_download_ref)
+    },
+    "h5ad" = {
+      message("Loading H5AD format and converting to Seurat object...")
+      if (!requireNamespace("schard", quietly = TRUE)) {
+        stop("Package 'schard' is needed for h5ad format. Please install it first.")
+      }
+      schard::h5ad2seurat(tmp_download_ref)
+    },
+    stop(paste("Unsupported file format:", file_extension, 
+               ". Only .rds and .h5ad formats are supported."))
+  )
+  
   file.remove(tmp_download_ref)
   
 
