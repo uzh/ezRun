@@ -25,23 +25,8 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(Seurat)
   library(HDF5Array)
   library(SingleCellExperiment)
-  library(BiocParallel)
-  
-  
-  if (param$cores > 1){
-    BPPARAM <- MulticoreParam(workers = param$cores)
-  } else {
-    ## scDblFinder fails with many cells and MulticoreParam
-    BPPARAM <- SerialParam() 
-  }
-  register(BPPARAM)
-  require(future)
-  plan("multicore", workers = param$cores)
+
   set.seed(38)
-  future.seed = TRUE
-  options(future.rng.onMisuse="ignore")
-  options(future.globals.maxSize = param$ram*1024^3)
-  
   
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
@@ -52,14 +37,14 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   DefaultAssay(scData) = "SCT" 
   #subset the object to only contain the conditions we are interested in
-  Idents(scData) <- scData[[param$grouping]]
+  Idents(scData) <- scData@meta.data[[param$grouping]]
   stopifnot(c(param$sampleGroup, param$refGroup) %in% Idents(scData))
   scData <- subset(scData, idents=c(param$sampleGroup, param$refGroup))
   
   pvalue_allMarkers <- 0.05
   
   #Before calculating the conserved markers and differentially expressed genes across conditions I will discard the clusters that were too small in at least one group
-  Idents(scData) <- scData[[param$CellIdentity]]
+  Idents(scData) <- scData@meta.data[[param$CellIdentity]]
   clusters_freq <- table(grouping=scData@meta.data[[param$grouping]], cellIdent=Idents(scData)) %>% data.frame()
   small_clusters <- clusters_freq[clusters_freq$Freq < 10, "cellIdent"] %>% as.character() %>% unique()
   big_clusters <- setdiff(Idents(scData), small_clusters)
