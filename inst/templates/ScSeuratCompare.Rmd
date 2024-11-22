@@ -34,7 +34,7 @@ Idents(scData) <- scData@meta.data[[param$grouping]]
 scData <- subset(scData, idents=c(param$sampleGroup, param$refGroup))
 #values need to be re-scaled after subsetting for plotting purposes
 scData <- ScaleData(scData)
-Idents(scData) <- scData[[param$CellIdentity]]
+Idents(scData) <- scData@meta.data[[param$CellIdentity]]
 clusterNames <- sort(unique(Idents(scData)))
 var_heigth <- 1
 ```
@@ -43,7 +43,9 @@ var_heigth <- 1
 
 ```{r load conserved and diff genes}
 conservedMarkers <- readxl::read_xlsx("consMarkers.xlsx")
+conservedMarkersPresent <- !is.null(conservedMarkers) && nrow(conservedMarkers) > 0
 diffGenes <- readxl::read_xlsx("diffGenes.xlsx")
+diffGenesPresent <- !is.null(diffGenes) && nrow(diffGenes) > 0
 ```
 
 ```{r dim plot explanation, results='asis'}
@@ -54,10 +56,10 @@ cat("\n\n")
 ```
 
 ```{r dim plot, fig.width=9, fig.height=6+round(length(clusterNames)/10)}
-do_DimPlot(scData, split.by = param$grouping, group.by = param$CellIdentity)
+do_DimPlot(scData, split.by = param$grouping, group.by = param$CellIdentity, font.size = 10)
 ```
 
-```{r consMarkers table, eval=!is.null(conservedMarkers), results='asis'}
+```{r consMarkers table, eval=conservedMarkersPresent, results='asis'}
 cat("### Conserved Markers")
 cat("\n")
 cat("Identify cell type marker genes that are conserved across conditions. Differential gene expression tests are performed for each group and then, the p-values are combined using meta-analysis methods.")
@@ -67,14 +69,14 @@ cat("\n")
 ezInteractiveTableRmd(conservedMarkers, digits = 3)
 ```
 
-```{r subset conserved top5, eval=!is.null(conservedMarkers)}
+```{r subset conserved top5, eval=conservedMarkersPresent}
 top5 <- conservedMarkers %>% 
   mutate(cluster = as.numeric(as.character(cluster))) %>% group_by(cluster)
 top5 <- slice_max(top5, n = 5, order_by = avg_avg_fc)
 var_heigth <- nrow(top5)*0.2
 ```
 
-```{r consMarkers plots, eval=!is.null(conservedMarkers), results='asis', fig.width=12, fig.height=var_heigth}
+```{r consMarkers plots, eval=conservedMarkersPresent, results='asis', fig.width=12, fig.height=var_heigth}
 cat("### Conserved Markers - Plots\n")
 cat("\n")
 cat("Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 conserved markers in each cluster (with highest average fold change across the two groups). Be aware that some genes may be in the top markers for different clusters.\n")
@@ -85,7 +87,7 @@ DotPlot(scData, features=unique(top5$gene)) +
   theme(axis.text.x = element_text(angle = 45, hjust=1))
 ```
 
-```{r diffGenes table, eval=!is.null(diffGenes), results='asis'}
+```{r diffGenes table, eval=diffGenesPresent, results='asis'}
 cat("### Differential Expression")
 cat("\n")
 
@@ -94,7 +96,7 @@ cat(paste0("After identifying common cell types across conditions, we can look f
 cat("\n")
 
 diffGenesTable <- diffGenes[diffGenes$p_val_adj<0.05, ]  #too many genes make the interactive table slow
-diffGenesTable <- diffGenesTable[order(abs(diffGenes$avg_log2FC), decreasing = TRUE), ]
+diffGenesTable <- diffGenesTable[order(abs(diffGenesTable$avg_log2FC), decreasing = TRUE), ]
 cutoff <- 1000
 
 if(nrow(diffGenesTable) > cutoff) {
@@ -104,10 +106,10 @@ if(nrow(diffGenesTable) > cutoff) {
 cat("\n")
 cat("#### Differential expressed genes per cluster")
 cat("\n")
-ezInteractiveTableRmd(as.data.frame(diffGenesTable), digits=3) %>% formatSignif("p_val")
+ezInteractiveTableRmd(as.data.frame(diffGenesTable), digits=3) %>% DT::formatSignif("p_val")
 ```
 
-```{r diffGenes heatmap, eval=!is.null(diffGenes), results='asis', fig.height=6, fig.width=12, fig.align='center'}
+```{r diffGenes heatmap, eval=diffGenesPresent, results='asis', fig.height=6, fig.width=12, fig.align='center'}
 cat("### Differential Expression - Plots\n")
 cat("\n")
 cat("The 50 dysregulated genes with the highest difference in expression between the two conditions are represented in the heatmap and the violin plots. The heatmap shows global differences of these genes across the conditions, while the violin plots show cluster specific changes across conditions.")
@@ -119,7 +121,7 @@ DoHeatmap(scData, features = top5$gene, group.by = param$grouping)
 DoHeatmap(scData, features = top5$gene, group.by = "cluster.group") + NoLegend()
 ```
 
-```{r diffGenes volcano plots, eval=!is.null(diffGenes)}
+```{r diffGenes volcano plots, eval=diffGenesPresent}
 Idents(scData) <- scData@meta.data[[param$grouping]]
 for (clusterName in clusterNames) {
   dt <- diffGenes %>% filter(cluster == clusterName)
@@ -149,7 +151,7 @@ for (clusterName in clusterNames) {
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("DE.method", "DE.regress", "grouping", "sampleGroup", "refGroup", "CellIdentity")]
+param[c("DE.method", "DE.regress", "grouping", "sampleGroup", "refGroup", "CellIdentity", "pseudoBulkMode", "replicateGrouping")]
 ```
 
 ### SessionInfo

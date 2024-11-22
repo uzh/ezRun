@@ -308,7 +308,7 @@ all2all <- function(scData, pvalue_all2allMarkers, param) {
   return(all2allMarkers)
 }
 
-conservedMarkers <- function(scData, grouping.var="Condition") {
+conservedMarkers <- function(scData, grouping.var="Condition", pseudoBulkMode=FALSE) {
   markers <- list()
   
   if("SCT" %in% Seurat::Assays(scData)) {
@@ -316,11 +316,18 @@ conservedMarkers <- function(scData, grouping.var="Condition") {
   } else {
     assay <- "RNA"
   }
+  if (pseudoBulkMode) {
+    DE.method <- "DESeq2"
+  } else {
+    DE.method <- "wilcox"
+  }
+  
   for(eachCluster in levels(Idents(scData))){
     markersEach <- try(FindConservedMarkers(scData, ident.1=eachCluster, 
                                             grouping.var=grouping.var, 
                                             print.bar=FALSE, only.pos=TRUE, 
-                                            assay = assay), silent=TRUE)
+                                            assay = assay, test.use=DE.method), 
+                       silent=TRUE)
     if(class(markersEach) != "try-error" && nrow(markersEach) > 0){
       markers[[eachCluster]] <- as_tibble(markersEach, rownames="gene")
     }
@@ -338,8 +345,13 @@ diffExpressedGenes <- function(scData, param, grouping.var="Condition") {
   conditions <- unique(scData@meta.data[[grouping.var]])
   
   vars.to.regress = NULL
-  if(param$DE.method == "LR") #regress the plate if the test is LR
+  DE.method <- param$DE.method
+  if (ezIsSpecified(param$replicateGrouping) && param$pseudoBulkMode == "true") {
+    DE.method <- "DESeq2"
+  }
+  if (param$DE.method == "LR") { #regress the plate if the test is LR
     vars.to.regress <- param$DE.regress
+  }
   
   diffGenes <- list()
   for(eachCluster in gtools::mixedsort(levels(seurat_clusters))){
@@ -347,7 +359,7 @@ diffExpressedGenes <- function(scData, param, grouping.var="Condition") {
                                                           param$sampleGroup),
                                    ident.2=paste0(eachCluster, "_", 
                                                   param$refGroup),
-                                   test.use = param$DE.method, latent.vars = vars.to.regress))
+                                   test.use = DE.method, latent.vars = vars.to.regress))
     ## to skip some groups with few cells
     if(class(markersEach) != "try-error"){
       diffGenes[[eachCluster]] <- as_tibble(markersEach, rownames="gene")

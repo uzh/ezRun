@@ -42,6 +42,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   scData <- subset(scData, idents=c(param$sampleGroup, param$refGroup))
   
   pvalue_allMarkers <- 0.05
+  pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) && param$pseudoBulkMode == "true"
   
   #Before calculating the conserved markers and differentially expressed genes across conditions I will discard the clusters that were too small in at least one group
   Idents(scData) <- scData@meta.data[[param$CellIdentity]]
@@ -49,15 +50,27 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   small_clusters <- clusters_freq[clusters_freq$Freq < 10, "cellIdent"] %>% as.character() %>% unique()
   big_clusters <- setdiff(Idents(scData), small_clusters)
   
-  if(length(slot(scData[['SCT']], "SCTModel.list")) > 2){
+  if (length(slot(scData[['SCT']], "SCTModel.list")) > 2) {
     toKeep <- which(sapply(SCTResults(scData[['SCT']], slot = "cell.attributes"), nrow) != 0)
     slot(scData[['SCT']], "SCTModel.list") = slot(scData[['SCT']], "SCTModel.list")[toKeep]
   }
-  scData <- PrepSCTFindMarkers(scData)
-  consMarkers <- conservedMarkers(scData, grouping.var = param$grouping)
-  #differentially expressed genes between clusters and conditions (in case of several conditions)
-  diffGenes <- diffExpressedGenes(scData, param, grouping.var = param$grouping)
+  if (pseudoBulkMode) {
+    # pseudobulk the counts based on donor-condition-celltype
+    scData_agg <- AggregateExpression(scData, assays = "RNA", 
+                                      return.seurat = TRUE, 
+                                      group.by = c(param$grouping, param$replicateGrouping, param$CellIdentity))
+    Idents(scData_agg) <- scData_agg@meta.data[[param$CellIdentity]]
+    consMarkers <- conservedMarkers(scData_agg, grouping.var = param$grouping, 
+                                    pseudoBulkMode = pseudoBulkMode)
+    diffGenes <- diffExpressedGenes(scData_agg, param, grouping.var = param$grouping)
+  } else {
+    scData <- PrepSCTFindMarkers(scData)
+    consMarkers <- conservedMarkers(scData, grouping.var = param$grouping, 
+                                    pseudoBulkMode = pseudoBulkMode)
+    diffGenes <- diffExpressedGenes(scData, param, grouping.var = param$grouping)
+  }
   
+  # Save the files for the report
   writexl::write_xlsx(consMarkers, path="consMarkers.xlsx")
   writexl::write_xlsx(diffGenes, path="diffGenes.xlsx")
   
