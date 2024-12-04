@@ -1,0 +1,103 @@
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+ezMethodDmrseq <- function(input=NA, output=NA, param=NA){
+    library(dmrseq)
+    library(BiocParallel)
+    library(annotatr)
+    
+    register(MulticoreParam(param$cores))
+    params <- MulticoreParam(workers = param$cores)
+    inputMeta <- input$meta
+    sampleGroupInfo <- inputMeta[inputMeta$`Condition [Factor]`== param$sampleGroup,]
+    #sampleGroupInfo <- sampleGroupInfo[sampleGroupInfo$KeepSample==1,]
+    refGroupInfo <- inputMeta[inputMeta$`Condition [Factor]`== param$refGroup,]
+    #refGroupInfo <- refGroupInfo[refGroupInfo$KeepSample==1,]
+    
+    files <- c(sampleGroupInfo$`COV [File]`, refGroupInfo$`COV [File]`)
+    names(files) <- c(rownames(sampleGroupInfo), rownames(refGroupInfo))
+    
+    for(j in 1:length(files)){
+        system(paste('zcat', file.path(param$dataRoot,files[j]), '>', sub('.gz$', '', basename(files[j]))))
+    }
+    
+    conditions <- c(
+        sampleGroupInfo[[paste(param$grouping,'[Factor]')]],
+        refGroupInfo[[paste(param$grouping, '[Factor]')]])
+    
+    # Read the Bismark data into a BSseq object
+    bismarkBSseq <- read.bismark(
+        files = sub('.gz$', '', basename(files)),
+        rmZeroCov = TRUE,
+        strandCollapse = TRUE,
+        verbose = TRUE
+    )
+    sampleNames(bismarkBSseq) <- names(files)
+    pData(bismarkBSseq)$Condition <- conditions
+    
+    coverage <- getCoverage(bismarkBSseq, type = "Cov")
+    
+    # Filter out loci with zero coverage in all samples of any condition
+    refGroup_samples <- which(pData(bismarkBSseq)$Condition == param$refGroup)
+    sampleGroup_samples <- which(pData(bismarkBSseq)$Condition == param$sampleGroup)
+    
+    loci_with_coverage <- rowSums(coverage[, refGroup_samples] > 0) > 0 &
+        rowSums(coverage[, sampleGroup_samples] > 0) > 0
+    
+    bismarkBSseq_filtered <- bismarkBSseq[loci_with_coverage, ]
+    
+    # Filter out non-canonical chromosomes
+    chr_names <- levels(seqnames(bismarkBSseq_filtered))
+    standard_chrs <- chr_names[nchar(chr_names) < 6]
+    
+    # Keep only loci on standard chromosomes
+    bismarkBSseq_filtered <- bismarkBSseq_filtered[as.character(seqnames(bismarkBSseq_filtered)) %in% standard_chrs, ]
+    
+    # Perform differential methylation analysis
+    regions <- dmrseq(
+        bs = bismarkBSseq_filtered,
+        testCovariate = "Condition",
+        BPPARAM = params
+    )
+    
+    blocks <- dmrseq(
+        bs = bismarkBSseq_filtered,
+        cutoff = param$qval,
+        testCovariate = "Condition",
+        block = TRUE,
+        minInSpan = 500,
+        bpSpan = 5e4,
+        maxGapSmooth = 1e6,
+        maxGap = 5e3
+    )
+    
+    # Export results:
+    saveRDS(bismarkBSseq_filtered, file = "bismarkBSseq_filtered.rds")
+    saveRDS(regions, file = "dmrseq_results.rds")
+    saveRDS(blocks, file = "large_blocks.rds")
+    return('success')  
+}
+
+#param$qval
+#param$grouping
+#param$sampleGroup
+#param$refGroup
+
+EzAppDmrseq <-
+    setRefClass("EzAppDmrseq",
+                contains = "EzApp",
+                methods = list(
+                    initialize = function()
+                    {
+                        "Initializes the application using its specific defaults."
+                        runMethod <<- ezMethodDmrseq
+                        name <<- "EzAppDmrseq"
+                        appDefaults <<- rbind(qval=ezFrame(Type="numeric", DefaultValue=0.05, Description="fdr cutoff")
+                        )
+                    }
+                )
+    )
