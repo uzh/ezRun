@@ -531,7 +531,7 @@ ezMethodBWA <- function(input = NA, output = NA, param = NA) {
                    ram = param$ram, removeBam = TRUE,
                    cores = param$cores
     )
-    dupBam(inBam = "sorted.bam", outBam = basename(bamFile), operation = "mark", ram = param$ram)
+    dupBam(inBam = "sorted.bam", outBam = basename(bamFile), operation = "mark", ram = round(0.8 * param$ram))
     file.remove("sorted.bam")
   } else {
     ezSortIndexBam("aligned.bam", basename(bamFile),
