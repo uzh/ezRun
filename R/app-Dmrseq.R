@@ -11,12 +11,11 @@ ezMethodDmrseq <- function(input=NA, output=NA, param=NA){
     library(annotatr)
     
     register(MulticoreParam(param$cores))
+    param$extGrouping <- paste0(param$grouping,' [Factor]')
     params <- MulticoreParam(workers = param$cores)
     inputMeta <- input$meta
-    sampleGroupInfo <- inputMeta[inputMeta$`Condition [Factor]`== param$sampleGroup,]
-    #sampleGroupInfo <- sampleGroupInfo[sampleGroupInfo$KeepSample==1,]
-    refGroupInfo <- inputMeta[inputMeta$`Condition [Factor]`== param$refGroup,]
-    #refGroupInfo <- refGroupInfo[refGroupInfo$KeepSample==1,]
+    sampleGroupInfo <- inputMeta[inputMeta[[param$extGrouping]]== param$sampleGroup,]
+    refGroupInfo <- inputMeta[inputMeta[[param$extGrouping]]== param$refGroup,]
     
     files <- c(sampleGroupInfo$`COV [File]`, refGroupInfo$`COV [File]`)
     names(files) <- c(rownames(sampleGroupInfo), rownames(refGroupInfo))
@@ -26,8 +25,8 @@ ezMethodDmrseq <- function(input=NA, output=NA, param=NA){
     }
     
     conditions <- c(
-        sampleGroupInfo[[paste(param$grouping,'[Factor]')]],
-        refGroupInfo[[paste(param$grouping, '[Factor]')]])
+        sampleGroupInfo[[param$extGrouping]],
+        refGroupInfo[[param$extGrouping]])
     
     # Read the Bismark data into a BSseq object
     bismarkBSseq <- read.bismark(
@@ -79,13 +78,12 @@ ezMethodDmrseq <- function(input=NA, output=NA, param=NA){
     saveRDS(bismarkBSseq_filtered, file = "bismarkBSseq_filtered.rds")
     saveRDS(regions, file = "dmrseq_results.rds")
     saveRDS(blocks, file = "large_blocks.rds")
+    saveRDS(param, file = 'param.rds')
+    
+    ##Create RMD Report 
+    makeRmdReport(param=param, rmdFile = "Dmrseq.Rmd")
     return('success')  
 }
-
-#param$qval
-#param$grouping
-#param$sampleGroup
-#param$refGroup
 
 EzAppDmrseq <-
     setRefClass("EzAppDmrseq",
