@@ -81,7 +81,7 @@ ezMethodDmrseq <- function(input=NA, output=NA, param=NA){
     saveRDS(param, file = 'param.rds')
     
     ##Create RMD Report 
-    makeRmdReport(param=param, rmdFile = "Dmrseq.Rmd")
+    makeRmdReport(param=param, rmdFile = "DmrSeq.Rmd")
     return('success')  
 }
 
