@@ -10,6 +10,7 @@ ezMethodDmrseq <- function(input=NA, output=NA, param=NA){
     library(BiocParallel)
     library(annotatr)
     
+    setwdNew(basename(output$getColumn("ResultFolder")))
     register(MulticoreParam(param$cores))
     param$extGrouping <- paste0(param$grouping,' [Factor]')
     params <- MulticoreParam(workers = param$cores)
