@@ -21,7 +21,7 @@ library(kableExtra)
 
 ```{r prepare data dmrseq, include=FALSE}
 param <- readRDS('param.rds')
-
+n <- 100
 gtf <- import(param$ezRef@refFeatureFile)
 gtf <- gtf[gtf$type == 'gene',]
 gtf <- gtf[gtf$gene_biotype == 'protein_coding',]
@@ -46,7 +46,7 @@ settings["GroupingColumn:"] = param$grouping
 settings["sampleGroup:"] = param$sampleGroup
 settings["refGroup:"] = param$refGroup
 settings["qValue threshold:"] = param$qval
-
+settings["topRegions/Blocks:"] = n
 kable(settings, row.names=TRUE, 
       col.names="Setting", format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -64,12 +64,19 @@ kable(settings, row.names=TRUE,
 regions <- regions[!is.na(regions$beta),]
 sigRegions <- regions[regions$qval <= param$qval, ]
 numSigRegions <- sum(regions$qval <= param$qval)
+if(numSigRegions < 1){
+    cat('No significant regions detected. Instead top 100 regions reported \n')
+    numSigRegions <- regions[1:n, ]
+}
 
 # Exploring Significant Blocks
 blocks <- blocks[!is.na(blocks$beta),]
 sigBlocks <- blocks[blocks$qval <= param$qval, ]
 numSigBlocks <- sum(blocks$qval <= param$qval)
-
+if(numSigBlocks < 1){
+    cat('No significant block detected. Instead top 100 blocks reported \n')
+    sigBlocks <- blocks[1:n, ]
+}
 # Annotate significant regions/blocks
 asigRegions <- data.frame(annotatePeakInBatch(sigRegions,featureType = 'TSS', AnnotationData = gtf))
 asigRegions <- merge(asigRegions, genesAnnot, by.x = 'feature', by.y = 'gene_id', all.x = TRUE)
@@ -85,15 +92,16 @@ cols <- colnames(asigBlocks)
 cols <- cols[!(cols %in% c('index.start','index.end','index.width','peak'))]
 asigBlocks <- asigBlocks[,cols]
 
-# Export the significant regions to CSV
-writexl::write_xlsx(asigRegions,"significantRegions.xlsx")
-writexl::write_xlsx(asigBlocks,"significantBlocks.xlsx")
+
+# Export the significant regions to XLSX
+writexl::write_xlsx(asigRegions,"topRegions.xlsx")
+writexl::write_xlsx(asigBlocks,"topBlocks.xlsx")
 ```
 ### Candidate regions/blocks
 
-[significantRegions.xlsx](significantRegions.xlsx)
+[topRegions.xlsx](topRegions.xlsx)
 
-[significantBlocks.xlsx](significantBlocks.xlsx)
+[topBlocks.xlsx](topBlocks.xlsx)
 
 ### Full result objects for regions and blocks as RDS files
 
@@ -104,8 +112,12 @@ writexl::write_xlsx(asigBlocks,"significantBlocks.xlsx")
 [large_blocks.rds](large_blocks.rds)
 
 
-## Differential Analyis Plots
-```{r count statistics, echo=FALSE, fig.width=12, fig.height=6, message=FALSE, warning=FALSE}
+## Differential Analysis Details
+```{r count statistics1, echo=FALSE, fig.width=4, fig.height=6, message=FALSE, warning=FALSE}
+barplot(c(Regions = numSigRegions, Blocks = numSigBlocks), col = 'royalblue', las = 2, main = 'Detected Candidates')
+```
+
+```{r count statistics2, echo=FALSE, fig.width=12, fig.height=6, message=FALSE, warning=FALSE}
 myBoxplot <- function(vec, myTitle){
 q <- quantile(vec, probs = c(0.05, 0.95))
 vec <- vec[vec >= q[1] & vec <= q[2]]
@@ -127,32 +139,38 @@ text(range_x[2]-0.2 * diff(range_x), mid_y+0.5,
      adj = c(1, 0.5), col = "blue")
 }
 
-p1 <- myBoxplot(sigRegions$stat,'Hypo- and Hypermethylation of candidate regions')
-p2 <- myBoxplot(sigBlocks$stat, 'Hypo- and Hypermethylation of candidate blocks')
 par(mfrow = c(1, 2))
-p1
-p2
-
+if(numSigRegions > 0)
+myBoxplot(sigRegions$stat,'Hypo- and Hypermethylation of candidate regions')
+if(numSigBlocks > 0)
+myBoxplot(sigBlocks$stat, 'Hypo- and Hypermethylation of candidate blocks')
+par(mfrow = c(1, 1))
 ```
 
 ## QC Plots
-```{r count statistics1, echo=FALSE, fig.width=12, fig.width=5, message=FALSE, warning=FALSE}
+```{r count statistics3, echo=FALSE, fig.width=12, fig.width=5, message=FALSE, warning=FALSE}
 ##global plots
 # Plot methylation distribution
 p1 <- plotEmpiricalDistribution(bismarkBSseq_filtered, testCovariate = "Condition")
-p1
+ggplot2::ggsave("custom_plot1.png", plot = p1, width = 12, height = 5, units = "in")
+knitr::include_graphics("custom_plot1.png")
 ```
 
-```{r count statistics2, echo=FALSE, fig.width=12, fig.width=7, message=FALSE, warning=FALSE}
+```{r count statistics4, echo=FALSE, fig.width=12, fig.width=7, message=FALSE, warning=FALSE}
 # Plot coverage distribution
 p2 <- plotEmpiricalDistribution(bismarkBSseq_filtered, testCovariate = "Condition", type = "Cov", bySample = TRUE)
-p2
+ggplot2::ggsave("custom_plot2.png", plot = p2, width = 12, height = 7, units = "in")
+knitr::include_graphics("custom_plot2.png")
 ```
 
 ## Annotation Details
-```{r annot, echo=FALSE, fig.width=12, fig.height=6, message=FALSE, warning=FALSE}
-#asigRegions
-#show 
+```{r annot, echo=FALSE, fig.width=8, fig.height=6, message=FALSE, warning=FALSE}
+if(numSigRegions > 0){
+    par(mar=c(10.1,4.1,4.1,2.1))
+    barplot(table(asigRegions$insideFeature), las = 2, col = 'royalblue', main = 'RegionAnnotation')
+    par(mar=c(5.1,4.1,4.1,2.1))
+    barplot(table(asigRegions$feature_strand), las = 2, col = 'royalblue', main = 'Strand')
+}
 ```
 
 ## SessionInfo
