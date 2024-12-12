@@ -65,8 +65,8 @@ regions <- regions[!is.na(regions$beta),]
 sigRegions <- regions[regions$qval <= param$qval, ]
 numSigRegions <- sum(regions$qval <= param$qval)
 if(numSigRegions < 1){
-    cat('No significant regions detected. Instead top 100 regions reported \n')
-    numSigRegions <- regions[1:n, ]
+    cat('No significant regions detected. Instead top', min(length(regions),n),' regions reported \n')
+    sigRegions <- regions[1:min(length(regions),n), ]
 }
 
 # Exploring Significant Blocks
@@ -74,8 +74,8 @@ blocks <- blocks[!is.na(blocks$beta),]
 sigBlocks <- blocks[blocks$qval <= param$qval, ]
 numSigBlocks <- sum(blocks$qval <= param$qval)
 if(numSigBlocks < 1){
-    cat('No significant block detected. Instead top 100 blocks reported \n')
-    sigBlocks <- blocks[1:n, ]
+    cat('No significant block detected. Instead top',min(length(blocks),n), 'blocks reported \n')
+    sigBlocks <- blocks[1:min(length(blocks),n), ]
 }
 # Annotate significant regions/blocks
 asigRegions <- data.frame(annotatePeakInBatch(sigRegions,featureType = 'TSS', AnnotationData = gtf))
