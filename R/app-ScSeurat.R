@@ -408,8 +408,13 @@ addCellQcToSeurat <- function(scData, param=NULL, BPPARAM=NULL, ribosomalGenes=N
   return(scData)
 }
 
-querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overlapGeneCutOff = 3, adjPvalueCutOff = 0.001, reportTopN = 5) {
+querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overlapGeneCutOff = 3, adjPvalueCutOff = 0.001, 
+                                                     reportTopN = 5, keepGenes=FALSE) {
   enrichRout <- list()
+  columnsToKeep <- c("Term", "Cluster", "Overlap", "OverlapGenesN", "Adjusted.P.value", "Odds.Ratio", "Combined.Score")
+  if (keepGenes){
+    columnsToKeep <- c(columnsToKeep, "Genes")
+  }
   for (cluster in unique(names(genesPerCluster))) {
     enriched <- enrichr(as.character(genesPerCluster[[cluster]]), dbs)
     
@@ -422,7 +427,7 @@ querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overl
           filter(., Adjusted.P.value < adjPvalueCutOff) %>%
           filter(., OverlapGenesN > overlapGeneCutOff) %>%
           head(reportTopN)
-        enrichRout[[cluster]][[db]] <- enriched_db[, c("Term", "Cluster", "Overlap", "OverlapGenesN", "Adjusted.P.value", "Odds.Ratio", "Combined.Score")]
+        enrichRout[[cluster]][[db]] <- enriched_db[, columnsToKeep]
       }
     }
   }

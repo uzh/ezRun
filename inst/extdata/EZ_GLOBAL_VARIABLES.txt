@@ -62,12 +62,6 @@ CNVNATOR="/usr/local/ngseq/src/CNVnator_v0.3.3/src/cnvnator"
 ## SMRT 
 SMRT_CMD="SMRT=/misc/ngseq8/opt/smrtanalysis.2.3.0/install/smrtanalysis_2.3.0.140936; source $SMRT/etc/setup.sh; fofnToSmrtpipeInput.py input.fofn > input.xml; smrtpipe.py --params=settings.xml xml:input.xml"
 
-############# R-SGE options
-# RSGE_RUN_JOB="/usr/local/ngseq/opt/sushi_scripts/Rsge/RunSgeJob"
-# RSGE_MONITOR_JOB="/usr/local/ngseq/opt/sushi_scripts/Rsge/MonitorJob.sh"
-# QSUB="/usr/local/ge62/bin/lx24-amd64/qsub"
-# SGE_ROOT="/usr/local/ge62"
-
 
 ## METAGENONMICS (MOTHUR-UPARSE-QIIME)
 METAGENOMICS_ROOT="/usr/local/ngseq/templateFiles/"
