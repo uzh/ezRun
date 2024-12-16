@@ -30,6 +30,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(qs)
   library(sccomp)
   library(tidyverse)
+  library(cmdstanr)
   
   set.seed(38)
   
