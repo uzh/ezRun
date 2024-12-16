@@ -24,6 +24,7 @@ library(Seurat)
 library(SCpubr)
 library(qs)
 library(dittoSeq)
+
 ```
 
 ```{r load rds and qs}
@@ -172,6 +173,33 @@ dittoSeq::dittoBarPlot(scData, group.by = scData$Sample, var = param$CellIdentit
 
 
 ### Cell Type Composition Analysis
+
+```{r intervals analysis, results='asis', fig.width=9, fig.height=7}
+cat("\n\n#### Intervals\n")
+cat("The error bars represent 95% credible intervals. The dashed lines represent the minimal effect that the hypothesis test is based on. An effect is labelled as significant if it exceeds the minimal effect according to the 95% credible interval.\n\n")
+
+# Get both conditions
+all_conditions <- sccomp_result$count_data[[1]] |>
+  dplyr::pull(Condition) |>
+  unique()
+
+# The one that's not in the comparison name is the reference
+comparison_group <- gsub("Condition", "", comparison)  # Gets "Wildlings"
+reference_group <- all_conditions[!all_conditions %in% comparison_group]
+
+# Create clear title
+plot_title <- paste0(comparison_group, " vs ", reference_group)
+
+# Use in plot
+sccomp_result |> 
+  plot_1D_intervals() +
+  ggtitle(plot_title) +
+  theme(
+    axis.text.y = element_text(size = 12), 
+    plot.title = element_text(size = 13)
+  )
+```
+
 ```{r composition analysis, results='asis', fig.width=10, fig.height=11, message=FALSE, warning=FALSE}
 cat("#### Differential Cell Type Composition\n")
 cat("\nWe used [sccomp](https://github.com/MangiolaLaboratory/sccomp) to analyze differences in cell type composition between conditions. The analysis takes into account the count nature of the data and models both changes in proportion and variability.\n\n")
@@ -192,15 +220,6 @@ invisible(capture.output(
 print(p)
 ```
 
-
-```{r intervals analysis, results='asis', fig.width=9, fig.height=7}
-cat("\n\n#### Intervals\n")
-cat("The error bars represent 95% credible intervals. The dashed lines represent the minimal effect that the hypothesis test is based on. An effect is labelled as significant if it exceeds the minimal effect according to the 95% credible interval.\n\n")
-
-# Interval
-sccomp_result |> 
-  plot_1D_intervals() + theme(axis.text.y = element_text(size = 12)) 
-```
 
 
 ### Data availability
