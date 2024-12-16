@@ -34,7 +34,12 @@ param = readRDS("param.rds")
 tryCatch({
   scData <- qread("scData.qs")
 }, error = function(e) {
-  message("Could not load scData.qs: ", e$message)
+  message("Could not load scData.qs, trying scData.rds instead")
+  tryCatch({
+    scData <- readRDS("scData.rds")
+  }, error = function(e) {
+    message("Could not load scData.rds either: ", e$message)
+  })
 })
 
 tryCatch({
