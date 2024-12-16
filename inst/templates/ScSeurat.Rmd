@@ -38,11 +38,12 @@ library(patchwork)
 library(SCpubr)
 library(dplyr)
 library(cellxgenedp)
+library(qs)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 # clusterInfoFile <- "clusterInfos.xlsx" # -- not used
 posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
-scData <- readRDS("scData.rds")
+scData <- qread("scData.qs")
 output <- readRDS("output.rds")
 scData$qc.doublet <- scData$doubletClass %in% "doublet"
 allCellsMeta <- readRDS("allCellsMeta.rds")
@@ -758,7 +759,7 @@ p3
 The link below will take you to an interactive Shiny app which can be used to make 
 production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
 
-[single cell explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("SC Cluster Report"), "/scData.rds")}`){target="_blank"}
+[single cell explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("SC Cluster Report"), "/scData.qs")}`){target="_blank"}
 
 #### Previous Shiny apps (<span style='color: red;'>no longer recommended</span>)
 
@@ -774,7 +775,7 @@ These apps are no longer maintained. Use at your own risk, or for legacy dataset
 
 [posMarkers](posMarkers.xlsx) -- Excel table with all marker genes 
 
-[scData.rds](scData.rds) -- final seurat object
+[scData.qs](scData.qs) -- final seurat object
 
 
 ### SessionInfo
