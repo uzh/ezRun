@@ -41,8 +41,8 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
     manifest <- data.frame(dataset[ , grepl( "Read1" , names( dataset ) ) ])
     manifest$sample_id <- rownames(dataset)
     manifest <- manifest[,c(2,1)]
-    #extra_col <- paste("/srv/gstore/projects", manifest[,2], sep="/")
-    extra_col <- paste("/srv/GT/analysis/course_sushi/public/gstore/projects", manifest[,2], sep="/")
+    extra_col <- paste("/srv/gstore/projects", manifest[,2], sep="/")
+    #extra_col <- paste("/srv/GT/analysis/course_sushi/public/gstore/projects", manifest[,2], sep="/")
     manifest <- cbind(manifest, extra_col)
     manifest <- manifest[,c(1,3)]
     setnames(manifest, "sample_id", "sample-id")
@@ -55,10 +55,10 @@ ezMethodQIIME2 = function(input=NA, output=NA, param=NA,
       manifest2$sample_id <- rownames(dataset)
       manifest <- merge(manifest1, manifest2,by="sample_id")
       manifest <- manifest[,c(1,2,3)]
-      #extra_col1 <- paste("/srv/gstore/projects", manifest[,2], sep="/")
-      #extra_col2 <- paste("/srv/gstore/projects", manifest[,3], sep="/")
-      extra_col1 <- paste("/srv/GT/analysis/course_sushi/public/gstore/projects", manifest[,2], sep="/")
-      extra_col2 <- paste("/srv/GT/analysis/course_sushi/public/gstore/projects", manifest[,3], sep="/")
+      extra_col1 <- paste("/srv/gstore/projects", manifest[,2], sep="/")
+      extra_col2 <- paste("/srv/gstore/projects", manifest[,3], sep="/")
+      #extra_col1 <- paste("/srv/GT/analysis/course_sushi/public/gstore/projects", manifest[,2], sep="/")
+      #extra_col2 <- paste("/srv/GT/analysis/course_sushi/public/gstore/projects", manifest[,3], sep="/")
       manifest <- cbind(manifest, extra_col1, extra_col2)
       manifest <- manifest[,c(1,4,5)]
       setnames(manifest, "sample_id", "sample-id")
