@@ -38,7 +38,17 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   on.exit(setwd(cwd), add=TRUE)
   
   reportDir <- input$getFullPaths("Report")
-  scData <- qread(file.path(reportDir, "scData.qs"))
+
+  tryCatch({
+    scData <- qread(file.path(reportDir, "scData.qs"))
+  }, error = function(e) {
+    message("Could not load scData.qs, trying scData.rds instead")
+    tryCatch({
+      scData <- readRDS(file.path(reportDir, "scData.qs"))
+    }, error = function(e) {
+      message("Could not load scData.rds either: ", e$message)
+    })
+  })
   
   DefaultAssay(scData) = "SCT" 
   #subset the object to only contain the conditions we are interested in
@@ -46,28 +56,33 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   stopifnot(c(param$sampleGroup, param$refGroup) %in% Idents(scData))
   scData <- subset(scData, idents=c(param$sampleGroup, param$refGroup))
   
-  # Prepare data for sccomp using cellTypeIntegrated
-  metadata <- scData@meta.data
-  cell_counts <- table(metadata$cellTypeIntegrated, metadata$Sample) %>%
-    as.data.frame() %>%
-    rename(cell_group = Var1, sample = Freq)
-  
-  # Run sccomp analysis with condition
-  sccomp_res <- scData %>%
-    sccomp_estimate(
-      formula_composition = ~ Condition,
-      .sample = Sample,
-      .cell_group = cellTypeIntegrated,
-      cores = as.integer(param$cores),
-      verbose = FALSE
-    )
-  
-  sccomp_res <- sccomp_res %>%
-    sccomp_remove_outliers(cores = as.integer(param$cores)) %>%
-    sccomp_test()
-  
-  # Save sccomp results
-  saveRDS(sccomp_res, "sccomp_results.rds")
+  # Only run sccomp if 'Sample' metadata exists
+  if ("Sample" %in% colnames(scData@meta.data)) {
+    # Prepare data for sccomp using cellTypeIntegrated
+    metadata <- scData@meta.data
+    cell_counts <- table(metadata$cellTypeIntegrated, metadata$Sample) %>%
+      as.data.frame() %>%
+      rename(cell_group = Var1, sample = Freq)
+    
+    # Run sccomp analysis with condition
+    sccomp_res <- scData %>%
+      sccomp_estimate(
+        formula_composition = ~ Condition,
+        .sample = Sample,
+        .cell_group = cellTypeIntegrated,
+        cores = as.integer(param$cores),
+        verbose = FALSE
+      )
+    
+    sccomp_res <- sccomp_res %>%
+      sccomp_remove_outliers(cores = as.integer(param$cores)) %>%
+      sccomp_test()
+    
+    # Save sccomp results
+    saveRDS(sccomp_res, "sccomp_results.rds")
+  } else {
+    message("'Sample' metadata not found. Skipping sccomp analysis.")
+  }
   
   pvalue_allMarkers <- 0.05
   pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) && param$pseudoBulkMode == "true"
