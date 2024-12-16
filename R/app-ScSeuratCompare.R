@@ -39,16 +39,20 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   reportDir <- input$getFullPaths("Report")
 
-  tryCatch({
-    scData <- qread(file.path(reportDir, "scData.qs"))
-  }, error = function(e) {
-    message("Could not load scData.qs, trying scData.rds instead")
-    tryCatch({
-      scData <- readRDS(file.path(reportDir, "scData.rds"))
-    }, error = function(e) {
-      message("Could not load scData.rds either: ", e$message)
-    })
-  })
+  # First try qs format
+  message("Attempting to load Seurat data...")
+  qs_path <- file.path(reportDir, "scData.qs")
+  rds_path <- file.path(reportDir, "scData.rds")
+  
+  if(file.exists(qs_path)) {
+    message("Found .qs file, attempting to load...")
+    scData <- qread(qs_path)
+  } else if(file.exists(rds_path)) {
+    message("Found .rds file, attempting to load...")
+    scData <- readRDS(rds_path)
+  } else {
+    stop("Neither scData.qs nor scData.rds found in ", reportDir)
+  }
   
   DefaultAssay(scData) = "SCT" 
   #subset the object to only contain the conditions we are interested in
