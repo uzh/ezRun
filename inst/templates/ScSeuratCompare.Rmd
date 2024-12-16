@@ -23,12 +23,25 @@ library(ezRun)
 library(Seurat)
 library(SCpubr)
 library(qs)
+library(dittoSeq)
 ```
 
 ```{r load rds and qs}
+# Always load param.rds first since it's guaranteed
 param = readRDS("param.rds")
-scData <- qread("scData.qs")
-sccomp_res <- readRDS("sccomp_results.rds")
+
+# Then try to load the other files with error handling
+tryCatch({
+  scData <- qread("scData.qs")
+}, error = function(e) {
+  message("Could not load scData.qs: ", e$message)
+})
+
+tryCatch({
+  sccomp_res <- readRDS("sccomp_results.rds")
+}, error = function(e) {
+  message("Could not load sccomp_results.rds: ", e$message)
+})
 ```
 
 ```{r set idents}
@@ -154,21 +167,31 @@ dittoSeq::dittoBarPlot(scData, group.by = scData$Sample, var = param$CellIdentit
 
 
 ### Cell Type Composition Analysis
-```{r composition analysis, results='asis', fig.width=11, fig.height=11, message=FALSE, warning=FALSE}
+```{r composition analysis, results='asis', fig.width=10, fig.height=11, message=FALSE, warning=FALSE}
 cat("#### Differential Cell Type Composition\n")
 cat("\nWe used [sccomp](https://github.com/MangiolaLaboratory/sccomp) to analyze differences in cell type composition between conditions. The analysis takes into account the count nature of the data and models both changes in proportion and variability.\n\n")
 
 # Create interactive table of significant results
-sccomp_res |> sccomp_boxplot(factor = "Condition") + theme(
-    strip.text = element_text(size = 16, face = "bold"),  # Adjust cell type title size
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 12)
-  )
-
+# First get the plot object
+invisible(capture.output(
+  p <- sccomp_res |> 
+    sccomp_boxplot(
+      factor = "Condition"
+    ) + 
+    theme(
+      strip.text = element_text(size = 20, face = "bold"),
+      axis.title = element_text(size = 12),
+      axis.text = element_text(size = 12)
+    )
+))
+print(p)
 ```
 
 
 ```{r intervals analysis, results='asis', fig.width=9, fig.height=7}
+cat("\n\n#### Intervals\n")
+cat("The error bars represent 95% credible intervals. The dashed lines represent the minimal effect that the hypothesis test is based on. An effect is labelled as significant if it exceeds the minimal effect according to the 95% credible interval.\n\n")
+
 # Interval
 sccomp_result |> 
   plot_1D_intervals() + theme(axis.text.y = element_text(size = 12)) 
