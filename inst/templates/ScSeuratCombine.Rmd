@@ -31,11 +31,12 @@ library(AUCell)
 library(ezRun)
 library(HDF5Array)
 library(enrichR)
+library(qs)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
 
 ```{r}
-scData <- readRDS("scData.rds")
+scData <- qread("scData.qs")
 param = readRDS("param.rds")
 output = readRDS("output.rds")
 species <- getSpecies(param$refBuild)
@@ -527,7 +528,7 @@ AUCell_plotTSNE(tSNE=cellsUmap,
 The link below will take you to an interactive Shiny app which can be used to make 
 production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
 
-[single cell explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("Report"), "/scData.rds")}`){target="_blank"}
+[single cell explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("Report"), "/scData.qs")}`){target="_blank"}
 
 #### Previous Shiny apps (<span style='color: red;'>no longer recommended</span>)
 
@@ -545,7 +546,7 @@ These apps are no longer maintained. Use at your own risk, or for legacy dataset
 
 [posMarkers](posMarkers.xlsx)
 
-##### The final Seurat object is [here](scData.rds)
+##### The final Seurat object is [here](scData.qs)
 
 ### Parameters
 ```{r report parameters, echo=FALSE}

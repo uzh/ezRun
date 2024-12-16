@@ -25,7 +25,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(Seurat)
   library(HDF5Array)
   library(SingleCellExperiment)
-
+  library(qs)
   set.seed(38)
   
   cwd <- getwd()
@@ -33,7 +33,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   on.exit(setwd(cwd), add=TRUE)
   
   reportDir <- input$getFullPaths("Report")
-  scData <- readRDS(file.path(reportDir, "scData.rds"))
+  scData <- qread(file.path(reportDir, "scData.qs"))
   
   DefaultAssay(scData) = "SCT" 
   #subset the object to only contain the conditions we are interested in
@@ -73,7 +73,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   # Save the files for the report
   writexl::write_xlsx(consMarkers, path="consMarkers.xlsx")
   writexl::write_xlsx(diffGenes, path="diffGenes.xlsx")
-  
+  qsave(scData, 'scData.qs')
   makeRmdReport(param=param, output=output, scData=scData,
                 rmdFile = "ScSeuratCompare.Rmd", reportTitle = paste0(param$name))
   return("Success")

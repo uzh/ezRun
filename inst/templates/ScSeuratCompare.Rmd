@@ -22,11 +22,12 @@ library(tidyverse)
 library(ezRun)
 library(Seurat)
 library(SCpubr)
+library(qs)
 ```
 
-```{r load rds}
+```{r load rds and qs}
 param = readRDS("param.rds")
-scData <- readRDS("scData.rds")
+scData <- qread("scData.qs")
 ```
 
 ```{r set idents}
