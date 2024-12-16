@@ -28,6 +28,7 @@ library(qs)
 ```{r load rds and qs}
 param = readRDS("param.rds")
 scData <- qread("scData.qs")
+sccomp_res <- readRDS("sccomp_results.rds")
 ```
 
 ```{r set idents}
@@ -140,6 +141,40 @@ for (clusterName in clusterNames) {
 }
 ```
 
+### Barplots of proportions
+```{r barplots, results='asis', fig.width=8, fig.height=7}
+cat("\n")
+cat("The barplots show the proportion of cells from each sample in each cluster. The barplots are split by the Seurat metadata column '", param$CellIdentity, "'.")
+cat("\n\n")
+
+dittoSeq::dittoBarPlot(scData, group.by = param$grouping, var = param$CellIdentity)
+dittoSeq::dittoBarPlot(scData, group.by = scData$Sample, var = param$CellIdentity)
+
+```
+
+
+### Cell Type Composition Analysis
+```{r composition analysis, results='asis', fig.width=11, fig.height=11, message=FALSE, warning=FALSE}
+cat("#### Differential Cell Type Composition\n")
+cat("\nWe used [sccomp](https://github.com/MangiolaLaboratory/sccomp) to analyze differences in cell type composition between conditions. The analysis takes into account the count nature of the data and models both changes in proportion and variability.\n\n")
+
+# Create interactive table of significant results
+sccomp_res |> sccomp_boxplot(factor = "Condition") + theme(
+    strip.text = element_text(size = 16, face = "bold"),  # Adjust cell type title size
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 12)
+  )
+
+```
+
+
+```{r intervals analysis, results='asis', fig.width=9, fig.height=7}
+# Interval
+sccomp_result |> 
+  plot_1D_intervals() + theme(axis.text.y = element_text(size = 12)) 
+```
+
+
 ### Data availability
 
 ##### Conserved markers 
@@ -152,7 +187,7 @@ for (clusterName in clusterNames) {
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("DE.method", "DE.regress", "grouping", "sampleGroup", "refGroup", "CellIdentity", "pseudoBulkMode", "replicateGrouping")]
+param[c("DE.method", "DE.regress", "grouping", "sampleGroup", "refGroup", "CellIdentity", "pseudoBulkMode", "replicateGrouping", "sccomp.variability")]
 ```
 
 ### SessionInfo

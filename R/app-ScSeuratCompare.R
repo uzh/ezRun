@@ -14,9 +14,11 @@ EzAppScSeuratCompare <-
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodScSeuratCompare
                   name <<- "EzAppScSeuratCompare"
-                  appDefaults <<- rbind(DE.method=ezFrame(Type="charVector", DefaultValue="wilcox", 
-                                                          Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"),
-                                        DE.regress=ezFrame(Type="charVector", DefaultValue="Batch", Description="Variables to regress out if the test LR is chosen"))
+                  appDefaults <<- rbind(
+                    DE.method=ezFrame(Type="charVector", DefaultValue="wilcox", 
+                                      Description="Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"),
+                    DE.regress=ezFrame(Type="charVector", DefaultValue="Batch", Description="Variables to regress out if the test LR is chosen"),
+                    sccomp.variability=ezFrame(Type="logical", DefaultValue="FALSE", Description="Whether to test for differential variability in sccomp"))
                 }
               )
   )
@@ -26,6 +28,9 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(HDF5Array)
   library(SingleCellExperiment)
   library(qs)
+  library(sccomp)
+  library(tidyverse)
+  
   set.seed(38)
   
   cwd <- getwd()
@@ -41,6 +46,29 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   stopifnot(c(param$sampleGroup, param$refGroup) %in% Idents(scData))
   scData <- subset(scData, idents=c(param$sampleGroup, param$refGroup))
   
+  # Prepare data for sccomp using cellTypeIntegrated
+  metadata <- scData@meta.data
+  cell_counts <- table(metadata$cellTypeIntegrated, metadata$Sample) %>%
+    as.data.frame() %>%
+    rename(cell_group = Var1, sample = Freq)
+  
+  # Run sccomp analysis with condition
+  sccomp_res <- scData %>%
+    sccomp_estimate(
+      formula_composition = ~ Condition,
+      .sample = Sample,
+      .cell_group = cellTypeIntegrated,
+      cores = as.integer(param$cores),
+      verbose = FALSE
+    )
+  
+  sccomp_res <- sccomp_res %>%
+    sccomp_remove_outliers(cores = as.integer(param$cores)) %>%
+    sccomp_test()
+  
+  # Save sccomp results
+  saveRDS(sccomp_res, "sccomp_results.rds")
+  
   pvalue_allMarkers <- 0.05
   pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) && param$pseudoBulkMode == "true"
   
@@ -55,7 +83,6 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
     slot(scData[['SCT']], "SCTModel.list") = slot(scData[['SCT']], "SCTModel.list")[toKeep]
   }
   if (pseudoBulkMode) {
-    # pseudobulk the counts based on donor-condition-celltype
     scData_agg <- AggregateExpression(scData, assays = "RNA", 
                                       return.seurat = TRUE, 
                                       group.by = c(param$grouping, param$replicateGrouping, param$CellIdentity))
