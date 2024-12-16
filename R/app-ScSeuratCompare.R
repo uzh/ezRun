@@ -44,7 +44,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   }, error = function(e) {
     message("Could not load scData.qs, trying scData.rds instead")
     tryCatch({
-      scData <- readRDS(file.path(reportDir, "scData.qs"))
+      scData <- readRDS(file.path(reportDir, "scData.rds"))
     }, error = function(e) {
       message("Could not load scData.rds either: ", e$message)
     })
