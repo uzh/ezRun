@@ -33,7 +33,6 @@ library(ezRun)
 library(reticulate)
 library(patchwork)
 library(cowplot)
-library(microbiomeMarker)
 library(scales)
 library(kableExtra)
 library(rstatix)
@@ -239,7 +238,6 @@ SVs<-as.data.frame(otu_table(physeq_Genus))
 taxonomy<-as.data.frame(tax_table(physeq_Genus))
 taxonomy$Feature.ID <- rownames(taxonomy)
 taxonomy$Taxon <- paste0(taxonomy$Kingdom, "_", taxonomy$Phylum, "_", taxonomy$Class, "_", taxonomy$Order, "_", taxonomy$Family, "_", taxonomy$Genus)
-metadata$SampleID <- as.character(metadata$SampleID)
 
 SVs<-apply(SVs, 2, function(x) x/sum(x)*100) #convert to percent
 
@@ -338,7 +336,6 @@ How are the ASVs/Genra/Phyla distributed across the groups?
 SVs<-as.data.frame(otu_table(physeq1))
 taxonomy<-as.data.frame(tax_table(physeq1))
 taxonomy$Feature.ID <- rownames(taxonomy)
-metadata$SampleID <- as.character(metadata$SampleID)
 
 SV1 <- SVs %>%
   as.data.frame() %>%
@@ -349,17 +346,17 @@ SV1 <- SVs %>%
   left_join(taxonomy) 
 
 x1 <- list()
-for (group in levels(as.factor(metadata[,grouping]))) {
+for (group in levels(as.factor(metadata[,grouping, drop = TRUE]))) {
   x1[[group]] <- unique(SV1$Feature.ID[SV1$Abundance >= 1 & SV1[,grouping] == group])
 }
 
 x2 <- list()
-for (group in levels(as.factor(metadata[,grouping]))) {
+for (group in levels(as.factor(metadata[,grouping, drop = TRUE]))) {
   x2[[group]] <- unique(SV1$Genus[SV1$Abundance >= 1 & SV1[,grouping] == group])
 }
 
 x3 <- list()
-for (group in levels(as.factor(metadata[,grouping]))) {
+for (group in levels(as.factor(metadata[,grouping, drop = TRUE]))) {
   x3[[group]] <- unique(SV1$Phylum[SV1$Abundance >= 1 & SV1[,grouping] == group])
 }
 
@@ -385,7 +382,7 @@ m1 = make_comb_mat(x1, mode = "distinct")
 m2 = make_comb_mat(x2, mode = "distinct")
 m3 = make_comb_mat(x3, mode = "distinct")
 
-if (length(levels(as.factor(metadata$Group))) > 5) {
+if (length(levels(as.factor(metadata[,grouping, drop = TRUE]))) > 5) {
   venn1 <- UpSet(
     m = m1,
     comb_order = order(comb_size(m1), decreasing = T),
@@ -777,10 +774,12 @@ If you would like to know more, read the following publication:
 Advanced methods of differential abundance testing based on linear regression are applied because sequencing data sets deviate from symmetric, continuous, Gaussian assumptions in many ways. Types of tests that were applied:
 
 - ANCOMBC (Analysis of Microbial Composition with Bias Correction).   
-- LEFse (LDA Effect Size).   
 - DESeq2.   
 - EdgeR. 
 - Combination of EdgeR and DESeq2.  
+
+You can also run:
+- LEFse (LDA Effect Size).  
 
 
 
@@ -795,7 +794,7 @@ See here for QIIME2 ANCOM Interactive Report run on ASV level, not on Genus leve
 
 
 ```{r, echo=FALSE}
-res<- ANCOMBC::ancombc(phyloseq = physeq,
+res<- ANCOMBC::ancombc(phyloseq = physeq1,
                  formula = grouping, 
                  tax_level = "Genus",
                  p_adj_method = "BH", 
@@ -979,54 +978,6 @@ p_sig
 ```
 
 </br> 
-
-### LEFse results. {.tabset}   
-
-LDA Effect Size (LEfSe) method for microbiome biomarker discovery uses the Kruskal-Wallis test, Wilcoxon-Rank Sum test, and Linear Discriminant Analysis to find biomarkers of the predefined groups. A p-value of < 0.05 and a score ≥ 2.0 are considered significant in Kruskal–Wallis and pairwise Wilcoxon tests, respectively. Analysis is done doing a comparison for each group vs all. Significant LDA scores are displayed. 
-
-```{r, fig.width=8, fig.height=8}
-if (length(levels(as.factor(metadata$Group))) > 2){
-  mm_lefse <- run_lefse(
-    ps = physeq1,
-    kw_cutoff = 0.05,
-    wilcoxon_cutoff = 0.05,
-    group = grouping,
-    multigrp_strat = FALSE, #I am using here each group against all instead of pairwise between groups
-    lda_cutoff = 2,
-    taxa_rank = "all"
-  )} else {
-    mm_lefse<- run_lefse(
-    ps = physeq1,
-    kw_cutoff = 0.05,
-    wilcoxon_cutoff = 0.05,
-    group = grouping,
-    multigrp_strat = TRUE, #I am using here each group against all instead of pairwise between groups
-    lda_cutoff = 2,
-    taxa_rank = "all"
-  )
-  }
-lefseDF <- as.data.frame(marker_table(mm_lefse))
-lefseDF$log10p <- -log10(lefseDF$padj)
-lefseDF <- lefseDF[order(lefseDF$enrich_group),]
-lefseDF$feature <- factor(lefseDF$feature, levels=unique(lefseDF$feature))
-df <- as.data.frame(marker_table(mm_lefse))
-i = length(unique(df$enrich_group))
-list_of_colours = c(viridis_pal(option = "D")(i))
-
-p1 <- plot_ef_dot(mm_lefse)+ scale_color_manual(values=list_of_colours) + theme(axis.text.x = element_text(size=5, angle=0), axis.text.y = element_text(size=5, angle=0))
-#p2 <- plot_cladogram(mm_lefse, color = list_of_colours, annotation_shape = 15) +
-#  theme(plot.margin = margin(0, 0, 0, 0))
-
-print(p1)
-```
-
-</br>
-
-```{r, echo=FALSE}
-as.data.frame(marker_table(mm_lefse)) %>% datatable(caption = "Marker Table") %>%
-      formatRound(c("ef_lda", "pvalue", "padj"), digits = 2)
-
-```
 
 ### DESeq2/EdgeR results {.tabset}
 
