@@ -13,7 +13,7 @@ ezMethodProkka = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   cmd = paste("prokka --outdir", sampleName, "--prefix", sampleName, "--locustag", sampleName, "--compliant --centre FGCZ", "--kingdom", param$kingdom, "--cpus", ezThreads(), opt, draft, "1>", paste0(sampleName,"_prokka.log"))
   ezSystem(cmd)
   wddir <- "."
-  outfile <- paste0("sampleName", ".faa")
+  outfile <- paste0(sampleName, ".faa")
   outfile <- file.path(wddir, sampleName, outfile)
   ezSystem(paste("cp", outfile, basename(output$getColumn("Proteins"))))
   return("Success")
