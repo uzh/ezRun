@@ -31,7 +31,8 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(sccomp)
   library(tidyverse)
   library(cmdstanr)
-  
+  cmdstanr::set_cmdstan_path("/misc/ngseq12/packages/Dev/R/4.4.2/lib/R/cmdstan-2.36.0")
+  cmdstanr::cmdstan_path()
   set.seed(38)
   
   cwd <- getwd()
@@ -88,6 +89,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   } else {
     message("'Sample' metadata not found. Skipping sccomp analysis.")
   }
+  
   
   pvalue_allMarkers <- 0.05
   pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) && param$pseudoBulkMode == "true"
