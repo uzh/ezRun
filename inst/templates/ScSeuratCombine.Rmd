@@ -36,9 +36,9 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 ```
 
 ```{r}
+param <- readRDS("param.rds")
 scData <- qs_read('scData.qs2', nthreads=param$cores)
-param = readRDS("param.rds")
-output = readRDS("output.rds")
+output <- readRDS("output.rds")
 species <- getSpecies(param$refBuild)
 if (file.exists("singler.results.rds")){
   singler.results <- readRDS("singler.results.rds")

@@ -43,11 +43,11 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 
 # clusterInfoFile <- "clusterInfos.xlsx" # -- not used
 posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
+param <- readRDS("param.rds")
 scData <- qs_read('scData.qs2', nthreads=param$cores)
 output <- readRDS("output.rds")
 scData$qc.doublet <- scData$doubletClass %in% "doublet"
 allCellsMeta <- readRDS("allCellsMeta.rds")
-param <- readRDS("param.rds")
 species <- getSpecies(param$refBuild)
 if (file.exists("aziResults.rds")){
   aziResults <- readRDS("aziResults.rds")
