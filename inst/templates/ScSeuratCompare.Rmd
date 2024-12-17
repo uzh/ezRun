@@ -24,7 +24,7 @@ library(Seurat)
 library(SCpubr)
 library(qs)
 library(dittoSeq)
-
+library(cmdstanr)
 ```
 
 ```{r load rds and qs}
