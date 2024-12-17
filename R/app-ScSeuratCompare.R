@@ -33,6 +33,9 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(cmdstanr)
   cmdstanr::set_cmdstan_path("/misc/ngseq12/packages/Dev/R/4.4.2/lib/R/cmdstan-2.36.0")
   cmdstanr::cmdstan_path()
+  scratch_dir <- "/scratch/sccomp_output"
+  dir.create(scratch_dir, showWarnings = FALSE, recursive = TRUE)
+  
   set.seed(38)
   
   cwd <- getwd()
@@ -41,7 +44,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   reportDir <- input$getFullPaths("Report")
 
-  # First try qs format
+  # First try qs2 format
   message("Attempting to load Seurat data...")
   qs_path <- file.path(reportDir, "scData.qs2")
   rds_path <- file.path(reportDir, "scData.rds")
@@ -77,6 +80,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
         .sample = Sample,
         .cell_group = cellTypeIntegrated,
         cores = as.integer(param$cores),
+        output_directory = scratch_dir,
         verbose = FALSE
       )
     
