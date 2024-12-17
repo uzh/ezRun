@@ -27,7 +27,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(Seurat)
   library(HDF5Array)
   library(SingleCellExperiment)
-  library(qs)
+  library(qs2)
   library(sccomp)
   library(tidyverse)
   library(cmdstanr)
@@ -42,17 +42,17 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
 
   # First try qs format
   message("Attempting to load Seurat data...")
-  qs_path <- file.path(reportDir, "scData.qs")
+  qs_path <- file.path(reportDir, "scData.qs2")
   rds_path <- file.path(reportDir, "scData.rds")
   
   if(file.exists(qs_path)) {
-    message("Found .qs file, attempting to load...")
-    scData <- qread(qs_path)
+    message("Found .qs2 file, attempting to load...")
+    scData <- qs_read(qs_path, nthreads=param$cores)
   } else if(file.exists(rds_path)) {
     message("Found .rds file, attempting to load...")
     scData <- readRDS(rds_path)
   } else {
-    stop("Neither scData.qs nor scData.rds found in ", reportDir)
+    stop("Neither scData.qs2 nor scData.rds found in ", reportDir)
   }
   
   DefaultAssay(scData) = "SCT" 
@@ -120,7 +120,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   # Save the files for the report
   writexl::write_xlsx(consMarkers, path="consMarkers.xlsx")
   writexl::write_xlsx(diffGenes, path="diffGenes.xlsx")
-  qsave(scData, 'scData.qs')
+  qs_save(scData, "scData.qs2", nthreads = param$cores)
   makeRmdReport(param=param, output=output, scData=scData,
                 rmdFile = "ScSeuratCompare.Rmd", reportTitle = paste0(param$name))
   return("Success")

@@ -22,7 +22,7 @@ library(tidyverse)
 library(ezRun)
 library(Seurat)
 library(SCpubr)
-library(qs)
+library(qs2)
 library(dittoSeq)
 library(cmdstanr)
 ```
@@ -33,9 +33,9 @@ param = readRDS("param.rds")
 
 # Then try to load the other files with error handling
 tryCatch({
-  scData <- qread("scData.qs")
+  scData <- qs_read('scData.qs2', nthreads=param$cores)
 }, error = function(e) {
-  message("Could not load scData.qs, trying scData.rds instead")
+  message("Could not load scData.qs2, trying scData.rds instead")
   tryCatch({
     scData <- readRDS("scData.rds")
   }, error = function(e) {

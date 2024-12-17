@@ -157,7 +157,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   library(enrichR)
   library(decoupleR)
   library(Azimuth)
-  library(qs)
+  library(qs2)
   
   if (param$cores > 1){
     BPPARAM <- MulticoreParam(workers = param$cores)
@@ -341,7 +341,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
   clusterInfoFile <- "clusterInfos.xlsx"
   writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
-  qsave(scData, 'scData.qs')
+  qs_save(scData, "scData.qs2", nthreads = param$cores)
+  
   makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, 
                 cellsPerGeneFraction = cellsPerGeneFraction, enrichRout=anno$enrichRout, 
                 cells.AUC=anno$cells.AUC, singler.results=anno$singler.results, aziResults=anno$aziResults,

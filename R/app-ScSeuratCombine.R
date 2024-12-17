@@ -82,7 +82,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(decoupleR)
   library(Azimuth)
   library(BiocParallel)
-  library(qs)
+  library(qs2)
   
   BPPARAM <- MulticoreParam(workers = param$cores)
   register(BPPARAM)
@@ -91,9 +91,12 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
-  
-  filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Cluster Report"), 'scData.qs')
-  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", input$getColumn("SC Cluster Report"), 'scData.qs')
+  message("Attempting to load Seurat data...")
+  filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Cluster Report"), 'scData.qs2')
+  if(!file.exists(filePath[1])){
+      filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Cluster Report"), 'scData.rds')
+  }
+  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", input$getColumn("SC Cluster Report"), 'scData.qs2')
   
   if(!file.exists(filePath[1])) 
     filePath <- filePath_course
@@ -105,7 +108,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   # Load the data and prepare metadata for integration
   scDataList <- lapply(names(filePath), function(sm) {
-    scData <- qread(filePath[sm])
+    scData <- qs_read(filePath[sm], nthreads=param$cores)
     aziFilePath <- file.path(dirname(filePath[sm]),'aziResults.rds')
     if(file.exists(aziFilePath)){
         aziResults <- readRDS(aziFilePath)
@@ -173,7 +176,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   # save the markers
   writexl::write_xlsx(results$markers, path="posMarkers.xlsx")
-  qsave(scData, 'scData.qs')
+  qs_save(scData, "scData.qs2", nthreads = param$cores)
   
   # Save some results in external files
   reportTitle <- 'SCReport - MultipleSamples based on Seurat'
