@@ -182,7 +182,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   # save the markers
   writexl::write_xlsx(results$markers, path="posMarkers.xlsx")
-  qs_save(scData, "scData.qs2", nthreads = param$cores)
+  qs_save(results$scData, "scData.qs2", nthreads = param$cores)
   
   # Save some results in external files
   reportTitle <- 'SCReport - MultipleSamples based on Seurat'
