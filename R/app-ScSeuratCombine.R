@@ -83,7 +83,13 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(Azimuth)
   library(BiocParallel)
   library(qs2)
-  
+  require(future)
+  plan("multicore", workers = param$cores)
+  set.seed(38)
+  future.seed = TRUE
+  options(future.rng.onMisuse="ignore")
+  options(future.globals.maxSize = param$ram*1024^3)
+    
   BPPARAM <- MulticoreParam(workers = param$cores)
   register(BPPARAM)
   

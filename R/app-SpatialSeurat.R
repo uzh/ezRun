@@ -129,7 +129,6 @@ ezMethodSpatialSeurat <- function(input=NA, output=NA, param=NA,
       BPPARAM <- SerialParam() 
   }
   register(BPPARAM)
-  require(future)
   plan("multicore", workers = param$cores)
   set.seed(38)
   future.seed = TRUE
