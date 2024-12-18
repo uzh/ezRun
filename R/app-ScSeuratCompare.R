@@ -31,11 +31,25 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(sccomp)
   library(tidyverse)
   library(cmdstanr)
-  cmdstanr::set_cmdstan_path("/misc/ngseq12/packages/Dev/R/4.4.2/lib/R/cmdstan-2.36.0")
-  cmdstanr::cmdstan_path()
+
+  ## Setup sccomp
+  # Create scratch directory
   scratch_dir <- "/scratch/sccomp_output"
-  dir.create(scratch_dir, showWarnings = FALSE, recursive = TRUE)
+  dir.create(scratch_dir, recursive = TRUE, mode = "0777", showWarnings = FALSE)
   
+  # Load sccomp and set up cmdstan
+  library(sccomp)
+  cmdstanr::set_cmdstan_path("/misc/ngseq12/packages/Dev/R/4.4.2/lib/R/cmdstan-2.36.0")
+  
+  # Load model
+  sccomp:::load_model(
+    name = "glm_multi_beta_binomial", 
+    threads = 4, 
+    cache_dir = '/srv/GT/databases/sccomp_models/'
+  )
+  
+  
+  ###
   set.seed(38)
   
   cwd <- getwd()
@@ -77,11 +91,11 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
     sccomp_res <- scData %>%
       sccomp_estimate(
         formula_composition = ~ Condition,
-        .sample = Sample,
+        .sample = Sample, 
         .cell_group = cellTypeIntegrated,
         cores = as.integer(param$cores),
         output_directory = scratch_dir,
-        verbose = FALSE
+        verbose = T
       )
     
     sccomp_res <- sccomp_res %>%
@@ -126,7 +140,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   # Save the files for the report
   writexl::write_xlsx(consMarkers, path="consMarkers.xlsx")
   writexl::write_xlsx(diffGenes, path="diffGenes.xlsx")
-  qs_save(scData, "scData.qs2", nthreads = param$cores)
+  qs_save(scData, "scData.qs2", nthreads = as.integer(param$cores))
   makeRmdReport(param=param, output=output, scData=scData,
                 rmdFile = "ScSeuratCompare.Rmd", reportTitle = paste0(param$name))
   return("Success")
