@@ -25,20 +25,27 @@ EzAppCellBender <-
     )
 
 ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
-  sampleName = input$getNames()
+  sampleName = input$Name
   setwdNew(sampleName)
-
   
-  # Debug: print available columns
-  message("Available columns in input: ", paste(names(input), collapse=", "))
+  # Initialize cmDir before tryCatch
+  cmDir <- NULL
   
   # Try to get path for single sample mode
   tryCatch({
-    cmDir <- input$getFullPaths("UnfilteredCountMatrix")
+    if ("UnfilteredCountMatrix" %in% names(input)) {
+      cmDir <- file.path(param$dataRoot, input$UnfilteredCountMatrix)
+    } else {
+      cmDir <- file.path(param$dataRoot, input$ResultDir, 
+                         "multi/count/raw_feature_bc_matrix")
+    }
   }, error = function(e) {
-    cmDir <- file.path(input$getFullPaths("ResultDir"), 
-                       "multi/count/raw_feature_bc_matrix")
+    stop(sprintf("Failed to construct path: %s", e$message))
   })
+  
+  if(is.null(cmDir)) {
+    stop("Failed to get valid path for count matrix")
+  }
   
   inputFile <- paste0(cmDir,'.h5')
   if(!file.exists(inputFile)){
