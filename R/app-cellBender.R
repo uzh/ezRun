@@ -27,6 +27,7 @@ EzAppCellBender <-
 ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
   sampleName = input$getNames()
   setwdNew(sampleName)
+
   
   # Debug: print available columns
   message("Available columns in input: ", paste(names(input), collapse=", "))
