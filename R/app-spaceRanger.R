@@ -21,7 +21,13 @@ EzAppSpaceRanger <-
                                             Type = "logical",
                                             DefaultValue = FALSE,
                                             Description = "keep bam file produced by CellRanger"
-                                        ))
+                                        ),
+                                        darkImage = ezFrame(
+                                            Type = "logical",
+                                            DefaultValue = FALSE,
+                                            Description = "use dark image mode"
+                                        )
+                                        )
                 }
               )
   )
@@ -76,7 +82,11 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
                if(grepl('^3', basename(param$SpaceRangerVersion))){paste0("--create-bam true")})
   
   if('Image' %in% inputCols && grepl('btf$|tif$|tiff$|jpeg$|jpg$',input$getFullPaths("Image"))){
+      if(!darkImage){
       cmd <- paste(cmd, paste0("--image=", input$getFullPaths("Image")))
+      } else {
+          cmd <- paste(cmd, paste0("--darkimage=", input$getFullPaths("Image")))
+    }
   }
   
   if('CytaImage' %in% inputCols){
