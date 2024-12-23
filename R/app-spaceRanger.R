@@ -82,7 +82,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
                if(grepl('^3', basename(param$SpaceRangerVersion))){paste0("--create-bam true")})
   
   if('Image' %in% inputCols && grepl('btf$|tif$|tiff$|jpeg$|jpg$',input$getFullPaths("Image"))){
-      if(!darkImage){
+      if(!param$darkImage){
       cmd <- paste(cmd, paste0("--image=", input$getFullPaths("Image")))
       } else {
           cmd <- paste(cmd, paste0("--darkimage=", input$getFullPaths("Image")))
