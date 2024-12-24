@@ -40,6 +40,9 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   # Load sccomp and set up cmdstan
   library(sccomp)
   cmdstanr::set_cmdstan_path("/misc/ngseq12/packages/Dev/R/4.4.2/lib/R/cmdstan-2.36.0")
+
+  # check if in pseudobulk mode
+  pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) && param$pseudoBulkMode == "true"
   
   # Load model
   sccomp:::load_model(
@@ -80,19 +83,19 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   scData <- subset(scData, idents=c(param$sampleGroup, param$refGroup))
   
   # Only run sccomp if 'Sample' metadata exists
-  if ("Sample" %in% colnames(scData@meta.data)) {
+  if (pseudoBulkMode) {
     # Prepare data for sccomp using cellTypeIntegrated
     metadata <- scData@meta.data
-    cell_counts <- table(metadata$cellTypeIntegrated, metadata$Sample) %>%
+    cell_counts <- table(metadata[[param$CellIdentity, metadata[[param$replicateGrouping]]) %>%
       as.data.frame() %>%
       rename(cell_group = Var1, sample = Freq)
     
     # Run sccomp analysis with condition
     sccomp_res <- scData %>%
       sccomp_estimate(
-        formula_composition = ~ Condition,
-        .sample = Sample, 
-        .cell_group = cellTypeIntegrated,
+        formula_composition = ~ param$grouping,
+        .sample = param$replicateGrouping, 
+        .cell_group = param$CellIdentity,
         cores = as.integer(param$cores),
         output_directory = scratch_dir,
         verbose = T
@@ -110,7 +113,6 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   
   pvalue_allMarkers <- 0.05
-  pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) && param$pseudoBulkMode == "true"
   
   #Before calculating the conserved markers and differentially expressed genes across conditions I will discard the clusters that were too small in at least one group
   Idents(scData) <- scData@meta.data[[param$CellIdentity]]
