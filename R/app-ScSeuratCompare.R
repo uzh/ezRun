@@ -86,7 +86,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   if (pseudoBulkMode) {
     # Prepare data for sccomp using cellTypeIntegrated
     metadata <- scData@meta.data
-    cell_counts <- table(metadata[[param$CellIdentity, metadata[[param$replicateGrouping]]) %>%
+    cell_counts <- table(metadata[[param$CellIdentity]], metadata[[param$replicateGrouping]]) %>%
       as.data.frame() %>%
       rename(cell_group = Var1, sample = Freq)
     
