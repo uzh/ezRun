@@ -52,6 +52,7 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   library(enrichR)
   library(decoupleR)
   library(Azimuth)
+  library(qs2)
   library(BiocParallel)
   
   BPPARAM <- MulticoreParam(workers = param$cores)
@@ -63,8 +64,11 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   reportCwd <- getwd()
   
   #the individual sce objects can be in hdf5 format (for new reports) or in rds format (for old reports)
-  filePath <- file.path("/srv/gstore/projects", input$getColumn("Report"), 'scData.rds')
-  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", input$getColumn("Report"), 'scData.rds')
+  filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Cluster Report"), 'scData.qs2')
+  if(!file.exists(filePath[1])){
+    filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Cluster Report"), 'scData.rds')
+  }
+  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", input$getColumn("SC Cluster Report"), 'scData.qs2')
   
   if(!file.exists(filePath[1])) 
     filePath <- filePath_course
@@ -72,7 +76,7 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   stopifnot("App only supports single integrated dataset!" = length(input$getNames()) == 1)
   
   # Load previous dataset
-  scData <- readRDS(file.path(input$getFullPaths("Report"), "scData.rds"))
+  scData <- qs_read(filePath)
   oldParams <- readRDS(file.path(input$getFullPaths("Report"), "param.rds"))
   param <- ezUpdateMissingParam(param, oldParams)
   param$refBuild <- oldParams$refBuild
@@ -103,6 +107,7 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   
   # save the markers
   writexl::write_xlsx(anno$markers, path="posMarkers.xlsx")
+  qs_save(scData, "scData.qs2", nthreads = param$cores)
   
   # Save some results in external files
   reportTitle <- 'SCReport - MultipleSamples based on Seurat'
