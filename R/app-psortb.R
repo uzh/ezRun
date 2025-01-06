@@ -10,6 +10,9 @@ ezMethodPsortb = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   
   require(data.table)
   require(readr)
+  require(dplyr)
+  require(reshape2)
+  require(tidyverse)
   
   opt = param$cmdOptions
   org = param$org
@@ -22,9 +25,9 @@ ezMethodPsortb = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
   outfile <- list.files(paste0(wddir, "/", sampleName), pattern="_psortb_.*\\.txt")
   outfile <- file.path(wddir, sampleName, outfile)
   ezSystem(paste("cp", outfile, basename(output$getColumn("PsortbOut"))))
-  df = read_delim(outfile)
+  df = read_delim(outfile[1])
   list_of_OM_Ids = df[df$Localization == "OuterMembrane", c(1), drop = FALSE]
-  write_delim(list_of_OM_Ids, paste0(wddir,"/", sampleName, "psortb.om.txt"))
+  write.table(sapply(str_split(list_of_OM_Ids$SeqID, " "), .subset ,1), paste0(wddir,"/", sampleName, "psortb.om.txt"), row.names = FALSE, quote=FALSE)
   cmd = paste("/usr/local/ngseq/packages/Tools/seqtk/1.4/bin/bin subseq", proteins, paste0(wddir,"/", sampleName, "psortb.om.txt"), ">", basename(output$getColumn("Proteins")))
   ezSystem(cmd)
   return("Success")
