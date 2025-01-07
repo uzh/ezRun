@@ -8,6 +8,7 @@ ezInteractiveTableRmd(
   values,
   digits = NULL,
   colNames = colnames(values),
+  rowNames = rownames(values),
   title = "",
   format = NULL,
   envir = parent.frame()

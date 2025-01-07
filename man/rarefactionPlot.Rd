@@ -4,7 +4,7 @@
 \alias{rarefactionPlot}
 \title{OTUs saturation plot}
 \usage{
-rarefactionPlot(physeqFullObject, type)
+rarefactionPlot(adundDF, type)
 }
 \arguments{
 \item{x, }{mothur shared abundance  file or already read-in table (dep on sec. param).}

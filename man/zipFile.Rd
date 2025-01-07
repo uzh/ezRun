@@ -24,9 +24,9 @@ Archives one or several files to a .zip extension. Optionally, a separate name c
 }
 \section{Functions}{
 \itemize{
-\item \code{zipWorkingDir}: Archives the whole working directory.
-}}
+\item \code{zipWorkingDir()}: Archives the whole working directory.
 
+}}
 \examples{
 write("a file","exampleFile")
 zipFile("exampleFile")

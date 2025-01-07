@@ -4,7 +4,7 @@
 \alias{runTEQC}
 \title{Runs the target enrichment quality control}
 \usage{
-runTEQC(file, allExons, param)
+runTEQC(file, param)
 }
 \arguments{
 \item{file}{a character representing the path to the file containing the reads.}

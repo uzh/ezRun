@@ -14,7 +14,7 @@ ezSmoothScatter(
   isPresent = NULL,
   types = NULL,
   pch = 16,
-  colors = rainbow(ncol(types)),
+  colors = (ncol(types)),
   legendPos = "bottomright",
   cex.main = 1,
   cex = 1,

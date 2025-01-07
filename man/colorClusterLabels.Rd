@@ -22,9 +22,9 @@ Gets the color cluster labels using \code{dendrapply()}.
 }
 \section{Functions}{
 \itemize{
-\item \code{colorNode}: The functions used in \code{dendrapply()}.
-}}
+\item \code{colorNode()}: The functions used in \code{dendrapply()}.
 
+}}
 \examples{
 hc = hclust(dist(USArrests), "ave")
 dend = as.dendrogram(hc)

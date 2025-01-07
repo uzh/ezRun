@@ -14,9 +14,10 @@ ezScatter(
   shrink = FALSE,
   lim = range(x, y, na.rm = TRUE),
   isPresent = NULL,
+  mode = NULL,
   types = NULL,
   pch = 16,
-  colors = rainbow(ncol(types)),
+  colors = brewPalette(ncol(types), alpha = 1),
   legendPos = "bottomright",
   cex.main = 1,
   cex = 1,
@@ -35,7 +36,7 @@ ezXYScatter(
   isPresent = NULL,
   types = NULL,
   pch = 16,
-  colors = rainbow(ncol(types)),
+  colors = brewPalette(ncol(types), alpha = 1),
   legendPos = "bottomright",
   ...
 )
@@ -76,9 +77,9 @@ Does scatter plots.
 }
 \section{Functions}{
 \itemize{
-\item \code{ezXYScatter}: Does the XY scatter plot.
-}}
+\item \code{ezXYScatter()}: Does the XY scatter plot.
 
+}}
 \examples{
 x = runif(n=1000)
 y = runif(n=1000)

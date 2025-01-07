@@ -11,9 +11,11 @@ ezComputeBias(
   qcSummaryDir = "/srv/GT/analysis/p2220/RNA-seq-bias-results",
   refBuildMap = getRefBuildMap(),
   minReadsPerSample = 30000,
-  maxReadsPerSample = 5e+06,
+  maxReadsPerSample = 1e+06,
   minReadsPerGene = 3,
-  minPresentFraction = 0.2
+  minPresentFraction = 0.2,
+  toMail = "",
+  tag = ""
 )
 }
 \arguments{
@@ -35,14 +37,11 @@ ezComputeBias(
 
 \item{minPresentFraction}{}
 }
-\value{
-
-}
 \description{
 compute and plot the GC content and gene-length associated bias in RNA-seq data
 }
 \examples{
-## needs the following modules loaded module add Tools/samtools QC/Trimmomatic QC/Flexbar Aligner/kallisto
+## needs the following modules loaded module add Tools/samtools QC/fastp Aligner/kallisto
 options(error=recover)
 require(ezRun)
 dsFile = "/srv/gstore/projects/p3082/ISeq_20190425_iSeq35_o5404_DataDelivery/dataset.tsv"

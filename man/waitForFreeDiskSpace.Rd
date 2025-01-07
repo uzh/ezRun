@@ -23,9 +23,9 @@ Checks if there is enough free disk space. If there is not enough disk space, an
 }
 \section{Functions}{
 \itemize{
-\item \code{getGigabyteFree}: Gets the number of free gigabytes.
-}}
+\item \code{getGigabyteFree()}: Gets the number of free gigabytes.
 
+}}
 \examples{
 param = list()
 param[['mail']] = ''

@@ -2,15 +2,12 @@
 % Please edit documentation in R/twoGroups.R
 \name{twoGroupCountComparison}
 \alias{twoGroupCountComparison}
-\alias{runGfold}
 \alias{runDeseq2}
 \alias{runEdger}
 \alias{runGlm}
 \title{Compares the counts of two groups}
 \usage{
 twoGroupCountComparison(rawData)
-
-runGfold(rawData, scalingFactors, isSample, isRef)
 
 runDeseq2(
   x,
@@ -29,6 +26,8 @@ runGlm(
   sampleGroup,
   refGroup,
   grouping,
+  sampleGroupBaseline = NULL,
+  refGroupBaseline = NULL,
   normMethod,
   grouping2 = NULL,
   priorCount = 0.125,
@@ -58,15 +57,13 @@ Compares the counts of two groups with the option to choose from several methods
 }
 \section{Functions}{
 \itemize{
-\item \code{runGfold}: Runs the Gfold test method.
+\item \code{runDeseq2()}: Runs the Deseq2 test method.
 
-\item \code{runDeseq2}: Runs the Deseq2 test method.
+\item \code{runEdger()}: Runs the EdgeR test method.
 
-\item \code{runEdger}: Runs the EdgeR test method.
+\item \code{runGlm()}: Runs the Glm test method.
 
-\item \code{runGlm}: Runs the Glm test method.
 }}
-
 \author{
 Rehrauer, Hubert
 

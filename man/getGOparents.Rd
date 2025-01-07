@@ -22,9 +22,9 @@ Gets the GO parents.
 }
 \section{Functions}{
 \itemize{
-\item \code{addGoParents}: Adds the GO parents.
-}}
+\item \code{addGoParents()}: Adds the GO parents.
 
+}}
 \examples{
 getGOparents("GO:0034767")
 addGoParents(c("GO:0034767", "GO:0034768"), "BP")

@@ -46,7 +46,7 @@ Use this reference class to run kallisto
 
 \code{\link{getKallistoReference}}
 
-\code{\link{ezMethodTrim}}
+\code{\link{ezMethodFastpTrim}}
 }
 \author{
 Rehrauer, Hubert

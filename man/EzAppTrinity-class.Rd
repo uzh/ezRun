@@ -44,7 +44,7 @@ Use this reference class to run
 
 \code{\link{EzDataset}}
 
-\code{\link{ezMethodTrim}}
+\code{\link{ezMethodFastpTrim}}
 }
 \author{
 Rehrauer, Hubert

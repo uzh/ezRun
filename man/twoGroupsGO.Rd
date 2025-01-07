@@ -48,9 +48,9 @@ Performs the GO analysis for two groups.
 }
 \section{Functions}{
 \itemize{
-\item \code{ezGoseq}: Performs the GO analysis and returns a list of results.
-}}
+\item \code{ezGoseq()}: Performs the GO analysis and returns a list of results.
 
+}}
 \seealso{
 \code{\link{ezGoseq}}
 }

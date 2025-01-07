@@ -4,44 +4,31 @@
 \name{EzRef-class}
 \alias{EzRef-class}
 \alias{EzRef}
-\alias{initialize,EzRef-method}
-\alias{[,EzRef,ANY,ANY,ANY-method}
+\alias{[,EzRef,ANY-method}
 \alias{[<-,EzRef,ANY,ANY,ANY-method}
-\alias{getOrganism,EzRef-method}
-\alias{buildRefDir,EzRef-method}
-\alias{buildIgvGenome,EzRef-method}
 \title{The S4 class representing a collection of information about the reference build}
 \usage{
-\S4method{initialize}{EzRef}(.Object, param = list())
+EzRef(param)
 
-\S4method{[}{EzRef,ANY,ANY,ANY}(x, i)
+\S4method{[}{EzRef,ANY}(x, i)
 
 \S4method{[}{EzRef,ANY,ANY,ANY}(x, i) <- value
-
-\S4method{getOrganism}{EzRef}(.Object)
-
-\S4method{buildRefDir}{EzRef}(.Object, genomeFile, genesFile, genomesRoot = ".")
-
-\S4method{buildIgvGenome}{EzRef}(.Object)
 }
 \description{
 Objects of this class are a collection of references derived from a list of parameters.
 }
 \section{Methods (by generic)}{
 \itemize{
-\item \code{initialize}: Initializes the slots of EzRef. It will also try to specify some fields and if necessary get full file paths.
+\item \code{x[i}: Access of slots by name with square brackets [ ]
 
-\item \code{[}: Access of slots by name with square brackets [ ]
+\item \code{`[`(x = EzRef, i = ANY, j = ANY) <- value}: Assignment to slots by name with square brackets [ ]
 
-\item \code{[<-}: Assignment to slots by name with square brackets [ ]
-
-\item \code{getOrganism}: Gets the organism name from the reference build.
-
-\item \code{buildRefDir}: Builds the reference directory and copies the annotation and fasta file into the right folders.
-
-\item \code{buildIgvGenome}: Builds the IGV genome.
 }}
+\section{Functions}{
+\itemize{
+\item \code{EzRef()}: Initializes the slots of EzRef. It will also try to specify some fields and if necessary get full file paths.
 
+}}
 \section{Slots}{
 
 \describe{

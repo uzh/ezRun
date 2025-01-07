@@ -15,20 +15,20 @@ ezMethodVcfStats <- function(input = NA, output = NA, param = NA,
   output_dir <- basename(output$getColumn("Report"))
   prefix <- file.path(output_dir, "vcf_stats")
 
-  # For Rmd
+  # For Rmd
   # SNP counts
   snp_counts <- file.path(output_dir, "vcf_stats.snps")
 
   # InDel counts
-  # ToDo
+  # ToDo
 
   # Private SNP counts
   private_snp_counts <- file.path(output_dir, "vcf_stats.private")
 
-  # Shared SNP counts
+  # Shared SNP counts
   shared_snp_counts <- file.path(output_dir, "vcf_stats.shared")
 
-  # Transions/Transversions
+  # Transions/Transversions
   tstv <- file.path(output_dir, "vcf_stats.samples-tstv")
 
   # run vcf-stats
@@ -74,7 +74,6 @@ ezMethodVcfStats <- function(input = NA, output = NA, param = NA,
 ##'   \item{\code{plotQualityHeatmap(result, name=NULL, colorRange=c(0,sqrt(40)), colors=gray((1:256)/256), main=NULL, pngFileName=NULL, xScale=1, yScale=1): }}
 ##'   {Creates and returns the images used by \code{plotQualityMatrixAsHeatmap()}.}
 ##' }
-
 EzAppVcfStats <-
   setRefClass("EzAppVcfStats",
     contains = "EzApp",

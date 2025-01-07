@@ -28,9 +28,9 @@ Groups GO terms and information.
 }
 \section{Functions}{
 \itemize{
-\item \code{ezGetGoByLevels}: Gets the gene ontology by level.
-}}
+\item \code{ezGetGoByLevels()}: Gets the gene ontology by level.
 
+}}
 \author{
 Rehrauer, Hubert
 

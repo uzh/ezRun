@@ -24,4 +24,4 @@ Suggests:
     scran, writexl, zip
 SystemRequirements:
 VignetteBuilder: knitr
-RoxygenNote: 7.0.0
+RoxygenNote: 7.3.2

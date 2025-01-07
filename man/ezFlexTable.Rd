@@ -37,9 +37,9 @@ Wraps \code{FlexTable()} with defaults to remove the cell header and cell border
 }
 \section{Functions}{
 \itemize{
-\item \code{ezGrid}: A flex table without borders.
-}}
+\item \code{ezGrid()}: A flex table without borders.
 
+}}
 \examples{
 ezFlexTable(data.frame(a=1:5, b=11:15))
 }

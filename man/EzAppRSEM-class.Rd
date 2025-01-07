@@ -46,7 +46,7 @@ Use this reference class to run
 
 \code{\link{getRSEMReference}}
 
-\code{\link{ezMethodTrim}}
+\code{\link{ezMethodFastpTrim}}
 }
 \author{
 Rehrauer, Hubert

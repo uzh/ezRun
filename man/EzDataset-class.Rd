@@ -29,7 +29,7 @@ Use this to create an object of the class EzDataset that contains the necessary 
 
 \item{\code{getColumn(names)}}{Gets the column(s) selected with \code{names}.}
 
-\item{\code{getFullPaths(name)}}{Gets the files in the nameed column prepended with the \code{dataRoot}.}
+\item{\code{getFullPaths(name, checkExists = TRUE)}}{Gets the files in the named column prepended with the \code{dataRoot}.}
 
 \item{\code{getLength()}}{Gets the number of samples.}
 

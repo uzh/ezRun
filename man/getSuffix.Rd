@@ -20,9 +20,9 @@ Gets the suffix of a file name or the file name without the suffix.
 }
 \section{Functions}{
 \itemize{
-\item \code{removeSuffix}: Gets and removes the suffix of a file name.
-}}
+\item \code{removeSuffix()}: Gets and removes the suffix of a file name.
 
+}}
 \examples{
 getSuffix("example.file")
 removeSuffix("example.file")

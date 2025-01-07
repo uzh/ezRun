@@ -6,7 +6,7 @@
 \alias{getSampleLty}
 \title{Gets the sample colors}
 \usage{
-getSampleColors(conds, colorNames = names(conds), hueStep = 0)
+getSampleColors(conds, colorNames = names(conds))
 
 getSamplePch(conds, pchNames = names(conds))
 
@@ -27,15 +27,16 @@ Gets the sample colors from the experimental conditions.
 }
 \section{Functions}{
 \itemize{
-\item \code{getSamplePch}: Gets the sample pch from the experimental conditions.
+\item \code{getSamplePch()}: Gets the sample pch from the experimental conditions.
 
-\item \code{getSampleLty}: Gets the sample line types from the experimental conditions.
+\item \code{getSampleLty()}: Gets the sample line types from the experimental conditions.
+
 }}
-
 \examples{
 file = system.file("extdata/yeast_10k/dataset.tsv", package="ezRun", mustWork = TRUE)
 ds = EzDataset$new(file=file, dataRoot=NULL)
 cond = ezConditionsFromDataset(ds$meta)
+cond = c(a1="a", a2="a", b1="b", b2="b")
 getSampleColors(cond)
 getSamplePch(cond)
 getSampleLty(cond)
