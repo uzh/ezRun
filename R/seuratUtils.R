@@ -476,3 +476,28 @@ getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
               enrichRout=enrichRout, pathwayActivity=pathwayActivity, TFActivity=TFActivity,
               aziResults=aziResults, cellxgeneResults=cellxgeneResults))
 }
+
+##' @title Merge Seurat clusters
+##' @description Given an input mapping, group Seurat clusters of the active Seurat Ident together, i.e. merging them
+##' @slot scData the Seurat object
+##' @slot clustList a list() object where the names are the new cluster names and their values are all the clusters to be merged. If the list consists of multiple sets of clusters to be merged, ensure the sets do not overlap.
+##' @template roxygen-template
+##' @examples
+##' data("pbmc_small")
+##' clustList <- list("foo"=as.character(c(1, 2)))
+##' seuratMergeClusters(pbmc_small, clustList)
+seuratMergeClusters <- function(scData, clustList) {
+  require(stringr)
+  assertthat::assert_that(length(Reduce(intersect, clustList))==0, msg="Sets of input clusters overlap!")
+  
+  clusters <- as.character(unique(Idents(scData)))
+  newIdent <- as.character(unname(Idents(scData)))
+  for (targetClust in names(clustList)) {
+    clustersToChange <- clustList[[targetClust]]
+    targetClustRep <- rep(targetClust, length(clustersToChange))
+    names(targetClustRep) <- clustersToChange
+    newIdent <- ifelse(newIdent %in% clustersToChange, unname(targetClustRep[clustersToChange]), newIdent)
+  }
+  newIdent <- factor(newIdent, levels=str_sort(unique(newIdent), numeric=TRUE))
+  return(newIdent)
+}
