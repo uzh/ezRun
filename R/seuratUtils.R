@@ -488,8 +488,10 @@ getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
 ##' seuratMergeClusters(pbmc_small, clustList)
 seuratMergeClusters <- function(scData, clustList) {
   require(stringr)
-  assertthat::assert_that(length(Reduce(intersect, clustList))==0, msg="Sets of input clusters overlap!")
-  
+  assertthat::assert_that(
+    length(clustList) <= 1 || length(Reduce(intersect, clustList))==0, msg="Sets of input clusters overlap!"
+  )
+
   clusters <- as.character(unique(Idents(scData)))
   newIdent <- as.character(unname(Idents(scData)))
   for (targetClust in names(clustList)) {
