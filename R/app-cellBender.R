@@ -6,37 +6,39 @@
 # www.fgcz.ch
 
 EzAppCellBender <-
-    setRefClass("EzAppCellBender",contains = "EzApp",
-                methods = list(
-                  initialize = function() {
-                    "Initializes the application using its specific defaults."
-                    runMethod <<- ezMethodCellBender
-                    name <<- "EzAppCellBender"
-                    appDefaults <<- rbind(
-                      cmdOptions=ezFrame(Type="character", DefaultValue="", Description="for -expected-cells and --total-droplets-included"),
-                      gpuMode = ezFrame(
-                        Type = "logical",
-                        DefaultValue = FALSE,
-                        Description = "run with cuda option"
-                      )
+  setRefClass("EzAppCellBender", contains = "EzApp",
+              methods = list(
+                initialize = function() {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodCellBender
+                  name <<- "EzAppCellBender"
+                  appDefaults <<- rbind(
+                    cmdOptions=ezFrame(Type="character", DefaultValue="", Description="for -expected-cells and --total-droplets-included"),
+                    gpuMode = ezFrame(
+                      Type = "logical",
+                      DefaultValue = FALSE,
+                      Description = "run with cuda option"
                     )
-                  }
-                )
-    )
+                  )
+                }
+              )
+  )
 
 ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
-  sampleName = input$Name
+  sampleName = input$getNames()
   setwdNew(sampleName)
   
   # Initialize cmDir before tryCatch
   cmDir <- NULL
   
-  # Try to get path for single sample mode
+  # Try to get path for single modality case first
   tryCatch({
-    if ("UnfilteredCountMatrix" %in% names(input)) {
-      cmDir <- file.path(param$dataRoot, input$UnfilteredCountMatrix)
+    if ("UnfilteredCountMatrix" %in% input$colNames) {
+      cmDir <- input$getFullPaths("UnfilteredCountMatrix")
     } else {
-      cmDir <- file.path(param$dataRoot, input$ResultDir, 
+      # Multi-modal case - construct path from ResultDir
+      resultPath <- input$getColumn("ResultDir")
+      cmDir <- file.path(param$dataRoot, resultPath, 
                          "multi/count/raw_feature_bc_matrix")
     }
   }, error = function(e) {
@@ -47,8 +49,8 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
     stop("Failed to get valid path for count matrix")
   }
   
-  inputFile <- paste0(cmDir,'.h5')
-  if(!file.exists(inputFile)){
+  inputFile <- paste0(cmDir, '.h5')
+  if(!file.exists(inputFile)) {
     stop('RawCountMatrix missing! Unsupported InputFormat.')
   }
   
@@ -60,7 +62,7 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
     cmd <- paste(cmd, cmdOptions)
   }
   
-  if(param$gpuMode){
+  if(param$gpuMode) {
     cmd <- paste(cmd, "--cuda")
   } else {
     cmd <- paste(cmd, '--cpu-threads', param$cores)
