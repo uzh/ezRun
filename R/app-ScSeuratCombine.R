@@ -218,7 +218,11 @@ seuratIntegrateDataAndAnnotate <- function(scDataList, input, output, param, BPP
   Key(scData@reductions$tsne_noCorrected) <- 'TSNEnoCorrection_'
   scData@reductions$umap_noCorrected <- Reductions(scData_noCorrected, "umap")
   Key(scData@reductions$umap_noCorrected) <- 'UMAPnoCorrection_'
- 
+
+  # Since Seurat v5, the RNA layers are split by sample. Does not affect SCT assay
+  # but clutters up RNA assay should it be used in downstream analysis
+  scData <- JoinLayers(scData, assay="RNA")
+  
   scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
   scData <- PrepSCTFindMarkers(scData)
   
