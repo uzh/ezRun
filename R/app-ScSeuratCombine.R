@@ -98,9 +98,11 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
   message("Attempting to load Seurat data...")
+  param$rdsFile <- FALSE
   filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Cluster Report"), 'scData.qs2')
   if(!file.exists(filePath[1])){
       filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Cluster Report"), 'scData.rds')
+      param$rdsFile <- TRUE
   }
   filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", input$getColumn("SC Cluster Report"), 'scData.qs2')
   
@@ -114,7 +116,11 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   # Load the data and prepare metadata for integration
   scDataList <- lapply(names(filePath), function(sm) {
-    scData <- qs_read(filePath[sm], nthreads=param$cores)
+      if(param$rdsFile){
+          scData <- readRDS(filePath[sm])
+      } else {
+          scData <- qs_read(filePath[sm], nthreads=param$cores)
+      }
     aziFilePath <- file.path(dirname(filePath[sm]),'aziResults.rds')
     if(file.exists(aziFilePath)){
         aziResults <- readRDS(aziFilePath)
