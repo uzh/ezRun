@@ -186,16 +186,32 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   } else {
       param$cellbender = FALSE 
   }
-  if(!param$cellbender){
+if(!param$cellbender){
     cts <- Read10X(cmDir, gene.column = 1)
     featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
-  } else if(param$cellbender){
+} else if(param$cellbender){
+    # Read the cellbender H5 file
     cts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_filtered_seurat.h5'), use.names = FALSE)
+    
+    # Get the input dataset info
     inputDS <- ezRead.table(file.path(dirname(dirname(cmDir)),'input_dataset.tsv'))
-    cellrangerDir <- file.path(param$dataRoot,inputDS[input$getNames(),'CountMatrix [Link]'])
+    
+    # Check if this is a multi or single run by looking at the path structure
+    countMatrix <- inputDS[input$getNames(),'CountMatrix [File]']
+    isMulti <- grepl("per_sample_outs", countMatrix)
+    
+    if(isMulti) {
+        # For CellRanger multi, use the full path
+        cellrangerDir <- file.path(param$dataRoot, countMatrix)
+    } else {
+        # For CellRanger single, use original logic
+        cellrangerDir <- file.path(param$dataRoot, inputDS[input$getNames(),'CountMatrix [Link]'])
+    }
+    
     param[['cellrangerDir']] <- cellrangerDir
-    featInfo <- ezRead.table(paste0(cellrangerDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
-  }
+    featInfo <- ezRead.table(file.path(cellrangerDir, "features.tsv.gz"), 
+                            header = FALSE, row.names = NULL)
+}
   featInfo <- featInfo[,1:3]  # in cases where additional column exist, e.g. CellRangerARC output
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
