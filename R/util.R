@@ -810,12 +810,30 @@ ezCbind <- function(...) {
   do.call(cbind, x)
 }
 
+##' @title make ezRun Rmd report
+##' @description Makes an ezRun Rmd report and additionally writes the R objects to disk using eather RDS or the qs2 format
+##' @param ... any number of R object
+##' @param htmlFile The name of the output html
+##' @param rmdFile The name of the Rmd template
+##' @param selfContained If FALSE, will copy over the css and other aesthetic assets 
+##' @param reportTitle Title to use the header of the html
+##' @param use.qs2 If TRUE, use qs2 rather than rds 
+##' @template roxygen-template
+##' @examples
+##' makeRmdReport(param=param, output=output, scData=scData, rmdFile = "ScSeuratCombine.Rmd", reportTitle = "Seurat Report", use.qs2=TRUE) 
+##' # Outputs the report as '00index.html' in addition to files 'param.qs2', 'output.qs2', 'scData.qs2'
 makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "", selfContained = TRUE,
-                          linkHtmlLibDir = NULL, reportTitle = "SUSHI Report") {
+                          reportTitle = "SUSHI Report", use.qs2=FALSE) {
+  require(qs2)
+  
   varList <- list(...)
   for (nm in names(varList)) {
     if (!is.null(varList[[nm]])){
-      saveRDS(varList[[nm]], file = paste0(nm, ".rds"))
+      if (use.qs2) {
+        qs_save(varList[[nm]], file = paste0(nm, ".qs2"))
+      } else {
+        saveRDS(varList[[nm]], file = paste0(nm, ".rds"))
+      }
     }
   }
   file.copy(file.path(system.file("templates", package = "ezRun", mustWork = TRUE), rmdFile),
