@@ -197,7 +197,7 @@ if(!param$cellbender){
     inputDS <- ezRead.table(file.path(dirname(dirname(cmDir)),'input_dataset.tsv'))
     
     # Check if this is a multi or single run by looking at the path structure
-    countMatrix <- inputDS[input$getNames(),'CountMatrix [File]']
+    countMatrix <- inputDS[input$getNames(),'CountMatrix [Link]']
     isMulti <- grepl("per_sample_outs", countMatrix)
     
     if(isMulti) {
