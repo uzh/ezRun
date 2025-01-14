@@ -833,9 +833,9 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
   # }
  if(grepl('Lambda',ref)){
   library(ggplot2)
-  dataFile <- list.files('.', '*bismark.cov.gz')
-  system('gunzip *.gz')
-  dataFile <- list.files('.', '*bismark.cov')
+  dataFile <- paste0(names(bamFile),'.gz.bismark.cov.gz')
+  system(paste('gunzip', dataFile))
+  dataFile <- sub('.gz$', '', dataFile)
   minCov <- 20
   data <- ezRead.table(dataFile, header = FALSE, row.names = NULL)
   colnames(data) <- c('Ref', 'Pos1', 'Pos2', 'Meth', 'MethCount', 'UnmethCount')
@@ -844,6 +844,7 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
       p <- ggplot(data, aes(x=Ref, y=Meth)) +  geom_boxplot(fill='#A4A4A4', color="black") + theme_classic()
       p <- p + labs(title=sub('.gz.*', '', dataFile))
       ggsave(paste0(sub('.gz.*', '_Meth.png', dataFile)), p, width = 6, height = 6)
+  system(paste('gzip', dataFile))
  }
  # system('/usr/local/ngseq/bin/g-req copynow -f *_Meth.png /srv/gstore/projects/p36614/Bismark_ISeq441_EM_Ctrl_2024-12-18--17-33-56')
   
