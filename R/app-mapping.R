@@ -831,6 +831,24 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
   #  writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
   #               sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
   # }
+ if(grepl('Lambda',ref)){
+  library(ggplot2)
+  dataFile <- list.files('.', '*bismark.cov.gz')
+  system('gunzip *.gz')
+  dataFile <- list.files('.', '*bismark.cov')
+  minCov <- 20
+  data <- ezRead.table(dataFile, header = FALSE, row.names = NULL)
+  colnames(data) <- c('Ref', 'Pos1', 'Pos2', 'Meth', 'MethCount', 'UnmethCount')
+  data[['Cov']] = data$MethCount + data$UnmethCount
+      data <- data[data$Cov >= minCov,]
+      p <- ggplot(data, aes(x=Ref, y=Meth)) +  geom_boxplot(fill='#A4A4A4', color="black") + theme_classic()
+      p <- p + labs(title=sub('.gz.*', '', dataFile))
+      ggsave(paste0(sub('.gz.*', '_Meth.png', dataFile)), p, width = 6, height = 6)
+ }
+ # system('/usr/local/ngseq/bin/g-req copynow -f *_Meth.png /srv/gstore/projects/p36614/Bismark_ISeq441_EM_Ctrl_2024-12-18--17-33-56')
+  
+  
+  
   return("Success")
 }
 
