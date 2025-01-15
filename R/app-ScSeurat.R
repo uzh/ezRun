@@ -205,7 +205,7 @@ if(!param$cellbender){
         cellrangerDir <- countMatrix
     } else {
         # For CellRanger single, use original logic
-        cellrangerDir <- file.path(param$dataRoot, inputDS[input$getNames(),'CountMatrix [Link]'])
+        cellrangerDir <- inputDS$getFullPaths("CountMatrix")[input$getNames()]
     }
     
     param[['cellrangerDir']] <- cellrangerDir
