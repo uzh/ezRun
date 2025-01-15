@@ -53,6 +53,51 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
   if (param$generateBigWig) {
     bam2bw(file = basename(bamFile), paired = param$paired, method = "Bioconductor", cores = param$cores)
   }
+  
+  if (ezIsSpecified(param$secondRef) & param$secondRef!='') {
+      require(Rsamtools)
+      require(GenomicAlignments)
+      
+      bam_file <- basename(bamFile)
+      bam <- readGAlignments(bam_file)
+      
+      chrFile <- file.path(dirname(dirname(file.path('/srv/GT/reference/',param$refBuild))), 'Sequence/WholeGenomeFasta/genome-chromsizes.txt')
+      chrSizes <- ezRead.table(chrFile, header = FALSE)
+      
+      reads_per_chromosome <- table(seqnames(bam))
+      chrLengths <- seqlengths(seqinfo(bam))
+      readSize <- mean(qwidth(bam))
+      stats <- data.frame(readsPerChr= as.vector(reads_per_chromosome), lengthPerChr = chrLengths, avgCov = as.vector(reads_per_chromosome*readSize/chrLengths))
+      
+      myChr <- levels(seqnames(bam))
+      extraChr <- setdiff(myChr, rownames(chrSizes))
+      extraChrCov <- list()
+      for (k in 1:length(extraChr)) {
+          extraChrCov[[k]] <- coverage(bam)[[extraChr[k]]]
+      }
+      covExtraChr <- stats[extraChr,]$avgCov
+      remove(bam)
+     
+      png(paste0('Coverage_', sampleName, '_secondRef.png'), width = 1200, height = 500*length(extraChr), res = 100)
+      par(mfrow = c(length(extraChr),1))
+      for (k in 1:length(extraChr)) {
+          plot(extraChrCov[[k]], type = "l", col = "blue", lwd = 2, xlab = "Genomic position", ylab = "Coverage", main = paste("Coverage of", extraChr[k], 'in', sampleName))
+          abline(h = covExtraChr[k], col = "red", lwd = 2)
+          text(0.9 *chrLengths[[extraChr[k]]], covExtraChr[k], paste("Mean coverage:", round(covExtraChr[k], 2)), pos = 3, col = "black")
+      }
+      dev.off()
+      
+      write.table(
+          stats,
+          file = paste0(sampleName, "_bowtie2.log"),
+          append = TRUE,        
+          row.names = FALSE,    
+          col.names = TRUE,    
+          sep = ",",           
+          quote = FALSE
+      )
+  }
+  
   return("Success")
 }
 
