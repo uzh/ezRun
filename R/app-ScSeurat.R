@@ -194,10 +194,9 @@ if(!param$cellbender){
     cts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_filtered_seurat.h5'), use.names = FALSE)
     
     # Get the input dataset info
-    inputDS <- ezRead.table(file.path(dirname(dirname(cmDir)),'input_dataset.tsv'))
-    
+    inputDS <- EzDataset$new(file=file.path(dirname(dirname(cmDir)),'input_dataset.tsv'), dataRoot=param$dataRoot)
     # Check if this is a multi or single run by looking at the path structure
-    countMatrix <- inputDS[input$getNames(),'CountMatrix [Link]']
+    countMatrix <- inputDS$getFullPaths("CountMatrix")[input$getNames()]
     isMulti <- FALSE
     isMulti <- grepl("per_sample_outs", countMatrix)
     
