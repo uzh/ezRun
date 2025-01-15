@@ -202,7 +202,7 @@ if(!param$cellbender){
     
     if(isMulti) {
         # For CellRanger multi, use the full path
-        cellrangerDir <- file.path(param$dataRoot, countMatrix)
+        cellrangerDir <- countMatrix
     } else {
         # For CellRanger single, use original logic
         cellrangerDir <- file.path(param$dataRoot, inputDS[input$getNames(),'CountMatrix [Link]'])
