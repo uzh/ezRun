@@ -198,6 +198,7 @@ if(!param$cellbender){
     
     # Check if this is a multi or single run by looking at the path structure
     countMatrix <- inputDS[input$getNames(),'CountMatrix [Link]']
+    isMulti <- FALSE
     isMulti <- grepl("per_sample_outs", countMatrix)
     
     if(isMulti) {
