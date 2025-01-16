@@ -54,16 +54,6 @@ getElapsed = function(x){
   paste(signif((proc.time() - x)[ "elapsed"]/60, digits=4), "min")
 }
 
-##' @title Saves session info in a .txt file
-##' @description Writes the current session info into a file called sessionInfo.txt
-##' @param path an existing directory to save the session info in. 
-##' @template roxygen-template
-##' @examples
-##' ezSessionInfo()
-ezSessionInfo = function(path='.'){
-  capture.output(print(sessionInfo()),file = file.path(path,"sessionInfo.txt")) 
-}
-
 ##' @title Mails information, the nodename and working directory
 ##' @description Mails the nodename and working directory to a specified email-address. A text message and the subject can also be defined.
 ##' @param text a message to send.
