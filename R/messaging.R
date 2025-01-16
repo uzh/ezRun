@@ -54,6 +54,19 @@ getElapsed = function(x){
   paste(signif((proc.time() - x)[ "elapsed"]/60, digits=4), "min")
 }
 
+
+ezSessionInfo <- function(){
+  ezRunDetails = library(help = ezRun)
+  RemoteSha <- sub('.*\\s+','',ezRunDetails$info[[1]][grep('RemoteSha', ezRunDetails$info[[1]])])
+  githubUrl <- file.path('https://github.com/uzh/ezRun/tree', RemoteSha)
+  cat('ezRun tag:', RemoteSha, '\n')
+  cat('ezRun github link:', githubUrl, '\n \n')
+  
+  print(sessionInfo())
+}
+
+
+
 ##' @title Mails information, the nodename and working directory
 ##' @description Mails the nodename and working directory to a specified email-address. A text message and the subject can also be defined.
 ##' @param text a message to send.

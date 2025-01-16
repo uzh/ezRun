@@ -912,15 +912,6 @@ tar2Fastq <- function(tarArchives, prefix="run"){
 }
 
 
-ezSessionInfo <- function(){
-    ezRunDetails = library(help = ezRun)
-    RemoteSha <- sub('.*\\s+','',ezRunDetails$info[[1]][grep('RemoteSha', ezRunDetails$info[[1]])])
-    githubUrl <- file.path('https://github.com/uzh/ezRun/tree', RemoteSha)
-    cat('ezRun tag:', RemoteSha, '\n')
-    cat('ezRun github link:', githubUrl, '\n \n')
-    
-    print(sessionInfo())
-}
 
 ##' @title Updates one list with another list.
 ##' @description Updates a list with the values from another list if the list is missing them or if the values are NULL/NA
