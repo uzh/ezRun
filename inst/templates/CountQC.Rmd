@@ -25,6 +25,8 @@ library(gridExtra)
 library(cowplot)
 library(ggpubr)
 library(cluster)
+library(fpc)
+library(clusterSim)
 #source("../../R/plots-reports.R")
 ```
 
@@ -424,31 +426,88 @@ if(file.exists("cluster-heatmap-clusterMembers.txt")){
 }
 ```
 
-```{r cluster Silhouette, echo=FALSE, results="asis", eval=!debug}
+### Evaluate number of gene clusters
+
+Multiple metrics were computed for a comprehensive assessment.
+
+* Compactness: Dunn Index, CH Index
+* Separation: Silhouette Width,Davies-Bouldin Index
+* Cluster Stability: Gap Statistic, Entropy
+
+```{r cluster scores, echo=FALSE, message=FALSE, results="asis", eval=!debug}
 if(length(varFeatures) > param$minGenesForClustering){
-calculate_silhouette_hc <- function(data, hc, k) {
-    clusters <- cutree(hc, k = k)
-    sil <- silhouette(clusters, dist(data))
-    mean(sil[, 3])
-}
 
 # Perform hierarchical clustering
 dist_matrix <- dist(assays(rawData)$log2signalCentered[varFeatures, ])  # Compute distance matrix
 hc <- hclust(dist_matrix, method = "ward.D2")  # Hierarchical clustering using Ward's method
 
+hclust_cluster <- function(X, k) {
+    res <- data.frame(clusters=rep(0, nrow(X)))
+    dist_matrix <- dist(X)
+    hc <- hclust(dist_matrix, method = "ward.D2")
+    res$clusters <- cutree(hc, k = k)
+    return(res)
+}
+gap_stat <- clusGap(assays(rawData)$log2signalCentered[varFeatures, ], FUN = hclust_cluster, K.max = 10, B = 50)
+
 # Determine optimal number of clusters
-k_values <- 2:10
-sil_scores <- sapply(k_values, calculate_silhouette_hc, data = assays(rawData)$log2signalCentered[varFeatures, ], hc = hc)
+myClusterStats <- data.frame(nClusters = c(2:10), dunn = NA, ch = NA, db = NA, silhouette = NA, entropy = NA, gap = gap_stat$Tab[2:10,3])
+for (i in 2:10){
+    clusters <- cutree(hc, k = i)
+    cluster_scores <- cluster.stats(dist_matrix, clusters)
+    myClusterStats$dunn[i-1] <- cluster_scores$dunn
+    myClusterStats$ch[i-1] <- cluster_scores$ch
+    myClusterStats$db[i-1] <- index.DB(assays(rawData)$log2signalCentered[varFeatures, ], clusters)$DB
+    myClusterStats$silhouette[i-1] <- cluster_scores$avg.silwidth
+    myClusterStats$entropy[i-1] <- cluster_scores$entropy
+}
 
-# Find the number of clusters with the maximum silhouette score
-optimal_k <- k_values[which.max(sil_scores)]
-cat("Optimal number of clusters:", optimal_k, "\n")
-
-# Visualize silhouette scores
-plot(k_values, sil_scores, type = "b", pch = 19, frame = FALSE,
-     xlab = "Number of Clusters (k)",
-     ylab = "Average Silhouette Width",
-     main = "Silhouette Method for Optimal k")
+datatable(myClusterStats,
+          rownames = FALSE,  # Suppress row names
+          options = list(dom = 't')
+) %>%
+    formatStyle(
+        'dunn',
+        background = styleColorBar(range(myClusterStats$dunn), 'lightblue'),
+        backgroundSize = '98% 15px',
+        backgroundRepeat = 'no-repeat',
+        backgroundPosition = 'center'
+    ) %>%
+    formatStyle(
+        'ch',
+        background = styleColorBar(range(myClusterStats$ch), 'lightblue'),
+        backgroundSize = '98% 15px',
+        backgroundRepeat = 'no-repeat',
+        backgroundPosition = 'center'
+    ) %>%
+    formatStyle(
+        'db',
+        background = styleColorBar(range(myClusterStats$db), 'lightgreen'),
+        backgroundSize = '98% 15px',
+        backgroundRepeat = 'no-repeat',
+        backgroundPosition = 'center'
+    ) %>%
+formatStyle(
+    'silhouette',
+    background = styleColorBar(range(myClusterStats$silhouette), 'lightgreen'),
+    backgroundSize = '98% 15px',
+    backgroundRepeat = 'no-repeat',
+    backgroundPosition = 'center'
+) %>%
+    formatStyle(
+        'entropy',
+        background = styleColorBar(range(myClusterStats$entropy), 'lightsalmon'),
+        backgroundSize = '98% 15px',
+        backgroundRepeat = 'no-repeat',
+        backgroundPosition = 'center'
+    ) %>%
+    formatStyle(
+        'gap',
+        background = styleColorBar(range(myClusterStats$gap), 'lightsalmon'),
+        backgroundSize = '98% 15px',
+        backgroundRepeat = 'no-repeat',
+        backgroundPosition = 'center'
+    )
 }
 ```
 
