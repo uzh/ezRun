@@ -24,6 +24,7 @@ library(writexl)
 library(gridExtra)
 library(cowplot)
 library(ggpubr)
+library(cluster)
 #source("../../R/plots-reports.R")
 ```
 
@@ -97,7 +98,7 @@ if (param$useSigThresh){
 settings["Feature level:"] = metadata(rawData)$featureLevel
 settings["Number of features:"] = nrow(rawData)
 settings["Data Column Used:"] = metadata(rawData)$countName
-  
+
 kable(settings, row.names=TRUE, 
       col.names="Setting", format="html") %>%
   kable_styling(bootstrap_options = "striped", full_width = F,
@@ -139,6 +140,8 @@ if(!is.null(seqAnno)){
 if(!is.null(combined$featWidth)){
   combined$featWidth = as.integer(combined$featWidth)
 }
+
+combined$isPresent_50P = rowMeans(assays(rawData)$presentFlag) >= 0.5
 # Raw counts
 countFile <- paste0(ezValidFilename(param$name), "-raw-count.xlsx")
 counts <- as_tibble(assays(rawData)$counts, rownames="Feature ID")
@@ -261,8 +264,23 @@ assays(rawData)$log2signal <- log2(assays(rawData)$signal +
                                      param$backgroundExpression)
 assays(rawData)$log2signalCentered <- sweep(assays(rawData)$log2signal, 1 ,
                                             rowMeans(assays(rawData)$log2signal))
-metadata(rawData)$topGenes <- rownames(rawData)[head(order(rowSds(assays(rawData)$log2signal, na.rm=TRUE),
+
+metadata(rawData)$design <- ezDesignFromDataset(dataset, param)
+colData(rawData)$conds <- ezConditionsFromDesign(metadata(rawData)$design,
+                                                 maxFactors = 2)
+
+if(param$selectByFtest){
+    # Perform F-test row-wise
+    f_test_results <- apply(assays(rawData)$log2signalCentered, 1, function(row) {
+    data <- data.frame(Expression = row, Group = colData(rawData)$conds)
+    fit <- lm(Expression ~ Group, data = data)
+    anova(fit)["Group", "Pr(>F)"]
+    })
+    metadata(rawData)$topGenes <- names(sort(f_test_results)[1:param$topGeneSize])
+} else {
+    metadata(rawData)$topGenes <- rownames(rawData)[head(order(rowSds(assays(rawData)$log2signal, na.rm=TRUE),
                                          decreasing = TRUE), param$topGeneSize)]
+}
 ```
 
 ### Sample correlation
@@ -325,6 +343,7 @@ if(ncol(rawData) > 3){
     cat(paste("Number of features with high std. dev.:", length(varFeatures)), "\n")
     cat("\n")
     clusterColors <- hcl.colors(param$nSampleClusters, palette = "Spectral")
+    
     clusterResult <-
       clusterPheatmap(x=assays(rawData)$log2signalCentered[varFeatures, ], 
                       design = metadata(rawData)$design,
@@ -332,6 +351,9 @@ if(ncol(rawData) > 3){
                       lim = c(-param$logColorRange, param$logColorRange),
                       doClusterColumns = TRUE,
                       condColors = metadata(rawData)$condColors)
+    
+    
+    
 
     xTmp <- enframe(clusterResult$clusterNumbers, "feature_id", value = "Cluster")
     xTmp <- left_join(xTmp, as_tibble(rowData(rawData)[, "gene_name", drop=FALSE],
@@ -399,6 +421,34 @@ if(file.exists("cluster-heatmap-clusterMembers.txt")){
   cat(paste0("[Heatmap cluster members](", "cluster-heatmap-clusterMembers.txt", ")"), 
       "\n")
   cat("\n")
+}
+```
+
+```{r cluster Silhouette, echo=FALSE, results="asis", eval=!debug}
+if(length(varFeatures) > param$minGenesForClustering){
+calculate_silhouette_hc <- function(data, hc, k) {
+    clusters <- cutree(hc, k = k)
+    sil <- silhouette(clusters, dist(data))
+    mean(sil[, 3])
+}
+
+# Perform hierarchical clustering
+dist_matrix <- dist(assays(rawData)$log2signalCentered[varFeatures, ])  # Compute distance matrix
+hc <- hclust(dist_matrix, method = "ward.D2")  # Hierarchical clustering using Ward's method
+
+# Determine optimal number of clusters
+k_values <- 2:10
+sil_scores <- sapply(k_values, calculate_silhouette_hc, data = assays(rawData)$log2signalCentered[varFeatures, ], hc = hc)
+
+# Find the number of clusters with the maximum silhouette score
+optimal_k <- k_values[which.max(sil_scores)]
+cat("Optimal number of clusters:", optimal_k, "\n")
+
+# Visualize silhouette scores
+plot(k_values, sil_scores, type = "b", pch = 19, frame = FALSE,
+     xlab = "Number of Clusters (k)",
+     ylab = "Average Silhouette Width",
+     main = "Silhouette Method for Optimal k")
 }
 ```
 

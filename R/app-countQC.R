@@ -43,7 +43,9 @@ EzAppCountQC <-
                   runMethod <<- ezMethodCountQC
                   name <<- "EzAppCountQC"
                   appDefaults <<- rbind(runGO=ezFrame(Type="logical", DefaultValue=TRUE, Description="whether to run the GO analysis"),
-                                        nSampleClusters=ezFrame(Type="numeric", DefaultValue=6, Description="Number of SampleClusters, max value 6"))
+                                        nSampleClusters=ezFrame(Type="numeric", DefaultValue=6, Description="Number of SampleClusters, default value 6"),
+                                        selectByFtest=ezFrame(Type="logical", DefaultValue=FALSE, Description="select topGenes by Test instead of SD"),
+                                        topGeneSize=ezFrame(Type="numeric", DefaultValue=100, Description="number of genes to consider in gene clustering, mds etc"))
                 }
               )
   )
