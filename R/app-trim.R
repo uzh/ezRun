@@ -19,6 +19,22 @@
 
 ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
   require(withr)
+    
+  if(grepl(',',input$meta$Read1)){
+        files <- file.path(param$dataRoot, limma::strsplit2(input$meta$Read1,','))
+        system("touch input_R1.fastq.gz")
+        sapply(files, function(x) system(paste("cat", x, " >> input_R1.fastq.gz")))
+        input$setColumn("Read1", file.path(getwd(), "input_R1.fastq.gz"))
+        
+        if(grepl(',',input$meta$Read2) & param$paired){
+            files <- file.path(param$dataRoot, limma::strsplit2(input$meta$Read2,','))
+            system("touch input_R2.fastq.gz")
+            sapply(files, function(x) system(paste("cat", x, " >> input_R2.fastq.gz")))
+            input$setColumn("Read2", file.path(getwd(), "input_R2.fastq.gz"))
+        }
+        input <- EzDataset$new(meta=input$meta,dataRoot='')
+    }
+    
   if (any(str_detect(input$getFullPaths("Read1"), "bam$"))) {
     stop("cannot process unmapped bam as input")
   }
@@ -74,21 +90,6 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
 
   ## fastp
   r1TmpFile <- "trimmed_R1.fastq.gz"
-  
-  if(grepl(',',input$meta$Read1)){
-    files <- file.path(param$dataRoot, limma::strsplit2(input$meta$Read1,','))
-    system("touch input_R1.fastq.gz")
-    sapply(files, function(x) system(paste("cat", x, " >> input_R1.fastq.gz")))
-    input$setColumn("Read1", file.path(getwd(), "input_R1.fastq.gz"))
-    
-  if(grepl(',',input$meta$Read2) & param$paired){
-      files <- file.path(param$dataRoot, limma::strsplit2(input$meta$Read2,','))
-      system("touch input_R2.fastq.gz")
-      sapply(files, function(x) system(paste("cat", x, " >> input_R2.fastq.gz")))
-      input$setColumn("Read2", file.path(getwd(), "input_R2.fastq.gz"))
-  }
-    input <- EzDataset$new(meta=input$meta,dataRoot='')
-  }
   
   if (param$paired) {
     r2TmpFile <- "trimmed_R2.fastq.gz"
