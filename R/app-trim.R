@@ -20,7 +20,7 @@
 ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
   require(withr)
     
-  if(grepl(',',input$meta$Read1)){
+  if(nrow(input$meta)  ==1L && grepl(',',input$meta$Read1)){
         files <- file.path(param$dataRoot, limma::strsplit2(input$meta$Read1,','))
         system("touch input_R1.fastq.gz")
         sapply(files, function(x) system(paste("cat", x, " >> input_R1.fastq.gz")))
