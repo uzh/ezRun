@@ -179,19 +179,18 @@ cat("\n\n#### Intervals\n")
 cat("The error bars represent 95% credible intervals. The dashed lines represent the minimal effect that the hypothesis test is based on. An effect is labelled as significant if it exceeds the minimal effect according to the 95% credible interval.\n\n")
 
 # Get both conditions
-all_conditions <- sccomp_result$count_data[[1]] |>
-  dplyr::pull(Condition) |>
-  unique()
+all_conditions <- sccomp_res$count_data[[1]] |>
+  dplyr::pull(!!sym(param$grouping)) |>
 
 # The one that's not in the comparison name is the reference
-comparison_group <- gsub("Condition", "", comparison)  # Gets "Wildlings"
+comparison_group <- gsub("Condition", "", comparison)  
 reference_group <- all_conditions[!all_conditions %in% comparison_group]
 
 # Create clear title
-plot_title <- paste0(comparison_group, " vs ", reference_group)
+plot_title <- paste0(param$sampleGroup, " vs ", param$refGroup)
 
 # Use in plot
-sccomp_result |> 
+sccomp_res |> 
   plot_1D_intervals() +
   ggtitle(plot_title) +
   theme(
@@ -209,7 +208,7 @@ cat("\nWe used [sccomp](https://github.com/MangiolaLaboratory/sccomp) to analyze
 invisible(capture.output(
   p <- sccomp_res |> 
     sccomp_boxplot(
-      factor = "Condition"
+      factor = param$grouping
     ) + 
     theme(
       strip.text = element_text(size = 20, face = "bold"),
