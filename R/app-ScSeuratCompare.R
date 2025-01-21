@@ -93,12 +93,12 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
     # Run sccomp analysis with condition
     sccomp_res <- scData %>%
       sccomp_estimate(
-        formula_composition = ~ param$grouping,
-        .sample = param$replicateGrouping, 
-        .cell_group = param$CellIdentity,
+        formula_composition = as.formula(paste("~", param$grouping)),  
+        .sample = !!sym(param$replicateGrouping),   
+        .cell_group = !!sym(param$CellIdentity),   
         cores = as.integer(param$cores),
         output_directory = scratch_dir,
-        verbose = T
+        verbose = TRUE
       )
     
     sccomp_res <- sccomp_res %>%
