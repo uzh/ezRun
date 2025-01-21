@@ -180,11 +180,8 @@ cat("The error bars represent 95% credible intervals. The dashed lines represent
 
 # Get both conditions
 all_conditions <- sccomp_res$count_data[[1]] |>
-  dplyr::pull(!!sym(param$grouping)) 
-
-# The one that's not in the comparison name is the reference
-comparison_group <- gsub("Condition", "", comparison)  
-reference_group <- all_conditions[!all_conditions %in% comparison_group]
+  dplyr::pull(!!sym(param$grouping)) |>
+  unique()
 
 # Create clear title
 plot_title <- paste0(param$sampleGroup, " vs ", param$refGroup)
