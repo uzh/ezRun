@@ -132,6 +132,11 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
     scData_agg <- AggregateExpression(scData, assays = "RNA", 
                                       return.seurat = TRUE, 
                                       group.by = c(param$grouping, param$replicateGrouping, param$CellIdentity))
+    # Special case: If the param$CellIdentity is "ident", the resulting object
+    # will not have "ident" in the metadata anymore, will just be "orig.ident"
+    if (param$CellIdentity == "ident") {
+      scData_agg$ident <- scData_agg$orig.ident
+    }
     Idents(scData_agg) <- scData_agg@meta.data[[param$CellIdentity]]
     consMarkers <- conservedMarkers(scData_agg, grouping.var = param$grouping, 
                                     pseudoBulkMode = pseudoBulkMode)
