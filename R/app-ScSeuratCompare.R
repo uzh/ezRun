@@ -28,27 +28,26 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(HDF5Array)
   library(SingleCellExperiment)
   library(qs2)
-  library(sccomp)
   library(tidyverse)
   library(cmdstanr)
-
+  
   ## Setup sccomp
   # Create scratch directory
   scratch_dir <- "/scratch/sccomp_output"
   dir.create(scratch_dir, recursive = TRUE, mode = "0777", showWarnings = FALSE)
   
   # Load sccomp and set up cmdstan
-  library(sccomp)
-  cmdstanr::set_cmdstan_path("/misc/ngseq12/packages/Dev/R/4.4.2/lib/R/cmdstan-2.36.0")
-
+  library(sccomp, lib.loc = '/srv/GT/databases/writable_R_package')
+  # cmdstanr::set_cmdstan_path("/misc/ngseq12/packages/Dev/R/4.4.2/lib/R/cmdstan-2.36.0")
+  
   # check if in pseudobulk mode
   pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) && param$pseudoBulkMode == "true"
   
   # Load model
   sccomp:::load_model(
-    name = "glm_multi_beta_binomial", 
-    threads = 4, 
-    cache_dir = '/srv/GT/databases/sccomp_models/'
+    name = "glm_multi_beta_binomial",
+    threads = 4,
+    cache_dir = '/srv/GT/databases/writable_R_package/sccomp/'
   )
   
   
@@ -60,7 +59,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   on.exit(setwd(cwd), add=TRUE)
   
   reportDir <- input$getFullPaths("Report")
-
+  
   # First try qs2 format
   message("Attempting to load Seurat data...")
   qs_path <- file.path(reportDir, "scData.qs2")
@@ -96,7 +95,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
         formula_composition = as.formula(paste("~", param$grouping)),  
         .sample = !!sym(param$replicateGrouping),   
         .cell_group = !!sym(param$CellIdentity),   
-        cores = as.integer(param$cores),
+        cores = as.integer(param$cores), 
         output_directory = scratch_dir,
         verbose = TRUE
       )
