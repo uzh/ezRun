@@ -32,13 +32,18 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(cmdstanr)
   
   ## Setup sccomp
+  # You need to install first sccomp and cmdstanr R packages in '/srv/GT/databases/writable_R_package' 
+  # Then you need to explicitely install cmdstan 
+  # install_cmdstan(dir = "/srv/GT/databases/writable_R_package/cmdstanr")
+  
   # Create scratch directory
   scratch_dir <- "/scratch/sccomp_output"
   dir.create(scratch_dir, recursive = TRUE, mode = "0777", showWarnings = FALSE)
   
   # Load sccomp and set up cmdstan
   library(sccomp, lib.loc = '/srv/GT/databases/writable_R_package')
-  # cmdstanr::set_cmdstan_path("/misc/ngseq12/packages/Dev/R/4.4.2/lib/R/cmdstan-2.36.0")
+  
+  cmdstanr::set_cmdstan_path('/srv/GT/databases/writable_R_package/cmdstanr/cmdstan-2.36.0/')
   
   # check if in pseudobulk mode
   pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) && param$pseudoBulkMode == "true"
