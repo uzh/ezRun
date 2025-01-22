@@ -166,8 +166,8 @@ cat("\n")
 cat("The barplots show the proportion of cells from each sample in each cluster. The barplots are split by the Seurat metadata column '", param$CellIdentity, "'.")
 cat("\n\n")
 
-dittoSeq::dittoBarPlot(scData, group.by = param$grouping, var = param$CellIdentity)
-dittoSeq::dittoBarPlot(scData, group.by = scData$Sample, var = param$CellIdentity)
+dittoSeq::dittoBarPlot(scData, group.by = !!sym(param$grouping), var = !!sym(param$CellIdentity))
+dittoSeq::dittoBarPlot(scData, group.by = !!sym(param$replicateGrouping), var = !!sym(param$CellIdentity))
 
 ```
 
