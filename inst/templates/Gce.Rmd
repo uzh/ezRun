@@ -3,7 +3,8 @@ title: "GCE"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
-    self_contained: false
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
     includes:
       in_header: fgcz_header.html
     css: fgcz.css
