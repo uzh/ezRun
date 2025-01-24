@@ -167,8 +167,8 @@ cat("\n")
 cat("The barplots show the proportion of cells from each sample in each cluster. The barplots are split by the Seurat metadata column '", param$CellIdentity, "'.")
 cat("\n\n")
 
-dittoSeq::dittoBarPlot(scData, group.by = !!sym(param$grouping), var = !!sym(param$CellIdentity))
-dittoSeq::dittoBarPlot(scData, group.by = !!sym(param$replicateGrouping), var = !!sym(param$CellIdentity))
+dittoSeq::dittoBarPlot(scData, group.by = param$grouping, var = param$CellIdentity)
+dittoSeq::dittoBarPlot(scData, group.by = param$replicateGrouping, var = param$CellIdentity)
 
 ```
 
@@ -181,7 +181,7 @@ cat("The error bars represent 95% credible intervals. The dashed lines represent
 
 # Get both conditions
 all_conditions <- sccomp_res$count_data[[1]] |>
-  dplyr::pull(!!sym(param$grouping)) |>
+  dplyr::pull(param$grouping) |>
   unique()
 
 # Create clear title
