@@ -67,7 +67,7 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       reads_per_chromosome <- table(seqnames(bam))
       chrLengths <- seqlengths(seqinfo(bam))
       readSize <- mean(qwidth(bam))
-      stats <- data.frame(readsPerChr= as.vector(reads_per_chromosome), lengthPerChr = chrLengths, avgCov = as.vector(reads_per_chromosome*readSize/chrLengths))
+      stats <- data.frame(seqname = names(reads_per_chromosome), readsPerChr= as.vector(reads_per_chromosome), lengthPerChr = chrLengths, avgCov = as.vector(reads_per_chromosome*readSize/chrLengths))
       
       myChr <- levels(seqnames(bam))
       extraChr <- setdiff(myChr, rownames(chrSizes))
@@ -86,6 +86,16 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
           text(0.9 *chrLengths[[extraChr[k]]], covExtraChr[k], paste("Mean coverage:", round(covExtraChr[k], 2)), pos = 3, col = "black")
       }
       dev.off()
+      
+      write.table(
+          '\n',
+          file = paste0(sampleName, "_bowtie2.log"),
+          append = TRUE,        
+          row.names = FALSE,    
+          col.names = TRUE,    
+          sep = ",",           
+          quote = FALSE
+      )
       
       write.table(
           stats,
