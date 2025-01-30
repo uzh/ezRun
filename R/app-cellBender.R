@@ -59,7 +59,7 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
                "--output cellbender.h5")
   
   if(param$cmdOptions!=''){
-    cmd <- paste(cmd, cmdOptions)
+    cmd <- paste(cmd, param$cmdOptions)
   }
   
   if(param$gpuMode) {
