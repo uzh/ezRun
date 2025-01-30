@@ -216,8 +216,10 @@ buildMultiConfigFile <- function(input, param, dirList) {
       probeInfo <- bind_rows(list(probeInfo, customProbes))
     }
     annotation <- ezRead.table(file.path(refDir, 'star', 'geneInfo.tab'), row.names = NULL, skip = 1, header = FALSE)
-    intersectionGenes <- intersect(annotation$V1, probeInfo$gene_id)
-    probeInfo <- probeInfo[probeInfo$gene_id %in% intersectionGenes, ]
+    intersectionGeneIDs <- intersect(annotation$V1, probeInfo$gene_id)
+    probeInfo <- probeInfo[probeInfo$gene_id %in% intersectionGeneIDs, ]
+    intersectionGeneNames <- intersect(annotation$V2, probeInfo$gene_name)
+    probeInfo <- probeInfo[probeInfo$gene_name %in% intersectionGeneNames, ]
     writeLines(headerSection, outputFile)
     ezWrite.table(probeInfo, outputFile, sep = ',', row.names = FALSE, append = TRUE)
     fileContents <- append(fileContents, sprintf("probe-set,%s", file.path(getwd(), outputFile)))
