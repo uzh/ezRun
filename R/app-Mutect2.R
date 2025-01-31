@@ -24,6 +24,7 @@ ezMethodMutect2 = function(input=NA, output=NA, param=NA){
                  " VERBOSITY=WARNING")
         ezSystem(cmd)
         sampleBamFile <- paste0(sampleName,'.bam')
+        system(paste('samtools index', sampleBamFile))
     }
     
     cmd <- paste('samtools view -H', ctrlBamFile, ' | grep \'^@RG\'')
@@ -36,6 +37,7 @@ ezMethodMutect2 = function(input=NA, output=NA, param=NA){
                      " VERBOSITY=WARNING")
         ezSystem(cmd)
         ctrlBamFile <- paste0(sampleNameNormal,'.bam')
+        system(paste('samtools index', ctrlBamFile))
     }
     
     if(param$snpEffDB == 'mm39'){
