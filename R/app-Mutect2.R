@@ -6,11 +6,38 @@
 # www.fgcz.ch
 
 ezMethodMutect2 = function(input=NA, output=NA, param=NA){
+    javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
     sampleBamFile <- input$getFullPaths("BAM")
     genomeSeq = param$ezRef["refFastaFile"]
     ctrlBamFile <- input$getFullPaths("CtrlBam")
     sampleName = input$getNames()
     sampleNameNormal <- sub('.bam', '', basename(ctrlBamFile))
+    
+    
+    cmd <- paste('samtools view -H', sampleBamFile, ' | grep \'^@RG\'')
+    rg <- system(cmd, intern=TRUE)
+    if(length(rg) == 0){
+        cmd = paste0(javaCall, " -jar ", Sys.getenv("Picard_jar"), " AddOrReplaceReadGroups",
+                 " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", sampleBamFile,
+                 " O=",paste0(sampleName,'.bam')," SORT_ORDER=coordinate",
+                 " RGID=", sampleName, " RGPL=illumina RGSM=", sampleName, " RGLB=RGLB_", sampleName, " RGPU=RGPU_", sampleName,
+                 " VERBOSITY=WARNING")
+        ezSystem(cmd)
+        sampleBamFile <- paste0(sampleName,'.bam')
+    }
+    
+    cmd <- paste('samtools view -H', ctrlBamFile, ' | grep \'^@RG\'')
+    rg <- system(cmd, intern=TRUE)
+    if(length(rg) == 0){
+        cmd = paste0(javaCall, " -jar ", Sys.getenv("Picard_jar"), " AddOrReplaceReadGroups",
+                     " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", ctrlBamFile,
+                     " O=",paste0(sampleNameNormal,'.bam')," SORT_ORDER=coordinate",
+                     " RGID=", sampleNameNormal, " RGPL=illumina RGSM=", sampleNameNormal, " RGLB=RGLB_", sampleNameNormal, " RGPU=RGPU_", sampleNameNormal,
+                     " VERBOSITY=WARNING")
+        ezSystem(cmd)
+        ctrlBamFile <- paste0(sampleNameNormal,'.bam')
+    }
+    
     if(param$snpEffDB == 'mm39'){
         param$snpEffConfig <- '/srv/GT/reference/Mus_musculus/UCSC/mm39/Annotation/Genes/snpEff/snpEff.config'
         param$dataDir <- paste0(dirname(param$snpEffConfig),'/data')
