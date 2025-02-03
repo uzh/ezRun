@@ -393,7 +393,10 @@ if(ncol(rawData) > 3){
       cat("No information available", "\n")
     }
   }
+} else {
+    varFeatures <- c()
 }
+
 ```
 
 ```{r render go cluster, echo=FALSE, results='hide', message=FALSE, warning=FALSE, eval=!debug}
