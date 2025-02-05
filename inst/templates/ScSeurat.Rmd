@@ -698,18 +698,22 @@ try({
 
 ### Azimuth
 
-```{r azimuth, eval=!is.null(aziResults), fig.width=9, fig.height=8}
+```{r azimuth, eval=!is.null(aziResults), fig.width=15, fig.height=8}
 options(ggrepel.max.overlaps = Inf)
 
 cat(sprintf("Analysis was performed using the Azimuth reference map: %s", param$Azimuth))
 
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap")
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap") +
+  theme(aspect.ratio = 1)
 if('Azimuth.celltype.l2' %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap")
+  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap") +
+  theme(aspect.ratio = 1)
 if('Azimuth.celltype.l3' %in% colnames(scData@meta.data))
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap")
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap") +
+  theme(aspect.ratio = 1)
 if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap")
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap") +
+  theme(aspect.ratio = 1)
 ```
 
 ### Cell x gene
