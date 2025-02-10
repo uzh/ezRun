@@ -15,6 +15,11 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     dataset1 <- dataset1[,c('Name', colnames(dataset1)[1:(length(colnames(dataset1))-1)])]
     
     inputDir2 = file.path(param[['dataRoot']], project, param[['DataSetName2']])
+    if(!file.exists(inputDir2)){
+        allDirs <- list.dirs('/srv/gstore/projects/p33998', recursive = FALSE)
+        runName <- sub('.*_', '', param[['DataSetName2']])
+        inputDir2 = allDirs[grep(runName, allDirs)][1]
+    }
     datasetFile2 = list.files(inputDir2, pattern='^dataset.tsv$', full.names = TRUE)
     stopifnot(file.exists(datasetFile2))
     input2 <- EzDataset(datasetFile2)
