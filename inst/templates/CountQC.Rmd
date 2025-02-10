@@ -455,15 +455,17 @@ hclust_cluster <- function(X, k) {
 gap_stat <- clusGap(assays(rawData)$log2signalCentered[varFeatures, ], FUN = hclust_cluster, K.max = 10, B = 50)
 
 # Determine optimal number of clusters
-myClusterStats <- data.frame(nClusters = c(2:10), dunn = NA, ch = NA, db = NA, silhouette = NA, entropy = NA, gap = gap_stat$Tab[2:10,3])
+myClusterStats <- data.frame(nClusters = c(2:10), dunn = NA, ch = NA, 
+                             db = NA, silhouette = NA, entropy = NA, 
+                             gap = round(gap_stat$Tab[2:10,3], 4))
 for (i in 2:10){
     clusters <- cutree(hc, k = i)
-    cluster_scores <- cluster.stats(dist_matrix, clusters)
-    myClusterStats$dunn[i-1] <- cluster_scores$dunn
-    myClusterStats$ch[i-1] <- cluster_scores$ch
-    myClusterStats$db[i-1] <- index.DB(assays(rawData)$log2signalCentered[varFeatures, ], clusters)$DB
-    myClusterStats$silhouette[i-1] <- cluster_scores$avg.silwidth
-    myClusterStats$entropy[i-1] <- cluster_scores$entropy
+    cluster_scores <- round(cluster.stats(dist_matrix, clusters),4)
+    myClusterStats$dunn[i-1] <- round(cluster_scores$dunn,4)
+    myClusterStats$ch[i-1] <- round(cluster_scores$ch,4)
+    myClusterStats$db[i-1] <- round(index.DB(assays(rawData)$log2signalCentered[varFeatures, ], clusters)$DB,4)
+    myClusterStats$silhouette[i-1] <- round(cluster_scores$avg.silwidth,4)
+    myClusterStats$entropy[i-1] <- round(cluster_scores$entropy,4)
 }
 
 datatable(myClusterStats,
