@@ -1041,7 +1041,7 @@ if (all(c("gc", "featWidth") %in% colnames(x))) {
       testName <- paste(tests$bias[i], " -- ", tests$sig[i])
       myBias <- biasTable[[tests$bias[i]]]
       mySig <- sigTable[[tests$sig[i]]]
-      if (length(table(mySig)) < 2 || length(table(myBias)) < 2) {
+      if (length(table(mySig)) == 2 && length(table(myBias)) == 2) {
         res.fisher <- fisher.test(myBias, mySig, alternative = "greater")
       } else {
         res.fisher <- list(estimate = NA, p.value = NA)
