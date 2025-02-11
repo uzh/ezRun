@@ -460,7 +460,7 @@ myClusterStats <- data.frame(nClusters = c(2:10), dunn = NA, ch = NA,
                              gap = round(gap_stat$Tab[2:10,3], 4))
 for (i in 2:10){
     clusters <- cutree(hc, k = i)
-    cluster_scores <- round(cluster.stats(dist_matrix, clusters),4)
+    cluster_scores <- cluster.stats(dist_matrix, clusters)
     myClusterStats$dunn[i-1] <- round(cluster_scores$dunn,4)
     myClusterStats$ch[i-1] <- round(cluster_scores$ch,4)
     myClusterStats$db[i-1] <- round(index.DB(assays(rawData)$log2signalCentered[varFeatures, ], clusters)$DB,4)
