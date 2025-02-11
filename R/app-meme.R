@@ -13,7 +13,7 @@ ezMethodMEME = function(input=NA, output=NA, param=NA){
   sampleName = input$getNames()
   if(param$filterPeaks){
     param$relPos = c('upstream','overlapStart', 'inside', 'includeFeature')
-    peaks = ezRead.table(input$getFullPaths("CalledPeaks"), row.names = NULL)
+    peaks = readxl::read_xlsx(input$getFullPaths("CalledPeaks"))
     peaks = peaks[abs(peaks$distancetoFeature) <=  param$distance, ]
     peaks = peaks[peaks$insideFeature %in%  param$relPos,]
     peaks = peaks[abs(peaks$fold_enrichment) >=  param$minFold, ]
