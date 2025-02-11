@@ -7,6 +7,7 @@
 
 
 ezMethodMEME = function(input=NA, output=NA, param=NA){
+  Sys.setenv(PERL5LIB = paste("/usr/local/ngseq/packages/Dev/Perl/5.40.0/lib/perl5/site_perl/5.40.0", Sys.getenv("PERL5LIB"), sep = ":"))
   opt = param$cmdOptions
   db = param$motifDB
   sampleName = input$getNames()
