@@ -185,9 +185,8 @@ if(exists('sccomp_res')){
         dplyr::pull(param$grouping) |>
         unique()
     
-    # Create clear title
-    #plot_title <- paste0(param$sampleGroup, " vs ", param$refGroup)
-    plot_title <- unique(sccomp$parameter[grep('(Intercept)',sccomp_res$parameter, invert = TRUE)])
+    # Create title
+    plot_title <- unique(sccomp_res$parameter[grep('(Intercept)',sccomp_res$parameter, invert = TRUE)])
     
     # Use in plot
     sccomp_res |> 
