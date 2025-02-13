@@ -77,7 +77,7 @@ cat(sprintf("We first plot a dimensionality plot of the data after subsetting th
 cat("\n\n")
 ```
 
-```{r dim plot, fig.width=9, fig.height=6+round(length(clusterNames)/10)}
+```{r dim plot, fig.width=14, fig.height=6+round(length(clusterNames)/10)}
 do_DimPlot(scData, split.by = param$grouping, group.by = param$CellIdentity, font.size = 10)
 ```
 
@@ -176,45 +176,58 @@ dittoSeq::dittoBarPlot(scData, group.by = param$replicateGrouping, var = param$C
 ### Cell Type Composition Analysis
 
 ```{r intervals analysis, results='asis', fig.width=9, fig.height=7}
-cat("\n\n#### Intervals\n")
-cat("The error bars represent 95% credible intervals. The dashed lines represent the minimal effect that the hypothesis test is based on. An effect is labelled as significant if it exceeds the minimal effect according to the 95% credible interval.\n\n")
-
-# Get both conditions
-all_conditions <- sccomp_res$count_data[[1]] |>
-  dplyr::pull(param$grouping) |>
-  unique()
-
-# Create clear title
-plot_title <- paste0(param$sampleGroup, " vs ", param$refGroup)
-
-# Use in plot
-sccomp_res |> 
-  plot_1D_intervals() +
-  ggtitle(plot_title) +
-  theme(
-    axis.text.y = element_text(size = 12), 
-    plot.title = element_text(size = 13)
-  )
+if(exists('sccomp_res')){
+    cat("\n\n#### Intervals\n")
+    cat("The error bars represent 95% credible intervals. The dashed lines represent the minimal effect that the hypothesis test is based on. An effect is labelled as significant if it exceeds the minimal effect according to the 95% credible interval.\n\n")
+    
+    # Get both conditions
+    all_conditions <- sccomp_res$count_data[[1]] |>
+        dplyr::pull(param$grouping) |>
+        unique()
+    
+    # Create clear title
+    #plot_title <- paste0(param$sampleGroup, " vs ", param$refGroup)
+    plot_title <- unique(sccomp$parameter[grep('(Intercept)',sccomp_res$parameter, invert = TRUE)])
+    
+    # Use in plot
+    sccomp_res |> 
+        plot_1D_intervals() +
+        ggtitle(plot_title) +
+        theme(
+            axis.text.y = element_text(size = 12), 
+            plot.title = element_text(size = 13)
+        )
+}
 ```
 
 ```{r composition analysis, results='asis', fig.width=10, fig.height=11, message=FALSE, warning=FALSE}
-cat("#### Differential Cell Type Composition\n")
-cat("\nWe used [sccomp](https://github.com/MangiolaLaboratory/sccomp) to analyze differences in cell type composition between conditions. The analysis takes into account the count nature of the data and models both changes in proportion and variability.\n\n")
+if(exists('sccomp_res')){
+    cat("#### Differential Cell Type Composition\n")
+    cat("\nWe used [sccomp](https://github.com/MangiolaLaboratory/sccomp) to analyze differences in cell type composition between conditions. The analysis takes into account the count nature of the data and models both changes in proportion and variability.\n\n")
+    
+    # Create interactive table of significant results
+    # First get the plot object
+    invisible(capture.output(
+        p <- sccomp_res |> 
+            sccomp_boxplot(
+                factor = param$grouping
+            ) + 
+            theme(
+                strip.text = element_text(size = 20, face = "bold"),
+                axis.title = element_text(size = 12),
+                axis.text = element_text(size = 12)
+            )
+    ))
+    print(p)
+}
+```
 
-# Create interactive table of significant results
-# First get the plot object
-invisible(capture.output(
-  p <- sccomp_res |> 
-    sccomp_boxplot(
-      factor = param$grouping
-    ) + 
-    theme(
-      strip.text = element_text(size = 20, face = "bold"),
-      axis.title = element_text(size = 12),
-      axis.text = element_text(size = 12)
-    )
-))
-print(p)
+```{r composition analysis table, results='asis', fig.width=10, fig.height=11, message=FALSE, warning=FALSE}
+if(exists('sccomp_res')){
+    df_sccomp <- data.frame(sccomp_res)[,1:11]
+    finalTable <- df_sccomp[grep('Intercept', df_sccomp$parameter,invert = TRUE),]
+    DT::datatable(finalTable, rownames = FALSE, options = list(pageLength = 10, scrollX = TRUE))
+}
 ```
 
 
