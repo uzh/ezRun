@@ -17,8 +17,10 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r, echo=FALSE, results="asis"}
 for (i in 1:length(pngs)){
-  cat("  \n###",  names(files)[i], " \n")
-  cat("![](", pngs[i],")")
-  cat("  \n")
+    if(file.exists(pngs[i])){
+        cat("  \n###",  names(files)[i], " \n")
+        cat("![](", pngs[i],")")
+        cat("  \n")
+    }
 }
 ```
