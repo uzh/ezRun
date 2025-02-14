@@ -1,0 +1,61 @@
+---
+title: "FILL ME"
+output: 
+  html_document:
+    self_contained: true
+    includes:
+     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+    code_folding: hide
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+# {.tabset}
+
+## Overview
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+
+```{r packages, message=FALSE}
+## generate all graphs as PDF
+## knitr::opts_chunk$set(dev = "cairo_pdf")
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, knitr.table.format = "html")
+# input for this report: sce
+library(SingleCellExperiment)
+library(kableExtra)
+library(pheatmap)
+library(tidyverse)
+library(scran)
+library(RColorBrewer)
+library(plotly)
+library(SingleR)
+library(scater)
+library(Seurat)
+library(ezRun)
+library(HDF5Array)
+library(BiocParallel)
+library(speckle)
+
+```
+
+
+```{r input}
+
+## load all input here
+
+```
+
+
+## My Fancy Analysis
+
+
+## SessionInfo
+
+```{r, echo=FALSE}
+ezSessionInfo()
+```
+
