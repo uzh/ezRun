@@ -330,8 +330,8 @@ if (ncol(x) <= 100) {
       groups <- paste(param$grouping, param$grouping2, sep = "--")
       sampleGroups <- sort(unique(groups[param$grouping == param$sampleGroup]))
       refGroups <- sort(unique(groups[param$grouping == param$refGroup]))
-      avgValues <- averageColumns(x[, use], groups[use], mean)
-      avgPresent <- averageColumns(x[, use], groups[use], function(x) {
+      avgValues <- averageAcrossColumns(x[, use], groups[use], mean)
+      avgPresent <- averageAcrossColumns(x[, use], groups[use], function(x) {
         mean(x) > 0.5
       })
       sampleValues <- avgValues[, sampleGroups, drop = FALSE]

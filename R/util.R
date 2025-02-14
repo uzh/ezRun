@@ -425,7 +425,7 @@ ezGeomean <- function(x, ...) {
 ##' m2 = averageColumns(m1,1)
 ##' m3 = averageColumns(m1,c(4,2,3,1))
 ##' m4 = averageColumns(m1,c(1,1,2,2))
-averageColumns <- function(x, by = NULL, func = function(x) {
+averageAcrossColumns <- function(x, by = NULL, func = function(x) {
                              mean(x, na.rm = TRUE)
                            }) {
   cols <- sort(unique(by))
@@ -467,7 +467,7 @@ ezColGroupSums <- function(x, group){
 ##' m1 = matrix(1:20,5)
 ##' averageRows(m1,c(1,1,2,2,3))
 # why by=labels here and before by=NULL? Neither seem to work if not defined by the user.
-averageRows <- function(data, by = labels, func = mean, ...) {
+averageAcrossRows <- function(data, by = labels, func = mean, ...) {
   by <- list(AveragingID = by)
   data <- aggregate(data, by = by, func, ...)
   rownames(data) <- data$AveragingID
@@ -499,33 +499,6 @@ makeMultiMapping <- function(xList) {
   data.frame(source = source, target = target, stringsAsFactors = FALSE)
 }
 
-# TODO(Rsge not supported anymore, still waiting for a reply of the authors to use their source code.)
-.ezSgelapply <- function(jobList, FUN, param, queue = "GT", cores = 4, ram = 10, scratch = 50, mailto = NULL,
-                         saveGlobal = TRUE, removeFiles = TRUE) {
-  # library(Rsge, warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  sge.options("sge.qsub.options" = paste0(
-    "-cwd -q ", queue,
-    " -pe smp ", cores,
-    ## " -l C=1",
-    " -l R=", round(ram / cores, digits = 2),
-    " -l S=", round(scratch / cores, digits = 2)
-  ))
-  sge.options("sge.save.global" = saveGlobal)
-  sge.options("sge.remove.files" = removeFiles)
-  ## TODO jobs must inspect NSLOTS in order to know how many threads to use!!
-
-  sgeFunc <- function(x, FUN = NULL, param = NULL) {
-    cwd <- getwd()
-    wd <- paste("/scratch/rjob", ezTime(), Sys.getpid(), sep = "_")
-    stopifnot(!file.exists(wd))
-    setwdNew(wd)
-    result <- FUN(x, param)
-    setwd(cwd)
-    unlink(wd, recursive = TRUE)
-    return(result)
-  }
-  sge.parLapply(jobList, sgeFunc, FUN, param, njobs = length(jobList))
-}
 
 ##' @title Parallel version of \code{lapply()}
 ##' @description This function is a modified version of \code{mclapply()} of the parallel package and allows a parallel usage of lapply.

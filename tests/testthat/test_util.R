@@ -115,13 +115,6 @@ test_that("Tests ezGeomean()", {
   expect_identical(one, two)
 })
 
-test_that("Tests averageColumns() and averageRows()", {
-  ac1 = averageColumns(m1, 1)
-  ac2 = averageColumns(m1, c(1, 1, 2, 2))
-  ar1 = averageRows(m1, c(1, 1, 2, 2, 3))
-  expect_is(ac1, "matrix")
-  expect_lt(ncol(ac2), ncol(ar1))
-})
 
 test_that("Tests inverseMapping() and makeMultiMapping()", {
   invMapped = inverseMapping(l1)

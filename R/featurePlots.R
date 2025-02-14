@@ -290,7 +290,7 @@ plotLocusAverageCoverageProfile = function(gRanges, bamFiles, grouping=NULL, gtf
   normCoverageList = lapply(coverageList, function(cl){
     lapply(cl, function(x){
       xNorm = ezScaleColumns(t(x), scalingFactors[rownames(x)])
-      averageColumns(xNorm, group[colnames(xNorm)])
+      averageAcrossColumns(xNorm, group[colnames(xNorm)])
     })
   })
   
