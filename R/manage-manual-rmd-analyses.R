@@ -4,11 +4,15 @@ ezSetupProjectInGitRepo <- function(project=NULL,
   stopifnot(!is.null(project))
   stopifnot(file.exists(gitRepo))
   setwdNew(file.path(gitRepo, project))
-  file.copy(system.file("templates/00-manage-project-template.R", package="ezRun"), paste("00-", project, "-custom-analyses.R"))
-  rstudioapi::navigateToFile(paste("00-", project, "-custom-analyses.R"))
+  projectMasterScript <- paste0("00-", project, "-custom-analyses.R")
+  if (!file.exists(projectMasterScript)){
+    file.copy(system.file("templates/00-manage-project-template.R", package="ezRun"), projectMasterScript)
+  }
+  rstudioapi::navigateToFile(projectMasterScript)
 }
 
 ezSetupAnalysis <- function(project=NULL, analysisName="custom-analysis",
+                            subDir=paste0(analysisDate, "_",analysisName),
                             parentAnalysis=NULL,
                             user=system("whoami", intern = TRUE),
                             analysisDate=format(Sys.time(), "%Y-%m-%d"),
@@ -21,12 +25,17 @@ ezSetupAnalysis <- function(project=NULL, analysisName="custom-analysis",
     dir.create(file.path(gitRepo, project))
   }
   rmdFile <- paste0(gitRepo, "/", project, "/", analysisDate, "_", analysisName, ".Rmd")
+  stopifnot(!file.exists(rmdFile))
   file.copy(templateFile, rmdFile)
-  analysisDir <- paste0("/srv/GT/analysis/", user, "/", project, "/", analysisDate, "_",
-                        analysisName)
+  analysisDir <- paste0("/srv/GT/analysis/", user, "/", project)
   setwdNew(analysisDir)
+  if (!is.null(subDir)){
+    setwdNew(subDir)
+  }
+  stopifnot(!file.exists(basename(rmdFile)))
   file.symlink(rmdFile, ".")
-  rstudioapi::navigateToFile(file.path(getwd(), basename(rmdFile)))
+  #rstudioapi::navigateToFile(basename(rmdFile)) ## that does not work, because rstudio will follow the link and open the original file
+  rstudioapi::filesPaneNavigate(normalizePath("."))
 }
 
 
@@ -38,7 +47,7 @@ ezPublishAnalysis <- function(){
   ## 
 }
 
-## TBD:
+## Nice to have:
 ## - storage duration for analyses
 ## - deletion of analyses
 
