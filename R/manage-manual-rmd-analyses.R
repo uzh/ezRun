@@ -29,7 +29,6 @@ ezSetupAnalysis <- function(project=NULL, analysisName="custom-analysis",
   rstudioapi::navigateToFile(file.path(getwd(), basename(rmdFile)))
 }
 
-file.symlink(normalizePath(rmdFile), "~/foo")
 
 ezPublishAnalysis <- function(){
   ## copy analysis to gstore
