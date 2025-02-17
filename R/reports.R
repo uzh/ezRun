@@ -399,8 +399,10 @@ makeResultFile <- function(param, se, useInOutput = TRUE,
 
   if ("xNorm" %in% names(assays(se))) {
     yy <- assays(se)$xNorm %>% as_tibble()
+    yyy <- tibble(rowMeans(log2(1+yy)))
+    colnames(yyy) <- 'log2 Mean'
     yy <- rename_with(yy, ~ str_c(.x, "[normalized count]", sep = " "))
-    y <- bind_cols(y, yy)
+    y <- bind_cols(y, yyy, yy)
   }
 
   yy <- getRpkm(se) %>% as_tibble()
@@ -419,7 +421,7 @@ makeResultFile <- function(param, se, useInOutput = TRUE,
   ## Interactive gene tables
   useInInteractiveTable <- c(
     "gene_name", "type", "description", "featWidth", "gc",
-    "isPresent", "log2 Ratio", "pValue", "fdr"
+    "isPresent", "log2 Ratio", "pValue", "fdr", "log2 Mean"
   )
   useInInteractiveTable <- intersect(useInInteractiveTable, colnames(y))
   tableLink <- str_replace(file, "\\.xlsx$", "-viewTopSignificantGenes.html")
