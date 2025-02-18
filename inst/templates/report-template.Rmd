@@ -18,14 +18,15 @@ editor_options:
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-
-```{r packages, message=FALSE}
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE, knitr.table.format = "html")
 ## generate all graphs as PDF
 ## knitr::opts_chunk$set(dev = "cairo_pdf")
 
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, knitr.table.format = "html")
-# input for this report: sce
-library(SingleCellExperiment)
+```
+
+
+```{r packages, message=FALSE}
 library(kableExtra)
 library(pheatmap)
 library(tidyverse)
