@@ -908,3 +908,9 @@ ezUpdateMissingParam <- function(list1, with_list) {
   return(filled)
 }
 
+
+ezLoadPackage <- function(packageName){
+    suppressPackageStartupMessages({
+        library(packageName, character.only = TRUE)
+    })
+}
