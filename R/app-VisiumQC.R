@@ -11,19 +11,16 @@ ezMethodVisiumQC <- function(input = NA, output = NA, param = NA,
     ezLoadPackage('S4Vectors')
     ezLoadPackage('Seurat')
     
-    dataset <- input$meta #ezRead.table(paste0(spaceRangerPath, 'dataset.tsv'))
+    setwdNew('VisiumQC')
+    dataset <- input$meta
     spaceRangerPath <- unique(dirname(dirname(input$getColumn("Report"))))
-    
-    # Get the input dataset info
-    inputDS <- EzDataset$new(file=file.path(param$dataRoot, spaceRangerPath,'input_dataset.tsv'), dataRoot=param$dataRoot)
-    
-    if(all(grepl('^H', inputDS$getColumn('Slide')))){
+    if(all(grepl('^H', input$getColumn('Slide')))){
         param$visiumType <- 'HD'
     } else {
         param$visiumType <- 'SD'
     }
     
-    ###CollectStats:
+    ###CollectStats
     for (j in 1:nrow(dataset)){
         sampleName <- rownames(dataset)[j]
         samplePath <- file.path(param$dataRoot,spaceRangerPath, sampleName)
@@ -48,7 +45,7 @@ ezMethodVisiumQC <- function(input = NA, output = NA, param = NA,
         myPlots <- list()
         for (j in 1:nrow(dataset)){
             sampleName <- rownames(dataset)[j]
-            samplePath <- file.path(spaceRangerPath, sampleName)
+            samplePath <- file.path(param$dataRoot, spaceRangerPath, sampleName)
             data_raw <- read10xRaw(file.path(samplePath, "raw_feature_bc_matrix"))
             if (file.exists(file.path(samplePath, "spatial", "tissue_positions.csv"))) {
                 tissueFile <- file.path(samplePath, "spatial", "tissue_positions.csv")
@@ -75,7 +72,7 @@ ezMethodVisiumQC <- function(input = NA, output = NA, param = NA,
         write_rds(myPlots, 'myPlots.rds')
         
         sampleName <- rownames(dataset)[1]
-        samplePath <- file.path(spaceRangerPath, sampleName)
+        samplePath <- file.path(param$dataRoot, spaceRangerPath, sampleName)
         img = Read10X_Image(file.path(samplePath, "spatial"), image.name = "tissue_hires_image.png")
         img@scale.factors$lowres <- img@scale.factors$hires
         scData <- Load10X_Spatial(samplePath, image = img)
@@ -83,8 +80,6 @@ ezMethodVisiumQC <- function(input = NA, output = NA, param = NA,
     }
     write_rds(param, 'param.rds')
     
-    
-    # Save some results in external files
     reportTitle <- 'VisiumQC - MultipleSample QC Metrics'
     makeRmdReport(rmdFile = "VisiumQC.Rmd", reportTitle = reportTitle)
   return("Success")
