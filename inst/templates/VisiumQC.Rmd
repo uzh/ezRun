@@ -1,0 +1,96 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+output: 
+  html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
+    includes:
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+```{r setup spatialQC, include=FALSE}
+# Global options
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load required libraries
+ezLoadPackage('DT')
+ezLoadPackage('ggplot2')
+ezLoadPackage('plotly')
+ezLoadPackage('Seurat')
+```
+
+```{r prepare data spatialQC, include=FALSE}
+data <- ezRead.table("metrics_summary.tsv", row.names = NULL)
+param <- readRDS('param.rds')
+if(param$visiumType == 'SD'){
+    myPlots <- readRDS("myPlots.rds")
+    scData <- readRDS("scData.rds")
+}
+```
+
+# {.tabset}
+
+## Overview Table
+
+```{r basic statistics table, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+datatable(
+  data,
+  options = list(pageLength = 20, autoWidth = TRUE), rownames = FALSE)
+```
+
+
+## Barplots per metric
+```{r basic barplot, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=min(6+(nrow(data)-10)*0.1, 20)}
+# Identify numeric columns
+numeric_cols <- names(data)[sapply(data, is.numeric)]
+
+for (col in numeric_cols) {
+  p <- ggplot(data, aes_string(x = "sampleName", y = col)) +
+    geom_bar(stat = "identity", fill = "steelblue") +
+    xlab('') +
+    ylab(col) +
+    theme_minimal() + 
+    ggtitle(col) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.1))
+  
+  print(p)
+}
+```
+
+## Images for Signals per Slide
+```{r spatial signal plot, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=8}
+if(param$visiumType=='SD'){
+    for (j in 1:length(myPlots)) {
+    sampleName <- names(myPlots)[j]
+    print(myPlots[[sampleName]][['Overview']])
+    print(myPlots[[sampleName]][['Tissue']])
+    print(myPlots[[sampleName]][['Signal']])
+}
+} else if(param$visiumType=='HD'){
+    cat('\n Not available for HD slides \n')
+}
+```
+
+## Determine Spot Size
+```{r spatial Dim plot for example sample, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=8}
+if(param$visiumType=='SD'){
+   imageName <- names(scData@images)
+    coord <- GetTissueCoordinates(object = scData@images[[imageName]])
+    myRatio <- (max(coord$x) - min(coord$x)) / (max(coord$y) - min(coord$y))
+    for (j in 1:length(param$sizeFactors)){
+        p <- SpatialFeaturePlot(scData, features = "nCount_Spatial", pt.size.factor =  param$sizeFactors[j]) 
+        p <- p + theme(legend.position = "right") + theme(aspect.ratio = myRatio) + ggtitle(paste("pt.size.factor = ", param$sizeFactors[j]))
+        print(p)
+    }
+} else if(param$visiumType=='HD'){
+    cat('\n Not available for HD slides \n')
+}
+```
+
+## SessionInfo
+```{r, echo=FALSE}
+ezSessionInfo()
+```
