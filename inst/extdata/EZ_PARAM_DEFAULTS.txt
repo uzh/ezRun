@@ -156,8 +156,6 @@ minConsensusScore	numeric	0.9
 minNanobodyLength	numeric	321	
 minFlycodeLength	numeric	33	
 FCminFreq	numeric	4	
-markDuplicates	logical	TRUE
-dupDistance	numeric	100	The maximum offset between two duplicate clusters in order to consider them optical duplicates. 
 writeIgvLink	logical	TRUE	
 enrichrDatabase	charVector		enrichR databases to search
 #scRNA seq marker filtering
@@ -165,4 +163,5 @@ min.diff.pct	numeric	0	minimal difference
 pvalue_allMarkers	numeric	0.05	adj pVal cutoff
 min.pct	numeric	0.1	minimal fraction of expressed cells
 logfc.threshold	numeric	0.25	minimal log2 ratio
-
+markDuplicates	logical	TRUE	should duplicates be marked
+dupDistance	numeric	100	The maximum offset between two duplicate clusters in order to consider them optical duplicates. 
