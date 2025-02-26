@@ -103,14 +103,16 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
 }
 
 ### Make or remove duplicated in bam file
-dupBam <- function(inBam, outBam, operation = c("mark", "remove"), ram = 20) {
+dupBam <- function(inBam, outBam, operation = c("mark", "remove"), ram = 20, dupDistance = 100) {
   operation <- match.arg(operation)
   javaCall = paste0("/usr/local/ngseq/packages/Dev/jdk/21/bin/java", " -Djava.io.tmpdir=. -Xmx", ram, "g")
+  metricsFile <- sub('.bam$','_metrics.txt', outBam)
   cmd <- paste(javaCall, " -jar ", Sys.getenv("Picard_jar"), 
                "MarkDuplicates",
                 paste0("I=", inBam),
                 paste0("O=", outBam),
-                paste0("M=", tempfile()),
+                paste0("M=", metricsFile),
+                paste0("OPTICAL_DUPLICATE_PIXEL_DISTANCE=", dupDistance),
                 paste0(
                 "REMOVE_DUPLICATES=",
                 if_else(operation == "mark", "false", "true")
