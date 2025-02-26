@@ -19,7 +19,7 @@ ezMethodVisiumQC <- function(input = NA, output = NA, param = NA,
     } else {
         param$visiumType <- 'SD'
     }
-    
+    param$sizeFactors <- as.numeric(unlist(strsplit(param$sizeFactors, ',')))
     ###CollectStats
     for (j in 1:nrow(dataset)){
         sampleName <- rownames(dataset)[j]
@@ -97,7 +97,7 @@ EzAppVisiumQC <-
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodVisiumQC
         name <<- "EzAppVisiumQC"
-        appDefaults <<- rbind(sizeFactors = ezFrame(Type = "numeric", DefaultValue = c(1, 3, 5, 10, 20, 30), Description = "size factors to try for spatialFeaturePlots"))
+        appDefaults <<- rbind(sizeFactors = ezFrame(Type = "character", DefaultValue = '1, 3, 5, 10, 20, 30', Description = "size factors to try for spatialFeaturePlots"))
       }
     )
   )
