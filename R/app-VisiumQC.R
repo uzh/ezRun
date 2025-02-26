@@ -82,6 +82,10 @@ ezMethodVisiumQC <- function(input = NA, output = NA, param = NA,
     
     reportTitle <- 'VisiumQC - MultipleSample QC Metrics'
     makeRmdReport(rmdFile = "VisiumQC.Rmd", reportTitle = reportTitle)
+    #CleanUp
+    if(param$visiumType == 'SD'){
+        ezSystem('rm scData.rds myPlots.rds')
+    }
   return("Success")
 }
 
