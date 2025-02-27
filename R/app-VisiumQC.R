@@ -24,7 +24,8 @@ ezMethodVisiumQC <- function(input = NA, output = NA, param = NA,
     for (j in 1:nrow(dataset)){
         sampleName <- rownames(dataset)[j]
         samplePath <- file.path(param$dataRoot,spaceRangerPath, sampleName)
-        sampleStats <- data.frame(sampleName = sampleName, ezRead.table(file.path(samplePath, 'metrics_summary.csv'), sep = ','), check.names = FALSE)
+        umiCounts <- sum(ezRead.table(file.path(samplePath, paste0(sampleName,'-counts.txt')))$matchCount)
+        sampleStats <- data.frame(sampleName = sampleName, umiCounts=umiCounts, ezRead.table(file.path(samplePath, 'metrics_summary.csv'), sep = ','), check.names = FALSE)
         if (j == 1){
             stats <- sampleStats
         } else {

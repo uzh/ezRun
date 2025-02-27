@@ -34,12 +34,25 @@ if(param$visiumType == 'SD'){
 
 # {.tabset}
 
-## Overview Table
+## Overview
 
-```{r basic statistics table, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r overview, echo=FALSE, message=FALSE, warning=FALSE, fig.width=min(10+(nrow(data)-10)*0.2,20), fig.height=7, results='asis'}
 datatable(
   data,
   options = list(pageLength = 20, autoWidth = TRUE), rownames = FALSE)
+mappingStats <- data[,c('Number_of_Reads','umiCounts')]
+if(param$visiumType == 'SD'){
+    mappingStats[['Reads_Under_Tissue']] <- data$Fraction_Reads_in_Spots_Under_Tissue * data$Number_of_Reads - mappingStats[['umiCounts']]
+} else {
+    mappingStats[['Reads_Under_Tissue']] <- data$Fraction_Reads_in_Squares_Under_Tissue * data$Number_of_Reads - mappingStats[['umiCounts']]
+}
+mappingStats[['otherReads']] <- mappingStats[['Number_of_Reads']] - mappingStats[['Reads_Under_Tissue']] - mappingStats[['umiCounts']]
+rownames(mappingStats) <- data$sampleName
+par(mar=c(10.1,4.1,4.1,2.1))
+barplot(
+    t(mappingStats[, 2:4] / 10^6),beside = FALSE,las = 2,cex.names = 1, main = "Reads per sample", ylab = "Reads in M", xlab = NULL,
+    legend.text = TRUE, args.legend = list(x = "topright", inset = c(-0.1, -0.1),bty   = "n"))
+data$umiCounts = NULL
 ```
 
 
