@@ -78,8 +78,38 @@ cat("\n\n")
 ```
 
 ```{r dim plot, fig.width=14, fig.height=6+round(length(clusterNames)/10)}
-do_DimPlot(scData, split.by = param$grouping, group.by = param$CellIdentity, font.size = 10)
-```
+# More robust approach to plotting
+tryCatch({
+  # Try the original method first
+  do_DimPlot(scData, split.by = param$grouping, group.by = param$CellIdentity, font.size = 10)
+}, error = function(e) {
+  # On error, try an alternative approach
+  message("Note: DimPlot with split.by failed, using alternative visualization")
+  
+  # Plot all cells without splitting
+  p1 <- DimPlot(scData, group.by = param$CellIdentity, label = TRUE, 
+                repel = TRUE, label.size = 10) + 
+        ggtitle("All cells by cluster")
+  
+  # Plot all cells colored by condition
+  p2 <- DimPlot(scData, group.by = param$grouping, label = FALSE) + 
+        ggtitle("All cells by condition")
+  
+  # Combine plots
+  print(p1 + p2)
+  
+  # Create separate plots if needed
+  for (group in unique(scData@meta.data[[param$grouping]])) {
+    subset_cells <- WhichCells(scData, expression = scData@meta.data[[param$grouping]] == group)
+    if (length(subset_cells) > 0) {
+      subset_data <- subset(scData, cells = subset_cells)
+      p <- DimPlot(subset_data, group.by = param$CellIdentity, label = TRUE,
+                   label.size = 10, repel = TRUE) + 
+          ggtitle(paste("Condition:", group))
+      print(p)
+    }
+  }
+})
 
 ```{r consMarkers table, eval=conservedMarkersPresent, results='asis'}
 cat("### Conserved Markers")
