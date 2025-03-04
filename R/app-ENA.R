@@ -1,6 +1,6 @@
 ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
-    #param[['projectID']] = 'PRJNA163241'
     require(XML)
+    containerId <- sub('p', '', strsplit(output$getColumn('ENA Result'),'/')[[1]][1])
     cmd = paste0("curl -o fastqLinks.txt -X GET ","\'https://www.ebi.ac.uk/ena/portal/api/filereport?accession=",param[['projectID']],"&result=read_run&fields=study_accession,sample_accession,experiment_accession,run_accession,tax_id,scientific_name,fastq_ftp,fastq_md5&format=tsv&download=true\'")
     ezSystem(cmd)
     fastqInfo = ezRead.table('fastqLinks.txt', row.names = NULL)
@@ -187,6 +187,16 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     dataset[['Read2 [File]']] <- NULL
     ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
     }
+    
+    ##Register dataset/resources in BF as short term storage
+    datasetName = paste0('ENA_App_', output$getColumn('projectID'))
+    myCmd <- paste('register_sushi_dataset_into_bfabric', containerId, 'dataset.tsv', datasetName, '-b ~/.bfabricpy.yml --skip-file-check -a 372')
+    tryCatch({
+    ezSystem(myCmd)}, warning=function(w) {
+        message('please in B-Fabric if registration was succesful')
+        print(w)
+        return(NA)
+    })
 }
 
 createDataset <- function(fastqInfo, myPath, paired = FALSE){
