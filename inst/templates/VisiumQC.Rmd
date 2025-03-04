@@ -62,7 +62,7 @@ data$umiCounts = NULL
 numeric_cols <- names(data)[sapply(data, is.numeric)]
 
 for (col in numeric_cols) {
-  p <- ggplot(data, aes_string(x = "sampleName", y = col)) +
+    p <- ggplot(data, aes(x = sampleName, y = !!sym(col))) + 
     geom_bar(stat = "identity", fill = "steelblue") +
     xlab('') +
     ylab(col) +
