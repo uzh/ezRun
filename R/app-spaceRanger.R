@@ -17,10 +17,10 @@ EzAppSpaceRanger <-
                   appDefaults <<- rbind(controlSeqs=ezFrame(Type="charVector",
                                                             DefaultValue="",
                                                             Description="control sequences to add"),
-                                        keepBam = ezFrame(
+                                        keepAlignment = ezFrame(
                                             Type = "logical",
                                             DefaultValue = FALSE,
-                                            Description = "keep bam file produced by CellRanger"
+                                            Description = "keep bam/cram file produced by SpaceRanger"
                                         ),
                                         darkImage = ezFrame(
                                             Type = "logical",
@@ -163,10 +163,19 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   }
   
   # Optional removal of the bam files
-  if(!param$keepBam){
+  if(!param$keepAlignment){
       print(ezSystem('find . -name "*.bam" -type f'))
       ezSystem('find . -name "*.bam" -type f -delete')
       ezSystem('find . -name "*.bam.bai" -type f -delete')
+  } else {
+      if(param$secondRef == ''){
+        setwd(finalSampleName)
+         refDir <- param$ezRef["refFastaFile"]
+        bamFile <- 'possorted_genome_bam.bam'
+        out <- tryCatch(ezSystem(paste('samtools view', '-T', refDir, '-@', param$cores, '-o', sub('.bam$', '.cram', bamFile), '-C', bamFile)), error = function(e) NULL)
+        system('rm possorted_genome_bam.bam')
+        setwd('..')
+      }
   }
   
   cmDir <- file.path(finalSampleName, 'filtered_feature_bc_matrix')

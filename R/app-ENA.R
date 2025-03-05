@@ -191,12 +191,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     ##Register dataset/resources in BF as short term storage
     datasetName = paste0('ENA_App_', output$getColumn('projectID'))
     myCmd <- paste('register_sushi_dataset_into_bfabric', containerId, 'dataset.tsv', datasetName, '-b ~/.bfabricpy.yml --skip-file-check -a 372')
-    tryCatch({
-    ezSystem(myCmd)}, warning=function(w) {
-        message('please in B-Fabric if registration was succesful')
-        print(w)
-        return(NA)
-    })
+    out <- tryCatch(ezSystem(myCmd), error = function(e) NULL)
 }
 
 createDataset <- function(fastqInfo, myPath, paired = FALSE){
