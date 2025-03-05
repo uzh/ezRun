@@ -7,6 +7,7 @@
 ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     setwdNew(param[['Name']])
     project = dirname(param[['resultDir']])
+    containerId <- sub('p','', project)
     matchCol = param[['matchingColumn']]
     
     dataset1 = input$meta
@@ -16,7 +17,7 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     
     inputDir2 = file.path(param[['dataRoot']], project, param[['DataSetName2']])
     if(!file.exists(inputDir2)){
-        allDirs <- list.dirs('/srv/gstore/projects/p33998', recursive = FALSE)
+        allDirs <- list.dirs(file.path('/srv/gstore/projects', project), recursive = FALSE)
         runName <- sub('.*_', '', param[['DataSetName2']])
         inputDir2 = allDirs[grep(runName, allDirs)][1]
     }
@@ -94,6 +95,7 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
         if(length(unique(dataset[['Order Id [B-Fabric]']])) > 1){
             colsToRemove <- c(colsToRemove, 'Order Id [B-Fabric]', 'Tube [Characteristic]', 'EnrichmentMethod')
         }
+        containerId <- unique(dataset[['Order Id [B-Fabric]']])
     }
     
     if('Species' %in% colnames(dataset)){
@@ -133,6 +135,12 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
     ezWrite.table(uniqueDataset, 'dataset.tsv', row.names = FALSE)
     ##compute md5 sums
     ezSystem('md5sum *.gz > md5.txt')
+    
+    ##Register dataset/resources in BF as short term storage
+    datasetName = paste0('MergeRunData_', containerId)
+    myCmd <- paste('register_sushi_dataset_into_bfabric', containerId, 'dataset.tsv', datasetName, '-b ~/.bfabricpy.yml --skip-file-check -a 372')
+    out <- tryCatch(ezSystem(myCmd), error = function(e) NULL)
+    
     return('success')
 }
 
