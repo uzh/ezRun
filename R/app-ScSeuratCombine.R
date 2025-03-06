@@ -100,14 +100,15 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   message("Attempting to load Seurat data...")
   param$rdsFile <- FALSE
   filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Cluster Report"), 'scData.qs2')
+  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", input$getColumn("SC Cluster Report"), 'scData.qs2')
   if(!file.exists(filePath[1])){
       filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Cluster Report"), 'scData.rds')
-      param$rdsFile <- TRUE
+      if(file.exists(filePath[1])){
+        param$rdsFile <- TRUE
+      } else {
+          filePath <- filePath_course
+        }
   }
-  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", input$getColumn("SC Cluster Report"), 'scData.qs2')
-  
-  if(!file.exists(filePath[1])) 
-    filePath <- filePath_course
   names(filePath) <- input$getNames()
   
   if (length(filePath) < 2) {
