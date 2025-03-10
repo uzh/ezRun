@@ -105,7 +105,7 @@ tryCatch({
                 split.by = param$grouping,
                 label = TRUE, 
                 repel = TRUE, 
-                label.size = 10) + 
+                label.size = 4) + 
         ggtitle(paste("Cells colored by", param$CellIdentity, 
                       "and split by", param$grouping))
   print(p1)
