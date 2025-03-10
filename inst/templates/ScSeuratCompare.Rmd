@@ -219,11 +219,15 @@ cat("\n")
 cat("The barplots show the proportion of cells from each sample in each cluster. The barplots are split by the Seurat metadata column '", param$CellIdentity, "'.")
 cat("\n\n")
 
+# This plot should always work as param$grouping is required
 dittoSeq::dittoBarPlot(scData, group.by = param$grouping, var = param$CellIdentity)
-dittoSeq::dittoBarPlot(scData, group.by = param$replicateGrouping, var = param$CellIdentity)
 
+# Only run the second plot if replicateGrouping exists AND is not an empty string
+if(!is.null(param$replicateGrouping) && param$replicateGrouping != "") {
+  cat("\n\nAdditional barplot showing proportions by replicate groups:\n\n")
+  dittoSeq::dittoBarPlot(scData, group.by = param$replicateGrouping, var = param$CellIdentity)
+}
 ```
-
 
 ### Cell Type Composition Analysis
 
