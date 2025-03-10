@@ -134,11 +134,32 @@ cat("### Conserved Markers - Plots\n")
 cat("\n")
 cat("Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 conserved markers in each cluster (with highest average fold change across the two groups). Be aware that some genes may be in the top markers for different clusters.\n")
 cat("\n")
-DoHeatmap(scData, features=top5$gene)
-DotPlot(scData, features=unique(top5$gene)) + 
-  coord_flip() + 
-  theme(axis.text.x = element_text(angle = 45, hjust=1))
-```
+
+# Use simple tryCatch to handle potential errors in DoHeatmap
+tryCatch({
+  DoHeatmap(scData, features=top5$gene)
+}, error = function(e) {
+  if (grepl("No requested features found in the scale.data slot", e$message)) {
+    message("Note: Could not generate heatmap because the requested features were not found in the scale.data slot.")
+  } else {
+    # Re-throw any other errors
+    stop(e)
+  }
+})
+
+# Use simple tryCatch for the DotPlot as well
+tryCatch({
+  DotPlot(scData, features=unique(top5$gene)) + 
+    coord_flip() + 
+    theme(axis.text.x = element_text(angle = 45, hjust=1))
+}, error = function(e) {
+  if (grepl("No requested features found", e$message)) {
+    message("Note: Could not generate dotplot because the requested features were not found in the data.")
+  } else {
+    # Re-throw any other errors
+    stop(e)
+  }
+})
 
 ```{r diffGenes table, eval=diffGenesPresent, results='asis'}
 cat("### Differential Expression")
