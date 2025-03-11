@@ -85,7 +85,12 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
       if(!param$darkImage){
       cmd <- paste(cmd, paste0("--image=", input$getFullPaths("Image")))
       } else {
-          cmd <- paste(cmd, paste0("--darkimage=", input$getFullPaths("Image")))
+          if(file.exists(input$meta['Image']$Image)){
+            cmd <- paste(cmd, paste0("--darkimage=", input$getFullPaths("Image")))
+          } else {
+              images <- paste(file.path(param$dataRoot,unlist(strsplit(input$meta['Image']$Image, ',')[[1]])),collapse=',')
+              cmd <- paste(cmd, paste0("--darkimage=", images))
+          }
     }
   }
   
