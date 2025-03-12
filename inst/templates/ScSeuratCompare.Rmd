@@ -208,7 +208,7 @@ for (clusterName in clusterNames) {
     genesToPlot <- c(upGenes, downGenes)
     print(DoHeatmap(subset(scd, downsample = 2000), genesToPlot, slot="scale.data") + ggtitle(paste0("Cell type: ", clusterName)))
   }
-  p <- do_VolcanoPlot(scData, dt, plot.title = clusterName, add_gene_tags = TRUE, order_tags_by = "pvalue")
+  p <- do_VolcanoPlot(scData, dt, plot.title = clusterName, FC_cutoff = 0.5, add_gene_tags = TRUE, order_tags_by = "pvalue")
   print(p)
 }
 ```
