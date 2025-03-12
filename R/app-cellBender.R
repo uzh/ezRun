@@ -25,6 +25,8 @@ EzAppCellBender <-
   )
 
 ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
+  require(DropletUtils)
+  
   sampleName = input$getNames()
   setwdNew(sampleName)
   
@@ -51,7 +53,21 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
   
   inputFile <- paste0(cmDir, '.h5')
   if(!file.exists(inputFile)) {
-    stop('RawCountMatrix missing! Unsupported InputFormat.')
+    warning('RawCountMatrix missing! Creating it instead')
+
+    sce <- read10xCounts(cmDir, col.names=TRUE)
+    
+    # Save as h5 file using write10xCounts
+    message("Saving to h5 format...")
+    inputFile <- paste0(sampleName, '.h5')
+    write10xCounts(inputFile,
+                   counts(sce),
+                   type = "HDF5",
+                   genome = param$ezRef@refFeatureFile,
+                   version = "3",
+                   chemistry = input$getColumn("SCDataOrigin"))
+    
+    message("Created h5 file: ", inputFile)
   }
   
   cmd <- paste("cellbender remove-background",
@@ -76,5 +92,9 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
   system(cmd)
   ##Clean Up:
   system('rm ckpt.tar.gz cellbender_posterior.h5 cellbender.h5 cellbender_filtered.h5')
+  if (paste0(cmDir, '.h5') != inputFile) {
+    system(paste("rm", inputFile))
+  }
+  
   return("Success")
 }
