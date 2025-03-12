@@ -156,14 +156,20 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   }
 
   # for GEX libraries
-  if(!param$keepBam && param$TenXLibrary == "GEX"){
+  if(!param$keepAlignment && param$TenXLibrary == "GEX"){
       bamFile <- file.path(sampleName, "possorted_genome_bam.bam")
       if(file.exists(bamFile)){
         ezSystem(paste('rm', bamFile))
         ezSystem(paste('rm', paste0(bamFile,'.bai')))
       }
+  } else if(param$keepAlignment && param$TenXLibrary == "GEX"){
+      setwd(sampleName)
+      bamFile <- "possorted_genome_bam.bam"
+      refDir <- param$ezRef["refFastaFile"]
+      out <- tryCatch(ezSystem(paste('samtools view', '-T', refDir, '-@', param$cores, '-o', sub('.bam$', '.cram', bamFile), '-C', bamFile)), error = function(e) NULL)
+      system('rm possorted_genome_bam.bam')
+      setwd('..')
   }
-  
   return("Success")
 }
 
@@ -456,10 +462,10 @@ EzAppCellRanger <-
                         DefaultValue = FALSE,
                         Description = "run velocyto and generate loom file"
                     ),
-                    keepBam = ezFrame(
+                    keepAlignment = ezFrame(
                         Type = "logical",
                         DefaultValue = FALSE,
-                        Description = "keep bam file produced by CellRanger"
+                        Description = "keep cram/bam file produced by CellRanger"
                     )
                   )
                 }
