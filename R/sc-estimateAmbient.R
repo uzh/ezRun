@@ -17,7 +17,7 @@ autoEstContTfidfMin <- function(sc, tfidfMin){
     return(scOut)
 }
 
-addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, param=NULL){
+addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, param=NULL) {
   library(celda)
   library(SoupX)
   
@@ -33,7 +33,12 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, param=NULL){
   if (!is.null(rawDir) && file.exists(rawDir)){
     if(param$cellbender){  
         tod <- checkAndCleanAntibody(Seurat::Read10X_h5(file.path(dirname(rawDir),'cellbender_filtered_seurat.h5') , use.names = FALSE))
-        featInfo <- ezRead.table(paste0(param$cellrangerDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
+        if (dirname(param$cellrangerCountFiltDir) != dirname(param$cellrangerCountRawDir)) {
+          countMatrixToUse <- param$cellrangerCountFiltDir
+        } else {
+          countMatrixToUse <- param$cellrangerCountRawDir
+        }
+        featInfo <- ezRead.table(paste0(countMatrixToUse, "/features.tsv.gz"), header = FALSE, row.names = NULL)
     } else {
         tod <- checkAndCleanAntibody(Seurat::Read10X(rawDir, gene.column = 1))
         featInfo <- ezRead.table(paste0(rawDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)

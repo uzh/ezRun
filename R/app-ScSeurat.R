@@ -196,21 +196,13 @@ if(!param$cellbender){
     # Get the input dataset info
     inputDS <- EzDataset$new(file=file.path(dirname(dirname(cmDir)),'input_dataset.tsv'), dataRoot=param$dataRoot)
     # Check if this is a multi or single run by looking at the path structure
-    countMatrix <- inputDS$getFullPaths("CountMatrix")[input$getNames()]
-    isMulti <- FALSE
-    isMulti <- grepl("per_sample_outs", countMatrix)
+    countFiltMatrix <- inputDS$getFullPaths("CountMatrix")[input$getNames()]
+    countRawMatrix <- inputDS$getFullPaths("UnfilteredCountMatrix")[input$getNames()]
     
-    if(isMulti) {
-        # For CellRanger multi, use the full path
-        cellrangerDir <- countMatrix
-    } else {
-        # For CellRanger single, use original logic
-        cellrangerDir <- inputDS$getFullPaths("CountMatrix")[input$getNames()]
-    }
-    
-    param[['cellrangerDir']] <- cellrangerDir
-    featInfo <- ezRead.table(file.path(cellrangerDir, "features.tsv.gz"), 
-                            header = FALSE, row.names = NULL)
+    param[['cellrangerCountFiltDir']] <- countFiltMatrix
+    param[['cellrangerCountRawDir']] <- countRawMatrix
+    featInfo <- ezRead.table(file.path(countFiltMatrix, "features.tsv.gz"), 
+                             header = FALSE, row.names = NULL)
 }
   featInfo <- featInfo[,1:3]  # in cases where additional column exist, e.g. CellRangerARC output
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
