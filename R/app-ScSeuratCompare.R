@@ -137,6 +137,8 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
     if (param$CellIdentity == "ident") {
       scData_agg$ident <- scData_agg$orig.ident
     }
+    #Fix for strange bug in Seurat: it replaces '_' by '-' in the metadata columns
+    scData_agg[[]][param$grouping] <- gsub("-", "_", scData_agg[[param$grouping]][,1])
     Idents(scData_agg) <- scData_agg@meta.data[[param$CellIdentity]]
     consMarkers <- conservedMarkers(scData_agg, grouping.var = param$grouping, 
                                     pseudoBulkMode = pseudoBulkMode)
