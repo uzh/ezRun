@@ -7,30 +7,30 @@
 
 
 ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
-  sampledataset = getSampleSheet(input, param)
+  sampleDataset = getSampleSheet(input, param)
   refbuild = param$refBuild
-  
+  outFolder = paste0(param$name, '_results')
   cmd = paste(
     "nextflow run nf-core/atacseq",
      ## i/o
-    "--input", sampledataset,
-    "--outdir o35568_nfatcaseq_results",
+    "--input", sampleDataset,
+    "--outdir", outFolder,
     ## genome files
     "--fasta", param$ezRef@refFastaFile, 
     "--gtf", param$ezRef@refFeatureFile,
     "--gene_bed", str_replace(param$ezRef@refAnnotationFile,
-                              basename(param$ezRef@refAnnotationFile), # str_extract(param$ezRef@refAnnotationFile, "[^/]+$"), 
+                              basename(param$ezRef@refAnnotationFile),
                               'genes.bed'),
     ## parameters
     "--read_length", param[['readLength']],
-    if (param[['broadPeak']])  "" else "--narrow_peak",
-    if (param[['rlogTransf']]) "--deseq2_vst false"  else "",
+    if (param[['peakStyle']] == 'broad')  "" else "--narrow_peak",
+    if (param[['varStabilizationMethod']] != 'vst') "--deseq2_vst false"  else "",
     ## configuration
     "-bg", ## run nfcore in background
-    "-work-dir o35568_nfatcaseq_work",
+    "-work-dir nfatacseq_work",
     "-profile apptainer",
     "-r 2.1.2", # specify the nf-core/atacseq revision
-    "-c ~/nf.config", ## for testing
+    #"-c ~/nf.config", ## for testing
     "-resume"
   )
   
@@ -51,17 +51,17 @@ EzAppNfCoreAtacSeq <- setRefClass(
       ## minimum nf-core parameters
       appDefaults <<- rbind(
         readLength = ezFrame(Type="integer", DefaultValue="150", Description="Read length"),
-        broadPeak  = ezFrame(Type="logical", DefaultValue="TRUE", Description="Run MACS2 in broadPeak mode, otherwise in narrowPeak mode"),
-        rlogTransf = ezFrame(Type="logical", DefaultValue="FALSE", Description="Use rlog transformation instead of vst with DESeq2")
+        peakStyle  = ezFrame(Type="character", DefaultValue="broad", Description="Run MACS2 in broadPeak mode, otherwise in narrowPeak mode"),
+        varStabilizationMethod = ezFrame(Type="character", DefaultValue="vst", Description="Use rlog transformation or vst (DESeq2)")
       )
     }
   )
 )
 
 getSampleSheet <- function(input, param){
-  oDir <- param[['resultDir']]
-  if(!dir.exists(oDir)) 
-    dir.create(path = oDir)
+  oDir <- '.' #param[['resultDir']]
+  #if(!dir.exists(oDir)) 
+  #  dir.create(path = oDir)
   
   csvPath <- file.path(oDir, 'dataset.csv')
   
