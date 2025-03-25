@@ -26,12 +26,11 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     if (param[['peakStyle']] == 'broad')  "" else "--narrow_peak",
     if (param[['varStabilizationMethod']] != 'vst') "--deseq2_vst false"  else "",
     ## configuration
-    "-bg", ## run nfcore in background
     "-work-dir nfatacseq_work",
     "-profile apptainer",
     "-r 2.1.2", # specify the nf-core/atacseq revision
     #"-c ~/nf.config", ## for testing
-    "-resume"
+   # "-resume"
   )
   
   ezSystem(cmd)
