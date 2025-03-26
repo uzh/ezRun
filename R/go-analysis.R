@@ -74,7 +74,7 @@ compileEnrichmentInput = function(param, se){
   require(SummarizedExperiment)
   seqAnno = data.frame(rowData(se), row.names=rownames(se),
                        check.names = FALSE, stringsAsFactors=FALSE)
-  logSignal = log2(shiftZeros(assays(se)$xNorm, param$minSignal))
+  logSignal = log2(assays(se)$xNorm + param$minSignal)
   groupMeans = cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, 
                                          drop=FALSE]),
                      rowMeans(logSignal[ , param$grouping == param$refGroup, 

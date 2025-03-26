@@ -68,10 +68,9 @@ if (ncol(rawData) < 2){
 
 
 ```{r prepare signal, include=FALSE}
-assays(rawData)$signal <- shiftZeros(ezNorm(assays(rawData)$counts,
-                                            presentFlag=assays(rawData)$presentFlag,
-                                            method=param$normMethod),
-                                     param$minSignal)
+assays(rawData)$signal <- ezNorm(assays(rawData)$counts,
+                                 presentFlag=assays(rawData)$presentFlag,
+                                 method=param$normMethod) + param$minSignal
 signalRange <- range(assays(rawData)$signal, na.rm=TRUE)
 
 signalCond <- rowsum(t(log2(assays(rawData)$signal)), group=colData(rawData)$conds)
