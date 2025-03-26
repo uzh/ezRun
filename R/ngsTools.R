@@ -95,7 +95,8 @@ isValidCigar = function(x){
 ##' @return Returns the modified count values.
 ##' @examples 
 ##' shiftZeros(1:10, 5)
-shiftZeros = function(counts, minSignal){
+shiftZeros = function(counts, minSignal, seed=42){
+  set.seed(seed)
   isLow = counts < minSignal
   isLow[is.na(isLow)] = TRUE
   counts[isLow] = runif(sum(isLow), min=0.25 * minSignal, max=0.75 * minSignal)
