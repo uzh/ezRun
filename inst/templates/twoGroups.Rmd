@@ -37,6 +37,8 @@ library(tidyverse)
 library(readxl)
 library(BiocParallel)
 library(DOSE)
+library(clusterProfiler)
+
 
 BPPARAM <- BiocParallel::MulticoreParam(workers = param$cores)
 register(BPPARAM)
@@ -353,7 +355,7 @@ if (ncol(x) <= 100) {
 }
 ```
 
-### Clustering of significant features
+## Clustering of significant features
 ```{r cluster setup, echo=FALSE, eval=!debug}
 use <- rowData(se)$pValue < param$pValueHighlightThresh &
   abs(rowData(se)$log2Ratio) > param$log2RatioHighlightThresh & rowData(se)$usedInTest
@@ -631,7 +633,7 @@ if (isTRUE(param$runGO)) {
             columns = colnames(.$x$data), `font-size` = "12px") %>%
           DT::formatSignif(c("pvalue", "p.adjust"), digits = 3)
 
-        erp[["barplot"]] <- barplot(
+        erp[["barplot"]] <- enrichplot:::barplot.enrichResult(
           er, showCategory = 20, title = paste(onto, sig))
         erp[["barplot"]] <- erp[["barplot"]] +
           scale_y_discrete(labels = rev(er@result$Label[match(erp$barplot$plot_env$df$ID, er@result$ID)])) + 
