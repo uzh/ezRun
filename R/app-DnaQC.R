@@ -6,6 +6,9 @@
 # www.fgcz.ch
 
 ezMethodDnaQC <- function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+if(nrow(input$meta) < 2){
+    stop("Please provide at least two samples for DnaQC otherwise use the DnaBamStatsApp!")
+  }
   setwdNew(basename(output$getColumn("Report")))
   param$projectId <- sub("\\/.*", "", input$getColumn("BAM")[1]) ## project id is needed for the IGV link
   result <- computeDnaBamStats(input, htmlFile, param)
@@ -88,6 +91,7 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList=NULL){
   }
   #run Qualimap Multisample
   ezWrite.table(data.frame(SampleName = samples, Folder = samples), 'sampleKey.txt', row.names = FALSE, col.names = FALSE)
+  
   cmd = paste('unset DISPLAY; qualimap multi-bamqc -d sampleKey.txt -outdir qualimap_MultiSample')
   ezSystem(cmd)
 
