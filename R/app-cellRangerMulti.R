@@ -49,6 +49,13 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   if(!param$keepBam){
     futile.logger::flog.info(ezSystem('find . -name "*_alignments.bam*" -type f'))
     ezSystem('find . -name "*_alignments.bam*" -type f -delete')
+  } else if(ezIsSpecified(param$secondRef) && param$secondRef!=''){
+      bamFiles <- ezSystem('find . -name "*_alignments.bam" -type f', intern = TRUE)
+      refDir <- param$ezRef["refFastaFile"]
+      for (bamFile in bamFiles){
+          out <- tryCatch(ezSystem(paste('samtools view', '-T', refDir, '-@', param$cores, '-o', sub('.bam$', '.cram', bamFile), '-C', bamFile)), error = function(e) NULL)
+          ezSystem(paste('rm', bamFile))
+      }
   }
   
   #9. Generate expanded dataset.tsv:
