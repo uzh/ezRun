@@ -16,21 +16,23 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     "--input", sampleDataset,
     "--outdir", outFolder,
     ## genome files
-    "--fasta", param$ezRef@refFastaFile, 
+    "--fasta", param$ezRef@refFastaFile,
     "--gtf", param$ezRef@refFeatureFile,
     "--gene_bed", str_replace(param$ezRef@refAnnotationFile,
                               basename(param$ezRef@refAnnotationFile),
                               'genes.bed'),
     ## parameters
-    "--read_length", param[['readLength']],
+    "--macs_gsize", getGenomeSize(param),
     if (param[['peakStyle']] == 'broad')  "" else "--narrow_peak",
     if (param[['varStabilizationMethod']] != 'vst') "--deseq2_vst false"  else "",
     ## configuration
     "-work-dir nfatacseq_work",
     "-profile apptainer",
-    "-r 2.1.2" # specify the nf-core/atacseq revision
-    #"-c ~/nf.config", ## for testing
-    # "-resume"
+    "-r 2.1.2",
+    ## testing config
+    # "-bg",
+    # "-resume",
+    # "-c ~/ezRun/test-nfcore/nf.config"
   )
   
   ezSystem(cmd)
@@ -49,7 +51,6 @@ EzAppNfCoreAtacSeq <- setRefClass(
       name <<- "EzAppNfCoreAtacSeq"
       ## minimum nf-core parameters
       appDefaults <<- rbind(
-        readLength = ezFrame(Type="integer", DefaultValue="150", Description="Read length"),
         peakStyle  = ezFrame(Type="character", DefaultValue="broad", Description="Run MACS2 in broadPeak mode, otherwise in narrowPeak mode"),
         varStabilizationMethod = ezFrame(Type="character", DefaultValue="vst", Description="Use rlog transformation or vst (DESeq2)")
       )
@@ -57,11 +58,14 @@ EzAppNfCoreAtacSeq <- setRefClass(
   )
 )
 
+##' @description get an nf-core/atacseq-formatted csv file
 getSampleSheet <- function(input, param){
-  oDir <- '.' #param[['resultDir']]
-  #if(!dir.exists(oDir)) 
-  #  dir.create(path = oDir)
+  if(any(input$meta$`Condition [Factor]` == "") || any(is.na(input$meta$`Condition [Factor]`)))
+    stop("No conditions detected. Please add them in the dataset before calling NfCoreAtacSeqApp.")
   
+  oDir <- '.' ## param[['resultDir']]
+  #if(!dir.exists(oDir)) dir.create(path = oDir)
+
   csvPath <- file.path(oDir, 'dataset.csv')
   
   input$meta |> 
@@ -83,3 +87,10 @@ getSampleSheet <- function(input, param){
     return(csvPath)
 }
 
+##' @description estimate genome size
+getGenomeSize <- function(param){
+  fastaFile <- param$ezRef@refFastaFile
+  gsize <- sum(as.numeric(fasta.seqlengths(fastaFile)))
+  gsize <- round(gsize * 0.8)
+  return(gsize)
+}
