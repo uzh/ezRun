@@ -148,7 +148,14 @@ getFastqScreenStats <- function(param, confFile = NULL, files, workDir="fastqScr
     paste(files, collapse = " "), "--outdir", workDir, "--nohits --aligner bowtie2",
     "> fastqscreen.out", "2> fastqscreen.err"
   )
-  ezSystem(cmd)
+  
+  if(length(files) > 384){
+      cat(cmd, file = 'fastqScreenCall.sh')
+      result <- ezSystem('bash fastqScreenCall.sh')
+  } else {
+      result <- ezSystem(cmd)
+  }
+  gc()
 
   fastqData <- list()
   for (nm in names(files)) {
@@ -183,6 +190,7 @@ get_rRNA_Strandness <- function(param, input) {
       "--no-unal --no-hd --mm", "2> ", paste0(nm, "_bowtie2.err"),
       "| cut -f1,2,3,12", " |sed s/AS:i://g", ">>", countFiles[nm]
     )
+    
     ezSystem(cmd)
   }
 
