@@ -6,7 +6,7 @@
 # www.fgcz.ch
 
 
-ezMethodMacs2 = function(input=NA, output=NA, param=NA){
+ezMethodMacs3 = function(input=NA, output=NA, param=NA){
   opt = param$cmdOptions
   if(param$paired)
     opt = paste(opt,'-f BAMPE')
@@ -14,7 +14,7 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
   dataset = input$meta
   
   ## -g option: mappable genome size
-  ## TODO: the MACS2 defaults should be used or the user should be asked
+  ## TODO: the MACS3 defaults should be used or the user should be asked
   if(!grepl("-g", opt)){
     gsize <- sum(as.numeric(fasta.seqlengths(param$ezRef["refFastaFile"])))
     gsize <- round(gsize * 0.8)
@@ -115,17 +115,17 @@ ezMethodMacs2 = function(input=NA, output=NA, param=NA){
 }
 
 ##' @template app-template
-##' @templateVar method ezMethodMacs2(input=NA, output=NA, param=NA)
+##' @templateVar method ezMethodMacs3(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run
-EzAppMacs2 <-
-  setRefClass("EzAppMacs2",
+EzAppMacs3 <-
+  setRefClass("EzAppMacs3",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodMacs2
-                  name <<- "EzAppMacs2"
+                  runMethod <<- ezMethodMacs3
+                  name <<- "EzAppMacs3"
                   appDefaults <<- rbind(useControl=ezFrame(Type="logical", DefaultValue="TRUE",	Description="should control samples be used"),
                                         shiftATAC=ezFrame(Type="logical", DefaultValue="FALSE",	Description="should all reads aligning to + strand were offset by +4bp, all reads aligning to the - strand are offset -5 bp"),
                                         annotatePeaks=ezFrame(Type="logical", DefaultValue="TRUE",	Description="use gtf to annotate peaks"))
@@ -220,8 +220,8 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   return('done')
 }
 
-### import Macs2's BED6+4 file: narrowPeak or broadPeak
-import.Macs2Peaks <- function(con){
+### import Macs3's BED6+4 file: narrowPeak or broadPeak
+import.Macs3Peaks <- function(con){
   bed <- ezRead.table(con, header=FALSE, row.names=NULL)
   colnames(bed) <- c("chr", "start", "end", "name", "score", "strand",
                      "fold-change", "p-value", "q-value", "summit")
