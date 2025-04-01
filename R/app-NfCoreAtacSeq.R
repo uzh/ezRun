@@ -28,11 +28,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     ## configuration
     "-work-dir nfatacseq_work",
     "-profile apptainer",
-    "-r 2.1.2",
-    ## testing config
-    # "-bg",
-    # "-resume",
-    # "-c ~/ezRun/test-nfcore/nf.config"
+    "-r 2.1.2"
   )
   
   ezSystem(cmd)
