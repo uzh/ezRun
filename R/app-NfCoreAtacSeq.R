@@ -60,7 +60,7 @@ EzAppNfCoreAtacSeq <- setRefClass(
 
 ##' @description get an nf-core/atacseq-formatted csv file
 getSampleSheet <- function(input, param){
-  if(any(input$meta$`Condition [Factor]` == "") || any(is.na(input$meta$`Condition [Factor]`)))
+  if(any(input$getColumn(param$grouping) == "") || any(is.na(input$getColumn(param$grouping))))
     stop("No conditions detected. Please add them in the dataset before calling NfCoreAtacSeqApp.")
   
   oDir <- '.' ## param[['resultDir']]
