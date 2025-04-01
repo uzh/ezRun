@@ -713,7 +713,7 @@ if (isTRUE(param$runGO)) {
 ```{r tabs with ora plots, results='asis', echo = FALSE, fig.height=8, fig.width=8, fig.align = "left"}
 if (isTRUE(param$runGO)) {
   for (onto in names(enrichResult)) {
-    cat("####", onto, "{.tabset}", "\n")
+    cat("###", onto, "{.tabset}", "\n")
     for (sig in names(enrichResult[[onto]])) {
       cat("#####", sig, "{.tabset}", "\n")
       if (is.na(enrichResult[[onto]][[sig]][1][[1]])) {
@@ -869,7 +869,7 @@ if (isTRUE(param$runGO)) {
 ```{r tabs with gsea plots, results='asis', echo = FALSE, fig.height=8, fig.width=8}
 if (isTRUE(param$runGO)) {
   for (onto in names(enrichResultGSEA)) {
-    cat("####", onto, "{.tabset}", "\n")
+    cat("###", onto, "{.tabset}", "\n")
     if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
       cat('\n No significant GO terms detected.')
       cat("\n\n")
