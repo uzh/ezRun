@@ -9,6 +9,8 @@ ezMethodDmrseq <- function(input=NA, output=NA, param=NA){
     library(dmrseq)
     library(BiocParallel)
     library(annotatr)
+    library(DSS)
+    require(bsseq)
     
     setwdNew(basename(output$getColumn("ResultFolder")))
     register(MulticoreParam(param$cores))
@@ -75,14 +77,23 @@ ezMethodDmrseq <- function(input=NA, output=NA, param=NA){
         maxGap = 5e3
     )
     
+    #Run DSS
+    dmlTest.sm = DMLtest(bismarkBSseq_filtered, group1=rownames(pData(bismarkBSseq_filtered))[pData(bismarkBSseq_filtered)$Condition  %in% param$sampleGroup], group2=rownames(pData(bismarkBSseq_filtered))[pData(bismarkBSseq_filtered)$Condition  %in% param$refGroup], smoothing = TRUE)
+    dmlResults <- list()
+    dmlResults[['dmls']] = callDML(dmlTest.sm, delta=param$minDelta, p.threshold=param$qVal_perSite)
+    dmlResults[['dmrs']] = callDMR(dmlTest.sm, delta=param$minDelta, p.threshold=param$qVal)
+    
+    
     # Export results:
+    saveRDS(dmlTest.sm, paste0('dmlTest_',param$sampleGroup,'_vs_', param$refGroup, '.rds'))
+    saveRDS(dmlResult, paste0('dss_results.rds'))
     saveRDS(bismarkBSseq_filtered, file = "bismarkBSseq_filtered.rds")
     saveRDS(regions, file = "dmrseq_results.rds")
     saveRDS(blocks, file = "large_blocks.rds")
     saveRDS(param, file = 'param.rds')
     
     ##Create RMD Report 
-    makeRmdReport(param=param, rmdFile = "DmrSeq.Rmd")
+    makeRmdReport(param=param, rmdFile = "DiffMethylation.Rmd")
     return('success')  
 }
 

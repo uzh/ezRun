@@ -18,6 +18,8 @@ library(ChIPpeakAnno)
 library(ezRun)
 library(patchwork)
 library(kableExtra)
+library(DSS)
+require(bsseq)
 ```
 
 ```{r prepare data dmrseq, include=FALSE}
@@ -31,10 +33,11 @@ param$genesAnnotFile <- file.path(dirname(param$ezRef@refFeatureFile),'genes_ann
 genesAnnot <- ezRead.table(param$genesAnnotFile, row.names = NULL)
 genesAnnot <- genesAnnot[,c('gene_id', 'gene_name','description')]
 
-#Explore results:
+#Load result files:
 bismarkBSseq_filtered <- readRDS("bismarkBSseq_filtered.rds")
 regions <- readRDS("dmrseq_results.rds")
 blocks <- readRDS("large_blocks.rds")
+dssResults <- readRDS("dss_results.rds")
 ```
 
 # {.tabset}
@@ -46,7 +49,7 @@ settings = character()
 settings["GroupingColumn:"] = param$grouping
 settings["sampleGroup:"] = param$sampleGroup
 settings["refGroup:"] = param$refGroup
-settings["qValue threshold:"] = param$qval
+settings["qValue threshold:"] = param$qVal
 settings["topRegions/Blocks:"] = n
 kable(settings, row.names=TRUE, 
       col.names="Setting", format="html") %>%
@@ -59,12 +62,12 @@ kable(settings, row.names=TRUE,
 
 ## Data Files
 
-```{r write data files, include=FALSE}
+```{r write data files DmrSeq, include=FALSE}
 ##Candidates annotated regions/blocks
 # Exploring Significant Regions
 regions <- regions[!is.na(regions$beta),]
-sigRegions <- regions[regions$qval <= param$qval, ]
-numSigRegions <- sum(regions$qval <= param$qval)
+sigRegions <- regions[regions$qval <= param$qVal, ]
+numSigRegions <- sum(regions$qval <= param$qVal)
 if(numSigRegions < 1){
     cat('No significant regions detected. Instead top', min(length(regions),n),' regions reported \n')
     sigRegions <- regions[1:min(length(regions),n), ]
@@ -72,8 +75,8 @@ if(numSigRegions < 1){
 
 # Exploring Significant Blocks
 blocks <- blocks[!is.na(blocks$beta),]
-sigBlocks <- blocks[blocks$qval <= param$qval, ]
-numSigBlocks <- sum(blocks$qval <= param$qval)
+sigBlocks <- blocks[blocks$qval <= param$qVal, ]
+numSigBlocks <- sum(blocks$qval <= param$qVal)
 if(numSigBlocks < 1){
     cat('No significant block detected. Instead top',min(length(blocks),n), 'blocks reported \n')
     sigBlocks <- blocks[1:min(length(blocks),n), ]
@@ -95,20 +98,58 @@ asigBlocks <- asigBlocks[,cols]
 
 
 # Export the significant regions to XLSX
-writexl::write_xlsx(asigRegions,"topRegions.xlsx")
-writexl::write_xlsx(asigBlocks,"topBlocks.xlsx")
+writexl::write_xlsx(asigRegions,"DMRSeq_topRegions.xlsx")
+writexl::write_xlsx(asigBlocks,"DMRSeq_topBlocks.xlsx")
 ```
-### Candidate regions/blocks
 
-[topRegions.xlsx](topRegions.xlsx)
+```{r write data files DSS, include=FALSE}
+dmls <- dssResults$dmls
+dmrs <- dssResults$dmrs
 
-[topBlocks.xlsx](topBlocks.xlsx)
+if(!is.null(dmrs)){
+    sigRegions <- GRanges(dmrs)
+    # Annotate significant regions/blocks
+    asigRegions <- data.frame(annotatePeakInBatch(sigRegions,featureType = 'TSS', AnnotationData = gtf))
+    asigRegions <- merge(asigRegions, genesAnnot, by.x = 'feature', by.y = 'gene_id', all.x = TRUE)
+    asigRegions <- asigRegions[order(asigRegions$diff.Methy),]
+    cols <- colnames(asigRegions)
+    cols <- cols[!(cols %in% c('index.start','index.end','index.width','peak'))]
+    asigRegions <- asigRegions[,cols]
+    writexl::write_xlsx(asigRegions,"DSS_topRegions.xlsx")        
+    #   writexl::write_xlsx(dmrs, paste0('dmrs_',param$sampleGroup,'_vs_', param$refGroup, '.xlsx'))
+}
+
+if(!is.null(dmls)){
+    #sigSites <- GRanges(dmls)
+    # Annotate significant regions/blocks
+    #asigSites <- data.frame(annotatePeakInBatch(sigSites,featureType = 'TSS', AnnotationData = gtf))
+    #asigSites <- merge(asigSites, genesAnnot, by.x = 'feature', by.y = 'gene_id', all.x = TRUE)
+    #asigSites <- asigSites[order(asigSites$diff.Methy),]
+    #cols <- colnames(asigSites)
+    #cols <- cols[!(cols %in% c('index.start','index.end','index.width','peak'))]
+    #asigSites <- asigSites[,cols]
+    writexl::write_xlsx(dmls,"DSS_topCpGs.xlsx")        
+}
+```
+
+### Candidate sites/regions/blocks
+
+[DMRSeq_topRegions.xlsx](DMRSeq_topRegions.xlsx)
+
+[DSS_topRegions.xlsx](DSS_topRegions.xlsx)
+
+[DMRSeq_topBlocks.xlsx](DMRSeq_topBlocks.xlsx)
+
+[DSS_topCpGs.xlsx](DSS_topCpGs.xlsx)
+
 
 ### Full result objects for regions and blocks as RDS files
 
 [bismarkBSseq_filtered.rds](bismarkBSseq_filtered.rds)
 
 [dmrseq_results.rds](dmrseq_results.rds)
+
+[dss_results.rds](dss_results.rds)
 
 [large_blocks.rds](large_blocks.rds)
 
