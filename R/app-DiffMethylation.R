@@ -5,7 +5,7 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-ezMethodDmrseq <- function(input=NA, output=NA, param=NA){
+ezMethodDiffMethylation <- function(input=NA, output=NA, param=NA){
     library(dmrseq)
     library(BiocParallel)
     library(annotatr)
@@ -97,16 +97,16 @@ ezMethodDmrseq <- function(input=NA, output=NA, param=NA){
     return('success')  
 }
 
-EzAppDmrseq <-
-    setRefClass("EzAppDmrseq",
+EzAppDiffMethylation <-
+    setRefClass("EzAppDiffMethylation",
                 contains = "EzApp",
                 methods = list(
                     initialize = function()
                     {
                         "Initializes the application using its specific defaults."
-                        runMethod <<- ezMethodDmrseq
-                        name <<- "EzAppDmrseq"
-                        appDefaults <<- rbind(qval=ezFrame(Type="numeric", DefaultValue=0.05, Description="fdr cutoff")
+                        runMethod <<- ezMethodDiffMethylation
+                        name <<- "EzAppDiffMethylation"
+                        appDefaults <<- rbind(qVal=ezFrame(Type="numeric", DefaultValue=0.05, Description="fdr cutoff")
                         )
                     }
                 )
