@@ -68,7 +68,7 @@ ezMethodDiffMethylation <- function(input=NA, output=NA, param=NA){
     
     blocks <- dmrseq(
         bs = bismarkBSseq_filtered,
-        cutoff = param$qval,
+        cutoff = param$qVal,
         testCovariate = "Condition",
         block = TRUE,
         minInSpan = 500,
