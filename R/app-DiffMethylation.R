@@ -11,6 +11,7 @@ ezMethodDiffMethylation <- function(input=NA, output=NA, param=NA){
     library(annotatr)
     library(DSS)
     require(bsseq)
+    library(qs2)
     
     setwdNew(basename(output$getColumn("ResultFolder")))
     register(MulticoreParam(param$cores))
@@ -81,16 +82,17 @@ ezMethodDiffMethylation <- function(input=NA, output=NA, param=NA){
     dmlTest.sm = DMLtest(bismarkBSseq_filtered, group1=rownames(pData(bismarkBSseq_filtered))[pData(bismarkBSseq_filtered)$Condition  %in% param$sampleGroup], group2=rownames(pData(bismarkBSseq_filtered))[pData(bismarkBSseq_filtered)$Condition  %in% param$refGroup], smoothing = TRUE)
     dmlResults <- list()
     dmlResults[['dmls']] = callDML(dmlTest.sm, delta=param$minDelta, p.threshold=param$qVal_perSite)
+    dmlResults[['dmls']] = dmlResults[['dmls']][dmlResults[['dmls']]$fdr <= param$qVal_perSite,]
     dmlResults[['dmrs']] = callDMR(dmlTest.sm, delta=param$minDelta, p.threshold=param$qVal)
     
     
     # Export results:
-    saveRDS(dmlTest.sm, paste0('dmlTest_',param$sampleGroup,'_vs_', param$refGroup, '.rds'))
-    saveRDS(dmlResults, paste0('dss_results.rds'))
-    saveRDS(bismarkBSseq_filtered, file = "bismarkBSseq_filtered.rds")
-    saveRDS(regions, file = "dmrseq_results.rds")
-    saveRDS(blocks, file = "large_blocks.rds")
-    saveRDS(param, file = 'param.rds')
+    qs_save(dmlTest.sm, paste0('dmlTest_',param$sampleGroup,'_vs_', param$refGroup, '.qs2'))
+    qs_save(dmlResults, paste0('dss_results.qs2'))
+    qs_save(bismarkBSseq_filtered, file = "bismarkBSseq_filtered.qs2")
+    qs_save(regions, file = "dmrseq_results.qs2")
+    qs_save(blocks, file = "large_blocks.qs2")
+    qs_save(param, file = 'param.qs2')
     
     ##Create RMD Report 
     makeRmdReport(param=param, rmdFile = "DiffMethylation.Rmd")
@@ -106,12 +108,9 @@ EzAppDiffMethylation <-
                         "Initializes the application using its specific defaults."
                         runMethod <<- ezMethodDiffMethylation
                         name <<- "EzAppDiffMethylation"
-                        appDefaults <<- rbind(qVal=ezFrame(Type="numeric", DefaultValue=0.05, Description="fdr cutoff",
-                                                           Required=TRUE),
-                                              qVal_perSite=ezFrame(Type="numeric", DefaultValue=0.001, Description="fdr cutoff per site",
-                                                                   Required=TRUE),
-                                              minDelta=ezFrame(Type="numeric", DefaultValue=0.1, Description="minimum delta methylation difference",
-                                                               Required=TRUE)
+                        appDefaults <<- rbind(qVal=ezFrame(Type="numeric", DefaultValue=0.05, Description="fdr cutoff"),
+                                              qVal_perSite=ezFrame(Type="numeric", DefaultValue=0.001, Description="fdr cutoff per site"),
+                                              minDelta=ezFrame(Type="numeric", DefaultValue=0.1, Description="minimum delta methylation difference")
                         )
                     }
                 )

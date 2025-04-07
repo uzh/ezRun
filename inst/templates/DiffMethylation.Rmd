@@ -20,6 +20,7 @@ library(patchwork)
 library(kableExtra)
 library(DSS)
 require(bsseq)
+library(qs2)
 ```
 
 ```{r prepare data dmrseq, include=FALSE}
@@ -31,13 +32,29 @@ gtf <- gtf[gtf$gene_biotype == 'protein_coding',]
 names(gtf) <- gtf$gene_id
 param$genesAnnotFile <- file.path(dirname(param$ezRef@refFeatureFile),'genes_annotation_byGene.txt')
 genesAnnot <- ezRead.table(param$genesAnnotFile, row.names = NULL)
-genesAnnot <- genesAnnot[,c('gene_id', 'gene_name','description')]
+genesAnnot <- genesAnnot[,c('gene_id', 'gene_name', 'description')]
 
 #Load result files:
-bismarkBSseq_filtered <- readRDS("bismarkBSseq_filtered.rds")
-regions <- readRDS("dmrseq_results.rds")
-blocks <- readRDS("large_blocks.rds")
-dssResults <- readRDS("dss_results.rds")
+if(file.exists('bismarkBSseq_filtered.qs2')){
+    bismarkBSseq_filtered <- qs_read('bismarkBSseq_filtered.qs2')
+} else {
+    bismarkBSseq_filtered <- readRDS("bismarkBSseq_filtered.rds")
+}
+if(file.exists('dmrseq_results.qs2')){
+    regions <- qs_read('dmrseq_results.qs2')
+} else {
+    regions <- readRDS("dmrseq_results.rds")
+} 
+if(file.exists('large_blocks.qs2')){
+    blocks <- qs_read('large_blocks.qs2')
+} else {
+    blocks <- readRDS("large_blocks.rds")
+}
+if(file.exists('dss_results.qs2')){
+    dssResults <- qs_read('dss_results.qs2')
+} else {
+    dssResults <- readRDS("dss_results.rds")
+}
 ```
 
 # {.tabset}
@@ -49,7 +66,9 @@ settings = character()
 settings["GroupingColumn:"] = param$grouping
 settings["sampleGroup:"] = param$sampleGroup
 settings["refGroup:"] = param$refGroup
-settings["qValue threshold:"] = param$qVal
+settings["qValue region threshold:"] = param$qVal
+settings["qValue per Site threshold:"] = param$qVal_perSite
+settings["minimum delta methylation difference for DSS:"] = param$minDelta
 settings["topRegions/Blocks:"] = n
 kable(settings, row.names=TRUE, 
       col.names="Setting", format="html") %>%
@@ -107,15 +126,15 @@ dmls <- dssResults$dmls
 dmrs <- dssResults$dmrs
 
 if(!is.null(dmrs)){
-    sigRegions <- GRanges(dmrs)
+    sigRegionsDSS <- GRanges(dmrs)
     # Annotate significant regions/blocks
-    asigRegions <- data.frame(annotatePeakInBatch(sigRegions,featureType = 'TSS', AnnotationData = gtf))
-    asigRegions <- merge(asigRegions, genesAnnot, by.x = 'feature', by.y = 'gene_id', all.x = TRUE)
-    asigRegions <- asigRegions[order(asigRegions$diff.Methy),]
-    cols <- colnames(asigRegions)
+    asigRegionsDSS <- data.frame(annotatePeakInBatch(sigRegionsDSS,featureType = 'TSS', AnnotationData = gtf))
+    asigRegionsDSS <- merge(asigRegionsDSS, genesAnnot, by.x = 'feature', by.y = 'gene_id', all.x = TRUE)
+    asigRegionsDSS <- asigRegionsDSS[order(asigRegionsDSS$diff.Methy),]
+    cols <- colnames(asigRegionsDSS)
     cols <- cols[!(cols %in% c('index.start','index.end','index.width','peak'))]
-    asigRegions <- asigRegions[,cols]
-    writexl::write_xlsx(asigRegions,"DSS_topRegions.xlsx")        
+    asigRegionsDSS <- asigRegionsDSS[,cols]
+    writexl::write_xlsx(asigRegionsDSS,"DSS_topRegions.xlsx")        
     #   writexl::write_xlsx(dmrs, paste0('dmrs_',param$sampleGroup,'_vs_', param$refGroup, '.xlsx'))
 }
 
@@ -143,23 +162,14 @@ if(!is.null(dmls)){
 [DSS_topCpGs.xlsx](DSS_topCpGs.xlsx)
 
 
-### Full result objects for regions and blocks as RDS files
-
-[bismarkBSseq_filtered.rds](bismarkBSseq_filtered.rds)
-
-[dmrseq_results.rds](dmrseq_results.rds)
-
-[dss_results.rds](dss_results.rds)
-
-[large_blocks.rds](large_blocks.rds)
-
-
 ## Differential Analysis Details
-```{r count statistics1, echo=FALSE, fig.width=4, fig.height=6, message=FALSE, warning=FALSE}
-barplot(c(Regions = numSigRegions, Blocks = numSigBlocks), col = 'royalblue', las = 2, main = 'Detected Candidates')
+```{r count statistics1, echo=FALSE, fig.width=5, fig.height=6, message=FALSE, warning=FALSE}
+par(mar=c(10.1,4.1,4.1,2.1))
+barplot(c(Regions_DMR = numSigRegions, Regions_DSS = nrow(dmrs), Blocks = numSigBlocks), col = 'royalblue', las = 2, main = 'Detected Candidates')
+par(mar=c(5.1,4.1,4.1,2.1))
 ```
 
-```{r count statistics2, echo=FALSE, fig.width=12, fig.height=6, message=FALSE, warning=FALSE}
+```{r count statistics2, echo=FALSE, fig.width=14, fig.height=6, message=FALSE, warning=FALSE}
 myBoxplot <- function(vec, myTitle){
 q <- quantile(vec, probs = c(0.05, 0.95))
 vec <- vec[vec >= q[1] & vec <= q[2]]
@@ -181,39 +191,61 @@ text(range_x[2]-0.2 * diff(range_x), mid_y+0.5,
      adj = c(1, 0.5), col = "blue")
 }
 
-par(mfrow = c(1, 2))
+par(mfrow = c(2, 2))
 if(numSigRegions > 0)
-myBoxplot(sigRegions$stat,'Hypo- and Hypermethylation of candidate regions')
+myBoxplot(sigRegions$stat,'Hypo- and Hypermethylation of candidate regions, DMR')
+if(nrow(dmrs) > 0)
+myBoxplot(sigRegionsDSS$diff.Methy, 'Hypo- and Hypermethylation of candidate regions, DSS')
 if(numSigBlocks > 0)
-myBoxplot(sigBlocks$stat, 'Hypo- and Hypermethylation of candidate blocks')
+myBoxplot(sigBlocks$stat, 'Hypo- and Hypermethylation of candidate blocks, DMR')
+if(nrow(dmls) > 0)
+myBoxplot(dmls$diff, 'Hypo- and Hypermethylation of candidate CpG Sites, DSS')
+
 par(mfrow = c(1, 1))
 ```
 
 ## QC Plots
-```{r count statistics3, echo=FALSE, fig.width=12, fig.width=5, message=FALSE, warning=FALSE}
+```{r count statistics3, echo=FALSE, fig.width=10, fig.height=5, message=FALSE, warning=FALSE}
 ##global plots
 # Plot methylation distribution
 p1 <- plotEmpiricalDistribution(bismarkBSseq_filtered, testCovariate = "Condition")
-ggplot2::ggsave("custom_plot1.png", plot = p1, width = 12, height = 5, units = "in")
+ggplot2::ggsave("custom_plot1.png", plot = p1, width = 10, height = 5, units = "in")
 knitr::include_graphics("custom_plot1.png")
 ```
 
-```{r count statistics4, echo=FALSE, fig.width=12, fig.width=7, message=FALSE, warning=FALSE}
+```{r count statistics4, echo=FALSE, fig.width=10, fig.height=5, message=FALSE, warning=FALSE}
 # Plot coverage distribution
 p2 <- plotEmpiricalDistribution(bismarkBSseq_filtered, testCovariate = "Condition", type = "Cov", bySample = TRUE)
-ggplot2::ggsave("custom_plot2.png", plot = p2, width = 12, height = 7, units = "in")
+ggplot2::ggsave("custom_plot2.png", plot = p2, width = 12, height = 5, units = "in")
 knitr::include_graphics("custom_plot2.png")
 ```
 
 ## Annotation Details
+
+### DMR
 ```{r annot, echo=FALSE, fig.width=8, fig.height=6, message=FALSE, warning=FALSE}
 if(numSigRegions > 0){
+    par(mfrow = c(1, 2))
     par(mar=c(10.1,4.1,4.1,2.1))
     barplot(table(asigRegions$insideFeature), las = 2, col = 'royalblue', main = 'RegionAnnotation')
     par(mar=c(5.1,4.1,4.1,2.1))
     barplot(table(asigRegions$feature_strand), las = 2, col = 'royalblue', main = 'Strand')
+    par(mfrow = c(1, 1))
 }
 ```
+
+### DSS
+```{r annotDSS, echo=FALSE, fig.width=8, fig.height=6, message=FALSE, warning=FALSE}
+if(nrow(dmrs) > 0){
+    par(mfrow = c(1, 2))
+    par(mar=c(10.1,4.1,4.1,2.1))
+    barplot(table(asigRegionsDSS$insideFeature), las = 2, col = 'royalblue', main = 'RegionAnnotation')
+    par(mar=c(5.1,4.1,4.1,2.1))
+    barplot(table(asigRegionsDSS$feature_strand), las = 2, col = 'royalblue', main = 'Strand')
+    par(mfrow = c(1, 1))
+}
+```
+
 
 ## SessionInfo
 ```{r, echo=FALSE}
