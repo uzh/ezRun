@@ -86,7 +86,7 @@ ezMethodDiffMethylation <- function(input=NA, output=NA, param=NA){
     
     # Export results:
     saveRDS(dmlTest.sm, paste0('dmlTest_',param$sampleGroup,'_vs_', param$refGroup, '.rds'))
-    saveRDS(dmlResult, paste0('dss_results.rds'))
+    saveRDS(dmlResults, paste0('dss_results.rds'))
     saveRDS(bismarkBSseq_filtered, file = "bismarkBSseq_filtered.rds")
     saveRDS(regions, file = "dmrseq_results.rds")
     saveRDS(blocks, file = "large_blocks.rds")
@@ -106,7 +106,12 @@ EzAppDiffMethylation <-
                         "Initializes the application using its specific defaults."
                         runMethod <<- ezMethodDiffMethylation
                         name <<- "EzAppDiffMethylation"
-                        appDefaults <<- rbind(qVal=ezFrame(Type="numeric", DefaultValue=0.05, Description="fdr cutoff")
+                        appDefaults <<- rbind(qVal=ezFrame(Type="numeric", DefaultValue=0.05, Description="fdr cutoff",
+                                                           Required=TRUE),
+                                              qVal_perSite=ezFrame(Type="numeric", DefaultValue=0.001, Description="fdr cutoff per site",
+                                                                   Required=TRUE),
+                                              minDelta=ezFrame(Type="numeric", DefaultValue=0.1, Description="minimum delta methylation difference",
+                                                               Required=TRUE)
                         )
                     }
                 )
