@@ -844,7 +844,7 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
     ezSystem(paste("cat ", deduplicationReportFile, ">>", reportFile))
   }
   
-  cmd <- paste("bismark_methylation_extractor", ifelse(param$paired, "-p", "-s"), "--comprehensive --gzip", bamFileNameBismark)
+  cmd <- paste("bismark_methylation_extractor", ifelse(param$paired, "-p", "-s"), "--comprehensive --gzip", bamFileNameBismark, "--parallel", max(2, param$cores / 2))
   ezSystem(cmd)
   cmd <- paste("samtools", "view -S -b ", bamFileNameBismark, " > bismark.bam")
   ezSystem(cmd)
@@ -901,10 +901,6 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
       ggsave(paste0(sub('.gz.*', '_Meth.png', dataFile)), p, width = 6, height = 6)
   system(paste('gzip', dataFile))
  }
- # system('/usr/local/ngseq/bin/g-req copynow -f *_Meth.png /srv/gstore/projects/p36614/Bismark_ISeq441_EM_Ctrl_2024-12-18--17-33-56')
-  
-  
-  
   return("Success")
 }
 

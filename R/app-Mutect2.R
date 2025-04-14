@@ -65,6 +65,8 @@ ezMethodMutect2 = function(input=NA, output=NA, param=NA){
     ezSystem(paste('rm *snpeff*'))
     } else {
        system(paste('mv', filteredOutFile, paste0(annotatedOutFile,".gz")))
+        cmd <- paste("bgzip", annotatedOutFile)
+        ezSystem(cmd)
         ezSystem(paste('touch', paste0(sampleName, '_misc.zip')))
     }
     ezSystem(paste('rm', paste0(outFile,'*'), paste0(filteredOutFile,'*')))
