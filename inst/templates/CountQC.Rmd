@@ -28,6 +28,10 @@ library(ggpubr)
 library(cluster)
 library(fpc)
 library(clusterSim)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
 #source("../../R/plots-reports.R")
 ```
 
@@ -207,7 +211,6 @@ if(!is.null(rowData(rawData)$gene_name)){
   tpm <- dplyr::select(tpm, "Feature ID", gene_name, everything())
 }
 write_xlsx(tpm, path=tpmFile)
-
 ```
 
 ```{r add data files link, echo=FALSE, results='asis', message=FALSE}
@@ -246,6 +249,37 @@ plot_ly(toPlot, x=~samples, y=~presentCounts, type="bar",
          yaxis = list(title = "Counts"),
          margin = m
   )
+
+##Check for dominant genes in samples
+countFracPerSample <- sweep(counts[, 3:ncol(counts)], 2, colSums(counts[, 3:ncol(counts)]), FUN = "/")
+rownames(countFracPerSample) <- make.unique(counts$gene_name)
+
+df <- countFracPerSample |>
+  as.data.frame()      |>      
+  tibble::rownames_to_column("Gene") |>    
+  pivot_longer(-Gene,
+               names_to  = "Sample",
+               values_to = "Fraction")
+
+top3 <- df |>
+  group_by(Sample) |>
+  slice_max(Fraction, n = 3, with_ties = FALSE) |>
+  mutate(rank = factor(row_number(), levels = 1:3)) |>
+  ungroup()
+p <- ggplot(df, aes(x = Sample, y = Fraction)) + geom_boxplot(outlier.shape = NA, fill = "grey90")
+p <- p + geom_point(data = top3,aes(colour = rank), size = 2, position = position_dodge(width = 0.4))
+p <- p + geom_text_repel(data = top3,
+                  aes(label = Gene, colour = rank),
+                  size   = 2.5,
+                  nudge_y = 0.02,
+                  direction = "y",
+                  segment.size = 0.2,
+                  segment.alpha = 0.4,
+                  max.overlaps = Inf) +
+  scale_colour_manual(values = c("red", "orange", "gold"), name   = "Top‑gene rank")
+p <- p + theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), plot.margin  = margin(5.5, 20, 5.5, 5.5, "pt"))
+p <- p + labs(y = "Fraction of total expression", title = "Top 3 over‑represented genes per sample")
+p
 ```
 
 ## Correlation/Clustering Plot
@@ -697,6 +731,41 @@ if(length(qcScatterFiles) > 0){
   }
 }
 
+```
+
+## EnrichR for topMarkers
+
+Based on top 500 genes per sample selected by TPM and filtered for known housekeeping genes reported in the [HRT atlas](https://housekeeping.unicamp.br/homePageGlobal.html).
+
+```{r markers, echo=FALSE, results='asis', warning=FALSE}
+## select top genes for enrichR
+maxGenes <- 500
+dat <- tpm[, 3:ncol(tpm)]
+rownames(dat) <- make.unique(tpm$gene_name)
+topMarkersPerSample <- apply(dat, 2, function(col){
+  col = sort(col, decreasing = TRUE)
+  if (length(col) > maxGenes) col = col[1:maxGenes]
+    return(names(col))
+  })
+#species <- strsplit(param$ezRef@refBuild, '/')[[1]][1]
+## Filter HRT genes
+hrtGenes <- ezRead.table('/srv/GT/databases/HRT/Human_Mouse_Common.csv',sep = ';', row.names = NULL)
+hrtGenes <- c(hrtGenes$Human, hrtGenes$Mouse)
+topMarkers <- list()
+    for (j in 1:ncol(topMarkersPerSample)){
+    topMarkers[[colnames(topMarkersPerSample)[j]]] <- topMarkersPerSample[!topMarkersPerSample[,j] %in% hrtGenes,j]
+    }
+topMarkers[['AllSamples']] <- unique(unlist(lapply(topMarkers, head, n = maxGenes/2), use.names = FALSE))
+topMarkers <- topMarkers[c('AllSamples', colnames(topMarkersPerSample))]
+jsCall = paste0('enrich({list: "', sapply(topMarkers, paste, collapse="\\n"), '", popup: true});')
+    enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+enrichrTable <- tibble(Sample=names(topMarkers),
+                         "# of posMarkers"=lengths(topMarkers),
+                         "Enrichr link"=enrichrCalls)
+kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment")) %>%
+kable_styling("striped", full_width = F, position = "left")
 ```
 
 ## Input Dataset
