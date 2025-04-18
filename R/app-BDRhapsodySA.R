@@ -342,12 +342,12 @@ EzAppBDRhapsodySA <-
                       Description = "enable refined putative cell calling"
                     ),
                     exactCellCount = ezFrame(
-                      Type = "numeric",
+                      Type = "integer",
                       DefaultValue = 10000,
                       Description = "exact number of cells"
                     ),
                     expectedCellCount = ezFrame(
-                      Type = "numeric",
+                      Type = "integer",
                       DefaultValue = 10000,
                       Description = "Expected number of cells"
                     ),
