@@ -81,10 +81,10 @@ makeBdYmlFile <- function(input, param, bdRef) {
     "Maximum_Threads"=param$cores
   )
   if (ezIsSpecified(param$exactCellCount)) {
-    bdParams$Exact_Cell_Count <- as.integer(param$exactCellCount)
+    bdParams$Exact_Cell_Count <- param$exactCellCount
   }
   if (ezIsSpecified(param$expectedCellCount)) {
-    bdParams$Expected_Cell_Count <- as.integer(param$expectedCellCount)
+    bdParams$Expected_Cell_Count <- param$expectedCellCount
   }
   if (ezIsSpecified(param$sampleTagsVersion)) {
     bdParams$Sample_Tags_Version <- param$sampleTagsVersion
