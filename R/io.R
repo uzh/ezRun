@@ -254,7 +254,7 @@ ezWrite = function(..., sep="", collapse=" ", con=stdout()){
 ##' ezValidFilename("or?to/remove(them",replace="")
 ## replace characters that are not allowed in filenames
 ezValidFilename = function(name, replace="_"){
-  gsub("[$%#!?/:;() '=]", replace, name)
+  gsub("[$%#!?/:;,() '=]", replace, name)
 }
 
 ##' @describeIn getSuffix Gets and removes the suffix of a file name.
