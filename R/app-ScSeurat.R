@@ -196,39 +196,67 @@ if(!param$cellbender){
     # Get the input dataset info
     inputDS <- EzDataset$new(file=file.path(dirname(dirname(cmDir)),'input_dataset.tsv'), dataRoot=param$dataRoot)
     
-    # Check if this is a multi or single run by looking at the path structure
-    # Use grep to find CountMatrix column regardless of suffix
+    # Find available columns and safely get matrix columns
     availCols <- inputDS$colNames
-    filtCol <- grep("CountMatrix", availCols, value = TRUE)[1]
-    rawCol <- grep("UnfilteredCountMatrix", availCols, value = TRUE)[1]
+    filtCol <- grep("CountMatrix", availCols, value = TRUE)
+    filtCol <- if(length(filtCol) > 0) filtCol[1] else "CountMatrix"
+    rawCol <- grep("UnfilteredCountMatrix", availCols, value = TRUE)
     
-    # Get the paths
+    # Get paths for filtered matrix
     countFiltMatrix <- inputDS$getFullPaths(filtCol)[input$getNames()]
-    countRawMatrix <- inputDS$getFullPaths(rawCol)[input$getNames()]
     
-    # Determine if it's a Multi run
-    isMulti <- grepl("per_sample_outs", countFiltMatrix)
+    # Get path for raw matrix - create fallback if needed
+    countRawMatrix <- if(length(rawCol) > 0) {
+        inputDS$getFullPaths(rawCol[1])[input$getNames()]
+    } else {
+        file.path(dirname(countFiltMatrix), 'cellbender_raw_seurat.h5')
+    }
     
-    # For CellBender H5 files, we need to use the directory containing them
+    # Better multi detection without hardcoded project IDs
+    isMulti <- FALSE
+    
+    # Check direct indicators first
+    if(grepl("per_sample_outs|CellRangerMulti", countFiltMatrix)) {
+        isMulti <- TRUE
+    } else {
+        # Extract sample name from path
+        samplePattern <- "([0-9]+_Plate_[0-9]+_[0-9]+)"
+        sampleMatch <- regexpr(samplePattern, countFiltMatrix)
+        
+        if(sampleMatch > 0) {
+            sampleName <- substr(countFiltMatrix, sampleMatch, 
+                               sampleMatch + attr(sampleMatch, "match.length") - 1)
+            
+            # Find any CellRangerMulti directory with this sample name
+            projectDir <- dirname(dirname(dirname(countFiltMatrix)))
+            multiDirs <- list.dirs(projectDir, recursive = FALSE)
+            multiDirs <- grep("CellRangerMulti", multiDirs, value = TRUE)
+            
+            # Check each potential directory
+            for(dir in multiDirs) {
+                possiblePath <- file.path(dir, sampleName)
+                if(dir.exists(possiblePath)) {
+                    isMulti <- TRUE
+                    break
+                }
+            }
+        }
+    }
+    
+    # Set up directories based on path type
     if(grepl("\\.h5$", countFiltMatrix)) {
-        # Use directory containing the H5 file
         cellrangerDir <- dirname(countFiltMatrix)
         param[['cellrangerCountFiltDir']] <- dirname(countFiltMatrix)
         param[['cellrangerCountRawDir']] <- dirname(countRawMatrix)
     } else {
-        # Use original logic for directory paths
-        if(isMulti) {
-            cellrangerDir <- countFiltMatrix
-        } else {
-            cellrangerDir <- countFiltMatrix
-        }
+        cellrangerDir <- countFiltMatrix
         param[['cellrangerCountFiltDir']] <- countFiltMatrix
         param[['cellrangerCountRawDir']] <- countRawMatrix
     }
     
     param[['cellrangerDir']] <- cellrangerDir
     
-    # Look for features.tsv.gz in the correct directory
+    # Look for features.tsv.gz
     featInfo <- ezRead.table(file.path(cellrangerDir, "features.tsv.gz"), 
                            header = FALSE, row.names = NULL)
 }
