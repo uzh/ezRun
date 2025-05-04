@@ -32,24 +32,33 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, param=NULL) {
   ## SoupX
   if (!is.null(rawDir) && file.exists(rawDir)){
     if(param$cellbender){  
-        tod <- checkAndCleanAntibody(Seurat::Read10X_h5(file.path(dirname(rawDir),'cellbender_filtered_seurat.h5') , use.names = FALSE))
+        tod <- checkAndCleanAntibody(Seurat::Read10X_h5(file.path(dirname(rawDir),'cellbender_filtered_seurat.h5'), use.names = FALSE))
         
-        # Use featuresDir if it exists, otherwise fallback to existing logic
-        featuresPath <- if(!is.null(param$featuresDir)) {
-            file.path(param$featuresDir, "features.tsv.gz")
-        } else if (dirname(param$cellrangerCountFiltDir) != dirname(param$cellrangerCountRawDir)) {
-            countMatrixToUse <- param$cellrangerCountFiltDir
-            file.path(countMatrixToUse, "features.tsv.gz")
+        # Use explicit features path if available
+        if(!is.null(param$featuresPath) && file.exists(param$featuresPath)) {
+            featuresFile <- param$featuresPath
+            featInfo <- ezRead.table(featuresFile, header = FALSE, row.names = NULL)
         } else {
-            countMatrixToUse <- param$cellrangerCountRawDir
-            file.path(countMatrixToUse, "features.tsv.gz")
-        }
-        
-        featInfo <- ezRead.table(featuresPath, header = FALSE, row.names = NULL)
-    } else {
-        tod <- checkAndCleanAntibody(Seurat::Read10X(rawDir, gene.column = 1))
-        featInfo <- ezRead.table(paste0(rawDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
-    }
+            # If featuresPath not provided, try standard locations
+            countMatrixToUse <- if(dirname(param$cellrangerCountFiltDir) != dirname(param$cellrangerCountRawDir)) {
+                param$cellrangerCountFiltDir
+            } else {
+                param$cellrangerCountRawDir
+            }
+            featuresFile <- file.path(countMatrixToUse, "features.tsv.gz")
+            
+            # If standard location doesn't work, add sample_filtered_feature_bc_matrix subdirectory
+            if(!file.exists(featuresFile) && grepl("CellRangerMulti", countMatrixToUse)) {
+                featuresFile <- file.path(countMatrixToUse, "sample_filtered_feature_bc_matrix", "features.tsv.gz")
+            }
+            
+            if(file.exists(featuresFile)) {
+                featInfo <- ezRead.table(featuresFile, header = FALSE, row.names = NULL)
+            } else {
+                warning(paste0("Could not find features.tsv.gz file at: ", featuresFile))
+                # Create empty featInfo to allow processing to continue
+                featInfo <- data.frame(V1=character(0), V2=character(0), V3=character(0))
+            }
     colnames(featInfo) <- c("ensemblID", "name", "type")
     featInfo <- featInfo[featInfo$type=='Gene Expression',]
     rownames(tod) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$ensemblID, names=featInfo$name))
