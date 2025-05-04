@@ -32,19 +32,20 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, param=NULL) {
   ## SoupX
   if (!is.null(rawDir) && file.exists(rawDir)){
     if(param$cellbender){  
-        tod <- checkAndCleanAntibody(Seurat::Read10X_h5(file.path(dirname(rawDir),'cellbender_filtered_seurat.h5'), use.names = FALSE))
+        tod <- checkAndCleanAntibody(Seurat::Read10X_h5(file.path(dirname(rawDir),'cellbender_filtered_seurat.h5') , use.names = FALSE))
         
         # Use featuresDir if it exists, otherwise fallback to existing logic
         featuresPath <- if(!is.null(param$featuresDir)) {
             file.path(param$featuresDir, "features.tsv.gz")
         } else if (dirname(param$cellrangerCountFiltDir) != dirname(param$cellrangerCountRawDir)) {
-            file.path(param$cellrangerCountFiltDir, "features.tsv.gz")
+            countMatrixToUse <- param$cellrangerCountFiltDir
+            file.path(countMatrixToUse, "features.tsv.gz")
         } else {
-            file.path(param$cellrangerCountRawDir, "features.tsv.gz")
+            countMatrixToUse <- param$cellrangerCountRawDir
+            file.path(countMatrixToUse, "features.tsv.gz")
         }
         
         featInfo <- ezRead.table(featuresPath, header = FALSE, row.names = NULL)
-    }
     } else {
         tod <- checkAndCleanAntibody(Seurat::Read10X(rawDir, gene.column = 1))
         featInfo <- ezRead.table(paste0(rawDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
@@ -58,11 +59,11 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, param=NULL) {
     #try({sc1 <- autoEstCont(sc, tfidfMin=1, forceAccept=T, doPlot=FALSE)})
     sc <- autoEstContTfidfMin(sc, tfidfMin=1)
     if(length(class(sc)) == 2L){
-    if (!is.null(sc$fit) && "rho" %in% colnames(sc$metaData)){
+      if (!is.null(sc$fit) && "rho" %in% colnames(sc$metaData)){
         ctsClean <- adjustCounts(sc) ## NOTE: ctsClean might have less genes than sce
         contaminationFraction <- (colSums2(counts(sce)) - colSums2(ctsClean)) / colSums2(counts(sce))
         scData <- AddMetaData(scData, metadata = contaminationFraction, col.name = paste0("SoupX_contFrac"))
-        }
+      }
     }
   }
   return(scData)
