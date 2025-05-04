@@ -59,6 +59,11 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, param=NULL) {
                 # Create empty featInfo to allow processing to continue
                 featInfo <- data.frame(V1=character(0), V2=character(0), V3=character(0))
             }
+        }
+    } else {
+        tod <- checkAndCleanAntibody(Seurat::Read10X(rawDir, gene.column = 1))
+        featInfo <- ezRead.table(paste0(rawDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
+    }
     colnames(featInfo) <- c("ensemblID", "name", "type")
     featInfo <- featInfo[featInfo$type=='Gene Expression',]
     rownames(tod) <- gsub("_", "-", uniquifyFeatureNames(ID=featInfo$ensemblID, names=featInfo$name))
