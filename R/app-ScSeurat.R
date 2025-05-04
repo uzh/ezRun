@@ -225,7 +225,7 @@ if(!param$cellbender){
         
         if(sampleMatch > 0) {
             sampleName <- substr(countFiltMatrix, sampleMatch, 
-                               sampleMatch + attr(sampleMatch, "match.length") - 1)
+                              sampleMatch + attr(sampleMatch, "match.length") - 1)
             
             # Find any CellRangerMulti directory with this sample name
             projectDir <- dirname(dirname(dirname(countFiltMatrix)))
@@ -243,21 +243,23 @@ if(!param$cellbender){
         }
     }
     
-    # Set up directories based on path type
-    if(grepl("\\.h5$", countFiltMatrix)) {
-        cellrangerDir <- dirname(countFiltMatrix)
-        param[['cellrangerCountFiltDir']] <- dirname(countFiltMatrix)
-        param[['cellrangerCountRawDir']] <- dirname(countRawMatrix)
-    } else {
-        cellrangerDir <- countFiltMatrix
-        param[['cellrangerCountFiltDir']] <- countFiltMatrix
-        param[['cellrangerCountRawDir']] <- countRawMatrix
-    }
+    # Ensure cellrangerDir points to the directory containing features.tsv.gz
+    # For CellBender H5 files, we need to use the directory containing them
+    cellrangerDir <- dirname(countFiltMatrix)
     
+    # Store the directory containing the features.tsv.gz file
+    featuresDir <- cellrangerDir
+    
+    # Set up directories for different purposes
     param[['cellrangerDir']] <- cellrangerDir
+    param[['cellrangerCountFiltDir']] <- dirname(countFiltMatrix)
+    param[['cellrangerCountRawDir']] <- dirname(countRawMatrix)
     
-    # Look for features.tsv.gz
-    featInfo <- ezRead.table(file.path(cellrangerDir, "features.tsv.gz"), 
+    # Make sure we have the correct features file (important for ambient estimation)
+    param[['featuresDir']] <- featuresDir
+    
+    # Look for features.tsv.gz in the correct directory
+    featInfo <- ezRead.table(file.path(featuresDir, "features.tsv.gz"), 
                            header = FALSE, row.names = NULL)
 }
   featInfo <- featInfo[,1:3]  # in cases where additional column exist, e.g. CellRangerARC output
