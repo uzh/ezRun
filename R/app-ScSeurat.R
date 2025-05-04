@@ -243,24 +243,50 @@ if(!param$cellbender){
         }
     }
     
-    # Ensure cellrangerDir points to the directory containing features.tsv.gz
-    # For CellBender H5 files, we need to use the directory containing them
+    # Set up directories based on path type
     cellrangerDir <- dirname(countFiltMatrix)
     
-    # Store the directory containing the features.tsv.gz file
-    featuresDir <- cellrangerDir
+    # Find features.tsv.gz - try potential locations based on what we found
+    featuresPath <- NULL
     
-    # Set up directories for different purposes
+    if(isMulti) {
+        # Extract sample name from the path
+        sampleName <- basename(dirname(countFiltMatrix))
+        
+        # Check standard Multi paths
+        projectDir <- dirname(dirname(dirname(countFiltMatrix)))
+        multiDirs <- list.dirs(projectDir, recursive = FALSE)
+        multiDirs <- grep("CellRangerMulti", multiDirs, value = TRUE)
+        
+        for(dir in multiDirs) {
+            # Try with sample_filtered_feature_bc_matrix
+            path <- file.path(dir, sampleName, "per_sample_outs", 
+                          paste0(sampleName, "-cellRanger"), "count",
+                          "sample_filtered_feature_bc_matrix", "features.tsv.gz")
+            
+            if(file.exists(path)) {
+                featuresPath <- path
+                break
+            }
+        }
+    }
+    
+    # If not found with Multi structure or not Multi, use standard location
+    if(is.null(featuresPath) || !file.exists(featuresPath)) {
+        featuresPath <- file.path(cellrangerDir, "features.tsv.gz")
+    }
+    
     param[['cellrangerDir']] <- cellrangerDir
     param[['cellrangerCountFiltDir']] <- dirname(countFiltMatrix)
     param[['cellrangerCountRawDir']] <- dirname(countRawMatrix)
+    param[['featuresPath']] <- featuresPath
     
-    # Make sure we have the correct features file (important for ambient estimation)
-    param[['featuresDir']] <- featuresDir
-    
-    # Look for features.tsv.gz in the correct directory
-    featInfo <- ezRead.table(file.path(featuresDir, "features.tsv.gz"), 
-                           header = FALSE, row.names = NULL)
+    # Look for features.tsv.gz in the located path
+    if(!is.null(featuresPath) && file.exists(featuresPath)) {
+        featInfo <- ezRead.table(featuresPath, header = FALSE, row.names = NULL)
+    } else {
+        stop(paste0("Could not find features.tsv.gz file at: ", featuresPath))
+    }
 }
   featInfo <- featInfo[,1:3]  # in cases where additional column exist, e.g. CellRangerARC output
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
