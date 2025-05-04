@@ -32,13 +32,19 @@ addAmbientEstimateToSeurat <- function(scData, rawDir=NULL, param=NULL) {
   ## SoupX
   if (!is.null(rawDir) && file.exists(rawDir)){
     if(param$cellbender){  
-        tod <- checkAndCleanAntibody(Seurat::Read10X_h5(file.path(dirname(rawDir),'cellbender_filtered_seurat.h5') , use.names = FALSE))
-        if (dirname(param$cellrangerCountFiltDir) != dirname(param$cellrangerCountRawDir)) {
-          countMatrixToUse <- param$cellrangerCountFiltDir
+        tod <- checkAndCleanAntibody(Seurat::Read10X_h5(file.path(dirname(rawDir),'cellbender_filtered_seurat.h5'), use.names = FALSE))
+        
+        # Use featuresDir if it exists, otherwise fallback to existing logic
+        featuresPath <- if(!is.null(param$featuresDir)) {
+            file.path(param$featuresDir, "features.tsv.gz")
+        } else if (dirname(param$cellrangerCountFiltDir) != dirname(param$cellrangerCountRawDir)) {
+            file.path(param$cellrangerCountFiltDir, "features.tsv.gz")
         } else {
-          countMatrixToUse <- param$cellrangerCountRawDir
+            file.path(param$cellrangerCountRawDir, "features.tsv.gz")
         }
-        featInfo <- ezRead.table(paste0(countMatrixToUse, "/features.tsv.gz"), header = FALSE, row.names = NULL)
+        
+        featInfo <- ezRead.table(featuresPath, header = FALSE, row.names = NULL)
+    }
     } else {
         tod <- checkAndCleanAntibody(Seurat::Read10X(rawDir, gene.column = 1))
         featInfo <- ezRead.table(paste0(rawDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)#, col_names = FALSE)
