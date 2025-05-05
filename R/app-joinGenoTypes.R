@@ -53,9 +53,11 @@ runGatkPipeline = function(caseName, param=NA, datasetCaseList=NULL){
     tmpGvcf = paste0(caseName,'_temp.vcf')
     cmd = paste(GenotypeGVCF, "-R", param$genomeSeq,
                 fileCmd,
-                "--dbsnp", param$dbsnpFile,
                 "--output", tmpGvcf,
                 targetOption)
+    if(length(param$dbsnpFile) == 1){
+        cmd <- paste(cmd, "--dbsnp", param$dbsnpFile)
+    }
     ezSystem(paste(cmd,'2>',myLog))
     ezSystem(paste('mv', tmpGvcf, gvcfFile))
     ezSystem(paste('mv', paste0(tmpGvcf, ".idx"), paste0(gvcfFile, ".idx")))
