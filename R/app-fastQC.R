@@ -34,6 +34,33 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   dataset <- input$meta
   samples <- rownames(dataset)
 
+  if(any(grepl(',',dataset$Read1))){
+      ##local copy of data
+      outputFiles <- c()
+      for (j in 1:length(samples)){
+          files <- file.path(param$dataRoot, limma::strsplit2(dataset$Read1[j],','))
+          outputFile <- paste0(samples[j], '_R1.fastq.gz')
+          ezSystem(paste('touch', outputFile))
+          sapply(files, function(x) system(paste("cat", x, " >>", outputFile)))
+          outputFiles <- c(outputFiles, outputFile)
+      }
+          input$setColumn("Read1", file.path(getwd(), outputFiles))
+      if(isTRUE(param$paired)) {
+          outputFiles <- c()
+          for (j in 1:length(samples)){
+              files <- file.path(param$dataRoot, limma::strsplit2(dataset$Read2[j],','))
+              outputFile <- paste0(samples[j], '_R2.fastq.gz')
+              ezSystem(paste('touch', outputFile))
+              sapply(files, function(x) system(paste("cat", x, " >>", outputFile)))
+              outputFiles <- c(outputFiles, outputFile)
+          }
+          input$setColumn("Read2", file.path(getwd(), outputFiles))
+     }
+      ##update input
+      input <- EzDataset$new(meta=input$meta,dataRoot='')
+      dataset <- input$meta
+  }
+  
   ans4Report <- list() # a list of results for rmarkdown report
   ans4Report[["dataset"]] <- dataset
 

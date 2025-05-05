@@ -23,8 +23,34 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
       OUTPUT_PER_RG = TRUE
     )
   }
-  
-  
+  if(any(grepl(',',input$meta$Read1))){
+        dataset <- input$meta
+        samples <- rownames(dataset)
+        ##local copy of data
+        outputFiles <- c()
+        for (j in 1:length(samples)){
+            files <- file.path(param$dataRoot, limma::strsplit2(dataset$Read1[j],','))
+            outputFile <- paste0(samples[j], '_R1.fastq.gz')
+            ezSystem(paste('touch', outputFile))
+            sapply(files, function(x) system(paste("cat", x, " >>", outputFile)))
+            outputFiles <- c(outputFiles, outputFile)
+        }
+        input$setColumn("Read1", file.path(getwd(), outputFiles))
+        if(isTRUE(param$paired)) {
+            outputFiles <- c()
+            for (j in 1:length(samples)){
+                files <- file.path(param$dataRoot, limma::strsplit2(dataset$Read2[j],','))
+                outputFile <- paste0(samples[j], '_R2.fastq.gz')
+                ezSystem(paste('touch', outputFile))
+                sapply(files, function(x) system(paste("cat", x, " >>", outputFile)))
+                outputFiles <- c(outputFiles, outputFile)
+            }
+            input$setColumn("Read2", file.path(getwd(), outputFiles))
+        }
+        ##update input
+        input <- EzDataset$new(meta=input$meta,dataRoot='')
+  }
+    
   inputRaw <- ezMethodSubsampleFastq(input = input, param = param, n=param$nReads)
   param$trimAdapter <- TRUE
   param$nReads <- 0 #prevent second round of subsampling
