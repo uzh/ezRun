@@ -61,6 +61,7 @@ ezMethodScSeuratLabelClusters <- function(input = NA, output = NA, param = NA,
   library(decoupleR)
   library(Azimuth)
   library(tidyverse)
+  library(qs2)
   
   if (param$cores > 1){
     BPPARAM <- MulticoreParam(workers = param$cores)
@@ -98,9 +99,9 @@ ezMethodScSeuratLabelClusters <- function(input = NA, output = NA, param = NA,
   names(labelMap) <- as.character(clusterAnno$Cluster)
   
   # load cell data
-  allCellsMeta <- readRDS(file.path(input$getFullPaths("SC Cluster Report"), "allCellsMeta.rds"))
-  scData <- readRDS(input$getFullPaths("SC Seurat"))
-  param_scSeurat <- readRDS(file.path(dirname(input$getFullPaths("SC Seurat")), 'param.rds'))
+  allCellsMeta <- ezLoadRobj(file.path(input$getFullPaths("SC Cluster Report"), "allCellsMeta.rds"))
+  scData <- ezLoadRobj(input$getFullPaths("SC Seurat"), nthreads=nparam$cores)
+  param_scSeurat <- ezLoadRobj(file.path(dirname(input$getFullPaths("SC Seurat")), 'param.rds'))
   param$npcs <- param_scSeurat$npcs
   param$nfeatures <- param_scSeurat$nfeatures
   # change labels and store in a variable
@@ -128,6 +129,7 @@ ezMethodScSeuratLabelClusters <- function(input = NA, output = NA, param = NA,
   clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
   clusterInfoFile <- "clusterInfos.xlsx"
   writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
+  qs_save(scData, "scData.qs2", nthreads = param$cores)
   
   makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, 
                 enrichRout=anno$enrichRout, cells.AUC=anno$cells.AUC, 
