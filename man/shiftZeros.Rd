@@ -4,7 +4,7 @@
 \alias{shiftZeros}
 \title{Shifts zeros}
 \usage{
-shiftZeros(counts, minSignal)
+shiftZeros(counts, minSignal, seed = 42)
 }
 \arguments{
 \item{counts}{a set of numeric or integer values.}
