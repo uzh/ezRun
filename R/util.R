@@ -914,3 +914,54 @@ ezLoadPackage <- function(packageName){
         library(packageName, character.only = TRUE)
     })
 }
+
+##' @title Load R objects from various serialized formats
+##' @description
+##' This function loads R objects from files with different extensions (.qs2, .qs, .rds)
+##' by automatically detecting the file format based on the extension.
+##' @param filePath Character string specifying the path to the R object file.
+##' @return The R object stored in the file.
+##' @details
+##' The function checks if the required packages are available (qs2, qs)
+##' and loads the appropriate package for the file extension.
+##' Supported formats:
+##' \itemize{
+##'   \item .qs2 - Uses qs2::qread() for fastest serialization
+##'   \item .qs - Uses qs::qread() for fast serialization
+##'   \item .rds - Uses base::readRDS() for standard R serialization
+##' }
+##' @template roxygen-template
+##' @examples
+##' \dontrun{
+##' # Load a qs2 file
+##' my_object <- ezLoadRobj("path/to/data.qs2")
+##'
+##' # Load a qs file
+##' my_object <- ezLoadRobj("path/to/data.qs")
+##'
+##' # Load an rds file
+##' my_object <- ezLoadRobj("path/to/data.rds")
+##' }
+ezLoadRobj <- function(filePath) {
+  qs2Available <- require(qs2)
+  qsAvailable <- require(qs)
+  
+  # Extract file extension
+  fileExt <- tolower(tools::file_ext(filePath))
+  
+  # Check if file exists
+  stopifnot("File does not exist" = file.exists(filePath))
+  
+  # Load based on file extension
+  if (fileExt == "qs2") {
+    stopifnot("Package 'qs2' is required to load .qs2 files. Please install it with: install.packages('qs2')" = qs2Available)
+    return(qs2::qread(filePath))
+  } else if (fileExt == "qs") {
+    stopifnot("Package 'qs' is required to load .qs files. Please install it with: install.packages('qs')" = qsAvailable)
+    return(qs::qread(filePath))
+  } else if (fileExt == "rds") {
+    return(readRDS(filePath))
+  } else {
+    stop("Unsupported file extension: ", fileExt, ". Supported extensions are: qs2, qs, rds")
+  }
+}
