@@ -152,7 +152,7 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   require(GenomicFeatures)
   
   data <- c()
-  tryCatch(expr = {data = ezRead.table(peakFile, comment.char = "#", row.names = NULL)}, 
+  tryCatch(expr = {data = ezRead.table(sub('.xlsx$', '.xls', peakFile), comment.char = "#", row.names = NULL)}, 
            error = function(e){message(paste("No peaks detected. Skip peak annotation"))})
   if (is.null(data) | nrow(data) == 0){
     return('No peaks detected. Skip peak annotation')
