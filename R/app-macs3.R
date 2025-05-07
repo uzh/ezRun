@@ -160,7 +160,7 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   data = data[order(data$chr,data$start), ]
   
   if(!param$annotatePeaks){
-    ezWrite.table(data, peakFile, row.names = F)
+     writexl::write_xlsx(data, peakFile)
     return('done')
   }
   
@@ -192,7 +192,7 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
                                         AnnotationData = gtf,
                                         output='nearestStart',
                                         multiple=FALSE,
-                                        FeatureLocForDistance='TSS')}, error = function(e) {ezWrite.table(data, peakFile, row.names = F); return('no valid peaks for annotation')})
+                                        FeatureLocForDistance='TSS')}, error = function(e) {writexl::write_xlsx(data, peakFile); return('no valid peaks for annotation')})
   
   annotatedPeaks = as.data.frame(annotatedPeaks)
   annotatedPeaks = annotatedPeaks[ , c("peak", "feature", "feature_strand",
@@ -221,7 +221,6 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   annotatedPeaks <- merge(annotatedPeaks, annot_ChIPseeker, by.x = 'name', by.y = 'name', all.x = TRUE)
   annotatedPeaks <- annotatedPeaks[!duplicated(annotatedPeaks$name),]
   annotatedPeaks <- annotatedPeaks[order(annotatedPeaks[['_-log10(pvalue)']],decreasing=TRUE),]
-  
   writexl::write_xlsx(annotatedPeaks, peakFile)
   return('done')
 }
