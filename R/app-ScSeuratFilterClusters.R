@@ -141,10 +141,11 @@ ezMethodScSeuratFilterClusters <- function(input = NA, output = NA, param = NA,
     ## defaultAssay is now SCT
     scData <- seuratStandardWorkflow(scData, param, ident.name="seurat_clusters")
   }
-
-  if ("cellType" %in% colnames(scData@meta.data)) {
-    # in case where the input dataset is labeled
-    Idents(scData) <- scData$cellType
+  
+  # use this column to calculate the markers again. Useful when working on a
+  # dataset that is already labeled and you would like to re-use the labels
+  if (ezIsSpecified(param$identityColumn)) {
+    Idents(scData) <- scData@meta.data[[param$identityColumn]]
   }
   
   # get markers and annotations
