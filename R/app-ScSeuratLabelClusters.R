@@ -61,8 +61,7 @@ ezMethodScSeuratLabelClusters <- function(input = NA, output = NA, param = NA,
   library(decoupleR)
   library(Azimuth)
   library(tidyverse)
-  library(qs2)
-  
+
   if (param$cores > 1){
     BPPARAM <- MulticoreParam(workers = param$cores)
   } else {
