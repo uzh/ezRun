@@ -193,7 +193,10 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
                                         output='nearestStart',
                                         multiple=FALSE,
                                         FeatureLocForDistance='TSS')}, error = function(e) {writexl::write_xlsx(data, peakFile); return('no valid peaks for annotation')})
-  
+  if (!exists('annotatedPeaks')){
+    writexl::write_xlsx(data, peakFile)
+    return('no valid peaks for annotation')
+  }
   annotatedPeaks = as.data.frame(annotatedPeaks)
   annotatedPeaks = annotatedPeaks[ , c("peak", "feature", "feature_strand",
                                        "start_position", "end_position",
