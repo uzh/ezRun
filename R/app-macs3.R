@@ -7,7 +7,7 @@
 
 
 ezMethodMacs3 = function(input=NA, output=NA, param=NA){
-  opt = param$cmdOptions
+  opt = paste(param$cmdOptions, '-q', param$qValue)
   if(param$paired)
     opt = paste(opt,'-f BAMPE')
   ## With BAMPE file, --shift cannot be set.
@@ -15,7 +15,7 @@ ezMethodMacs3 = function(input=NA, output=NA, param=NA){
   
   ## -g option: mappable genome size
   ## TODO: the MACS3 defaults should be used or the user should be asked
-  if(!grepl("-g", opt)){
+  if(param$genomeSize == 0){
     gsize <- sum(as.numeric(fasta.seqlengths(param$ezRef["refFastaFile"])))
     gsize <- round(gsize * 0.8)
     message("Use calculated gsize: ", gsize)
@@ -25,6 +25,7 @@ ezMethodMacs3 = function(input=NA, output=NA, param=NA){
   if(!grepl("--keep-dup", opt)){
     opt <- paste(opt, "--keep-dup all")
   }
+  
   
   if(param$mode == "ChIP-seq"){
     ## --extsize: extend reads in 5'->3' direction to fix-sized fragments when model building is deactivated.
@@ -81,6 +82,8 @@ ezMethodMacs3 = function(input=NA, output=NA, param=NA){
     if(!grepl("--extsize", opt)){
       ## https://github.com/taoliu/MACS/issues/145
       opt <- paste(opt, "--extsize 200")
+    } else {
+      opt <- gsub("--extsize 147", "--extsize 200", opt)
     }
     
     ## Preprocess ATAC-seq bam file
@@ -128,7 +131,9 @@ EzAppMacs3 <-
                   name <<- "EzAppMacs3"
                   appDefaults <<- rbind(useControl=ezFrame(Type="logical", DefaultValue="TRUE",	Description="should control samples be used"),
                                         shiftATAC=ezFrame(Type="logical", DefaultValue="FALSE",	Description="should all reads aligning to + strand were offset by +4bp, all reads aligning to the - strand are offset -5 bp"),
-                                        annotatePeaks=ezFrame(Type="logical", DefaultValue="TRUE",	Description="use gtf to annotate peaks"))
+                                        annotatePeaks=ezFrame(Type="logical", DefaultValue="TRUE",	Description="use gtf to annotate peaks"),
+                                        genomeSize=ezFrame(Type="numeric", DefaultValue=0,	Description="genome size"),
+                                        qValue=ezFrame(Type="numeric", DefaultValue=0.05,	Description="The q-value (minimum FDR) cutoff to call significant regions."))
                 }
               )
   )
@@ -149,8 +154,8 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   data <- c()
   tryCatch(expr = {data = ezRead.table(peakFile, comment.char = "#", row.names = NULL)}, 
            error = function(e){message(paste("No peaks detected. Skip peak annotation"))})
-  if (is.null(data)){
-    return(NULL)
+  if (is.null(data) | nrow(data) == 0){
+    return('No peaks detected. Skip peak annotation')
   }
   data = data[order(data$chr,data$start), ]
   
@@ -160,7 +165,7 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   }
   
   gtfFile = param$ezRef@refFeatureFile
-  myTxDB <- makeTxDbFromGFF(file=gtfFile, format='gtf')
+  myTxDB <- txdbmaker::makeTxDbFromGFF(file=gtfFile, format='gtf')
   
   gtf <- rtracklayer::import(gtfFile)
   if('gene' %in% unique(gtf$type)){
@@ -183,11 +188,12 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   peaksRD = makeGRangesFromDataFrame(data, keep.extra.columns = TRUE)
   names(peaksRD) = mcols(peaksRD)$name
   annot_ChIPseeker <- annotatePeak(peaksRD, TxDb=myTxDB, tssRegion=c(-1000, 1000), verbose=FALSE)
-  annotatedPeaks <- annotatePeakInBatch(peaksRD,
+  tryCatch({annotatedPeaks <- annotatePeakInBatch(peaksRD,
                                         AnnotationData = gtf,
                                         output='nearestStart',
                                         multiple=FALSE,
-                                        FeatureLocForDistance='TSS')
+                                        FeatureLocForDistance='TSS')}, error = function(e) {ezWrite.table(data, peakFile, row.names = F); return('no valid peaks for annotation')})
+  
   annotatedPeaks = as.data.frame(annotatedPeaks)
   annotatedPeaks = annotatedPeaks[ , c("peak", "feature", "feature_strand",
                                        "start_position", "end_position",
