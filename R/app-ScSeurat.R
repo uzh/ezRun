@@ -181,14 +181,14 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     cmDir <- file.path(cmDir, param$geneCountModel)
   }
   if(grepl('h5$',cmDir[1])){
-      param$cellbender = TRUE
+    param$cellbender = TRUE
   } else {
-      param$cellbender = FALSE 
+    param$cellbender = FALSE 
   }
-if(!param$cellbender){
+  if(!param$cellbender){
     cts <- Read10X(cmDir, gene.column = 1)
     featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
-} else if(param$cellbender){
+  } else if(param$cellbender){
     # Read the cellbender H5 file
     cts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_filtered_seurat.h5'), use.names = FALSE)
     
@@ -206,40 +206,40 @@ if(!param$cellbender){
     
     # Get path for raw matrix - create fallback if needed
     countRawMatrix <- if(length(rawCol) > 0) {
-        inputDS$getFullPaths(rawCol[1])[input$getNames()]
+      inputDS$getFullPaths(rawCol[1])[input$getNames()]
     } else {
-        file.path(dirname(countFiltMatrix), 'cellbender_raw_seurat.h5')
+      file.path(dirname(countFiltMatrix), 'cellbender_raw_seurat.h5')
     }
-    
+  
     # Better multi detection without hardcoded project IDs
     isMulti <- FALSE
     
     # Check direct indicators first
     if(grepl("per_sample_outs|CellRangerMulti", countFiltMatrix)) {
-        isMulti <- TRUE
+      isMulti <- TRUE
     } else {
-        # Extract sample name from path
-        samplePattern <- "([0-9]+_Plate_[0-9]+_[0-9]+)"
-        sampleMatch <- regexpr(samplePattern, countFiltMatrix)
+      # Extract sample name from path
+      samplePattern <- "([0-9]+_Plate_[0-9]+_[0-9]+)"
+      sampleMatch <- regexpr(samplePattern, countFiltMatrix)
+      
+      if(sampleMatch > 0) {
+        sampleName <- substr(countFiltMatrix, sampleMatch, 
+                          sampleMatch + attr(sampleMatch, "match.length") - 1)
         
-        if(sampleMatch > 0) {
-            sampleName <- substr(countFiltMatrix, sampleMatch, 
-                              sampleMatch + attr(sampleMatch, "match.length") - 1)
-            
-            # Find any CellRangerMulti directory with this sample name
-            projectDir <- dirname(dirname(dirname(countFiltMatrix)))
-            multiDirs <- list.dirs(projectDir, recursive = FALSE)
-            multiDirs <- grep("CellRangerMulti", multiDirs, value = TRUE)
-            
-            # Check each potential directory
-            for(dir in multiDirs) {
-                possiblePath <- file.path(dir, sampleName)
-                if(dir.exists(possiblePath)) {
-                    isMulti <- TRUE
-                    break
-                }
-            }
+        # Find any CellRangerMulti directory with this sample name
+        projectDir <- dirname(dirname(dirname(countFiltMatrix)))
+        multiDirs <- list.dirs(projectDir, recursive = FALSE)
+        multiDirs <- grep("CellRangerMulti", multiDirs, value = TRUE)
+        
+        # Check each potential directory
+        for(dir in multiDirs) {
+          possiblePath <- file.path(dir, sampleName)
+          if(dir.exists(possiblePath)) {
+            isMulti <- TRUE
+            break
+          }
         }
+      }
     }
     
     # Set up directories based on path type
@@ -249,25 +249,25 @@ if(!param$cellbender){
     featuresPath <- NULL
     
     if(isMulti) {
-        # Extract sample name from the path
-        sampleName <- basename(dirname(countFiltMatrix))
+      # Extract sample name from the path
+      sampleName <- basename(dirname(countFiltMatrix))
+      
+      # Check standard Multi paths
+      projectDir <- dirname(dirname(dirname(countFiltMatrix)))
+      multiDirs <- list.dirs(projectDir, recursive = FALSE)
+      multiDirs <- grep("CellRangerMulti", multiDirs, value = TRUE)
+      
+      for(dir in multiDirs) {
+        # Try with sample_filtered_feature_bc_matrix
+        path <- file.path(dir, sampleName, "per_sample_outs", 
+                      paste0(sampleName, "-cellRanger"), "count",
+                      "sample_filtered_feature_bc_matrix", "features.tsv.gz")
         
-        # Check standard Multi paths
-        projectDir <- dirname(dirname(dirname(countFiltMatrix)))
-        multiDirs <- list.dirs(projectDir, recursive = FALSE)
-        multiDirs <- grep("CellRangerMulti", multiDirs, value = TRUE)
-        
-        for(dir in multiDirs) {
-            # Try with sample_filtered_feature_bc_matrix
-            path <- file.path(dir, sampleName, "per_sample_outs", 
-                          paste0(sampleName, "-cellRanger"), "count",
-                          "sample_filtered_feature_bc_matrix", "features.tsv.gz")
-            
-            if(file.exists(path)) {
-                featuresPath <- path
-                break
-            }
+        if(file.exists(path)) {
+          featuresPath <- path
+          break
         }
+      }
     }
     
     # If not found with Multi structure or not Multi, use standard location
@@ -286,7 +286,8 @@ if(!param$cellbender){
     } else {
         stop(paste0("Could not find features.tsv.gz file at: ", featuresPath))
     }
-}
+  }
+  
   featInfo <- featInfo[,1:3]  # in cases where additional column exist, e.g. CellRangerARC output
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
