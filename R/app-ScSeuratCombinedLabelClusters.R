@@ -64,11 +64,8 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   reportCwd <- getwd()
   
   #the individual sce objects can be in hdf5 format (for new reports) or in rds format (for old reports)
-  filePath <- file.path(input$getFullPaths("Report"), 'scData.qs2')
-  if (!file.exists(filePath[1])) {
-    filePath <- file.path(input$getFullPaths("Report"), 'scData.rds')
-  }
-  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", input$getColumn("Report"), 'scData.qs2')
+  filePath <- input$getFullPaths("SeuratObject")
+  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", input$getColumn("SeuratObject"))
   
   if (!file.exists(filePath[1])) {
     filePath <- filePath_course
@@ -77,12 +74,8 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   stopifnot("App only supports single integrated dataset!" = length(input$getNames()) == 1)
   
   # Load previous dataset
-  if (str_ends(filePath, "qs2")) {
-    scData <- qs_read(filePath, nthreads=param$cores)
-  } else {
-    scData <- readRDS(filePath)
-  }
-  oldParams <- readRDS(file.path(input$getFullPaths("Report"), "param.rds"))
+  scData <- ezLoadRobj(filePath, nthreads=param$cores)
+  oldParams <- ezLoadRobj(file.path(input$getFullPaths("Report"), "param.rds"))
   param <- ezUpdateMissingParam(param, oldParams)
   param$refBuild <- oldParams$refBuild
 
