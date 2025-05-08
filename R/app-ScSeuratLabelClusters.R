@@ -128,7 +128,7 @@ ezMethodScSeuratLabelClusters <- function(input = NA, output = NA, param = NA,
   clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
   clusterInfoFile <- "clusterInfos.xlsx"
   writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
-  qs_save(scData, "scData.qs2", nthreads = param$cores)
+  qs2::qs_save(scData, "scData.qs2", nthreads = param$cores)
   
   makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, 
                 enrichRout=anno$enrichRout, cells.AUC=anno$cells.AUC, 

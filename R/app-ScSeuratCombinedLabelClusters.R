@@ -112,7 +112,7 @@ ezMethodScSeuratCombinedLabelClusters = function(input=NA, output=NA, param=NA, 
   
   # save the markers
   writexl::write_xlsx(anno$markers, path="posMarkers.xlsx")
-  qs_save(scData, "scData.qs2", nthreads = param$cores)
+  qs2::qs_save(scData, "scData.qs2", nthreads = param$cores)
   
   # Save some results in external files
   reportTitle <- 'SCReport - MultipleSamples based on Seurat'
