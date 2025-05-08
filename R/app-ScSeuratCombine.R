@@ -82,8 +82,8 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(decoupleR)
   library(Azimuth)
   library(BiocParallel)
-  library(qs2)
   require(future)
+  
   plan("multicore", workers = param$cores)
   set.seed(38)
   future.seed = TRUE
@@ -98,16 +98,10 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   on.exit(setwd(cwd), add=TRUE)
   reportCwd <- getwd()
   message("Attempting to load Seurat data...")
-  param$rdsFile <- FALSE
-  filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Cluster Report"), 'scData.qs2')
-  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", input$getColumn("SC Cluster Report"), 'scData.qs2')
+  filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Seurat"))
+  filePath_course <- file.path("/srv/GT/analysis/course_sushi/public/projects", input$getColumn("SC Seurat"))
   if(!file.exists(filePath[1])){
-      filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Cluster Report"), 'scData.rds')
-      if(file.exists(filePath[1])){
-        param$rdsFile <- TRUE
-      } else {
-          filePath <- filePath_course
-        }
+      filePath <- filePath_course
   }
   names(filePath) <- input$getNames()
   
@@ -117,11 +111,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   # Load the data and prepare metadata for integration
   scDataList <- lapply(names(filePath), function(sm) {
-      if(param$rdsFile){
-          scData <- readRDS(filePath[sm])
-      } else {
-          scData <- qs_read(filePath[sm], nthreads=param$cores)
-      }
+    scData <- ezLoadRobj(filePath[sm], nthreads=param$cores)
     aziFilePath <- file.path(dirname(filePath[sm]),'aziResults.rds')
     if(file.exists(aziFilePath)){
         aziResults <- readRDS(aziFilePath)
@@ -189,7 +179,7 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
   
   # save the markers
   writexl::write_xlsx(results$markers, path="posMarkers.xlsx")
-  qs_save(results$scData, "scData.qs2", nthreads = param$cores)
+  qs2::qs_save(results$scData, "scData.qs2", nthreads = param$cores)
   
   # Save some results in external files
   reportTitle <- 'SCReport - MultipleSamples based on Seurat'
