@@ -63,7 +63,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
       for (fileLevelDir in sampleNameFQ) {
               setwd(fileLevelDir)
               cmd <- paste('rename', 
-                           paste0('s/', basename(fileLevelDir),'/',sampleName, '/g'), 
+                           paste0('s/^', basename(fileLevelDir),'/',sampleName, '/g'), 
                            paste0(basename(fileLevelDir),'*.gz'))
               ezSystem(cmd)
           }
