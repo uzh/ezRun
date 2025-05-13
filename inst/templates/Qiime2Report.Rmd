@@ -795,7 +795,7 @@ See here for QIIME2 ANCOM Interactive Report run on ASV level, not on Genus leve
 
 
 ```{r, echo=FALSE}
-res<- ANCOMBC::ancombc(phyloseq = physeq1,
+res<- ANCOMBC::ancombc2(data = physeq1,
                  formula = grouping, 
                  tax_level = "Genus",
                  p_adj_method = "BH", 
