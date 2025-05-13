@@ -796,17 +796,15 @@ See here for QIIME2 ANCOM Interactive Report run on ASV level, not on Genus leve
 
 ```{r, echo=FALSE}
 res<- ANCOMBC::ancombc2(data = physeq1,
-                 formula = grouping, 
+                 fix_formula = "grouping", 
                  tax_level = "Genus",
                  p_adj_method = "BH", 
                  lib_cut = 0, 
                  prv_cut = 0.1,
-                 group = grouping, 
+                 group = "grouping", 
                  struc_zero = TRUE, 
                  neg_lb = TRUE, 
-                 tol = 1e-5, 
-                 max_iter = 100, 
-                 conserve = TRUE, 
+                 iter_control = list(tol = 1e-5, max_iter = 100, verbose = TRUE), 
                  alpha = 0.05, 
                  global = TRUE)
 ```
