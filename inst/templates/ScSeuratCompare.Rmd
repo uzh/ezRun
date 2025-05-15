@@ -160,6 +160,7 @@ tryCatch({
     stop(e)
   }
 })
+```
 
 ```{r diffGenes table, eval=diffGenesPresent, results='asis'}
 cat("### Differential Expression")
@@ -169,7 +170,7 @@ cat(paste0("After identifying common cell types across conditions, we can look f
 
 cat("\n")
 
-diffGenesTable <- diffGenes[diffGenes$p_val_adj<0.05, ]  #too many genes make the interactive table slow
+diffGenesTable <- diffGenes[!is.na(diffGenes$p_val_adj) & diffGenes$p_val_adj<0.05,]  #too many genes make the interactive table slow
 diffGenesTable <- diffGenesTable[order(abs(diffGenesTable$avg_log2FC), decreasing = TRUE), ]
 cutoff <- 1000
 
