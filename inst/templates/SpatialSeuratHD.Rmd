@@ -1,0 +1,398 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+author: "Functional Genomics Center Zurich"
+output: 
+  html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
+    includes:
+     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+editor_options: 
+  chunk_output_type: console
+---
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+
+```{r setup, include=FALSE}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(RColorBrewer)
+library(kableExtra)
+library(clustree)
+library(ezRun)
+library(scater)
+library(SingleCellExperiment)
+library(enrichR)
+library(SCpubr)
+library(qs2)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
+```
+
+```{r}
+posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
+param <- qs_read("param.qs2")
+input <- qs_read("input.qs2")
+output <- qs_read("output.qs2")
+scData <- qs_read("scData.qs2")
+scData.unfiltered_spatial <- qs_read("scData.unfiltered.qs2")
+imageName <- names(scData@images)
+#names(scData.unfiltered_spatial@images) <- imageName
+#scData.unfiltered_spatial@images[[imageName]]@scale.factors$lowres=scData@images[[imageName]]@scale.factors$lowres
+#scDataRaw <- readRDS("scData.raw.rds")
+allCellsMeta <- qs_read("allCellsMeta.qs2")
+sampleName <- input$getNames()
+
+if (file.exists("cellsPerGeneFraction.qs2")){
+    cellsPerGeneFraction <-  qs_read("cellsPerGeneFraction.qs2")
+} else {
+  cellsPerGeneFraction <- NULL
+}
+
+enrichRout <- NULL
+aziResults <- NULL
+
+# Process the posMarkers
+posMarkers$gene = as.factor(posMarkers$gene)
+# make sure the loaded cluster uses proper integer ordering if all levels are integer!
+clusterSet <- posMarkers$cluster %>% as.integer() %>% unique() %>% sort(na.last=TRUE)
+if (any(is.na(clusterSet))){
+  posMarkers$cluster = as.factor(posMarkers$cluster)
+} else {
+  posMarkers$cluster = factor(posMarkers$cluster, levels=clusterSet)
+}
+posMarkers$p_val_adj[posMarkers$p_val_adj==0] <- min(posMarkers$p_val_adj[posMarkers$p_val_adj>0])
+```
+
+## Analysis results {.tabset}
+
+### Quality control
+
+#### Selected QC metrics
+
+We use several common QC metrics to identify low-quality bins based on their expression profiles. The metrics that were chosen are described below.
+
+1. The library size is defined as the total sum of counts across all relevant features for each spot. Bins with small library sizes are of low quality as the RNA has been lost at some point during library preparation.
+2. The number of expressed features in each spot is defined as the number of genes with non-zero counts for that spot. Any spot with very few expressed genes is likely to be of poor quality as the diverse transcript population has not been successfully captured.
+3. The proportions of mitochondrial genes per spot. High proportions are indicative of poor-quality bins (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated bins.
+
+<br/>
+
+```{r}
+xxAll <- SingleCellExperiment(colData = allCellsMeta)
+xxAll$discard <- !xxAll$useCell
+colData(xxAll)$Sample<- sampleName
+scData.unfiltered <- CreateSeuratObject(ezMatrix(0, rows=1:10, cols=rownames(allCellsMeta)), meta.data = allCellsMeta)
+scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
+```
+
+
+
+#### Diagnostic plots
+
+A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of bins will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of bins in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
+The violin plots represent the bins that were kept (FALSE) and the ones that were discarded (TRUE) after QC filtering. The QC metrics were also plot onto the tissue section.
+
+```{r QC plots1, fig.height=4}
+plotColData(xxAll, x="Sample", y="nCount_Spatial.016um", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
+```
+
+```{r QC plots2, fig.height=6}
+
+plotColData(xxAll, x="Sample", y="nFeature_Spatial.016um", colour_by="discard") + ggtitle("Detected genes")
+plotColData(xxAll, x="nCount_Spatial.016um", y="nFeature_Spatial.016um", colour_by="discard")+ scale_x_log10() + scale_y_log10()
+
+xxAll$genePerCount <- xxAll$nFeature_Spatial.016um / xxAll$nCount_Spatial.016um
+plotColData(xxAll, x="Sample", y="genePerCount", colour_by="discard") + ggtitle("Detected genes")
+plotColData(xxAll, x="nCount_Spatial.016um", y="genePerCount", colour_by="discard")+ scale_x_log10() + xlim(1, 10000) + ylim(0.2, 0.8)
+
+plotColData(xxAll, x="Sample", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
+plotColData(xxAll, x="nCount_Spatial.016um", y="percent_mito", colour_by="discard")+ scale_x_log10()
+
+if (!is.null(xxAll$percent_riboprot)){
+  print(plotColData(xxAll, x="Sample", y="percent_riboprot", colour_by="discard") + ggtitle("Ribosomal percent"))
+  print(plotColData(xxAll, x="nCount_Spatial.016um", y="percent_riboprot", colour_by="discard")+ scale_x_log10())
+}
+```
+
+**Spatial QC Plots** 
+
+```{r QC plots3, fig.width=20, fig.height=10}
+#if(any(is.nan(scData.unfiltered_spatial$percent_mito))){
+#  toKeep <- rownames(scData.unfiltered_spatial@meta.data)[-which(is.nan(scData.unfiltered_spatial$percent_mito))]
+#  scData.unfiltered_spatial <- subset(scData.unfiltered_spatial, cells = toKeep)
+#}
+plot5 <- SpatialFeaturePlot(scData, features = "nCount_Spatial.016um", pt.size.factor =  2) + theme(legend.position = "right")
+plot6 <- SpatialFeaturePlot(scData, features = "nFeature_Spatial.016um",  pt.size.factor =  2) + theme(legend.position = "right")
+plot7 <- SpatialFeaturePlot(scData, features = "percent_mito",  pt.size.factor =  2) + theme(legend.position = "right")
+plot8 <- SpatialFeaturePlot(scData, features = "percent_riboprot",  pt.size.factor =  2) + theme(legend.position = "right") 
+plot6 + plot8 + plot7 + plot5 + plot_layout(nrow = 2, ncol = 2)
+```
+<br/>
+
+#### Bins filtering
+
+A standard approach is to filter bins with a low amount of reads as well as genes that are present in at least a certain amount of bins. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying bins, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality bins. 
+When the parameter values of nreads, ngenes, perc_mito and perc_ribo are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding bins that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Bins with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
+
+<div class = "row">
+<div class = "col-md-6">
+```{r low quality Bins}
+library(UpSetR)
+qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
+qcList <- qcList[sapply(qcList, length) > 0]
+if (length(qcList) > 1){
+  UpSetR::upset(fromList(qcList), nsets = 5)
+}
+```
+</div>
+
+<div class = "col-md-6">
+```{r echo=FALSE}
+qcStats <- ezFrame("Number of Bins"=integer(0), 
+                   "Min Pass Value"=integer(0), 
+                   "Max Pass Value"=integer(0), 
+                   Fraction = integer(0))
+qcStats[ "Library Size", ] <- c(
+  c(sum(allCellsMeta$qc.lib), range(allCellsMeta$nCount_Spatial[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.lib)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Expressed genes", ] <- c(
+  c(sum(allCellsMeta$qc.nexprs), range(allCellsMeta$nFeature_Spatial[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.nexprs)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Mitochondrial Percent", ] <- c(
+  c(sum(allCellsMeta$qc.mito), range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.mito)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Ribosomal protein Percent", ] <- c(
+  c(sum(allCellsMeta$qc.ribo), range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.ribo)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Total removed (thresholding)", ] <- c(
+  sum(!allCellsMeta$useCell), 
+  NA, 
+  NA, 
+  round(sum(!allCellsMeta$useCell)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Total removed (manual)", ] <- c(
+  sum(allCellsMeta$useCell) - ncol(scData), 
+  NA, 
+  NA, 
+  round((sum(allCellsMeta$useCell) - ncol(scData))/nrow(allCellsMeta), 2)
+)
+qcStats[ "Bins remaining", ] <- c(
+  sum(ncol(scData)), 
+  NA, 
+  NA, 
+  round(sum(ncol(scData))/nrow(allCellsMeta), 2)
+)
+
+kable(qcStats,
+      row.names=TRUE,
+      caption="Number of Bins removed") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% kableExtra::group_rows(group_label = "Bins Removed by QC Thresholds", start_row = 1, end_row = 5)
+```
+</div>
+</div>
+<br/>
+
+
+#### Gene filtering
+
+We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r 100*param$cellsFraction` % of the bins. In case one or more rare cell populations are expected we might need to decrease the percentage of bins.
+
+```{r, fig.align='center', fig.width=14}
+cat("total genes:", nrow(cellsPerGeneFraction), "\n")
+cat("genes kept:", nrow(scData), ", fraction:", round(nrow(scData)/nrow(cellsPerGeneFraction), digits = 2), " \n")
+if(!is.null(cellsPerGeneFraction)) {
+    p = ggplot(cellsPerGeneFraction, aes(frac)) + geom_histogram(
+        aes(y = after_stat(density)),
+        colour = "black",
+        fill = "white",
+        binwidth = 0.005
+    )
+    p = p + geom_vline(
+        aes(xintercept = param$cellsFraction),
+        color = "red",
+        linetype = "dashed",
+        size = 1
+    )
+    p = p + geom_density(alpha = .2, fill = "#FF6666") + labs(x = "Fraction") + ggtitle('Fraction of Bins per gene')
+    p
+}
+```
+
+#### Dimensionality reduction
+
+Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
+
+The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
+
+```{r, fig.align='center', fig.width=14}
+pct <- scData[["pca.sketch"]]@stdev / sum(scData[["pca.sketch"]]@stdev) * 100
+cumu <- cumsum(pct)
+plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
+
+# Elbow plot
+p <- ggplot(plot_df, aes(cumu, pct, label = rank, color = rank > param$npcs))
+p <- p + geom_vline(xintercept = cumu[param$npcs], color = "grey") + geom_text() 
+p <- p + xlab(paste("Variance based on 80 PCs of", param$nfeatures, "features")) +  ylab("Cumulative variance in % explained per PC") 
+p <- p + theme_bw() + labs(color = paste("PC >", param$npcs)) + theme(legend.position = "bottom")
+p <- p + annotate(geom="text", y=max(plot_df$pct), x=max(plot_df$cumu[param$npcs]), label=paste('Variance used:', round(plot_df$cumu[param$npcs], digits = 2), '%'), color="red")
+p
+```
+
+<br/>
+
+
+### Clustering
+
+In order to find clusters of bins we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the bins involved, with higher weight given to bins that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of bins that are more connected to bins in the same community than they are to bins of different communities. Each community represents a cluster that we can use for downstream interpretation. 
+
+We can visualize the distribution of clusters in UMAP and image space. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
+
+```{r, fig.height=8, fig.width=20}
+scData$seurat_clusters <- Idents(scData)
+
+p1 <- DimPlot(scData, label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
+p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 4)
+p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor =  2) + labs(fill = "seurat_clusters")
+
+p1 + p2 + plot_annotation(
+) + plot_layout(nrow = 1)
+```
+<br/><br/>
+
+The number of bins in each cluster and sample is represented in this barplot.
+
+<br/>
+
+<div class = "row">
+<div class = "col-md-6">
+```{r number of cells in each cluster}
+if(!('Batch' %in% colnames(scData@meta.data))){
+    scData@meta.data$Batch <- scData@meta.data$Sample
+}
+cellIdents_perSample <- as.data.frame(scData@meta.data[,c('seurat_clusters', 'Batch')])
+barplot = ggplot(data=cellIdents_perSample, aes(x=seurat_clusters, fill=Batch)) + geom_bar(stat="Count") +NoLegend()
+barplot + labs(x="Cluster", y = "Number of Bins", fill = "Batch")
+```
+</div>
+
+<div class = "col-md-6">
+```{r, echo=FALSE}
+cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Batch")
+kable(cells_prop, row.names=FALSE, format="html", caption="Spot proportions") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+</div>
+</div>
+<br/>
+
+### Cluster assessment
+
+
+#### Segregation of clusters by various sources of uninteresting variation.
+
+Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial or ribosomal gene expression.
+We can explore whether the bins cluster by the different cell cycle phases. In such a case, we would have clusters where most of the bins would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
+
+```{r uninteresting variation, fig.height=12, fig.width=20}
+plot1 <- VlnPlot(scData, features="nCount_Spatial.016um", group.by="seurat_clusters") + ggtitle("Number of UMIs vs cluster") + 
+  NoLegend()
+plot2 <- VlnPlot(scData, features = "nFeature_Spatial.016um", group.by="seurat_clusters", pt.size = 0.1) + 
+  ggtitle("Number of genes vs cluster") +
+  NoLegend()
+plot3 <- VlnPlot(scData, features = "percent_mito",  group.by ="seurat_clusters", pt.size = 0.1) + 
+  ggtitle("Mitochondrial percentage vs cluster") +
+  NoLegend()
+
+plot1 + plot2 + plot3 + plot_layout(nrow = 2, ncol = 2)
+```
+
+### Cluster markers
+
+```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
+cat("We found positive markers that defined clusters compared to all other bins via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the bins in the tested cluster and the rest of the bins and an adjusted p-value < 0.05 were declared as significant.")
+```
+
+```{r LR test, eval=(param$DE.method=="LR"), results='asis'}
+cat("We found positive markers that defined clusters compared to all other bins via differential expression using a logistic regression test and including in the model the cell cycle as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the bins in the tested cluster and the rest of the bins and an adjusted p-value < 0.05 were declared as significant.")
+```
+
+```{r pos markers}
+ezInteractiveTableRmd(data.frame(posMarkers), digits=10)
+```
+
+### EnrichR
+
+Cell type scoring using the EnrichR tool. This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters.
+
+```{r query online enrichR version, echo=FALSE, results='asis'}
+markersPerClusterTable <- c()
+eachCluster <- 0
+for (eachCluster in levels(posMarkers$cluster)) {
+  markersPerCluster <- dplyr::filter(posMarkers, cluster == eachCluster) %>%
+    dplyr::arrange(desc(avg_log2FC))
+  markersPerCluster <- head(markersPerCluster, min(nrow(markersPerCluster), 500))
+  markersPerClusterTable <- rbind(markersPerClusterTable,markersPerCluster)
+}
+
+genesPerCluster <- split(markersPerClusterTable$gene, markersPerClusterTable$cluster)
+jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                         "'>Analyse at Enrichr website</a>")
+```
+
+
+```{r enrichr markers, echo=FALSE, results='asis'}
+enrichrTable <- tibble(Cluster=names(genesPerCluster),
+                         "# of posMarkers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls)
+if (!is.null(enrichRout)){
+  enrichRTerm <- as.data.frame(do.call(rbind, lapply(enrichRout, as.vector)))
+  enrichRTerm <- map_df(enrichRTerm, ~ map_df(.x, ~ replace(.x, is.null(.x), NA)), .id = "database")
+  enrichRTerm <- enrichRTerm %>%
+    group_by(., Cluster, database) %>%
+    summarise(topTerms = paste(Term, collapse = "; ")) %>%
+    as.data.frame()
+  enrichRTerm <- dcast(enrichRTerm, ... ~ database)
+  enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
+}
+kable(enrichrTable, format="html", escape=FALSE,
+        caption=paste0("GeneSet enrichment")) %>%
+kable_styling("striped", full_width = F, position = "left")
+```
+
+### Data availability
+
+##### Aggregated expression of every gene across the bins in each cluster
+
+[geneExprPerCluster](bulkSignalPerCluster.tsv)
+
+##### Aggregated expression of every gene across all the bins
+
+[geneExprPerSample](bulkSignalPerSample.tsv)
+
+##### Positive markers of each cluster
+
+[posMarkers](cluster_markers.tsv)
+
+
+##### The final Seurat Object is [here](scData.qs2)
+
+### Parameters
+```{r report parameters, echo=FALSE}
+param[c("npcs","pcGenes","resolution", "DE.method", "cellsFraction", "nUMIs", "nmad")]
+```
+
+
+### SessionInfo
+```{r, echo=FALSE}
+ezSessionInfo()
+```

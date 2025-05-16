@@ -289,8 +289,8 @@ SpatiallyVariableFeatures_workaround <- function(object, assay="SCT", selection.
 spatialMarkers <- function(scData, selection.method = "markvariogram") { 
   scData <- FindSpatiallyVariableFeatures(scData, features = VariableFeatures(scData), r.metric = 5, verbose = TRUE,
                                           selection.method = selection.method)
-  #spatialMarkers <- SpatiallyVariableFeatures(scData, selection.method = "markvariogram") #deactivated due to an unfixed bug in the current Seurat version 4.3
-  spatialMarkers <- SpatiallyVariableFeatures_workaround(scData, assay="SCT", selection.method = selection.method)
+  spatialMarkers <- SpatiallyVariableFeatures(scData, selection.method = selection.method)
+  #spatialMarkers <- SpatiallyVariableFeatures_workaround(scData, assay="SCT", selection.method = selection.method)
   return(spatialMarkers)
 }
 
