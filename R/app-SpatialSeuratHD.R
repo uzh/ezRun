@@ -134,7 +134,7 @@ ezMethodSpatialSeuratHD <- function(input=NA, output=NA, param=NA,
   options(future.globals.maxSize = param$ram*1024^3)
   #param <- list()
   param$binSize = 16
-  scData <- Load10X_Spatial(data.dir ='/srv/gstore/projects/p32810/o37703_SpaceRangerCount_2025-05-02--12-31-33/Control1_T25_21_2a', bin.size = param$binSize)
+  scData <- Load10X_Spatial(data.dir = dirname(input$getFullPaths("CountMatrix")), bin.size = param$binSize)
   
   cmDir <- input$getFullPaths("CountMatrix")
   featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
