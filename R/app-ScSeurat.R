@@ -264,7 +264,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     } else {
         stop(paste0("Could not find features.tsv.gz file at: ", featuresPath))
     }
-
+  }
   
   featInfo <- featInfo[,1:3]  # in cases where additional column exist, e.g. CellRangerARC output
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
