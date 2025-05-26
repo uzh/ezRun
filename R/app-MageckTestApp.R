@@ -87,7 +87,8 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   setwd(param$comparison)
   file1 =  paste0(param$comparison, '.gene_summary.txt')
   file2 =  paste0(param$comparison, '.sgrna_summary.txt')
-  FluteRRA(file1, file2, proj="output", organism=param$species, outdir = "./", omitEssential = FALSE)
+  
+  out <- tryCatch(FluteRRA(file1, file2, proj="output", organism=param$species, outdir = "./", omitEssential = FALSE), error = function(e) return(message('Error in running MAGECK FLUTE')))
   
   saveRDS(param, 'param.rds')
   makeRmdReport(param=param, output=output,

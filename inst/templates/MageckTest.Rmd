@@ -3,7 +3,6 @@ title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
-    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
@@ -18,11 +17,21 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 library(kableExtra)
 library(clustree)
 library(ezRun)
+library(readxl)
+library(EnhancedVolcano)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
 
 ```{r}
 param <- readRDS("param.rds")
+#Result sgRNA level:
+sgRNALink <- paste0(param$comparison, '.sgrna_summary.xlsx')
+
+#Result gene level:
+geneLink <- paste0(param$comparison, '.gene_summary.xlsx')
+
+sgRNAResult <- read_xlsx(sgRNALink)
+geneResult <- read_xlsx(geneLink)
 ```
 
 ## Analysis results {.tabset}
@@ -30,14 +39,6 @@ param <- readRDS("param.rds")
 ### Results
 
 The MAGeCK (mageck test) uses Robust Rank Aggregation (RRA -[Li et al. 2014](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0554-4)) for robust identification of CRISPR-screen hits, and outputs the summary results at both sgRNA and gene level.
-
-```{r}
-#Result sgRNA level:
-sgRNALink <- paste0(param$comparison, '.sgrna_summary.xlsx')
-
-#Result gene level:
-geneLink <- paste0(param$comparison, '.gene_summary.xlsx')
-```
 
 #### Gene summary file
 
@@ -86,6 +87,30 @@ The sgRNA Summary file contains the columns described below. We can use the sgRN
 | p.twosided |	p-value (two sided) |
 | FDR |	false discovery rate |
 | high_in_treatment |	Whether the abundance is higher in treatment samples |
+
+### Plots 
+
+#### sgRNA-Level
+```{r, echo=FALSE, fig.width=10, fig.height=6, message=FALSE, warning=FALSE}
+#Plots
+EnhancedVolcano(sgRNAResult, lab = make.unique(sgRNAResult[['Gene']]), x = 'LFC', y = 'p.twosided', pCutoff = 0.001, FCcutoff = 2, title = 'Volcano Plot - Treatment vs Control', subtitle = 'sgRNA-Level, two sided p-value', xlab = bquote(~Log[2]~ 'Fold Change'), ylab = bquote(~-Log[10]~ 'P-value'), pointSize = 1.5, labSize = 3.0, colAlpha = 0.5, legendPosition = 'right', legendLabSize = 12, legendIconSize = 4.0)
+
+EnhancedVolcano(sgRNAResult, lab = make.unique(sgRNAResult[['Gene']]), x = 'LFC', y = 'FDR', pCutoff = 0.01, FCcutoff = 2, title = 'Volcano Plot - Treatment vs Control', subtitle = 'sgRNA-Level, FDR', xlab = bquote(~Log[2]~ 'Fold Change'), ylab = bquote(~-Log[10]~ 'FDR'), pointSize = 1.5, labSize = 3.0, colAlpha = 0.5, legendPosition = 'right', legendLabSize = 12, legendIconSize = 4.0)
+
+plot(x = log1p(sgRNAResult[['treat_mean']]) + log1p(sgRNAResult[['control_mean']]), y = log1p(sgRNAResult[['treat_mean']]) - log1p(sgRNAResult[['control_mean']]), pch = c(15), cex = 0.5, main = 'MA-Plot Treatment vs Control, sgRNA Level', ylab = 'log2(Treatment - Control)', xlab = 'log2(Treatment + Control)')
+abline(h = 0, col = 'red', lty = 2)
+points(x = log1p(sgRNAResult[['treat_mean']]) + log1p(sgRNAResult[['control_mean']]), y = log1p(sgRNAResult[['treat_mean']]) - log1p(sgRNAResult[['control_mean']]), pch = c(16), cex = 0.5, col = ifelse(sgRNAResult[['FDR']] < 0.01, 'red', 'black'))
+legend('topright', legend = c('FDR < 0.01', 'FDR >= 0.01'), col = c('red', 'black'), pch = c(16, 15), bty = 'n', cex = 0.8)
+```
+
+#### Gene-Level
+```{r, echo=FALSE, fig.width=10, fig.height=6, message=FALSE, warning=FALSE}
+
+EnhancedVolcano(geneResult, lab = geneResult[['id']], x = 'neg|lfc', y = 'neg|fdr', pCutoff = 0.05, FCcutoff = 2, title = 'Volcano Plot - Treatment vs Control', subtitle = 'Gene-Level, negative selection', xlab = bquote(~Log[2]~ 'Fold Change'), ylab = bquote(~-Log[10]~ 'FDR, Neg'), pointSize = 2.0, labSize = 3.0, colAlpha = 0.5, legendPosition = 'right', legendLabSize = 12, legendIconSize = 4.0)
+
+EnhancedVolcano(geneResult, lab = geneResult[['id']], x = 'pos|lfc', y = 'pos|fdr', pCutoff = 0.05, FCcutoff = 2, title = 'Volcano Plot - Treatment vs Control', subtitle = 'Gene-Level, positive selection', xlab = bquote(~Log[2]~ 'Fold Change'), ylab = bquote(~-Log[10]~ 'FDR, Pos'), pointSize = 2.0, labSize = 3.0, colAlpha = 0.5, legendPosition = 'right', legendLabSize = 12, legendIconSize = 4.0)
+
+```
 
 ### Reports
 ```{r}
