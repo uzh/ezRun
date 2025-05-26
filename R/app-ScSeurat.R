@@ -212,81 +212,59 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     }
   
     # Better multi detection without hardcoded project IDs
-    isMulti <- FALSE
+
     
-    # Check direct indicators first
-    if(grepl("per_sample_outs|CellRangerMulti", countFiltMatrix)) {
-      isMulti <- TRUE
-    } else {
-      # Extract sample name from path
-      samplePattern <- "([0-9]+_Plate_[0-9]+_[0-9]+)"
-      sampleMatch <- regexpr(samplePattern, countFiltMatrix)
-      
-      if(sampleMatch > 0) {
-        sampleName <- substr(countFiltMatrix, sampleMatch, 
-                          sampleMatch + attr(sampleMatch, "match.length") - 1)
-        
-        # Find any CellRangerMulti directory with this sample name
-        projectDir <- dirname(dirname(dirname(countFiltMatrix)))
-        multiDirs <- list.dirs(projectDir, recursive = FALSE)
-        multiDirs <- grep("CellRangerMulti", multiDirs, value = TRUE)
-        
-        # Check each potential directory
-        for(dir in multiDirs) {
-          possiblePath <- file.path(dir, sampleName)
-          if(dir.exists(possiblePath)) {
-            isMulti <- TRUE
-            break
-          }
-        }
-      }
-    }
-    
-    # Set up directories based on path type
-    cellrangerDir <- dirname(countFiltMatrix)
-    
-    # Find features.tsv.gz - try potential locations based on what we found
+    # Find features.tsv.gz for cellranger multi + cellbender
     featuresPath <- NULL
+    sampleNameFromCB <- basename(dirname(countFiltMatrix))
+    projectRoot <- dirname(dirname(dirname(countFiltMatrix)))
     
-    if(isMulti) {
-      # Extract sample name from the path
-      sampleName <- basename(dirname(countFiltMatrix))
+    if (dir.exists(projectRoot)) {
+      multiDirs <- list.dirs(projectRoot, recursive = FALSE, full.names = TRUE)
+      multiDirs <- multiDirs[sapply(multiDirs, function(d) {
+        grepl("multi", basename(d), ignore.case = TRUE) || dir.exists(file.path(d, "outs"))
+      })]
       
-      # Check standard Multi paths
-      projectDir <- dirname(dirname(dirname(countFiltMatrix)))
-      multiDirs <- list.dirs(projectDir, recursive = FALSE)
-      multiDirs <- grep("CellRangerMulti", multiDirs, value = TRUE)
-      
-      for(dir in multiDirs) {
-        # Try with sample_filtered_feature_bc_matrix
-        path <- file.path(dir, sampleName, "per_sample_outs", 
-                      paste0(sampleName, "-cellRanger"), "count",
-                      "sample_filtered_feature_bc_matrix", "features.tsv.gz")
+      for (multiDir in multiDirs) {
+        # Standard cellranger multi path
+        path1 <- file.path(multiDir, "outs", "per_sample_outs", sampleNameFromCB, 
+                          "count", "sample_filtered_feature_bc_matrix", "features.tsv.gz")
+        if (file.exists(path1)) {
+          featuresPath <- path1
+          break
+        }
         
-        if(file.exists(path)) {
-          featuresPath <- path
+        # Legacy FGCZ path
+        path2 <- file.path(multiDir, sampleNameFromCB, "per_sample_outs",
+                          paste0(sampleNameFromCB, "-cellRanger"), "count",
+                          "sample_filtered_feature_bc_matrix", "features.tsv.gz")
+        if (file.exists(path2)) {
+          featuresPath <- path2
           break
         }
       }
     }
     
-    # If not found with Multi structure or not Multi, use standard location
-    if(is.null(featuresPath) || !file.exists(featuresPath)) {
-        featuresPath <- file.path(cellrangerDir, "features.tsv.gz")
+    # Fallback to cellbender directory
+    if (is.null(featuresPath)) {
+      fallbackPath <- file.path(dirname(countFiltMatrix), "features.tsv.gz")
+      if (file.exists(fallbackPath)) {
+        featuresPath <- fallbackPath
+      }
     }
     
-    param[['cellrangerDir']] <- cellrangerDir
+    param[['cellrangerDir']] <- dirname(countFiltMatrix)
     param[['cellrangerCountFiltDir']] <- dirname(countFiltMatrix)
     param[['cellrangerCountRawDir']] <- dirname(countRawMatrix)
     param[['featuresPath']] <- featuresPath
     
-    # Look for features.tsv.gz in the located path
+    # Read features file
     if(!is.null(featuresPath) && file.exists(featuresPath)) {
         featInfo <- ezRead.table(featuresPath, header = FALSE, row.names = NULL)
     } else {
         stop(paste0("Could not find features.tsv.gz file at: ", featuresPath))
     }
-  }
+
   
   featInfo <- featInfo[,1:3]  # in cases where additional column exist, e.g. CellRangerARC output
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
