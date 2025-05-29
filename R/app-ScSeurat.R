@@ -211,35 +211,47 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
       file.path(dirname(countFiltMatrix), 'cellbender_raw_seurat.h5')
     }
   
-    # Better multi detection without hardcoded project IDs
-
-    
-    # Find features.tsv.gz for cellranger multi + cellbender
+    # ENHANCED: Better multi detection for CellBender + CellRanger Multi workflows
     featuresPath <- NULL
     sampleNameFromCB <- basename(dirname(countFiltMatrix))
+    
+    # Look for CellRanger Multi directory in the same project
     projectRoot <- dirname(dirname(dirname(countFiltMatrix)))
     
     if (dir.exists(projectRoot)) {
-      multiDirs <- list.dirs(projectRoot, recursive = FALSE, full.names = TRUE)
-      multiDirs <- multiDirs[sapply(multiDirs, function(d) {
-        grepl("multi", basename(d), ignore.case = TRUE) || dir.exists(file.path(d, "outs"))
+      # Find CellRanger Multi directories (look for directories containing "CellRangerMulti" or "Multi")
+      allDirs <- list.dirs(projectRoot, recursive = FALSE, full.names = TRUE)
+      multiDirs <- allDirs[sapply(allDirs, function(d) {
+        baseName <- basename(d)
+        grepl("CellRangerMulti|Multi", baseName, ignore.case = TRUE) ||
+        (dir.exists(file.path(d, sampleNameFromCB)) && 
+         dir.exists(file.path(d, sampleNameFromCB, "per_sample_outs")))
       })]
       
+      # Try to find features file in CellRanger Multi directories
       for (multiDir in multiDirs) {
-        # Standard cellranger multi path
-        path1 <- file.path(multiDir, "outs", "per_sample_outs", sampleNameFromCB, 
-                          "count", "sample_filtered_feature_bc_matrix", "features.tsv.gz")
+        # Path 1: Standard cellranger multi path
+        path1 <- file.path(multiDir, sampleNameFromCB, "per_sample_outs", 
+                          paste0(sampleNameFromCB, "-cellRanger"), "count",
+                          "sample_filtered_feature_bc_matrix", "features.tsv.gz")
         if (file.exists(path1)) {
           featuresPath <- path1
           break
         }
         
-        # Legacy FGCZ path
-        path2 <- file.path(multiDir, sampleNameFromCB, "per_sample_outs",
-                          paste0(sampleNameFromCB, "-cellRanger"), "count",
-                          "sample_filtered_feature_bc_matrix", "features.tsv.gz")
+        # Path 2: Alternative cellranger multi outs path
+        path2 <- file.path(multiDir, "outs", "per_sample_outs", sampleNameFromCB, 
+                          "count", "sample_filtered_feature_bc_matrix", "features.tsv.gz")
         if (file.exists(path2)) {
           featuresPath <- path2
+          break
+        }
+        
+        # Path 3: Raw matrix path
+        path3 <- file.path(multiDir, sampleNameFromCB, "multi", "count", 
+                          "raw_feature_bc_matrix", "features.tsv.gz")
+        if (file.exists(path3)) {
+          featuresPath <- path3
           break
         }
       }
@@ -262,7 +274,10 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     if(!is.null(featuresPath) && file.exists(featuresPath)) {
         featInfo <- ezRead.table(featuresPath, header = FALSE, row.names = NULL)
     } else {
-        stop(paste0("Could not find features.tsv.gz file at: ", featuresPath))
+        stop(paste0("Could not find features.tsv.gz file. Searched paths included:\n",
+                   "- CellRanger Multi directories in: ", projectRoot, "\n",
+                   "- Sample: ", sampleNameFromCB, "\n",
+                   "- Last attempted path: ", featuresPath))
     }
   }
   
