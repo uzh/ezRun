@@ -1,8 +1,8 @@
 Package: ezRun
 Type: Package
 Title: An R meta-package for the analysis of Next Generation Sequencing Data
-Version: 3.20.1
-Date: 2024-12-13
+Version: 3.21.1
+Date: 2025-05-30
 Author: Hubert Rehrauer and others
 Maintainer: sequencing <sequencing@fgcz.ethz.ch>
 Description: An environment that makes it easy to process data by using R
