@@ -514,7 +514,7 @@ if (!is.null(enrichRout) && length(enrichRout) > 0){
     summarise(topTerms = paste(Term, collapse = "; ")) %>%
     as.data.frame()
   if(nrow(enrichRTerm)>0){
-    enrichRTerm <- dcast(enrichRTerm, ... ~ database)
+    enrichRTerm <- reshape2::dcast(enrichRTerm, ... ~ database)
     enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
   }
 }
