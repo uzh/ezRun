@@ -14,21 +14,19 @@ ezMethodHifiasm = function(input=NA, output=NA, param=NA, htmlFile="00index.html
     cmd = paste("hifiasm", "-o", sampleName, 
                 paste("-t", ezThreads()), paste("--n-hap", param$ploidy),"--primary", opt, 
                 input$getFullPaths("Read1"), 
-                "&> ", paste0(sampleName,"_hifiasm.log"))
-    ezSystem(cmd)
+                "2> ", paste0(sampleName,"_hifiasm.log"))
+    ezSystem(cmd, wait = TRUE)
     cmd=paste("awk", "'/^S/{print", paste0('"', '>', '"', '$2;print'), "$3}'", paste0(sampleName, ".p_ctg.gfa"), ">", paste0(sampleName, ".p_ctg.fa"))
     system(cmd, wait = TRUE)
-    ezSystem(paste("cp", paste0(sampleName, ".p_ctg.fa"), basename(output$getColumn("Draft"))))
     return("Success")
   }else if (inputFileType == "ONT"){
     cmd = paste("hifiasm", "-o", sampleName, 
                 paste("-t", ezThreads()), paste("--n-hap", param$ploidy),"--primary", opt, 
                 "--ont", input$getFullPaths("Read1"), 
-                "&> ", paste0(sampleName,"_hifiasm.log"))
-    ezSystem(cmd)
+                "2> ", paste0(sampleName,"_hifiasm.log"))
+    ezSystem(cmd, wait = TRUE)
     cmd=paste("awk", "'/^S/{print", paste0('"', '>', '"', '$2;print'), "$3}'", paste0(sampleName, ".p_ctg.gfa"), ">", paste0(sampleName, ".p_ctg.fa"))
-    system(cmd)
-    ezSystem(paste("cp", paste0(sampleName, ".p_ctg.fa"), basename(output$getColumn("Draft"))))
+    system(cmd, wait = TRUE)
     return("Success")
   }
 }
