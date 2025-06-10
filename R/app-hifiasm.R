@@ -27,7 +27,7 @@ ezMethodHifiasm = function(input=NA, output=NA, param=NA, htmlFile="00index.html
                 "&> ", paste0(sampleName,"_hifiasm.log"))
     ezSystem(cmd)
     cmd=paste("awk", "'/^S/{print", paste0('"', '>', '"', '$2;print'), "$3}'", paste0(sampleName, ".p_ctg.gfa"), ">", paste0(sampleName, ".p_ctg.fa"))
-    ezSystem(cmd)
+    system(cmd)
     ezSystem(paste("cp", paste0(sampleName, ".p_ctg.fa"), basename(output$getColumn("Draft"))))
     return("Success")
   }
