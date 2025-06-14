@@ -79,7 +79,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
                paste0("--sample=", sampleName),
                paste0("--localmem=", param$ram),
                paste0("--localcores=", param$cores),
-               if(grepl('^3', basename(param$SpaceRangerVersion))){paste0("--create-bam true")})
+               paste0("--create-bam true"))
   
   if('Image' %in% inputCols && grepl('btf$|tif$|tiff$|jpeg$|jpg$',input$meta['Image']$Image)){
       if(!param$darkImage){
