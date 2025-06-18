@@ -30,12 +30,10 @@ ezMethodSpaceRangerSegQC <- function(input=NA, output=NA, param=NA){
     cmd <- paste(cmd, param$cmdOptions)
   }
   ezSystem(cmd)
-  ezSystem(paste('mv', file.path(sampleName, "outs")), 'result')
+  ezSystem(paste("mv", file.path(sampleName, "outs"), "result"))
   unlink(sampleName, recursive=TRUE)
   file.rename('result',  sampleName)
+  ezSystem(paste("mv", file.path(sampleName, "websummary.html"), file.path(sampleName, "web_summary.html")))
   
   return("Success")
-  #- nucleus_instance_mask: /path/to/outs/nucleus_instance_mask.tiff
-  #- nucleus_segmentations: /path/to/outs/nucleus_segmentations.geojson
-  #- websummary:           /path/to/outs/websummary.html
 }
