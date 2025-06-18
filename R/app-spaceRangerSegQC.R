@@ -18,7 +18,7 @@ EzAppSpaceRangerSegQC <-
               )
   )
 
-EzAppSpaceRangerSegQC <- function(input=NA, output=NA, param=NA){
+ezMethodSpaceRangerSeqQC <- function(input=NA, output=NA, param=NA){
   sampleName <- input$getNames()
   cmd <- paste("spaceranger segment", paste0("--id=", sampleName),
                                       paste0("--localmem=", param$ram),
