@@ -1,0 +1,245 @@
+---
+title: "FILL ME"
+output: 
+  html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
+    includes:
+     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+    code_folding: hide
+editor_options: 
+  chunk_output_type: inline
+---
+
+# {.tabset}
+
+## Differential Peak Analysis
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE, knitr.table.format = "html")
+## generate all graphs as PDF
+## knitr::opts_chunk$set(dev = "cairo_pdf")
+```
+
+```{r packages, message=FALSE}
+library(ezRun)
+library(ComplexHeatmap)
+library(DESeq2)
+library(RColorBrewer)
+library(ggrepel)
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+```
+
+```{r load_data, echo=FALSE, include=FALSE}
+# setwdNew('/scratch/test-nfcore/o35568_NfCoreAtacSeq_2025-06-18--13-21-07/peakRes/')
+dds <- qs2::qs_read('dds.qs2')
+peakAnno <- qs2::qs_read('peakAnno.qs2')
+```
+
+```{r get_results, echo=FALSE}
+getComparionsMatrix <- function(dds){
+  conditions <- dds$Condition |> levels() #dds$Condition |> levels()
+  
+  compMat <- combn(conditions, 2)
+  compMat <- cbind(compMat, rbind(compMat[2,], compMat[1,])) ## full comparison
+  colnames(compMat) <- paste0("pair", 1:ncol(compMat))
+  rownames(compMat) <- c("group1", "group2")
+
+  ## set the order of comparisons -> reversed comparisons are adjacent
+  n <- ncol(compMat)/2
+  pairsOrder <- as.vector(rbind(paste0("pair", 1:n), paste0("pair", (n+1):(n*2))))
+  compMat <- compMat[, pairsOrder]
+  
+  return(compMat)
+}
+
+getResults <- function(dds, peakAnno, groupPair){  
+  ml_subset <- dds[, dds$Condition %in% groupPair]
+  ml_subset$Condition <- droplevels(ml_subset$Condition)
+  
+  ml_dds <- DESeq(ml_subset)
+  
+  ## alph. order: colData(ml_subset)$Condition |> levels()
+  contrast <- c('Condition', unname(groupPair))
+  ml_raw <- results(ml_dds, contrast = contrast)
+  
+  ml_res <-ml_raw |>
+    as.data.frame() |>
+    rownames_to_column("PeakID") |>
+    as_tibble() |>
+    left_join(peakAnno, by = "PeakID")
+  
+  compname <- paste0(contrast[2], "_vs_" ,contrast[3])
+  
+  res <- list()
+  res[[compname]][['dds']] <- ml_dds
+  res[[compname]][['res']] <- ml_res
+  return(res)
+}
+```
+
+```{r utils,  echo=FALSE}
+groupFormatter <- function(groupName){
+  str_replace(groupName, '_vs_', ' vs ')
+}
+```
+
+```{r plot_functions, echo=FALSE}
+plot_volcano <- function(res, groupName){
+  ml_res <- res[[groupName]]$res |>
+    mutate(
+      # pvalue = pmax(padj, 1e-50),
+      # neg_log10_padj = -log10(padj),
+      direction = if_else(log2FoldChange > 0, "up", "down", NA_character_),
+      candidate = abs(log2FoldChange) >= 1 & padj < 0.05) |> 
+    filter(!is.na(log2FoldChange) & !is.na(padj))
+  
+  top_genes <- ml_res |> 
+    filter(candidate) |> 
+    group_by(direction) |> 
+    slice_min(padj, n = 10) |> 
+    ungroup() |>
+    filter(!is.na(`Gene Name`))
+  
+  ggplot(ml_res, aes(x = log2FoldChange, y = -log10(padj))) +
+    ## no legend ...
+    #geom_point(data = filter(ml_res, !candidate), color = "lightgrey", size = 0.8) +
+    #geom_point(data = filter(ml_res, candidate & direction == "up"), color = "#FF7777", alpha = 0.5, size = 1) +
+    #geom_point(data = filter(ml_res, candidate & direction == "down"), color = "#7DA8E6", alpha = 0.5, size = 1) +
+    geom_point(aes(color = case_when(
+      candidate & direction == "up" ~ "Up",
+      candidate & direction == "down" ~ "Down",
+      !candidate ~ "Not Sig",
+      TRUE ~ "Not significant")), 
+     size = 1, #ifelse(ml_res$candidate, 1, 0.1),
+     alpha = 0.5) + #ifelse(ml_res$candidate, 1, 0)) +
+    scale_color_manual(
+      name = "",
+      values = c("Not Sig" = "lightgrey", "Up" = "#FF7777", "Down" = "#7DA8E6"),
+      breaks = c("Up", "Not Sig", "Down") ## controls order legend items
+    ) +
+    geom_vline(xintercept = c(-1, 1), linetype = "dashed", color = "black") +
+    geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "black") +
+    geom_label_repel(data = top_genes, aes(label = `Gene Name`), color = "black", fill = "white", min.segment.length = 0, max.overlaps = Inf) + 
+                     # label.padding = unit(0.2, "lines"), label.r = unit(0.1, "lines"), box.padding = 0.3, point.padding = 0.3 
+    labs(x = expression(Log[2]~fold~change), y = expression(-Log[10]~Pvalue), title = paste('DEG -', groupFormatter(groupName))) +
+    theme_bw() + theme(plot.title = element_text(hjust = 0.5))
+}
+
+plot_ma <- function(res, groupName){
+  ## deseq way -- no ggplot+patchwork compatible
+  # groupPair <- groupName |> str_split('_vs_') |> pluck(1)
+  # ma_raw <- results(res[[groupName]]$dds, contrast=c("Condition", groupPair))
+  # DESeq2::plotMA(ma_raw)
+  
+  ml_res <- res[[groupName]]$res |>
+    as_tibble() |>
+    mutate(
+      significant = ifelse(!is.na(padj) & padj < 0.05, "Significant", "Not Significant"),
+      baseMeanLog = log10(baseMean+1) ## if_else(baseMean == 0, log10(1), log10(baseMean)))
+    ) |> 
+    filter(!is.na(log2FoldChange) & !is.na(padj))
+  
+  ggplot(ml_res, aes(x = baseMeanLog, y = log2FoldChange, color = significant)) +
+    geom_point(alpha = 0.5) +
+    scale_color_manual(name = "", 
+      values = c("Significant" = "#0072B2", "Not Significant" = "gray55"),
+      breaks = c("Significant", "Not Significant")) +
+    geom_smooth(inherit.aes = FALSE, aes(x = baseMeanLog, y = log2FoldChange), method = "loess", se = FALSE, colour = "purple") +
+    geom_hline(yintercept = 0, colour = 'gray30') +
+    labs(x = expression(Log[10]~Average~Normalized~Count), y = expression(Log[2]~Fold~Change), 
+      color = "Significant", title = paste('MA Plot:', groupFormatter(groupName))) +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+plot_pca <- function(res, groupName){
+  ml_dds <- res[[groupName]]$dds
+  vsd <- vst(ml_dds, blind=FALSE)
+  pca_data <- DESeq2::plotPCA(vsd, intgroup="Condition", returnData = TRUE)
+  pc_val <- round(100 * attr(pca_data, "percentVar"))
+  
+  ggplot(pca_data, aes(x = PC1, y = PC2, color = group)) +
+    geom_point(size = 3) + 
+    labs(title = paste("PCA plot:", groupFormatter(groupName)),
+      x = paste0("PC1 (", pc_val[1], "% variance)"),
+      y = paste0("PC2 (", pc_val[2], "% variance)"),
+      color = "Group") +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+plot_heatmap <- function(res, groupName){
+  ml_res <- res[[groupName]]$res
+  ml_dds <- res[[groupName]]$dds
+  
+  vsd <- vst(ml_dds, blind=FALSE)
+  top_peaks <- order(ml_res$padj, na.last=TRUE)[1:1000]
+  mat <- assay(vsd)[top_peaks, ]
+  rownames(mat) <- rownames(ml_res)[top_peaks]
+  
+  # Create annotation data frame
+  annotation_col <- data.frame(
+    Condition = ml_dds$Condition,
+    row.names = colnames(mat)
+  )
+  
+  condition_colors <- c("#009E73", "#CC79A7")
+  names(condition_colors) <- levels(annotation_col$Condition)
+  annotation_colors <- list(Condition = condition_colors)
+  
+  # Create color palette
+  heat_colors <- colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(100)
+  # heat_colors <- colorRampPalette(rev(brewer.pal(n = 9, name = "Purples")))(255)
+  
+  # Plot heatmap
+  gg <- ComplexHeatmap::pheatmap(mat,
+    scale = "row",
+    show_rownames = FALSE,
+    annotation_col = annotation_col,
+    annotation_colors = annotation_colors,
+    color = heat_colors,
+    clustering_distance_rows = "euclidean",
+    clustering_distance_cols = "euclidean",
+    clustering_method = "complete",
+    angle_col = "45"
+  ) %>% ggplotify::as.ggplot()
+  
+  gg + 
+    labs(title = paste("Top 1000 Differential Peaks -", groupFormatter(groupName))) +
+    theme(plot.title = element_text(hjust = 0.5))
+  
+  ## complexheatmap way -- no compatiple with patchwork
+  # draw(gg,
+  #   column_title = paste("Top 1000 Differential Peaks -", groupFormatter(groupName)),
+  #   column_title_gp = gpar(fontsize = 16))
+}
+```
+
+```{r display_results}
+compMat <- getComparionsMatrix(dds)
+res <- list()
+for(i in 1:ncol(compMat)){
+  curres <- getResults(dds=dds, peakAnno=peakAnno, groupPair=compMat[,i])
+  groupName <- names(curres)
+  res[groupName] <- curres
+  
+  p1 <- plot_pca(curres, groupName)
+  p2 <- plot_volcano(curres, groupName)
+  p3 <- plot_ma(curres, groupName)
+  p4 <- plot_heatmap(curres, groupName)
+  print((p1 + p2) / (p3 + p4))
+}
+```
+
+## SessionInfo
+
+```{r, echo=FALSE}
+ezSessionInfo()
+```
+
