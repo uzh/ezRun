@@ -42,7 +42,7 @@ peakAnno <- qs2::qs_read('peakAnno.qs2')
 ```
 
 ```{r get_results, echo=FALSE}
-getComparionsMatrix <- function(dds){
+getComparisonMatrix <- function(dds){
   conditions <- dds$Condition |> levels() #dds$Condition |> levels()
   
   compMat <- combn(conditions, 2)
@@ -89,15 +89,21 @@ groupFormatter <- function(groupName){
 }
 ```
 
-```{r plot_functions, echo=FALSE}
-plot_volcano <- function(res, groupName){
-  ml_res <- res[[groupName]]$res |>
+```{r}
+make_peak_table <- function(res, groupName){
+  res[[groupName]]$res |>
     mutate(
       # pvalue = pmax(padj, 1e-50),
       # neg_log10_padj = -log10(padj),
       direction = if_else(log2FoldChange > 0, "up", "down", NA_character_),
       candidate = abs(log2FoldChange) >= 1 & padj < 0.05) |> 
     filter(!is.na(log2FoldChange) & !is.na(padj))
+}
+```
+
+```{r plot_functions, echo=FALSE}
+plot_volcano <- function(res, groupName){
+  ml_res <- make_peak_table(res, groupName)
   
   top_genes <- ml_res |> 
     filter(candidate) |> 
@@ -222,7 +228,7 @@ plot_heatmap <- function(res, groupName){
 ```
 
 ```{r display_results}
-compMat <- getComparionsMatrix(dds)
+compMat <- getComparisonMatrix(dds)
 res <- list()
 for(i in 1:ncol(compMat)){
   curres <- getResults(dds=dds, peakAnno=peakAnno, groupPair=compMat[,i])
@@ -234,6 +240,11 @@ for(i in 1:ncol(compMat)){
   p3 <- plot_ma(curres, groupName)
   p4 <- plot_heatmap(curres, groupName)
   print((p1 + p2) / (p3 + p4))
+
+  make_peak_table(curres, groupName) |>
+    filter(candidate) |>
+    ezInteractiveTableRmd() |>
+    DT::formatSignif(c("baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"), digits=3)
 }
 ```
 

@@ -72,10 +72,12 @@ getSampleSheet <- function(input, param){
   if(any(groups == "") || any(is.na(groups)))
     stop("No conditions detected. Please add them in the dataset before calling NfCoreAtacSeqApp.")
   
-  separator <- table(unlist(str_extract_all(groups, "[^a-zA-Z0-9]"))) |> which.max() |> names()
-  ngroups <- ncol(str_split(groups, separator, simplify = T))
-  if(ngroups >2)
-    stops('Values in the Condition column cannot be splitted in two groups for pairwise comparison. Please use a proper separator.')
+  if(any(str_detect(groups, "[^a-zA-Z0-9]"))){
+    separator <- table(unlist(str_extract_all(groups, "[^a-zA-Z0-9]"))) |> which.max() |> names()
+    ngroups <- ncol(str_split(groups, separator, simplify = T))
+    if(ngroups >2)
+      stop('Values in the Condition column cannot be splitted in two groups for pairwise comparison. Please use a proper separator.')
+  }
   
   oDir <- '.' ## param[['resultDir']]
   #if(!dir.exists(oDir)) dir.create(path = oDir)
