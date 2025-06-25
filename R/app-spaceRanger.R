@@ -39,7 +39,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
   sampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
   sampleNameFQ <- sub('.tar', '', basename(sampleDirs))
   finalSampleName <-sampleName
-  
+  spaceRangerMainVersion <- as.numeric(sub('\\..*','',basename(param$SpaceRangerVersion)))
   # extract tar files if they are in tar format
   if (all(grepl("\\.tar$", sampleDirs))) {
       sampleDirs <- tarExtract(sampleDirs, prependUnique=TRUE)
@@ -91,6 +91,10 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
           highresImage <- system('ls -S output_*.tif | head -n 1', intern = TRUE)
           system(paste('mv', highresImage, highResName))
           cmd <- paste(cmd, paste0("--image=", highResName))
+          
+          if(!param$runSegmentation & spaceRangerMainVersion >= 4){
+              cmd <- paste(cmd, "--nucleus-segmentation=FALSE")
+          }
       } else {
           if(file.exists(input$meta['Image']$Image)){
             cmd <- paste(cmd, paste0("--darkimage=", input$getFullPaths("Image")))
