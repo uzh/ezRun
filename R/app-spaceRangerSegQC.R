@@ -20,11 +20,22 @@ EzAppSpaceRangerSegQC <-
 
 ezMethodSpaceRangerSegQC <- function(input=NA, output=NA, param=NA){
   sampleName <- input$getNames()
+  
+  #Fix image because of a bug in spaceranger 4.0.1
+  myImage <- input$getFullPaths("Image")
+  cmd <- paste('tiffsplit', myImage, 'output_')
+  system(cmd)
+  highResName <- sub('.tif$', '_highRes.tif', basename(myImage))
+  highresImage <- system('ls -S output_*.tif | head -n 1', intern = TRUE)
+  system(paste('mv', highresImage, highResName))
+  
+  
   cmd <- paste("spaceranger segment", paste0("--id=", sampleName),
                                       paste0("--localmem=", param$ram),
                                       paste0("--localcores=", param$cores))
   
-  cmd <- paste(cmd, paste0("--tissue-image=", input$getFullPaths("Image")))
+  
+  cmd <- paste(cmd, paste0("--tissue-image=", highResName))
   
   if(ezIsSpecified(param$cmdOptions)){
     cmd <- paste(cmd, param$cmdOptions)
