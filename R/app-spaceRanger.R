@@ -26,6 +26,11 @@ EzAppSpaceRanger <-
                                             Type = "logical",
                                             DefaultValue = FALSE,
                                             Description = "use dark image mode"
+                                        ),
+                                        runSegmentation = ezFrame(
+                                            Type = "logical",
+                                            DefaultValue = FALSE,
+                                            Description = "try segmentation for H&E images"
                                         )
                                         )
                 }
