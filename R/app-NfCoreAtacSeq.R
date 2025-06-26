@@ -33,14 +33,15 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   )
 
   ezSystem(cmd)
-  
+
   cwd <- getwd()
-  if(param$runTwoGroupAnalysis){
+  if(param[['runTwoGroupAnalysis']] == 'true'){
     getData(output, param)
-  
+
     makeRmdReport(
-      output = output, param = param,
-      rmdFile = "DiffPeak.Rmd", reportTitle = 'DifferentialPeakAnalysis'
+      output = output, param = param, selfContained = TRUE,
+      rmdFile = "DiffPeak.Rmd", htmlFile = "DifferentialPeakAnalysisReport.html",
+      reportTitle = 'Differential Peak Analysis'
     )
     #file.remove(list.files(pattern="^(dds|peak)\\.qs2$"))
     on.exit(setwd(cwd))
