@@ -31,6 +31,11 @@ EzAppSpaceRanger <-
                                             Type = "logical",
                                             DefaultValue = FALSE,
                                             Description = "try segmentation for H&E images"
+                                        ),
+                                        splitTif = ezFrame(
+                                            Type = "logical",
+                                            DefaultValue = TRUE,
+                                            Description = "split tif image before running SpaceRanger"
                                         )
                                         )
                 }
@@ -91,7 +96,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
           #Fix image because of a bug in spaceranger 4.0.1
           myImage <- input$getFullPaths("Image")
           imageSize <- file.size(myImage)/1024^3
-          if(imageSize < 4){
+          if(imageSize < 4 & param$splitTif){
             cmd_tiffSplit <- paste('/usr/local/ngseq/src/tiff-4.7.0/bin/bin/tiffsplit', myImage, 'output_')
             ezSystem(cmd_tiffSplit)
             highResName <- sub('.tif$', '_highRes.tif', basename(myImage))
