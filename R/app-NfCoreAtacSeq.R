@@ -130,7 +130,7 @@ getData <- function(output, param){
   dds$Condition <- dsgn$Condition
   design(dds) <- ~ Condition
   
-  peakDir <- paste0(basename(output$getColumn('Result')), '/peakRes')
+  peakDir <- basename(output$getColumn('Result'))
   if(!dir.exists(peakDir)) dir.create(peakDir)
   setwdNew(peakDir)
   
