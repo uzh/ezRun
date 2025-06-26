@@ -23,7 +23,7 @@ ezMethodSpaceRangerSegQC <- function(input=NA, output=NA, param=NA){
   
   #Fix image because of a bug in spaceranger 4.0.1
   myImage <- input$getFullPaths("Image")
-  cmd <- paste('tiffsplit', myImage, 'output_')
+  cmd <- paste('/usr/local/ngseq/src/tiff-4.7.0/bin/bin/tiffsplit', myImage, 'output_')
   system(cmd)
   highResName <- sub('.tif$', '_highRes.tif', basename(myImage))
   highresImage <- system('ls -S output_*.tif | head -n 1', intern = TRUE)
