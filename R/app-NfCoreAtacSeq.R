@@ -35,7 +35,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   ezSystem(cmd)
 
   cwd <- getwd()
-  if(param[['runTwoGroupAnalysis']] == 'true'){
+  if(param[['runTwoGroupAnalysis']]){
     getData(output, param)
 
     makeRmdReport(
@@ -60,6 +60,7 @@ EzAppNfCoreAtacSeq <- setRefClass(
       name <<- "EzAppNfCoreAtacSeq"
       ## minimum nf-core parameters
       appDefaults <<- rbind(
+        runTwoGroupAnalysis = ezFrame(Type = "logical", DefaultValue = TRUE, Description = "Run two group analysis"),
         peakStyle  = ezFrame(Type="character", DefaultValue="broad", Description="Run MACS2 in broadPeak mode, otherwise in narrowPeak mode"),
         varStabilizationMethod = ezFrame(Type="character", DefaultValue="vst", Description="Use rlog transformation or vst (DESeq2)")
       )
