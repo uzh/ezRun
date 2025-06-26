@@ -90,13 +90,17 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
       if(!param$darkImage){
           #Fix image because of a bug in spaceranger 4.0.1
           myImage <- input$getFullPaths("Image")
-          cmd_tiffSplit <- paste('/usr/local/ngseq/src/tiff-4.7.0/bin/bin/tiffsplit', myImage, 'output_')
-          ezSystem(cmd_tiffSplit)
-          highResName <- sub('.tif$', '_highRes.tif', basename(myImage))
-          highresImage <- ezSystem('ls -S output_*.tif | head -n 1', intern = TRUE)
-          ezSystem(paste('mv', highresImage, highResName))
-          cmd <- paste(cmd, paste0("--image=", highResName))
-          
+          imageSize <- file.size(myImage)/1024^3
+          if(imageSize < 4){
+            cmd_tiffSplit <- paste('/usr/local/ngseq/src/tiff-4.7.0/bin/bin/tiffsplit', myImage, 'output_')
+            ezSystem(cmd_tiffSplit)
+            highResName <- sub('.tif$', '_highRes.tif', basename(myImage))
+            highresImage <- ezSystem('ls -S output_*.tif | head -n 1', intern = TRUE)
+            ezSystem(paste('mv', highresImage, highResName))
+            cmd <- paste(cmd, paste0("--image=", highResName))
+          } else {
+              cmd <- paste(cmd, paste0("--image=", myImage))
+          }
           if(!param$runSegmentation & spaceRangerMainVersion >= 4){
               cmd <- paste(cmd, "--nucleus-segmentation=FALSE")
           }

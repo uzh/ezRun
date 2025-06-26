@@ -23,12 +23,16 @@ ezMethodSpaceRangerSegQC <- function(input=NA, output=NA, param=NA){
   
   #Fix image because of a bug in spaceranger 4.0.1
   myImage <- input$getFullPaths("Image")
-  cmd_tiffSplit <- paste('/usr/local/ngseq/src/tiff-4.7.0/bin/bin/tiffsplit', myImage, 'output_')
-  ezSystem(cmd_tiffSplit)
-  highResName <- sub('.tif$', '_highRes.tif', basename(myImage))
-  highresImage <- ezSystem('ls -S output_*.tif | head -n 1', intern = TRUE)
-  ezSystem(paste('mv', highresImage, highResName))
-  
+  imageSize <- file.size(myImage)/1024^3
+  if(imageSize < 4){
+    cmd_tiffSplit <- paste('/usr/local/ngseq/src/tiff-4.7.0/bin/bin/tiffsplit', myImage, 'output_')
+    ezSystem(cmd_tiffSplit)
+    highResName <- sub('.tif$', '_highRes.tif', basename(myImage))
+    highresImage <- ezSystem('ls -S output_*.tif | head -n 1', intern = TRUE)
+    ezSystem(paste('mv', highresImage, highResName))
+  } else {
+    highResName <- myImage
+  }
   
   cmd <- paste("spaceranger segment", paste0("--id=", sampleName),
                                       paste0("--localmem=", param$ram),
