@@ -10,6 +10,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   sampleDataset = getSampleSheet(input, param)
   refbuild = param$refBuild
   outFolder = paste0(param$name, '_results')
+  
   cmd = paste(
     "nextflow run nf-core/atacseq",
      ## i/o
@@ -30,11 +31,22 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     "-profile apptainer",
     "-r 2.1.2"
   )
-  
+
   ezSystem(cmd)
+  
+  cwd <- getwd()
+  if(param$runTwoGroupAnalysis){
+    getData(output, param)
+  
+    makeRmdReport(
+      output = output, param = param,
+      rmdFile = "DiffPeak.Rmd", reportTitle = 'DifferentialPeakAnalysis'
+    )
+    #file.remove(list.files(pattern="^(dds|peak)\\.qs2$"))
+    on.exit(setwd(cwd))
+  }
   return("Success")
 }
-
 
 EzAppNfCoreAtacSeq <- setRefClass(
   "EzAppNfCoreAtacSeq",
@@ -56,8 +68,16 @@ EzAppNfCoreAtacSeq <- setRefClass(
 
 ##' @description get an nf-core/atacseq-formatted csv file
 getSampleSheet <- function(input, param){
-  if(any(input$getColumn(param$grouping) == "") || any(is.na(input$getColumn(param$grouping))))
+  groups <- input$getColumn(param$grouping)
+  if(any(groups == "") || any(is.na(groups)))
     stop("No conditions detected. Please add them in the dataset before calling NfCoreAtacSeqApp.")
+  
+  if(any(str_detect(groups, "[^a-zA-Z0-9]"))){
+    separator <- table(unlist(str_extract_all(groups, "[^a-zA-Z0-9]"))) |> which.max() |> names()
+    ngroups <- ncol(str_split(groups, separator, simplify = T))
+    if(ngroups >2)
+      stop('Values in the Condition column cannot be splitted in two groups for pairwise comparison. Please use a proper separator.')
+  }
   
   oDir <- '.' ## param[['resultDir']]
   #if(!dir.exists(oDir)) dir.create(path = oDir)
@@ -89,4 +109,31 @@ getGenomeSize <- function(param){
   gsize <- sum(as.numeric(fasta.seqlengths(fastaFile)))
   gsize <- round(gsize * 0.8)
   return(gsize)
+}
+
+getData <- function(output, param){
+  nfCoreOutDir <- paste0(param$dataRoot, '/',  output$getColumn('Result'), '/', param$name, '_results', '/bwa/merged_replicate/macs2/', param$peakStyle, '_peak/consensus')
+  
+  dds <- readRDS(paste0(nfCoreOutDir, '/deseq2/consensus_peaks.mRp.clN.rds'))
+  
+  featureCounts <- vroom::vroom(paste0(nfCoreOutDir, '/consensus_peaks.mRp.clN.featureCounts.txt'), 
+                                delim="\t", skip = 1, col_types = cols())
+  
+  peakAnno <- vroom::vroom(paste0(nfCoreOutDir, '/consensus_peaks.mRp.clN.annotatePeaks.txt'), delim="\t", col_types = cols()) |> 
+    rename(c("PeakID"=1))
+  
+  rowData(dds) <- featureCounts[,1:5]
+  dsgn <- data.frame(Condition = factor(paste(colData(dds)$Group1, colData(dds)$Group2, sep = "_")))
+  rownames(dsgn) <- rownames(colData(dds))
+  dds$Condition <- dsgn$Condition
+  design(dds) <- ~ Condition
+  
+  peakDir <- paste0(basename(output$getColumn('Result')), '/peakRes')
+  if(!dir.exists(peakDir)) dir.create(peakDir)
+  setwdNew(peakDir)
+  
+  qs2::qs_save(dds, file = 'dds.qs2')
+  qs2::qs_save(peakAnno, file = 'peakAnno.qs2')
+  # qs2::qs_save(list(dds = dds, peakAnno = peakAnno),  file = paste0(peakDir, '/results.qs2'))
+  # return(list(dds=dds, peakAnno=peakAnno)) ## wo storing results, datasets need to be reloaded in DiffPeak.Rmd
 }
