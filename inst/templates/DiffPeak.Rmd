@@ -246,9 +246,12 @@ for(i in 1:ncol(compMat)){
   print((p1 + p2) / (p3 + p4))
 
   peak_tib <- make_peak_table(curres, groupName) |> filter(candidate)
-  ezInteractiveTableRmd(peak_tib) |>
-    DT::formatSignif(c("baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"), digits=3)
+  print(htmltools::tagList(ezInteractiveTableRmd(peak_tib, digits = 3)))
+  # |> DT::formatSignif(c("baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"), digits=3)
 }
+
+## NBB: this dummy table triggers/forces rendering, otherwise no table will be displayed ¯\_(ツ)_/¯
+ezInteractiveTableRmd(data.frame())
 ```
 
 ## SessionInfo

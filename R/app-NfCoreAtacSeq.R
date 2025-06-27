@@ -130,9 +130,9 @@ getData <- function(output, param){
   dds$Condition <- dsgn$Condition
   design(dds) <- ~ Condition
   
-  peakDir <- basename(output$getColumn('Result'))
-  if(!dir.exists(peakDir)) dir.create(peakDir)
-  setwdNew(peakDir)
+  outDir <- paste0(basename(output$getColumn('Result')), '/', param$name, '_results/diffpeak_analysis')
+  if(!dir.exists(outDir)) dir.create(outDir, recursive = TRUE)
+  setwdNew(outDir)
   
   qs2::qs_save(dds, file = 'dds.qs2')
   qs2::qs_save(peakAnno, file = 'peakAnno.qs2')
