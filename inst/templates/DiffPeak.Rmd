@@ -19,7 +19,7 @@ editor_options:
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup}
-knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE, knitr.table.format = "html")
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ## generate all graphs as PDF
 ## knitr::opts_chunk$set(dev = "cairo_pdf")
 ```
@@ -35,13 +35,13 @@ library(dplyr)
 library(patchwork)
 ```
 
-```{r load_data, echo=FALSE, include=FALSE}
+```{r load_data}
 # setwdNew('/scratch/test-nfcore/o35568_NfCoreAtacSeq_2025-06-18--13-21-07/peakRes/')
 dds <- qs2::qs_read('dds.qs2')
 peakAnno <- qs2::qs_read('peakAnno.qs2')
 ```
 
-```{r get_results, echo=FALSE}
+```{r get_results}
 getComparisonMatrix <- function(dds){
   conditions <- dds$Condition |> levels() #dds$Condition |> levels()
   
@@ -83,13 +83,13 @@ getResults <- function(dds, peakAnno, groupPair){
 }
 ```
 
-```{r utils,  echo=FALSE}
+```{r utils}
 groupFormatter <- function(groupName){
   str_replace(groupName, '_vs_', ' vs ')
 }
 ```
 
-```{r}
+```{r peak_table}
 make_peak_table <- function(res, groupName){
   res[[groupName]]$res |>
     mutate(
@@ -101,7 +101,7 @@ make_peak_table <- function(res, groupName){
 }
 ```
 
-```{r plot_functions, echo=FALSE}
+```{r plot_functions}
 plot_volcano <- function(res, groupName){
   ml_res <- make_peak_table(res, groupName)
   
@@ -227,7 +227,7 @@ plot_heatmap <- function(res, groupName){
 }
 ```
 
-```{r display_results}
+```{r display_results, results='asis', fig.width=15, fig.height=10}
 compMat <- getComparisonMatrix(dds)
 res <- list()
 for(i in 1:ncol(compMat)){
@@ -235,22 +235,28 @@ for(i in 1:ncol(compMat)){
   groupName <- names(curres)
   res[groupName] <- curres
   
+  pander::pandoc.p('')
+  pander::pandoc.header(groupFormatter(groupName), level = 3)
+  pander::pandoc.p('')
+
   p1 <- plot_pca(curres, groupName)
   p2 <- plot_volcano(curres, groupName)
   p3 <- plot_ma(curres, groupName)
   p4 <- plot_heatmap(curres, groupName)
   print((p1 + p2) / (p3 + p4))
 
-  make_peak_table(curres, groupName) |>
-    filter(candidate) |>
-    ezInteractiveTableRmd() |>
-    DT::formatSignif(c("baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"), digits=3)
+  peak_tib <- make_peak_table(curres, groupName) |> filter(candidate)
+  print(htmltools::tagList(ezInteractiveTableRmd(peak_tib, digits = 3)))
+  # |> DT::formatSignif(c("baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"), digits=3)
 }
+
+## NBB: this dummy table triggers/forces rendering, otherwise no table will be displayed ¯\_(ツ)_/¯
+ezInteractiveTableRmd(data.frame())
 ```
 
 ## SessionInfo
 
-```{r, echo=FALSE}
+```{r}
 ezSessionInfo()
 ```
 
