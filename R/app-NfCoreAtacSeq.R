@@ -36,6 +36,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
 
   cwd <- getwd()
   if(param[['runTwoGroupAnalysis']]){
+    require(DESeq2)
     getData(output, param)
 
     makeRmdReport(
@@ -114,7 +115,7 @@ getGenomeSize <- function(param){
 }
 
 getData <- function(output, param){
-  nfCoreOutDir <- paste0(param$dataRoot, '/',  output$getColumn('Result'), '/', param$name, '_results', '/bwa/merged_replicate/macs2/', param$peakStyle, '_peak/consensus')
+  nfCoreOutDir <- paste0(param$name, '_results', '/bwa/merged_replicate/macs2/', param$peakStyle, '_peak/consensus')
   
   dds <- readRDS(paste0(nfCoreOutDir, '/deseq2/consensus_peaks.mRp.clN.rds'))
   
