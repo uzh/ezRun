@@ -131,7 +131,7 @@ getData <- function(output, param){
   dds$Condition <- dsgn$Condition
   design(dds) <- ~ Condition
   
-  outDir <- paste0(basename(output$getColumn('Result')), '/', param$name, '_results/diffpeak_analysis')
+  outDir <- file.path(basename(output$getColumn('Result')),'diffpeak_analysis')
   if(!dir.exists(outDir)) dir.create(outDir, recursive = TRUE)
   setwdNew(outDir)
   
