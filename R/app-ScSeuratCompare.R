@@ -24,7 +24,8 @@ EzAppScSeuratCompare <-
   )
 
 ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
-  .libPaths(c('/srv/GT/databases/writable_R_package/4.5.0', .libPaths()))
+  writableRPackageDir <- file.path('/srv/GT/databases/writable_R_package', strsplit(version[['version.string']], ' ')[[1]][3])
+  .libPaths(c(writableRPackageDir, .libPaths()))
   
   library(Seurat)
   library(HDF5Array)
@@ -32,7 +33,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(qs2)
   library(tidyverse)
   library(cmdstanr)
-  cmdstanr::set_cmdstan_path('/srv/GT/databases/writable_R_package/4.5.0/cmdstanr/cmdstan-2.36.0')
+  cmdstanr::set_cmdstan_path(file.path(writableRPackageDir, 'cmdstanr/cmdstan-2.36.0'))
 
   
   ## Setup sccomp
@@ -55,7 +56,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   sccomp:::load_model(
     name = "glm_multi_beta_binomial",
     threads = 4,
-    cache_dir = '/srv/GT/databases/writable_R_package/4.5.0/sccomp/'
+    cache_dir = file.path(writableRPackageDir, "sccomp")
   )
   
   
