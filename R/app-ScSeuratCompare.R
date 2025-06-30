@@ -41,9 +41,9 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   dir.create(scratch_dir, recursive = TRUE, mode = "0777", showWarnings = FALSE)
   
   # Load sccomp and set up cmdstan
-  library(sccomp, lib.loc = '/srv/GT/databases/writable_R_package')
+  library(sccomp, lib.loc = '/srv/GT/databases/writable_R_package/4.5.0')
   
-  cmdstanr::set_cmdstan_path('/srv/GT/databases/writable_R_package/cmdstanr/cmdstan-2.36.0/')
+  cmdstanr::set_cmdstan_path('/srv/GT/databases/writable_R_package/4.5.0/cmdstanr/cmdstan-2.36.0')
   
   # check if in pseudobulk mode
   pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) && param$pseudoBulkMode == "true"
