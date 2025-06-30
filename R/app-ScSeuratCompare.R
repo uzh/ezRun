@@ -24,12 +24,16 @@ EzAppScSeuratCompare <-
   )
 
 ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
+  .libPaths(c('/srv/GT/databases/writable_R_package/4.5.0', .libPaths()))
+  
   library(Seurat)
   library(HDF5Array)
   library(SingleCellExperiment)
   library(qs2)
   library(tidyverse)
   library(cmdstanr)
+  cmdstanr::set_cmdstan_path('/srv/GT/databases/writable_R_package/4.5.0/cmdstanr/cmdstan-2.36.0')
+
   
   ## Setup sccomp
   # You need to install first sccomp and cmdstanr R packages in '/srv/GT/databases/writable_R_package' 
@@ -41,10 +45,8 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   dir.create(scratch_dir, recursive = TRUE, mode = "0777", showWarnings = FALSE)
   
   # Load sccomp and set up cmdstan
-  .libPaths(c('/srv/GT/databases/writable_R_package/4.5.0', .libPaths()))
   library(sccomp)
   
-  cmdstanr::set_cmdstan_path('/srv/GT/databases/writable_R_package/4.5.0/cmdstanr/cmdstan-2.36.0')
   
   # check if in pseudobulk mode
   pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) && param$pseudoBulkMode == "true"
@@ -53,7 +55,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   sccomp:::load_model(
     name = "glm_multi_beta_binomial",
     threads = 4,
-    cache_dir = '/srv/GT/databases/writable_R_package/sccomp/'
+    cache_dir = '/srv/GT/databases/writable_R_package/4.5.0/sccomp/'
   )
   
   
