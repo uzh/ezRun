@@ -25,7 +25,7 @@ EzAppScSeuratCompare <-
 
 ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
   writableRPackageDir <- file.path('/srv/GT/databases/writable_R_package', strsplit(version[['version.string']], ' ')[[1]][3])
-  .libPaths(c(writableRPackageDir, .libPaths()))
+  .libPaths(c(writableRPackageDir, .libPaths()[length(.libPaths())]))
   
   library(Seurat)
   library(HDF5Array)
