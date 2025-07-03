@@ -11,8 +11,8 @@ editor_options:
   chunk_output_type: inline
 ---
 
+# {.tabset}
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
 library(ezRun)
@@ -33,15 +33,15 @@ stats <- readRDS('stats.rds')
 data = data.frame(group = rep('Count', nrow(dict)), counts = c(dict$Count))
 ```
 
-## CountSpacer Result {.tabset}
+## Overview
 
-### Overview
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 * Total Number of sgRNAs: `r nrow(res)`
 * Median Reads per sgRNA = `r median(res$Count)`
 * Mean Reads per sgRNA = `r mean(res$Count)`
 
-### Diagnostic plots
+## Diagnostic plots
 
 ```{r, fig.width=7, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
 readFilteringStats = unlist(stats)[1:3]/10^6
@@ -78,7 +78,7 @@ p <- ggplot(data, aes(x=group, y=counts))
   text(length(sortedCounts)*0.1, max(sortedCounts)*0.95, paste0('Gini-index=', round(Gini(res$Count),digits=3)), cex = 0.8)
 ```
 
-### Data availability
+## Data availability
 
 **Expression matrix**
 
@@ -104,14 +104,14 @@ cat(paste0("[", zipped, "](", zipped, ")"))
 cat("\n")
 ```
 
-### Methods 
+## Methods 
 
 * LibraryPath: `r param[['dictPath']]`
 * LeftPattern: `r param[['leftPattern']]`
 * RightPattern: `r param[['rightPattern']]`
 * Alignment method: bowtie
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```
