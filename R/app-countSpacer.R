@@ -63,7 +63,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   
   ###Export Tables
   resultFile = paste0(sampleName,'-result.xlsx')
-  writexl::write_xlsx(dict, resultFile, row.names = FALSE)
+  writexl::write_xlsx(dict, resultFile)
   
   countFile_sgRNA = paste0(sampleName,'-sgRNA_counts.xlsx')
   sgRNA_counts = data.frame(Identifier = dict$ID, matchCounts = dict$Count, stringsAsFactors = FALSE)
