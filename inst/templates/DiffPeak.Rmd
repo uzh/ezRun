@@ -291,16 +291,19 @@ for(i in 1:length(groups)){
       !(`Gene Name` %in% hrtGenes)
     ) |>
     distinct(`Gene Name`, .keep_all = TRUE) |>
-    head(500) |>
     pull(`Gene Name`) |>
     unique()
 }
+
+topGenesAll <- topGenes |> unlist() |> unname() |> unique()
+topGenes <- c(list("All Pairwise Comparisons" = topGenesAll), topGenes)
+topGenes <- lapply(topGenes, head, 500)
 
 jsCall <- paste0('enrich({list: "', sapply(topGenes, paste, collapse="\\n"), '", popup: true});')
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall,
                        "'>Analyse at Enrichr website</a>")
 
-enrichrTable <- tibble(Sample = names(topGenes),
+enrichrTable <- tibble("Groups" = names(topGenes),
                       "Number of top DEGs" = lengths(topGenes),
                       "Enrichr link" = enrichrCalls)
 
