@@ -22,7 +22,7 @@
 # bash -c 'set -o pipefail; ls -a'
 ezSystem = function(cmd, echo=TRUE, intern=FALSE, stopOnFailure=!intern, ...){
   if (echo){
-    ezWrite(pate("EXECUTED CMD:", cmd))
+    ezWrite(paste("EXECUTED CMD:", cmd))
   }
   if (grepl("|", cmd, fixed=TRUE) | grepl(";", cmd, fixed=TRUE)){
     if(grepl("'", cmd)){
