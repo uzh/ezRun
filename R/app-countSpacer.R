@@ -126,8 +126,8 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   targetView[['GeneSymbol']] = tapply(dict2$GeneSymbol, dict2$TargetID, unique)
   targetView[['Count']] = tapply(dict2$Count, dict2$TargetID, paste, collapse = ',')
   targetView[['Count_Sum']] = tapply(dict2$Count, dict2$TargetID, sum)
-  targetView[['#sgRNAs > 0']] = tapply(dict2$Count, dict2$TargetID, .greaterMin, 0)
-  targetView[['#sgRNAs > lowerCutOff']] = tapply(dict2$Count, dict2$TargetID, .greaterMin, 2^lowerCutOff)
+  targetView[['#sgRNAs > 0']] = tapply(dict2$Count > 0, dict2$TargetID, sum)
+  targetView[['#sgRNAs > lowerCutOff']] = tapply(dict2$Count > 2^lowerCutOff, dict2$TargetID, sum)
   targetView = targetView[order(targetView[['#sgRNAs > lowerCutOff']]),]
   
   underrepTargets = targetView[targetView[['#sgRNAs > lowerCutOff']] < 2,]
@@ -221,9 +221,6 @@ twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatc
   return(allReads)
 }
 
-.greaterMin <- function(n, minVal){
-  return(length(which(n > minVal)))
-}
 
 ##' @author Opitz, Lennart
 ##' @template app-template
