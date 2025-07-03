@@ -196,6 +196,7 @@ twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatc
     processedReads = processedReads + length(currentReads)
     allReads <- c(allReads, reads)
     print(paste0(processedReads/10^6, 'M reads processed \n'))
+  }
   return(allReads)
 }
 
