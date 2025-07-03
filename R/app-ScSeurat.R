@@ -448,18 +448,190 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   # scType Integration
   if (ezIsSpecified(param$sctype.enabled) && param$sctype.enabled) {
     tryCatch({
-      sctype_source_path <- "/home/pgueguen/git/paul-scripts/Internal_Dev/scSeuratApp_test/01_scType_annotation/scType_integration.R"
-      if (file.exists(sctype_source_path)) {
-        source(sctype_source_path)
-        sctype_results <- run_sctype_annotation(scData, param)
-        if (!is.null(sctype_results)) {
-          scData <- sctype_results$scData
-          saveRDS(sctype_results, "sctype_results.rds")
+      futile.logger::flog.info("Starting scType cell type annotation...")
+      
+      # Load required libraries and set up fallbacks
+      hgnc_available <- require("HGNChelper", quietly = TRUE)
+      if (!hgnc_available) {
+        futile.logger::flog.warn("HGNChelper not available, using fallback function")
+        # Create fallback function in global environment
+        checkGeneSymbols_fallback <- function(x, unmapped.as.na = TRUE) {
+          data.frame(x = x, Suggested.Symbol = x, Approved = TRUE, stringsAsFactors = FALSE)
         }
+        assign("checkGeneSymbols", checkGeneSymbols_fallback, envir = .GlobalEnv)
       }
+      
+      # Source scType functions from GitHub
+      source("https://raw.githubusercontent.com/IanevskiAleksandr/sc-type/master/R/gene_sets_prepare.R")
+      source("https://raw.githubusercontent.com/IanevskiAleksandr/sc-type/master/R/sctype_score_.R")
+      
+      # Determine database path
+      db_path <- "/srv/GT/databases/sc-type/ScTypeDB_full.xlsx"
+      if (!file.exists(db_path)) {
+        db_path <- "https://raw.githubusercontent.com/IanevskiAleksandr/sc-type/master/ScTypeDB_full.xlsx"
+      }
+      
+      # Define Seurat v5 compatible auto-detection function
+      auto_detect_tissue_type <- function(path_to_db_file, seuratObject, scaled = TRUE, assay = "RNA", ...) {
+        # Load the database
+        db_ <- openxlsx::read.xlsx(path_to_db_file)
+        
+        # Determine data type based on scaled parameter
+        data_type <- ifelse(scaled, "scale.data", "data")
+        
+        # Get expression data using LayerData (the correct Seurat v5 method)
+        obj <- LayerData(seuratObject, assay = assay, layer = data_type)
+        
+        # Convert to matrix if needed
+        if (!is.matrix(obj)) {
+          obj <- as.matrix(obj)
+        }
+        
+        # Get unique tissues from database
+        tissues <- unique(db_$tissueType)
+        
+        # Calculate tissue scores
+        tissue_scores <- sapply(tissues, function(tissue) {
+          futile.logger::flog.debug("Checking tissue: %s", tissue)
+          
+          # Prepare gene sets for this tissue
+          gs_list <- gene_sets_prepare(path_to_db_file, tissue)
+          
+          # Calculate scType scores if positive gene sets exist
+          if (length(gs_list$gs_positive) > 0) {
+            es.max <- sctype_score(scRNAseqData = obj, scaled = scaled, 
+                                   gs = gs_list$gs_positive, gs2 = gs_list$gs_negative)
+            # Return mean of maximum scores across cell types
+            return(mean(apply(es.max, 1, max)))
+          } else {
+            return(0)
+          }
+        })
+        
+        return(tissue_scores)
+      }
+      
+      # Determine tissue type
+      tissue_type <- param$sctype.tissue
+      if (!ezIsSpecified(tissue_type) || tissue_type == "auto") {
+        futile.logger::flog.info("Auto-detecting tissue type...")
+        tryCatch({
+          # Use the fixed auto-detection function compatible with Seurat v5
+          tissue_guess <- auto_detect_tissue_type(
+            path_to_db_file = db_path, 
+            seuratObject = scData, 
+            scaled = TRUE, 
+            assay = "RNA"
+          )
+          
+          tissue_type <- names(tissue_guess)[which.max(tissue_guess)]
+          futile.logger::flog.info("Auto-detected tissue type: %s (score: %.3f)", 
+                                  tissue_type, max(tissue_guess))
+        }, error = function(e) {
+          futile.logger::flog.warn("Auto-detection failed: %s, using default 'Immune system'", e$message)
+          tissue_type <- "Immune system"
+        })
+      }
+      
+      # Prepare gene sets with better error handling
+      futile.logger::flog.info("Preparing gene sets for tissue: %s", tissue_type)
+      gs_list <- tryCatch({
+        gene_sets_prepare(db_path, tissue_type)
+      }, error = function(e) {
+        futile.logger::flog.error("Failed to prepare gene sets: %s", e$message)
+        return(NULL)
+      })
+      
+      # Check if gene sets were prepared successfully
+      if (is.null(gs_list) || length(gs_list$gs_positive) == 0) {
+        futile.logger::flog.error("Gene sets preparation failed or no positive gene sets found, skipping annotation")
+        return(NULL)
+      }
+      
+      futile.logger::flog.info("Successfully prepared %d positive and %d negative gene sets", 
+                              length(gs_list$gs_positive), length(gs_list$gs_negative))
+      
+      # Extract scaled data using Seurat v5 compatible method
+      tryCatch({
+        scRNAseqData_scaled <- LayerData(scData, assay = "RNA", layer = "scale.data")
+        if (!is.matrix(scRNAseqData_scaled)) {
+          scRNAseqData_scaled <- as.matrix(scRNAseqData_scaled)
+        }
+      }, error = function(e) {
+        futile.logger::flog.warn("LayerData failed, trying fallback: %s", e$message)
+        seurat_v5 <- isFALSE('counts' %in% names(attributes(scData[["RNA"]])))
+        if (seurat_v5) {
+          scRNAseqData_scaled <- as.matrix(scData[["RNA"]]$scale.data)
+        } else {
+          scRNAseqData_scaled <- as.matrix(scData[["RNA"]]@scale.data)
+        }
+      })
+      
+      # Run scType scoring
+      futile.logger::flog.info("Running scType scoring...")
+      es.max <- tryCatch({
+        sctype_score(scRNAseqData = scRNAseqData_scaled, scaled = TRUE, 
+                     gs = gs_list$gs_positive, gs2 = gs_list$gs_negative)
+      }, error = function(e) {
+        futile.logger::flog.error("scType scoring failed: %s", e$message)
+        return(NULL)
+      })
+      
+      # Check if scoring was successful
+      if (is.null(es.max)) {
+        futile.logger::flog.error("scType scoring returned NULL, skipping annotation")
+        return(NULL)
+      }
+      
+      # Process results by cluster
+      futile.logger::flog.info("Processing scType results by cluster...")
+      cluster_column <- "seurat_clusters"
+      
+      cL_results <- do.call("rbind", lapply(unique(scData@meta.data[[cluster_column]]), function(cl){
+        es.max.cl <- sort(rowSums(es.max[, rownames(scData@meta.data[scData@meta.data[[cluster_column]]==cl, ])]), decreasing = TRUE)
+        head(data.frame(cluster = cl, type = names(es.max.cl), scores = es.max.cl, 
+                       ncells = sum(scData@meta.data[[cluster_column]]==cl)), 10)
+      }))
+      
+      # Get top scoring cell type per cluster
+      sctype_scores <- cL_results %>% 
+        group_by(cluster) %>% 
+        top_n(n = 1, wt = scores)
+      
+      # Set confidence threshold
+      confidence_threshold <- param$sctype.confidence.threshold
+      if (!ezIsSpecified(confidence_threshold)) {
+        confidence_threshold <- 0.25
+      }
+      
+      # Set low-confident clusters to "Unknown"
+      sctype_scores$type[as.numeric(as.character(sctype_scores$scores)) < sctype_scores$ncells * confidence_threshold] <- "Unknown"
+      
+      # Add results to Seurat object metadata
+      scData@meta.data$sctype_classification <- ""
+      for(j in unique(sctype_scores$cluster)){
+        cl_type <- sctype_scores[sctype_scores$cluster==j,]
+        scData@meta.data$sctype_classification[scData@meta.data[[cluster_column]] == j] <- as.character(cl_type$type[1])
+      }
+      
+      # Save results
+      sctype_results <- list(
+        scData = scData,
+        sctype_scores = sctype_scores,
+        all_results = cL_results,
+        tissue_type = tissue_type,
+        database_path = db_path,
+        confidence_threshold = confidence_threshold
+      )
+      
+      saveRDS(sctype_results, "sctype_results.rds")
+      futile.logger::flog.info("scType annotation completed successfully")
+      
     }, error = function(e) {
-      message("scType annotation failed: ", e$message)
+      futile.logger::flog.error("scType annotation failed: %s", e$message)
     })
+  } else {
+    futile.logger::flog.info("scType annotation disabled, skipping...")
   }
   
   # Azimuth Pan-Human Integration
