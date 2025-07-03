@@ -136,7 +136,32 @@ EzAppScSeurat <-
                     excludeGenes = ezFrame(
                       Type = "charVector",
                       DefaultValue = "",
-                      Description = "file path to txt file with gene symbols to exclude from the analysis")
+                      Description = "file path to txt file with gene symbols to exclude from the analysis"),
+                    sctype.enabled = ezFrame(
+                      Type = "logical",
+                      DefaultValue = TRUE,
+                      Description = "Enable scType automatic cell type annotation (human and mouse supported)"
+                    ),
+                    sctype.tissue = ezFrame(
+                      Type = "character",
+                      DefaultValue = "auto",
+                      Description = "Tissue type for scType annotation. Select 'auto' for automatic detection"
+                    ),
+                    sctype.confidence.threshold = ezFrame(
+                      Type = "numeric",
+                      DefaultValue = 0.25,
+                      Description = "Confidence threshold for scType annotation"
+                    ),
+                    AzimuthPanHuman = ezFrame(
+                      Type = "logical",
+                      DefaultValue = FALSE,
+                      Description = "Enable Azimuth Pan-Human neural network-based cell type annotation (HUMAN DATASETS ONLY)"
+                    ),
+                    AzimuthPanHuman.confidence.threshold = ezFrame(
+                      Type = "numeric",
+                      DefaultValue = 0.5,
+                      Description = "Confidence threshold for Azimuth Pan-Human annotation (0.0-1.0)"
+                    )
                   )
                 }
               )
@@ -419,6 +444,51 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
   clusterInfoFile <- "clusterInfos.xlsx"
   writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
+  
+  # scType Integration
+  if (ezIsSpecified(param$sctype.enabled) && param$sctype.enabled) {
+    tryCatch({
+      sctype_source_path <- "/home/pgueguen/git/paul-scripts/Internal_Dev/scSeuratApp_test/01_scType_annotation/scType_integration.R"
+      if (file.exists(sctype_source_path)) {
+        source(sctype_source_path)
+        sctype_results <- run_sctype_annotation(scData, param)
+        if (!is.null(sctype_results)) {
+          scData <- sctype_results$scData
+          saveRDS(sctype_results, "sctype_results.rds")
+          # Create and save summary table from scType results
+          if (!is.null(sctype_results$sctype_scores)) {
+            writexl::write_xlsx(sctype_results$sctype_scores, path="scType_results.xlsx")
+          }
+        }
+      }
+    }, error = function(e) {
+      message("scType annotation failed: ", e$message)
+    })
+  }
+  
+  # Azimuth Pan-Human Integration
+  if (ezIsSpecified(param$AzimuthPanHuman) && param$AzimuthPanHuman) {
+    tryCatch({
+      # Verify RNA normalization before Azimuth Pan-Human annotation
+      if (!"data" %in% names(scData[["RNA"]]@layers) || is.null(scData[["RNA"]]@layers[["data"]])) {
+        message("RNA normalization not found. Running NormalizeData for Azimuth Pan-Human annotation...")
+        scData <- NormalizeData(scData, assay = "RNA")
+      }
+      
+      azimuth_source_path <- "/home/pgueguen/git/paul-scripts/Internal_Dev/scSeuratApp_test/02_azimuth_pan_human/azimuth_integration.R"
+      if (file.exists(azimuth_source_path)) {
+        source(azimuth_source_path)
+        azimuth_results <- run_azimuth_annotation(scData, param)
+        if (!is.null(azimuth_results)) {
+          scData <- azimuth_results$scData
+          saveRDS(azimuth_results, "azimuth_results.rds")
+        }
+      }
+    }, error = function(e) {
+      message("Azimuth Pan-Human annotation failed: ", e$message)
+    })
+  }
+  
   qs2::qs_save(scData, "scData.qs2", nthreads = param$cores)
   
   makeRmdReport(param=param, output=output, scData=scData, allCellsMeta=allCellsMeta, 

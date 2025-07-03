@@ -93,6 +93,24 @@ if (file.exists("cellsPerGeneFraction.rds")){
   cellsPerGeneFraction <- NULL
 }
 
+# Load scType results
+if (file.exists("sctype_results.rds")){
+  sctype_results <- readRDS("sctype_results.rds")
+  sctype_available <- TRUE
+} else {
+  sctype_results <- NULL
+  sctype_available <- FALSE
+}
+
+# Load Azimuth Pan-Human results
+if (file.exists("azimuth_results.rds")){
+  azimuth_results <- readRDS("azimuth_results.rds")
+  azimuth_available <- TRUE
+} else {
+  azimuth_results <- NULL
+  azimuth_available <- FALSE
+}
+
 
 # Process the posMarkers
 posMarkers$gene = as.factor(posMarkers$gene)
@@ -716,6 +734,89 @@ DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, redu
   theme(aspect.ratio = 1)
 ```
 
+### Azimuth Pan-Human
+
+`r if(azimuth_available) "Azimuth Pan-Human provides neural network-based cell type annotation using the Satija lab reference (HUMAN DATASETS ONLY)."`
+
+```{r azimuth panhuman results, eval=azimuth_available, results='asis', fig.width=12, fig.height=8}
+if(azimuth_available && !is.null(azimuth_results)){
+  cat("**Reference:** Pan-Human Azimuth neural network model\n\n")
+  cat("**Cells annotated:** ", azimuth_results$n_cells_annotated, "\n\n")
+  cat("**Confidence threshold:** ", azimuth_results$confidence_threshold, "\n\n")
+  
+  scData_az <- azimuth_results$scData
+  
+  # 1. Final level labels UMAP
+  if("final_level_labels" %in% colnames(scData_az@meta.data)){
+    cat("#### Final Level Cell Types\n\n")
+    reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
+    print(DimPlot(scData_az, group.by = "final_level_labels", label = TRUE, repel = TRUE, 
+                  reduction = reduction_to_use) + 
+          ggtitle("Azimuth Pan-Human: Final Level Labels") + 
+          theme(legend.position = "bottom"))
+    cat("\n\n")
+  }
+  
+  # 2. Azimuth broad labels
+  if("azimuth_broad" %in% colnames(scData_az@meta.data)){
+    cat("#### Broad Level Cell Types\n\n")
+    reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
+    print(DimPlot(scData_az, group.by = "azimuth_broad", label = TRUE, repel = TRUE, 
+                  reduction = reduction_to_use) + 
+          ggtitle("Azimuth Pan-Human: Broad Level Labels"))
+    cat("\n\n")
+  }
+  
+  # 3. Azimuth medium labels
+  if("azimuth_medium" %in% colnames(scData_az@meta.data)){
+    cat("#### Medium Level Cell Types\n\n")
+    reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
+    print(DimPlot(scData_az, group.by = "azimuth_medium", label = TRUE, repel = TRUE, 
+                  reduction = reduction_to_use) + 
+          ggtitle("Azimuth Pan-Human: Medium Level Labels"))
+    cat("\n\n")
+  }
+  
+  # 4. Azimuth fine labels
+  if("azimuth_fine" %in% colnames(scData_az@meta.data)){
+    cat("#### Fine Level Cell Types\n\n")
+    reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
+    print(DimPlot(scData_az, group.by = "azimuth_fine", label = TRUE, repel = TRUE, 
+                  reduction = reduction_to_use) + 
+          ggtitle("Azimuth Pan-Human: Fine Level Labels"))
+    cat("\n\n")
+  }
+  
+  # 5. Confidence scores FeaturePlot
+  if("final_level_softmax_prob" %in% colnames(scData_az@meta.data)){
+    cat("#### Confidence Scores by Cell\n\n")
+    reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
+    print(FeaturePlot(scData_az, features = "final_level_softmax_prob", 
+                      reduction = reduction_to_use) + 
+          ggtitle("Azimuth Pan-Human: Confidence Scores") +
+          scale_colour_viridis_c())
+    cat("\n\n")
+  }
+  
+  # 6. Histogram of softmax probabilities
+  if("final_level_softmax_prob" %in% colnames(scData_az@meta.data)){
+    cat("#### Confidence Score Distribution\n\n")
+    library(ggplot2)
+    p <- ggplot(scData_az@meta.data, aes(x = final_level_softmax_prob)) +
+      geom_histogram(bins = 30, fill = "skyblue", color = "white", alpha = 0.8) +
+      geom_vline(xintercept = azimuth_results$confidence_threshold, 
+                 linetype = "dashed", color = "red", size = 1) +
+      theme_minimal() +
+      labs(title = "Azimuth Pan-Human: Softmax Probabilities",
+           x = "Softmax Probability", 
+           y = "Number of Cells",
+           subtitle = paste("Confidence threshold:", azimuth_results$confidence_threshold))
+    print(p)
+    cat("\n\n")
+  }
+}
+```
+
 ### Cell x gene
 ```{r cellxgene, eval=!is.null(cellxgeneResults), fig.width=7, fig.height=7}
 
@@ -759,6 +860,69 @@ p2
 p3
 ```
 
+### scType
+
+`r if(sctype_available) "scType provides fully-automated cell-type identification using specific marker combinations (human and mouse supported)."`
+
+```{r sctype results, eval=sctype_available, results='asis', fig.width=12, fig.height=8}
+if(sctype_available && !is.null(sctype_results)){
+  cat("**Detected tissue:** ", sctype_results$tissue_type, "\n\n")
+  cat("**Database path:** ", sctype_results$database_path, "\n\n")
+  cat("**Confidence threshold:** ", sctype_results$confidence_threshold, "\n\n")
+  
+  scData_sc <- sctype_results$scData
+  
+  # 1. scType cell type classification UMAP
+  if("sctype_classification" %in% colnames(scData_sc@meta.data)){
+    cat("#### scType Cell Type Classification\n\n")
+    print(DimPlot(scData_sc, reduction = "umap", label = TRUE, repel = TRUE, 
+                  group.by = 'sctype_classification') +
+          ggtitle(paste("scType Cell Type Annotation -", sctype_results$tissue_type)) +
+          theme(legend.position = "bottom"))
+    cat("\n\n")
+  }
+  
+  # 2. scType confidence scores by cell
+  if("sctype_scores" %in% colnames(scData_sc@meta.data)){
+    cat("#### scType Confidence Scores by Cell\n\n")
+    print(FeaturePlot(scData_sc, features = "sctype_scores", reduction = "umap") + 
+          ggtitle("scType Confidence Scores") +
+          scale_colour_viridis_c())
+    cat("\n\n")
+  }
+  
+  # 3. Confidence scores by cluster (bar plot)
+  if(!is.null(sctype_results$sctype_scores)){
+    cat("#### scType Confidence Scores by Cluster\n\n")
+    library(ggplot2)
+    score_data <- sctype_results$sctype_scores
+    score_data$cluster <- factor(score_data$cluster)
+    
+    p <- ggplot(score_data, aes(x = cluster, y = scores, fill = type)) +
+      geom_bar(stat = "identity") +
+      geom_hline(yintercept = score_data$ncells * sctype_results$confidence_threshold, 
+                 linetype = "dashed", color = "red", size = 1) +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1),
+            legend.position = "bottom") +
+      labs(title = "scType Confidence Scores by Cluster",
+           x = "Cluster", y = "scType Score", fill = "Cell Type",
+           subtitle = paste("Red line shows confidence threshold"))
+    print(p)
+    cat("\n\n")
+  }
+  
+  # 4. Summary table of scType results
+  if(!is.null(sctype_results$sctype_scores)){
+    cat("#### scType Results Summary\n\n")
+    DT::datatable(sctype_results$sctype_scores, 
+                  caption = "scType Cell Type Predictions by Cluster",
+                  options = list(pageLength = 15, scrollX = TRUE))
+    cat("\n\n")
+  }
+}
+```
+
 ### Interactive
 
 The link below will take you to an interactive Shiny app which can be used to make 
@@ -774,6 +938,8 @@ These apps are no longer maintained. Use at your own risk, or for legacy dataset
 
 [iSEE explorer](`r {paste0("https://fgcz-shiny.uzh.ch/fgcz_iSEE", "/?data=",output$getColumn("SC Cluster Report"))}`){target="_blank"}
 
+
+
 ### Data availability
 
 [clusterInfos.xlsx](clusterInfos.xlsx) -- use this xls file to manually relabel the clusters
@@ -781,6 +947,9 @@ These apps are no longer maintained. Use at your own risk, or for legacy dataset
 [posMarkers](posMarkers.xlsx) -- Excel table with all marker genes 
 
 [scData.qs2](scData.qs2) -- final seurat object in [qs2 format](https://github.com/qsbase/qs2)
+
+`r if(sctype_available) "[scType_results.xlsx](scType_results.xlsx) -- scType cell type annotation results"`
+
 
 
 ### SessionInfo
