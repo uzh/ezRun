@@ -450,6 +450,41 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     tryCatch({
       futile.logger::flog.info("Starting scType cell type annotation...")
       
+      # Load HGNChelper explicitly or create fallback
+      hgnc_available <- suppressPackageStartupMessages(
+        suppressWarnings(require("HGNChelper", quietly = TRUE))
+      )
+      
+      if (!hgnc_available) {
+        futile.logger::flog.warn("HGNChelper not available, installing fallback function")
+        # Install required package first if possible
+        tryCatch({
+          if (!requireNamespace("BiocManager", quietly = TRUE)) {
+            install.packages("BiocManager", repos = "https://cloud.r-project.org")
+          }
+          BiocManager::install("HGNChelper", quiet = TRUE)
+          hgnc_available <- require("HGNChelper", quietly = TRUE)
+        }, error = function(e) {
+          futile.logger::flog.warn("Failed to install HGNChelper: %s", e$message)
+        })
+      }
+      
+      # If still not available, create fallback
+      if (!hgnc_available) {
+        futile.logger::flog.warn("Using fallback checkGeneSymbols function")
+        # Create fallback function that matches HGNChelper interface
+        checkGeneSymbols <<- function(x, unmapped.as.na = TRUE, map = NULL, species = "human") {
+          data.frame(
+            x = x,
+            Suggested.Symbol = x,
+            Approved = TRUE,
+            stringsAsFactors = FALSE
+          )
+        }
+      } else {
+        futile.logger::flog.info("HGNChelper loaded successfully")
+      }
+      
       # Source the proven scType wrapper
       source("https://raw.githubusercontent.com/kris-nader/sc-type/master/R/sctype_wrapper.R")
       
@@ -490,10 +525,22 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     tryCatch({
       futile.logger::flog.info("Starting Azimuth Pan-Human annotation...")
       
+      # Load Azimuth package explicitly
+      if (!require("Azimuth", quietly = TRUE)) {
+        futile.logger::flog.error("Azimuth package not available")
+        stop("Azimuth package required for Pan-Human annotation")
+      }
+      
       # Verify RNA normalization before Azimuth Pan-Human annotation
       if (!"data" %in% names(scData[["RNA"]]@layers) || is.null(scData[["RNA"]]@layers[["data"]])) {
         futile.logger::flog.info("RNA normalization not found. Running NormalizeData for Azimuth Pan-Human annotation...")
         scData <- NormalizeData(scData, assay = "RNA")
+      }
+      
+      # Check if CloudAzimuth function exists
+      if (!exists("CloudAzimuth")) {
+        futile.logger::flog.error("CloudAzimuth function not found in Azimuth package")
+        stop("CloudAzimuth function not available")
       }
       
       # Run CloudAzimuth - this handles everything automatically

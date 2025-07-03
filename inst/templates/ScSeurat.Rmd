@@ -891,9 +891,9 @@ if(sctype_available && !is.null(sctype_results)){
 The link below will take you to an interactive Shiny app which can be used to make 
 production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
 
-## [Single Cell Explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("SC Cluster Report"), "/scData.qs2")}`){target="_blank"}
+[Single Cell Explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("SC Cluster Report"), "/scData.qs2")}`){target="_blank"}
 
-<br><br><br>
+
 
 #### Previous Shiny apps (<span style='color: red;'>no longer recommended</span>)
 
