@@ -455,10 +455,6 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
         if (!is.null(sctype_results)) {
           scData <- sctype_results$scData
           saveRDS(sctype_results, "sctype_results.rds")
-          # Create and save summary table from scType results
-          if (!is.null(sctype_results$sctype_scores)) {
-            writexl::write_xlsx(sctype_results$sctype_scores, path="scType_results.xlsx")
-          }
         }
       }
     }, error = function(e) {

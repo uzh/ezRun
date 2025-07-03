@@ -407,6 +407,24 @@ getSeuratMarkers <- function(scData, param) {
 
 getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
   # function for general annotation of Seurat objects
+  
+  # Helper function to strip species labels from parameter values
+  strip_species_labels <- function(param_values) {
+    if (is.character(param_values)) {
+      # Remove species labels like " (human)" or " (mouse)"
+      return(gsub(" \\(human\\)| \\(mouse\\)", "", param_values))
+    }
+    return(param_values)
+  }
+  
+  # Clean Azimuth and SingleR parameters to remove species labels
+  if (ezIsSpecified(param$Azimuth)) {
+    param$Azimuth <- strip_species_labels(param$Azimuth)
+  }
+  if (ezIsSpecified(param$SingleR)) {
+    param$SingleR <- strip_species_labels(param$SingleR)
+  }
+  
   markers <- getSeuratMarkers(scData, param)
   
   # cell types annotation is only supported for Human and Mouse at the moment

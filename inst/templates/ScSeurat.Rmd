@@ -882,41 +882,19 @@ if(sctype_available && !is.null(sctype_results)){
     cat("\n\n")
   }
   
-  # 2. scType confidence scores by cell
-  if("sctype_scores" %in% colnames(scData_sc@meta.data)){
-    cat("#### scType Confidence Scores by Cell\n\n")
-    print(FeaturePlot(scData_sc, features = "sctype_scores", reduction = "umap") + 
-          ggtitle("scType Confidence Scores") +
-          scale_colour_viridis_c())
-    cat("\n\n")
-  }
-  
-  # 3. Confidence scores by cluster (bar plot)
-  if(!is.null(sctype_results$sctype_scores)){
-    cat("#### scType Confidence Scores by Cluster\n\n")
-    library(ggplot2)
-    score_data <- sctype_results$sctype_scores
-    score_data$cluster <- factor(score_data$cluster)
-    
-    p <- ggplot(score_data, aes(x = cluster, y = scores, fill = type)) +
-      geom_bar(stat = "identity") +
-      geom_hline(yintercept = score_data$ncells * sctype_results$confidence_threshold, 
-                 linetype = "dashed", color = "red", size = 1) +
-      theme_minimal() +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1),
-            legend.position = "bottom") +
-      labs(title = "scType Confidence Scores by Cluster",
-           x = "Cluster", y = "scType Score", fill = "Cell Type",
-           subtitle = paste("Red line shows confidence threshold"))
-    print(p)
-    cat("\n\n")
-  }
-  
-  # 4. Summary table of scType results
-  if(!is.null(sctype_results$sctype_scores)){
+  # 2. Summary table showing cell type counts
+  if("sctype_classification" %in% colnames(scData_sc@meta.data)){
     cat("#### scType Results Summary\n\n")
-    DT::datatable(sctype_results$sctype_scores, 
-                  caption = "scType Cell Type Predictions by Cluster",
+    
+    # Create summary of cell type classifications
+    sctype_summary <- scData_sc@meta.data %>%
+      count(sctype_classification) %>%
+      arrange(desc(n)) %>%
+      rename("Cell Type" = sctype_classification, "Count" = n) %>%
+      mutate(Percentage = round(Count / sum(Count) * 100, 1))
+    
+    DT::datatable(sctype_summary, 
+                  caption = "scType Cell Type Classification Summary",
                   options = list(pageLength = 15, scrollX = TRUE))
     cat("\n\n")
   }
