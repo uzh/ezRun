@@ -107,7 +107,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
               cmd <- paste(cmd, paste0("--image=", myImage))
           }
           if(!param$runSegmentation & spaceRangerMainVersion >= 4){
-              cmd <- paste(cmd, "--nucleus-segmentation=FALSE")
+              cmd <- paste(cmd, "--nucleus-segmentation=false")
           }
       } else {
           if(file.exists(input$meta['Image']$Image)){
