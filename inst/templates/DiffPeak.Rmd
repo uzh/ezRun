@@ -18,12 +18,12 @@ editor_options:
 
 ## Differential Peak Analysis
 
-DESeq2 differential peak analysis performed across all possible pairwise comparisons. Peak count were normalized using a variance-stabilizing transformation (VST) to mitigate the dependency of the variance on the mean expression level.
+DESeq2 differential peak analysis performed across all possible pairwise comparisons. Peak counts were normalized using a variance-stabilizing transformation (VST) to mitigate the dependency of the variance on the mean expression level.
 
 For each two-group comparison we show:
 
 * a principal component analysis (PCA) to asses whether samples segregate according to biological conditions.
-* a volcano plot with the top 10 up- and down-regulated genes associated with the peaks. Differentially expressed genes (DEGs) are called at an FDR (false discovery rate) of 5% (Benjamini-Hochberg adjusted p-value < 0.05) and effect size (absolute log2 fold change cutoff) of 1.
+* a volcano plot with the top 10 up- and down-regulated genes associated with peaks. Differentially expressed genes (DEGs) are called at an FDR (false discovery rate) of 5% (Benjamini-Hochberg adjusted p-value < 0.05) and effect size (absolute log2 fold change cutoff) of 1.
 * a MA plot that highlights statistically significant peak, called at an FDR of 5% (Benjamini-Hochberg adjusted p-value < 0.05).
 * a heatmap of the top 1000 differential peaks.
 * an interactive table listing the top 1000 differential peaks.
@@ -272,7 +272,7 @@ ezInteractiveTableRmd(data.frame())
 
 ## EnrichR for the top DE genes
 
-Based on top 500 DEGs for each comparison and filtered for known housekeeping genes reported in the [HRT atlas](https://housekeeping.unicamp.br/homePageGlobal.html).
+Enrichment based on the top 500 DEGs filtered for known housekeeping genes reported in the [HRT atlas](https://housekeeping.unicamp.br/homePageGlobal.html).
 
 ```{r enrichR}
 hrtGenes <- ezRead.table('/srv/GT/databases/HRT/Human_Mouse_Common.csv', sep = ';', row.names = NULL)
