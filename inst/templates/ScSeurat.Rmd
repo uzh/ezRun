@@ -740,11 +740,15 @@ DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, redu
 
 ```{r azimuth panhuman results, eval=azimuth_available, results='asis', fig.width=12, fig.height=8}
 if(azimuth_available && !is.null(azimuth_results)){
-  cat("**Reference:** Pan-Human Azimuth neural network model\n\n")
-  cat("**Cells annotated:** ", azimuth_results$n_cells_annotated, "\n\n")
-  cat("**Confidence threshold:** ", azimuth_results$confidence_threshold, "\n\n")
+  cat("**Reference:** Pan-Human Azimuth neural network model (CloudAzimuth)\n\n")
   
   scData_az <- azimuth_results$scData
+  
+  # Count annotated cells
+  if("final_level_labels" %in% colnames(scData_az@meta.data)){
+    n_annotated <- sum(!is.na(scData_az@meta.data$final_level_labels))
+    cat("**Cells annotated:** ", n_annotated, "\n\n")
+  }
   
   # 1. Final level labels UMAP
   if("final_level_labels" %in% colnames(scData_az@meta.data)){
@@ -804,13 +808,10 @@ if(azimuth_available && !is.null(azimuth_results)){
     library(ggplot2)
     p <- ggplot(scData_az@meta.data, aes(x = final_level_softmax_prob)) +
       geom_histogram(bins = 30, fill = "skyblue", color = "white", alpha = 0.8) +
-      geom_vline(xintercept = azimuth_results$confidence_threshold, 
-                 linetype = "dashed", color = "red", size = 1) +
       theme_minimal() +
       labs(title = "Azimuth Pan-Human: Softmax Probabilities",
            x = "Softmax Probability", 
-           y = "Number of Cells",
-           subtitle = paste("Confidence threshold:", azimuth_results$confidence_threshold))
+           y = "Number of Cells")
     print(p)
     cat("\n\n")
   }
@@ -882,22 +883,6 @@ if(sctype_available && !is.null(sctype_results)){
     cat("\n\n")
   }
   
-  # 2. Summary table showing cell type counts
-  if("sctype_classification" %in% colnames(scData_sc@meta.data)){
-    cat("#### scType Results Summary\n\n")
-    
-    # Create summary of cell type classifications
-    sctype_summary <- scData_sc@meta.data %>%
-      count(sctype_classification) %>%
-      arrange(desc(n)) %>%
-      rename("Cell Type" = sctype_classification, "Count" = n) %>%
-      mutate(Percentage = round(Count / sum(Count) * 100, 1))
-    
-    DT::datatable(sctype_summary, 
-                  caption = "scType Cell Type Classification Summary",
-                  options = list(pageLength = 15, scrollX = TRUE))
-    cat("\n\n")
-  }
 }
 ```
 
