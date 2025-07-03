@@ -1,5 +1,5 @@
 ---
-title: "FILL ME"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
@@ -12,11 +12,22 @@ editor_options:
   chunk_output_type: inline
 ---
 
+<!-- Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")` -->
+
 # {.tabset}
 
 ## Differential Peak Analysis
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+DESeq2 differential peak analysis performed across all possible pairwise comparisons. Peak count were normalized using a variance-stabilizing transformation (VST) to mitigate the dependency of the variance on the mean expression level.
+
+For each two-group comparison we show:
+
+* a principal component analysis (PCA) to asses whether samples segregate according to biological conditions.
+* a volcano plot with the top 10 up- and down-regulated genes associated with the peaks. Differentially expressed genes (DEGs) are called at an FDR (false discovery rate) of 5% (Benjamini-Hochberg adjusted p-value < 0.05) and effect size (absolute log2 fold change cutoff) of 1.
+* a MA plot that highlights statistically significant peak, called at an FDR of 5% (Benjamini-Hochberg adjusted p-value < 0.05).
+* a heatmap of the top 1000 differential peaks.
+* an interactive table listing the top 1000 differential peaks.
+
 
 ```{r setup}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
@@ -33,6 +44,7 @@ library(ggrepel)
 library(ggplot2)
 library(dplyr)
 library(patchwork)
+library(kableExtra)
 ```
 
 ```{r load_data}
@@ -245,13 +257,55 @@ for(i in 1:ncol(compMat)){
   p4 <- plot_heatmap(curres, groupName)
   print((p1 + p2) / (p3 + p4))
 
-  peak_tib <- make_peak_table(curres, groupName) |> filter(candidate)
+  peak_tib <- make_peak_table(curres, groupName) |>
+    filter(candidate) |>
+    arrange(padj) |>
+    #distinct(`Gene Name`, .keep_all = TRUE) |>
+    head(1000)
   print(htmltools::tagList(ezInteractiveTableRmd(peak_tib, digits = 3)))
   # |> DT::formatSignif(c("baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"), digits=3)
 }
 
 ## NBB: this dummy table triggers/forces rendering, otherwise no table will be displayed ¯\_(ツ)_/¯
 ezInteractiveTableRmd(data.frame())
+```
+
+## EnrichR for the top DE genes
+
+Based on top 500 DEGs for each comparison and filtered for known housekeeping genes reported in the [HRT atlas](https://housekeeping.unicamp.br/homePageGlobal.html).
+
+```{r enrichR}
+hrtGenes <- ezRead.table('/srv/GT/databases/HRT/Human_Mouse_Common.csv', sep = ';', row.names = NULL)
+hrtGenes <- c(hrtGenes$Human, hrtGenes$Mouse)
+
+p1 <- names(res)[seq(1, length(names(res)), by = 2)]
+p2 <- names(res)[seq(2, length(names(res)), by = 2)]
+groups <- paste0(p1, ' (or ', p2, ')')
+
+topGenes <- list()
+for(i in 1:length(groups)){
+  topGenes[[groups[i]]] <- make_peak_table(res, p1[i]) |>
+    arrange(padj) |>
+    filter(
+      !grepl("^ENSMUSG", `Gene Name`),
+      !(`Gene Name` %in% hrtGenes)
+    ) |>
+    distinct(`Gene Name`, .keep_all = TRUE) |>
+    head(500) |>
+    pull(`Gene Name`) |>
+    unique()
+}
+
+jsCall <- paste0('enrich({list: "', sapply(topGenes, paste, collapse="\\n"), '", popup: true});')
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall,
+                       "'>Analyse at Enrichr website</a>")
+
+enrichrTable <- tibble(Sample = names(topGenes),
+                      "Number of top DEGs" = lengths(topGenes),
+                      "Enrichr link" = enrichrCalls)
+
+kable(enrichrTable, format = "html", escape = FALSE, caption = paste0("GeneSet enrichment")) |>
+  kable_styling("striped", full_width = F, position = "left")
 ```
 
 ## SessionInfo
