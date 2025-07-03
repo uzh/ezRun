@@ -865,11 +865,9 @@ p3
 
 `r if(sctype_available) "scType provides fully-automated cell-type identification using specific marker combinations (human and mouse supported)."`
 
-```{r sctype results, eval=sctype_available, results='asis', fig.width=12, fig.height=8}
+```{r sctype results, eval=sctype_available, results='asis', fig.width=14, fig.height=10}
 if(sctype_available && !is.null(sctype_results)){
   cat("**Detected tissue:** ", sctype_results$tissue_type, "\n\n")
-  cat("**Database path:** ", sctype_results$database_path, "\n\n")
-  cat("**Confidence threshold:** ", sctype_results$confidence_threshold, "\n\n")
   
   scData_sc <- sctype_results$scData
   
@@ -879,7 +877,8 @@ if(sctype_available && !is.null(sctype_results)){
     print(DimPlot(scData_sc, reduction = "umap", label = TRUE, repel = TRUE, 
                   group.by = 'sctype_classification') +
           ggtitle(paste("scType Cell Type Annotation -", sctype_results$tissue_type)) +
-          theme(legend.position = "bottom"))
+          theme(legend.position = "right") +
+          coord_fixed())
     cat("\n\n")
   }
   

@@ -525,22 +525,16 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     tryCatch({
       futile.logger::flog.info("Starting Azimuth Pan-Human annotation...")
       
-      # Load Azimuth package explicitly
-      if (!require("Azimuth", quietly = TRUE)) {
-        futile.logger::flog.error("Azimuth package not available")
-        stop("Azimuth package required for Pan-Human annotation")
+      # Load AzimuthAPI package explicitly (CloudAzimuth is in AzimuthAPI, not Azimuth)
+      if (!require("AzimuthAPI", quietly = TRUE)) {
+        futile.logger::flog.error("AzimuthAPI package not available")
+        stop("AzimuthAPI package required for CloudAzimuth function")
       }
       
       # Verify RNA normalization before Azimuth Pan-Human annotation
       if (!"data" %in% names(scData[["RNA"]]@layers) || is.null(scData[["RNA"]]@layers[["data"]])) {
         futile.logger::flog.info("RNA normalization not found. Running NormalizeData for Azimuth Pan-Human annotation...")
         scData <- NormalizeData(scData, assay = "RNA")
-      }
-      
-      # Check if CloudAzimuth function exists
-      if (!exists("CloudAzimuth")) {
-        futile.logger::flog.error("CloudAzimuth function not found in Azimuth package")
-        stop("CloudAzimuth function not available")
       }
       
       # Run CloudAzimuth - this handles everything automatically
