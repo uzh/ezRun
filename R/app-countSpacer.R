@@ -62,15 +62,15 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   dict[is.na(dict$Count), 'Count'] = 0
   
   ###Export Tables
-  resultFile = paste0(sampleName,'-result.txt')
-  ezWrite.table(dict, resultFile, row.names = FALSE)
+  resultFile = paste0(sampleName,'-result.xlsx')
+  writexl::write_xlsx(dict, resultFile, row.names = FALSE)
   
-  countFile_sgRNA = paste0(sampleName,'-sgRNA_counts.txt')
+  countFile_sgRNA = paste0(sampleName,'-sgRNA_counts.xlsx')
   sgRNA_counts = data.frame(Identifier = dict$ID, matchCounts = dict$Count, stringsAsFactors = FALSE)
-  ezWrite.table(sgRNA_counts, countFile_sgRNA, row.names = FALSE)
+  writexl::write_xlsx(sgRNA_counts, countFile_sgRNA)
   
   if(exists('annotationFile', where = param)){
-    countFile_gene = paste0(sampleName,'-gene_counts.txt')
+    countFile_gene = paste0(sampleName,'-gene_counts.xlsx')
     annot = ezRead.table(param$annotationFile, row.names = NULL)[ ,c('gene_id', 'gene_name')]
     res = dict[!dict$isControl,]
     res = res[order(res$GeneSymbol), ]
@@ -79,7 +79,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
     countsPerGene = merge(annot, countsPerGene, by.x = 'gene_name', by.y = 'ID')
     countsPerGene = countsPerGene[,c(2:3)]
     colnames(countsPerGene)[1] = 'Identifier'
-    ezWrite.table(countsPerGene, countFile_gene, row.names = FALSE)
+    writexl::write_xlsx(countsPerGene, countFile_gene)
   }
 
   
@@ -145,35 +145,19 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
       myMessage ='Too many underrepresented target for HTML output. Please check txt-files.'
       write.table(myMessage, 'underrepresentedTargets.html', col.names = FALSE, row.names = FALSE)
   }
-  ezWrite.table(targetView, paste0(sampleName,'-targetBasedResult.txt') ,row.names = FALSE)
+  writexl::write_xlsx(targetView, paste0(sampleName,'-targetBasedResult.xlsx'))
   
-  ## Export files as RDS
-  saveRDS(param, 'param.rds')
-  saveRDS(dict, 'dict.rds')
-  saveRDS(stats, 'stats.rds')
-  
-  ## Copy the style files and templates
-  styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "CountSpacer.Rmd",
-                            "fgcz_header.html", "banner.png"))
-  file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  htmlFile = '00index.html'
-  rmarkdown::render(input="CountSpacer.Rmd", envir = new.env(),
-                    output_dir=".", output_file=htmlFile, quiet=TRUE)
-  
+  makeRmdReport(param=param, dict=dict, stats=stats, htmlFile = "00index.html", rmdFile = "CountSpacer.Rmd", reportTitle = paste0("CountSpacer: ", sampleName))  
   ezWrite.table(unlist(stats), paste0(sampleName,'-stats.txt'), row.names = TRUE)
   ezSystem('rm *.fastq.gz')
   ezSystem('pigz --best *.fa')
   return("Success")
 }
 
-.dummyFunction <- function(x) {
-  if (is.null(x))
-    NA
-  else
-    x[1]
+nullToNA <- function(x) {
+  x[sapply(x, is.null)] <- NA
+  return(x)
 }
-
 
 twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatch) {
   allReads = DNAStringSet()
@@ -185,8 +169,7 @@ twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatc
     reads <- sread(currentReads)
     if(leftPattern != ''){
       vp <- vmatchPattern(leftPattern, reads, max.mismatch = maxMismatch)
-      leftEnd <- vapply(endIndex(vp),
-                      .dummyFunction, c('endIndex' = 0))
+      leftEnd <- vp %>% endIndex() %>% nullToNA() %>% unlist()
     } else {
       leftEnd <- rep(0, length(reads))
     }
@@ -194,8 +177,7 @@ twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatc
     
     if(rightPattern != ''){
         vp <- vmatchPattern(rightPattern, reads, max.mismatch = maxMismatch)
-        rightStart <- vapply(startIndex(vp),
-                             .dummyFunction, c('startIndex' = 0))
+        rightStart <- vp %>% startIndex() %>% nullToNA() %>% unlist()
     } else {
         rightStart <- width(reads)
     }
