@@ -26,11 +26,13 @@ debug <- FALSE
 dict <- readRDS('dict.rds')
 res <- dict[!dict$isControl,]
 param <- readRDS('param.rds')
+output <- readRDS("output.rds")
 sortedCounts = log2(1+sort(res$Count))
 upperCutOff = param$nmad+mean(sortedCounts)
 lowerCutOff = mean(sortedCounts)-param$nmad
 stats <- readRDS('stats.rds')
 data = data.frame(group = rep('Count', nrow(dict)), counts = c(dict$Count))
+sampleName <- output$getNames()
 ```
 
 ## Overview

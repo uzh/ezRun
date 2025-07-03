@@ -147,7 +147,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   }
   writexl::write_xlsx(targetView, paste0(sampleName,'-targetBasedResult.xlsx'))
   
-  makeRmdReport(param=param, dict=dict, stats=stats, htmlFile = "00index.html", rmdFile = "CountSpacer.Rmd", reportTitle = paste0("CountSpacer: ", sampleName))  
+  makeRmdReport(param=param, output=output, dict=dict, stats=stats, htmlFile = "00index.html", rmdFile = "CountSpacer.Rmd", reportTitle = paste0("CountSpacer: ", sampleName))  
   ezWrite.table(unlist(stats), paste0(sampleName,'-stats.txt'), row.names = TRUE)
   ezSystem('rm *.fastq.gz')
   ezSystem('pigz --best *.fa')
