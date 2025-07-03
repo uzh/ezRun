@@ -97,6 +97,12 @@ EzDataset <-
                   names(x) = rownames(meta)
                   return(x)
                 },
+                hasColumn = function(name)
+                {
+                  "Checks if there's a column \\code{name} in the dataset."
+                  idx = match(name, colNames)
+                  return(!any(is.na(idx)))
+                },
                 setColumn = function(name, values)
                 {
                   "Sets the column selected with \\code{name} to \\code{values}. If \\code{values} is \\code{NULL} the column gets removed"

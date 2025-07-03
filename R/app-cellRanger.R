@@ -7,42 +7,52 @@
 
 ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   sampleName <- input$getNames()
-  sampleDirs <- sort(getFastqDirs(input, "RawDataDir",sampleName))
- 
-  #1. extract tar files if they are in tar format
-  if (all(grepl("\\.tar$", sampleDirs))) {
-    runDirs <- tarExtract(sampleDirs, prependUnique=TRUE)
-  } else {
-    stop("Require inputs to be provided in .tar files.")
-  }
   
-  #1.1 check validity of inputs
-  runDirs <- normalizePath(runDirs)
-  
-  fileLevelDirs <- normalizePath(list.files(path=runDirs, full.names=TRUE))
-  if (any(fs::is_file(fileLevelDirs))) {
-    stop(sprintf("Fastq files need to nested inside a folder sharing the samplename. Offending samples: %s", 
-                 paste(fileLevelDirs[fs::is_file(fileLevelDirs)], collapse=", ")))
-  }
-  
-  #2. Subsample if chosen
-  if (ezIsSpecified(param$nReads) && param$nReads > 0)
-    fileLevelDirs <- sapply(fileLevelDirs, subsample, param)
-  
-  #2.1 Fix FileNames if sampleName in dataset was changed
-  cwd <- getwd()
-  if(any(basename(fileLevelDirs) != sampleName)) {
-    for (fileLevelDir in fileLevelDirs) {
-      setwd(fileLevelDir)
-      cmd <- paste('rename', 
-                   paste0('s/', basename(fileLevelDir),'/',sampleName, '/g'), 
-                   paste0(basename(fileLevelDir),'*.gz'))
-      ezSystem(cmd)
+  # Check which input method to use
+  if (input$hasColumn("Read1")) {
+    #1. Link fastq files to a temporary directory
+    fileLevelDir <- link10xFastqPaths(input, param, sampleName)
+    
+  } else if (input$hasColumn("RawDataDir")) {
+    sampleDirs <- sort(getFastqDirs(input, "RawDataDir",sampleName))
+    
+    #1. extract tar files if they are in tar format
+    if (all(grepl("\\.tar$", sampleDirs))) {
+      runDirs <- tarExtract(sampleDirs, prependUnique=TRUE)
+    } else {
+      stop("Require inputs to be provided in .tar files.")
     }
-    setwd(cwd)
+    
+    #1.1 check validity of inputs
+    runDirs <- normalizePath(runDirs)
+    
+    fileLevelDirs <- normalizePath(list.files(path=runDirs, full.names=TRUE))
+    if (any(fs::is_file(fileLevelDirs))) {
+      stop(sprintf("Fastq files need to nested inside a folder sharing the samplename. Offending samples: %s", 
+                   paste(fileLevelDirs[fs::is_file(fileLevelDirs)], collapse=", ")))
+    }
+    
+    #2. Subsample if chosen
+    if (ezIsSpecified(param$nReads) && param$nReads > 0)
+      fileLevelDirs <- sapply(fileLevelDirs, subsample, param)
+    
+    #2.1 Fix FileNames if sampleName in dataset was changed
+    cwd <- getwd()
+    if(any(basename(fileLevelDirs) != sampleName)) {
+      for (fileLevelDir in fileLevelDirs) {
+        setwd(fileLevelDir)
+        cmd <- paste('rename', 
+                     paste0('s/', basename(fileLevelDir),'/',sampleName, '/g'), 
+                     paste0(basename(fileLevelDir),'*.gz'))
+        ezSystem(cmd)
+      }
+      setwd(cwd)
+    }
+    
+    fileLevelDir <- paste(fileLevelDirs, collapse = ",")
+  } else {
+    stop("Neither Read1 nor RawDataDir is specified in the input!")
   }
-  
-  fileLevelDir <- paste(fileLevelDirs, collapse = ",")
   cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
   
   #3.Generate the cellranger command with the required arguments
@@ -76,44 +86,6 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
              paste0("--localmem=", param$ram),
              paste0("--localcores=", param$cores)
            )
-         },
-         FeatureBarcoding = {
-           #3.1. Obtain GEX the reference
-           refDir <- getCellRangerGEXReference(param)
-           
-           #3.2. Locate the Feature sample
-           featureDirs <- getFastqDirs(input, "FeatureDataDir", sampleName)
-           featureName <- gsub(".tar", "", basename(featureDirs))
-           
-           #3.3. Locate the Feature info csv file
-           featureRefFn <- file.path(
-             dirname(featureDirs),
-             str_c(sampleName, "feature_ref.csv", sep = "_")
-           )
-           stopifnot(any(file.exists(featureRefFn)))
-           featureRefFn <- head(featureRefFn[file.exists(featureRefFn)], 1)
-           
-           #3.4. Decompress the sample that contains the antibodies reads if they are in tar format
-           if (all(grepl("\\.tar$", featureDirs)))
-             featureDirs <- tarExtract(featureDirs)
-           
-           featureDirs <- normalizePath(featureDirs)
-           
-           #3.5. Create library file that contains the sample and feature dirs location
-           libraryFn <- createLibraryFile(fileLevelDirs, featureDirs, sampleName, featureName)
-           
-           #3.6. Command
-           cmd <- paste(
-             "cellranger count", paste0("--id=", cellRangerFolder),
-             paste0("--transcriptome=", refDir),
-             paste0("--libraries=", libraryFn),
-             paste0("--feature-ref=", featureRefFn),
-             paste0("--localmem=", param$ram),
-             paste0("--localcores=", param$cores),
-             paste0("--chemistry=", param$chemistry),
-             if (ezIsSpecified(param$expectedCells)) {paste0("--expect-cells=", param$expectedCells)},
-             ifelse(ezIsSpecified(param$includeIntrons) && param$includeIntrons, "--include-introns=true", "--include-introns=false")
-           )
          })
   
   #4. Add additional cellranger options if specified
@@ -126,12 +98,12 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   
   #6. Optional run of VeloCyto
   if(param$runVeloCyto){
-      gtfFile <- param$ezRef["refFeatureFile"]
-      library(Herper)
-      out <- tryCatch(local_CondaEnv("gi_velocyto", pathToMiniConda = "/usr/local/ngseq/miniforge3"), error = function(e) NULL)
-      cmd <- paste('velocyto run10x', cellRangerFolder, gtfFile, '-@', param$cores)
-      ezSystem(cmd)
-      ezSystem(paste('mv', file.path(cellRangerFolder,'velocyto'),  file.path(cellRangerFolder,'outs')))
+    gtfFile <- param$ezRef["refFeatureFile"]
+    library(Herper)
+    out <- tryCatch(local_CondaEnv("gi_velocyto", pathToMiniConda = "/usr/local/ngseq/miniforge3"), error = function(e) NULL)
+    cmd <- paste('velocyto run10x', cellRangerFolder, gtfFile, '-@', param$cores)
+    ezSystem(cmd)
+    ezSystem(paste('mv', file.path(cellRangerFolder,'velocyto'),  file.path(cellRangerFolder,'outs')))
   }
   
   #7. Delete temp files and rename the final cellranger output folder
@@ -412,6 +384,44 @@ getCellRangerVDJReference <- function(param) {
   ezSystem(cmd)
   
   return(refDir)
+}
+
+link10xFastqPaths <- function(input, param, sampleName, modality="") {
+
+  # Modalities like VdjT, VdjB, etc. will have be named according to pattern
+  # VdjBRead1, VdjBRead2, etc.
+  r1ColumnName <- ifelse(nchar(modality) > 0, paste0(modality, " Read1"), "Read1")
+  r2ColumnName <- ifelse(nchar(modality) > 0, paste0(modality, " Read2"), "Read2")
+  
+  # Create a directory for the sample's fastq files
+  fastqDir <- file.path(getwd(), "fastqs", sampleName)
+  dir.create(fastqDir, recursive = TRUE, showWarnings = FALSE)
+  
+  # Handle comma-separated paths in Read1
+  read1Files <- strsplit(input$getColumn(r1ColumnName), ",")[[1]]
+  read1Files <- file.path(param$dataRoot, read1Files)
+  
+  # Create symlinks for Read1 files
+  for (i in 1:length(read1Files)) {
+    targetFile <- file.path(fastqDir, basename(read1Files[i]))
+    file.symlink(read1Files[i], targetFile)
+  }
+  
+  # Also handle Read2 if it exists
+  if (input$hasColumn(r2ColumnName)) {
+    read2Files <- strsplit(input$getColumn(r2ColumnName), ",")[[1]]
+    read2Files <- file.path(param$dataRoot, read2Files)
+    
+    # Create symlinks for Read2 files
+    for (i in 1:length(read2Files)) {
+      targetFile <- file.path(fastqDir, basename(read2Files[i]))
+      file.symlink(read2Files[i], targetFile)
+    }
+  } else {
+    stop("Missing Read2 column! Both Read1 and Read2 required.")
+  }
+  # Set the directory for CellRanger to use
+  return(fastqDir)
 }
 
 ##' @author Opitz, Lennart
