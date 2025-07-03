@@ -166,6 +166,8 @@ twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatc
   strm <- FastqStreamer(readFile, n = 5*10^6)
   repeat {
     currentReads <- yield(strm)
+    if (length(currentReads) == 0)
+      break
     reads <- sread(currentReads)
     if(leftPattern != ''){
       vp <- vmatchPattern(leftPattern, reads, max.mismatch = maxMismatch)
@@ -173,7 +175,6 @@ twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatc
     } else {
       leftEnd <- rep(0, length(reads))
     }
-    
     
     if(rightPattern != ''){
         vp <- vmatchPattern(rightPattern, reads, max.mismatch = maxMismatch)
@@ -188,18 +189,13 @@ twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatc
                               rightStart = rightStart)
     patternInRead <- !apply(is.na(patternPositions), 1, any)
     patternPositions <- as.data.frame(patternPositions[patternInRead, ])
-    if(rightPattern == '' & leftPattern == ''){
-        reads <- reads
-    } else {
+    if(rightPattern != '' || leftPattern != ''){
         reads <- reads[patternInRead]
         reads <- DNAStringSet(substr(reads, patternPositions$leftEnd+1, patternPositions$rightStart-1))
     }
-    processedReads = processedReads + dataChunks
+    processedReads = processedReads + length(currentReads)
     allReads <- c(allReads, reads)
     print(paste0(processedReads/10^6, 'M reads processed \n'))
-    if (length(currentReads) == 0)
-      break
-    }
   return(allReads)
 }
 
