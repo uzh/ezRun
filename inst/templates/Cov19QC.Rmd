@@ -11,16 +11,20 @@ editor_options:
   chunk_output_type: inline
 ---
 
+
+# {.tabset}
+
+## Summary
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(plotly)
 library(kableExtra)
 ```
+
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-## Cov19QC {.tabset}
 
-### Summary
 ```{r, echo=FALSE, message=FALSE}
 mySummary <- data.frame(Passed = rep(0,4), PassedFraction = rep(0,4), Failed = rep(0,4), FailedFraction = rep(0,4))
 rownames(mySummary) = c('rawReads > 100K', 'mappingRate > 0.2', 'avgCoverage > 100', 'minCoverageFraction > 80%')
@@ -48,14 +52,14 @@ mySummary['minCoverageFraction > 80%', 'FailedFraction'] = mySummary['minCoverag
 ezInteractiveTableRmd(values=mySummary)
 ```
 
-### Sample Stats
+## Sample Stats
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(values=result)
 ```
 
-### Plots
+## Plots
 
-#### Raw Read Counts
+### Raw Read Counts
 The read counts in each sample.
 
 ```{r readCounts, echo=FALSE}
@@ -107,7 +111,8 @@ plot_ly(x=dataset[['Name']], y=dataset[['Read Count']], type="bar") %>%
          margin = m
   )
 ```
-#### Mapping Rate
+
+### Mapping Rate
 
 ```{r mappingRate, echo=FALSE}
 if(result[['PlateName [Characteristic]']][1] != 'ready-made by the user'){
@@ -134,7 +139,7 @@ plot_ly(x=result2[['Name']], y=result2[['mappingRate']], type="bar") %>%
   )
 ```
 
-#### Coverage
+### Coverage
 
 ```{r Coverage, echo=FALSE}
   avgCoverage <- result2$avgCov
@@ -156,7 +161,7 @@ plot_ly(x=result2[['Name']], y=result2[['avgCov']], type="bar") %>%
   )
 ```
 
-#### Sample Clustering 
+### Sample Clustering 
 ```{r clustering, echo=FALSE, eval=length(samples) > 3, fig.width=min(5 + length(samples)*0.2, 20)}
 idxMat = ezMatrix(match(gt, c("0/0", "0/1", "1/1")) -2, rows=rownames(gt), cols=sub('.bam','', basename(colnames(gt))))
 
@@ -170,11 +175,11 @@ if (all(!is.na(d))){
 ```
 
 
-### Input Dataset
+## Input Dataset
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(values=input$meta)
 ```
-### Settings
+## Settings
 ```{r setting, echo=FALSE}
 settings = character()
 settings["Reference:"] <- param[['refBuild']]
@@ -189,7 +194,7 @@ kable(settings, row.names=TRUE,
                 position = "left")
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```
