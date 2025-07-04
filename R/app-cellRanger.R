@@ -11,7 +11,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   # Check which input method to use
   if (input$hasColumn("Read1")) {
     #1. Link fastq files to a temporary directory
-    fileLevelDir <- link10xFastqPaths(input, param, sampleName)
+    fileLevelDirs <- link10xFastqPaths(input, param, sampleName)
     
   } else if (input$hasColumn("RawDataDir")) {
     sampleDirs <- sort(getFastqDirs(input, "RawDataDir",sampleName))
@@ -49,10 +49,10 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       setwd(cwd)
     }
     
-    fileLevelDir <- paste(fileLevelDirs, collapse = ",")
   } else {
     stop("Neither Read1 nor RawDataDir is specified in the input!")
   }
+  fileLevelDir <- paste(fileLevelDirs, collapse = ",")
   cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
   
   #3.Generate the cellranger command with the required arguments
@@ -107,7 +107,7 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   }
   
   #7. Delete temp files and rename the final cellranger output folder
-  unlink(dirname(runDirs), recursive = TRUE)
+  unlink(dirname(fileLevelDirs), recursive = TRUE)
   if (exists("featureDirs")){
     unlink(basename(featureDirs))
   }
@@ -392,36 +392,42 @@ link10xFastqPaths <- function(input, param, sampleName, modality="") {
   # VdjBRead1, VdjBRead2, etc.
   r1ColumnName <- ifelse(nchar(modality) > 0, paste0(modality, " Read1"), "Read1")
   r2ColumnName <- ifelse(nchar(modality) > 0, paste0(modality, " Read2"), "Read2")
-  
-  # Create a directory for the sample's fastq files
-  fastqDir <- file.path(getwd(), "fastqs", sampleName)
-  dir.create(fastqDir, recursive = TRUE, showWarnings = FALSE)
-  
+  stopifnot("Read1 AND Read2 must exist for 10X data!" = input$hasColumn(r2ColumnName))
+
   # Handle comma-separated paths in Read1
   read1Files <- strsplit(input$getColumn(r1ColumnName), ",")[[1]]
   read1Files <- file.path(param$dataRoot, read1Files)
+  read1Dirs <- dirname(read1Files)
+  fastqDirsUnique <- unique(sort(read1Dirs))
   
-  # Create symlinks for Read1 files
-  for (i in 1:length(read1Files)) {
-    targetFile <- file.path(fastqDir, basename(read1Files[i]))
-    file.symlink(read1Files[i], targetFile)
-  }
+  # handle comma-separated paths in Read2
+  read2Files <- strsplit(input$getColumn(r2ColumnName), ",")[[1]]
+  read2Files <- file.path(param$dataRoot, read2Files)
+  read2Dirs <- dirname(read2Files)
+
+  stopifnot("Unequal number of Read1 and Read2 files!" = length(read1Files) == length(read2Files))
+  stopifnot("Read1 and Read2 files from the same run must be in the same directories!" = all(fastqDirsUnique == unique(sort(read2Dirs))))
   
-  # Also handle Read2 if it exists
-  if (input$hasColumn(r2ColumnName)) {
-    read2Files <- strsplit(input$getColumn(r2ColumnName), ",")[[1]]
-    read2Files <- file.path(param$dataRoot, read2Files)
-    
-    # Create symlinks for Read2 files
-    for (i in 1:length(read2Files)) {
-      targetFile <- file.path(fastqDir, basename(read2Files[i]))
-      file.symlink(read2Files[i], targetFile)
+  fastqFiles <- c(read1Files, read2Files)
+  
+  # Create a directory for the sample's fastq files
+  symLinkDirParent <- file.path(getwd(), "fastqs")
+  
+  # Create symlinks for all fastq files
+  fastqDirs = sapply(1:length(fastqDirsUnique), function(fastqDir_i){
+    # Get all files that are in the current directory
+    runFiles <- fastqFiles[dirname(fastqFiles) == fastqDirsUnique[fastqDir_i]]
+    symLinkDir <- file.path(symLinkDirParent, paste0("run", fastqDir_i), sampleName)
+    dir.create(symLinkDir, recursive = TRUE, showWarnings = FALSE)
+    for (i in 1:length(runFiles)) {
+      targetFile <- file.path(symLinkDir, basename(runFiles[i]))
+      file.symlink(runFiles[i], targetFile)
     }
-  } else {
-    stop("Missing Read2 column! Both Read1 and Read2 required.")
-  }
+    return(symLinkDir)
+  })
+  
   # Set the directory for CellRanger to use
-  return(fastqDir)
+  return(fastqDirs)
 }
 
 ##' @author Opitz, Lennart
