@@ -24,16 +24,32 @@ EzAppScSeuratCompare <-
   )
 
 ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
-  writableRPackageDir <- file.path('/srv/GT/databases/writable_R_package', strsplit(version[['version.string']], ' ')[[1]][3])
-  .libPaths(c(writableRPackageDir, .libPaths()[length(.libPaths())]))
+  # writableRPackageDir <- file.path('/srv/GT/databases/writable_R_package', strsplit(version[['version.string']], ' ')[[1]][3])
+  # .libPaths(c(writableRPackageDir, .libPaths()[length(.libPaths())]))
   
   library(Seurat)
   library(HDF5Array)
   library(SingleCellExperiment)
   library(qs2)
   library(tidyverse)
-  library(cmdstanr)
-  cmdstanr::set_cmdstan_path(file.path(writableRPackageDir, 'cmdstanr/cmdstan-2.36.0'))
+  
+  ## link to the compiled sccomp models
+  ## This workaround is needed, since we do not have a writeable library folder
+  ## We have all compiled models in the library folder cached but because of a bug/feature
+  ## sccomp does not let you specify that cache folder but uses instead a hardcoded folder sccomp:::sccomp_stan_models_cache_dir
+  ## that can't be modified, so we:
+  ## create the expected directory
+  dir.create((dirname(sccomp:::sccomp_stan_models_cache_dir)), showWarnings=FALSE)
+  ## remove the link if it is there
+  if (file.exists(sccomp:::sccomp_stan_models_cache_dir)){
+    file.remove(sccomp:::sccomp_stan_models_cache_dir)
+  }
+  ## recreate the link to the current installed library
+  ezSystem(paste("ln -s", system.file("stan", package="sccomp", mustWork = TRUE), sccomp:::sccomp_stan_models_cache_dir))
+  library(sccomp)
+  
+  # library(cmdstanr)
+  # cmdstanr::set_cmdstan_path(file.path(writableRPackageDir, 'cmdstanr/cmdstan-2.36.0'))
 
   
   ## Setup sccomp
@@ -42,23 +58,23 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   # install_cmdstan(dir = "/srv/GT/databases/writable_R_package/cmdstanr")
   
   # Create scratch directory
-  scratch_dir <- "/scratch/sccomp_output"
-  dir.create(scratch_dir, recursive = TRUE, mode = "0777", showWarnings = FALSE)
-  
-  # Load sccomp and set up cmdstan
-  library(sccomp)
+  # scratch_dir <- "/scratch/sccomp_output"
+  # dir.create(scratch_dir, recursive = TRUE, mode = "0777", showWarnings = FALSE)
+  # 
+  # # Load sccomp and set up cmdstan
+  # library(sccomp)
   
   
   # check if in pseudobulk mode
   pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) && param$pseudoBulkMode == "true"
   
-  # Load model
-  sccomp:::load_model(
-    name = "glm_multi_beta_binomial",
-    threads = 4,
-    cache_dir = file.path(writableRPackageDir, "sccomp")
-  )
-  
+  # # Load model
+  # mod <- sccomp:::load_model(
+  #   name = "glm_multi_beta_binomial",
+  #   threads = 4,
+  #   cache_dir = file.path(writableRPackageDir, "sccomp")
+  # )
+  # 
   
   ###
   set.seed(38)
@@ -90,7 +106,7 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
         .sample = !!sym(param$replicateGrouping),   
         .cell_group = !!sym(param$CellIdentity),   
         cores = as.integer(param$cores), 
-        output_directory = scratch_dir,
+        output_directory = ".",
         verbose = TRUE
       )
     
