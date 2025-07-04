@@ -70,6 +70,7 @@ p <- ggplot(data, aes(x=group, y=counts))
 ```
   
 ```{r, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
+  mu = round(mean(sortedCounts), 2)
   plot(sortedCounts, pch = c(15), cex = 0.7, main = paste(sampleName, '- sgCount Overview'), ylab = 'log2(sgRNA Count)', ylim = c(0, max(max(sortedCounts), 1.05*upperCutOff)))
   abline(h = mean(sortedCounts))
   abline(h = upperCutOff, lty = 2)
@@ -84,27 +85,14 @@ p <- ggplot(data, aes(x=group, y=counts))
 
 **Expression matrix**
 
-The raw counts allowing 0 and 1 mismatches are available here:
-
-```{r raw count matrix, echo=FALSE, results='asis', message=FALSE, eval=!debug}
-# Raw counts
-zipped = zipFile(paste0(sampleName,'-result.txt'))
-cat("\n")
-cat(paste0("[", zipped, "](", zipped, ")"))
-cat("\n")
-```
+* raw counts allowing 0 and 1 mismatches: [`r paste0(sampleName,'-result.xlsx')`](`r paste0(sampleName,'-result.xlsx')`)
 
 **Target based matrix**
 
 [Underrepresented Targets - htmlFile](underrepresentedTargets.html)
 
-```{r full result, echo=FALSE, results='asis', message=FALSE, eval=!debug}
-# Full result
-zipped = zipFile(paste0(sampleName,'-targetBasedResult.txt'), "fullResult_targetView.zip")
-cat("\n")
-cat(paste0("[", zipped, "](", zipped, ")"))
-cat("\n")
-```
+[`r paste0(sampleName,'-targetBasedResult.xlsx')`](`r paste0(sampleName,'-targetBasedResult.xlsx')`)
+
 
 ## Methods 
 
