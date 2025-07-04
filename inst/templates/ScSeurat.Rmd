@@ -738,7 +738,7 @@ DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, redu
 
 `r if(azimuth_available) "Azimuth Pan-Human provides neural network-based cell type annotation using the Satija lab reference (HUMAN DATASETS ONLY)."`
 
-```{r azimuth panhuman results, eval=azimuth_available, results='asis', fig.width=12, fig.height=8}
+```{r azimuth panhuman results, eval=azimuth_available, results='asis', fig.width=14, fig.height=10}
 if(azimuth_available && !is.null(azimuth_results)){
   cat("**Reference:** Pan-Human Azimuth neural network model (CloudAzimuth)\n\n")
   
@@ -757,7 +757,8 @@ if(azimuth_available && !is.null(azimuth_results)){
     print(DimPlot(scData_az, group.by = "final_level_labels", label = TRUE, repel = TRUE, 
                   reduction = reduction_to_use) + 
           ggtitle("Azimuth Pan-Human: Final Level Labels") + 
-          theme(legend.position = "bottom"))
+          theme(legend.position = "right") +
+          coord_fixed())
     cat("\n\n")
   }
   
@@ -767,7 +768,9 @@ if(azimuth_available && !is.null(azimuth_results)){
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
     print(DimPlot(scData_az, group.by = "azimuth_broad", label = TRUE, repel = TRUE, 
                   reduction = reduction_to_use) + 
-          ggtitle("Azimuth Pan-Human: Broad Level Labels"))
+          ggtitle("Azimuth Pan-Human: Broad Level Labels") +
+          theme(legend.position = "right") +
+          coord_fixed())
     cat("\n\n")
   }
   
@@ -777,7 +780,9 @@ if(azimuth_available && !is.null(azimuth_results)){
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
     print(DimPlot(scData_az, group.by = "azimuth_medium", label = TRUE, repel = TRUE, 
                   reduction = reduction_to_use) + 
-          ggtitle("Azimuth Pan-Human: Medium Level Labels"))
+          ggtitle("Azimuth Pan-Human: Medium Level Labels") +
+          theme(legend.position = "right") +
+          coord_fixed())
     cat("\n\n")
   }
   
@@ -787,7 +792,9 @@ if(azimuth_available && !is.null(azimuth_results)){
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
     print(DimPlot(scData_az, group.by = "azimuth_fine", label = TRUE, repel = TRUE, 
                   reduction = reduction_to_use) + 
-          ggtitle("Azimuth Pan-Human: Fine Level Labels"))
+          ggtitle("Azimuth Pan-Human: Fine Level Labels") +
+          theme(legend.position = "right") +
+          coord_fixed())
     cat("\n\n")
   }
   
@@ -798,7 +805,8 @@ if(azimuth_available && !is.null(azimuth_results)){
     print(FeaturePlot(scData_az, features = "final_level_softmax_prob", 
                       reduction = reduction_to_use) + 
           ggtitle("Azimuth Pan-Human: Confidence Scores") +
-          scale_colour_viridis_c())
+          scale_colour_viridis_c() +
+          coord_fixed())
     cat("\n\n")
   }
   
