@@ -190,9 +190,20 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     
     ##Register dataset/resources in BF as short term storage
     datasetName = paste0('ENA_App_', output$getColumn('projectID'))
+    
     myCmd <- paste('register_sushi_dataset_into_bfabric', containerId, 'dataset.tsv', datasetName, '-b ~/.bfabricpy.yml --skip-file-check -a 372')
     out <- tryCatch(ezSystem(myCmd), error = function(e) NULL)
-}
+    datasetPath <- paste0('/srv/GT/analysis/datasets/ENA_App/dataset_',containerId,'.tsv')
+    ezWrite.table(dataset, datasetPath, row.names = FALSE)
+    script_path <- tempfile(fileext = ".sh")
+    script_lines <- c(
+        sprintf("ssh trxcopy@fgcz-h-036 \"bash -lc 'cd /srv/sushi/production/master && bundle exec sushi_fabric --dataset %s --run --input_dataset_application 372 --project %s --dataset_name %s '\"",
+                datasetPath, containerId, datasetName)
+    )
+    writeLines(script_lines, con = script_path)
+    Sys.chmod(script_path, "700")
+    out <- tryCatch(system(paste('bash', script_path)), error = function(e) NULL)
+    }
 
 createDataset <- function(fastqInfo, myPath, paired = FALSE){
     if(ncol(fastqInfo) > 10){
