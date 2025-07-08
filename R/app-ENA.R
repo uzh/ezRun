@@ -214,6 +214,7 @@ createDataset <- function(fastqInfo, myPath, paired = FALSE){
                              ReadCount = fastqInfo$ReadCount, xtraCols, stringsAsFactors = FALSE)
         colnames(dataset) = c('Name', 'Read1 [File]', 'Read2 [File]', 'md5sum', 'Species', 'Read Count', colnames(xtraCols))
     }
+    dataset[['Read Count']] <- as.numeric(dataset[['Read Count']])
     return(dataset)
 }
 
