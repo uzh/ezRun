@@ -540,6 +540,10 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
       # Run CloudAzimuth - this handles everything automatically
       scData <- CloudAzimuth(scData)
       
+      # Restore original seurat_clusters as default Idents (CloudAzimuth changes this)
+      Idents(scData) <- scData$seurat_clusters
+      futile.logger::flog.info("Restored seurat_clusters as default Idents after CloudAzimuth")
+      
       # Create simple results for saving (no complex tables)
       azimuth_results <- list(
         scData = scData
