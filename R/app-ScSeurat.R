@@ -632,7 +632,16 @@ querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overl
     columnsToKeep <- c(columnsToKeep, "Genes")
   }
   for (cluster in unique(names(genesPerCluster))) {
-    enriched <- enrichr(as.character(genesPerCluster[[cluster]]), dbs)
+    # Check if gene list is empty or contains only empty/NA values
+    genes <- as.character(genesPerCluster[[cluster]])
+    genes <- genes[!is.na(genes) & genes != ""]
+    
+    if (length(genes) == 0) {
+      futile.logger::flog.warn("Cluster %s has no genes for enrichment analysis, skipping", cluster)
+      next
+    }
+    
+    enriched <- enrichr(genes, dbs)
     
     for (db in names(enriched)) {
       enriched_db <- enriched[[db]]

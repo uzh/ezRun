@@ -863,10 +863,18 @@ cat("\n\n* The URL of the reference data is:", param$cellxgeneUrl)
 cat("\n\n* The DOI of this dataset is:", ifelse(length(DOI) > 0, paste0("https://doi.org/", DOI), "DOI not available"))
 ```
 
-```{r cellxgene_3, eval=!is.null(cellxgeneResults), fig.width=9, fig.height=7}
-p1
-p2
-p3
+```{r cellxgene_3, eval=!is.null(cellxgeneResults), fig.width=14, fig.height=12}
+tryCatch({
+  # Print plots individually with coord_fixed
+  print(p1 + coord_fixed())
+  print(p2 + coord_fixed())
+  print(p3 + coord_fixed())
+}, error = function(e) {
+  # If coord_fixed fails, print plots as-is
+  print(p1)
+  print(p2)
+  print(p3)
+})
 ```
 
 ### scType
