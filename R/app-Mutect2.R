@@ -9,9 +9,12 @@ ezMethodMutect2 = function(input=NA, output=NA, param=NA){
     javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
     sampleBamFile <- input$getFullPaths("BAM")
     genomeSeq = param$ezRef["refFastaFile"]
-    ctrlBamFile <- input$getFullPaths("CtrlBam")
+    if(!param$TumorOnlyMode){
+        ctrlBamFile <- input$getFullPaths("CtrlBam")
+        sampleNameNormal <- sub('.bam', '', basename(ctrlBamFile))
+    }
     sampleName = input$getNames()
-    sampleNameNormal <- sub('.bam', '', basename(ctrlBamFile))
+    
     
     
     cmd <- paste('samtools view -H', sampleBamFile, ' | grep \'^@RG\'')
@@ -26,7 +29,7 @@ ezMethodMutect2 = function(input=NA, output=NA, param=NA){
         sampleBamFile <- paste0(sampleName,'.bam')
         system(paste('samtools index', sampleBamFile))
     }
-    
+    if(!param$TumorOnlyMode){
     cmd <- paste('samtools view -H', ctrlBamFile, ' | grep \'^@RG\'')
     rg <- system(cmd, intern=TRUE)
     if(length(rg) == 0){
@@ -39,6 +42,7 @@ ezMethodMutect2 = function(input=NA, output=NA, param=NA){
         ctrlBamFile <- paste0(sampleNameNormal,'.bam')
         system(paste('samtools index', ctrlBamFile))
     }
+    }
     
     if(param$snpEffDB == 'mm39'){
         param$snpEffConfig <- '/srv/GT/reference/Mus_musculus/UCSC/mm39/Annotation/Genes/snpEff/snpEff.config'
@@ -46,8 +50,13 @@ ezMethodMutect2 = function(input=NA, output=NA, param=NA){
     }
     param$javaCall <- paste("java", "-Djava.io.tmpdir=.")
     outFile <- paste0(sampleName,".somatic.vcf.gz")
-    cmd <- paste("gatk Mutect2 -R" ,genomeSeq, "-I", sampleBamFile, "-I", ctrlBamFile, "-normal", sampleNameNormal, "-O", outFile, 
+    if(param$TumorOnlyMode){
+        cmd <- paste("gatk Mutect2 -R", genomeSeq, "-I", sampleBamFile, "-O", outFile, 
+                     "--native-pair-hmm-threads", param$cores, param$cmdOptions)
+    } else {
+        cmd <- paste("gatk Mutect2 -R" ,genomeSeq, "-I", sampleBamFile, "-I", ctrlBamFile, "-normal", sampleNameNormal, "-O", outFile, 
                  "--native-pair-hmm-threads", param$cores, param$cmdOptions)
+    }
     ezSystem(cmd)
     filteredOutFile <- paste0(sampleName, '.filtered.somatic.vcf.gz')
     cmd <- paste("gatk FilterMutectCalls -V",outFile, "-O", filteredOutFile, "-R", genomeSeq)
@@ -84,7 +93,8 @@ EzAppMutect2 <-
                         "Initializes the application using its specific defaults."
                         runMethod <<- ezMethodMutect2
                         name <<- "ezMethodMutect2"
-                        appDefaults <<- rbind(snpEffDB=ezFrame(Type="character", DefaultValue="",	Description="snpEffDB Name")
+                        appDefaults <<- rbind(snpEffDB=ezFrame(Type="character", DefaultValue="",	Description="snpEffDB Name"),
+                                              TumorOnlyMode=ezFrame(Type="logical", DefaultValue=FALSE, Description="Run in tumor only mode")
                             )
                     }
                 )
