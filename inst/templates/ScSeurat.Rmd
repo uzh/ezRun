@@ -869,7 +869,7 @@ p1 <- DimPlot(scData, label = TRUE, repel = TRUE, group.by = 'predicted.id.cellx
 p2 <- FeaturePlot(scData,features = "prediction.score.max", cols = c("lightgrey", "dodgerblue"), pt.size = 1, max.cutoff = 'q97', order = T )+ggtitle(paste(sample_name, "- mapping score"))
 
 ## mapping quality by Vlnplots
-p3 <- VlnPlot(scData, features = 'prediction.score.max', group.by = 'predicted.id.cellxgene.authorlabel') +
+p3 <- VlnPlot(scData, features = 'prediction.score.max', group.by = 'predicted.id.cellxgene.authorlabel', cols = shared_colors) +
   ggtitle(paste(sample_name, "- prediction.score.max grouped by author's cell label"))
 
 ```
