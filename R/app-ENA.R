@@ -195,10 +195,11 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     out <- tryCatch(ezSystem(myCmd), error = function(e) NULL)
     datasetPath <- paste0('/srv/GT/analysis/datasets/ENA_App/dataset_',containerId,'.tsv')
     ezWrite.table(dataset, datasetPath, row.names = FALSE)
+    
     script_path <- tempfile(fileext = ".sh")
     script_lines <- c(
-        sprintf("ssh trxcopy@fgcz-h-036 \"bash -lc 'cd /srv/sushi/production/master && bundle exec sushi_fabric --dataset %s --run --input_dataset_application 372 --project %s --dataset_name %s '\"",
-                datasetPath, containerId, datasetName)
+        sprintf("ssh trxcopy@fgcz-h-036 \"bash -lc 'cd /srv/sushi/production/master && bundle exec sushi_fabric --dataset %s --run --input_dataset_application 372 --project %s --dataset_name %s --dataset_id %s '\"",
+                datasetPath, containerId, datasetName, param$datasetId)
     )
     writeLines(script_lines, con = script_path)
     Sys.chmod(script_path, "700")
