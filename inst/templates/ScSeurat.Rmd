@@ -112,13 +112,14 @@ if (file.exists("azimuth_results.rds")){
 }
 
 # Create shared color palette for all annotation methods (Azimuth, Azimuth Pan-Human, Cell x gene, scType)
-# Generate ~100 colors by combining multiple palettes from pals package
+# Start with Seurat's first 12 default colors, then add palettes without black colors
 shared_colors <- c(
-  DiscretePalette(n = 26, palette = "alphabet"),      # 26 colors
-  DiscretePalette(n = 26, palette = "alphabet2"),     # 26 colors
+  scales::hue_pal()(12),                               # 12 Seurat default colors
+  DiscretePalette(n = 26, palette = "alphabet2"),     # 26 colors (no black)
   DiscretePalette(n = 36, palette = "polychrome"),    # 36 colors
-  DiscretePalette(n = 26, palette = "alphabet"),      # 26 colors (repeat)
-  DiscretePalette(n = 26, palette = "alphabet2")      # 26 colors (repeat)
+  DiscretePalette(n = 24, palette = "stepped"),       # 24 colors
+  DiscretePalette(n = 26, palette = "alphabet2"),     # 26 colors (repeat)
+  DiscretePalette(n = 36, palette = "polychrome")     # 36 colors (repeat)
 )
 # Remove names to ensure unnamed vector
 names(shared_colors) <- NULL
@@ -955,4 +956,10 @@ param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "ce
 
 ```{r, echo=FALSE}
 ezSessionInfo()
+```
+
+```{r save_final_scData, echo=FALSE, message=FALSE}
+# Save final scData object with all metadata (including cellxgene, azimuth, etc.)
+# This ensures the final object includes all annotation results from the report
+qs2::qs_save(scData, "scData.qs2", nthreads = param$cores)
 ```

@@ -83,6 +83,19 @@ if (any(is.na(clusterSet))){
 
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 pvalue_allMarkers <- 0.01
+
+# Create shared color palette for all annotation methods (same as single sample ScSeurat)
+# Start with Seurat's first 12 default colors, then add palettes without black colors
+shared_colors <- c(
+  scales::hue_pal()(12),                               # 12 Seurat default colors
+  DiscretePalette(n = 26, palette = "alphabet2"),     # 26 colors (no black)
+  DiscretePalette(n = 36, palette = "polychrome"),    # 36 colors
+  DiscretePalette(n = 24, palette = "stepped"),       # 24 colors
+  DiscretePalette(n = 26, palette = "alphabet2"),     # 26 colors (repeat)
+  DiscretePalette(n = 36, palette = "polychrome")     # 36 colors (repeat)
+)
+# Remove names to ensure unnamed vector
+names(shared_colors) <- NULL
 ```
 
 
@@ -165,7 +178,7 @@ cat("The UMAPs below place similar cells together in low-dimensional space after
 
 ```{r UMAP per Batch after correction,fig.width=9, fig.height=7}
 DimPlot(scData, reduction="umap", group.by="Batch")
-p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "ident")
+p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5, cols = shared_colors) + labs(color = "ident")
 LabelClusters(p2, id = "ident",  fontface = "bold", color = "black", size = 6)
 
 cellIdents_perBatch = data.frame(scData@meta.data[,c("ident", "Batch")])
@@ -432,11 +445,11 @@ cat("\n\n")
 ### Azimuth 
 
 ```{r azimuth, eval=!is.null(aziResults), fig.width=9, fig.height=9}
-p1 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "ident")
+p1 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5, cols = shared_colors) + labs(color = "ident")
 LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
 
 
-p2 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap", pt.size = 1.5) 
+p2 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap", pt.size = 1.5, cols = shared_colors) 
 if(length(unique(scData@meta.data$Azimuth.celltype.l1))>10){
     LabelClusters(p2, id = "Azimuth.celltype.l1",  fontface = "bold", color = "black", size = 5) + NoLegend()
 } else {
@@ -444,7 +457,7 @@ if(length(unique(scData@meta.data$Azimuth.celltype.l1))>10){
     }
 
 if ("Azimuth.celltype.l2" %in% colnames(scData@meta.data)){
-    p3 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap", pt.size = 1.5) 
+    p3 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap", pt.size = 1.5, cols = shared_colors) 
     if(length(unique(scData@meta.data$Azimuth.celltype.l2))>10){
     LabelClusters(p3, id = "Azimuth.celltype.l2",  fontface = "bold", color = "black", size = 5) + NoLegend()
     } else {
@@ -452,7 +465,7 @@ if ("Azimuth.celltype.l2" %in% colnames(scData@meta.data)){
     }
 }
 if ("Azimuth.celltype.l3" %in% colnames(scData@meta.data)){
-  p4 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap", pt.size = 1.5)
+  p4 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap", pt.size = 1.5, cols = shared_colors)
   if(length(unique(scData@meta.data$Azimuth.celltype.l3))>10){
     LabelClusters(p4, id = "Azimuth.celltype.l3",  fontface = "bold", color = "black", size = 5) + NoLegend()
   } else {
@@ -461,7 +474,7 @@ if ("Azimuth.celltype.l3" %in% colnames(scData@meta.data)){
   
   }
 if ("Azimuth.celltype.l4" %in% colnames(scData@meta.data)){
-  p5 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap", pt.size = 1.5)
+  p5 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap", pt.size = 1.5, cols = shared_colors)
     if(length(unique(scData@meta.data$Azimuth.celltype.l4))>10){
     LabelClusters(p5, id = "Azimuth.celltype.l4",  fontface = "bold", color = "black", size = 5) + NoLegend()
     } else {
