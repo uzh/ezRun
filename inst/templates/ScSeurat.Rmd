@@ -729,7 +729,7 @@ try({
 
 ### Azimuth
 
-```{r azimuth, eval=!is.null(aziResults), fig.width=15, fig.height=8}
+```{r azimuth, eval=!is.null(scData@meta.data$Azimuth.celltype.l1), fig.width=15, fig.height=8}
 options(ggrepel.max.overlaps = Inf)
 
 cat(sprintf("Analysis was performed using the Azimuth reference map: %s", param$Azimuth))
