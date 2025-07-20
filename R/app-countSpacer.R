@@ -70,7 +70,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   writexl::write_xlsx(sgRNA_counts, countFile_sgRNA)
   
   if(exists('annotationFile', where = param)){
-    countFile_gene = paste0(sampleName,'-gene_counts.xlsx')
+    countFile_gene = paste0("../", sampleName,'-gene_counts.xlsx')
     annot = ezRead.table(param$annotationFile, row.names = NULL)[ ,c('gene_id', 'gene_name')]
     res = dict[!dict$isControl,]
     ## TODO: why does the written excel file not include the controls but the plots seem to use it???
