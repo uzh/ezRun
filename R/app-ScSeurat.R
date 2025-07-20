@@ -540,6 +540,10 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
       # Run CloudAzimuth - this handles everything automatically
       scData <- CloudAzimuth(scData)
       
+      # Restore original seurat_clusters as default Idents (CloudAzimuth changes this)
+      Idents(scData) <- scData$seurat_clusters
+      futile.logger::flog.info("Restored seurat_clusters as default Idents after CloudAzimuth")
+      
       # Create simple results for saving (no complex tables)
       azimuth_results <- list(
         scData = scData
@@ -632,7 +636,16 @@ querySignificantClusterAnnotationEnrichR <- function(genesPerCluster, dbs, overl
     columnsToKeep <- c(columnsToKeep, "Genes")
   }
   for (cluster in unique(names(genesPerCluster))) {
-    enriched <- enrichr(as.character(genesPerCluster[[cluster]]), dbs)
+    # Check if gene list is empty or contains only empty/NA values
+    genes <- as.character(genesPerCluster[[cluster]])
+    genes <- genes[!is.na(genes) & genes != ""]
+    
+    if (length(genes) == 0) {
+      futile.logger::flog.warn("Cluster %s has no genes for enrichment analysis, skipping", cluster)
+      next
+    }
+    
+    enriched <- enrichr(genes, dbs)
     
     for (db in names(enriched)) {
       enriched_db <- enriched[[db]]

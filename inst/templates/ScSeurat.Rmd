@@ -111,6 +111,19 @@ if (file.exists("azimuth_results.rds")){
   azimuth_available <- FALSE
 }
 
+# Create shared color palette for all annotation methods (Azimuth, Azimuth Pan-Human, Cell x gene, scType)
+# Start with Seurat's first 12 default colors, then add palettes without black colors
+shared_colors <- c(
+  scales::hue_pal()(12),                               # 12 Seurat default colors
+  DiscretePalette(n = 26, palette = "alphabet2"),     # 26 colors (no black)
+  DiscretePalette(n = 36, palette = "polychrome"),    # 36 colors
+  DiscretePalette(n = 24, palette = "stepped"),       # 24 colors
+  DiscretePalette(n = 26, palette = "alphabet2"),     # 26 colors (repeat)
+  DiscretePalette(n = 36, palette = "polychrome")     # 36 colors (repeat)
+)
+# Remove names to ensure unnamed vector
+names(shared_colors) <- NULL
+
 
 # Process the posMarkers
 posMarkers$gene = as.factor(posMarkers$gene)
@@ -716,21 +729,21 @@ try({
 
 ### Azimuth
 
-```{r azimuth, eval=!is.null(aziResults), fig.width=15, fig.height=8}
+```{r azimuth, eval=!is.null(scData@meta.data$Azimuth.celltype.l1), fig.width=15, fig.height=8}
 options(ggrepel.max.overlaps = Inf)
 
 cat(sprintf("Analysis was performed using the Azimuth reference map: %s", param$Azimuth))
 
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap") +
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap", cols = shared_colors) +
   theme(aspect.ratio = 1)
 if('Azimuth.celltype.l2' %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap") +
+  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap", cols = shared_colors) +
   theme(aspect.ratio = 1)
 if('Azimuth.celltype.l3' %in% colnames(scData@meta.data))
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap") +
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap", cols = shared_colors) +
   theme(aspect.ratio = 1)
 if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap") +
+DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap", cols = shared_colors) +
   theme(aspect.ratio = 1)
 ```
 
@@ -738,7 +751,7 @@ DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, redu
 
 `r if(azimuth_available) "Azimuth Pan-Human provides neural network-based cell type annotation using the Satija lab reference (HUMAN DATASETS ONLY)."`
 
-```{r azimuth panhuman results, eval=azimuth_available, results='asis', fig.width=14, fig.height=10}
+```{r azimuth panhuman results, eval=azimuth_available, results='asis', fig.width=15, fig.height=11}
 if(azimuth_available && !is.null(azimuth_results)){
   cat("**Reference:** Pan-Human Azimuth neural network model (CloudAzimuth)\n\n")
   
@@ -755,9 +768,10 @@ if(azimuth_available && !is.null(azimuth_results)){
     cat("#### Final Level Cell Types\n\n")
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
     print(DimPlot(scData_az, group.by = "final_level_labels", label = TRUE, repel = TRUE, 
-                  reduction = reduction_to_use) + 
+                  reduction = reduction_to_use, cols = shared_colors) + 
           ggtitle("Azimuth Pan-Human: Final Level Labels") + 
           theme(legend.position = "right") +
+          guides(color = guide_legend(override.aes = list(size = 3), ncol = 2)) +
           coord_fixed())
     cat("\n\n")
   }
@@ -767,9 +781,10 @@ if(azimuth_available && !is.null(azimuth_results)){
     cat("#### Broad Level Cell Types\n\n")
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
     print(DimPlot(scData_az, group.by = "azimuth_broad", label = TRUE, repel = TRUE, 
-                  reduction = reduction_to_use) + 
+                  reduction = reduction_to_use, cols = shared_colors) + 
           ggtitle("Azimuth Pan-Human: Broad Level Labels") +
           theme(legend.position = "right") +
+          guides(color = guide_legend(override.aes = list(size = 3), ncol = 2)) +
           coord_fixed())
     cat("\n\n")
   }
@@ -779,9 +794,10 @@ if(azimuth_available && !is.null(azimuth_results)){
     cat("#### Medium Level Cell Types\n\n")
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
     print(DimPlot(scData_az, group.by = "azimuth_medium", label = TRUE, repel = TRUE, 
-                  reduction = reduction_to_use) + 
+                  reduction = reduction_to_use, cols = shared_colors) + 
           ggtitle("Azimuth Pan-Human: Medium Level Labels") +
           theme(legend.position = "right") +
+          guides(color = guide_legend(override.aes = list(size = 3), ncol = 2)) +
           coord_fixed())
     cat("\n\n")
   }
@@ -791,9 +807,10 @@ if(azimuth_available && !is.null(azimuth_results)){
     cat("#### Fine Level Cell Types\n\n")
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
     print(DimPlot(scData_az, group.by = "azimuth_fine", label = TRUE, repel = TRUE, 
-                  reduction = reduction_to_use) + 
+                  reduction = reduction_to_use, cols = shared_colors) + 
           ggtitle("Azimuth Pan-Human: Fine Level Labels") +
           theme(legend.position = "right") +
+          guides(color = guide_legend(override.aes = list(size = 3), ncol = 2)) +
           coord_fixed())
     cat("\n\n")
   }
@@ -845,15 +862,14 @@ DOI <- c |> filter(collection_id == collection_id_URL) |> select(doi)
 # print(paste0("https://doi.org/", DOI))
 
 ## dimplot of prediction.id.cellxgene.authorlabel
-colz <- rep(DiscretePalette(n = n_celltype , palette = "alphabet2"), 5)
-p1 <- DimPlot(scData, label = TRUE, repel = TRUE, group.by = 'predicted.id.cellxgene.authorlabel', cols = colz) + 
+p1 <- DimPlot(scData, label = TRUE, repel = TRUE, group.by = 'predicted.id.cellxgene.authorlabel', cols = shared_colors) + 
         ggtitle(paste(sample_name, "- CellxGene - Predicted ID"))
 
 ## plots of mapping score
 p2 <- FeaturePlot(scData,features = "prediction.score.max", cols = c("lightgrey", "dodgerblue"), pt.size = 1, max.cutoff = 'q97', order = T )+ggtitle(paste(sample_name, "- mapping score"))
 
 ## mapping quality by Vlnplots
-p3 <- VlnPlot(scData, features = 'prediction.score.max', group.by = 'predicted.id.cellxgene.authorlabel') +
+p3 <- VlnPlot(scData, features = 'prediction.score.max', group.by = 'predicted.id.cellxgene.authorlabel', cols = shared_colors) +
   ggtitle(paste(sample_name, "- prediction.score.max grouped by author's cell label"))
 
 ```
@@ -863,10 +879,18 @@ cat("\n\n* The URL of the reference data is:", param$cellxgeneUrl)
 cat("\n\n* The DOI of this dataset is:", ifelse(length(DOI) > 0, paste0("https://doi.org/", DOI), "DOI not available"))
 ```
 
-```{r cellxgene_3, eval=!is.null(cellxgeneResults), fig.width=9, fig.height=7}
-p1
-p2
-p3
+```{r cellxgene_3, eval=!is.null(cellxgeneResults), fig.width=14, fig.height=12}
+tryCatch({
+  # Print plots individually with coord_fixed
+  print(p1 + coord_fixed())
+  print(p2 + coord_fixed())
+  print(p3 )
+}, error = function(e) {
+  # If coord_fixed fails, print plots as-is
+  print(p1)
+  print(p2)
+  print(p3)
+})
 ```
 
 ### scType
@@ -883,7 +907,7 @@ if(sctype_available && !is.null(sctype_results)){
   if("sctype_classification" %in% colnames(scData_sc@meta.data)){
     cat("#### scType Cell Type Classification\n\n")
     print(DimPlot(scData_sc, reduction = "umap", label = TRUE, repel = TRUE, 
-                  group.by = 'sctype_classification') +
+                  group.by = 'sctype_classification', cols = shared_colors) +
           ggtitle(paste("scType Cell Type Annotation -", sctype_results$tissue_type)) +
           theme(legend.position = "right") +
           coord_fixed())
@@ -932,4 +956,10 @@ param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "ce
 
 ```{r, echo=FALSE}
 ezSessionInfo()
+```
+
+```{r save_final_scData, echo=FALSE, message=FALSE}
+# Save final scData object with all metadata (including cellxgene, azimuth, etc.)
+# This ensures the final object includes all annotation results from the report
+qs2::qs_save(scData, "scData.qs2", nthreads = param$cores)
 ```

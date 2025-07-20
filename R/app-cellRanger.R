@@ -116,31 +116,30 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
   if (ezIsSpecified(param$controlSeqs)) 
     unlink(refDir, recursive = TRUE)
   
-  #8. Calculate alignment stats from the BAM file for GEX
-  if(param$bamStats && param$TenXLibrary == "GEX"){
+  #8. For GEX deal with alignments
+  if (param$TenXLibrary == "GEX"){
     genomeBam <- file.path(sampleName, "possorted_genome_bam.bam")
-    if (file.exists(genomeBam)){
-      alignStats <- computeBamStatsSC(genomeBam, ram=param$ram)
-      if (!is.null(alignStats)){
-        ezWrite.table(alignStats, file=file.path(sampleName, "CellAlignStats.txt"), head="Barcode")
+    if(param$bamStats){
+      if (file.exists(genomeBam)){
+        alignStats <- computeBamStatsSC(genomeBam, ram=param$ram)
+        if (!is.null(alignStats)){
+          ezWrite.table(alignStats, file=file.path(sampleName, "CellAlignStats.txt"), head="Barcode")
+        }
       }
     }
-  }
-
-  # for GEX libraries
-  if(!param$keepAlignment && param$TenXLibrary == "GEX"){
-      bamFile <- file.path(sampleName, "possorted_genome_bam.bam")
-      if(file.exists(bamFile)){
-        ezSystem(paste('rm', bamFile))
-        ezSystem(paste('rm', paste0(bamFile,'.bai')))
+    if(param$keepAlignment){
+      refFasta <- param$ezRef["refFastaFile"]
+      ## we need a persistent reference
+      doCramConversion <- !ezIsSpecified(param$controlSeqs) && !ezIsSpecified(param$secondRef) && file.exists(refFasta)
+      if(doCramConversion){
+        cramFile <- sub('.bam$', '.cram', genomeBam)
+        ezSystem(paste('samtools view', '-T', refFasta, '-@', param$cores, '-o', cramFile, '-C', genomeBam))
+        ezSystem(paste0("rm ", genomeBam))
       }
-  } else if(param$keepAlignment && param$TenXLibrary == "GEX"){
-      setwd(sampleName)
-      bamFile <- "possorted_genome_bam.bam"
-      refDir <- param$ezRef["refFastaFile"]
-      out <- tryCatch(ezSystem(paste('samtools view', '-T', refDir, '-@', param$cores, '-o', sub('.bam$', '.cram', bamFile), '-C', bamFile)), error = function(e) NULL)
-      system('rm possorted_genome_bam.bam')
-      setwd('..')
+    } else {
+      ezSystem(paste0("rm ", genomeBam))
+      ezSystem(paste0("rm ", genomeBam, ".bai"))
+    }
   }
   return("Success")
 }
