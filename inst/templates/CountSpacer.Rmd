@@ -28,8 +28,15 @@ res <- dict[!dict$isControl,]
 param <- readRDS('param.rds')
 output <- readRDS("output.rds")
 sortedCounts = log2(1+sort(res$Count))
-upperCutOff = param$nmad+mean(sortedCounts)
-lowerCutOff = mean(sortedCounts)-param$nmad
+meanCounts <- mean(sortedCounts)
+upperCutOff = meanCounts + param$diffToLogMeanThreshold
+lowerCutOff = meanCounts - param$diffToLogMeanThreshold
+up_sgRNAs = sum(sortedCounts>upperCutOff)
+relUp_sgRNA = round(100 * (up_sgRNAs/length(sortedCounts)), digits = 2)
+down_sgRNAs = sum(sortedCounts<lowerCutOff)
+relDown_sgRNA = round(100 * (down_sgRNAs/length(sortedCounts)), digits = 2)
+
+
 stats <- readRDS('stats.rds')
 data = data.frame(group = rep('Count', nrow(dict)), counts = c(dict$Count))
 sampleName <- output$getNames()
@@ -70,7 +77,7 @@ p <- ggplot(data, aes(x=group, y=counts))
 ```
   
 ```{r, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE, eval=!debug}
-  mu = round(mean(sortedCounts), 2)
+  mu = round(meanCounts, 2)
   plot(sortedCounts, pch = c(15), cex = 0.7, main = paste(sampleName, '- sgCount Overview'), ylab = 'log2(sgRNA Count)', ylim = c(0, max(max(sortedCounts), 1.05*upperCutOff)))
   abline(h = mean(sortedCounts))
   abline(h = upperCutOff, lty = 2)

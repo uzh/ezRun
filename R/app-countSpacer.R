@@ -73,6 +73,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
     countFile_gene = paste0(sampleName,'-gene_counts.xlsx')
     annot = ezRead.table(param$annotationFile, row.names = NULL)[ ,c('gene_id', 'gene_name')]
     res = dict[!dict$isControl,]
+    ## TODO: why does the written excel file not include the controls but the plots seem to use it???
     res = res[order(res$GeneSymbol), ]
     countsPerGene = tapply(res$Count, INDEX = res$GeneSymbol, FUN = sum)
     countsPerGene = data.frame(ID = names(countsPerGene), matchCounts = countsPerGene, stringsAsFactors = FALSE)
@@ -100,25 +101,13 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
     print(h)
   dev.off()
   
+  ## TODO: the equivalent code is also in the RMD but there the controls are not included
   sortedCounts = log2(1+sort(dict$Count))
-  upperCutOff = 2+mean(sortedCounts)
-  lowerCutOff = mean(sortedCounts)-2
+  meanCounts <- mean(sortedCounts)
+  upperCutOff = meanCounts + param$diffToLogMeanThreshold
+  lowerCutOff = meanCounts - param$diffToLogMeanThreshold
   
-  up_sgRNAs = length(which(sortedCounts>upperCutOff))
-  relUp_sgRNA = round(100 * (up_sgRNAs/length(sortedCounts)), digits = 2)
-  down_sgRNAs = length(which(sortedCounts<lowerCutOff))
-  relDown_sgRNA = round(100 * (down_sgRNAs/length(sortedCounts)), digits = 2)
-  mu = round(mean(sortedCounts), 2)
-  png(paste0(sampleName, '_overview.png'), 700, 700, res = 100)
-  plot(sortedCounts, pch = c(15), cex = 0.7, main = paste(sampleName, '- sgCount Overview'), ylab = 'log2(sgRNA Count)')
-  abline(h = mean(sortedCounts))
-  abline(h = upperCutOff, lty = 2)
-  abline(h = lowerCutOff, lty = 2)
-  text(length(sortedCounts)*0.05, 1.05*mean(sortedCounts), bquote(mu==.(mu)), cex = 0.8)
-  text(length(sortedCounts)*0.8, 1.05*upperCutOff, paste0('#',up_sgRNAs, ' (',relUp_sgRNA,'%)' ), cex = 0.8)
-  text(length(sortedCounts)*0.15, 0.95*lowerCutOff, paste0('#',down_sgRNAs, ' (',relDown_sgRNA,'%)' ), cex = 0.8)
-  dev.off()
-  
+
   dict2 = dict[order(dict$TargetID), ]
   dict2 = dict2[!dict2$isControl,]
   targets = unique(dict2$TargetID)
@@ -217,10 +206,10 @@ EzAppCountSpacer <-
                   appDefaults <<- rbind(
                     minReadLength = ezFrame(Type = "integer", DefaultValue = 18,
                                           Description = "minimum length of sgRNA"),
-                    nmad = ezFrame(
+                    diffToLogMeanThreshold = ezFrame(
                         Type = "numeric",
                         DefaultValue = 2,
-                        Description = "Median absolute deviation (MAD)"
+                        Description = "log 2 difference relative to the mean log2 counts above/below which counts are called significant"
                     )
                     )
                     }
