@@ -118,8 +118,8 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
     sccomp_res <- scData %>%
       sccomp_estimate(
         formula_composition = as.formula(paste("~", param$grouping)),  
-        .sample = !!sym(param$replicateGrouping),   
-        .cell_group = !!sym(param$CellIdentity),   
+        sample = param$replicateGrouping,
+        cell_group = param$CellIdentity,   
         cores = as.integer(param$cores), 
         output_directory = ".",
         cache_stan_model=cache_stan_model,
