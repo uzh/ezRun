@@ -238,7 +238,7 @@ if(exists('sccomp_res')){
     cat("The error bars represent 95% credible intervals. The dashed lines represent the minimal effect that the hypothesis test is based on. An effect is labelled as significant if it exceeds the minimal effect according to the 95% credible interval.\n\n")
     
     # Get both conditions
-    all_conditions <- sccomp_res$count_data[[1]] |>
+    all_conditions <- sccomp_res |>
         dplyr::pull(param$grouping) |>
         unique()
     
