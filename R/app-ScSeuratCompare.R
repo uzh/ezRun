@@ -32,21 +32,36 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
   library(SingleCellExperiment)
   library(qs2)
   library(tidyverse)
-  
-  ## link to the compiled sccomp models
-  ## This workaround is needed, since we do not have a writeable library folder
-  ## We have all compiled models in the library folder cached but because of a bug/feature
-  ## sccomp does not let you specify that cache folder but uses instead a hardcoded folder sccomp:::sccomp_stan_models_cache_dir
-  ## that can't be modified, so we:
-  ## create the expected directory
-  dir.create((dirname(sccomp:::sccomp_stan_models_cache_dir)), showWarnings=FALSE)
-  ## remove the link if it is there
-  if (file.exists(sccomp:::sccomp_stan_models_cache_dir)){
-    file.remove(sccomp:::sccomp_stan_models_cache_dir)
-  }
-  ## recreate the link to the current installed library
-  ezSystem(paste("ln -s", system.file("stan", package="sccomp", mustWork = TRUE), sccomp:::sccomp_stan_models_cache_dir))
   library(sccomp)
+  
+  cache_stan_model <- system.file("stan", package="sccomp", mustWork = TRUE)
+  ## matches path in installation script
+  cmdstanr::set_cmdstan_path("/misc/ngseq12/src/CmdStan/cmdstan-2.36.0/cmdstan-2.36.0")
+  
+  
+  # dir.create((dirname(sccomp:::sccomp_stan_models_cache_dir)), showWarnings=FALSE)
+  # ## remove the link if it is there
+  # if (file.exists(sccomp:::sccomp_stan_models_cache_dir)){
+  #   file.remove(sccomp:::sccomp_stan_models_cache_dir)
+  # }
+  # ## recreate the link to the current installed library
+  # ezSystem(paste("ln -s", system.file("stan", package="sccomp", mustWork = TRUE), sccomp:::sccomp_stan_models_cache_dir))
+  
+  
+  # ## link to the compiled sccomp models
+  # ## This workaround is needed, since we do not have a writeable library folder
+  # ## We have all compiled models in the library folder cached but because of a bug/feature
+  # ## sccomp does not let you specify that cache folder but uses instead a hardcoded folder sccomp:::sccomp_stan_models_cache_dir
+  # ## that can't be modified, so we:
+  # ## create the expected directory
+  # dir.create((dirname(sccomp:::sccomp_stan_models_cache_dir)), showWarnings=FALSE)
+  # ## remove the link if it is there
+  # if (file.exists(sccomp:::sccomp_stan_models_cache_dir)){
+  #   file.remove(sccomp:::sccomp_stan_models_cache_dir)
+  # }
+  # ## recreate the link to the current installed library
+  # ezSystem(paste("ln -s", system.file("stan", package="sccomp", mustWork = TRUE), sccomp:::sccomp_stan_models_cache_dir))
+  # library(sccomp)
   
   # library(cmdstanr)
   # cmdstanr::set_cmdstan_path(file.path(writableRPackageDir, 'cmdstanr/cmdstan-2.36.0'))
@@ -107,11 +122,12 @@ ezMethodScSeuratCompare = function(input=NA, output=NA, param=NA, htmlFile="00in
         .cell_group = !!sym(param$CellIdentity),   
         cores = as.integer(param$cores), 
         output_directory = ".",
+        cache_stan_model=cache_stan_model,
         verbose = TRUE
       )
     
     sccomp_res <- sccomp_res %>%
-      sccomp_remove_outliers(cores = as.integer(param$cores)) %>%
+      sccomp_remove_outliers(cores = as.integer(param$cores), cache_stan_model=cache_stan_model) %>%
       sccomp_test()
     
     # Save sccomp results
