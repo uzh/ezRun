@@ -25,7 +25,12 @@ library(Seurat)
 library(SCpubr)
 library(qs2)
 library(dittoSeq)
+library(sccomp)
 library(cmdstanr)
+cache_stan_model <- system.file("stan", package="sccomp", mustWork = TRUE)
+## matches path in installation script
+cmdstanr::set_cmdstan_path("/misc/ngseq12/src/CmdStan/cmdstan-2.36.0/cmdstan-2.36.0")
+
 ```
 
 ```{r load rds and qs}
