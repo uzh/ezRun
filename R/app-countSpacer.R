@@ -70,7 +70,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   writexl::write_xlsx(sgRNA_counts, countFile_sgRNA)
   
   if(exists('annotationFile', where = param)){
-    countFile_gene = paste0("../", sampleName,'-gene_counts.xlsx')
+    countFile_gene = paste0(sampleName,'-gene_counts.xlsx')
     annot = ezRead.table(param$annotationFile, row.names = NULL)[ ,c('gene_id', 'gene_name')]
     res = dict[!dict$isControl,]
     ## TODO: why does the written excel file not include the controls but the plots seem to use it???
@@ -143,10 +143,15 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
-nullToNA <- function(x) {
-  x[sapply(x, is.null)] <- NA
-  return(x)
+
+selectFirst <- function(x) {
+  ## if null we return NA
+  if (is.null(x))
+    as.integer(NA)
+  else
+    x[1]
 }
+
 
 twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatch) {
   allReads = DNAStringSet()
@@ -160,14 +165,14 @@ twoPatternReadFilter <- function(readFile, leftPattern, rightPattern, maxMismatc
     reads <- sread(currentReads)
     if(leftPattern != ''){
       vp <- vmatchPattern(leftPattern, reads, max.mismatch = maxMismatch)
-      leftEnd <- vp %>% endIndex() %>% nullToNA() %>% unlist()
+      leftEnd <- vp %>% endIndex() %>% vapply(selectFirst, integer(1))
     } else {
       leftEnd <- rep(0, length(reads))
     }
     
     if(rightPattern != ''){
         vp <- vmatchPattern(rightPattern, reads, max.mismatch = maxMismatch)
-        rightStart <- vp %>% startIndex() %>% nullToNA() %>% unlist()
+        rightStart <- vp %>% startIndex() %>% vapply(selectFirst, integer(1))
     } else {
         rightStart <- width(reads)
     }
