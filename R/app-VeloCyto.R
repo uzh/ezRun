@@ -92,7 +92,11 @@ runVelocytoBD <- function(input, output, param){
   # | samtools view -Sb -@6 -o /home/ubuntu/data/RNAVelo/Combined_Cartridge-1_Bioproduct_final.bam
   # 
   localBamFile <- "bd.bam"
-  cmd <- paste("samtools view -h", gstoreBamFile, "| sed s/MA:Z:/UB:Z:/ ", "| samtools view -b -o", localBamFile)
+  cmd <- paste("samtools view -h", gstoreBamFile, 
+               "| grep -v XF:Z:__intergenic", ## ignore all reads that don't align to genes
+               "| grep -v  XF:Z:SampleTag",  ## ignore sample tag reads
+               "| sed s/MA:Z:/UB:Z:/ ", 
+               "| samtools view --tag UB -b -o", localBamFile)
   ezSystem(cmd)
   
 
@@ -108,9 +112,10 @@ runVelocytoBD <- function(input, output, param){
   # 
   barcodesFile <- "barcodes.tsv"
   ezSystem(paste("zcat", file.path(input$getFullPaths("CountMatrix"), "barcodes.tsv.gz"), ">", barcodesFile))
-  conda_activate <- paste("source", "/usr/local/ngseq/miniforge3/etc/profile.d/conda.sh", "&&", "conda activate gi_velocyto", "&&")
-  cmd <- paste("bash -c \"", conda_activate, 'velocyto run',
+  conda_activate <- "\"source /usr/local/ngseq/miniforge3/etc/profile.d/conda.sh && conda activate gi_velocyto\" "
+  cmd <- paste("bash -c ", conda_activate, "&& velocyto run",
                "-b", barcodesFile, 
+               "-e", input$getNames(),
                "-o", ".",
                # optional the msk file "-m"
                "--samtools-memory", floor(param$ram * 0.7 / param$cores * 1000),
