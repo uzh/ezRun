@@ -65,9 +65,9 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
   resultFile = paste0(sampleName,'-result.xlsx')
   writexl::write_xlsx(dict, resultFile)
   
-  countFile_sgRNA = paste0(sampleName,'-sgRNA_counts.xlsx')
+  countFile_sgRNA = paste0(sampleName,'-sgRNA_counts.txt')
   sgRNA_counts = data.frame(Identifier = dict$ID, matchCounts = dict$Count, stringsAsFactors = FALSE)
-  writexl::write_xlsx(sgRNA_counts, countFile_sgRNA)
+  ezWrite.table(sgRNA_counts, countFile_sgRNA, row.names=FALSE)
   
   if(exists('annotationFile', where = param)){
     countFile_gene = paste0(sampleName,'-gene_counts.xlsx')
