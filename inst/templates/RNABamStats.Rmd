@@ -94,63 +94,63 @@ alignmentCountBarPlot(mmCounts, relative=TRUE)
 
 ```{r MatchTargetTypeCounts, echo=FALSE, results='asis', message=FALSE, fig.width=8, fig.height=7, warning=FALSE}
 for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
-    if (!is.null(resultList[[1]][[nm]])){
-      readSet = switch(nm,
-                       multiMatchTargetTypeCounts="Uniquely and multi-matching reads:",
-                       uniqueMatchTargetTypeCounts="Uniquely matching reads:")
-      cat("\n###", paste(readSet, "Match Count Percentages"), "\n")
-      tct = getTypeCountTable(resultList, nm)
-      ezWrite.table(tct, file=paste0(nm, ".txt"), digits=4)
-      tpt = as.matrix(tct)
-      for (cn in colnames(tpt)){
-        tpt[ ,cn] = tct[ ,cn]/ tct["total", cn] * 100
-      }
-      minPercentage = 1
-      rowsUse = setdiff(rownames(tpt)[apply(tpt, 1, max) > minPercentage], "total")
-      tptUse = tpt[rowsUse, , drop=FALSE]
-      if (nrow(tptUse) >= 2 && ncol(tptUse) >= 2){
-        tptUseRel = log2(tptUse)
-        meanVals = apply(tptUseRel, 1, function(x){mean(x[is.finite(x)])}) ## ignore zero counts
-        tptUseRel = tptUseRel - meanVals
-        plotCmd = expression({
-          ezHeatmap(tptUseRel, margins=c(10, 12), lim=c(-2, 2),
-                    Rowv=FALSE, Colv=FALSE, main="Relative Prevalence [log2]")
-        })
-        eval(plotCmd)
-        k <- kable(signif(tptUse, digits=3),
-              row.names=TRUE, format = "html",
-              caption="Match Count Percentages") %>%
-          kable_styling(bootstrap_options = "striped",
-                        full_width = F, position = "left") %>%
-          footnote(general="Percentage value.")
-        print(k)
-      }else{
-        cat("The plot and table are shown when there are at least two samples!",
-            "\n")
-      }
-      
-      cat("###", paste(readSet, "Read Starts per Base"), "\n")
-      tct = as.matrix(getTypeCoverageTable(resultList, nm))
-      if (nrow(tct) >= 2 && ncol(tct) >= 2){
-        tctRel = log2(sweep(tct, 2, tct["total", ], FUN="/"))
-        tctRel = tctRel[rowsUse, , drop=FALSE]
-        plotCmd = expression({
-          ezHeatmap(tctRel, margins=c(10, 12), lim=c(-5, 5),
-                    Rowv=FALSE, Colv=FALSE, main="Coverage Enrichment")
-        })
-        eval(plotCmd)
-        k <- kable(signif(tct[rowsUse, ], digits=4),
-                   row.names=TRUE, format = "html",
-                   caption="Read Starts per Base") %>%
-          kable_styling(bootstrap_options = "striped",
-                        full_width = F, position = "left") %>%
-          footnote(general="Read Starts per Base is equivalent to Coverage divided by Read length.")
-        print(k)
-      }else{
-        cat("The plot and table are shown when there are at least two samples!",
-            "\n")
-      }
+  if (!is.null(resultList[[1]][[nm]])){
+    readSet = switch(nm,
+                     multiMatchTargetTypeCounts="Uniquely and multi-matching reads:",
+                     uniqueMatchTargetTypeCounts="Uniquely matching reads:")
+    cat("\n###", paste(readSet, "Match Count Percentages"), "\n")
+    tct = getTypeCountTable(resultList, nm)
+    ezWrite.table(tct, file=paste0(nm, ".txt"), digits=4)
+    tpt = as.matrix(tct)
+    for (cn in colnames(tpt)){
+      tpt[ ,cn] = tct[ ,cn]/ tct["total", cn] * 100
     }
+    minPercentage = 1
+    rowsUse = setdiff(rownames(tpt)[apply(tpt, 1, max) > minPercentage], "total")
+    tptUse = tpt[rowsUse, , drop=FALSE]
+    if (nrow(tptUse) >= 2 && ncol(tptUse) >= 2){
+      tptUseRel = log2(tptUse)
+      meanVals = apply(tptUseRel, 1, function(x){mean(x[is.finite(x)])}) ## ignore zero counts
+      tptUseRel = tptUseRel - meanVals
+      plotCmd = expression({
+        ezHeatmap(tptUseRel, margins=c(10, 12), lim=c(-2, 2),
+                  Rowv=FALSE, Colv=FALSE, main="Relative Prevalence [log2]")
+      })
+      eval(plotCmd)
+      k <- kable(signif(tptUse, digits=3),
+                 row.names=TRUE, format = "html",
+                 caption="Match Count Percentages") %>%
+        kable_styling(bootstrap_options = "striped",
+                      full_width = F, position = "left") %>%
+        footnote(general="Percentage value.")
+      print(k)
+    }else{
+      cat("The plot and table are shown when there are at least two samples!",
+          "\n")
+    }
+    
+    cat("###", paste(readSet, "Read Starts per Base"), "\n")
+    tct = as.matrix(getTypeCoverageTable(resultList, nm))
+    if (nrow(tct) >= 2 && ncol(tct) >= 2){
+      tctRel = log2(sweep(tct, 2, tct["total", ], FUN="/"))
+      tctRel = tctRel[rowsUse, , drop=FALSE]
+      plotCmd = expression({
+        ezHeatmap(tctRel, margins=c(10, 12), lim=c(-5, 5),
+                  Rowv=FALSE, Colv=FALSE, main="Coverage Enrichment")
+      })
+      eval(plotCmd)
+      k <- kable(signif(tct[rowsUse, ], digits=4),
+                 row.names=TRUE, format = "html",
+                 caption="Read Starts per Base") %>%
+        kable_styling(bootstrap_options = "striped",
+                      full_width = F, position = "left") %>%
+        footnote(general="Read Starts per Base is equivalent to Coverage divided by Read length.")
+      print(k)
+    }else{
+      cat("The plot and table are shown when there are at least two samples!",
+          "\n")
+    }
+  }
 }
 
 ```
@@ -176,8 +176,8 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
   
   
   print(ggplot(data=xx, 
-       aes(x=Percentile, y=Sample, fill=value)) + geom_tile() + scale_fill_gradientn(colours=getBlueRedScale()) +
-       labs(x="percentile of gene (5'->3')", y="relative coverage") + ggtitle("genebody coverage"))
+               aes(x=Percentile, y=Sample, fill=value)) + geom_tile() + scale_fill_gradientn(colours=getBlueRedScale()) +
+          labs(x="percentile of gene (5'->3')", y="relative coverage") + ggtitle("genebody coverage"))
 }
 
 tlc = resultList[[1]][["TranscriptsCovered"]]
@@ -217,24 +217,24 @@ if(!is.null(resultList[[1]][["Junction"]])){
   }
   junctionPlots <- list()
   for (nm in names(resultList[[1]][["Junction"]][["junctionSaturation"]])){
-        junctionDF <- c()
-        for (sm in samples){
-          junctionDF <- rbind(junctionDF, cbind(resultList[[sm]][["Junction"]][["junctionSaturation"]][[nm]], sm))
-        }
-        junctionDF <- data.frame(readFraction = rownames(junctionDF), Junctions <- as.numeric(junctionDF[,1]), Sample = as.factor(junctionDF[,2]))
-        junctionPlots[[nm]] <- ggplot(data=junctionDF, aes(x=readFraction, y=Junctions, group = Sample))
-        junctionPlots[[nm]] <- junctionPlots[[nm]] + geom_line_interactive(aes(color=Sample,tooltip = Sample, data_id = Sample)) + geom_point(aes(col=Sample), size = 1)
-        junctionPlots[[nm]] <- junctionPlots[[nm]] + labs(x="percent of total reads", y="Number of splicing junctions (K)") + ggtitle(nm)
-        junctionPlots[[nm]] <- girafe(ggobj = junctionPlots[[nm]], options = list(opts_hover_inv(css = "opacity:0.1;"), opts_hover(css = "stroke-width:2;"), opts_sizing(rescale = TRUE, width = .6)))
-        
+    junctionDF <- c()
+    for (sm in samples){
+      junctionDF <- rbind(junctionDF, cbind(resultList[[sm]][["Junction"]][["junctionSaturation"]][[nm]], sm))
+    }
+    junctionDF <- data.frame(readFraction = rownames(junctionDF), Junctions <- as.numeric(junctionDF[,1]), Sample = as.factor(junctionDF[,2]))
+    junctionPlots[[nm]] <- ggplot(data=junctionDF, aes(x=readFraction, y=Junctions, group = Sample))
+    junctionPlots[[nm]] <- junctionPlots[[nm]] + geom_line_interactive(aes(color=Sample,tooltip = Sample, data_id = Sample)) + geom_point(aes(col=Sample), size = 1)
+    junctionPlots[[nm]] <- junctionPlots[[nm]] + labs(x="percent of total reads", y="Number of splicing junctions (K)") + ggtitle(nm)
+    junctionPlots[[nm]] <- girafe(ggobj = junctionPlots[[nm]], options = list(opts_hover_inv(css = "opacity:0.1;"), opts_hover(css = "stroke-width:2;"), opts_sizing(rescale = TRUE, width = .6)))
+    
   }
 }
 ```
 
 ```{r interactive junction plots, message = FALSE, echo = FALSE, warning=FALSE, fig.width=10, fig.height=5}
-    if(exists('junctionPlots')){
-        htmltools::tagList(setNames(junctionPlots, NULL))
-        }
+if(exists('junctionPlots')){
+  htmltools::tagList(setNames(junctionPlots, NULL))
+}
 ```
 
 
@@ -245,24 +245,24 @@ if (!is.null(resultList[[1]][["Junction"]])){
     cat("\n")
     cat("####", sm, "\n")
     for (nm in names(resultList[[sm]][["Junction"]])){
-        junctionPlot = resultList[[sm]][["Junction"]][[nm]]
-        plotCmd = expression({
-          if (nm %in% c("splice_events", "splice_junction")){
-            pie(junctionPlot, col=c(2,3,4), init.angle=30, angle=c(60,120,150),
-                density=c(70,70,70),main=nm, 
-                labels=paste(names(junctionPlot), paste0(round(junctionPlot), "%")))
-          } else if (nm =="junctionSaturation"){
-            x = as.numeric(names(junctionPlot[[1]])) * 100
-            plot(1,1,xlab="percent of total reads", ylab='Number of splicing junctions (x1000)',type='o',
-                 ylim=c(0, junctionMaxVal[nm]/1000), xlim=range(x))
-            saturationColors = c("all junctions"="blue", "known junctions"="red", "novel junctions"="green")
-            for (item in names(junctionPlot)){
-              lines(x, junctionPlot[[item]]/1000, col=saturationColors[item], type="o")
-            }
-            legend("topleft", legend=names(saturationColors), col=saturationColors,lwd=1,pch=1)
+      junctionPlot = resultList[[sm]][["Junction"]][[nm]]
+      plotCmd = expression({
+        if (nm %in% c("splice_events", "splice_junction")){
+          pie(junctionPlot, col=c(2,3,4), init.angle=30, angle=c(60,120,150),
+              density=c(70,70,70),main=nm, 
+              labels=paste(names(junctionPlot), paste0(round(junctionPlot), "%")))
+        } else if (nm =="junctionSaturation"){
+          x = as.numeric(names(junctionPlot[[1]])) * 100
+          plot(1,1,xlab="percent of total reads", ylab='Number of splicing junctions (x1000)',type='o',
+               ylim=c(0, junctionMaxVal[nm]/1000), xlim=range(x))
+          saturationColors = c("all junctions"="blue", "known junctions"="red", "novel junctions"="green")
+          for (item in names(junctionPlot)){
+            lines(x, junctionPlot[[item]]/1000, col=saturationColors[item], type="o")
           }
-        })
-        eval(plotCmd)
+          legend("topleft", legend=names(saturationColors), col=saturationColors,lwd=1,pch=1)
+        }
+      })
+      eval(plotCmd)
     }
     cat("\n")
   }
@@ -277,8 +277,8 @@ if(!is.null(resultList[[1]]$fragSizeHist)){
     ezWrite.table(cbind(Length=fsh$mids, Count=fsh$counts),
                   file=paste0(sm, "-fragSizeHist.txt"), row.names=FALSE)
     plotCmd = expression({
-        plot(fsh, xlab="fragment size", main=paste(sm, "-- Length Histogram"), 
-             ylim=c(0, max(fsh$counts[-length(fsh$counts)]))) ## don't use the longest fragment size
+      plot(fsh, xlab="fragment size", main=paste(sm, "-- Length Histogram"), 
+           ylim=c(0, max(fsh$counts[-length(fsh$counts)]))) ## don't use the longest fragment size
     })
     try({
       eval(plotCmd)
@@ -326,8 +326,8 @@ if(!is.null(resultList[[1]][["dupRate"]])){
 ```
 
 ```{r interactive dup plots, message = FALSE, echo = FALSE, warning=FALSE, fig.width=9, fig.height=5}
-    if(exists('dupPlot'))
-        dupPlot
+if(exists('dupPlot'))
+  dupPlot
 ```
 
 

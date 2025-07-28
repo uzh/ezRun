@@ -61,7 +61,7 @@ metadata(rawData)$condColors <- lapply(metadata(rawData)$design, getCondsColors)
 metadata(rawData)$sampleColors <- list()
 for(cond in colnames(metadata(rawData)$design)){
   metadata(rawData)$sampleColors[[cond]] <- set_names(metadata(rawData)$condColors[[cond]][metadata(rawData)$design[[cond]]],
-                                                     rownames(metadata(rawData)$design))
+                                                      rownames(metadata(rawData)$design))
 }
 ```
 
@@ -169,11 +169,11 @@ combined$"Maximum signal" = rowMaxs(as.matrix(combined[, selectSignals]),
 topGenesPerSample = apply(combined[, selectSignals], 2, function(col){
   col = sort(col, decreasing = TRUE)
   if (length(col) > 100) col = col[1:100]
-    return(names(col))
-  })
-    
+  return(names(col))
+})
+
 topGenes = unique(as.character(topGenesPerSample))
-    
+
 combined = combined[order(combined$"Maximum signal", decreasing = TRUE), ,
                     drop=FALSE]
 useInInteractiveTable = c("seqid", "gene_name", "Maximum signal", 
@@ -269,13 +269,13 @@ top3 <- df |>
 p <- ggplot(df, aes(x = Sample, y = Fraction)) + geom_boxplot(outlier.shape = NA, fill = "grey90")
 p <- p + geom_point(data = top3,aes(colour = rank), size = 2, position = position_dodge(width = 0.4))
 p <- p + geom_text_repel(data = top3,
-                  aes(label = Gene, colour = rank),
-                  size   = 2.5,
-                  nudge_y = 0.02,
-                  direction = "y",
-                  segment.size = 0.2,
-                  segment.alpha = 0.4,
-                  max.overlaps = Inf) +
+                         aes(label = Gene, colour = rank),
+                         size   = 2.5,
+                         nudge_y = 0.02,
+                         direction = "y",
+                         segment.size = 0.2,
+                         segment.alpha = 0.4,
+                         max.overlaps = Inf) +
   scale_colour_manual(values = c("red", "orange", "gold"), name   = "Top‑gene rank")
 p <- p + theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), plot.margin  = margin(5.5, 20, 5.5, 5.5, "pt"))
 p <- p + labs(y = "Fraction of total expression", title = "Top 3 over‑represented genes per sample")
@@ -288,7 +288,7 @@ p
 if (!is.null(seqAnno$IsControl)){
   rowData(rawData)$isValid <- rowData(rawData)$isValid & !seqAnno$IsControl
 }
-  
+
 if(sum(rowData(rawData)$isValid) < 10){
   cat("Not enough valid features for further plots", "\n")
   knit_exit()
@@ -306,16 +306,16 @@ colData(rawData)$conds <- ezConditionsFromDesign(metadata(rawData)$design,
                                                  maxFactors = 2)
 
 if(param$selectByFtest){
-    # Perform F-test row-wise
-    f_test_results <- apply(assays(rawData)$log2signalCentered, 1, function(row) {
+  # Perform F-test row-wise
+  f_test_results <- apply(assays(rawData)$log2signalCentered, 1, function(row) {
     data <- data.frame(Expression = row, Group = colData(rawData)$conds)
     fit <- lm(Expression ~ Group, data = data)
     anova(fit)["Group", "Pr(>F)"]
-    })
-    metadata(rawData)$topGenes <- names(sort(f_test_results)[1:param$topGeneSize])
+  })
+  metadata(rawData)$topGenes <- names(sort(f_test_results)[1:param$topGeneSize])
 } else {
-    metadata(rawData)$topGenes <- rownames(rawData)[head(order(rowSds(assays(rawData)$log2signal, na.rm=TRUE),
-                                         decreasing = TRUE), param$topGeneSize)]
+  metadata(rawData)$topGenes <- rownames(rawData)[head(order(rowSds(assays(rawData)$log2signal, na.rm=TRUE),
+                                                             decreasing = TRUE), param$topGeneSize)]
 }
 ```
 
@@ -348,7 +348,7 @@ if (ncol(rawData) > 3){
                       colors=as.data.frame(bind_cols(metadata(rawData)$sampleColors)),
                       autoColorHeight=TRUE, hang = -0.1,
                       main="all present genes")
-
+  
   ## Top genes
   d <- as.dist(1-cor(assays(rawData)$log2signal[metadata(rawData)$topGenes, ], use="complete.obs"))
   hc <- hclust(d, method="ward.D2")
@@ -371,7 +371,7 @@ if(ncol(rawData) > 3){
   varFeatures <- setdiff(varFeatures, notVarFeatures)
   param$highVarThreshold <- signif(min(rowSds(assays(rawData)$log2signal[varFeatures, ])),
                                    digits=3)
-    
+  
   if(length(varFeatures) > param$minGenesForClustering){
     cat(paste("Threshold for std. dev. of log2 signal across samples:",
               param$highVarThreshold), "\n")
@@ -390,15 +390,15 @@ if(ncol(rawData) > 3){
     
     
     
-
+    
     xTmp <- enframe(clusterResult$clusterNumbers, "feature_id", value = "Cluster")
     xTmp <- left_join(xTmp, as_tibble(rowData(rawData)[, "gene_name", drop=FALSE],
                                       rownames="feature_id"))
     xTmp <- arrange(xTmp, Cluster)
     write_tsv(xTmp, file="cluster-heatmap-clusterMembers.txt")
-
+    
     plot(clusterResult$pheatmap$gtable)
-  
+    
     if (doGo(param, seqAnno)){
       clusterResult = goClusterResults(assays(rawData)$log2signalCentered[varFeatures, ],
                                        param, clusterResult, 
@@ -415,19 +415,19 @@ if(ncol(rawData) > 3){
       }
       bgColors = rep(gsub("FF$", "", clusterResult$clusterColors))
       rownames(goAndEnrichr) <- paste0('<font color="', bgColors,
-                                     '">Cluster ', rownames(goAndEnrichr),
-                                     '</font>')
-    kable(goAndEnrichr, escape=FALSE, row.names=TRUE, format = "html",
-          caption="GO categories of feature clusters") %>%
-      kable_styling(bootstrap_options = "striped",
-                    full_width = F, position = "float_right") %>%
-      footnote(general="Cluster font color corresponds to the row colors in the heatmap plot.")
+                                       '">Cluster ', rownames(goAndEnrichr),
+                                       '</font>')
+      kable(goAndEnrichr, escape=FALSE, row.names=TRUE, format = "html",
+            caption="GO categories of feature clusters") %>%
+        kable_styling(bootstrap_options = "striped",
+                      full_width = F, position = "float_right") %>%
+        footnote(general="Cluster font color corresponds to the row colors in the heatmap plot.")
     } else {
       cat("No information available", "\n")
     }
   }
 } else {
-    varFeatures <- c()
+  varFeatures <- c()
 }
 
 ```
@@ -436,13 +436,13 @@ if(ncol(rawData) > 3){
 if (ncol(rawData) > 3){
   if (length(varFeatures) > param$minGenesForClustering){
     if (!is.null(clusterResult$GO)){
-    ## GO Cluster tables
-    file <- file.path(system.file("templates", package="ezRun"), 
-                      "CountQC_goClusterTable.Rmd")
-    file.copy(from=file, to=basename(file), overwrite=TRUE)
-    rmarkdown::render(input=basename(file), envir = new.env(),
-                      output_dir=".", output_file="goClusterTable.html",
-                      quiet=TRUE)
+      ## GO Cluster tables
+      file <- file.path(system.file("templates", package="ezRun"), 
+                        "CountQC_goClusterTable.Rmd")
+      file.copy(from=file, to=basename(file), overwrite=TRUE)
+      rmarkdown::render(input=basename(file), envir = new.env(),
+                        output_dir=".", output_file="goClusterTable.html",
+                        quiet=TRUE)
     }
   }
 }
@@ -473,25 +473,25 @@ Multiple metrics were computed for a comprehensive assessment.
 
 ```{r cluster scores, echo=FALSE, message=FALSE, results="asis", eval=!debug}
 if(length(varFeatures) > param$minGenesForClustering){
-
-# Perform hierarchical clustering
-dist_matrix <- dist(assays(rawData)$log2signalCentered[varFeatures, ])  # Compute distance matrix
-hc <- hclust(dist_matrix, method = "ward.D2")  # Hierarchical clustering using Ward's method
-
-hclust_cluster <- function(X, k) {
+  
+  # Perform hierarchical clustering
+  dist_matrix <- dist(assays(rawData)$log2signalCentered[varFeatures, ])  # Compute distance matrix
+  hc <- hclust(dist_matrix, method = "ward.D2")  # Hierarchical clustering using Ward's method
+  
+  hclust_cluster <- function(X, k) {
     res <- data.frame(clusters=rep(0, nrow(X)))
     dist_matrix <- dist(X)
     hc <- hclust(dist_matrix, method = "ward.D2")
     res$clusters <- cutree(hc, k = k)
     return(res)
-}
-gap_stat <- clusGap(assays(rawData)$log2signalCentered[varFeatures, ], FUN = hclust_cluster, K.max = 10, B = 50)
-
-# Determine optimal number of clusters
-myClusterStats <- data.frame(nClusters = c(2:10), dunn = NA, ch = NA, 
-                             db = NA, silhouette = NA, entropy = NA, 
-                             gap = round(gap_stat$Tab[2:10,3], 4))
-for (i in 2:10){
+  }
+  gap_stat <- clusGap(assays(rawData)$log2signalCentered[varFeatures, ], FUN = hclust_cluster, K.max = 10, B = 50)
+  
+  # Determine optimal number of clusters
+  myClusterStats <- data.frame(nClusters = c(2:10), dunn = NA, ch = NA, 
+                               db = NA, silhouette = NA, entropy = NA, 
+                               gap = round(gap_stat$Tab[2:10,3], 4))
+  for (i in 2:10){
     clusters <- cutree(hc, k = i)
     cluster_scores <- cluster.stats(dist_matrix, clusters)
     myClusterStats$dunn[i-1] <- round(cluster_scores$dunn,4)
@@ -499,53 +499,53 @@ for (i in 2:10){
     myClusterStats$db[i-1] <- round(index.DB(assays(rawData)$log2signalCentered[varFeatures, ], clusters)$DB,4)
     myClusterStats$silhouette[i-1] <- round(cluster_scores$avg.silwidth,4)
     myClusterStats$entropy[i-1] <- round(cluster_scores$entropy,4)
-}
-
-datatable(myClusterStats,
-          rownames = FALSE,  # Suppress row names
-          options = list(dom = 't')
-) %>%
+  }
+  
+  datatable(myClusterStats,
+            rownames = FALSE,  # Suppress row names
+            options = list(dom = 't')
+  ) %>%
     formatStyle(
-        'dunn',
-        background = styleColorBar(range(myClusterStats$dunn), 'lightblue'),
-        backgroundSize = '98% 15px',
-        backgroundRepeat = 'no-repeat',
-        backgroundPosition = 'center'
+      'dunn',
+      background = styleColorBar(range(myClusterStats$dunn), 'lightblue'),
+      backgroundSize = '98% 15px',
+      backgroundRepeat = 'no-repeat',
+      backgroundPosition = 'center'
     ) %>%
     formatStyle(
-        'ch',
-        background = styleColorBar(range(myClusterStats$ch), 'lightblue'),
-        backgroundSize = '98% 15px',
-        backgroundRepeat = 'no-repeat',
-        backgroundPosition = 'center'
+      'ch',
+      background = styleColorBar(range(myClusterStats$ch), 'lightblue'),
+      backgroundSize = '98% 15px',
+      backgroundRepeat = 'no-repeat',
+      backgroundPosition = 'center'
     ) %>%
     formatStyle(
-        'db',
-        background = styleColorBar(range(myClusterStats$db), 'lightgreen'),
-        backgroundSize = '98% 15px',
-        backgroundRepeat = 'no-repeat',
-        backgroundPosition = 'center'
-    ) %>%
-formatStyle(
-    'silhouette',
-    background = styleColorBar(range(myClusterStats$silhouette), 'lightgreen'),
-    backgroundSize = '98% 15px',
-    backgroundRepeat = 'no-repeat',
-    backgroundPosition = 'center'
-) %>%
-    formatStyle(
-        'entropy',
-        background = styleColorBar(range(myClusterStats$entropy), 'lightsalmon'),
-        backgroundSize = '98% 15px',
-        backgroundRepeat = 'no-repeat',
-        backgroundPosition = 'center'
+      'db',
+      background = styleColorBar(range(myClusterStats$db), 'lightgreen'),
+      backgroundSize = '98% 15px',
+      backgroundRepeat = 'no-repeat',
+      backgroundPosition = 'center'
     ) %>%
     formatStyle(
-        'gap',
-        background = styleColorBar(range(myClusterStats$gap), 'lightsalmon'),
-        backgroundSize = '98% 15px',
-        backgroundRepeat = 'no-repeat',
-        backgroundPosition = 'center'
+      'silhouette',
+      background = styleColorBar(range(myClusterStats$silhouette), 'lightgreen'),
+      backgroundSize = '98% 15px',
+      backgroundRepeat = 'no-repeat',
+      backgroundPosition = 'center'
+    ) %>%
+    formatStyle(
+      'entropy',
+      background = styleColorBar(range(myClusterStats$entropy), 'lightsalmon'),
+      backgroundSize = '98% 15px',
+      backgroundRepeat = 'no-repeat',
+      backgroundPosition = 'center'
+    ) %>%
+    formatStyle(
+      'gap',
+      background = styleColorBar(range(myClusterStats$gap), 'lightsalmon'),
+      backgroundSize = '98% 15px',
+      backgroundRepeat = 'no-repeat',
+      backgroundPosition = 'center'
     )
 }
 ```
@@ -590,8 +590,8 @@ if(ncol(rawData) > 3){
 
 ```{r scatter plot setup, eval=TRUE, echo=FALSE, message=FALSE, results='asis'}
 scatterPlotData <- countQcScatterPlots(param, metadata(rawData)$design,
-                                        colData(rawData)$conds, rawDataAll,
-                                        signalCond, isPresentCond, types=types)
+                                       colData(rawData)$conds, rawDataAll,
+                                       signalCond, isPresentCond, types=types)
 nPlots <- max(scatterPlotData$nPlots, 1)
 ```
 
@@ -612,7 +612,7 @@ for(gridOfPlots in qcScatterFiles){
   idxLabel <- 1
   idxScatterPlot <- 1
   fontSize <- max(4, 10 - nItems)
-
+  
   # Add first col of labels
   for (idxRow in 1:(nItems + 1)) {
     if (idxRow == nItems + 1) {
@@ -651,16 +651,16 @@ for(gridOfPlots in qcScatterFiles){
   
   # Create the title grob
   title <- ggdraw() +
-  draw_label(
-    gridOfPlots$main,
-    x = 0,
-    hjust = 0
-  ) +
-  theme(
-    # add margin on the left of the drawing canvas,
-    # so title is aligned with left edge of first plot
-    plot.margin = margin(0, 0, 0, 7)
-  )
+    draw_label(
+      gridOfPlots$main,
+      x = 0,
+      hjust = 0
+    ) +
+    theme(
+      # add margin on the left of the drawing canvas,
+      # so title is aligned with left edge of first plot
+      plot.margin = margin(0, 0, 0, 7)
+    )
   
   # Combine title and plot grobs and plot
   print(plot_grid(
@@ -745,27 +745,27 @@ rownames(dat) <- make.unique(tpm$gene_name)
 topMarkersPerSample <- apply(dat, 2, function(col){
   col = sort(col, decreasing = TRUE)
   if (length(col) > maxGenes) col = col[1:maxGenes]
-    return(names(col))
-  })
+  return(names(col))
+})
 #species <- strsplit(param$ezRef@refBuild, '/')[[1]][1]
 ## Filter HRT genes
 hrtGenes <- ezRead.table('/srv/GT/databases/HRT/Human_Mouse_Common.csv',sep = ';', row.names = NULL)
 hrtGenes <- c(hrtGenes$Human, hrtGenes$Mouse)
 topMarkers <- list()
-    for (j in 1:ncol(topMarkersPerSample)){
-    topMarkers[[colnames(topMarkersPerSample)[j]]] <- topMarkersPerSample[!topMarkersPerSample[,j] %in% hrtGenes,j]
-    }
+for (j in 1:ncol(topMarkersPerSample)){
+  topMarkers[[colnames(topMarkersPerSample)[j]]] <- topMarkersPerSample[!topMarkersPerSample[,j] %in% hrtGenes,j]
+}
 topMarkers[['AllSamples']] <- unique(unlist(lapply(topMarkers, head, n = maxGenes/2), use.names = FALSE))
 topMarkers <- topMarkers[c('AllSamples', colnames(topMarkersPerSample))]
 jsCall = paste0('enrich({list: "', sapply(topMarkers, paste, collapse="\\n"), '", popup: true});')
-    enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
-                         "'>Analyse at Enrichr website</a>")
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
+                       "'>Analyse at Enrichr website</a>")
 enrichrTable <- tibble(Sample=names(topMarkers),
-                         "# of posMarkers"=lengths(topMarkers),
-                         "Enrichr link"=enrichrCalls)
+                       "# of posMarkers"=lengths(topMarkers),
+                       "Enrichr link"=enrichrCalls)
 kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment")) %>%
-kable_styling("striped", full_width = F, position = "left")
+      caption=paste0("GeneSet enrichment")) %>%
+  kable_styling("striped", full_width = F, position = "left")
 ```
 
 ## Input Dataset

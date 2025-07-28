@@ -24,7 +24,7 @@ if (isTRUE(param$runGO)) {
   enrichResult = metadata(se)$enrichResult
   enrichResultGSEA = metadata(se)$enrichResultGSEA
 }
-  
+
 debug <- FALSE
 
 library(knitr)
@@ -64,8 +64,8 @@ Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 ## Settings
 ```{r setting, echo=FALSE}
 kable(makeCountResultSummary(param, se),
-  row.names = TRUE,
-  col.names = "Setting", format = "html"
+      row.names = TRUE,
+      col.names = "Setting", format = "html"
 ) %>%
   kable_styling(
     bootstrap_options = "striped", full_width = FALSE,
@@ -83,8 +83,8 @@ if (!is.null(rowData(se)$isPresentProbe)) {
     sum(rowData(se)$isPresentProbe)
 }
 knitr::kable(as.data.frame(settings),
-  format = "html",
-  col.names = "Number", row.names = TRUE
+             format = "html",
+             col.names = "Number", row.names = TRUE
 ) %>%
   kable_styling(
     bootstrap_options = "striped", full_width = F,
@@ -109,7 +109,7 @@ resultFile <- makeResultFile(param, se)
 
 message(colnames(colData(se)))
 ezWrite.table(as.data.frame(colData(se))[, "sf", drop = FALSE],
-  file = "scalingfactors.txt", head = "Name"
+              file = "scalingfactors.txt", head = "Name"
 )
 
 liveReportLink <- output$getColumn("Live Report")
@@ -146,8 +146,8 @@ if (!is.null(param$log2RatioHighlightThresh)) {
 }
 settings["Number of significant genes:"] <- sum(types$Significants)
 knitr::kable(as.data.frame(settings),
-  format = "html",
-  col.names = "Number", row.names = TRUE
+             format = "html",
+             col.names = "Number", row.names = TRUE
 ) %>%
   kable_styling(
     bootstrap_options = "striped", full_width = F,
@@ -174,9 +174,9 @@ if (isTRUE(isTwoGroup)) {
     main = "Comparison of average expression",
     mode = "ggplot2"
   )
-
+  
   print(p_scatter)
-
+  
   if (!isTRUE(hasMassiveFeats)) {
     p_scatter <- ezXYScatter.2(
       xVec = refValues, yVec = sampleValues,
@@ -210,9 +210,9 @@ if (isTRUE(isTwoGroup)) {
     main = param$comparison,
     mode = "ggplot2"
   )
-
+  
   print(p_volcano)
-
+  
   if (isFALSE(hasMassiveFeats)) {
     p_volcano <- ezVolcano(
       log2Ratio = rowData(se)$log2Ratio,
@@ -261,9 +261,9 @@ plotCmd <- expression({
   xx <- rbind(used = histUsed$counts, absent = histAbs$counts)
   xx <- shrinkToRange(xx, c(0, max(xx["used", ])))
   barplot(xx,
-    space = 0, border = NA, col = c("blue", "darkorange"),
-    xlab = "p-value", ylab = "counts", ylim = c(0, max(xx["used", ])),
-    main = "p-value histogram"
+          space = 0, border = NA, col = c("blue", "darkorange"),
+          xlab = "p-value", ylab = "counts", ylim = c(0, max(xx["used", ])),
+          main = "p-value histogram"
   )
   abline(h = sum(rowData(se)$usedInTest) / ncol(xx))
   at <- c(0.01, 0.1, 0.25, 0.5, 0.75, 1)
@@ -283,7 +283,7 @@ if (ncol(x) <= 100) {
       if (length(idx) > 1) {
         cat("\n")
         cat(paste("#### Intra-group Comparison:", group), "\n")
-
+        
         pngName <- paste0(group, "-scatter.png")
         xlab <- paste("Avg of", group)
         refValues <- groupMeans[, group]
@@ -295,13 +295,13 @@ if (ncol(x) <= 100) {
           )
         })
         includeHtml <- ezImageFileLink(plotCmd,
-          file = pngName,
-          width = min(ncol(as.matrix(x[, idx, drop = FALSE])), 6) * 480,
-          height = ceiling(ncol(as.matrix(x[, idx, drop = FALSE])) / 6) * 480
+                                       file = pngName,
+                                       width = min(ncol(as.matrix(x[, idx, drop = FALSE])), 6) * 480,
+                                       height = ceiling(ncol(as.matrix(x[, idx, drop = FALSE])) / 6) * 480
         )
         # dynamic png with possibly many plots
         cat(includeHtml)
-
+        
         if (ncol(groupMeans) == 2) {
           otherGroup <- setdiff(colnames(groupMeans), group)
           pngName <- paste0(group, "-over-", otherGroup, "-scatter.png")
@@ -315,9 +315,9 @@ if (ncol(x) <= 100) {
             )
           })
           includeHtml <- ezImageFileLink(plotCmd,
-            file = pngName,
-            width = min(ncol(as.matrix(x[, idx, drop = FALSE])), 6) * 480,
-            height = ceiling(ncol(as.matrix(x[, idx, drop = FALSE])) / 6) * 480
+                                         file = pngName,
+                                         width = min(ncol(as.matrix(x[, idx, drop = FALSE])), 6) * 480,
+                                         height = ceiling(ncol(as.matrix(x[, idx, drop = FALSE])) / 6) * 480
           )
           # dynamic png with possibly many plots
           cat(includeHtml)
@@ -345,9 +345,9 @@ if (ncol(x) <= 100) {
         ezScatter(x = 2^refValues, y = 2^sampleValues, isPresent = samplePresent | refPresent, types = types, lim = theRange, xlab = colnames(refValues))
       })
       includeHtml <- ezImageFileLink(plotCmd,
-        file = pngName,
-        width = min(ncol(as.matrix(sampleValues)), 6) * 400,
-        height = ceiling(ncol(as.matrix(sampleValues)) / 6) * 400
+                                     file = pngName,
+                                     width = min(ncol(as.matrix(sampleValues)), 6) * 400,
+                                     height = ceiling(ncol(as.matrix(sampleValues)) / 6) * 400
       )
       cat(includeHtml)
     }
@@ -370,8 +370,8 @@ if (param$log2RatioHighlightThresh > 0) {
 }
 settings["Number of significant features:"] <- sum(use)
 knitr::kable(as.data.frame(settings),
-  format = "html",
-  col.names = "Number", row.names = TRUE
+             format = "html",
+             col.names = "Number", row.names = TRUE
 ) %>%
   kable_styling(
     bootstrap_options = "striped", full_width = F,
@@ -395,23 +395,23 @@ if (sum(use) > param$minGenesForClustering) {
   if (!is.null(param$useRefGroupAsBaseline) && param$useRefGroupAsBaseline) {
     xCentered <- xCentered - rowMeans(xCentered[, param$grouping == param$refGroup])
     xCentered <- sweep(xCentered,
-      MARGIN = 1,
-      rowMeans(xCentered[, param$grouping == param$refGroup]),
-      FUN = "-"
+                       MARGIN = 1,
+                       rowMeans(xCentered[, param$grouping == param$refGroup]),
+                       FUN = "-"
     )
   } else {
     xCentered <- sweep(xCentered, MARGIN = 1, rowMeans(xCentered), FUN = "-")
   }
   xCentered <- xCentered[, order(param$grouping)]
   sampleColors <- getSampleColors(param$grouping)[order(param$grouping)]
-
-
+  
+  
   nClusters <- 6
   clusterColors <- hcl.colors(nClusters, palette = "Spectral")
   clusterResult <- clusterResults(xCentered, nClusters = nClusters, clusterColors = clusterColors)
-
+  
   design <- design[, c(param$groupingName, setdiff(colnames(design), param$groupingName)), drop = FALSE]
-
+  
   clusterResult <- clusterPheatmap(xCentered, design, param, clusterColors,
                                    lim = c(-param$logColorRange, param$logColorRange),
                                    doClusterColumns = FALSE, sampleColors = sampleColors)
@@ -419,15 +419,15 @@ if (sum(use) > param$minGenesForClustering) {
   
   if (doGo(param, seqAnno)) {
     clusterResult <- goClusterResults(xCentered, param, clusterResult,
-      seqAnno = seqAnno,
-      universeProbeIds = rownames(seqAnno)[rowData(se)$isPresentProbe]
+                                      seqAnno = seqAnno,
+                                      universeProbeIds = rownames(seqAnno)[rowData(se)$isPresentProbe]
     )
   }
   ## append the result file with the cluster colors
   resultLoaded <- read_excel(resultFile$resultFile)
   resultLoaded$Cluster <- clusterResult$clusterNumbers[resultLoaded[[1]]]
   write_xlsx(resultLoaded, path = resultFile$resultFile)
-
+  
   if (!is.null(clusterResult$GO)) {
     goTables <- goClusterTableRmd(param, clusterResult, seqAnno)
     if (doEnrichr(param)) {
@@ -445,8 +445,8 @@ if (sum(use) > param$minGenesForClustering) {
       "</font>"
     )
     kable(goAndEnrichr,
-      escape = FALSE, row.names = TRUE, format = "html",
-      caption = "GO categories of feature clusters"
+          escape = FALSE, row.names = TRUE, format = "html",
+          caption = "GO categories of feature clusters"
     ) %>%
       kable_styling(
         bootstrap_options = "striped",
@@ -497,7 +497,7 @@ Enrichr is a web server which collects in one website many different databases t
 if (isTRUE(param$runGO)) {
   if (doEnrichr(param)) {
     selectionNames <- names(enrichInput$selections)
-
+    
     enrichrLinks <- ezMatrix("", rows = selectionNames, 
                              cols = c("Number of Genes", "External", "Precomputed", "CutOffs"))
     maxResultsPerLibrary <- 5
@@ -534,15 +534,15 @@ if (isTRUE(param$runGO)) {
           resMerged <- do.call("rbind", resList)
           resMerged <- resMerged[order(-resMerged[, 5]), ]
           resMerged[, c(3, 6:8)] <- apply(resMerged[, c(3, 6:8)], 2, sprintf,
-            fmt = "%0.2e"
+                                          fmt = "%0.2e"
           )
           resMerged[, c(4, 5)] <- apply(resMerged[, c(4, 5)], 2, sprintf,
-            fmt = "%0.3f"
+                                        fmt = "%0.3f"
           )
           enrichrTablePath <- paste0("enrichrTable_", mySel, ".html")
           ezInteractiveTable(resMerged,
-            tableLink = enrichrTablePath,
-            title = paste("Enrichr report for ", mySel)
+                             tableLink = enrichrTablePath,
+                             title = paste("Enrichr report for ", mySel)
           )
           enrichrLinks[mySel, "Precomputed"] <- ezLink(
             link = enrichrTablePath,
@@ -564,8 +564,8 @@ if (isTRUE(param$runGO)) {
       settings["Log2 ratio threshold:"] <- paste("log ratio >", param$log2RatioThreshGO)
     }
     kable(as.data.frame(settings),
-      format = "html",
-      col.names = "Number", row.names = TRUE
+          format = "html",
+          col.names = "Number", row.names = TRUE
     ) %>%
       kable_styling(
         bootstrap_options = "striped", full_width = F,
@@ -619,7 +619,7 @@ if (isTRUE(param$runGO)) {
         }
         ## Overwrite so that symbols are displayed on cnetplot, not ensembl
         er@result$geneID <- er@result$geneName
-
+        
         erp[["df"]] <- as.data.frame(
           er@result[ , c("ID", "Description", "GeneRatio", "BgRatio","pvalue",
                          "p.adjust", "geneName")])
@@ -632,7 +632,7 @@ if (isTRUE(param$runGO)) {
           DT::formatStyle(
             columns = colnames(.$x$data), `font-size` = "12px") %>%
           DT::formatSignif(c("pvalue", "p.adjust"), digits = 3)
-
+        
         erp[["barplot"]] <- enrichplot:::barplot.enrichResult(
           er, showCategory = 20, title = paste(onto, sig))
         erp[["barplot"]] <- erp[["barplot"]] +
@@ -686,10 +686,10 @@ if (isTRUE(param$runGO)) {
   ora.overview = ezFrame("Number of Significant Terms"=numeric())
   for (goDomain in names(enrichResult)){
     for (resName in names(enrichResult[[goDomain]])){
-              testName = paste0(goDomain,": ",resName)
-              ora.overview[testName, "Number of Significant Terms"] = 
-                nrow(enrichResult[[goDomain]][[resName]]@result[
-                  enrichResult[[goDomain]][[resName]]@result$p.adjust <= param$fdrThreshORA, ])
+      testName = paste0(goDomain,": ",resName)
+      ora.overview[testName, "Number of Significant Terms"] = 
+        nrow(enrichResult[[goDomain]][[resName]]@result[
+          enrichResult[[goDomain]][[resName]]@result$p.adjust <= param$fdrThreshORA, ])
     }
   }
   
@@ -702,7 +702,7 @@ if (isTRUE(param$runGO)) {
         bootstrap_options = "striped",
         full_width = F,
         position = "left")
-    )
+  )
   cat("\n\n")
   if(exists(oraFile))
     cat(paste0("[Download Excel file of complete ORA results](", oraFile, ")"))
@@ -726,7 +726,7 @@ if (isTRUE(param$runGO)) {
         print(erp$barplot)
         print(erp$cnet)
         print(kable(erp$df,
-          escape = FALSE, row.names = FALSE, format = "html", digits = 50
+                    escape = FALSE, row.names = FALSE, format = "html", digits = 50
         ) %>%
           kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T) %>%
           scroll_box(width = "800px", height = "500px"))
@@ -750,7 +750,7 @@ if (isTRUE(param$runGO)) {
     } else {
       erp <- list()
       er <- enrichResultGSEA[[onto]]
-
+      
       er@result$Label <- ""
       for (i in 1:length(er@result$Description)) {
         desc <- er@result$Description[i]
@@ -768,27 +768,27 @@ if (isTRUE(param$runGO)) {
         }
         er@result$Label[i] <- paste0(er@result$ID[i], "\n", syn)
       }
-
+      
       erp[["df"]] <- as.data.frame(er@result[, c(
         "ID", "Description", "setSize","enrichmentScore", "NES", "pvalue", 
         "p.adjust", "geneName")])
       erp[["table"]] <- DT::datatable(
         data = er@result[, c(
           "ID", "Description", "setSize","enrichmentScore", "NES", "pvalue", 
-        "p.adjust", "geneName")],
+          "p.adjust", "geneName")],
         filter = "top", 
         class = "cell-border stripe", 
         rownames = FALSE, 
         caption = "") %>%
         DT::formatStyle(columns = colnames(.$x$data), `font-size` = "12px") %>%
         DT::formatSignif(c("pvalue", "p.adjust"), digits = 3)
-
+      
       erp[["ridgeplot"]] <- enrichplot::ridgeplot(x = er, showCategory = 20)
       erp[["ridgeplot"]] <- erp[["ridgeplot"]] +
         scale_y_discrete(labels = (er@result$Label[match(levels(as.factor(erp$ridgeplot$plot_env$gs2val.df$category)), er@result$Description)])) + 
         theme(axis.text.y = element_text(vjust = -0.01, size = 8))
       erp[["gseaplot"]] <- enrichplot::gseaplot2(x = er, geneSetID = 1)
-
+      
       ce_list <- NA
       for (i in seq_along(er@result$core_enrichment)) {
         core_enrich <- strsplit(
@@ -799,13 +799,13 @@ if (isTRUE(param$runGO)) {
         core_enrich_symbol <- paste(core_enrich_symbol, collapse = "/")
         er@result$core_enrichment[i] <- core_enrich_symbol
       }
-
+      
       sigGeneIds <- ce_list[!is.na(ce_list)]
       log2Ratio <- enrichInput$log2Ratio[sigGeneIds]
       names(log2Ratio) <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
       log2Ratio <- sort(log2Ratio, decreasing = T)
       erp[["cnet"]] <- enrichplot::cnetplot(
-          x = er, color.params = list(foldChange = log2Ratio), cex.params = list(category_label = 0.7, gene_label = 0.6))
+        x = er, color.params = list(foldChange = log2Ratio), cex.params = list(category_label = 0.7, gene_label = 0.6))
       
       enrichResultGSEAPlots[[onto]] <- erp
     }
@@ -846,8 +846,8 @@ Gene Ranking:
 if (isTRUE(param$runGO)) {
   gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
   for (i in 1:length(names(enrichResultGSEA))){
-              testName = paste(names(enrichResultGSEA)[i])
-              gsea.overview[testName, "Number of Significant Pathways"] = nrow(enrichResultGSEA[[i]]@result)
+    testName = paste(names(enrichResultGSEA)[i])
+    gsea.overview[testName, "Number of Significant Pathways"] = nrow(enrichResultGSEA[[i]]@result)
   }
   
   paste(
@@ -880,7 +880,7 @@ if (isTRUE(param$runGO)) {
       print(erp$ridgeplot)
       print(erp$cnet)
       print(kable(erp$df,
-        escape = FALSE, row.names = FALSE, format = "html", digits = 50
+                  escape = FALSE, row.names = FALSE, format = "html", digits = 50
       ) %>%
         kable_styling(bootstrap_options = "striped", full_width = F, fixed_thead = T, ) %>%
         scroll_box(width = "800px", height = "500px"))
@@ -944,21 +944,21 @@ Using MetaCore requires an account. One can be obtained by emailing <sequencing@
 ***
 ### How to use Metacore: quick start
 
- 1. [Right Click and Save File to Download Expression File for MetaCore](`r metacoreFile`) (`r paste("p <=", param$pValThreshGO)`)
- 
- 2. [Go to the MetaCore website](https://portal.genego.com)
- 
- 3. Upload the Expression File to MetaCore, selecting three columns: Gene ID, log ratio, and p-value 
- 
- 4. Select `Pathway Maps` from the `One-click Analysis` tab. 
+1. [Right Click and Save File to Download Expression File for MetaCore](`r metacoreFile`) (`r paste("p <=", param$pValThreshGO)`)
+
+2. [Go to the MetaCore website](https://portal.genego.com)
+
+3. Upload the Expression File to MetaCore, selecting three columns: Gene ID, log ratio, and p-value 
+
+4. Select `Pathway Maps` from the `One-click Analysis` tab. 
 
 ### Important notes
 When uploading the data into MetaCore, select three columns:
 
 * A gene identifier, pick **one** of:
-  + Ensembl Gene IDs -- `ENSEMBL IDs` 
-  + Entrez Gene IDs -- `EntrezGene (LocusLink) IDs`
-  
++ Ensembl Gene IDs -- `ENSEMBL IDs` 
++ Entrez Gene IDs -- `EntrezGene (LocusLink) IDs`
+
 * Log fold changes of the genes -- `log ratio` 
 
 * *P* values
@@ -1036,7 +1036,7 @@ if (all(c("gc", "featWidth") %in% colnames(x))) {
       "Down-regulation" = isDown,
       check.names = FALSE
     )
-
+    
     tests <- expand.grid(sig = names(sigTable), bias = names(biasTable))
     testTable <- ezFrame("overlapping/total genes" = character(), "odds ratio" = numeric(), "p-value" = numeric())
     for (i in 1:nrow(tests)) {
@@ -1053,11 +1053,11 @@ if (all(c("gc", "featWidth") %in% colnames(x))) {
       testTable[testName, "p-value"] <- res.fisher$p.value
     }
     t <- kable(format(testTable, digits = 3, scientific = -2), "html",
-      caption = paste(
-        "Association test:",
-        sum(isUp), "up-regulated and",
-        sum(isDown), "down-regulated genes"
-      )
+               caption = paste(
+                 "Association test:",
+                 sum(isUp), "up-regulated and",
+                 sum(isDown), "down-regulated genes"
+               )
     ) %>%
       kable_styling(
         bootstrap_options = "striped", full_width = F,
@@ -1067,8 +1067,8 @@ if (all(c("gc", "featWidth") %in% colnames(x))) {
     if (any(isSig, na.rm = TRUE)) {
       t <- t %>%
         row_spec(which(isSig),
-          bold = T, color = "white",
-          background = "#D7261E"
+                 bold = T, color = "white",
+                 background = "#D7261E"
         )
     }
     t
