@@ -11,6 +11,8 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   refbuild = param$refBuild
   outFolder = paste0(param$name, '_results')
   
+  fullGenomeSize <- param$ezRef@refFastaFile %>% GenomeInfoDb::seqlengths() %>% as.numeric() %>% sum()
+  effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
   cmd = paste(
     "nextflow run nf-core/atacseq",
      ## i/o
@@ -23,7 +25,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
                               basename(param$ezRef@refAnnotationFile),
                               'genes.bed'),
     ## parameters
-    "--macs_gsize", getGenomeSize(param),
+    "--macs_gsize", effectiveGenomeSize,
     if (param[['peakStyle']] == 'broad')  "" else "--narrow_peak",
     if (param[['varStabilizationMethod']] != 'vst') "--deseq2_vst false"  else "",
     ## configuration
@@ -104,14 +106,6 @@ getSampleSheet <- function(input, param){
            fastq_2 = replace(fastq_2, sid %in% names(input$getFullPaths('Read2')), input$getFullPaths('Read2')[sid])) |>
     write_csv(csvPath)
     return(csvPath)
-}
-
-##' @description estimate genome size
-getGenomeSize <- function(param){
-  fastaFile <- param$ezRef@refFastaFile
-  gsize <- sum(as.numeric(fasta.seqlengths(fastaFile)))
-  gsize <- round(gsize * 0.8)
-  return(gsize)
 }
 
 getData <- function(output, param){
