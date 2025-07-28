@@ -36,18 +36,22 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
 
   ezSystem(cmd)
 
-  cwd <- getwd()
   if(param[['runTwoGroupAnalysis']]){
-    require(DESeq2)
-    getData(output, param)
+    library(DESeq2)
+    nfCoreOutDir <- paste0(param$name, '_results', '/bwa/merged_replicate/macs2/', param$peakStyle, '_peak/consensus')
+    peakAnno <- vroom::vroom(paste0(nfCoreOutDir, '/consensus_peaks.mRp.clN.annotatePeaks.txt'), delim="\t", col_types = cols()) |> 
+      rename(c("PeakID"=1))
+    
+    dds <- getDdsFromConcensusPeaks(output, param)
+    outDir <- file.path(basename(output$getColumn('Result')), 'diffpeak_analysis')
+    if(!dir.exists(outDir)) dir.create(outDir, recursive = TRUE)
+    setwdNew(outDir)
 
     makeRmdReport(
-      output = output, param = param, selfContained = TRUE,
+      output = output, param = param, peakAnno=peakAnno, dds=dds, selfContained = TRUE,
       rmdFile = "DiffPeak.Rmd", htmlFile = "DifferentialPeakAnalysisReport.html",
       reportTitle = 'Differential Peak Analysis'
     )
-    #file.remove(list.files(pattern="^(dds|peak)\\.qs2$"))
-    on.exit(setwd(cwd))
   }
   return("Success")
 }
@@ -77,17 +81,22 @@ getSampleSheet <- function(input, param){
   if(any(groups == "") || any(is.na(groups)))
     stop("No conditions detected. Please add them in the dataset before calling NfCoreAtacSeqApp.")
   
-  if(any(str_detect(groups, "[^a-zA-Z0-9]"))){
-    separator <- table(unlist(str_extract_all(groups, "[^a-zA-Z0-9]"))) |> which.max() |> names()
-    ngroups <- ncol(str_split(groups, separator, simplify = T))
-    if(ngroups >2)
-      stop('Values in the Condition column cannot be splitted in two groups for pairwise comparison. Please use a proper separator.')
-  }
+  # ## OUR TESTING SUGGESTS: the nf-core pipeline accepts only one grouping variable
+  # ## that grouping variable can encode multiple factors, those factors are obtained by splitting by "_";
+  # 
+  # if(any(str_detect(groups, "[^a-zA-Z0-9]"))){
+  #   separator <- table(unlist(str_extract_all(groups, "[^a-zA-Z0-9]"))) |> which.max() |> names()
+  #   ngroups <- ncol(str_split(groups, separator, simplify = T))
+  #   if(ngroups >2)
+  #     stop('Values in the Condition column cannot be splitted in two groups for pairwise comparison. Please use a proper separator.')
+  # }
   
   oDir <- '.' ## param[['resultDir']]
   #if(!dir.exists(oDir)) dir.create(path = oDir)
 
   csvPath <- file.path(oDir, 'dataset.csv')
+  
+
   
   input$meta |> 
     arrange(`Condition [Factor]`, `Read1 [File]`, `Read2 [File]`) |>
@@ -108,7 +117,7 @@ getSampleSheet <- function(input, param){
     return(csvPath)
 }
 
-getData <- function(output, param){
+getDdsFromConcensusPeaks <- function(output, param, grouping){
   nfCoreOutDir <- paste0(param$name, '_results', '/bwa/merged_replicate/macs2/', param$peakStyle, '_peak/consensus')
   
   dds <- readRDS(paste0(nfCoreOutDir, '/deseq2/consensus_peaks.mRp.clN.rds'))
@@ -116,21 +125,9 @@ getData <- function(output, param){
   featureCounts <- vroom::vroom(paste0(nfCoreOutDir, '/consensus_peaks.mRp.clN.featureCounts.txt'), 
                                 delim="\t", comment="#", col_types = cols())
   
-  peakAnno <- vroom::vroom(paste0(nfCoreOutDir, '/consensus_peaks.mRp.clN.annotatePeaks.txt'), delim="\t", col_types = cols()) |> 
-    rename(c("PeakID"=1))
   
   rowData(dds) <- featureCounts[, c("Chr", "Start", "End", "Strand", "Length")]
-  dsgn <- data.frame(Condition = factor(paste(colData(dds)$Group1, colData(dds)$Group2, sep = "_")))
-  rownames(dsgn) <- rownames(colData(dds))
-  dds$Condition <- dsgn$Condition
+  dds$Condition <- grouping
   design(dds) <- ~ Condition
-  
-  outDir <- file.path(basename(output$getColumn('Result')), 'diffpeak_analysis')
-  if(!dir.exists(outDir)) dir.create(outDir, recursive = TRUE)
-  setwdNew(outDir)
-  
-  qs2::qs_save(dds, file = 'dds.qs2')
-  qs2::qs_save(peakAnno, file = 'peakAnno.qs2')
-  # qs2::qs_save(list(dds = dds, peakAnno = peakAnno),  file = paste0(peakDir, '/results.qs2'))
-  # return(list(dds=dds, peakAnno=peakAnno)) ## wo storing results, datasets need to be reloaded in DiffPeak.Rmd
+  return(dds)  
 }
