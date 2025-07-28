@@ -11,7 +11,7 @@ output:
 editor_options: 
   chunk_output_type: console
 ---
-  
+
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup, include=FALSE}
@@ -48,11 +48,11 @@ if (file.exists("singler.results.rds")){
 }
 
 if ("Azimuth.celltype.l1" %in% colnames(scData@meta.data)){
-    aziResults <- TRUE    
+  aziResults <- TRUE    
 } else {
-    aziResults <- NULL
+  aziResults <- NULL
 }
-    
+
 if (file.exists("cells.AUC.rds")){
   cells.AUC <- readRDS("cells.AUC.rds")
 } else {
@@ -62,7 +62,7 @@ if (file.exists("cells.AUC.rds")){
 if (file.exists("enrichRout.rds")){
   enrichRout <- readRDS("enrichRout.rds")
   if(length(enrichRout) == 1){ ##enrichR call creates empty file
-     enrichRout <- NULL 
+    enrichRout <- NULL 
   }
 } else {
   enrichRout <- NULL
@@ -110,7 +110,7 @@ The UMAPs and the barplot below can help us to visualize if the clusters are bal
 
 ```{r UMAP and barplot batch, fig.width=10, fig.height=7}
 if(!('Batch' %in% colnames(scData@meta.data)))
-    scData@meta.data[['Batch']] <- scData@meta.data[['Sample']]
+  scData@meta.data[['Batch']] <- scData@meta.data[['Sample']]
 DimPlot(scData, reduction =  "umap_noCorrected", group.by = "Batch")
 DimPlot(scData, reduction="umap_noCorrected", group.by="ident_noCorrected", label = TRUE)
 cellIdents_perBatch = data.frame(scData@meta.data[,c("ident_noCorrected", "Batch")])
@@ -138,7 +138,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per co
 ```{r no_integration, eval = param$integrationMethod=='none',results='asis'}
 cat("We started by merging all the samples in one dataset and then used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.")
 if(ezIsSpecified(param$SCT.regress.CellCycle) && 
-      param$SCT.regress.CellCycle) {
+   param$SCT.regress.CellCycle) {
   cat("We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle")
 }
 cat("As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes. Next, we performed PCA on the scaled data using the previously determined variable features. Taking as a distance metric the previously identified PCs, the cells clusters were then identified using a graph-based clustering approach where the cells are embedded in a graph structure - for example a K-nearest neighbor (KNN) graph, with edges drawn between cells with similar feature expression patterns, and then attempt to partition this graph into highly interconnected ‘communities’. The resolution is an important argument that sets the \"granularity\" of the downstream clustering and will need to be optimized for every individual experiment. Increased resolution values lead to a greater number of clusters, which is often required for larger datasets.\n")
@@ -151,14 +151,14 @@ cat("The UMAPs below place similar cells together in low-dimensional space. The 
 cat("After inspecting the datasets and observing that cells clustered by sample we decided to integrate samples using shared highly variable genes. Oftentimes, when clustering cells from multiple conditions there are condition-specific clusters and integration can help ensure the same cell types cluster together.\n We started by normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes in each sample separately. For this, we used the SCtransform method from the Seurat package which accounts for cellular sequencing depth, or nUMIs by default.")
 cat("\n")
 if(ezIsSpecified(param$SCT.regress.CellCycle) && 
-      param$SCT.regress.CellCycle) {
+   param$SCT.regress.CellCycle) {
   cat("We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle")
 }
 cat("\n")
 cat("To integrate, we applied the following steps:")
 cat("\n\n")
 cat(paste("**1. Perform integration method",param$integrationMethod, "**")) 
-    #CCA identifies shared sources of variation between the conditions/groups. It is a form of PCA, in that it identifies the greatest sources of variation in the data, #but only if it is shared or conserved across the conditions/groups (using the 3000 most variant genes from each sample).")
+#CCA identifies shared sources of variation between the conditions/groups. It is a form of PCA, in that it identifies the greatest sources of variation in the data, #but only if it is shared or conserved across the conditions/groups (using the 3000 most variant genes from each sample).")
 cat("\n\n")
 cat("**2. Identify anchors or mutual nearest neighbors (MNNs) across datasets (sometimes incorrect anchors are identified):** MNNs are like good friends. For each cell in one sample, the cell's closest neighbor in the other sample is identified based on gene expression values as it's best neighbor.The reciprical analysis is performed, and if the two cells are 'best friends' in both directions, then those cells will be marked as anchors to 'anchor' the two datasets together.")
 cat("\n\n")
@@ -227,7 +227,7 @@ We can explore whether the cells cluster by the different cell cycle phases. In 
 
 ```{r, eval =!is.null(scData@meta.data$CellCycle), fig.width=10, fig.height=6}
 if (any(!is.na(scData$CellCycle))){
-    DimPlot(scData, label=TRUE, split.by = "CellCycle", reduction="umap")
+  DimPlot(scData, label=TRUE, split.by = "CellCycle", reduction="umap")
 }
 ```
 
@@ -254,7 +254,7 @@ Below, it is shown a clustering tree that helps us to visualize the relationship
 
 ```{r, fig.align='center', fig.width=6, fig.height=8}
 if(!(param$integrationMethod %in% c("none","Harmony"))) {
-   clustree::clustree(scData, prefix = "integrated_snn_res.")
+  clustree::clustree(scData, prefix = "integrated_snn_res.")
 } else {
   clustree::clustree(scData, prefix = "SCT_snn_res.")
 }
@@ -321,13 +321,13 @@ Cell type scoring using the EnrichR tool. This approach consists in performing a
 genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
 jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
-                         "'>Analyse at Enrichr website</a>")
+                       "'>Analyse at Enrichr website</a>")
 ```
 
 ```{r enrichr markers, echo=FALSE, results='asis'}
 enrichrTable <- tibble(Cluster=names(genesPerCluster),
-                         "# of posMarkers"=lengths(genesPerCluster),
-                         "Enrichr link"=enrichrCalls)
+                       "# of posMarkers"=lengths(genesPerCluster),
+                       "Enrichr link"=enrichrCalls)
 if (!is.null(enrichRout)){
   enrichRTerm <- as.data.frame(do.call(rbind, lapply(enrichRout, as.vector)))
   enrichRTerm <- map_df(enrichRTerm, ~ map_df(.x, ~ replace(.x, is.null(.x), NA)), .id = "database")
@@ -339,8 +339,8 @@ if (!is.null(enrichRout)){
   enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
 }
 kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment")) %>%
-kable_styling("striped", full_width = F, position = "left")
+      caption=paste0("GeneSet enrichment")) %>%
+  kable_styling("striped", full_width = F, position = "left")
 ```
 
 ```{r plot enrichR per cluster, fig.height=5, fig.width=10, eval= !is.null(enrichRout)}
@@ -348,21 +348,21 @@ for (cluster in names(enrichRout)) {
   enrichRDataFrame <- as.data.frame(do.call(rbind, enrichRout[[cluster]]))
   enrichRDataFrame$database <- sapply(rownames(enrichRDataFrame), function(x) str_split(x, "[.]")[[1]][1])
   print(ggplot(as.data.table(enrichRDataFrame), aes(database, Term))
-  +
-    geom_point(aes(color = OverlapGenesN, size = Combined.Score))
-    +
-    scale_color_viridis()
-    +
-    scale_fill_viridis()
-    +
-    labs(y = "Term", x = "Cluster", title = paste0("Cluster: ", cluster))
-    +
-    theme_bw()
-    +
-    theme(
-      axis.title.x = element_blank(),
-      axis.text.x = element_text(angle = 45, hjust = 1)
-    ))
+        +
+          geom_point(aes(color = OverlapGenesN, size = Combined.Score))
+        +
+          scale_color_viridis()
+        +
+          scale_fill_viridis()
+        +
+          labs(y = "Term", x = "Cluster", title = paste0("Cluster: ", cluster))
+        +
+          theme_bw()
+        +
+          theme(
+            axis.title.x = element_blank(),
+            axis.text.x = element_text(angle = 45, hjust = 1)
+          ))
 }
 ```
 
@@ -389,7 +389,7 @@ for (r in names(singler.results)) {
     Cluster = Idents(scData), 
     SingleR.labels.cluster = singler.cluster.labels, 
     SingleR.labels.single = singler.single.labels)  %>%
-      left_join(as_tibble(scData@reductions$umap@cell.embeddings, rownames="Cells"))
+    left_join(as_tibble(scData@reductions$umap@cell.embeddings, rownames="Cells"))
   
   nrOfLabels_cluster <- length(unique(cellInfo$SingleR.labels.cluster))
   nrOfLabels_single <- length(unique(cellInfo$SingleR.labels.single))
@@ -451,35 +451,35 @@ LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
 
 p2 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap", pt.size = 1.5, cols = shared_colors) 
 if(length(unique(scData@meta.data$Azimuth.celltype.l1))>10){
-    LabelClusters(p2, id = "Azimuth.celltype.l1",  fontface = "bold", color = "black", size = 5) + NoLegend()
+  LabelClusters(p2, id = "Azimuth.celltype.l1",  fontface = "bold", color = "black", size = 5) + NoLegend()
 } else {
-        LabelClusters(p2, id = "Azimuth.celltype.l1",  fontface = "bold", color = "black", size = 5)
-    }
+  LabelClusters(p2, id = "Azimuth.celltype.l1",  fontface = "bold", color = "black", size = 5)
+}
 
 if ("Azimuth.celltype.l2" %in% colnames(scData@meta.data)){
-    p3 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap", pt.size = 1.5, cols = shared_colors) 
-    if(length(unique(scData@meta.data$Azimuth.celltype.l2))>10){
+  p3 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap", pt.size = 1.5, cols = shared_colors) 
+  if(length(unique(scData@meta.data$Azimuth.celltype.l2))>10){
     LabelClusters(p3, id = "Azimuth.celltype.l2",  fontface = "bold", color = "black", size = 5) + NoLegend()
-    } else {
-        LabelClusters(p3, id = "Azimuth.celltype.l2",  fontface = "bold", color = "black", size = 5)
-    }
+  } else {
+    LabelClusters(p3, id = "Azimuth.celltype.l2",  fontface = "bold", color = "black", size = 5)
+  }
 }
 if ("Azimuth.celltype.l3" %in% colnames(scData@meta.data)){
   p4 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap", pt.size = 1.5, cols = shared_colors)
   if(length(unique(scData@meta.data$Azimuth.celltype.l3))>10){
     LabelClusters(p4, id = "Azimuth.celltype.l3",  fontface = "bold", color = "black", size = 5) + NoLegend()
   } else {
-      LabelClusters(p4, id = "Azimuth.celltype.l3",  fontface = "bold", color = "black", size = 5)
+    LabelClusters(p4, id = "Azimuth.celltype.l3",  fontface = "bold", color = "black", size = 5)
   }
   
-  }
+}
 if ("Azimuth.celltype.l4" %in% colnames(scData@meta.data)){
   p5 <- DimPlot(scData, label=FALSE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap", pt.size = 1.5, cols = shared_colors)
-    if(length(unique(scData@meta.data$Azimuth.celltype.l4))>10){
+  if(length(unique(scData@meta.data$Azimuth.celltype.l4))>10){
     LabelClusters(p5, id = "Azimuth.celltype.l4",  fontface = "bold", color = "black", size = 5) + NoLegend()
-    } else {
-        LabelClusters(p5, id = "Azimuth.celltype.l4",  fontface = "bold", color = "black", size = 5)
-    }
+  } else {
+    LabelClusters(p5, id = "Azimuth.celltype.l4",  fontface = "bold", color = "black", size = 5)
+  }
 }
 ```
 
@@ -510,7 +510,7 @@ cat("\n\n")
 
 ```{r assigments heatmap, eval= !is.null(cells.AUC), results='asis',fig.align='center', fig.width=10, fig.height=var_height}
 if (!is.null(tab) && nrow(tab) > 2)
-   pheatmap(log10(tab+10), color=viridis::viridis(100))
+  pheatmap(log10(tab+10), color=viridis::viridis(100))
 ```
 
 ```{r tsne and AUC res, eval= !is.null(cells.AUC), results='asis'}
@@ -533,7 +533,7 @@ nPlots = 50
 ```{r tsne and AUC hist, eval= !is.null(cells.AUC), fig.height=5, fig.width=5}
 AUCell_plotTSNE(tSNE=cellsUmap,
                 cellsAUC=filtered_cells.AUC[head(scoreOrder, nPlots), ],
-                 plots = c("histogram", "binaryAUC"))
+                plots = c("histogram", "binaryAUC"))
 ```
 
 

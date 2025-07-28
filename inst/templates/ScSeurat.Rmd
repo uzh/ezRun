@@ -14,8 +14,6 @@ editor_options:
 
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-
-
 ```{r setup, include=FALSE}
 # input for this report: sce
 library(clustree)
@@ -57,17 +55,12 @@ if (file.exists("aziResults.rds")){
   aziResults <- NULL
 }
 
-
 if (file.exists("cellxgeneResults.rds")){
   cellxgeneResults <- readRDS("cellxgeneResults.rds")
   scData <- AddMetaData(scData, cellxgeneResults)
 } else {
   cellxgeneResults <- NULL
 }
-
-
-
-
 
 if (file.exists("singler.results.rds")){
   singler.results <- readRDS("singler.results.rds")
@@ -82,13 +75,13 @@ if (file.exists("cells.AUC.rds")){
 if (file.exists("enrichRout.rds")){
   enrichRout <- readRDS("enrichRout.rds")
   if(length(enrichRout) == 1){ ##enrichR call creates empty file
-     enrichRout <- NULL 
+    enrichRout <- NULL 
   }
 } else {
   enrichRout <- NULL
 }
 if (file.exists("cellsPerGeneFraction.rds")){
-    cellsPerGeneFraction <-  readRDS("cellsPerGeneFraction.rds")
+  cellsPerGeneFraction <-  readRDS("cellsPerGeneFraction.rds")
 } else {
   cellsPerGeneFraction <- NULL
 }
@@ -123,7 +116,6 @@ shared_colors <- c(
 )
 # Remove names to ensure unnamed vector
 names(shared_colors) <- NULL
-
 
 # Process the posMarkers
 posMarkers$gene = as.factor(posMarkers$gene)
@@ -282,20 +274,20 @@ We also excluded genes that are lowly or not expressed in our system, as they do
 cat("total genes:", nrow(cellsPerGeneFraction), "\n")
 cat("genes kept:", nrow(scData), ", fraction:", round(nrow(scData)/nrow(cellsPerGeneFraction), digits = 2), " \n")
 if(!is.null(cellsPerGeneFraction)) {
-    p = ggplot(cellsPerGeneFraction, aes(frac)) + geom_histogram(
-        aes(y = after_stat(density)),
-        colour = "black",
-        fill = "white",
-        binwidth = 0.005
-    )
-    p = p + geom_vline(
-        aes(xintercept = param$cellsFraction),
-        color = "red",
-        linetype = "dashed",
-        size = 1
-    )
-    p = p + geom_density(alpha = .2, fill = "#FF6666") + labs(x = "Fraction") + ggtitle('Fraction of cells per gene')
-    p
+  p = ggplot(cellsPerGeneFraction, aes(frac)) + geom_histogram(
+    aes(y = after_stat(density)),
+    colour = "black",
+    fill = "white",
+    binwidth = 0.005
+  )
+  p = p + geom_vline(
+    aes(xintercept = param$cellsFraction),
+    color = "red",
+    linetype = "dashed",
+    size = 1
+  )
+  p = p + geom_density(alpha = .2, fill = "#FF6666") + labs(x = "Fraction") + ggtitle('Fraction of cells per gene')
+  p
 }
 ```
 
@@ -330,15 +322,15 @@ HVGs <- VariableFeatures(object = scData)
 
 jsCall = paste0('enrich({list: "', paste(HVGs, collapse="\\n"), '", popup: true});')
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
-                         "'>Analyse at Enrichr website</a>")
+                       "'>Analyse at Enrichr website</a>")
 
 
 enrichrTable <- tibble(GeneSet='HVGs',
-                         "# of HVGs"=length(HVGs),
-                         "Enrichr link"=enrichrCalls)
+                       "# of HVGs"=length(HVGs),
+                       "Enrichr link"=enrichrCalls)
 kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment")) %>%
-kable_styling("striped", full_width = F, position = "left")
+      caption=paste0("GeneSet enrichment")) %>%
+  kable_styling("striped", full_width = F, position = "left")
 ```
 
 ### Clustering
@@ -405,8 +397,8 @@ VlnPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal protein perce
 FeaturePlot(scData, features="percent_riboprot", label = TRUE)
 
 if (!is.null(scData@meta.data$percent_ribosomal)){
-print(VlnPlot(scData, features ="percent_ribosomal") + ggtitle("Ribosomal RNA percentage vs ident") + NoLegend())
-print(FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
+  print(VlnPlot(scData, features ="percent_ribosomal") + ggtitle("Ribosomal RNA percentage vs ident") + NoLegend())
+  print(FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
 }
 
 VlnPlot(scData, features ="doubletScore") + ggtitle("DoubletScore vs ident") + NoLegend()
@@ -528,15 +520,15 @@ for (eachCluster in levels(posMarkers$cluster)) {
 genesPerCluster <- split(markersPerClusterTable$gene, markersPerClusterTable$cluster)
 jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
-                         "'>Analyse at Enrichr website</a>")
+                       "'>Analyse at Enrichr website</a>")
 ```
 
 
 
 ```{r enrichr markers, echo=FALSE, results='asis'}
 enrichrTable <- tibble(Cluster=names(genesPerCluster),
-                         "# of posMarkers"=lengths(genesPerCluster),
-                         "Enrichr link"=enrichrCalls)
+                       "# of posMarkers"=lengths(genesPerCluster),
+                       "Enrichr link"=enrichrCalls)
 if (!is.null(enrichRout) && length(enrichRout) > 0){
   enrichRTerm <- as.data.frame(do.call(rbind, lapply(enrichRout, as.vector)))
   enrichRTerm <- map_df(enrichRTerm, ~ map_df(.x, ~ replace(.x, is.null(.x), NA)), .id = "database")
@@ -551,8 +543,8 @@ if (!is.null(enrichRout) && length(enrichRout) > 0){
 }
 
 kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment")) %>%
-kable_styling("striped", full_width = F, position = "left")
+      caption=paste0("GeneSet enrichment")) %>%
+  kable_styling("striped", full_width = F, position = "left")
 ```
 
 
@@ -562,21 +554,21 @@ for (cluster in names(enrichRout)) {
   enrichRDataFrame <- as.data.frame(do.call(rbind, enrichRout[[cluster]]))
   enrichRDataFrame$database <- sapply(rownames(enrichRDataFrame), function(x) str_split(x, "[.]")[[1]][1])
   print(ggplot(as.data.table(enrichRDataFrame), aes(database, Term))
-  +
-    geom_point(aes(color = OverlapGenesN, size = Combined.Score))
-    +
-    scale_color_viridis()
-    +
-    scale_fill_viridis()
-    +
-    labs(y = "Term", x = "Cluster", title = paste0("Cluster: ", cluster))
-    +
-    theme_bw()
-    +
-    theme(
-      axis.title.x = element_blank(),
-      axis.text.x = element_text(angle = 45, hjust = 1)
-    ))
+        +
+          geom_point(aes(color = OverlapGenesN, size = Combined.Score))
+        +
+          scale_color_viridis()
+        +
+          scale_fill_viridis()
+        +
+          labs(y = "Term", x = "Cluster", title = paste0("Cluster: ", cluster))
+        +
+          theme_bw()
+        +
+          theme(
+            axis.title.x = element_blank(),
+            axis.text.x = element_text(angle = 45, hjust = 1)
+          ))
 }
 ```
 
@@ -604,7 +596,7 @@ for (r in names(singler.results)) {
     Cluster = Idents(scData), 
     SingleR.labels.cluster = singler.cluster.labels, 
     SingleR.labels.single = singler.single.labels)  %>%
-      left_join(as_tibble(scData@reductions$umap@cell.embeddings, rownames="Cells"))
+    left_join(as_tibble(scData@reductions$umap@cell.embeddings, rownames="Cells"))
   
   nrOfLabels_cluster <- length(unique(cellInfo$SingleR.labels.cluster))
   nrOfLabels_single <- length(unique(cellInfo$SingleR.labels.single))
@@ -723,7 +715,7 @@ nPlots = 50
 try({
   AUCell_plotTSNE(tSNE=cellsUmap,
                   cellsAUC=filtered_cells.AUC[head(scoreOrder, nPlots), ],
-                   plots = c("histogram", "binaryAUC"))
+                  plots = c("histogram", "binaryAUC"))
 })
 ```
 
@@ -740,10 +732,10 @@ if('Azimuth.celltype.l2' %in% colnames(scData@meta.data))
   DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap", cols = shared_colors) +
   theme(aspect.ratio = 1)
 if('Azimuth.celltype.l3' %in% colnames(scData@meta.data))
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap", cols = shared_colors) +
+  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap", cols = shared_colors) +
   theme(aspect.ratio = 1)
 if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap", cols = shared_colors) +
+  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap", cols = shared_colors) +
   theme(aspect.ratio = 1)
 ```
 
@@ -769,10 +761,10 @@ if(azimuth_available && !is.null(azimuth_results)){
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
     print(DimPlot(scData_az, group.by = "final_level_labels", label = TRUE, repel = TRUE, 
                   reduction = reduction_to_use, cols = shared_colors) + 
-          ggtitle("Azimuth Pan-Human: Final Level Labels") + 
-          theme(legend.position = "right") +
-          guides(color = guide_legend(override.aes = list(size = 3), ncol = 2)) +
-          coord_fixed())
+            ggtitle("Azimuth Pan-Human: Final Level Labels") + 
+            theme(legend.position = "right") +
+            guides(color = guide_legend(override.aes = list(size = 3), ncol = 2)) +
+            coord_fixed())
     cat("\n\n")
   }
   
@@ -782,10 +774,10 @@ if(azimuth_available && !is.null(azimuth_results)){
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
     print(DimPlot(scData_az, group.by = "azimuth_broad", label = TRUE, repel = TRUE, 
                   reduction = reduction_to_use, cols = shared_colors) + 
-          ggtitle("Azimuth Pan-Human: Broad Level Labels") +
-          theme(legend.position = "right") +
-          guides(color = guide_legend(override.aes = list(size = 3), ncol = 2)) +
-          coord_fixed())
+            ggtitle("Azimuth Pan-Human: Broad Level Labels") +
+            theme(legend.position = "right") +
+            guides(color = guide_legend(override.aes = list(size = 3), ncol = 2)) +
+            coord_fixed())
     cat("\n\n")
   }
   
@@ -795,10 +787,10 @@ if(azimuth_available && !is.null(azimuth_results)){
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
     print(DimPlot(scData_az, group.by = "azimuth_medium", label = TRUE, repel = TRUE, 
                   reduction = reduction_to_use, cols = shared_colors) + 
-          ggtitle("Azimuth Pan-Human: Medium Level Labels") +
-          theme(legend.position = "right") +
-          guides(color = guide_legend(override.aes = list(size = 3), ncol = 2)) +
-          coord_fixed())
+            ggtitle("Azimuth Pan-Human: Medium Level Labels") +
+            theme(legend.position = "right") +
+            guides(color = guide_legend(override.aes = list(size = 3), ncol = 2)) +
+            coord_fixed())
     cat("\n\n")
   }
   
@@ -808,10 +800,10 @@ if(azimuth_available && !is.null(azimuth_results)){
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
     print(DimPlot(scData_az, group.by = "azimuth_fine", label = TRUE, repel = TRUE, 
                   reduction = reduction_to_use, cols = shared_colors) + 
-          ggtitle("Azimuth Pan-Human: Fine Level Labels") +
-          theme(legend.position = "right") +
-          guides(color = guide_legend(override.aes = list(size = 3), ncol = 2)) +
-          coord_fixed())
+            ggtitle("Azimuth Pan-Human: Fine Level Labels") +
+            theme(legend.position = "right") +
+            guides(color = guide_legend(override.aes = list(size = 3), ncol = 2)) +
+            coord_fixed())
     cat("\n\n")
   }
   
@@ -821,9 +813,9 @@ if(azimuth_available && !is.null(azimuth_results)){
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
     print(FeaturePlot(scData_az, features = "final_level_softmax_prob", 
                       reduction = reduction_to_use) + 
-          ggtitle("Azimuth Pan-Human: Confidence Scores") +
-          scale_colour_viridis_c() +
-          coord_fixed())
+            ggtitle("Azimuth Pan-Human: Confidence Scores") +
+            scale_colour_viridis_c() +
+            coord_fixed())
     cat("\n\n")
   }
   
@@ -856,14 +848,14 @@ d = datasets()
 c = collections()
 dataset_version_id_URL <- gsub("\\.rds$", "", basename(param$cellxgeneUrl))
 collection_id_URL <- as.character(d |> filter(dataset_version_id == dataset_version_id_URL) |> 
-    select(collection_id))
+                                    select(collection_id))
 DOI <- c |> filter(collection_id == collection_id_URL) |> select(doi)
 # print("The DOI of this dataset is:")
 # print(paste0("https://doi.org/", DOI))
 
 ## dimplot of prediction.id.cellxgene.authorlabel
 p1 <- DimPlot(scData, label = TRUE, repel = TRUE, group.by = 'predicted.id.cellxgene.authorlabel', cols = shared_colors) + 
-        ggtitle(paste(sample_name, "- CellxGene - Predicted ID"))
+  ggtitle(paste(sample_name, "- CellxGene - Predicted ID"))
 
 ## plots of mapping score
 p2 <- FeaturePlot(scData,features = "prediction.score.max", cols = c("lightgrey", "dodgerblue"), pt.size = 1, max.cutoff = 'q97', order = T )+ggtitle(paste(sample_name, "- mapping score"))
@@ -908,9 +900,9 @@ if(sctype_available && !is.null(sctype_results)){
     cat("#### scType Cell Type Classification\n\n")
     print(DimPlot(scData_sc, reduction = "umap", label = TRUE, repel = TRUE, 
                   group.by = 'sctype_classification', cols = shared_colors) +
-          ggtitle(paste("scType Cell Type Annotation -", sctype_results$tissue_type)) +
-          theme(legend.position = "right") +
-          coord_fixed())
+            ggtitle(paste("scType Cell Type Annotation -", sctype_results$tissue_type)) +
+            theme(legend.position = "right") +
+            coord_fixed())
     cat("\n\n")
   }
   
@@ -933,8 +925,6 @@ production-ready plots and figures. You can also use this app to explore your ow
 [scData.qs2](scData.qs2) -- final seurat object in [qs2 format](https://github.com/qsbase/qs2)
 
 `r if(sctype_available) "[scType_results.xlsx](scType_results.xlsx) -- scType cell type annotation results"`
-
-
 
 ### SessionInfo
 ```{r report parameters, echo=FALSE}
