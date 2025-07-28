@@ -81,39 +81,39 @@ getSampleSheet <- function(input, param){
   if(any(groups == "") || any(is.na(groups)))
     stop("No conditions detected. Please add them in the dataset before calling NfCoreAtacSeqApp.")
   
-  # ## OUR TESTING SUGGESTS: the nf-core pipeline accepts only one grouping variable
-  # ## that grouping variable can encode multiple factors, those factors are obtained by splitting by "_";
-  # 
-  # if(any(str_detect(groups, "[^a-zA-Z0-9]"))){
-  #   separator <- table(unlist(str_extract_all(groups, "[^a-zA-Z0-9]"))) |> which.max() |> names()
-  #   ngroups <- ncol(str_split(groups, separator, simplify = T))
-  #   if(ngroups >2)
-  #     stop('Values in the Condition column cannot be splitted in two groups for pairwise comparison. Please use a proper separator.')
-  # }
-  
+
   oDir <- '.' ## param[['resultDir']]
   #if(!dir.exists(oDir)) dir.create(path = oDir)
 
   csvPath <- file.path(oDir, 'dataset.csv')
   
 
+  ## TODO: does not yet support comma-separated file paths
+  nfSampleInfo <- ezFrame(
+    sample = input$getColumn(param$grouping),
+    fastq_1 = input$getFullPaths("Read1"),
+    fastq_2 = input$getFullPaths("Read2"),
+    replicate = ezReplicateNumber(input$getColumn(param$grouping)),
+    sid = input$getNames()
+  )
+  write_csv(nfSampleInfo, csvPath)
   
-  input$meta |> 
-    arrange(`Condition [Factor]`, `Read1 [File]`, `Read2 [File]`) |>
-    rownames_to_column(var = 'SampleID [Factor]') |>
-    group_by(`Condition [Factor]`) |>
-    mutate(`Replicate [Factor]` = row_number()) |>
-    ungroup() |>
-    select('Condition [Factor]', 'Read1 [File]', 'Read2 [File]', 'Replicate [Factor]', 'SampleID [Factor]') |>
-    ## the first 4 columns of the header must be: sample,fastq_1,fastq_2,replicate
-    rename(sample    = 'Condition [Factor]', 
-           fastq_1   = 'Read1 [File]', 
-           fastq_2   = 'Read2 [File]', 
-           replicate = 'Replicate [Factor]',
-           sid       = 'SampleID [Factor]') |>
-    mutate(fastq_1 = replace(fastq_1, sid %in% names(input$getFullPaths('Read1')), input$getFullPaths('Read1')[sid]),
-           fastq_2 = replace(fastq_2, sid %in% names(input$getFullPaths('Read2')), input$getFullPaths('Read2')[sid])) |>
-    write_csv(csvPath)
+  # input$meta |> 
+  #   arrange(`Condition [Factor]`, `Read1 [File]`, `Read2 [File]`) |>
+  #   rownames_to_column(var = 'SampleID [Factor]') |>
+  #   group_by(`Condition [Factor]`) |>
+  #   mutate(`Replicate [Factor]` = row_number()) |>
+  #   ungroup() |>
+  #   select('Condition [Factor]', 'Read1 [File]', 'Read2 [File]', 'Replicate [Factor]', 'SampleID [Factor]') |>
+  #   ## the first 4 columns of the header must be: sample,fastq_1,fastq_2,replicate
+  #   rename(sample    = 'Condition [Factor]', 
+  #          fastq_1   = 'Read1 [File]', 
+  #          fastq_2   = 'Read2 [File]', 
+  #          replicate = 'Replicate [Factor]',
+  #          sid       = 'SampleID [Factor]') |>
+  #   mutate(fastq_1 = replace(fastq_1, sid %in% names(input$getFullPaths('Read1')), input$getFullPaths('Read1')[sid]),
+  #          fastq_2 = replace(fastq_2, sid %in% names(input$getFullPaths('Read2')), input$getFullPaths('Read2')[sid])) |>
+  #   write_csv(csvPath)
     return(csvPath)
 }
 
