@@ -113,7 +113,7 @@ runVelocytoBD <- function(input, output, param){
   barcodesFile <- "barcodes.tsv"
   ezSystem(paste("zcat", file.path(input$getFullPaths("CountMatrix"), "barcodes.tsv.gz"), ">", barcodesFile))
   cmd <- paste(". /usr/local/ngseq/miniforge3/etc/profile.d/conda.sh",
-               "&& conda activate gi_velocyto;",
+               "&& conda activate gi_velocyto",
                "&& velocyto run",
                "-b", barcodesFile, 
                "-e", input$getNames(),
