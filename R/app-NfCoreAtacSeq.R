@@ -114,12 +114,12 @@ getData <- function(output, param){
   dds <- readRDS(paste0(nfCoreOutDir, '/deseq2/consensus_peaks.mRp.clN.rds'))
   
   featureCounts <- vroom::vroom(paste0(nfCoreOutDir, '/consensus_peaks.mRp.clN.featureCounts.txt'), 
-                                delim="\t", skip = 1, col_types = cols())
+                                delim="\t", comment="#", col_types = cols())
   
   peakAnno <- vroom::vroom(paste0(nfCoreOutDir, '/consensus_peaks.mRp.clN.annotatePeaks.txt'), delim="\t", col_types = cols()) |> 
     rename(c("PeakID"=1))
   
-  rowData(dds) <- featureCounts[,1:5]
+  rowData(dds) <- featureCounts[, c("Chr", "Start", "End", "Strand", "Length")]
   dsgn <- data.frame(Condition = factor(paste(colData(dds)$Group1, colData(dds)$Group2, sep = "_")))
   rownames(dsgn) <- rownames(colData(dds))
   dds$Condition <- dsgn$Condition
