@@ -34,10 +34,11 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
   
   if (("SCDataOrigin" %in% input$colNames) && 
       input$getColumn("SCDataOrigin") == 'BDRhapsody'){
-    runVelocytoBD(input, output, param) %>% 
-      return()
+    result <- runVelocytoBD(input, output, param) 
+    return(result)
   }
   
+  ###########
   ## assuming 10X
   gtfFile <- param$ezRef["refFeatureFile"]
   sampleName <- input$getNames()
@@ -62,18 +63,14 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
     system(sprintf('mv * %s', file.path(cwd, sampleDir, "outs")))
     setwd(cwd)
   }
-  if (("SCDataOrigin" %in% input$colNames) && 
-      input$getColumn("SCDataOrigin") == 'BDRhapsody') {
-    
-  }
-  
+
   # Activate conda environment and run velocyto
   conda_activate <- paste("source", "/usr/local/ngseq/miniforge3/etc/profile.d/conda.sh", "&&", "conda activate gi_velocyto", "&&")
   cmd <- paste("bash -c \"", conda_activate, 'velocyto run10x', sampleDir, gtfFile, '-@', param$cores, "\"")
   ezSystem(cmd)
   file.copy(file.path(sampleName, 'velocyto', paste0(sampleName,'.loom')), '.')
   ezSystem(paste('rm -Rf ', sampleName))
-  return('success')
+  return('Success')
 }
 
 
@@ -123,5 +120,5 @@ runVelocytoBD <- function(input, output, param){
                
                '--samtools-threads', param$cores, localBamFile, gtfFile)
   ezSystem(cmd)
-  return('success')
+  return('Success')
 }
