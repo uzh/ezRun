@@ -437,6 +437,11 @@ cleanForFreeDiskSpace <- function(param){
     return(TRUE)
   }
   
+  if (Sys.getenv("SLURM_JOB_ID") == ""){
+    message("not a SLURM job. No cleaning")
+    return(TRUE)
+  }
+  
   if (getGigabyteFree(".") > param$scratch){
     return(TRUE)
   }
