@@ -62,7 +62,7 @@ EzAppSpatialSeuratHD <-
                                         nreads = ezFrame(
                                             Type = "numeric",
                                             DefaultValue = Inf,
-                                            Description = "Low quality cells have less than \"nreads\" reads. Only when applying fixed thresholds."
+                                            Description = "Low quality cells have less than \"nUMI\" reads. Only when applying fixed thresholds."
                                         ),
                                         ngenes = ezFrame(
                                             Type = "numeric",
