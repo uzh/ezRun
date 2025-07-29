@@ -29,15 +29,6 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
   rownames(dataset2) <- NULL
   dataset2 <- dataset2[,c('Name', colnames(dataset2)[1:(length(colnames(dataset2))-1)])]
   
-  #Find Factor columns and replace NA with '':
-  #factorColPositions <- grep('\\[Factor\\]$', colnames(dataset2))
-  #if(length(factorColPositions) > 0){
-  #    for (i in 1:length(factorColPositions)){
-  #        if(all(is.na(dataset2[,factorColPositions[i]]))){
-  #            dataset2[,factorColPositions[i]] = ''
-  #        }
-  #    }
-  #}
   #Remove almost empty dataFiles:
   dataset1 = dataset1[dataset1[['Read Count']] >= param$minReadCount,]
   dataset2 = dataset2[dataset2[['Read Count']] >= param$minReadCount,]
