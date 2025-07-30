@@ -51,6 +51,10 @@ seqAnno <- data.frame(rowData(se),
 )
 
 dataset <- data.frame(colData(se), check.names = FALSE)
+if(length(unique(dataset$featureLevel))==1L & unique(dataset$featureLevel)=='smRNA'){
+      param$runGO <- FALSE
+}
+
 design <- ezDesignFromDataset(dataset, param)
 
 ## In some cases, such as p2710, there are millions of features, then we have to adjust some analyses below.
@@ -588,7 +592,7 @@ if (!doEnrichr(param)) {
 
 ## Overrepresentation Analysis (ORA) {.tabset}
 
-```{r prepare ora plots, echo=FALSE, message=FALSE, eval=!debug}
+```{r prepare ora plots, echo=FALSE, message=FALSE, eval=!debug & isTRUE(param$runGO)}
 enrichResultPlots <- list()
 if (isTRUE(param$runGO)) {
   for (onto in names(enrichResult)) {
@@ -681,8 +685,7 @@ Cut Offs:
 
 *** 
 
-```{r ora overview, echo=F, message=F, eval=!debug, results='asis'}
-if (isTRUE(param$runGO)) {
+```{r ora overview, echo=F, message=F, eval=!debug & isTRUE(param$runGO), results='asis'}
   ora.overview = ezFrame("Number of Significant Terms"=numeric())
   for (goDomain in names(enrichResult)){
     for (resName in names(enrichResult[[goDomain]])){
@@ -707,11 +710,9 @@ if (isTRUE(param$runGO)) {
   if(exists(oraFile))
     cat(paste0("[Download Excel file of complete ORA results](", oraFile, ")"))
   cat("\n\n")
-}
 ```
 
-```{r tabs with ora plots, results='asis', echo = FALSE, fig.height=8, fig.width=8, fig.align = "left"}
-if (isTRUE(param$runGO)) {
+```{r tabs with ora plots, results='asis', echo = FALSE, eval = isTRUE(param$runGO), fig.height=8, fig.width=8, fig.align = "left"}
   for (onto in names(enrichResult)) {
     cat("###", onto, "{.tabset}", "\n")
     for (sig in names(enrichResult[[onto]])) {
@@ -735,14 +736,12 @@ if (isTRUE(param$runGO)) {
       }
     }
   }
-}
 ```
 
 ## Gene set enrichment analysis {.tabset}
 
-```{r prepare gsea plots, echo=FALSE, message=FALSE, eval=!debug}
+```{r prepare gsea plots, echo=FALSE, message=FALSE, eval=!debug & isTRUE(param$runGO)}
 enrichResultGSEAPlots <- list()
-if (isTRUE(param$runGO)) {
   for (onto in names(enrichResultGSEA)) {
     enrichResultGSEAPlots[[onto]] <- list()
     if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
@@ -824,7 +823,6 @@ if (isTRUE(param$runGO)) {
   if (length(gseaList) >= 1) {
     openxlsx::write.xlsx(gseaList, file = gseaFile)
   }
-}
 ```
 
 ### Overview 
@@ -842,8 +840,7 @@ Gene Ranking:
 
 ***
 
-```{r gsea overview, echo=F, message=F, eval=!debug, results = 'asis'}
-if (isTRUE(param$runGO)) {
+```{r gsea overview, echo=F, message=F, eval=!debug & isTRUE(param$runGO), results = 'asis'}
   gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
   for (i in 1:length(names(enrichResultGSEA))){
     testName = paste(names(enrichResultGSEA)[i])
@@ -863,11 +860,9 @@ if (isTRUE(param$runGO)) {
   if(exists(gseaFile))
     cat(paste0("[Download Excel file of complete GSEA results](", gseaFile, ")"))
   cat("\n\n")
-}
 ```
 
-```{r tabs with gsea plots, results='asis', echo = FALSE, fig.height=8, fig.width=8}
-if (isTRUE(param$runGO)) {
+```{r tabs with gsea plots, results='asis', echo = FALSE, eval = isTRUE(param$runGO), fig.height=8, fig.width=8}
   for (onto in names(enrichResultGSEA)) {
     cat("###", onto, "{.tabset}", "\n")
     if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
@@ -888,114 +883,7 @@ if (isTRUE(param$runGO)) {
       cat("\n\n")
     }
   }
-}
 ```
-
-## MetaCore 
-```{r metacore annotate, echo=FALSE, message=FALSE, error=TRUE}
-# If the reference gene annotation file on /srv/GT/reference does not contain ENTREZ IDs
-# then download them from AnnotationHub and write to disk 
-geneAnno <- read_tsv(file.path("/srv/GT/reference", param$refBuild, "Genes/genes_annotation_byGene.txt"))
-if (!"entrez_id" %in% colnames(geneAnno)) {
-  require(AnnotationHub)
-  ah <- AnnotationHub()
-  ref <- param$refBuild %>% sub("\\/.*", "",.) %>% gsub("_", " ", .)
-  if ((ref %in% unique(ah$species)) | is.na(ref)) {
-    ref.orgdb <- query(ah, c("OrgDb", ref))[[1]]
-    if ("SYMBOL" %in% keytypes(ref.orgdb)) {
-      orgSymbols <- keys(ref.orgdb, keytype = "SYMBOL")
-      egr <- AnnotationDbi::select(ref.orgdb, keys = orgSymbols, "ENTREZID", "SYMBOL")
-      colnames(egr) <- c("gene_name", "entrez_id")
-    } else if ("GENENAME" %in% keytypes(ref.orgdb)) {
-      orgSymbols <- keys(ref.orgdb, keytype = "GENENAME")
-      egr <- AnnotationDbi::select(ref.orgdb, keys = orgSymbols, "ENTREZID", "GENENAME")
-      colnames(egr) <- c("gene_name", "entrez_id")
-    }
-  }
-  geneAnno <- left_join(geneAnno, egr)
-  geneAnno$entrez_id <- as.character(geneAnno$entrez_id)
-  geneAnno <- geneAnno[!duplicated(geneAnno$gene_id), ]
-  write_tsv(geneAnno, file.path("/srv/GT/reference", param$refBuild, "Genes/genes_annotation_byGene.txt"))
-} else {
-  geneAnno$entrez_id <- as.character(geneAnno$entrez_id)
-}
-```
-
-```{r metacore prepare, echo=FALSE, message=FALSE, error=TRUE}
-resultMetaCore <- resultLoaded %>%
-  filter(isPresent, pValue <= param$pValThreshGO) %>%
-  dplyr::left_join(geneAnno[,c("gene_id","entrez_id")]) %>%
-  dplyr::select(gene_id, entrez_id, "log2 Ratio", pValue)
-```
-
-```{r metacore export, echo=FALSE, message=FALSE, error=TRUE}
-metacoreFile <- str_c("MetaCore--", param$comparison, ".txt")
-if (exists("resultMetaCore")){
-  ezWrite.table(resultMetaCore, file = metacoreFile, row.names = FALSE)
-}
-```
-
-### Metacore
-Metacore is a commercial software that performs gene-set based analysis using a manually curated, proprietary database. It takes as input a subset of genes passing certain p-value/fold-change thresholds (i.e., differentially expressed genes). **It is recommended for the analysis of human, mouse, and rat data. It is best used to gain drug/disease-related information and comprehensive pathway map figures.** 
-
-#### Registration
-Using MetaCore requires an account. One can be obtained by emailing <sequencing@fgcz.ethz.ch>.
-
-***
-### How to use Metacore: quick start
-
-1. [Right Click and Save File to Download Expression File for MetaCore](`r metacoreFile`) (`r paste("p <=", param$pValThreshGO)`)
-
-2. [Go to the MetaCore website](https://portal.genego.com)
-
-3. Upload the Expression File to MetaCore, selecting three columns: Gene ID, log ratio, and p-value 
-
-4. Select `Pathway Maps` from the `One-click Analysis` tab. 
-
-### Important notes
-When uploading the data into MetaCore, select three columns:
-
-* A gene identifier, pick **one** of:
-+ Ensembl Gene IDs -- `ENSEMBL IDs` 
-+ Entrez Gene IDs -- `EntrezGene (LocusLink) IDs`
-
-* Log fold changes of the genes -- `log ratio` 
-
-* *P* values
-
-You must ensure that the data type drop-down menu above each column is correct. 
-
-Select `---ignore---` from the drop down for all other columns in the table that are not to be used.
-
-Please refer to the [FGCZ Wiki](https://fgcz-intranet.uzh.ch/tiki-index.php?page=users.sw.metacore) for a more comprehensive guide to using MetaCore.
-
-MetaCore has numerous tutorials online, including a useful YouTube page:
-<https://www.youtube.com/watch?v=_J_ViIw9wIM&list=PL2tDZtDsVy5xqUibWp-mfl9xuZP4Bhi-v&index=2>
-
-### MetaCore Compatibility 
-MetaCore currently has full pathway support for three core species: **Human**; **mouse**, and; **rat**. Additionally, it can use Entrez IDs as orthologs to analyse a series of non-core species:
-
-- Cow
-- Chimpanzee
-- Dog
-- Zebra fish
-- Chicken
-- Fly
-- Mosquito 
-- Worm
-- Arabidopsis
-- Rice
-- Blast of rice (fungal species)
-- Macaca mulatta
-- Mold
-- Bread mold
-- Candida sphaerica
-- Fission yeast
-- Baker's yeast
-
-
-
-
 
 ## Technical bias
 We define 4 gene sets 

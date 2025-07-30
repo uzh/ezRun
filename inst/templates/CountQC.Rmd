@@ -737,7 +737,7 @@ if(length(qcScatterFiles) > 0){
 
 Based on top 500 genes per sample selected by TPM and filtered for known housekeeping genes reported in the [HRT atlas](https://housekeeping.unicamp.br/homePageGlobal.html).
 
-```{r markers, echo=FALSE, results='asis', warning=FALSE}
+```{r markers, echo=FALSE, results='asis',eval=unique(dataset$featureLevel)!='smRNA', warning=FALSE}
 ## select top genes for enrichR
 maxGenes <- 500
 dat <- tpm[, 3:ncol(tpm)]
