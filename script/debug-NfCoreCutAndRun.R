@@ -1,6 +1,6 @@
 #detach("package:ezRun", unload=TRUE)
 
-library(ezRun, lib.loc = "/home/marconotaro/R/x86_64-pc-linux-gnu-library/4.4/")
+library(ezRun, lib.loc = "/home/marconotaro/R/x86_64-pc-linux-gnu-library/4.5/")
 EZ_GLOBAL_VARIABLES <<- '/usr/local/ngseq/opt/EZ_GLOBAL_VARIABLES.txt'
 source(EZ_GLOBAL_VARIABLES)
 
@@ -12,7 +12,7 @@ library(pheatmap)
 library(RColorBrewer)
 library(dplyr)
 
-setwdNew('/scratch/test-nfcore/cutandrun')
+setwdNew('/scratch/mnotaro/test-nfcore/cutandrun')
 
 param = list()
 param[['cores']] = '8'
@@ -29,10 +29,12 @@ param[['peakCaller']] = 'macs2' ## can be seacr, macs2
 param[['spikeinGenome']] = 'K12-MG1655' ## spike-in genome, defaulting to E. coli K12-MG1655 (def), for yeast set to R64-1-1, for fruit fly BDGP6
 param[['normalization']] = 'Spikein' ## "spikein" (def), "RPKM", "CPM", "BPM", "None" 
 param[['name']] <- 'NfCoreCutAndRun'
+param[['grouping']] = 'Condition'
+param[['control']] = 'Control'
 
 ## move to ruby
 buildName = 'GRCm39' ## param$ezRef@refBuildName
-blackPath = '/scratch/test-nfcore/.nextflow/assets/nf-core/cutandrun/assets/blacklists/' ## move to a global path
+blackPath = '/scratch/mnotaro/test-nfcore/.nextflow/assets/nf-core/cutandrun/assets/blacklists/' ## move to a global path
 param[['blacklist']] <- case_when(
   buildName == 'GRCm39' ~ paste0(blackPath, buildName, '-blacklist.bed'),
   buildName == 'GRCm38' ~ paste0(blackPath, buildName, '-blacklist.bed'),

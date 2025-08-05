@@ -7,10 +7,13 @@
 
 
 ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
-  sampleDataset = getSampleSheet(input, param)
+  sampleDataset = getCutAndRunSampleSheet(input, param)
   refbuild = param$refBuild
   outFolder = paste0(param$name, '_results')
   
+  fullGenomeSize <- fullGenomeSize <- param$ezRef@refFastaFile %>% Rsamtools::FaFile() %>% GenomeInfoDb::seqlengths() %>% sum()
+  effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
+
   cmd = paste(
     "nextflow run nf-core/cutandrun",
      ## i/o
@@ -25,7 +28,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
     if (param[['blacklist']] == "")  "" else paste0("--blacklist ", param[['blacklist']]),
     ## parameters
     "--dt_calc_all_matrix false",
-    "--macs_gsize", getGenomeSize(param),
+    "--macs_gsize", effectiveGenomeSize,
     "--peakcaller", param[['peakCaller']],
     "--spikein_genome", param[['spikeinGenome']],
     "--normalisation_mode", param[['normalization']],
@@ -61,35 +64,37 @@ EzAppNfCoreCutAndRun <- setRefClass(
 )
 
 ##' @description get an nf-core/cutandrun-formatted csv file
-getSampleSheet <- function(input, param){
-  oDir <- '.'
-  csvPath <- file.path(oDir, 'dataset.csv')
+getCutAndRunSampleSheet <- function(input, param){
+  csvPath <- file.path('./dataset.csv')
   
-  input$meta |> 
-    arrange(`Condition [Factor]`, `Read1 [File]`, `Read2 [File]`) |>
-    rownames_to_column(var = 'SampleID [Factor]') |>
-    group_by(`Condition [Factor]`) |>
-    mutate(`Replicate [Factor]` = row_number()) |>
-    ungroup() |>
-    select('Condition [Factor]', 'Replicate [Factor]', 'Read1 [File]', 'Read2 [File]', 'Control [Factor]', 'SampleID [Factor]') |>
-    ## header must have the following columns and in this order: group, replicate, fastq_1, fastq_2, control
-    rename(group     = 'Condition [Factor]', 
-           replicate = 'Replicate [Factor]',
-           fastq_1   = 'Read1 [File]',
-           fastq_2   = 'Read2 [File]', 
-           control   = 'Control [Factor]',
-           sid       = 'SampleID [Factor]') |>
-    mutate(fastq_1 = replace(fastq_1, sid %in% names(input$getFullPaths('Read1')), input$getFullPaths('Read1')[sid]),
-           fastq_2 = replace(fastq_2, sid %in% names(input$getFullPaths('Read2')), input$getFullPaths('Read2')[sid])) |>
-    select(-sid) |> ## max 5 columns allowed ...
-    write_csv(csvPath)
-    return(csvPath)
-}
+  ## TODO: does not yet support comma-separated file paths
+  nfSampleInfo <- ezFrame(
+    group = input$getColumn(param$grouping),
+    replicate = ezReplicateNumber(input$getColumn(param$grouping)),
+    fastq_1 = input$getFullPaths("Read1"),
+    fastq_2 = input$getFullPaths("Read2"),
+    control = input$getColumn(param$control)
+  )
+  write_csv(nfSampleInfo, csvPath)
 
-##' @description estimate genome size
-getGenomeSize <- function(param){
-  fastaFile <- param$ezRef@refFastaFile
-  gsize <- sum(as.numeric(fasta.seqlengths(fastaFile)))
-  gsize <- round(gsize * 0.8)
-  return(gsize)
+  # input$meta |>
+  #   arrange(`Condition [Factor]`, `Read1 [File]`, `Read2 [File]`) |>
+  #   rownames_to_column(var = 'SampleID [Factor]') |>
+  #   group_by(`Condition [Factor]`) |>
+  #   mutate(`Replicate [Factor]` = row_number()) |>
+  #   ungroup() |>
+  #   select('Condition [Factor]', 'Replicate [Factor]', 'Read1 [File]', 'Read2 [File]', 'Control [Factor]', 'SampleID [Factor]') |>
+  #   ## header must have the following columns and in this order: group, replicate, fastq_1, fastq_2, control
+  #   rename(group     = 'Condition [Factor]',
+  #          replicate = 'Replicate [Factor]',
+  #          fastq_1   = 'Read1 [File]',
+  #          fastq_2   = 'Read2 [File]',
+  #          control   = 'Control [Factor]',
+  #          sid       = 'SampleID [Factor]') |>
+  #   mutate(fastq_1 = replace(fastq_1, sid %in% names(input$getFullPaths('Read1')), input$getFullPaths('Read1')[sid]),
+  #          fastq_2 = replace(fastq_2, sid %in% names(input$getFullPaths('Read2')), input$getFullPaths('Read2')[sid])) |>
+  #   select(-sid) |> ## max 5 columns allowed ...
+  #   write_csv(csvPath)
+
+  return(csvPath)
 }
