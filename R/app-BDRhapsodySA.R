@@ -67,11 +67,11 @@ makeBdYmlFile <- function(input, param, bdRef) {
   # define read file locations and general parameters
   bdParams <- list(
     "cwl:tools"="Rhapsody",
-    "Reads"=list(
-      list("class"="File",
-           "location"=input$getFullPaths("Read1")),
-      list("class"="File",
-           "location"=input$getFullPaths("Read2"))
+    "Reads" = c(
+      lapply(input$getFullPathsList("Read1")[[1]], 
+             function(x) list("class" = "File", "location" = x)),
+      lapply(input$getFullPathsList("Read2")[[1]], 
+             function(x) list("class" = "File", "location" = x))
     ),
     "Enable_Refined_Cell_Call"=param$enableRefinedPutativeCellCalling,
     "Generate_Bam"=param$generateBamOutput,
