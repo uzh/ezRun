@@ -7,12 +7,13 @@
 
 
 ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
-  sampleDataset = getSampleSheet(input, param)
+  sampleDataset = getAtacSampleSheet(input, param)
   refbuild = param$refBuild
   outFolder = paste0(param$name, '_results')
   
-  fullGenomeSize <- param$ezRef@refFastaFile %>% GenomeInfoDb::seqlengths() %>% as.numeric() %>% sum()
+  fullGenomeSize <- param$ezRef@refFastaFile %>% Rsamtools::FaFile() %>% GenomeInfoDb::seqlengths() %>% sum()
   effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
+
   cmd = paste(
     "nextflow run nf-core/atacseq",
      ## i/o
@@ -31,7 +32,8 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     ## configuration
     "-work-dir nfatacseq_work",
     "-profile apptainer",
-    "-r 2.1.2"
+    "-r 2.1.2" #,
+    # "-resume"  ## for testing
   )
 
   ezSystem(cmd)
@@ -39,10 +41,11 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   if(param[['runTwoGroupAnalysis']]){
     library(DESeq2)
     nfCoreOutDir <- paste0(param$name, '_results', '/bwa/merged_replicate/macs2/', param$peakStyle, '_peak/consensus')
-    peakAnno <- vroom::vroom(paste0(nfCoreOutDir, '/consensus_peaks.mRp.clN.annotatePeaks.txt'), delim="\t", col_types = cols()) |> 
+    peakAnno <- vroom::vroom(paste0(nfCoreOutDir, '/consensus_peaks.mRp.clN.annotatePeaks.txt'), delim="\t", col_types = cols()) %>%
       rename(c("PeakID"=1))
     
-    dds <- getDdsFromConcensusPeaks(output, param)
+    grouping <- input$getColumn(param$grouping)
+    dds <- getDdsFromConcensusPeaks(output, param, grouping)
     outDir <- file.path(basename(output$getColumn('Result')), 'diffpeak_analysis')
     if(!dir.exists(outDir)) dir.create(outDir, recursive = TRUE)
     setwdNew(outDir)
@@ -50,7 +53,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     makeRmdReport(
       output = output, param = param, peakAnno=peakAnno, dds=dds, selfContained = TRUE,
       rmdFile = "DiffPeak.Rmd", htmlFile = "DifferentialPeakAnalysisReport.html",
-      reportTitle = 'Differential Peak Analysis'
+      reportTitle = 'Differential Peak Analysis', use.qs2 = TRUE
     )
   }
   return("Success")
@@ -76,17 +79,15 @@ EzAppNfCoreAtacSeq <- setRefClass(
 )
 
 ##' @description get an nf-core/atacseq-formatted csv file
-getSampleSheet <- function(input, param){
+getAtacSampleSheet <- function(input, param){
   groups <- input$getColumn(param$grouping)
   if(any(groups == "") || any(is.na(groups)))
     stop("No conditions detected. Please add them in the dataset before calling NfCoreAtacSeqApp.")
-  
 
-  oDir <- '.' ## param[['resultDir']]
+  # oDir <- '.' ## param[['resultDir']]
   #if(!dir.exists(oDir)) dir.create(path = oDir)
 
-  csvPath <- file.path(oDir, 'dataset.csv')
-  
+  csvPath <- file.path('dataset.csv')
 
   ## TODO: does not yet support comma-separated file paths
   nfSampleInfo <- ezFrame(
@@ -114,20 +115,25 @@ getSampleSheet <- function(input, param){
   #   mutate(fastq_1 = replace(fastq_1, sid %in% names(input$getFullPaths('Read1')), input$getFullPaths('Read1')[sid]),
   #          fastq_2 = replace(fastq_2, sid %in% names(input$getFullPaths('Read2')), input$getFullPaths('Read2')[sid])) |>
   #   write_csv(csvPath)
-    return(csvPath)
+
+  return(csvPath)
 }
 
 getDdsFromConcensusPeaks <- function(output, param, grouping){
-  nfCoreOutDir <- paste0(param$name, '_results', '/bwa/merged_replicate/macs2/', param$peakStyle, '_peak/consensus')
+  nfCoreOutDir <- paste0(param$name, '_results', '/bwa/merged_replicate/macs2/', 
+                         param$peakStyle, '_peak/consensus')
   
   dds <- readRDS(paste0(nfCoreOutDir, '/deseq2/consensus_peaks.mRp.clN.rds'))
   
   featureCounts <- vroom::vroom(paste0(nfCoreOutDir, '/consensus_peaks.mRp.clN.featureCounts.txt'), 
                                 delim="\t", comment="#", col_types = cols())
   
-  
   rowData(dds) <- featureCounts[, c("Chr", "Start", "End", "Strand", "Length")]
-  dds$Condition <- grouping
+  ## samples and grouping must be in the same order
+  samples <- colData(dds)$sample %>% str_remove(., '_REP\\d+')
+  grouping <- grouping[match(samples, grouping)]
+  dds$Condition <- grouping %>% as.factor()
   design(dds) <- ~ Condition
+
   return(dds)  
 }
