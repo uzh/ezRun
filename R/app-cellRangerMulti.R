@@ -254,7 +254,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents, sprintf("reference,%s", featureRefFile))
     fileContents <- append(fileContents, c(""))
   }
-  if (hasMult && !xor(hasFb) && !(isFixed)) {
+  if (hasMult && !(isFixed)) {
     multiplexBarcodeFile <- tempfile(pattern = "multi_barcode_set", tmpdir = ".", fileext = ".csv")
     multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
     fileContents <- append(fileContents, 
@@ -280,7 +280,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$featureName, dirList$featureDirs, "Antibody Capture"))
   }  
-  if (hasMult && !hasFb && !isFixed) {
+  if (hasMult && !isFixed) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$multiplexName, dirList$multiplexDirs, "Multiplexing Capture"))
   }
