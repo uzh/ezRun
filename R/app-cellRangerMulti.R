@@ -142,13 +142,13 @@ prepareFastqData <- function(input, param) {
                                vdjbDirs=dataInfo[["multiDirs"]]))    
   }
   #2.3 Feature Barcoding
-  if ("FeatureBarcoding" %in% libraryTypes) {
+  if ("FeatureBarcoding" %in% libraryTypes || (param$MultiplexingType == "antibody")) {
     dataInfo <- getCellRangerMultiData(input, "FeatureDataDir", sampleName)
     dirList <- c(dirList, list(featureName=dataInfo[["multiName"]],
                                featureDirs=dataInfo[["multiDirs"]]))
   }
   #2.4 Multiplexing
-  if ("Multiplexing" %in% libraryTypes && !("fixedRNA" %in% libraryTypes)) {
+  if ("Multiplexing" %in% libraryTypes && !("fixedRNA" %in% libraryTypes) && param$MultiplexingType != "antibody") {
     dataInfo <- getCellRangerMultiData(input, "MultiDataDir", sampleName)
     dirList <- c(dirList, list(multiplexName=dataInfo[["multiName"]],
                                multiplexDirs=dataInfo[["multiDirs"]]))
@@ -254,11 +254,17 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents, sprintf("reference,%s", featureRefFile))
     fileContents <- append(fileContents, c(""))
   }
-  if (hasMult && !(isFixed)) {
+  if (hasMult) {
     multiplexBarcodeFile <- tempfile(pattern = "multi_barcode_set", tmpdir = ".", fileext = ".csv")
     multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
-    fileContents <- append(fileContents, 
-                           sprintf("cmo-set,%s", multiplexBarcodeFile))
+    if (param$MultiplexingType == "antibody") {
+      fileContents <- append(fileContents, "[feature]")
+      fileContents <- append(fileContents, sprintf("reference,%s", multiplexBarcodeFile))
+    } else if (!isFixed) {
+      fileContents <- append(fileContents, 
+                             sprintf("cmo-set,%s", multiplexBarcodeFile))
+      fileContents <- append(fileContents, c(""))
+    }
     fileContents <- append(fileContents, c(""))
   }
   
@@ -281,8 +287,13 @@ buildMultiConfigFile <- function(input, param, dirList) {
                            sprintf("%s,%s,%s", dirList$featureName, dirList$featureDirs, "Antibody Capture"))
   }  
   if (hasMult && !isFixed) {
-    fileContents <- append(fileContents,
-                           sprintf("%s,%s,%s", dirList$multiplexName, dirList$multiplexDirs, "Multiplexing Capture"))
+    if (param$MultiplexingType == "antibody") {
+      fileContents <- append(fileContents,
+                             sprintf("%s,%s,%s", dirList$featureName, dirList$featureDirs, "Antibody Capture"))
+    } else {
+      fileContents <- append(fileContents,
+                             sprintf("%s,%s,%s", dirList$multiplexName, dirList$multiplexDirs, "Multiplexing Capture"))
+    }
   }
   fileContents <- append(fileContents, "")
   
@@ -290,7 +301,10 @@ buildMultiConfigFile <- function(input, param, dirList) {
   if (hasMult) {
     sampleName <- rownames(input$meta)
     sampleMultiplexFiles <- getSampleMultiplexFiles(input)
-    names(sampleMultiplexFiles) <- paste0('^', sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles)), '$')
+    # we match according to just the beginning ^ and the sample names as a 
+    # prefix, since sometimes parts of the library information are 
+    # as postfixes. This may potentially cause collisions but we risk it
+    names(sampleMultiplexFiles) <- paste0('^', sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles)))
     sampleMultiplexFile <- sampleMultiplexFiles[which(sapply(names(sampleMultiplexFiles), grepl, sampleName))]
     sampleMultiplexMapping <- read_csv(sampleMultiplexFile, show_col_types = FALSE)
     concatCols <- function(y) {return(paste(as.character(y), collapse=","))}
@@ -301,8 +315,11 @@ buildMultiConfigFile <- function(input, param, dirList) {
         filter(id %in% sampleMultiplexMapping$cmo_ids)
       data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
       
-      fileContents <- append(fileContents, c("[samples]", "sample_id,cmo_ids"))
-      
+      if (param$MultiplexingType == "antibody") {
+        fileContents <- append(fileContents, c("[samples]", "sample_id,hashtag_ids"))
+      } else {
+        fileContents <- append(fileContents, c("[samples]", "sample_id,cmo_ids"))
+      }
       fileContents <- append(fileContents, 
                              apply(sampleMultiplexMapping, 1, concatCols))
     } else if("fixedRNA" %in% libraryTypes){
