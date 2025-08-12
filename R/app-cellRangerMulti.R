@@ -10,7 +10,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   
   dirList <- prepareFastqData(input, param)
   sampleDirs <- dirList$sampleDirs
-
+  
   #3. Create the multi configuration file and command
   conf <- buildMultiConfigFile(input, param, dirList)
   configFileName <- conf$configFileName
@@ -50,12 +50,12 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
     futile.logger::flog.info(ezSystem('find . -name "*_alignments.bam*" -type f'))
     ezSystem('find . -name "*_alignments.bam*" -type f -delete')
   } else if(ezIsSpecified(param$secondRef) && param$secondRef!=''){
-      bamFiles <- ezSystem('find . -name "*_alignments.bam" -type f', intern = TRUE)
-      refDir <- param$ezRef["refFastaFile"]
-      for (bamFile in bamFiles){
-          out <- tryCatch(ezSystem(paste('samtools view', '-T', refDir, '-@', param$cores, '-o', sub('.bam$', '.cram', bamFile), '-C', bamFile)), error = function(e) NULL)
-          ezSystem(paste('rm', bamFile))
-      }
+    bamFiles <- ezSystem('find . -name "*_alignments.bam" -type f', intern = TRUE)
+    refDir <- param$ezRef["refFastaFile"]
+    for (bamFile in bamFiles){
+      out <- tryCatch(ezSystem(paste('samtools view', '-T', refDir, '-@', param$cores, '-o', sub('.bam$', '.cram', bamFile), '-C', bamFile)), error = function(e) NULL)
+      ezSystem(paste('rm', bamFile))
+    }
   }
   
   #9. Generate expanded dataset.tsv:
@@ -65,27 +65,27 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   subSampleDirs <- list.dirs(samplePath, recursive = FALSE)
   subSamples <- basename(subSampleDirs)
   expandedDS <- data.frame(Name = subSamples, Species = ds$Species, 
-                                                refBuild = ds$refBuild, refFeatureFile = ds$refFeatureFile, 
-                                                featureLevel = ds$featureLevel, transcriptTypes = ds$transcriptTypes)
+                           refBuild = ds$refBuild, refFeatureFile = ds$refFeatureFile, 
+                           featureLevel = ds$featureLevel, transcriptTypes = ds$transcriptTypes)
   expandedDS[['ResultDir [File]']] <- file.path(param[['resultDir']], samplePath, subSamples)
   expandedDS[['Report [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'web_summary.html')
   expandedDS[['CountMatrix [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'count', 'sample_filtered_feature_bc_matrix')
   if ("Multiplexing" %in% libraryTypes) {
     expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(expandedDS[['ResultDir [File]']], 'count', 'sample_raw_feature_bc_matrix')
   } else {
-      expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(param[['resultDir']], sampleName, 'multi/count', 'raw_feature_bc_matrix')  
+    expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(param[['resultDir']], sampleName, 'multi/count', 'raw_feature_bc_matrix')  
   }
   expandedDS[['Condition [Factor]']] = c('')
   expandedDS[['Order Id [B-Fabric]']] = ds[['Order Id [B-Fabric]']]
   commonPath <- file.path('/srv/GT/analysis/CM_datasets', basename(param[['resultDir']]))
   if(!dir.exists(commonPath)){
-      dir.create(commonPath)
+    dir.create(commonPath)
   }
   dsPath <- file.path(commonPath, 'expanded_dataset.tsv')
   if(!file.exists(dsPath)){
     ezWrite.table(expandedDS, dsPath, row.names = FALSE)
   } else {
-      ezWrite.table(expandedDS, dsPath, row.names = FALSE, append = TRUE, col.names = FALSE)  
+    ezWrite.table(expandedDS, dsPath, row.names = FALSE, append = TRUE, col.names = FALSE)  
   }
   ezSystem(paste('/usr/local/ngseq/bin/g-req copynow -f', dsPath, file.path(param$dataRoot, param[['resultDir']])))
   return("Success")
@@ -93,7 +93,7 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
 
 prepareFastqData <- function(input, param) {
   sampleName <- input$getNames()
-
+  
   #1. Prepare GEX data
   sampleDirs <- getFastqDirs(input, "RawDataDir",sampleName)
   
@@ -111,18 +111,18 @@ prepareFastqData <- function(input, param) {
   fileLevelDirs <- list.files(sampleDirs)
   if(length(fileLevelDirs) == 1L){
     if(fileLevelDirs != sampleName){
-        setwd(sampleDirs)
-        ezSystem(paste('mv', fileLevelDirs, sampleName))
-        cmd <- paste('rename', paste0('s/',fileLevelDirs,'/',sampleName, '/'), paste0(sampleName,'/*.gz'))
-        ezSystem(cmd)
-        setwd('..')
-      }
+      setwd(sampleDirs)
+      ezSystem(paste('mv', fileLevelDirs, sampleName))
+      cmd <- paste('rename', paste0('s/',fileLevelDirs,'/',sampleName, '/'), paste0(sampleName,'/*.gz'))
+      ezSystem(cmd)
+      setwd('..')
+    }
   } else if(length(fileLevelDirs) > 1L){
-      if(all(fileLevelDirs %in% sampleName)){
-          #...
-      } else {
-          stop('multiple runs and renaming samples is an unsupported case')
-      }
+    if(all(fileLevelDirs %in% sampleName)){
+      #...
+    } else {
+      stop('multiple runs and renaming samples is an unsupported case')
+    }
   }
   dirList <- list(sampleName=sampleName, sampleDirs=sampleDirs)
   
@@ -153,7 +153,7 @@ prepareFastqData <- function(input, param) {
     dirList <- c(dirList, list(multiplexName=dataInfo[["multiName"]],
                                multiplexDirs=dataInfo[["multiDirs"]]))
   }
-
+  
   return(dirList)
 }
 
@@ -189,6 +189,10 @@ buildMultiConfigFile <- function(input, param, dirList) {
   # Add 'GEX' to libraryTypes if 'fixedRNA' is in libraryTypes and 'GEX' is not
   libraryTypes <- if("fixedRNA" %in% libraryTypes && !"GEX" %in% libraryTypes) union(libraryTypes, "GEX") else libraryTypes
   
+  hasFb <- "FeatureBarcoding" %in% libraryTypes
+  hasMult <- "Multiplexing" %in% libraryTypes
+  isFixed <- "fixedRNA" %in% libraryTypes
+  
   # Write [Gene Expression] section
   if ("GEX" %in% libraryTypes) {
     refDir <- getCellRangerGEXReference(param)
@@ -199,7 +203,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
       fileContents <- append(fileContents, 
                              sprintf("expect-cells,%s", param$expectedCells))
     }
-    if (!("fixedRNA" %in% libraryTypes)) {
+    if (!(isFixed)) {
       # include introns option only available with plain GEX, not fixedRNA
       includeIntronsLine <- 
         ifelse(ezIsSpecified(param$includeIntrons) && param$includeIntrons,
@@ -208,7 +212,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     }
     fileContents <- append(fileContents, c(""))
   }
-  if ("fixedRNA" %in% libraryTypes) {
+  if (isFixed) {
     refDir <- getCellRangerGEXReference(param)
     myProbesetFile <- file.path('/srv/GT/databases/10x_Probesets/Chromium',param$probesetFile)
     outputFile <- sub('.csv','_filtered.csv', basename(myProbesetFile))
@@ -234,7 +238,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     # add chemistry since it can result in an error otherwise (CellRanger 7.2)
     # TODO: Review down the line if this is necessary. Best case, we can remove
     # it to let CellRanger automatically choose the chemistry
-    chemistry <- ifelse("Multiplexing" %in% libraryTypes, "MFRP", "SFRP")
+    chemistry <- ifelse(hasMult, "MFRP", "SFRP")
     fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
     fileContents <- append(fileContents, c(""))
   }
@@ -244,21 +248,19 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents, sprintf("reference,%s", vdjRefDir))
     fileContents <- append(fileContents, c(""))
   }
-  if ("FeatureBarcoding" %in% libraryTypes) {
+  if (hasFb) {
     featureRefFile <- file.path(param$dataRoot, param$FeatureBarcodeFile)
     fileContents <- append(fileContents, "[feature]")
     fileContents <- append(fileContents, sprintf("reference,%s", featureRefFile))
     fileContents <- append(fileContents, c(""))
   }
-  if ("Multiplexing" %in% libraryTypes && !("fixedRNA" %in% libraryTypes)) {
+  if (hasMult && !xor(hasFb) && !(isFixed)) {
     multiplexBarcodeFile <- tempfile(pattern = "multi_barcode_set", tmpdir = ".", fileext = ".csv")
     multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
     fileContents <- append(fileContents, 
                            sprintf("cmo-set,%s", multiplexBarcodeFile))
     fileContents <- append(fileContents, c(""))
   }
-  
-  # Feature barcoding
   
   # Fastq Files
   fileContents <- append(fileContents, c("[libraries]", "fastq_id,fastqs,feature_types"))
@@ -274,18 +276,18 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$vdjbName, dirList$vdjbDirs, "VDJ-B"))
   }
-  if ("FeatureBarcoding" %in% libraryTypes) {
+  if (hasFb) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$featureName, dirList$featureDirs, "Antibody Capture"))
   }  
-  if ("Multiplexing" %in% libraryTypes && !("fixedRNA" %in% libraryTypes)) {
+  if (hasMult && !hasFb && !isFixed) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$multiplexName, dirList$multiplexDirs, "Multiplexing Capture"))
   }
   fileContents <- append(fileContents, "")
   
   # sample mapping
-  if ("Multiplexing" %in% libraryTypes) {
+  if (hasMult) {
     sampleName <- rownames(input$meta)
     sampleMultiplexFiles <- getSampleMultiplexFiles(input)
     names(sampleMultiplexFiles) <- paste0('^', sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles)), '$')
@@ -296,13 +298,13 @@ buildMultiConfigFile <- function(input, param, dirList) {
       # Load multiplex barcode set and subset
       multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", param$MultiplexBarcodeSet), show_col_types = FALSE)
       multiplexBarcodeSet <- multiplexBarcodeSet %>%
-      filter(id %in% sampleMultiplexMapping$cmo_ids)
+        filter(id %in% sampleMultiplexMapping$cmo_ids)
       data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
-  
+      
       fileContents <- append(fileContents, c("[samples]", "sample_id,cmo_ids"))
       
       fileContents <- append(fileContents, 
-                           apply(sampleMultiplexMapping, 1, concatCols))
+                             apply(sampleMultiplexMapping, 1, concatCols))
     } else if("fixedRNA" %in% libraryTypes){
       sampleMultiplexMapping$description = sampleMultiplexMapping$sample_id
       fileContents <- append(fileContents, c("[samples]", "sample_id,probe_barcode_ids,description"))
@@ -356,9 +358,9 @@ EzAppCellRangerMulti <-
                       Description = "control sequences to add"
                     ),
                     keepBam = ezFrame(
-                        Type = "logical",
-                        DefaultValue = FALSE,
-                        Description = "keep bam file produced by CellRanger"
+                      Type = "logical",
+                      DefaultValue = FALSE,
+                      Description = "keep bam file produced by CellRanger"
                     )
                   )
                 }
