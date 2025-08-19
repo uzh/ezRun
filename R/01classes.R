@@ -164,6 +164,33 @@ EzDataset <-
                   }
                   return(fullPaths)
                 },
+                getFullPathsList = function(name, checkExists=TRUE)
+                {
+                  require(stringi)
+                  "Gets the files in the named column prepended with the \\code{dataRoot} as a list, splitting comma-separated inputs."
+                  ### ok = ezSystem(paste("cd", dataRoot, "; pwd")) ### workaround to make sure the drive where the data sits is mounted by the automounter
+                  files = .self$getColumn(name)
+                  if (is.null(dataRoot) || dataRoot == "" ){
+                    fullPaths = files
+                  } else {
+                    fullPaths <- files %>%
+                      str_split(",", simplify = FALSE) %>% 
+                      lapply(stri_remove_empty) %>% 
+                      lapply(\(x) file.path(dataRoot, x))
+                    names(fullPaths) = names(files)
+                  }
+                  if (checkExists){
+                    isInvalid = fullPaths %>% 
+                      sapply(\(x) any(file.access(x) != 0), simplify=TRUE) %>% 
+                      unname()
+                    if (any(isInvalid)){
+                      stop("Files are not readable using root:\n", 
+                           paste(dataRoot, collapse="\n"), "\nfiles:\n", 
+                           paste(files[isInvalid], collapse="\n"))
+                    }
+                  }
+                  return(fullPaths)
+                },
                 readType = function(){
                   if("Read1" %in% colNames){
                     isFastq <- all(grepl("\\.(fastq|fq)(\\.gz){0,1}$", 
