@@ -107,6 +107,7 @@ ezMethodHomerDiffPeaks = function(input=NA, output=NA, param=NA,
       param$refBuild <- switch(param$refBuildHOMER,
               'hg38'= 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_37-2021-05-04',
               'mm10' = 'Mus_musculus/GENCODE/GRCm38.p6/Annotation/Release_M23-2019-11-05',
+              'mm39' = 'Mus_musculus/GENCODE/GRCm39/Annotation/Release_M37-2025-07-03',
               stop("unsupported refBuildHOMER"))
         param$ezRef <- NULL
         param <- ezParam(param)
