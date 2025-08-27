@@ -14,6 +14,8 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   fullGenomeSize <- fullGenomeSize <- param$ezRef@refFastaFile %>% Rsamtools::FaFile() %>% GenomeInfoDb::seqlengths() %>% sum()
   effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
 
+  blackListFile <- getBlackListFile(input, param)
+
   cmd = paste(
     "nextflow run nf-core/cutandrun",
      ## i/o
@@ -25,7 +27,8 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
     "--gene_bed", str_replace(param$ezRef@refAnnotationFile,
                               basename(param$ezRef@refAnnotationFile),
                               'genes.bed'),
-    if (param[['blacklist']] == "")  "" else paste0("--blacklist ", param[['blacklist']]),
+    "--blacklist", blackListFile,
+    # if (param[['blacklist']] == "")  "" else paste0("--blacklist ", param[['blacklist']]),
     ## parameters
     "--dt_calc_all_matrix false",
     "--macs_gsize", effectiveGenomeSize,
@@ -53,7 +56,6 @@ EzAppNfCoreCutAndRun <- setRefClass(
       name <<- "EzAppNfCoreCutAndRun"
       ## minimum nf-core parameters
       appDefaults <<- rbind(
-        blacklist = ezFrame(Type="character", DefaultValue="", Description="Path to genome blacklist"),
         peakCaller = ezFrame(Type="character", DefaultValue="macs2", Description="Select the peak caller for the pipeline"),
         spikeinGenome = ezFrame(Type="character", DefaultValue="macs2", Description="Select the reference for the spike-in genome"),
         normalization = ezFrame(Type="character", DefaultValue="macs2", Description="Select the target read normalization mode"),
@@ -62,6 +64,20 @@ EzAppNfCoreCutAndRun <- setRefClass(
     }
   )
 )
+
+##' @description fetch nfcore blacklist files
+getBlackListFile <- function(input, param){
+  buildName = param$ezRef@refBuildName
+  basePath = '/srv/GT/databases/nf-core/cutandrun/'
+  blackListPath <- case_when(
+    grepl('GRCm39', buildName, ignore.case = TRUE) ~ paste0(basePath, 'GRCm39-blacklist.bed'),
+    grepl('GRCm38', buildName, ignore.case = TRUE) ~ paste0(basePath, 'GRCm38-blacklist.bed'),
+    grepl('GRCh38', buildName, ignore.case = TRUE) ~ paste0(basePath, 'GRCh38-blacklist.bed'),
+    grepl('GRCh37', buildName, ignore.case = TRUE) ~ paste0(basePath, 'GRCh37-blacklist.bed'),
+    TRUE ~ ""
+  )
+  return(blackListPath)
+}
 
 ##' @description get an nf-core/cutandrun-formatted csv file
 getCutAndRunSampleSheet <- function(input, param){
@@ -73,28 +89,9 @@ getCutAndRunSampleSheet <- function(input, param){
     replicate = ezReplicateNumber(input$getColumn(param$grouping)),
     fastq_1 = input$getFullPaths("Read1"),
     fastq_2 = input$getFullPaths("Read2"),
-    control = input$getColumn(param$control)
+    control = input$getColumn(param$controlColumn)
   )
   write_csv(nfSampleInfo, csvPath)
-
-  # input$meta |>
-  #   arrange(`Condition [Factor]`, `Read1 [File]`, `Read2 [File]`) |>
-  #   rownames_to_column(var = 'SampleID [Factor]') |>
-  #   group_by(`Condition [Factor]`) |>
-  #   mutate(`Replicate [Factor]` = row_number()) |>
-  #   ungroup() |>
-  #   select('Condition [Factor]', 'Replicate [Factor]', 'Read1 [File]', 'Read2 [File]', 'Control [Factor]', 'SampleID [Factor]') |>
-  #   ## header must have the following columns and in this order: group, replicate, fastq_1, fastq_2, control
-  #   rename(group     = 'Condition [Factor]',
-  #          replicate = 'Replicate [Factor]',
-  #          fastq_1   = 'Read1 [File]',
-  #          fastq_2   = 'Read2 [File]',
-  #          control   = 'Control [Factor]',
-  #          sid       = 'SampleID [Factor]') |>
-  #   mutate(fastq_1 = replace(fastq_1, sid %in% names(input$getFullPaths('Read1')), input$getFullPaths('Read1')[sid]),
-  #          fastq_2 = replace(fastq_2, sid %in% names(input$getFullPaths('Read2')), input$getFullPaths('Read2')[sid])) |>
-  #   select(-sid) |> ## max 5 columns allowed ...
-  #   write_csv(csvPath)
 
   return(csvPath)
 }
