@@ -30,7 +30,7 @@ ezMethodDelly <- function(input = NA, output = NA, param = NA, htmlFile="00index
   ezSystem(paste("bgzip -c", ovf, ">", ovzf)) 
   indexTabix(basename(ovzf),format = "vcf")
 
-  SurvivorCmd=paste("SURVIVOR stats", ovf, "20 -1 3",  DellyStatsFile, "1>", SurvivorLogFile) 
+  SurvivorCmd=paste("SURVIVOR stats", ovf, "-1 -1 -1",  DellyStatsFile, "1>", SurvivorLogFile) 
   ezSystem(SurvivorCmd) 
 
   ##html file  
