@@ -1,5 +1,5 @@
 ---
-title: "PBSV"
+title: "Structural Variant Analysis"
 author: "Functional Genomics Center Zurich"
 output: 
   html_document:
