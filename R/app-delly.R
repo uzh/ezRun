@@ -51,16 +51,16 @@ ezMethodDelly <- function(input = NA, output = NA, param = NA, htmlFile="00index
 ##' @templateVar method ezMethodPbsv(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run
 ##' @seealso \code{\link{getPbmm2Reference}}
-EzAppPbsv <-
-  setRefClass("EzAppPbsv",
+EzAppDelly <-
+  setRefClass("EzAppDelly",
     contains = "EzApp",
     methods = list(
       initialize = function() {
         "Initializes the application using its specific defaults."
-        runMethod <<- ezMethodPbsv
-        name <<- "EzAppPbsv"
+        runMethod <<- ezMethodDelly
+        name <<- "EzAppDelly"
         appDefaults <<- rbind(
-        ReadOpt = ezFrame(Type="character",  DefaultValue="HIFI",  Description="input read types: SUBREAD, CCS, HIFI. Default is HIFI")
+        ReadOpt = ezFrame(Type="character",  DefaultValue="sr",  Description="input read types: sr, pb, ont. Default is sr")
 	)
       }
     )
