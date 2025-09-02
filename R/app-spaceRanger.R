@@ -96,7 +96,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
           #Fix image because of a bug in spaceranger 4.0.1
           myImage <- input$getFullPaths("Image")
           imageSize <- file.size(myImage)/1024^3
-          if(imageSize < 4 & param$splitTif){
+          if(imageSize < 4 & param$splitTif & grepl('^H', input$getColumn("Slide"))){
             cmd_tiffSplit <- paste('/usr/local/ngseq/src/tiff-4.7.0/bin/bin/tiffsplit', myImage, 'output_')
             ezSystem(cmd_tiffSplit)
             highResName <- sub('.tif$', '_highRes.tif', basename(myImage))
@@ -106,7 +106,7 @@ ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
           } else {
               cmd <- paste(cmd, paste0("--image=", myImage))
           }
-          if(!param$runSegmentation & spaceRangerMainVersion >= 4){
+          if(!param$runSegmentation & spaceRangerMainVersion >= 4 & grepl('^H', input$getColumn("Slide"))){
               cmd <- paste(cmd, "--nucleus-segmentation=false")
           }
       } else {
