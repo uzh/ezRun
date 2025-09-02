@@ -12,7 +12,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 
 ```{r setup, include=FALSE}
@@ -71,6 +70,9 @@ posMarkers$p_val_adj[posMarkers$p_val_adj==0] <- min(posMarkers$p_val_adj[posMar
 ## Analysis results {.tabset}
 
 ### Quality control
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
 
 #### Selected QC metrics
 
