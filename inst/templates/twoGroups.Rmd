@@ -11,6 +11,10 @@ editor_options:
   chunk_output_type: inline
 ---
 
+# {.tabset}
+
+## Settings
+
 
 ```{r setup, include=FALSE}
 library(ezRun)
@@ -61,11 +65,10 @@ design <- ezDesignFromDataset(dataset, param)
 hasMassiveFeats <- nrow(seqAnno) >= 200e3
 ```
 
+
+
 Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-# {.tabset}
-
-## Settings
 ```{r setting, echo=FALSE}
 kable(makeCountResultSummary(param, se),
       row.names = TRUE,
