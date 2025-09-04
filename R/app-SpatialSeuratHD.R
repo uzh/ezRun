@@ -13,7 +13,7 @@ EzAppSpatialSeuratHD <-
                 {
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSpatialSeuratHD
-                  name <<- "EzAppSpatialSeurat"
+                  name <<- "EzAppSpatialSeuratHD"
                   appDefaults <<- rbind(
                       nfeatures = ezFrame(
                           Type = "numeric",
@@ -143,7 +143,7 @@ ezMethodSpatialSeuratHD <- function(input=NA, output=NA, param=NA,
   } else if(param$binSize >= 10 & param$binSize < 100){
       dataDir <- file.path(dataDir, paste0('square_0', param$binSize, 'um'))
   } else {
-      stop("Only bin sizes of 8 or 10-99 are supported.") 
+      stop("Only bin sizes of 8 and 16 or even numbers between 10-100 are supported if the parameter --custom-bin-size was used for SpaceRanger before") 
   }
   scData <- Load10X_Spatial(data.dir = dataDir)
   cmDir <- input$getFullPaths("CountMatrix")
