@@ -392,7 +392,7 @@ kable_styling("striped", full_width = F, position = "left")
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("npcs","pcGenes","resolution", "DE.method", "cellsFraction", "nUMIs", "nmad")]
+param[c("binSize","npcs","pcGenes","resolution", "DE.method", "cellsFraction", "nUMIs", "nmad")]
 ```
 
 
