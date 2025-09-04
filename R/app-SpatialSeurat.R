@@ -258,14 +258,14 @@ getSpatialSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM){
     spatialMarkersList <- list()
     message('Find spatial Markers using markvariogram')
     res <- spatialMarkers(scData, selection.method = 'markvariogram')
-    spatialMarkersList[['markvariogram']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'Markvariogram')
+    spatialMarkersList[['markvariogram']] <- data.frame(GeneSymbol = res, Method = 'Markvariogram')
     message('Find spatial Markers using moransi method')
     res <- spatialMarkers(scData, selection.method = 'moransi')
-    spatialMarkersList[['moransi']] <- data.frame(GeneSymbol = rownames(res), res, Method = 'MoransI')
-    spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('GeneSymbol', 'Rank','Method')], spatialMarkersList[['moransi']][,c('GeneSymbol', 'Rank','Method')])
-    spatialMarkers <- spatialMarkers %>% spread(Method, Rank)
-    spatialMarkers[['MeanRank']] <- apply(spatialMarkers[,c('Markvariogram','MoransI')],1,mean)
-    spatialMarkers <- spatialMarkers[order(spatialMarkers$MeanRank),]
+    spatialMarkersList[['moransi']] <- data.frame(GeneSymbol = res, Method = 'MoransI')
+    spatialMarkers <- rbind(spatialMarkersList[['markvariogram']][,c('GeneSymbol','Method')], spatialMarkersList[['moransi']][,c('GeneSymbol','Method')])
+    #spatialMarkers <- spatialMarkers %>% spread(Method, Rank)
+    #spatialMarkers[['MeanRank']] <- apply(spatialMarkers[,c('Markvariogram','MoransI')],1,mean)
+    #spatialMarkers <- spatialMarkers[order(spatialMarkers$MeanRank),]
     
     spatialPosMarkers <- intersect(clusterMarkers$gene, spatialMarkers$GeneSymbol)
     clusterMarkers[which(clusterMarkers$gene %in% spatialPosMarkers), 'isSpatialMarker'] = TRUE
