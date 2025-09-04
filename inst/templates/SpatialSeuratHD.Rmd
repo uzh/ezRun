@@ -41,9 +41,9 @@ output <- qs_read("output.qs2")
 scData <- qs_read("scData.qs2")
 scData.unfiltered_spatial <- qs_read("scData.unfiltered.qs2")
 imageName <- names(scData@images)
-#names(scData.unfiltered_spatial@images) <- imageName
-#scData.unfiltered_spatial@images[[imageName]]@scale.factors$lowres=scData@images[[imageName]]@scale.factors$lowres
-#scDataRaw <- readRDS("scData.raw.rds")
+nCountCol <- colnames(scData[[]])[grep(paste0('^nCount_Spatial.*'), colnames(scData[[]]))]
+nFeatureCol <- colnames(scData[[]])[grep(paste0('^nFeature_Spatial.*'), colnames(scData[[]]))]
+
 allCellsMeta <- qs_read("allCellsMeta.qs2")
 sampleName <- input$getNames()
 
@@ -98,24 +98,24 @@ A key assumption here is that the QC metrics are independent of the biological s
 The violin plots represent the bins that were kept (FALSE) and the ones that were discarded (TRUE) after QC filtering. The QC metrics were also plot onto the tissue section.
 
 ```{r QC plots1, fig.height=4}
-plotColData(xxAll, x="Sample", y="nCount_Spatial.016um", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
+plotColData(xxAll, x="Sample", y=nCountCol, colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
 ```
 
 ```{r QC plots2, fig.height=6}
 
-plotColData(xxAll, x="Sample", y="nFeature_Spatial.016um", colour_by="discard") + ggtitle("Detected genes")
-plotColData(xxAll, x="nCount_Spatial.016um", y="nFeature_Spatial.016um", colour_by="discard")+ scale_x_log10() + scale_y_log10()
+plotColData(xxAll, x="Sample", y=nFeatureCol, colour_by="discard") + ggtitle("Detected genes")
+plotColData(xxAll, x=nCountCol, y=nFeatureCol, colour_by="discard")+ scale_x_log10() + scale_y_log10()
 
-xxAll$genePerCount <- xxAll$nFeature_Spatial.016um / xxAll$nCount_Spatial.016um
+xxAll$genePerCount <- xxAll[[nFeatureCol]] / xxAll[[nCountCol]]
 plotColData(xxAll, x="Sample", y="genePerCount", colour_by="discard") + ggtitle("Detected genes")
-plotColData(xxAll, x="nCount_Spatial.016um", y="genePerCount", colour_by="discard")+ scale_x_log10() + xlim(1, 10000) + ylim(0.2, 0.8)
+plotColData(xxAll, x=nCountCol, y="genePerCount", colour_by="discard")+ scale_x_log10() + xlim(1, 10000) + ylim(0.2, 0.8)
 
 plotColData(xxAll, x="Sample", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
-plotColData(xxAll, x="nCount_Spatial.016um", y="percent_mito", colour_by="discard")+ scale_x_log10()
+plotColData(xxAll, x= nCountCol, y="percent_mito", colour_by="discard")+ scale_x_log10()
 
 if (!is.null(xxAll$percent_riboprot)){
   print(plotColData(xxAll, x="Sample", y="percent_riboprot", colour_by="discard") + ggtitle("Ribosomal percent"))
-  print(plotColData(xxAll, x="nCount_Spatial.016um", y="percent_riboprot", colour_by="discard")+ scale_x_log10())
+  print(plotColData(xxAll, x=nCountCol, y="percent_riboprot", colour_by="discard")+ scale_x_log10())
 }
 ```
 
@@ -126,8 +126,8 @@ if (!is.null(xxAll$percent_riboprot)){
 #  toKeep <- rownames(scData.unfiltered_spatial@meta.data)[-which(is.nan(scData.unfiltered_spatial$percent_mito))]
 #  scData.unfiltered_spatial <- subset(scData.unfiltered_spatial, cells = toKeep)
 #}
-plot5 <- SpatialFeaturePlot(scData, features = "nCount_Spatial.016um", pt.size.factor =  2) + theme(legend.position = "right")
-plot6 <- SpatialFeaturePlot(scData, features = "nFeature_Spatial.016um",  pt.size.factor =  2) + theme(legend.position = "right")
+plot5 <- SpatialFeaturePlot(scData, features = nCountCol, pt.size.factor =  2) + theme(legend.position = "right")
+plot6 <- SpatialFeaturePlot(scData, features = nFeatureCol, pt.size.factor =  2) + theme(legend.position = "right")
 plot7 <- SpatialFeaturePlot(scData, features = "percent_mito",  pt.size.factor =  2) + theme(legend.position = "right")
 plot8 <- SpatialFeaturePlot(scData, features = "percent_riboprot",  pt.size.factor =  2) + theme(legend.position = "right") 
 plot6 + plot8 + plot7 + plot5 + plot_layout(nrow = 2, ncol = 2)
@@ -162,7 +162,7 @@ qcStats[ "Library Size", ] <- c(
   round(sum(allCellsMeta$qc.lib)/nrow(allCellsMeta), 2)
 )
 qcStats[ "Expressed genes", ] <- c(
-  c(sum(allCellsMeta$qc.nexprs), range(allCellsMeta$nFeature_Spatial[allCellsMeta$useCell])) %>% as.integer(),
+  c(sum(allCellsMeta$qc.nexprs), range(allCellsMeta[[nFeatureCol]][allCellsMeta$useCell])) %>% as.integer(),
   round(sum(allCellsMeta$qc.nexprs)/nrow(allCellsMeta), 2)
 )
 qcStats[ "Mitochondrial Percent", ] <- c(
@@ -234,7 +234,11 @@ Dimensionality reduction aims to reduce the number of separate dimensions in the
 The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
 
 ```{r, fig.align='center', fig.width=14}
-pct <- scData[["pca.sketch"]]@stdev / sum(scData[["pca.sketch"]]@stdev) * 100
+if('pca.sketch' %in% names(scData@reductions)){
+    pct <- scData[["pca.sketch"]]@stdev / sum(scData[["pca.sketch"]]@stdev) * 100
+} else {
+    pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
+}
 cumu <- cumsum(pct)
 plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
 
@@ -303,9 +307,9 @@ Once we have created the clusters we need to asses if the clustering was driven 
 We can explore whether the bins cluster by the different cell cycle phases. In such a case, we would have clusters where most of the bins would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
 ```{r uninteresting variation, fig.height=12, fig.width=20}
-plot1 <- VlnPlot(scData, features="nCount_Spatial.016um", group.by="seurat_clusters") + ggtitle("Number of UMIs vs cluster") + 
+plot1 <- VlnPlot(scData, features=nCountCol, group.by="seurat_clusters") + ggtitle("Number of UMIs vs cluster") + 
   NoLegend()
-plot2 <- VlnPlot(scData, features = "nFeature_Spatial.016um", group.by="seurat_clusters", pt.size = 0.1) + 
+plot2 <- VlnPlot(scData, features = nFeatureCol, group.by="seurat_clusters", pt.size = 0.1) + 
   ggtitle("Number of genes vs cluster") +
   NoLegend()
 plot3 <- VlnPlot(scData, features = "percent_mito",  group.by ="seurat_clusters", pt.size = 0.1) + 
