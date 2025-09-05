@@ -258,6 +258,8 @@ par(mar=c(5.1,4.1,4.1,2.1))
 ```{r prepare data correlation, include=FALSE}
 if (!is.null(seqAnno$IsControl)){
   rowData(rawData)$isValid <- rowData(rawData)$isValid & !seqAnno$IsControl
+} else {
+    rowData(rawData)$isValid <- TRUE
 }
   
 if(sum(rowData(rawData)$isValid) < 10){
