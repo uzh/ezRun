@@ -242,6 +242,9 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     param[['cellrangerCountFiltDir']] <- dirname(cmDir)
     param[['cellrangerCountRawDir']] <- dirname(countRawMatrix)
     
+    # Pass features directly - no temp file needed
+    param[['featInfo_h5']] <- featInfo
+    
     # Align features with matrix rownames
     matchingIds <- intersect(rownames(cts), rownames(featInfo))
     cts <- cts[matchingIds,]
