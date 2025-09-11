@@ -15,6 +15,7 @@ seuratStandardSCTPreprocessing <- function(scData, param, assay="RNA", seed=38) 
   if(ezIsSpecified(param$featSelectionMethod) && param$featSelectionMethod == 'STACAS'){
     require(STACAS)
     require(SignatuR)
+    data(SignatuR)  
     if(species == 'Human'){
       my.genes.blocklist <- c(GetSignature(SignatuR$Hs$Blocklists),
                               GetSignature(SignatuR$Hs$Compartments))

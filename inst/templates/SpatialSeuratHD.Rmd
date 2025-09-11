@@ -62,9 +62,9 @@ output <- qs_read("output.qs2")
 scData <- qs_read("scData.qs2")
 scData.unfiltered_spatial <- qs_read("scData.unfiltered.qs2")
 imageName <- names(scData@images)
-#names(scData.unfiltered_spatial@images) <- imageName
-#scData.unfiltered_spatial@images[[imageName]]@scale.factors$lowres=scData@images[[imageName]]@scale.factors$lowres
-#scDataRaw <- readRDS("scData.raw.rds")
+nCountCol <- colnames(scData[[]])[grep(paste0('^nCount_Spatial.*'), colnames(scData[[]]))]
+nFeatureCol <- colnames(scData[[]])[grep(paste0('^nFeature_Spatial.*'), colnames(scData[[]]))]
+
 allCellsMeta <- qs_read("allCellsMeta.qs2")
 sampleName <- input$getNames()
 
@@ -374,7 +374,6 @@ plot22 + plot23 + plot_layout(ncol = 4)
 #  toKeep <- rownames(scData.unfiltered_spatial@meta.data)[-which(is.nan(scData.unfiltered_spatial$percent_mito))]
 #  scData.unfiltered_spatial <- subset(scData.unfiltered_spatial, cells = toKeep)
 #}
-
 .pretty_title <- function(f) switch(
   f,
   "nCount_Spatial.016um"    = "UMI per spot (0.16 µm bins)",
@@ -506,7 +505,7 @@ qcStats[ "Library Size", ] <- c(
   round(sum(allCellsMeta$qc.lib)/nrow(allCellsMeta), 2)
 )
 qcStats[ "Expressed genes", ] <- c(
-  c(sum(allCellsMeta$qc.nexprs), range(allCellsMeta$nFeature_Spatial[allCellsMeta$useCell])) %>% as.integer(),
+  c(sum(allCellsMeta$qc.nexprs), range(allCellsMeta[[nFeatureCol]][allCellsMeta$useCell])) %>% as.integer(),
   round(sum(allCellsMeta$qc.nexprs)/nrow(allCellsMeta), 2)
 )
 qcStats[ "Mitochondrial Percent", ] <- c(
@@ -578,7 +577,11 @@ Dimensionality reduction aims to reduce the number of separate dimensions in the
 The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
 
 ```{r, fig.align='center', fig.width=14}
-pct <- scData[["pca.sketch"]]@stdev / sum(scData[["pca.sketch"]]@stdev) * 100
+if('pca.sketch' %in% names(scData@reductions)){
+    pct <- scData[["pca.sketch"]]@stdev / sum(scData[["pca.sketch"]]@stdev) * 100
+} else {
+    pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
+}
 cumu <- cumsum(pct)
 plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
 
@@ -643,21 +646,34 @@ kable(cells_prop, row.names=FALSE, format="html", caption="Spot proportions") %>
 
 #### Segregation of clusters by various sources of uninteresting variation.
 
-Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial or ribosomal gene expression.
+Once we have created the clusters we need to assess if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial or ribosomal gene expression.
 We can explore whether the bins cluster by the different cell cycle phases. In such a case, we would have clusters where most of the bins would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
-```{r uninteresting variation, fig.height=12, fig.width=20}
-plot1 <- VlnPlot(scData, features="nCount_Spatial.016um", group.by="seurat_clusters", pt.size = 000-0) + ggtitle("Number of UMIs vs cluster") + 
-  NoLegend()
-plot2 <- VlnPlot(scData, features = "nFeature_Spatial.016um", group.by="seurat_clusters", pt.size = 0) + 
-  ggtitle("Number of genes vs cluster") +
-  NoLegend()
-plot3 <- VlnPlot(scData, features = "percent_mito",  group.by ="seurat_clusters", pt.size = 0) + 
-  ggtitle("Mitochondrial percentage vs cluster") +
-  NoLegend()
+```{r uninteresting variation, fig.height=16, fig.width=18}
+boxplot_data_nCount <- FetchData(scData, vars = c("nCount_Spatial", "seurat_clusters"))
+boxplot_data_nCount$seurat_clusters <- factor(boxplot_data_nCount$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nCount$seurat_clusters))))
+plot1 <- ggplot(boxplot_data_nCount, aes(x = seurat_clusters, y = nCount_Spatial, fill = seurat_clusters))
+plot1 <- plot1 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
+plot1 <- plot1 + scale_fill_viridis_d(option = "turbo")  
+plot1 <- plot1 + ggtitle("Number of UMIs vs cluster") + xlab("Cluster") + ylab("nCount_Spatial") + theme_minimal(base_size = 14) + theme(legend.position = "none")
 
-plot1 + plot2 + plot3 + plot_layout(nrow = 2, ncol = 2)
+boxplot_data_nFeature <- FetchData(scData, vars = c("nFeature_Spatial", "seurat_clusters"))
+boxplot_data_nFeature$seurat_clusters <- factor(boxplot_data_nFeature$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nFeature$seurat_clusters))))
+plot2 <- ggplot(boxplot_data_nFeature, aes(x = seurat_clusters, y = nFeature_Spatial, fill = seurat_clusters))
+plot2 <- plot2 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
+plot2 <- plot2 + scale_fill_viridis_d(option = "turbo")  
+plot2 <- plot2 + ggtitle("Number of genes vs cluster") + xlab("Cluster") + ylab("nFeature_Spatial") + theme_minimal(base_size = 14) + theme(legend.position = "none")
+
+boxplot_data_mito <- FetchData(scData, vars = c("percent_mito", "seurat_clusters"))
+boxplot_data_mito$seurat_clusters <- factor(boxplot_data_mito$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_mito$seurat_clusters))))
+plot3 <- ggplot(boxplot_data_mito, aes(x = seurat_clusters, y = percent_mito, fill = seurat_clusters))
+plot3 <- plot3 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
+plot3 <- plot3 + scale_fill_viridis_d(option = "turbo")  
+plot3 <- plot3 + ggtitle("Mitochondrial percentage vs cluster") + xlab("Cluster") + ylab("percent_mito") + theme_minimal(base_size = 14) + theme(legend.position = "none")
+
+plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
 ```
+
 
 ### Cluster markers
 
@@ -732,7 +748,7 @@ kable_styling("striped", full_width = F, position = "left")
 
 ### Parameters
 ```{r report parameters, echo=FALSE}
-param[c("npcs","pcGenes","resolution", "DE.method", "cellsFraction", "nUMIs", "nmad")]
+param[c("binSize","npcs","pcGenes","resolution", "DE.method", "cellsFraction", "nUMIs", "nmad")]
 ```
 
 

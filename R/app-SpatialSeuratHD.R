@@ -13,7 +13,7 @@ EzAppSpatialSeuratHD <-
                 {
                   "Initializes the application using its specific defaults."
                   runMethod <<- ezMethodSpatialSeuratHD
-                  name <<- "EzAppSpatialSeurat"
+                  name <<- "EzAppSpatialSeuratHD"
                   appDefaults <<- rbind(
                       nfeatures = ezFrame(
                           Type = "numeric",
@@ -51,7 +51,7 @@ EzAppSpatialSeuratHD <-
                                                            DefaultValue=0.6,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         cellsFraction=ezFrame(Type="numeric", 
-                                                                DefaultValue=0.05, 
+                                                                DefaultValue=0.0001, 
                                                                 Description="A gene will be kept if it is expressed in at least this percentage of cells"),
                                         nUMIs=ezFrame(Type="numeric", 
                                                       DefaultValue=1, 
@@ -97,12 +97,17 @@ EzAppSpatialSeuratHD <-
                                         nfeatures = ezFrame(
                                         Type = "numeric",
                                         DefaultValue = 3000,
-                                        Description = "number of variable genes for SCT"
+                                        Description = "number of variable genes for PCA etc"
                                         ),
                                         pt.size.factor = ezFrame(
                                             Type = "numeric",
                                             DefaultValue = NA,
                                             Description = "pt.size.factor for spatial plots"
+                                        ),
+                                        binSize = ezFrame(
+                                            Type = "numeric",
+                                            DefaultValue = 16,
+                                            Description = "bin size for spatial data"
                                         )
                                     )
                 }
@@ -132,10 +137,15 @@ ezMethodSpatialSeuratHD <- function(input=NA, output=NA, param=NA,
   future.seed = TRUE
   options(future.rng.onMisuse="ignore")
   options(future.globals.maxSize = param$ram*1024^3)
-  #param <- list()
-  param$binSize = 16
-  scData <- Load10X_Spatial(data.dir = dirname(input$getFullPaths("CountMatrix")), bin.size = param$binSize)
-  
+  dataDir <- file.path(dirname(input$getFullPaths("CountMatrix")), 'binned_outputs')
+  if(param$binSize == 8){
+      dataDir <- file.path(dataDir, 'square_008um')
+  } else if(param$binSize >= 10 & param$binSize < 100){
+      dataDir <- file.path(dataDir, paste0('square_0', param$binSize, 'um'))
+  } else {
+      stop("Only bin sizes of 8 and 16 or even numbers between 10-100 are supported if the parameter --custom-bin-size was used for SpaceRanger before") 
+  }
+  scData <- Load10X_Spatial(data.dir = dataDir)
   cmDir <- input$getFullPaths("CountMatrix")
   featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
@@ -184,8 +194,10 @@ ezMethodSpatialSeuratHD <- function(input=NA, output=NA, param=NA,
   writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
   
   #Save some results in external files
-  bulkSignalPerCluster <- data.frame(GeneSymbol = rownames(scData), AggregateExpression(scData, group.by = 'ident')$Spatial.016um)
-  bulkSignalPerSample <-  data.frame(GeneSymbol = rownames(scData), Count = AggregateExpression(scData, group.by = 'Sample')$Spatial.016um)
+  bulkSignalPerCluster <- AggregateExpression(scData, group.by = 'ident')[[1]]
+  bulkSignalPerCluster <- data.frame(GeneSymbol = rownames(scData), Count = bulkSignalPerCluster)
+  bulkSignalPerSample <- AggregateExpression(scData, group.by = 'Sample')[[1]]
+  bulkSignalPerSample <-  data.frame(GeneSymbol = rownames(scData), Count = bulkSignalPerSample)
   
   
  ###Add TPM, add HVG annotation to base tables, enrichR links for HVG and top 1000 genes per sample
@@ -225,39 +237,42 @@ runBasicProcessingHD <- function(scData, input, featInfo, param, BPPARAM){
     scData <- NormalizeData(scData)
     scData <- FindVariableFeatures(scData)
     scData <- ScaleData(scData)
-    # we select 50,0000 cells and create a new 'sketch' assay
-    scData <- SketchData(
-        object = scData,
-        ncells = 50000,
-        method = "LeverageScore",
-        sketched.assay = "sketch"
-    )
-    
-    # switch analysis to sketched cells
-    DefaultAssay(scData) <- "sketch"
-    
-    # perform clustering workflow
-    scData <- FindVariableFeatures(scData)
-    scData <- ScaleData(scData)
-    scData <- RunPCA(scData, assay = "sketch", reduction.name = "pca.sketch", npcs = 80)
-    scData <- FindNeighbors(scData, assay = "sketch", reduction = "pca.sketch", dims = 1:param$npcs)
-    scData <- FindClusters(scData, cluster.name = "seurat_cluster.sketched", resolution = 3)
-    scData <- RunUMAP(scData, reduction = "pca.sketch", reduction.name = "umap.sketch", return.model = T, dims = 1:param$npcs)
-    
-    scData <- ProjectData(
-        object = scData,
-        assay = myAssay,
-        full.reduction = "full.pca.sketch",
-        sketched.assay = "sketch",
-        sketched.reduction = "pca.sketch",
-        umap.model = "umap.sketch",
-        dims = 1:param$npcs,
-        refdata = list(seurat_cluster.projected = "seurat_cluster.sketched")
-    )
-    
-    # switch to full dataset
-    Idents(scData) <- "seurat_cluster.projected"
-    DefaultAssay(scData) <- myAssay
+    if(nrow(scData@meta.data) < 50000){
+        scData <- RunPCA(scData, npcs = 80)
+        scData <- FindNeighbors(scData, dims = 1:param$npcs)
+        scData <- FindClusters(scData, cluster.name = "seurat_cluster", resolution = param$resolution)
+        scData <- RunUMAP(scData, reduction = "pca", reduction.name = "umap", return.model = T, dims = 1:param$npcs)
+    }
+    else {
+        # we select 50,0000 cells and create a new 'sketch' assay
+        scData <- SketchData(object = scData, ncells = 50000, method = "LeverageScore", sketched.assay = "sketch", features = VariableFeatures(scData))
+        
+        # switch analysis to sketched cells
+        DefaultAssay(scData) <- "sketch"
+        
+        # perform clustering workflow
+        scData <- FindVariableFeatures(scData)
+        scData <- ScaleData(scData)
+        scData <- RunPCA(scData, assay = "sketch", reduction.name = "pca.sketch", npcs = 80)
+        scData <- FindNeighbors(scData, assay = "sketch", reduction = "pca.sketch", dims = 1:param$npcs)
+        scData <- FindClusters(scData, cluster.name = "seurat_cluster.sketched", resolution = 3)
+        scData <- RunUMAP(scData, reduction = "pca.sketch", reduction.name = "umap.sketch", return.model = T, dims = 1:param$npcs)
+        
+        scData <- ProjectData(
+            object = scData,
+            assay = myAssay,
+            full.reduction = "full.pca.sketch",
+            sketched.assay = "sketch",
+            sketched.reduction = "pca.sketch",
+            umap.model = "umap.sketch",
+            dims = 1:param$npcs,
+            refdata = list(seurat_cluster.projected = "seurat_cluster.sketched")
+        )
+        
+        # switch to full dataset
+        Idents(scData) <- "seurat_cluster.projected"
+        DefaultAssay(scData) <- myAssay
+    }
     return(list(scData = scData, scData.unfiltered = scData.unfiltered, cellsPerGeneFraction = cellsPerGeneFraction))
 }
 
@@ -313,7 +328,7 @@ filterCellsAndGenesHD <- function(scData, param, myAssay) {
 
 getSpatialSeuratMarkersAndAnnotateHD <- function(scData, param, BPPARAM){
     clusterMarkers <- posClusterMarkersSpatialHD(scData, param)
-    clusterMarkers[['isSpatialMarker']] = FALSE
+    clusterMarkers[['isSpatialMarker']] = NA
     return(list(clusterMarkers=clusterMarkers, spatialMarkers=NULL))
 }
 
