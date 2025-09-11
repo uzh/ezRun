@@ -1,19 +1,34 @@
 ---
-title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-author: "Functional Genomics Center Zurich"
+title: ""
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
     css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
 editor_options: 
   chunk_output_type: console
 ---
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+<br>
 
+```{r title_data_author, include=FALSE}
+reportTitle <- if (exists("reportTitle")) reportTitle else "SUSHI Report"
+reportAuthor <- "Functional Genomics Center Zurich"
+reportDate <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+
+```
+
+<div style="text-align:center;">
+
+  <span style="font-size:28px; font-weight:bold;">`r reportTitle`</span>
+  &nbsp; | &nbsp;
+  <span style="font-size:18px;">`r reportAuthor`</span>
+  &nbsp; | &nbsp;
+  <span style="font-size:16px; color:#1D324D; font-weight:normal;">`r reportDate`</span>
+
+</div>
 
 ```{r setup, include=FALSE}
 library(Seurat)
@@ -30,8 +45,14 @@ library(enrichR)
 library(SCpubr)
 library(qs2)
 
+library(DT)
+library(scater)
+library(ggtext)
+library(grid) 
+
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
+
 
 ```{r}
 posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
@@ -72,13 +93,81 @@ posMarkers$p_val_adj[posMarkers$p_val_adj==0] <- min(posMarkers$p_val_adj[posMar
 
 ### Quality control
 
-#### Selected QC metrics
+```{r QC metrics}
 
-We use several common QC metrics to identify low-quality bins based on their expression profiles. The metrics that were chosen are described below.
+qcMetrics <- data.frame(
+  metric = c(
+    "Library size – total sum of counts across all relevant features for each spot",
+    "Number of expressed genes with non-zero counts in each spot",
+    "Mitochondrial proportion – percentage of reads mapping to mitochondrial genes in each spot"
+  ),
+  interpretation = c(
+    "Small library sizes → low quality (RNA may have been lost during library preparation)",
+    "Very few expressed genes → poor capture of the transcript population → low quality",
+    "High mitochondrial proportion → poor quality (loss of cytoplasmic RNA from perforated bins) (Islam et al. 2014; Ilicic et al. 2016)"
+  )
+)
 
-1. The library size is defined as the total sum of counts across all relevant features for each spot. Bins with small library sizes are of low quality as the RNA has been lost at some point during library preparation.
-2. The number of expressed features in each spot is defined as the number of genes with non-zero counts for that spot. Any spot with very few expressed genes is likely to be of poor quality as the diverse transcript population has not been successfully captured.
-3. The proportions of mitochondrial genes per spot. High proportions are indicative of poor-quality bins (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated bins.
+datatable(
+  qcMetrics,
+  class = 'compact cell-border stripe', #or 'cell-border stripe'
+  caption = htmltools::tags$caption(
+    style = 'caption-side: top; text-align: left; font-weight: bold; font-size: 16px;',
+    "QC Metrics Used to Identify Low-Quality Bins"
+  ),
+  escape = FALSE,
+  rownames = FALSE,
+  colnames = rep("", ncol(qcMetrics)),
+  options = list(
+    autoWidth = TRUE,
+    dom = 't'  
+  )
+) |> 
+  formatStyle(
+    columns = names(qcMetrics)  
+  )
+
+```
+
+```{r diagnostics plots}
+
+qcDiagnostics <- data.frame(
+  check = c(
+    "Independence of QC metrics",
+    "Distribution of values",
+    "Secondary modes",
+    "Violin plots",
+    "Spatial plots"
+  ),
+  interpretation = c(
+    "QC metrics should reflect technical quality, not biological state (e.g., low library size or high mitochondrial proportion should not correspond to specific cell types).",
+    "Ideally, metrics follow a normal distribution, supporting threshold-based outlier detection.",
+    "A large secondary peak (another mode) suggests correlation with biology, risking loss of distinct cell types.",
+    "Show bins kept (`FALSE`) vs discarded (`TRUE`) after QC filtering, highlighting potential biases.",
+    "Visualize QC metrics across the tissue to detect spatial patterns of low quality."
+  )
+)
+
+datatable(
+  qcDiagnostics,
+  caption = htmltools::tags$caption(
+    style = 'caption-side: top; text-align: left; font-weight: bold; font-size: 16px;',
+    "Diagnostic Plots Used for QC Evaluation"
+  ),
+  class = 'cell-border stripe',
+  escape = FALSE,
+  rownames = FALSE,
+  colnames = rep("", ncol(qcMetrics)), 
+  options = list(
+    autoWidth = TRUE,
+    dom = 't' 
+  )
+) |> 
+  formatStyle(
+    columns = names(qcDiagnostics)
+  )
+
+```
 
 <br/>
 
@@ -91,53 +180,307 @@ scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
 ```
 
 
+```{r QC plots1, out.width="100%", fig.width=8, fig.height=2.5}
+plot1 <- plotColData(
+  xxAll,
+  x = "Sample",
+  y = "nCount_Spatial.016um",
+  colour_by = "discard"
+) +
+  scale_y_log10() +
+  labs(
+    title = "UMI counts",
+    y = "UMI counts per spot (0.16 µm bins)"
+  ) +
+  
+  theme(
+    legend.position = "top",   
+    axis.title.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 
-#### Diagnostic plots
+plot2 <- plotColData(
+  xxAll,
+  x = "Sample",
+  y = "nFeature_Spatial.016um",
+  colour_by = "discard"
+) +
+  labs(
+    title = "Detected genes",
+    y = "Number of detected genes"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.title.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 
-A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of bins will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of bins in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
-The violin plots represent the bins that were kept (FALSE) and the ones that were discarded (TRUE) after QC filtering. The QC metrics were also plot onto the tissue section.
+plot3 <- plotColData(
+  xxAll,
+  x = "nCount_Spatial.016um",
+  y = "nFeature_Spatial.016um",
+  colour_by = "discard"
+) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    title = "UMIs vs detected genes (log–log)",
+    x = "UMI counts",
+    y = "Detected genes"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 
-```{r QC plots1, fig.height=4}
-plotColData(xxAll, x="Sample", y=nCountCol, colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
+plot1 + plot2 + plot3 + plot_layout(ncol = 4)
 ```
 
-```{r QC plots2, fig.height=6}
+```{r genes by count, out.width="100%", fig.width=8, fig.height=2.5}
 
-plotColData(xxAll, x="Sample", y=nFeatureCol, colour_by="discard") + ggtitle("Detected genes")
-plotColData(xxAll, x=nCountCol, y=nFeatureCol, colour_by="discard")+ scale_x_log10() + scale_y_log10()
+xxAll$genePerCount <- xxAll$nFeature_Spatial.016um / xxAll$nCount_Spatial.016um
+plot11 <- plotColData(
+  xxAll,
+  x = "Sample",
+  y = "genePerCount",
+  colour_by = "discard"
+) +
+  labs(
+    title = "Genes per UMI",
+    y = "Gene/UMI ratio"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.title.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 
-xxAll$genePerCount <- xxAll[[nFeatureCol]] / xxAll[[nCountCol]]
-plotColData(xxAll, x="Sample", y="genePerCount", colour_by="discard") + ggtitle("Detected genes")
-plotColData(xxAll, x=nCountCol, y="genePerCount", colour_by="discard")+ scale_x_log10() + xlim(1, 10000) + ylim(0.2, 0.8)
+plot12 <- plotColData(
+  xxAll,
+  x = "nCount_Spatial.016um",
+  y = "genePerCount",
+  colour_by = "discard"
+) +
+  scale_x_log10() +
+  xlim(1, 10000) +
+  ylim(0.2, 0.8) +
+  labs(
+    title = "Gene/UMI ratio vs UMIs",
+    x = "UMI counts",
+    y = "Gene/UMI ratio"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 
-plotColData(xxAll, x="Sample", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
-plotColData(xxAll, x= nCountCol, y="percent_mito", colour_by="discard")+ scale_x_log10()
+plot13 <- plotColData(
+  xxAll,
+  x = "Sample",
+  y = "percent_mito",
+  colour_by = "discard"
+) +
+  labs(
+    title = "Mito percent",
+    y = "Percent mitochondrial genes"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.title.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank(),
+    plot.margin = margin(2, 2, 2, 2) 
+    )
 
-if (!is.null(xxAll$percent_riboprot)){
-  print(plotColData(xxAll, x="Sample", y="percent_riboprot", colour_by="discard") + ggtitle("Ribosomal percent"))
-  print(plotColData(xxAll, x=nCountCol, y="percent_riboprot", colour_by="discard")+ scale_x_log10())
+plot14 <- plotColData(
+  xxAll,
+  x = "nCount_Spatial.016um",
+  y = "percent_mito",
+  colour_by = "discard"
+) +
+  scale_x_log10() +
+  labs(
+    x = "UMI counts",
+    y = "Percent mitochondrial genes"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank(),
+    plot.margin = margin(2, 2, 2, 2) 
+  )
+
+plot11 + plot14 + plot12 + plot13 + plot_layout(ncol = 4)
+
+```
+
+
+
+```{r ribo plots, out.width="100%",fig.width=8, fig.height=2.5}
+
+if (!is.null(xxAll$percent_riboprot)) {
+
+   plot22 <- plotColData(
+      xxAll,
+      x = "Sample",
+      y = "percent_riboprot",
+      colour_by = "discard"
+    ) +
+      labs(
+        title = "Ribosomal percent",
+        y = "Percent ribosomal protein genes"
+      ) +
+      theme(
+        legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank()
+      )
+  
+  
+ 
+    plot23 <- plotColData(
+      xxAll,
+      x = "nCount_Spatial.016um",
+      y = "percent_riboprot",
+      colour_by = "discard"
+    ) +
+      scale_x_log10() +
+      labs(
+        x = "UMI counts",
+        y = "Percent ribosomal protein genes"
+      ) +
+      theme(
+        legend.position = "none",
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank()
+      )
+  
 }
+
+plot22 + plot23 + plot_layout(ncol = 4)
+
 ```
 
-**Spatial QC Plots** 
+#### Spatial QC Plots
 
 ```{r QC plots3, fig.width=20, fig.height=10}
 #if(any(is.nan(scData.unfiltered_spatial$percent_mito))){
 #  toKeep <- rownames(scData.unfiltered_spatial@meta.data)[-which(is.nan(scData.unfiltered_spatial$percent_mito))]
 #  scData.unfiltered_spatial <- subset(scData.unfiltered_spatial, cells = toKeep)
 #}
-plot5 <- SpatialFeaturePlot(scData, features = nCountCol, pt.size.factor =  2) + theme(legend.position = "right")
-plot6 <- SpatialFeaturePlot(scData, features = nFeatureCol, pt.size.factor =  2) + theme(legend.position = "right")
-plot7 <- SpatialFeaturePlot(scData, features = "percent_mito",  pt.size.factor =  2) + theme(legend.position = "right")
-plot8 <- SpatialFeaturePlot(scData, features = "percent_riboprot",  pt.size.factor =  2) + theme(legend.position = "right") 
-plot6 + plot8 + plot7 + plot5 + plot_layout(nrow = 2, ncol = 2)
+.pretty_title <- function(f) switch(
+  f,
+  "nCount_Spatial.016um"    = "UMI per spot (0.16 µm bins)",
+  "nFeature_Spatial.016um"  = "Detected genes",
+  "percent_mito"            = "Mitochondrial percent",
+  "percent_riboprot"        = "Ribosomal protein percent",
+  f
+)
+.fill_label <- function(f) switch(
+  f,
+  "nCount_Spatial.016um"    = "UMI counts",
+  "nFeature_Spatial.016um"  = "Genes",
+  "percent_mito"            = "Mito %",
+  "percent_riboprot"        = "Ribo %",
+  "Value"
+)
+
+# One function to build each spatial plot consistently
+sp_plot <- function(obj, feature, pt.size.factor = 2,
+                    min.cutoff = "q01", max.cutoff = "q99",
+                    legend.pos = "right", palette = "turbo") {
+  
+  if (!feature %in% c(rownames(obj), colnames(obj[[]]))) {
+    stop(sprintf("Feature '%s' not found in object (genes or meta.data).", feature))
+  }
+  
+  p <- SpatialFeaturePlot(
+    object       = obj,
+    features     = feature,
+    pt.size.factor = pt.size.factor,
+    min.cutoff   = min.cutoff,
+    max.cutoff   = max.cutoff
+  ) +
+    labs(
+      title = .pretty_title(feature),
+      fill  = .fill_label(feature)
+    ) +
+    scale_fill_viridis_c(option = palette, 
+                         na.value = "grey95") +
+    theme_void() +
+    theme(
+      legend.position   = legend.pos,
+      plot.title        = element_text(size = 12, face = "bold", margin = margin(b = 4)),
+      legend.title      = element_text(size = 8),
+      legend.text       = element_text(size = 8),
+      legend.key.height = unit(10, "pt"),
+      legend.key.width  = unit(6, "pt")
+    )
+  
+  p
+}
+
+# Redone plots
+plot5 <- sp_plot(scData, "nCount_Spatial.016um")
+plot6 <- sp_plot(scData, "nFeature_Spatial.016um")
+plot7 <- sp_plot(scData, "percent_mito")
+plot8 <- if ("percent_riboprot" %in% c(rownames(scData), colnames(scData[[]]))) {
+  sp_plot(scData, "percent_riboprot")
+} else {
+  NULL
+}
+plot6 + plot8 + plot7 + plot5 + plot_layout(ncol = 2, nrow = 2)
 ```
 <br/>
 
-#### Bins filtering
 
-A standard approach is to filter bins with a low amount of reads as well as genes that are present in at least a certain amount of bins. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying bins, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality bins. 
-When the parameter values of nreads, ngenes, perc_mito and perc_ribo are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding bins that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Bins with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
+
+```{r cell filter}
+cellFilter <- data.frame(
+  criterion = c(
+    "Assumption — majority of cells are high-quality",
+    "Fixed thresholds (if provided)",
+    "Adaptive: library size (nreads)",
+    "Adaptive: detected genes (ngenes)",
+    "Adaptive: mitochondrial proportion (perc_mito)",
+    "Gene-level prevalence filter"
+  ),
+  rule = c(
+    "Enables data-driven thresholds using QC metrics without detailed protocol knowledge.",
+    "If `nreads`, `ngenes`, or `perc_mito` are supplied, use those fixed cutoffs for filtering.",
+    "Exclude cells with library size < median − 3 × MAD.",
+    "Exclude cells with detected genes < median − 3 × MAD.",
+    "Exclude cells with mito % > median + 3 × MAD.",
+    "Keep genes present in ≥ N cells (or ≥ p% of cells); drop low-prevalence genes."
+  )
+)
+
+datatable(
+  cellFilter,
+  class = 'cell-border stripe',
+  caption = htmltools::tags$caption(
+    style = 'caption-side: top; text-align: left; font-weight: bold; font-size: 16px;',
+    "Cell filtering rules (MAD = median absolute deviation)"
+  ),
+  escape = FALSE,
+  rownames = FALSE,
+  #colnames = rep("", ncol(cellFilter)),  # hide headers
+  options = list(
+    autoWidth = TRUE,
+    dom = 't'
+  )
+) |>
+  formatStyle(
+    columns = names(cellFilter),
+  )
+```
+
 
 <div class = "row">
 <div class = "col-md-6">
