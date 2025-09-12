@@ -62,14 +62,14 @@ output <- qs_read("output.qs2")
 scData <- qs_read("scData.qs2")
 scData.unfiltered_spatial <- qs_read("scData.unfiltered.qs2")
 imageName <- names(scData@images)
-nCountCol <- colnames(scData[[]])[grep(paste0('^nCount_Spatial.*'), colnames(scData[[]]))]
-nFeatureCol <- colnames(scData[[]])[grep(paste0('^nFeature_Spatial.*'), colnames(scData[[]]))]
+nCountCol <- grep('^nCount_Spatial.*', colnames(scData@meta.data), value=TRUE) %>% head(1)
+nFeatureCol <- grep('^nFeature_Spatial.*', colnames(scData@meta.data), value=TRUE) %>% head(1)
 
 allCellsMeta <- qs_read("allCellsMeta.qs2")
 sampleName <- input$getNames()
 
 if (file.exists("cellsPerGeneFraction.qs2")){
-    cellsPerGeneFraction <-  qs_read("cellsPerGeneFraction.qs2")
+  cellsPerGeneFraction <-  qs_read("cellsPerGeneFraction.qs2")
 } else {
   cellsPerGeneFraction <- NULL
 }
