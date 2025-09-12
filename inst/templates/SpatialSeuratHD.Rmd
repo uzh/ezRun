@@ -184,13 +184,13 @@ scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
 plot1 <- plotColData(
   xxAll,
   x = "Sample",
-  y = "nCount_Spatial.016um",
+  y = nCountCol,
   colour_by = "discard"
 ) +
   scale_y_log10() +
   labs(
     title = "UMI counts",
-    y = "UMI counts per spot (0.16 µm bins)"
+    y = "UMI counts per spot"
   ) +
   
   theme(
@@ -203,7 +203,7 @@ plot1 <- plotColData(
 plot2 <- plotColData(
   xxAll,
   x = "Sample",
-  y = "nFeature_Spatial.016um",
+  y = nFeatureCol,
   colour_by = "discard"
 ) +
   labs(
@@ -219,8 +219,8 @@ plot2 <- plotColData(
 
 plot3 <- plotColData(
   xxAll,
-  x = "nCount_Spatial.016um",
-  y = "nFeature_Spatial.016um",
+  x = nCountCol,
+  y = nFeatureCol,
   colour_by = "discard"
 ) +
   scale_x_log10() +
@@ -241,7 +241,7 @@ plot1 + plot2 + plot3 + plot_layout(ncol = 4)
 
 ```{r genes by count, out.width="100%", fig.width=8, fig.height=2.5}
 
-xxAll$genePerCount <- xxAll$nFeature_Spatial.016um / xxAll$nCount_Spatial.016um
+xxAll$genePerCount <- xxAll[[nFeatureCol]] / xxAll[[nCountCol]]
 plot11 <- plotColData(
   xxAll,
   x = "Sample",
@@ -261,7 +261,7 @@ plot11 <- plotColData(
 
 plot12 <- plotColData(
   xxAll,
-  x = "nCount_Spatial.016um",
+  x = nCountCol,
   y = "genePerCount",
   colour_by = "discard"
 ) +
@@ -299,7 +299,7 @@ plot13 <- plotColData(
 
 plot14 <- plotColData(
   xxAll,
-  x = "nCount_Spatial.016um",
+  x = nCountCol,
   y = "percent_mito",
   colour_by = "discard"
 ) +
@@ -346,7 +346,7 @@ if (!is.null(xxAll$percent_riboprot)) {
  
     plot23 <- plotColData(
       xxAll,
-      x = "nCount_Spatial.016um",
+      x = nCountCol,
       y = "percent_riboprot",
       colour_by = "discard"
     ) +
@@ -376,16 +376,16 @@ plot22 + plot23 + plot_layout(ncol = 4)
 #}
 .pretty_title <- function(f) switch(
   f,
-  "nCount_Spatial.016um"    = "UMI per spot (0.16 µm bins)",
-  "nFeature_Spatial.016um"  = "Detected genes",
+  nCountCol    = "UMI per spot",
+  nFeatureCol  = "Detected genes",
   "percent_mito"            = "Mitochondrial percent",
   "percent_riboprot"        = "Ribosomal protein percent",
   f
 )
 .fill_label <- function(f) switch(
   f,
-  "nCount_Spatial.016um"    = "UMI counts",
-  "nFeature_Spatial.016um"  = "Genes",
+  nCountCol    = "UMI counts",
+  nFeatureCol  = "Genes",
   "percent_mito"            = "Mito %",
   "percent_riboprot"        = "Ribo %",
   "Value"
@@ -427,8 +427,8 @@ sp_plot <- function(obj, feature, pt.size.factor = 2,
 }
 
 # Redone plots
-plot5 <- sp_plot(scData, "nCount_Spatial.016um")
-plot6 <- sp_plot(scData, "nFeature_Spatial.016um")
+plot5 <- sp_plot(scData, nCountCol)
+plot6 <- sp_plot(scData, nFeatureCol)
 plot7 <- sp_plot(scData, "percent_mito")
 plot8 <- if ("percent_riboprot" %in% c(rownames(scData), colnames(scData[[]]))) {
   sp_plot(scData, "percent_riboprot")
@@ -501,7 +501,7 @@ qcStats <- ezFrame("Number of Bins"=integer(0),
                    "Max Pass Value"=integer(0), 
                    Fraction = integer(0))
 qcStats[ "Library Size", ] <- c(
-  c(sum(allCellsMeta$qc.lib), range(allCellsMeta$nCount_Spatial[allCellsMeta$useCell])) %>% as.integer(),
+  c(sum(allCellsMeta$qc.lib), range(allCellsMeta[[nCountCol]][allCellsMeta$useCell])) %>% as.integer(),
   round(sum(allCellsMeta$qc.lib)/nrow(allCellsMeta), 2)
 )
 qcStats[ "Expressed genes", ] <- c(
@@ -650,19 +650,19 @@ Once we have created the clusters we need to assess if the clustering was driven
 We can explore whether the bins cluster by the different cell cycle phases. In such a case, we would have clusters where most of the bins would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
 ```{r uninteresting variation, fig.height=16, fig.width=18}
-boxplot_data_nCount <- FetchData(scData, vars = c("nCount_Spatial", "seurat_clusters"))
+boxplot_data_nCount <- FetchData(scData, vars = c(nCountCol, "seurat_clusters"))
 boxplot_data_nCount$seurat_clusters <- factor(boxplot_data_nCount$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nCount$seurat_clusters))))
-plot1 <- ggplot(boxplot_data_nCount, aes(x = seurat_clusters, y = nCount_Spatial, fill = seurat_clusters))
+plot1 <- ggplot(boxplot_data_nCount, aes(x = seurat_clusters, y = nCountCol, fill = seurat_clusters))
 plot1 <- plot1 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
 plot1 <- plot1 + scale_fill_viridis_d(option = "turbo")  
-plot1 <- plot1 + ggtitle("Number of UMIs vs cluster") + xlab("Cluster") + ylab("nCount_Spatial") + theme_minimal(base_size = 14) + theme(legend.position = "none")
+plot1 <- plot1 + ggtitle("Number of UMIs vs cluster") + xlab("Cluster") + ylab(nCountCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
 
-boxplot_data_nFeature <- FetchData(scData, vars = c("nFeature_Spatial", "seurat_clusters"))
+boxplot_data_nFeature <- FetchData(scData, vars = c(nFeatureCol, "seurat_clusters"))
 boxplot_data_nFeature$seurat_clusters <- factor(boxplot_data_nFeature$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nFeature$seurat_clusters))))
-plot2 <- ggplot(boxplot_data_nFeature, aes(x = seurat_clusters, y = nFeature_Spatial, fill = seurat_clusters))
+plot2 <- ggplot(boxplot_data_nFeature, aes(x = seurat_clusters, y = nFeatureCol, fill = seurat_clusters))
 plot2 <- plot2 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
 plot2 <- plot2 + scale_fill_viridis_d(option = "turbo")  
-plot2 <- plot2 + ggtitle("Number of genes vs cluster") + xlab("Cluster") + ylab("nFeature_Spatial") + theme_minimal(base_size = 14) + theme(legend.position = "none")
+plot2 <- plot2 + ggtitle("Number of genes vs cluster") + xlab("Cluster") + ylab(nFeatureCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
 
 boxplot_data_mito <- FetchData(scData, vars = c("percent_mito", "seurat_clusters"))
 boxplot_data_mito$seurat_clusters <- factor(boxplot_data_mito$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_mito$seurat_clusters))))
