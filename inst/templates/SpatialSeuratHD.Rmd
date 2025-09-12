@@ -392,7 +392,7 @@ plot22 + plot23 + plot_layout(ncol = 4)
 )
 
 # One function to build each spatial plot consistently
-sp_plot <- function(obj, feature, pt.size.factor = 2,
+sp_plot <- function(obj, feature, title=feature, label=feature, pt.size.factor = 2,
                     min.cutoff = "q01", max.cutoff = "q99",
                     legend.pos = "right", palette = "turbo") {
   
@@ -408,8 +408,8 @@ sp_plot <- function(obj, feature, pt.size.factor = 2,
     max.cutoff   = max.cutoff
   ) +
     labs(
-      title = .pretty_title(feature),
-      fill  = .fill_label(feature)
+      title = title,
+      fill  = label
     ) +
     scale_fill_viridis_c(option = palette, 
                          na.value = "grey95") +
@@ -429,7 +429,7 @@ sp_plot <- function(obj, feature, pt.size.factor = 2,
 # Redone plots
 plot5 <- sp_plot(scData, nCountCol)
 plot6 <- sp_plot(scData, nFeatureCol)
-plot7 <- sp_plot(scData, "percent_mito")
+plot7 <- sp_plot(scData, "percent_mito", title="Mitochondrial percent", label="Mito %")
 plot8 <- if ("percent_riboprot" %in% c(rownames(scData), colnames(scData[[]]))) {
   sp_plot(scData, "percent_riboprot")
 } else {
