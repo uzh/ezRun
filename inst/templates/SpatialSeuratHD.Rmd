@@ -442,6 +442,9 @@ plot6 + plot8 + plot7 + plot5 + plot_layout(ncol = 2, nrow = 2)
 
 
 ```{r cell filter}
+
+cellFilter <- data.frame(criterion=character(0), rule=character(0))
+
 cellFilter <- data.frame(
   criterion = c(
     "Assumption — majority of cells are high-quality",
