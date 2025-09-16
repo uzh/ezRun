@@ -370,67 +370,74 @@ plot22 + plot23 + plot_layout(ncol = 4)
 #  toKeep <- rownames(scData.unfiltered_spatial@meta.data)[-which(is.nan(scData.unfiltered_spatial$percent_mito))]
 #  scData.unfiltered_spatial <- subset(scData.unfiltered_spatial, cells = toKeep)
 #}
-.pretty_title <- function(f) switch(
-  f,
-  nCountCol    = "UMI per spot",
-  nFeatureCol  = "Detected genes",
-  "percent_mito"            = "Mitochondrial percent",
-  "percent_riboprot"        = "Ribosomal protein percent",
-  f
-)
-.fill_label <- function(f) switch(
-  f,
-  nCountCol    = "UMI counts",
-  nFeatureCol  = "Genes",
-  "percent_mito"            = "Mito %",
-  "percent_riboprot"        = "Ribo %",
-  "Value"
-)
-
-# One function to build each spatial plot consistently
-sp_plot <- function(obj, feature, title=feature, label=feature, pt.size.factor = 2,
-                    min.cutoff = "q01", max.cutoff = "q99",
-                    legend.pos = "right", palette = "turbo") {
+sp_plot <- function(obj, 
+                    feature,
+                    title = feature,
+                    label = feature,
+                    pt.size.factor = 2,
+                    min.cutoff = "q01",
+                    max.cutoff = "q99",
+                    legend.pos = "right",
+                    palette = "turbo") {
   
   if (!feature %in% c(rownames(obj), colnames(obj[[]]))) {
     stop(sprintf("Feature '%s' not found in object (genes or meta.data).", feature))
   }
-  
-  p <- SpatialFeaturePlot(
-    object       = obj,
-    features     = feature,
+
+  SpatialFeaturePlot(
+    object         = obj,
+    features       = feature,
     pt.size.factor = pt.size.factor,
-    min.cutoff   = min.cutoff,
-    max.cutoff   = max.cutoff
+    min.cutoff     = min.cutoff,
+    max.cutoff     = max.cutoff
   ) +
-    labs(
-      title = title,
-      fill  = label
-    ) +
-    scale_fill_viridis_c(option = palette, 
-                         na.value = "grey95") +
+    
+    labs(title = title, fill = label) +
+    scale_fill_viridis_c(option = palette, na.value = "grey95") +
     theme_void() +
     theme(
       legend.position   = legend.pos,
-      plot.title        = element_text(size = 12, face = "bold", margin = margin(b = 4)),
+      plot.title        = element_text(size = 12, 
+                                       face = "bold", 
+                                       margin = margin(b = 4)),
       legend.title      = element_text(size = 8),
       legend.text       = element_text(size = 8),
       legend.key.height = unit(10, "pt"),
       legend.key.width  = unit(6, "pt")
     )
   
-  p
 }
 
-# Redone plots
-plot5 <- sp_plot(scData, nCountCol)
-plot6 <- sp_plot(scData, nFeatureCol)
-plot7 <- sp_plot(scData, "percent_mito", title="Mitochondrial percent", label="Mito %")
+plot5 <- sp_plot(
+  scData, nCountCol,
+  title = "UMI per spot",
+  label = "UMI counts"
+)
+
+plot6 <- sp_plot(
+  scData, 
+  nFeatureCol,
+  title = "Detected genes",
+  label = "Genes"
+)
+
+plot7 <- sp_plot(
+  scData, 
+  "percent_mito",
+  title = "Mitochondrial percent",
+  label = "Mito %"
+)
+
 plot8 <- if ("percent_riboprot" %in% c(rownames(scData), colnames(scData[[]]))) {
-  sp_plot(scData, "percent_riboprot")
+  sp_plot(
+    scData, "percent_riboprot",
+    title = "Ribosomal protein percent",
+    label = "Ribo %"
+  )
 } else {
   NULL
 }
+
 plot6 + plot8 + plot7 + plot5 + plot_layout(ncol = 2, nrow = 2)
 ```
 <br/>
