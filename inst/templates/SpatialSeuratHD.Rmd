@@ -440,8 +440,8 @@ plot6 + plot8 + plot7 + plot5 + plot_layout(ncol = 2, nrow = 2)
 ```{r cell filter}
 
 cellFilter <- tibble(
-  Criterion = character(),
-  Rule = character()
+  criterion = character(),
+  rule = character()
 ) |>
   add_row(
     criterion = "Assumption — majority of cells are high-quality",
@@ -758,8 +758,7 @@ kable_styling("striped", full_width = F, position = "left")
 param[c("binSize","npcs","pcGenes","resolution", "DE.method", "cellsFraction", "nUMIs", "nmad")]
 ```
 
-## SessionInfo
+
 ```{r, echo=FALSE}
 format(Sys.time(), '%Y-%m-%d %H:%M:%S')
-ezSessionInfo()
 ```
