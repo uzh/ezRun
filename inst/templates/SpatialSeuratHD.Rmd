@@ -1,34 +1,17 @@
 ---
-title: ""
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
-    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 <br>
-
-```{r title_data_author, include=FALSE}
-reportTitle <- if (exists("reportTitle")) reportTitle else "SUSHI Report"
-reportAuthor <- "Functional Genomics Center Zurich"
-reportDate <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-
-```
-
-<div style="text-align:center;">
-
-  <span style="font-size:28px; font-weight:bold;">`r reportTitle`</span>
-  &nbsp; | &nbsp;
-  <span style="font-size:18px;">`r reportAuthor`</span>
-  &nbsp; | &nbsp;
-  <span style="font-size:16px; color:#1D324D; font-weight:normal;">`r reportDate`</span>
-
-</div>
 
 ```{r setup, include=FALSE}
 library(Seurat)
@@ -62,14 +45,14 @@ output <- qs_read("output.qs2")
 scData <- qs_read("scData.qs2")
 scData.unfiltered_spatial <- qs_read("scData.unfiltered.qs2")
 imageName <- names(scData@images)
-nCountCol <- colnames(scData[[]])[grep(paste0('^nCount_Spatial.*'), colnames(scData[[]]))]
-nFeatureCol <- colnames(scData[[]])[grep(paste0('^nFeature_Spatial.*'), colnames(scData[[]]))]
+nCountCol <- grep('^nCount_Spatial.*', colnames(scData@meta.data), value=TRUE) %>% head(1)
+nFeatureCol <- grep('^nFeature_Spatial.*', colnames(scData@meta.data), value=TRUE) %>% head(1)
 
 allCellsMeta <- qs_read("allCellsMeta.qs2")
 sampleName <- input$getNames()
 
 if (file.exists("cellsPerGeneFraction.qs2")){
-    cellsPerGeneFraction <-  qs_read("cellsPerGeneFraction.qs2")
+  cellsPerGeneFraction <-  qs_read("cellsPerGeneFraction.qs2")
 } else {
   cellsPerGeneFraction <- NULL
 }
@@ -95,18 +78,23 @@ posMarkers$p_val_adj[posMarkers$p_val_adj==0] <- min(posMarkers$p_val_adj[posMar
 
 ```{r QC metrics}
 
-qcMetrics <- data.frame(
-  metric = c(
-    "Library size – total sum of counts across all relevant features for each spot",
-    "Number of expressed genes with non-zero counts in each spot",
-    "Mitochondrial proportion – percentage of reads mapping to mitochondrial genes in each spot"
-  ),
-  interpretation = c(
-    "Small library sizes → low quality (RNA may have been lost during library preparation)",
-    "Very few expressed genes → poor capture of the transcript population → low quality",
-    "High mitochondrial proportion → poor quality (loss of cytoplasmic RNA from perforated bins) (Islam et al. 2014; Ilicic et al. 2016)"
+qcMetrics <- tibble(
+  metric = character(),
+  interpretation = character()
+) |>
+  add_row(
+    metric = "Library size – total sum of counts across all relevant features for each spot",
+    interpretation = "Small library sizes → low quality (RNA may have been lost during library preparation)"
+  ) |>
+  add_row(
+    metric = "Number of expressed genes with non-zero counts in each spot",
+    interpretation = "Very few expressed genes → poor capture of the transcript population → low quality"
+  ) |>
+  add_row(
+    metric = "Mitochondrial proportion – percentage of reads mapping to mitochondrial genes in each spot",
+    interpretation = "High mitochondrial proportion → poor quality (loss of cytoplasmic RNA from perforated bins) (Islam et al. 2014; Ilicic et al. 2016)"
   )
-)
+
 
 datatable(
   qcMetrics,
@@ -131,22 +119,30 @@ datatable(
 
 ```{r diagnostics plots}
 
-qcDiagnostics <- data.frame(
-  check = c(
-    "Independence of QC metrics",
-    "Distribution of values",
-    "Secondary modes",
-    "Violin plots",
-    "Spatial plots"
-  ),
-  interpretation = c(
-    "QC metrics should reflect technical quality, not biological state (e.g., low library size or high mitochondrial proportion should not correspond to specific cell types).",
-    "Ideally, metrics follow a normal distribution, supporting threshold-based outlier detection.",
-    "A large secondary peak (another mode) suggests correlation with biology, risking loss of distinct cell types.",
-    "Show bins kept (`FALSE`) vs discarded (`TRUE`) after QC filtering, highlighting potential biases.",
-    "Visualize QC metrics across the tissue to detect spatial patterns of low quality."
+qcDiagnostics <- tibble(
+  check = character(),
+  interpretation = character()
+) |>
+  add_row(
+    check = "Independence of QC metrics",
+    interpretation = "QC metrics should reflect technical quality, not biological state (e.g., low library size or high mitochondrial proportion should not correspond to specific cell types)."
+  ) |>
+  add_row(
+    check = "Distribution of values",
+    interpretation = "Ideally, metrics follow a normal distribution, supporting threshold-based outlier detection."
+  ) |>
+  add_row(
+    check = "Secondary modes",
+    interpretation = "A large secondary peak (another mode) suggests correlation with biology, risking loss of distinct cell types."
+  ) |>
+  add_row(
+    check = "Violin plots",
+    interpretation = "Show bins kept (`FALSE`) vs discarded (`TRUE`) after QC filtering, highlighting potential biases."
+  ) |>
+  add_row(
+    check = "Spatial plots",
+    interpretation = "Visualize QC metrics across the tissue to detect spatial patterns of low quality."
   )
-)
 
 datatable(
   qcDiagnostics,
@@ -392,7 +388,7 @@ plot22 + plot23 + plot_layout(ncol = 4)
 )
 
 # One function to build each spatial plot consistently
-sp_plot <- function(obj, feature, pt.size.factor = 2,
+sp_plot <- function(obj, feature, title=feature, label=feature, pt.size.factor = 2,
                     min.cutoff = "q01", max.cutoff = "q99",
                     legend.pos = "right", palette = "turbo") {
   
@@ -408,8 +404,8 @@ sp_plot <- function(obj, feature, pt.size.factor = 2,
     max.cutoff   = max.cutoff
   ) +
     labs(
-      title = .pretty_title(feature),
-      fill  = .fill_label(feature)
+      title = title,
+      fill  = label
     ) +
     scale_fill_viridis_c(option = palette, 
                          na.value = "grey95") +
@@ -429,7 +425,7 @@ sp_plot <- function(obj, feature, pt.size.factor = 2,
 # Redone plots
 plot5 <- sp_plot(scData, nCountCol)
 plot6 <- sp_plot(scData, nFeatureCol)
-plot7 <- sp_plot(scData, "percent_mito")
+plot7 <- sp_plot(scData, "percent_mito", title="Mitochondrial percent", label="Mito %")
 plot8 <- if ("percent_riboprot" %in% c(rownames(scData), colnames(scData[[]]))) {
   sp_plot(scData, "percent_riboprot")
 } else {
@@ -442,24 +438,35 @@ plot6 + plot8 + plot7 + plot5 + plot_layout(ncol = 2, nrow = 2)
 
 
 ```{r cell filter}
-cellFilter <- data.frame(
-  criterion = c(
-    "Assumption — majority of cells are high-quality",
-    "Fixed thresholds (if provided)",
-    "Adaptive: library size (nreads)",
-    "Adaptive: detected genes (ngenes)",
-    "Adaptive: mitochondrial proportion (perc_mito)",
-    "Gene-level prevalence filter"
-  ),
-  rule = c(
-    "Enables data-driven thresholds using QC metrics without detailed protocol knowledge.",
-    "If `nreads`, `ngenes`, or `perc_mito` are supplied, use those fixed cutoffs for filtering.",
-    "Exclude cells with library size < median − 3 × MAD.",
-    "Exclude cells with detected genes < median − 3 × MAD.",
-    "Exclude cells with mito % > median + 3 × MAD.",
-    "Keep genes present in ≥ N cells (or ≥ p% of cells); drop low-prevalence genes."
+
+cellFilter <- tibble(
+  criterion = character(),
+  rule = character()
+) |>
+  add_row(
+    criterion = "Assumption — majority of cells are high-quality",
+    rule = "Enables data-driven thresholds using QC metrics without detailed protocol knowledge."
+  ) |>
+  add_row(
+    criterion = "Fixed thresholds (if provided)",
+    rule = "If `nreads`, `ngenes`, or `perc_mito` are supplied, use those fixed cutoffs for filtering."
+  ) |>
+  add_row(
+    criterion = "Adaptive: library size (nreads)",
+    rule = "Exclude cells with library size < median − 3 × MAD."
+  ) |>
+  add_row(
+    criterion = "Adaptive: detected genes (ngenes)",
+    rule = "Exclude cells with detected genes < median − 3 × MAD."
+  ) |>
+  add_row(
+    criterion = "Adaptive: mitochondrial proportion (perc_mito)",
+    rule = "Exclude cells with mito % > median + 3 × MAD."
+  ) |>
+  add_row(
+    criterion = "Gene-level prevalence filter",
+    rule = "Keep genes present in ≥ N cells (or ≥ p% of cells); drop low-prevalence genes."
   )
-)
 
 datatable(
   cellFilter,
@@ -752,7 +759,6 @@ param[c("binSize","npcs","pcGenes","resolution", "DE.method", "cellsFraction", "
 ```
 
 
-### SessionInfo
 ```{r, echo=FALSE}
-ezSessionInfo()
+format(Sys.time(), '%Y-%m-%d %H:%M:%S')
 ```
