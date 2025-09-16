@@ -80,46 +80,6 @@ posMarkers$p_val_adj[posMarkers$p_val_adj==0] <- min(posMarkers$p_val_adj[posMar
 ```
 
 
-```{r QC metrics}
-
-qcMetrics <- tibble(
-  metric = character(),
-  interpretation = character()
-) |>
-  add_row(
-    metric = "Library size – total sum of counts across all relevant features for each spot",
-    interpretation = "Small library sizes → low quality (RNA may have been lost during library preparation)"
-  ) |>
-  add_row(
-    metric = "Number of expressed genes with non-zero counts in each spot",
-    interpretation = "Very few expressed genes → poor capture of the transcript population → low quality"
-  ) |>
-  add_row(
-    metric = "Mitochondrial proportion – percentage of reads mapping to mitochondrial genes in each spot",
-    interpretation = "High mitochondrial proportion → poor quality (loss of cytoplasmic RNA from perforated bins) (Islam et al. 2014; Ilicic et al. 2016)"
-  )
-
-
-datatable(
-  qcMetrics,
-  class = 'compact cell-border stripe', #or 'cell-border stripe'
-  caption = htmltools::tags$caption(
-    style = 'caption-side: top; text-align: left; font-weight: bold; font-size: 16px;',
-    "QC Metrics Used to Identify Low-Quality Bins"
-  ),
-  escape = FALSE,
-  rownames = FALSE,
-  colnames = rep("", ncol(qcMetrics)),
-  options = list(
-    autoWidth = TRUE,
-    dom = 't'  
-  )
-) |> 
-  formatStyle(
-    columns = names(qcMetrics)  
-  )
-
-```
 
 ```{r diagnostics plots}
 
@@ -180,7 +140,7 @@ scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
 ```
 
 
-```{r QC plots1, out.width="100%", fig.width=8, fig.height=2.5}
+```{r QC plots1,  fig.width=12, fig.height=4}
 plot1 <- plotColData(
   xxAll,
   x = "Sample",
@@ -236,7 +196,7 @@ plot3 <- plotColData(
     axis.ticks.x = element_blank()
   )
 
-plot1 + plot2 + plot3 + plot_layout(ncol = 4)
+plot1 + plot2 + plot3 + plot_layout(ncol = 3)
 ```
 
 ```{r genes by count, out.width="100%", fig.width=8, fig.height=2.5}
@@ -809,15 +769,15 @@ ggplot(plot_df, aes(x = cumu,
   scale_color_manual(
     values = c("FALSE" = "#2B7A78", "TRUE" = "#1E88E5"),
     breaks = c(FALSE, TRUE),
-    labels = c(paste0("PC \u2264 ", k), paste0("PC > ", k)),
+    labels = c(paste0("PC % ", k), paste0("PC > ", k)),
     name   = NULL
   ) +
   
   labs(
-    title    = "PCA variance explained",
+    title    = "PCA percent variance explained",
     subtitle = paste0(mode, "; k = ", k, " (variance used at k shown)"),
-    x = "Cumulative % explained",
-    y = "Per-PC % explained"
+    x = "Cumulative % ",
+    y = "Per PC %"
   ) +
   
   annotate(
@@ -833,6 +793,46 @@ ggplot(plot_df, aes(x = cumu,
 ```
 
 
+```{r QC metrics}
+
+qcMetrics <- tibble(
+  metric = character(),
+  interpretation = character()
+) |>
+  add_row(
+    metric = "Library size – total sum of counts across all relevant features for each spot",
+    interpretation = "Small library sizes → low quality (RNA may have been lost during library preparation)"
+  ) |>
+  add_row(
+    metric = "Number of expressed genes with non-zero counts in each spot",
+    interpretation = "Very few expressed genes → poor capture of the transcript population → low quality"
+  ) |>
+  add_row(
+    metric = "Mitochondrial proportion – percentage of reads mapping to mitochondrial genes in each spot",
+    interpretation = "High mitochondrial proportion → poor quality (loss of cytoplasmic RNA from perforated bins) (Islam et al. 2014; Ilicic et al. 2016)"
+  )
+
+
+datatable(
+  qcMetrics,
+  class = 'compact cell-border stripe', #or 'cell-border stripe'
+  caption = htmltools::tags$caption(
+    style = 'caption-side: top; text-align: left; font-weight: bold; font-size: 16px;',
+    "QC Metrics Used to Identify Low-Quality Bins"
+  ),
+  escape = FALSE,
+  rownames = FALSE,
+  colnames = rep("", ncol(qcMetrics)),
+  options = list(
+    autoWidth = TRUE,
+    dom = 't'  
+  )
+) |> 
+  formatStyle(
+    columns = names(qcMetrics)  
+  )
+
+```
 
 ## Clustering
 
