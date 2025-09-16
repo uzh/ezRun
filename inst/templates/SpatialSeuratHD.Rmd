@@ -33,6 +33,7 @@ library(scater)
 library(ggtext)
 library(grid) 
 library(htmltools)
+library(patchwork)
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
@@ -834,9 +835,86 @@ ggplot(plot_df, aes(x = cumu,
 
 ### Clustering
 
-In order to find clusters of bins we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the bins involved, with higher weight given to bins that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of bins that are more connected to bins in the same community than they are to bins of different communities. Each community represents a cluster that we can use for downstream interpretation. 
+```{r}
+npcs_txt <- sprintf("%s PCs", param$npcs)
 
-We can visualize the distribution of clusters in UMAP and image space. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
+cluster_tbl <- tibble(
+  Step = character(),
+  Details = character()
+) |>
+  add_row(
+    Step = "Build KNN graph",
+    Details = paste(
+      "Each node = bin (cell).",
+      sprintf("Connect each bin to its k nearest neighbors in %s space.", npcs_txt),
+      "Distance usually Euclidean (on PCs) or cosine.",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Edge weighting",
+    Details = paste(
+      "Edges weighted by similarity (e.g., shared nearest neighbors/Jaccard).",
+      "Higher weight = more similar bins.",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Community detection",
+    Details = paste(
+      "Apply a community detection algorithm (e.g., Leiden/Louvain) on the KNN graph.",
+      "Find groups more connected internally than externally.",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Cluster labels",
+    Details = paste(
+      "Each community becomes a cluster ID per bin.",
+      "Used for downstream interpretation (markers, enrichment, etc.).",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Visualization",
+    Details = paste(
+      "Plot clusters on UMAP and in image space to assess structure.",
+      "Do not run statistical analyses directly on UMAP coordinates;",
+      "use them for QC/visual inspection (e.g., neighboring subclusters, potential splits).",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Best practices & caveats",
+    Details = paste(
+      sprintf("Tune parameters: k (neighbors), resolution (Leiden/Louvain), and %s.", npcs_txt),
+      "Check stability (seeds/subsampling) and biological plausibility.",
+      "Beware tiny clusters (may be noise) and batch/spatial artifacts.",
+      sep = "\n"
+    )
+  )
+
+
+datatable(
+  cluster_tbl,
+  class   = "cell-border stripe",
+  caption = tags$caption(
+    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
+    "Graph-based clustering overview (KNN → communities → clusters)"
+  ),
+  rownames = FALSE,
+  options  = list(
+    autoWidth = TRUE,
+    dom = "t"
+  )
+) |>
+  formatStyle(
+    columns = names(cluster_tbl),
+    `white-space`   = "pre-wrap",
+    `vertical-align`= "top"
+  )
+```
+
 
 ```{r, fig.height=8, fig.width=20}
 scData$seurat_clusters <- Idents(scData)
