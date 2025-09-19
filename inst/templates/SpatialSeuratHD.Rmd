@@ -917,16 +917,19 @@ datatable(
 `r paste("Cluster result using Resolution:", param$resolution)`
 
 ```{r, fig.height=8, fig.width=16}
+
+n_clusters <- nlevels(Idents(scData))
+show_leg   <- n_clusters <= 20
+
 scData$seurat_clusters <- Idents(scData)
 
-
-p1 <- DimPlot(scData, 
-              label = FALSE, 
+p1 <- DimPlot(scData,
+              label = FALSE,
               pt.size = 1.5) +
   labs(color = "Clusters") +
-  theme_void() +                    
-  guides(color = "none") + ggtitle("UMAP")            
-
+  theme_void() +
+  guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
+  ggtitle("UMAP")
 
 p1 <- Seurat::LabelClusters(
   plot     = p1,
@@ -940,19 +943,19 @@ p2 <- SpatialDimPlot(scData,
                      label = TRUE,
                      label.size = 4,
                      pt.size.factor = 2) +
-  labs(fill = "Clusters")
+  labs(fill = "Clusters") +
+  guides(fill = if (show_leg) guide_legend(title = "Clusters") else "none")
 
 
 (p1 + p2) +
-  plot_layout(nrow = 1, guides = "collect") +
+  plot_layout(nrow = 1, guides = if (show_leg) "collect" else "keep") +
   plot_annotation(
     theme = theme(
       plot.caption = element_text(size = 9, hjust = 1, colour = "#6B6B6B"),
       plot.margin  = margin(t = 4, r = 8, b = 8, l = 8)
     )
   ) &
-  theme(legend.position = "right")   
-
+  theme(legend.position = if (show_leg) "right" else "none")
 
 ```
 
@@ -1163,8 +1166,6 @@ datatable(
 
 #### Segregation of clusters by various sources of uninteresting variation.
 
-Once we have created the clusters we need to assess if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial or ribosomal gene expression.
-We can explore whether the bins cluster by the different cell cycle phases. In such a case, we would have clusters where most of the bins would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
 ```{r uninteresting variation, fig.height=16, fig.width=18}
 boxplot_data_nCount <- FetchData(scData, vars = c(nCountCol, "seurat_clusters"))
@@ -1191,8 +1192,15 @@ plot3 <- plot3 + ggtitle("Mitochondrial percentage vs cluster") + xlab("Cluster"
 plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
 ```
 
+Once we have created the clusters we need to assess if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial or ribosomal gene expression.
+We can explore whether the bins cluster by the different cell cycle phases. In such a case, we would have clusters where most of the bins would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
 ## Cluster markers
+
+```{r pos markers}
+ezInteractiveTableRmd(data.frame(posMarkers)) |> 
+  DT::formatSignif(c("pct.1", "pct.2", "avg_log2FC", "p_val_adj", "diff_pct"), digits = 3)
+```
 
 ```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
 cat("We found positive markers that defined clusters compared to all other bins via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the bins in the tested cluster and the rest of the bins and an adjusted p-value < 0.05 were declared as significant.")
@@ -1200,11 +1208,6 @@ cat("We found positive markers that defined clusters compared to all other bins 
 
 ```{r LR test, eval=(param$DE.method=="LR"), results='asis'}
 cat("We found positive markers that defined clusters compared to all other bins via differential expression using a logistic regression test and including in the model the cell cycle as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the bins in the tested cluster and the rest of the bins and an adjusted p-value < 0.05 were declared as significant.")
-```
-
-```{r pos markers}
-ezInteractiveTableRmd(data.frame(posMarkers)) |> 
-  DT::formatSignif(c("pct.1", "pct.2", "avg_log2FC", "p_val_adj", "diff_pct"), digits = 3)
 ```
 
 ## EnrichR
@@ -1226,7 +1229,8 @@ jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
                          "'>Analyse at Enrichr website</a>")
 ```
-
+::: {.row}
+::: {.col-md-3}
 
 ```{r enrichr markers, echo=FALSE, results='asis'}
 enrichrTable <- tibble(Cluster=names(genesPerCluster),
@@ -1242,10 +1246,34 @@ if (!is.null(enrichRout)){
   enrichRTerm <- dcast(enrichRTerm, ... ~ database)
   enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
 }
-kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment")) %>%
-kable_styling("striped", full_width = F, position = "left")
+
+datatable(
+  enrichrTable,
+  class   = "cell-border stripe compact",
+  caption = htmltools::tags$caption(
+    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
+    "Enrichment"
+  ),
+  rownames   = FALSE,
+  escape     = FALSE,
+  filter     = "none",
+  options    = list(
+    paging       = TRUE,
+    pageLength   = 15,      
+    dom          = "tip",    
+    autoWidth    = TRUE,
+    fixedColumns = list(leftColumns = 1),
+    columnDefs   = list(list(className = "dt-left", targets = 0))
+  )
+) 
+
+# kable(enrichrTable, format="html", escape=FALSE,
+#         caption=paste0("GeneSet enrichment")) %>%
+# kable_styling("striped", full_width = F, position = "left")
 ```
+
+:::
+:::
 
 ## Data availability
 
