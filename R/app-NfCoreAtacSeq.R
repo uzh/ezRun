@@ -47,14 +47,14 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     grouping <- input$getColumn(param$grouping)
     dds <- getDdsFromConcensusPeaks(output, param, grouping)
     outDir <- file.path(basename(output$getColumn('Result')), 'diffpeak_analysis')
-    if(!dir.exists(outDir)) dir.create(outDir, recursive = TRUE)
+    cd = getwd()
     setwdNew(outDir)
-
     makeRmdReport(
       output = output, param = param, peakAnno=peakAnno, dds=dds, selfContained = TRUE,
       rmdFile = "DiffPeak.Rmd", htmlFile = "DifferentialPeakAnalysisReport.html",
       reportTitle = 'Differential Peak Analysis', use.qs2 = TRUE
     )
+    setwd(cd)
   }
   return("Success")
 }
