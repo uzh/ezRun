@@ -56,6 +56,15 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     )
     setwd(cd)
   }
+
+  dirsToRemove <- c("genome", "trimgalore", "fastqc")
+  if(ezIsSpecified(param$keepBams)){
+    keepBams <- param$keepBams
+  } else {
+    keepBams <- TRUE
+  }
+  cleanupOutFolder(outFolder, dirsToRemove, keepBams)
+
   return("Success")
 }
 
@@ -136,4 +145,13 @@ getDdsFromConcensusPeaks <- function(output, param, grouping){
   design(dds) <- ~ Condition
 
   return(dds)  
+}
+
+cleanupOutFolder <- function(outFolder, dirs_to_remove, keepBams=TRUE){
+  if(!keepBams){
+    bamPath <- paste0(outFolder,"/bwa/merged_library/")
+    bamsToDelete <- dir(path=bamPath, pattern="*.bam*")
+    file.remove(file.path(bamPath, bamsToDelete))
+    cat("Deleted bam and bam.bai files form bwa directory.\n")
+  }
 }
