@@ -1203,7 +1203,8 @@ cat("We found positive markers that defined clusters compared to all other bins 
 ```
 
 ```{r pos markers}
-ezInteractiveTableRmd(data.frame(posMarkers), digits=10)
+ezInteractiveTableRmd(data.frame(posMarkers)) |> 
+  DT::formatSignif(c("pct.1", "pct.2", "avg_log2FC", "p_val_adj", "diff_pct"), digits = 3)
 ```
 
 ## EnrichR
