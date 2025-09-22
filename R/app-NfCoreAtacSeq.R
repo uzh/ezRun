@@ -149,8 +149,8 @@ getDdsFromConcensusPeaks <- function(output, param, grouping){
 
 cleanupOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
   if(!keepBams){
-    bamPath <- paste0(outFolder,"/bwa/merged_library/")
-    bamsToDelete <- dir(path=bamPath, pattern="*.bam*")
+    bamPath <- paste0(outFolder,"/bwa/")
+    bamsToDelete <- dir(path=bamPath, pattern="*.bam(.bai)?$", recursive=TRUE)
     file.remove(file.path(bamPath, bamsToDelete))
     cat("Deleted bam and bam.bai files form bwa directory.\n")
   }
