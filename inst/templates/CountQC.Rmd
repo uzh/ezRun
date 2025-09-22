@@ -463,8 +463,8 @@ if(file.exists("cluster-heatmap-clusterMembers.txt")){
 }
 ```
 
-### Evaluate number of gene clusters
-
+<details>
+<summary>**Evaluate number of gene clusters **</summary>
 Multiple metrics were computed for a comprehensive assessment.
 
 * Compactness: Dunn Index, CH Index
@@ -549,6 +549,7 @@ if(length(varFeatures) > param$minGenesForClustering){
     )
 }
 ```
+</details>
 
 ## MDS Plot
 ```{r MDS section, echo=FALSE, results='asis', message=FALSE, eval=TRUE}
