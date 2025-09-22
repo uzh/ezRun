@@ -11,7 +11,12 @@ editor_options:
   chunk_output_type: inline
 ---
 
-<br>
+# {.tabset}
+
+## Quality control
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 
 ```{r setup, include=FALSE}
 library(Seurat)
@@ -32,6 +37,10 @@ library(DT)
 library(scater)
 library(ggtext)
 library(grid) 
+library(htmltools)
+library(patchwork)
+library(scales)
+library(UpSetR)
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
@@ -72,9 +81,580 @@ if (any(is.na(clusterSet))){
 posMarkers$p_val_adj[posMarkers$p_val_adj==0] <- min(posMarkers$p_val_adj[posMarkers$p_val_adj>0])
 ```
 
-## Analysis results {.tabset}
 
-### Quality control
+
+
+```{r}
+xxAll <- SingleCellExperiment(colData = allCellsMeta)
+xxAll$discard <- !xxAll$useCell
+colData(xxAll)$Sample<- sampleName
+scData.unfiltered <- CreateSeuratObject(ezMatrix(0, rows=1:10, cols=rownames(allCellsMeta)), meta.data = allCellsMeta)
+scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
+```
+
+```{r}
+fix_rgb_order_by_means <- function(obj, 
+                                   img_name = Images(obj)[1],
+                                   eps = 0.02, 
+                                   margin = 0.01) {
+  
+  arr <- as.array(obj@images[[img_name]]@image)
+
+  # Normalize if stored as 8/16-bit (no-op if already 0..1)
+  mx <- suppressWarnings(max(arr, na.rm = TRUE)); if (!is.finite(mx) || mx == 0) mx <- 1
+  if (mx > 1) arr <- arr / mx
+
+  # If RGBA: composite over white, drop alpha
+  if (length(dim(arr)) == 3 && dim(arr)[3] == 4) {
+    A <- arr[,,4]; RGB <- arr[,,1:3]
+    for (k in 1:3) RGB[,,k] <- RGB[,,k]*A + (1 - A)
+    arr <- RGB
+  }
+  stopifnot(length(dim(arr)) == 3, dim(arr)[3] >= 3)
+  arr <- arr[,,1:3, drop = FALSE]
+
+  # Mask out near-black background; keep pixels with any channel > eps
+  mask <- apply(arr > eps, c(1,2), any)
+  if (!any(mask)) mask <- matrix(TRUE, nrow = dim(arr)[1], ncol = dim(arr)[2])
+
+  mR <- mean(arr[,,1][mask], na.rm = TRUE)
+  mB <- mean(arr[,,3][mask], na.rm = TRUE)
+
+  # If blue dominates red by more than a small margin => swap BGR->RGB
+  if (is.finite(mR) && is.finite(mB) && (mB > mR + margin)) {
+    arr <- arr[,,c(3,2,1), drop = FALSE]
+    chosen <- "BGR->RGB (swapped)"
+  } else {
+    chosen <- "RGB (kept as-is)"
+  }
+
+  obj@images[[img_name]]@image <- arr
+  message(sprintf("Channel order decided by means on tissue: R=%.3f, B=%.3f -> %s",
+                  mR, mB, chosen))
+  obj
+}
+
+img_name <- Images(scData)[1]
+
+scData   <- fix_rgb_order_by_means(scData, 
+                                   img_name, 
+                                   eps = 0.02, 
+                                   margin = 0.01)
+
+
+```
+
+
+```{r template for spatialFeaturePlot}
+
+
+sp_plot <- function(obj,
+                    feature,
+                    title = feature,
+                    label = feature,
+                    pt.size.factor = 2,
+                    min.cutoff = "q01",
+                    max.cutoff = "q99",
+                    legend.pos = "right",
+                    palette = "turbo",
+                    ...) {
+
+  SpatialFeaturePlot(
+    object         = obj,
+    features       = feature,
+    pt.size.factor = pt.size.factor,
+    min.cutoff     = min.cutoff,
+    max.cutoff     = max.cutoff,
+    ...                   
+  ) +
+    labs(title = title, fill = label) +
+    scale_fill_viridis_c(option = palette, 
+                         na.value = "grey95") +
+    theme_void() +
+    theme(
+      legend.position   = legend.pos,
+      plot.title        = element_text(size = 12, 
+                                       face = "bold", 
+                                       margin = margin(b = 4)),
+      legend.title      = element_text(size = 8),
+      legend.text       = element_text(size = 8),
+      legend.key.height = unit(10, "pt"),
+      legend.key.width  = unit(6, "pt")
+    )
+
+}
+
+#if(any(is.nan(scData.unfiltered_spatial$percent_mito))){
+#  toKeep <- rownames(scData.unfiltered_spatial@meta.data)[-which(is.nan(scData.unfiltered_spatial$percent_mito))]
+#  scData.unfiltered_spatial <- subset(scData.unfiltered_spatial, cells = toKeep)
+#}
+```
+
+
+#### Diagnostic plots
+
+```{r 1st line of plots, fig.width=12, fig.height=4}
+
+plot1 <- plotColData(
+  xxAll, x = "Sample", 
+  y = nCountCol, 
+  colour_by = "discard"
+) +
+  scale_y_log10() +
+  labs(title = "UMI counts", y = "UMI counts per spot") +
+  theme(
+    legend.position = "top",
+    axis.title.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+
+plot2 <- sp_plot(
+  scData, nCountCol,
+  title = "UMI per spot",
+  label = "UMI counts"
+)
+
+plot3 <- sp_plot(
+  scData, nCountCol,
+  title  = "Raw image",
+  label  = NULL,
+  images = img_name,
+  alpha  = c(0, 0)
+) + guides(fill = "none")
+
+plot <- sp_plot(
+  scData, 
+  nCountCol,
+  title  = "Microscopy image",
+  label  = NULL,
+  images = img_name,
+  alpha  = c(0, 0)
+) + guides(fill = "none")
+
+plot1 + plot2 + plot3
+
+```
+
+
+```{r 2nd line of plots, fig.width=12, fig.height=4}
+plot4 <- plotColData(
+  xxAll,
+  x = "Sample",
+  y = nFeatureCol,
+  colour_by = "discard"
+) +
+  labs(
+    title = "Detected genes",
+    y = "Number of detected genes"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.title.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+
+plot5 <- sp_plot(
+  scData, 
+  nFeatureCol,
+  title = "",
+  label = "Genes"
+)
+
+plot6 <- plotColData(
+  xxAll,
+  x = nCountCol,
+  y = nFeatureCol,
+  colour_by = "discard"
+) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    title = "",
+    x = "UMI counts",
+    y = "Detected genes"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+
+plot4 + plot5 + plot6
+
+```
+
+
+```{r 3th line of plots, fig.width=12, fig.height=4}
+
+plot7 <- plotColData(
+  xxAll,
+  x = "Sample",
+  y = "percent_mito",
+  colour_by = "discard"
+) +
+  labs(
+    title = "Mito percent",
+    y = "Percent mitochondrial reads"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.title.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank(),
+    plot.margin = margin(2, 2, 2, 2) 
+    )
+
+plot8 <- sp_plot(
+  scData, 
+  "percent_mito",
+  title = "",
+  label = "Mito %"
+)
+
+
+plot9 <- plotColData(
+  xxAll,
+  x = nCountCol,
+  y = "percent_mito",
+  colour_by = "discard"
+) +
+  scale_x_log10() +
+  labs(
+    x = "UMI counts",
+    y = "Percent mitochondrial reads"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank(),
+    plot.margin = margin(2, 2, 2, 2) 
+  )
+
+
+
+plot7 + plot8 + plot9
+
+```
+
+```{r 4th line of plots, fig.width=12, fig.height=4}
+
+if (!is.null(xxAll$percent_riboprot)) {
+
+   plot10 <- plotColData(
+      xxAll,
+      x = "Sample",
+      y = "percent_riboprot",
+      colour_by = "discard"
+    ) +
+      labs(
+        title = "Ribosomal percent",
+        y = "Percent ribosomal protein reads"
+      ) +
+      theme(
+        legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank()
+      )
+  
+  
+    plot11 <- if ("percent_riboprot" %in% c(rownames(scData), colnames(scData[[]]))) {
+      sp_plot(
+        scData, "percent_riboprot",
+        title = "",
+        label = "Ribo %"
+      )
+    } else {
+      NULL
+    }
+     
+    plot12 <- plotColData(
+      xxAll,
+      x = nCountCol,
+      y = "percent_riboprot",
+      colour_by = "discard"
+    ) +
+      scale_x_log10() +
+      labs(
+        x = "UMI counts",
+        y = "Percent ribosomal protein reads"
+      ) +
+      theme(
+        legend.position = "none",
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank()
+      )
+  
+}
+
+plot10 + plot11 + plot12
+
+```
+
+```{r genes by count, fig.width=12, fig.height=6, include=FALSE}
+
+#xxAll$genePerCount <- xxAll[[nFeatureCol]] / xxAll[[nCountCol]]
+
+# plot13 <- plotColData(
+#   xxAll,
+#   x = "Sample",
+#   y = "genePerCount",
+#   colour_by = "discard"
+# ) +
+#   labs(
+#     title = "Genes per UMI",
+#     y = "Gene/UMI ratio"
+#   ) +
+#   theme(
+#     legend.position = "none", 
+#     axis.title.x = element_blank(),
+#     axis.ticks.y = element_blank(),
+#     axis.ticks.x = element_blank()
+#   )
+# 
+# plot14 <- plotColData(
+#   xxAll,
+#   x = nCountCol,
+#   y = "genePerCount",
+#   colour_by = "discard"
+# ) +
+#   scale_x_log10() +
+#   xlim(1, 10000) +
+#   ylim(0.2, 0.8) +
+#   labs(
+#     title = "Gene/UMI ratio vs UMIs",
+#     x = "UMI counts",
+#     y = "Gene/UMI ratio"
+#   ) +
+#   theme(
+#     legend.position = "none", 
+#     axis.ticks.y = element_blank(),
+#     axis.ticks.x = element_blank()
+#   )
+# 
+# 
+# plot13 + plot14
+
+```
+
+
+### Bins filtering
+
+<div class = "row">
+<div class = "col-md-6">
+
+```{r low quality Bins, fig.align='center'}
+
+qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
+qcList <- qcList[sapply(qcList, length) > 0]
+if (length(qcList) > 1){
+  UpSetR::upset(fromList(qcList), nsets = 5)
+}
+```
+</div>
+
+<div class = "col-md-6">
+```{r echo=FALSE, fig.align='center'}
+qcStats <- ezFrame("Number of Bins"=integer(0), 
+                   "Min Pass Value"=integer(0), 
+                   "Max Pass Value"=integer(0), 
+                   Fraction = integer(0))
+qcStats[ "Library Size", ] <- c(
+  c(sum(allCellsMeta$qc.lib), range(allCellsMeta[[nCountCol]][allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.lib)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Expressed genes", ] <- c(
+  c(sum(allCellsMeta$qc.nexprs), range(allCellsMeta[[nFeatureCol]][allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.nexprs)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Mitochondrial Percent", ] <- c(
+  c(sum(allCellsMeta$qc.mito), range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.mito)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Ribosomal protein Percent", ] <- c(
+  c(sum(allCellsMeta$qc.ribo), range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.ribo)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Total removed (thresholding)", ] <- c(
+  sum(!allCellsMeta$useCell), 
+  NA, 
+  NA, 
+  round(sum(!allCellsMeta$useCell)/nrow(allCellsMeta), 2)
+)
+qcStats[ "Total removed (manual)", ] <- c(
+  sum(allCellsMeta$useCell) - ncol(scData), 
+  NA, 
+  NA, 
+  round((sum(allCellsMeta$useCell) - ncol(scData))/nrow(allCellsMeta), 2)
+)
+qcStats[ "Bins remaining", ] <- c(
+  sum(ncol(scData)), 
+  NA, 
+  NA, 
+  round(sum(ncol(scData))/nrow(allCellsMeta), 2)
+)
+
+qc_tbl <- cbind(Metric = rownames(qcStats), as.data.frame(qcStats), row.names = NULL)
+
+dt <- datatable(
+  qc_tbl,
+  class   = "cell-border stripe",
+  caption = tags$caption(
+    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
+    "Number of Bins removed"
+  ),
+  escape   = FALSE,
+  rownames = FALSE,
+  options  = list(
+    autoWidth = TRUE,
+    dom = "t"
+  )
+) |>
+  formatRound(
+    columns = which(map_lgl(qc_tbl, is.numeric)),
+    digits = 0
+  )
+
+htmlwidgets::prependContent(
+  dt,
+  tags$style(HTML("table.dataTable tbody td:empty::before{content:'-'; color:#6c757d;}"))
+)
+```
+</div>
+</div>
+
+
+#### Gene filtering
+
+```{r, fig.width=14}
+
+# tot  <- nrow(cellsPerGeneFraction)
+# kept <- nrow(scData)
+# pct  <- if (tot > 0) 100 * kept / tot else NA_real_
+# 
+# cat(sprintf(
+#   "Total genes: %s | Genes kept: %s (%s)\n",
+#   format(tot,  big.mark = ","),
+#   format(kept, big.mark = ","),
+#   if (is.na(pct)) "n/a" else sprintf("%.1f%%", pct)
+# ))
+
+if (!is.null(cellsPerGeneFraction) &&
+    nrow(cellsPerGeneFraction) > 0 &&
+    "frac" %in% names(cellsPerGeneFraction)) {
+
+  thr <- param$cellsFraction
+  thr_lab <- scales::percent(thr, accuracy = 0.1)
+
+  tot  <- nrow(cellsPerGeneFraction)
+  kept <- sum(cellsPerGeneFraction$frac >= thr, na.rm = TRUE)
+  rem  <- tot - kept
+  kept_pct <- if (tot > 0) 100*kept/tot else NA_real_
+  rem_pct  <- if (tot > 0) 100*rem/tot  else NA_real_
+
+  ggplot(cellsPerGeneFraction, aes(x = frac)) +
+    geom_histogram(
+      aes(y = after_stat(density)),
+      binwidth = 0.005, boundary = 0, closed = "left",
+      colour = "grey25", fill = "white"
+    ) +
+    geom_density(alpha = 0.2, fill = "#00CED1", linewidth = 0.8) +
+    geom_vline(xintercept = thr, colour = "#4A90E2", linetype = "dashed", linewidth = 0.8) +
+    annotate(
+      "label",
+      x = thr, y = Inf, vjust = 1.2, hjust = -0.05,
+      label = paste0("Threshold = ", thr_lab),
+      fill = "grey95", label.size = 0.2
+    ) +
+    scale_x_continuous(
+      name   = "Gene prevalence across bins",
+      labels = scales::percent_format(accuracy = 1),
+      limits = c(0, 1), breaks = seq(0, 1, 0.1)
+    ) +
+    labs(
+      y = "Density",
+      title = "Fractions",
+      caption = sprintf(
+        "Total genes: %s | Kept: %s (%.1f%%) | Removed: %s (%.1f%%)",
+        format(tot, big.mark=","), format(kept, big.mark=","), kept_pct,
+        format(rem, big.mark=","), rem_pct
+      )
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      panel.grid.minor = element_blank(),
+      plot.title.position = "plot",
+      plot.caption.position = "plot",
+      plot.margin = margin(t = 5, r = 5, b = 5, l = 5)
+    ) +
+    coord_cartesian(clip = "off")
+
+  
+}
+```
+
+<br>
+
+##### Dimensionality reduction
+
+
+
+```{r, fig.width=10}
+# --- SETTINGS ---------------------------------------------------------------
+pca_name <- if ("pca.sketch" %in% names(scData@reductions)) "pca.sketch" else "pca"
+
+k <- param$npcs 
+
+top_n <- 80                  
+
+stdev <- scData[[pca_name]]@stdev %>% head(top_n)
+
+
+pct  <- ((stdev^2) / sum(stdev^2)) * 100        
+mode <- sprintf("Variance-normalized%s", 
+                       paste0(", top ", length(stdev), " PCs"))
+
+
+cumu    <- cumsum(pct)
+plot_df <- data.frame(pct = pct, cumu = cumu, rank = seq_along(pct))
+
+ggplot(plot_df, aes(x = cumu, 
+                    y = pct, 
+                    label = rank, 
+                    color = rank > k)) +
+  geom_point(size = 1.6) +
+  geom_text(vjust = -0.8, size = 2) +
+  geom_vline(xintercept = cumu[k], color = "grey50", linetype = "dashed") +
+  # 
+  # scale_color_manual(
+  #   values = c("FALSE" = "#2B7A78", "TRUE" = "#1E88E5"),
+  #   breaks = c(FALSE, TRUE),
+  #   labels = c(paste0("PC % ", k), paste0("PC > ", k)),
+  #   name   = NULL
+  # ) +
+  
+  labs(
+    title    = "PCA percent variance explained",
+    subtitle = paste0(mode, "; k = ", k, " (variance used at k shown)"),
+    x = "Cumulative % ",
+    y = "Per PC %"
+  ) +
+  
+  annotate(
+    "text",
+    x = cumu[k], y = max(plot_df$pct),
+    label = paste0("Variance used: ", sprintf("%.2f", cumu[k]), "%"),
+    vjust = -0.4, size = 3, color = gg_color_hue(2)[1]
+  ) + theme(legend.position = "none")
+  
+#  theme_bw()
+# +
+#   theme(legend.position = "bottom")
+
+```
+
 
 ```{r QC metrics}
 
@@ -116,6 +696,7 @@ datatable(
   )
 
 ```
+
 
 ```{r diagnostics plots}
 
@@ -164,284 +745,6 @@ datatable(
   )
 
 ```
-
-<br/>
-
-```{r}
-xxAll <- SingleCellExperiment(colData = allCellsMeta)
-xxAll$discard <- !xxAll$useCell
-colData(xxAll)$Sample<- sampleName
-scData.unfiltered <- CreateSeuratObject(ezMatrix(0, rows=1:10, cols=rownames(allCellsMeta)), meta.data = allCellsMeta)
-scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
-```
-
-
-```{r QC plots1, out.width="100%", fig.width=8, fig.height=2.5}
-plot1 <- plotColData(
-  xxAll,
-  x = "Sample",
-  y = nCountCol,
-  colour_by = "discard"
-) +
-  scale_y_log10() +
-  labs(
-    title = "UMI counts",
-    y = "UMI counts per spot"
-  ) +
-  
-  theme(
-    legend.position = "top",   
-    axis.title.x = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank()
-  )
-
-plot2 <- plotColData(
-  xxAll,
-  x = "Sample",
-  y = nFeatureCol,
-  colour_by = "discard"
-) +
-  labs(
-    title = "Detected genes",
-    y = "Number of detected genes"
-  ) +
-  theme(
-    legend.position = "none", 
-    axis.title.x = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank()
-  )
-
-plot3 <- plotColData(
-  xxAll,
-  x = nCountCol,
-  y = nFeatureCol,
-  colour_by = "discard"
-) +
-  scale_x_log10() +
-  scale_y_log10() +
-  labs(
-    title = "UMIs vs detected genes (log–log)",
-    x = "UMI counts",
-    y = "Detected genes"
-  ) +
-  theme(
-    legend.position = "none", 
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank()
-  )
-
-plot1 + plot2 + plot3 + plot_layout(ncol = 4)
-```
-
-```{r genes by count, out.width="100%", fig.width=8, fig.height=2.5}
-
-xxAll$genePerCount <- xxAll[[nFeatureCol]] / xxAll[[nCountCol]]
-plot11 <- plotColData(
-  xxAll,
-  x = "Sample",
-  y = "genePerCount",
-  colour_by = "discard"
-) +
-  labs(
-    title = "Genes per UMI",
-    y = "Gene/UMI ratio"
-  ) +
-  theme(
-    legend.position = "none", 
-    axis.title.x = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank()
-  )
-
-plot12 <- plotColData(
-  xxAll,
-  x = nCountCol,
-  y = "genePerCount",
-  colour_by = "discard"
-) +
-  scale_x_log10() +
-  xlim(1, 10000) +
-  ylim(0.2, 0.8) +
-  labs(
-    title = "Gene/UMI ratio vs UMIs",
-    x = "UMI counts",
-    y = "Gene/UMI ratio"
-  ) +
-  theme(
-    legend.position = "none", 
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank()
-  )
-
-plot13 <- plotColData(
-  xxAll,
-  x = "Sample",
-  y = "percent_mito",
-  colour_by = "discard"
-) +
-  labs(
-    title = "Mito percent",
-    y = "Percent mitochondrial genes"
-  ) +
-  theme(
-    legend.position = "none", 
-    axis.title.x = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank(),
-    plot.margin = margin(2, 2, 2, 2) 
-    )
-
-plot14 <- plotColData(
-  xxAll,
-  x = nCountCol,
-  y = "percent_mito",
-  colour_by = "discard"
-) +
-  scale_x_log10() +
-  labs(
-    x = "UMI counts",
-    y = "Percent mitochondrial genes"
-  ) +
-  theme(
-    legend.position = "none", 
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank(),
-    plot.margin = margin(2, 2, 2, 2) 
-  )
-
-plot11 + plot14 + plot12 + plot13 + plot_layout(ncol = 4)
-
-```
-
-
-
-```{r ribo plots, out.width="100%",fig.width=8, fig.height=2.5}
-
-if (!is.null(xxAll$percent_riboprot)) {
-
-   plot22 <- plotColData(
-      xxAll,
-      x = "Sample",
-      y = "percent_riboprot",
-      colour_by = "discard"
-    ) +
-      labs(
-        title = "Ribosomal percent",
-        y = "Percent ribosomal protein genes"
-      ) +
-      theme(
-        legend.position = "none",
-        axis.title.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.ticks.x = element_blank()
-      )
-  
-  
- 
-    plot23 <- plotColData(
-      xxAll,
-      x = nCountCol,
-      y = "percent_riboprot",
-      colour_by = "discard"
-    ) +
-      scale_x_log10() +
-      labs(
-        x = "UMI counts",
-        y = "Percent ribosomal protein genes"
-      ) +
-      theme(
-        legend.position = "none",
-        axis.ticks.y = element_blank(),
-        axis.ticks.x = element_blank()
-      )
-  
-}
-
-plot22 + plot23 + plot_layout(ncol = 4)
-
-```
-
-#### Spatial QC Plots
-
-```{r QC plots3, fig.width=20, fig.height=10}
-#if(any(is.nan(scData.unfiltered_spatial$percent_mito))){
-#  toKeep <- rownames(scData.unfiltered_spatial@meta.data)[-which(is.nan(scData.unfiltered_spatial$percent_mito))]
-#  scData.unfiltered_spatial <- subset(scData.unfiltered_spatial, cells = toKeep)
-#}
-sp_plot <- function(obj, 
-                    feature,
-                    title = feature,
-                    label = feature,
-                    pt.size.factor = 2,
-                    min.cutoff = "q01",
-                    max.cutoff = "q99",
-                    legend.pos = "right",
-                    palette = "turbo") {
-  
-  if (!feature %in% c(rownames(obj), colnames(obj[[]]))) {
-    stop(sprintf("Feature '%s' not found in object (genes or meta.data).", feature))
-  }
-
-  SpatialFeaturePlot(
-    object         = obj,
-    features       = feature,
-    pt.size.factor = pt.size.factor,
-    min.cutoff     = min.cutoff,
-    max.cutoff     = max.cutoff
-  ) +
-    
-    labs(title = title, fill = label) +
-    scale_fill_viridis_c(option = palette, na.value = "grey95") +
-    theme_void() +
-    theme(
-      legend.position   = legend.pos,
-      plot.title        = element_text(size = 12, 
-                                       face = "bold", 
-                                       margin = margin(b = 4)),
-      legend.title      = element_text(size = 8),
-      legend.text       = element_text(size = 8),
-      legend.key.height = unit(10, "pt"),
-      legend.key.width  = unit(6, "pt")
-    )
-  
-}
-
-plot5 <- sp_plot(
-  scData, nCountCol,
-  title = "UMI per spot",
-  label = "UMI counts"
-)
-
-plot6 <- sp_plot(
-  scData, 
-  nFeatureCol,
-  title = "Detected genes",
-  label = "Genes"
-)
-
-plot7 <- sp_plot(
-  scData, 
-  "percent_mito",
-  title = "Mitochondrial percent",
-  label = "Mito %"
-)
-
-plot8 <- if ("percent_riboprot" %in% c(rownames(scData), colnames(scData[[]]))) {
-  sp_plot(
-    scData, "percent_riboprot",
-    title = "Ribosomal protein percent",
-    label = "Ribo %"
-  )
-} else {
-  NULL
-}
-
-plot6 + plot8 + plot7 + plot5 + plot_layout(ncol = 2, nrow = 2)
-```
-<br/>
-
 
 
 ```{r cell filter}
@@ -496,172 +799,373 @@ datatable(
 ```
 
 
-<div class = "row">
-<div class = "col-md-6">
-```{r low quality Bins}
-library(UpSetR)
-qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
-qcList <- qcList[sapply(qcList, length) > 0]
-if (length(qcList) > 1){
-  UpSetR::upset(fromList(qcList), nsets = 5)
-}
+```{r}
+thr_pct <- sprintf("%.0f%%", 100 * param$cellsFraction)
+
+geneFilter <- tibble(
+  criterion = character(),
+  rule = character()
+) |>
+  
+  add_row(
+    criterion = "Rationale",
+    rule = "Lowly/not-expressed genes add little information and can inflate noise."
+  ) |>
+  
+  add_row(
+    criterion = "Prevalence rule",
+    rule = paste0("Keep genes expressed in \u2265 ", thr_pct, " of bins; remove genes below this prevalence.")
+  ) |>
+  
+  add_row(
+    criterion = "Handling rare populations",
+    rule = "If rare cell populations are expected, decrease the percentage (e.g., to 0.5–1%) or apply the prevalence threshold per sample/ROI to avoid discarding marker genes."
+  )
+
+datatable(
+  geneFilter,
+  class = "cell-border stripe",
+  caption = tags$caption(
+    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
+    "Gene filtering rules (prevalence across bins)"
+  ),
+  escape   = FALSE,
+  rownames = FALSE,
+  options  = list(
+    autoWidth = TRUE,
+    dom = "t"
+  )
+) |>
+  
+  formatStyle(
+    columns = names(geneFilter),
+    `vertical-align` = "top",
+    `white-space` = "pre-wrap"
+  )
 ```
-</div>
-
-<div class = "col-md-6">
-```{r echo=FALSE}
-qcStats <- ezFrame("Number of Bins"=integer(0), 
-                   "Min Pass Value"=integer(0), 
-                   "Max Pass Value"=integer(0), 
-                   Fraction = integer(0))
-qcStats[ "Library Size", ] <- c(
-  c(sum(allCellsMeta$qc.lib), range(allCellsMeta[[nCountCol]][allCellsMeta$useCell])) %>% as.integer(),
-  round(sum(allCellsMeta$qc.lib)/nrow(allCellsMeta), 2)
-)
-qcStats[ "Expressed genes", ] <- c(
-  c(sum(allCellsMeta$qc.nexprs), range(allCellsMeta[[nFeatureCol]][allCellsMeta$useCell])) %>% as.integer(),
-  round(sum(allCellsMeta$qc.nexprs)/nrow(allCellsMeta), 2)
-)
-qcStats[ "Mitochondrial Percent", ] <- c(
-  c(sum(allCellsMeta$qc.mito), range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer(),
-  round(sum(allCellsMeta$qc.mito)/nrow(allCellsMeta), 2)
-)
-qcStats[ "Ribosomal protein Percent", ] <- c(
-  c(sum(allCellsMeta$qc.ribo), range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer(),
-  round(sum(allCellsMeta$qc.ribo)/nrow(allCellsMeta), 2)
-)
-qcStats[ "Total removed (thresholding)", ] <- c(
-  sum(!allCellsMeta$useCell), 
-  NA, 
-  NA, 
-  round(sum(!allCellsMeta$useCell)/nrow(allCellsMeta), 2)
-)
-qcStats[ "Total removed (manual)", ] <- c(
-  sum(allCellsMeta$useCell) - ncol(scData), 
-  NA, 
-  NA, 
-  round((sum(allCellsMeta$useCell) - ncol(scData))/nrow(allCellsMeta), 2)
-)
-qcStats[ "Bins remaining", ] <- c(
-  sum(ncol(scData)), 
-  NA, 
-  NA, 
-  round(sum(ncol(scData))/nrow(allCellsMeta), 2)
-)
-
-kable(qcStats,
-      row.names=TRUE,
-      caption="Number of Bins removed") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% kableExtra::group_rows(group_label = "Bins Removed by QC Thresholds", start_row = 1, end_row = 5)
-```
-</div>
-</div>
-<br/>
 
 
-#### Gene filtering
-
-We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r 100*param$cellsFraction` % of the bins. In case one or more rare cell populations are expected we might need to decrease the percentage of bins.
-
-```{r, fig.align='center', fig.width=14}
-cat("total genes:", nrow(cellsPerGeneFraction), "\n")
-cat("genes kept:", nrow(scData), ", fraction:", round(nrow(scData)/nrow(cellsPerGeneFraction), digits = 2), " \n")
-if(!is.null(cellsPerGeneFraction)) {
-    p = ggplot(cellsPerGeneFraction, aes(frac)) + geom_histogram(
-        aes(y = after_stat(density)),
-        colour = "black",
-        fill = "white",
-        binwidth = 0.005
+```{r dim_ tbl}
+dimred_tbl <- tibble(
+  topic = character(),
+  summary = character()
+) |>
+  add_row(
+    topic   = "Goal",
+    summary = "Reduce the number of dimensions by compressing information from many genes into fewer components."
+  ) |>
+  add_row(
+    topic   = "Why it works",
+    summary = "Genes affected by the same biological process are correlated, so separate storage per gene is redundant."
+  ) |>
+  add_row(
+    topic   = "Benefits",
+    summary = paste(
+    "Computational efficiency — fewer dimensions to process.",
+    "Noise reduction — averaging across genes sharpens true patterns.",
+    "Visualization — enables clear 2D/3D plotting.",
+    sep = "<br>"
+  )
+  ) |>
+  add_row(
+    topic   = "Method (example)",
+    summary = "Principal Component Analysis (PCA) on normalized/centered data to obtain ranked components."
+  ) |>
+  add_row(
+    topic   = "How many PCs?",
+    summary = "Typically retain ~10–50 PCs for downstream analyses (dataset-dependent)."
+  ) |>
+  add_row(
+    topic   = "How to choose PCs",
+    summary = paste0(
+      "Use a scree/variance-explained plot (a.k.a. Elbow plot). ",
+      "Rank PCs by % variance explained; select PCs up to the elbow."
     )
-    p = p + geom_vline(
-        aes(xintercept = param$cellsFraction),
-        color = "red",
-        linetype = "dashed",
-        size = 1
+  ) |>
+  add_row(
+    topic   = "Elbow plot logic",
+    summary = paste0(
+      "Assumption: PCs carrying biological signal explain markedly more variance than the rest. ",
+      "Past the last “biological” PC, the variance drops sharply → the elbow indicates a natural cutoff."
     )
-    p = p + geom_density(alpha = .2, fill = "#FF6666") + labs(x = "Fraction") + ggtitle('Fraction of Bins per gene')
-    p
-}
+  )
+
+datatable(
+  dimred_tbl,
+  class = "cell-border stripe",
+  caption = tags$caption(
+    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
+    "Overview and PC selection"
+  ),
+  escape = FALSE,
+  rownames = FALSE,
+  options = list(
+    autoWidth = TRUE,
+    dom = "t"
+  )
+) |>
+  formatStyle(
+    columns = names(dimred_tbl),
+    `white-space` = "pre-wrap",
+    `vertical-align` = "top"
+  )
+
 ```
 
-#### Dimensionality reduction
+## Clustering
 
-Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
+`r paste("Cluster result using Resolution:", param$resolution)`
 
-The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
+```{r, fig.height=8, fig.width=16}
 
-```{r, fig.align='center', fig.width=14}
-if('pca.sketch' %in% names(scData@reductions)){
-    pct <- scData[["pca.sketch"]]@stdev / sum(scData[["pca.sketch"]]@stdev) * 100
-} else {
-    pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
-}
-cumu <- cumsum(pct)
-plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
+n_clusters <- nlevels(Idents(scData))
+show_leg   <- n_clusters <= 20
 
-# Elbow plot
-p <- ggplot(plot_df, aes(cumu, pct, label = rank, color = rank > param$npcs))
-p <- p + geom_vline(xintercept = cumu[param$npcs], color = "grey") + geom_text() 
-p <- p + xlab(paste("Variance based on 80 PCs of", param$nfeatures, "features")) +  ylab("Cumulative variance in % explained per PC") 
-p <- p + theme_bw() + labs(color = paste("PC >", param$npcs)) + theme(legend.position = "bottom")
-p <- p + annotate(geom="text", y=max(plot_df$pct), x=max(plot_df$cumu[param$npcs]), label=paste('Variance used:', round(plot_df$cumu[param$npcs], digits = 2), '%'), color="red")
-p
-```
-
-<br/>
-
-
-### Clustering
-
-In order to find clusters of bins we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the bins involved, with higher weight given to bins that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of bins that are more connected to bins in the same community than they are to bins of different communities. Each community represents a cluster that we can use for downstream interpretation. 
-
-We can visualize the distribution of clusters in UMAP and image space. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
-
-```{r, fig.height=8, fig.width=20}
 scData$seurat_clusters <- Idents(scData)
 
-p1 <- DimPlot(scData, label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
-p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 4)
-p2 <- SpatialDimPlot(scData, label = TRUE, label.size = 4, pt.size.factor =  2) + labs(fill = "seurat_clusters")
+p1 <- DimPlot(scData,
+              label = FALSE,
+              pt.size = 1.5) +
+  labs(color = "Clusters") +
+  theme_void() +
+  guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
+  ggtitle("UMAP")
 
-p1 + p2 + plot_annotation(
-) + plot_layout(nrow = 1)
+p1 <- Seurat::LabelClusters(
+  plot     = p1,
+  id       = "ident",
+  fontface = "bold",
+  color    = "#383838",
+  size     = 4
+)
+
+p2 <- SpatialDimPlot(scData,
+                     label = TRUE,
+                     label.size = 4,
+                     pt.size.factor = 2) +
+  labs(fill = "Clusters") +
+  guides(fill = if (show_leg) guide_legend(title = "Clusters") else "none")
+
+
+(p1 + p2) +
+  plot_layout(nrow = 1, guides = if (show_leg) "collect" else "keep") +
+  plot_annotation(
+    theme = theme(
+      plot.caption = element_text(size = 9, hjust = 1, colour = "#6B6B6B"),
+      plot.margin  = margin(t = 4, r = 8, b = 8, l = 8)
+    )
+  ) &
+  theme(legend.position = if (show_leg) "right" else "none")
+
 ```
-<br/><br/>
 
-The number of bins in each cluster and sample is represented in this barplot.
-
-<br/>
+<br>
 
 <div class = "row">
-<div class = "col-md-6">
-```{r number of cells in each cluster}
+<div class = "col-md-9">
+```{r number of cells in each cluster, fig.width=12, fig.height=6}
 if(!('Batch' %in% colnames(scData@meta.data))){
     scData@meta.data$Batch <- scData@meta.data$Sample
 }
-cellIdents_perSample <- as.data.frame(scData@meta.data[,c('seurat_clusters', 'Batch')])
-barplot = ggplot(data=cellIdents_perSample, aes(x=seurat_clusters, fill=Batch)) + geom_bar(stat="Count") +NoLegend()
-barplot + labs(x="Cluster", y = "Number of Bins", fill = "Batch")
+
+cellIdents_perSample <- as.data.frame(scData@meta.data[,c('seurat_clusters', 
+                                                          'Batch')])
+
+cluster_levels <- cellIdents_perSample |>
+  dplyr::count(seurat_clusters, name = "n") |>
+  dplyr::arrange(dplyr::desc(n)) |>
+  dplyr::pull(seurat_clusters)
+
+plot_df <- cellIdents_perSample %>%
+  mutate(
+    seurat_clusters = factor(seurat_clusters, levels = cluster_levels),
+    Batch = factor(Batch)
+  )
+
+
+if (!exists("pal")) pal <- scales::hue_pal()(nlevels(plot_df$Batch))
+if (is.null(names(pal)) || !all(levels(plot_df$Batch) %in% names(pal))) {
+  pal <- setNames(pal, levels(plot_df$Batch))
+}
+
+
+lvls <- levels(factor(plot_df$Batch))  # or cellIdents_perSample$Batch
+pal  <- setNames(viridisLite::viridis(length(lvls), option = "D"), lvls)
+# pals::glasbey, pals::alphabet, RColorBrewer::brewer.pal
+
+ggplot(plot_df, aes(x = seurat_clusters, 
+                    fill = Batch)) +
+  
+  geom_bar() +
+  
+  scale_fill_manual(values = pal) +
+  
+  labs(title = "Bins per cluster and sample (counts)",
+       x = NULL, 
+       y = NULL) +
+  
+  theme_minimal(base_size = 12) +
+  
+  theme(legend.position="none", 
+        panel.grid.minor=element_blank(),
+        panel.grid.major=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.x=element_text(size=8, 
+                                 face="bold")) +
+  
+  scale_y_continuous(expand = expansion(mult = c(0.02, 0.15))) 
+
+
 ```
 </div>
 
-<div class = "col-md-6">
+<div class = "col-md-3">
 ```{r, echo=FALSE}
-cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Batch")
-kable(cells_prop, row.names=FALSE, format="html", caption="Spot proportions") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+# cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Batch")
+
+
+# kable(cells_prop, row.names=FALSE, format="html", caption="Spot proportions") %>%
+#   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+
+df <- cellsProportion(scData, 
+                      groupVar1 = "seurat_clusters", 
+                      groupVar2 = "Batch")
+
+num_cols <- which(vapply(df, 
+                         is.numeric, 
+                         logical(1L)))
+
+df <- as.data.frame(df, 
+                    check.names = FALSE, 
+                    stringsAsFactors = FALSE)
+
+cn <- colnames(df)
+
+cn[cn == "seurat_clusters"] <- "Cluster"
+
+is_frac  <- grepl("_fraction$", cn)
+cn[is_frac] <- sub("_fraction$", " (%)", cn[is_frac])
+
+is_count <- !(cn == "Cluster") & !grepl(" \\(\\%\\)$", cn)
+
+cn[is_count] <- paste0(cn[is_count], " (n)")
+
+colnames(df) <- cn
+
+pct_cols <- grep(" \\(\\%\\)$", names(df))
+
+DT::datatable(
+  df,
+  class   = "cell-border stripe compact",
+  caption = htmltools::tags$caption(
+    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
+    "Spot proportions"
+  ),
+  rownames   = FALSE,
+  escape     = FALSE,
+  filter     = "none",
+  options    = list(
+    paging       = TRUE,
+    pageLength   = 12,      
+    dom          = "tip",    
+    autoWidth    = TRUE,
+    fixedColumns = list(leftColumns = 1),
+    columnDefs   = list(list(className = "dt-left", targets = 0))
+  )
+) |>
+  DT::formatPercentage(columns = pct_cols, digits = 1) |>
+  DT::formatStyle(columns = names(df), `white-space` = "pre-wrap")
 ```
 </div>
 </div>
 <br/>
 
-### Cluster assessment
+
+```{r}
+npcs_txt <- sprintf("%s PCs", param$npcs)
+
+cluster_tbl <- tibble(
+  Step = character(),
+  Details = character()
+) |>
+  add_row(
+    Step = "Build KNN graph",
+    Details = paste(
+      "Each node = bin (cell).",
+      sprintf("Connect each bin to its k nearest neighbors in %s space.", npcs_txt),
+      "Distance usually Euclidean (on PCs) or cosine.",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Edge weighting",
+    Details = paste(
+      "Edges weighted by similarity (e.g., shared nearest neighbors/Jaccard).",
+      "Higher weight = more similar bins.",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Community detection",
+    Details = paste(
+      "Apply a community detection algorithm (e.g., Leiden/Louvain) on the KNN graph.",
+      "Find groups more connected internally than externally.",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Cluster labels",
+    Details = paste(
+      "Each community becomes a cluster ID per bin.",
+      "Used for downstream interpretation (markers, enrichment, etc.).",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Visualization",
+    Details = paste(
+      "Plot clusters on UMAP and in image space to assess structure.",
+      "Do not run statistical analyses directly on UMAP coordinates;",
+      "use them for QC/visual inspection (e.g., neighboring subclusters, potential splits).",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Best practices & caveats",
+    Details = paste(
+      sprintf("Tune parameters: k (neighbors), resolution (Leiden/Louvain), and %s.", npcs_txt),
+      "Check stability (seeds/subsampling) and biological plausibility.",
+      "Beware tiny clusters (may be noise) and batch/spatial artifacts.",
+      sep = "\n"
+    )
+  )
+
+
+datatable(
+  cluster_tbl,
+  class   = "cell-border stripe",
+  caption = tags$caption(
+    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
+    "Graph-based clustering overview (KNN → communities → clusters)"
+  ),
+  rownames = FALSE,
+  options  = list(
+    autoWidth = TRUE,
+    dom = "t"
+  )
+) |>
+  formatStyle(
+    columns = names(cluster_tbl),
+    `white-space`   = "pre-wrap",
+    `vertical-align`= "top"
+  )
+```
+
+## Cluster assessment
 
 
 #### Segregation of clusters by various sources of uninteresting variation.
 
-Once we have created the clusters we need to assess if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial or ribosomal gene expression.
-We can explore whether the bins cluster by the different cell cycle phases. In such a case, we would have clusters where most of the bins would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
 ```{r uninteresting variation, fig.height=16, fig.width=18}
 boxplot_data_nCount <- FetchData(scData, vars = c(nCountCol, "seurat_clusters"))
@@ -688,8 +1192,15 @@ plot3 <- plot3 + ggtitle("Mitochondrial percentage vs cluster") + xlab("Cluster"
 plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
 ```
 
+Once we have created the clusters we need to assess if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial or ribosomal gene expression.
+We can explore whether the bins cluster by the different cell cycle phases. In such a case, we would have clusters where most of the bins would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
-### Cluster markers
+## Cluster markers
+
+```{r pos markers}
+ezInteractiveTableRmd(data.frame(posMarkers)) |> 
+  DT::formatSignif(c("pct.1", "pct.2", "avg_log2FC", "p_val_adj", "diff_pct"), digits = 3)
+```
 
 ```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
 cat("We found positive markers that defined clusters compared to all other bins via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the bins in the tested cluster and the rest of the bins and an adjusted p-value < 0.05 were declared as significant.")
@@ -699,11 +1210,7 @@ cat("We found positive markers that defined clusters compared to all other bins 
 cat("We found positive markers that defined clusters compared to all other bins via differential expression using a logistic regression test and including in the model the cell cycle as the batch effect. Genes with an average, at least 0.25-fold difference (log-scale) between the bins in the tested cluster and the rest of the bins and an adjusted p-value < 0.05 were declared as significant.")
 ```
 
-```{r pos markers}
-ezInteractiveTableRmd(data.frame(posMarkers), digits=10)
-```
-
-### EnrichR
+## EnrichR
 
 Cell type scoring using the EnrichR tool. This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters.
 
@@ -722,7 +1229,8 @@ jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
                          "'>Analyse at Enrichr website</a>")
 ```
-
+::: {.row}
+::: {.col-md-3}
 
 ```{r enrichr markers, echo=FALSE, results='asis'}
 enrichrTable <- tibble(Cluster=names(genesPerCluster),
@@ -738,12 +1246,36 @@ if (!is.null(enrichRout)){
   enrichRTerm <- dcast(enrichRTerm, ... ~ database)
   enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
 }
-kable(enrichrTable, format="html", escape=FALSE,
-        caption=paste0("GeneSet enrichment")) %>%
-kable_styling("striped", full_width = F, position = "left")
+
+datatable(
+  enrichrTable,
+  class   = "cell-border stripe compact",
+  caption = htmltools::tags$caption(
+    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
+    "Enrichment"
+  ),
+  rownames   = FALSE,
+  escape     = FALSE,
+  filter     = "none",
+  options    = list(
+    paging       = TRUE,
+    pageLength   = 15,      
+    dom          = "tip",    
+    autoWidth    = TRUE,
+    fixedColumns = list(leftColumns = 1),
+    columnDefs   = list(list(className = "dt-left", targets = 0))
+  )
+) 
+
+# kable(enrichrTable, format="html", escape=FALSE,
+#         caption=paste0("GeneSet enrichment")) %>%
+# kable_styling("striped", full_width = F, position = "left")
 ```
 
-### Data availability
+:::
+:::
+
+## Data availability
 
 ##### Aggregated expression of every gene across the bins in each cluster
 
@@ -760,7 +1292,7 @@ kable_styling("striped", full_width = F, position = "left")
 
 ##### The final Seurat Object is [here](scData.qs2)
 
-### Parameters
+## Session Info
 ```{r report parameters, echo=FALSE}
 param[c("binSize","npcs","pcGenes","resolution", "DE.method", "cellsFraction", "nUMIs", "nmad")]
 ```
@@ -768,4 +1300,5 @@ param[c("binSize","npcs","pcGenes","resolution", "DE.method", "cellsFraction", "
 
 ```{r, echo=FALSE}
 format(Sys.time(), '%Y-%m-%d %H:%M:%S')
+ezSessionInfo()
 ```
