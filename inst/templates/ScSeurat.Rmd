@@ -371,7 +371,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 
 #### Segregation of clusters by various sources of uninteresting variation.
 
-Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
+Once we have created the clusters we need to assess if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
 
 ```{r cell cycle, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10), eval=!is.null(scData@meta.data$CellCycle)}
