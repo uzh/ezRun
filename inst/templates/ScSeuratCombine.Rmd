@@ -13,8 +13,6 @@ editor_options:
 
 # {.tabset}
 
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
-
 ```{r setup, include=FALSE}
 library(clustree)
 library(kableExtra)
@@ -100,7 +98,8 @@ names(shared_colors) <- NULL
 ```
 
 
-### Batch effects
+## Batch effects
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 We always look at our cells before deciding whether we need to perform integration. The main goal of dataset integration is to identify shared cell states that are present across different datasets, in case they were collected from different individuals, experimental conditions, technologies, or even species. Large single-cell RNA sequencing projects usually need to generate data across multiple batches due to logistical constraints. This results in systematic differences in the observed expression in cells from different batches, which we refer to as “batch effects”. Batch effects are problematic as they can be major drivers of heterogeneity in the data, masking the relevant biological differences and complicating interpretation of the results.
 The UMAPs and the barplot below can help us to visualize if the clusters are balanced and composed by cells from the different batches. If we see clusters that are comprised of cells from a single batch, this indicates that cells of the same type are artificially separated due to technical differences between batches. In this case, we may also consider that there are cell types that are unique to each batch. If a cluster only contains cells from a single batch, one can always debate whether that is caused by technical differences or if there is truly a batch-specific subpopulation.
@@ -132,7 +131,7 @@ cells_prop = cellsProportion(scData, groupVar1 = "ident_noCorrected", groupVar2 
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per condition") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
-### Clustering
+## Clustering
 
 ```{r no_integration, eval = param$integrationMethod=='none',results='asis'}
 cat("We started by merging all the samples in one dataset and then used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.")
@@ -217,7 +216,7 @@ p <- p + annotate(geom="text", y=max(plot_df$pct), x=max(plot_df$cumu[param$npcs
 p
 ```
 
-### Cluster assessment
+## Cluster assessment
 
 #### Segregation of clusters by various sources of uninteresting variation.
 
@@ -259,7 +258,7 @@ if(!(param$integrationMethod %in% c("none","Harmony"))) {
 }
 ```
 
-### Cluster markers
+## Cluster markers
 
 ```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
 cat("We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
@@ -275,7 +274,7 @@ cat("We found positive markers that defined clusters compared to all other cells
 ezInteractiveTableRmd(posMarkers, digits=4)
 ```
 
-### Marker plots
+## Marker plots
 
 Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
@@ -312,7 +311,7 @@ DoHeatmap(scDataToPlot, features=unique(genesToPlot))
 DotPlot(scDataToPlot, features=genesToPlot) + coord_flip()
 ```
 
-### EnrichR
+## EnrichR
 
 Cell type scoring using the EnrichR tool. This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters.
 
@@ -367,7 +366,7 @@ for (cluster in names(enrichRout)) {
 
 <br/>
 
-### SingleR
+## SingleR
 
 Matching of clusters to annotated reference datasets using SingleR.
 
@@ -441,7 +440,7 @@ ezInteractiveTableRmd(bind_rows(clusterInfosList))
 cat("\n\n")
 ```
 
-### Azimuth 
+## Azimuth 
 
 ```{r azimuth, eval=!is.null(aziResults), fig.width=9, fig.height=9}
 p1 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5, cols = shared_colors) + labs(color = "ident")
@@ -482,7 +481,7 @@ if ("Azimuth.celltype.l4" %in% colnames(scData@meta.data)){
 }
 ```
 
-### AUCell
+## AUCell
 
 Matching the cells to marker gene sets that are known to be characteristic for cell types. We use marker gene sets from the CellMarker database (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
 
@@ -536,7 +535,7 @@ AUCell_plotTSNE(tSNE=cellsUmap,
 ```
 
 
-### Interactive explorer
+## Interactive explorer
 
 The link below will take you to an interactive Shiny app which can be used to make 
 production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
@@ -553,12 +552,12 @@ production-ready plots and figures. You can also use this app to explore your ow
 
 ##### The final Seurat object is [here](scData.qs2)
 
-### Parameters
+## Parameters
 ```{r report parameters, echo=FALSE}
 param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "integrationMethod")]
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

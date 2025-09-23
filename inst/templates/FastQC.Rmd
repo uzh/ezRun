@@ -13,7 +13,6 @@ editor_options:
 
 # {.tabset}
 
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -22,6 +21,8 @@ library(plotly)
 
 
 ## Read Counts
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 The read counts in each sample.
 
 ```{r readCounts, echo=FALSE}

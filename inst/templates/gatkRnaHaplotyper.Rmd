@@ -21,7 +21,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-### IGV
+## IGV
 IGV link to view variants: [IGV](igv.jnlp).
 
 ### Sample Clustering based on Variants
@@ -30,7 +30,7 @@ IGV link to view variants: [IGV](igv.jnlp).
 plot(hcd, main="Cluster by Genotype", xlab="")
 ```
 
-### Variants by Chromosomes
+## Variants by Chromosomes
 Genotype colors are: blue - homozygous reference; gray - heterozygous; red - homozygyous variant
 
 ```{r, echo=FALSE, height=2+0.3*ncol(gt), width=12}
@@ -55,12 +55,12 @@ for(ch in names(chromSizes)[isRealChrom]){
 }
 ```
 
-### Input Dataset
+## Input Dataset
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(bamDataset)
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

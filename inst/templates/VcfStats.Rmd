@@ -13,8 +13,6 @@ editor_options:
 
 # {.tabset}
 
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(plotly)
@@ -22,7 +20,8 @@ library(magrittr)
 ```
 
 
-### Number of SNPs
+## Number of SNPs
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r SNP counts, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
 data <- read.table(snp_counts, sep="\t", skip=2)
@@ -31,7 +30,7 @@ samples <- gsub("samples/", "", data$Sample)
 plot_ly(data, x = samples, y = data$Counts)
 ```
 
-### Private/Shared SNPs
+## Private/Shared SNPs
 
 ```{r Private SNPs, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
 data <- read.table(private_snp_counts, sep="\t", skip=1)
@@ -49,7 +48,7 @@ fig <- fig %>% layout(title = 'Shared SNPs', yaxis = list(title = 'Count'), xaxi
 fig
 ```
 
-### Transisions/Transversions
+## Transisions/Transversions
 
 ```{r tstv, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
 data <- read.table(tstv, sep="\t", skip=1)
@@ -59,12 +58,12 @@ fig <- fig %>% layout(yaxis = list(title = 'ts/tv'), xaxis=list(title=''))
 fig
 ```
 
-### Input Dataset
+## Input Dataset
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(values=ans4Report[["dataset"]])
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

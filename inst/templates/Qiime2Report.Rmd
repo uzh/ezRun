@@ -13,7 +13,6 @@ editor_options:
 
 # {.tabset}
 
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r include=FALSE}
 knitr::opts_chunk$set(
@@ -111,6 +110,7 @@ difabundance <- "./ancom_group.qzv.zip.folder/data/index.html"
 
 
 ## Demultiplexing summary 
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 #### Read Frequency Histogram
 

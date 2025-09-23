@@ -26,7 +26,7 @@ wddir <- "."
 ## end of debug
 ```
 
-### Genome Size
+## Genome Size
 
 ```{r sample, echo=FALSE, message=FALSE}
 params$sample
@@ -39,7 +39,7 @@ library(knitr)
 cat(dat[c(19:22)], sep = '\n')
 ```
 
-### kmer frequency plot 
+## kmer frequency plot 
 
 ```{r svg, echo=FALSE, message=FALSE}
 svg.file <- file.path(wddir, paste0(params$sample,".kmer.freq.stat_real_theory_distribution.svg"))
@@ -50,7 +50,7 @@ rsvg_png(svg.file, png.file)
 
 ![kmer frequency plot](`r png.file`)
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

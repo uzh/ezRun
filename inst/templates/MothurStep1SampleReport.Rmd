@@ -22,19 +22,19 @@ debug <- FALSE
 ```
 
 
-### Summary of the raw reads
+## Summary of the raw reads
 ```{r RawDataSummary, echo=FALSE}
 RDSplot <- plotFromMothurSumm(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary)
 plot(RDSplot)
 ```
 
-### Summary of the deduplicated reads
+## Summary of the deduplicated reads
 ```{r DeduppedSummary, echo=FALSE}
 DDplot <- plotFromMothurSumm(finalListOfSummaryTables["DeduppedSummary"]$DeduppedSummary)
 plot(DDplot)
 ```
 
-### Summary of the reads filtered by length and homopolymers
+## Summary of the reads filtered by length and homopolymers
 ```{r LenAndHomopSummary, echo=FALSE}
 LHplot <- plotFromMothurSumm(finalListOfSummaryTables["LenAndHomopSummary"]$LenAndHomopSummary)
 plot(LHplot)

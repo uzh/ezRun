@@ -13,8 +13,6 @@ editor_options:
 
 # {.tabset}
 
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
-
 
 ```{r setup, include=FALSE}
 # input for this report: sce
@@ -58,7 +56,8 @@ var_height = 1 #This ensures that chunks that use the length of this variable to
 ```
 
 
-### Quality control
+## Quality control
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 #### Selected QC metrics
 
@@ -119,7 +118,7 @@ cat("genes removed:", nrow(sce.unfiltered)-nrow(sce))
 cat("genes kept:", nrow(sce))
 ```
 
-### Dimensionality reduction
+## Dimensionality reduction
 
 Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
 
@@ -162,7 +161,7 @@ The uniform manifold approximation and projection (UMAP) method (McInnes, Healy,
 
 <br/><br/>
 
-### Clustering
+## Clustering
 
 We clustered the cells using a Shared Nearest Neighbours graph approach. The number of neighbors considered when constructing the graph was `r param$resolution`. Two cells are connected by an edge if any of their nearest neighbors are shared, with the edge weight defined from the highest average rank of the shared neighbors. The Louvain algorithm was then used to identify communities that represent clusters.  
 
@@ -190,7 +189,7 @@ cells_prop = cellsProportion(sce, groupVar1 = "ident", groupVar2 = "Batch")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
-### Cluster assessment
+## Cluster assessment
 
 
 #### Segregation of clusters by various sources of uninteresting variation.
@@ -233,7 +232,7 @@ Below, it is shown a clustering tree that helps us to visualize the relationship
 clustree::clustree(sce, prefix = "k.")
 ```
 
-### Cluster markers
+## Cluster markers
 
 <br> 
 To interpret the clustering results we identify the genes that drive separation between clusters using differential expression between clusters. These marker genes allow us to assign biological meaning to each cluster based on their functional annotation. In the most obvious case, the marker genes for each cluster are a priori associated with particular cell types, allowing us to treat the clusters as cell types. 
@@ -251,7 +250,7 @@ posMarkers$gene_name = as.factor(posMarkers$gene_name)
 ezInteractiveTableRmd(posMarkers, digits=4)
 ```
 
-### Marker plots
+## Marker plots
 
 Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
@@ -272,7 +271,7 @@ plotHeatmap(sce, features=unique(genesToPlot), center=TRUE, zlim=c(-2, 2),
 plotDots(sce, features=genesToPlot, group="ident")
 ```
 
-### Cell annotation
+## Cell annotation
 
 The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we have implemmented 3 different approaches which are explained below. However, these methods should be complemented with the biological knowledge from the researcher.
 
@@ -410,7 +409,7 @@ AUCell_plotTSNE(tSNE=cellsTsne,
 
 <br/>
 
-### Interactive explorer
+## Interactive explorer
 
 <br>
 The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
@@ -419,7 +418,7 @@ The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general
 The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("SC Cluster Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("SC Cluster Report"),"/sce_h5")}`){target="_blank"}
 
 
-### Data availability
+## Data availability
 
 ##### Cluster Infos
 
@@ -438,13 +437,13 @@ Use the xls file to manually label or relabel the clusters based on the result o
 
 ##### The final Single Cell Experiment Object is [here](sce_h5)
 
-### Parameters
+## Parameters
 ```{r report parameters, echo=FALSE}
 param[c("resolution", "vars.regress", "cellsFraction", "nUMIs", "nmad")]
 ```
 
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

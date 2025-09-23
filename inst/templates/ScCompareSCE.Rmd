@@ -13,7 +13,7 @@ editor_options:
 
 # {.tabset}
 
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 
 ```{r setup, include=FALSE}
 library(ggridges)
@@ -95,12 +95,13 @@ for (gene in top5$gene_name) {
 }
 ```
 
-### Parameters
+## Parameters
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 ```{r report parameters, echo=FALSE}
 param[c("DE.regress", "sampleGroup", "refGroup")]
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

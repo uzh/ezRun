@@ -13,9 +13,6 @@ editor_options:
 
 # {.tabset}
 
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
-
-
 ```{r setup, include=FALSE}
 library(Seurat)
 library(ggplot2)
@@ -84,7 +81,9 @@ posMarkers$p_val_adj[posMarkers$p_val_adj==0] <- min(posMarkers$p_val_adj[posMar
 ```
 
 
-### Quality control
+## Quality control
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 
 #### Selected QC metrics
 
@@ -289,7 +288,7 @@ We used the SCtransform v2 method from the Seurat package for normalizing, estim
 As a result, SCTransform ranked the genes by residual variance and returned the `r param$nfeatures` most variant genes.
 
 
-### Clustering
+## Clustering
 
 In order to find clusters of spots we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the spots involved, with higher weight given to spots that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of spots that are more connected to spots in the same community than they are to spots of different communities. Each community represents a cluster that we can use for downstream interpretation. 
 
@@ -340,7 +339,7 @@ kable(cells_prop, row.names=FALSE, format="html", caption="Spot proportions") %>
 </div>
 <br/>
 
-### Cluster assessment
+## Cluster assessment
 
 
 #### Segregation of clusters by various sources of uninteresting variation.
@@ -375,7 +374,7 @@ clustree::clustree(scData, prefix = "SCT_snn_res.")
 
 <br/>
 
-### Cluster markers
+## Cluster markers
 
 ```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
 cat("We found positive markers that defined clusters compared to all other spots via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the spots in the tested cluster and the rest of the spots and an adjusted p-value < 0.05 were declared as significant.")
@@ -389,7 +388,7 @@ cat("We found positive markers that defined clusters compared to all other spots
 ezInteractiveTableRmd(data.frame(posMarkers), digits=10)
 ```
 
-### Marker plots
+## Marker plots
 
 Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
@@ -420,7 +419,7 @@ do_GroupwiseDEPlot(sample = scData,
 ```
 
 
-### Top Markers
+## Top Markers
 
 We plot on the tissue the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
@@ -445,7 +444,7 @@ for (eachCluster in levels(posMarkers$cluster)) {
 }
 ```
 
-### Spatially Variable Genes plots 
+## Spatially Variable Genes plots 
 
 We also identify molecular features that correlate with spatial location within a tissue. Here we show the expression of the top 10 features identified by this measure. The full list can be found in the Data availability section.
 
@@ -457,7 +456,7 @@ for(gene in top.features) {
 }
 ```
 
-### EnrichR
+## EnrichR
 
 Cell type scoring using the EnrichR tool. This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters.
 
@@ -502,7 +501,7 @@ kable(enrichrTable, format="html", escape=FALSE,
 kable_styling("striped", full_width = F, position = "left")
 ```
 
-### Azimuth 
+## Azimuth 
 
 ```{r azimuth, eval=!is.null(aziResults), results='asis', fig.width=10, fig.height=9}
 scData$ident = scData$Azimuth.celltype.l1
@@ -542,11 +541,11 @@ p2
 ```
 
 
-### Interactive
+## Interactive
 [simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSpatial", "/?data=",dirname(output$getColumn("Static Report")), "/scData.rds")}`){target="_blank"}
 
 
-### Data availability
+## Data availability
 
 ##### Aggregated expression of every gene across the spots in each cluster
 
@@ -568,13 +567,13 @@ p2
 
 ##### LoupeBrowserObject [here](`r paste0(sampleName,'.cloupe')`)
 
-### Parameters
+## Parameters
 ```{r report parameters, echo=FALSE}
 param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "cellsFraction", "nUMIs", "nmad")]
 ```
 
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

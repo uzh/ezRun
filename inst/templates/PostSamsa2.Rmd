@@ -13,7 +13,6 @@ editor_options:
 
 # {.tabset}
 
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
     
 ```{r setup, include=FALSE}
@@ -49,6 +48,7 @@ func_deseq_results <- readRDS("func_deseq_results.rds")
 
 
 ## Diversity
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ### Lineage diversity
 ```{r echo=FALSE}

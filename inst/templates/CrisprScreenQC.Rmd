@@ -33,9 +33,9 @@ debug <- FALSE
 ```
 
 
-`r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-### 1. Per sample sgRNA library barplots
+## 1. Per sample sgRNA library barplots
+`r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 The counts are estimated by [MAGeCK](https://sourceforge.net/p/mageck/)
 
@@ -74,7 +74,7 @@ countsPerLib <- data$countsPerLib
   }
 ```
 
-### 2. Top sgRNAs
+## 2. Top sgRNAs
 ```{r top_sgRNA, echo = FALSE}
     topFeatureResults <- data$topFeatureResults
     myTable <- c()
@@ -90,7 +90,7 @@ ezInteractiveTableRmd(myTable)
 ```
 
 
-### 3. Read Patterns
+## 3. Read Patterns
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, message=TRUE, eval=!debug, fig.height=5, fig.width=20, results="asis"}
 PWMs <- data$PWMs
 consensusSeqs <- c()
@@ -112,12 +112,12 @@ ezInteractiveTableRmd(values=data.frame(Name=names(consensusSeqs), Sequence = co
 ```
 
 
-### Input Dataset
+## Input Dataset
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(values=dataset)
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

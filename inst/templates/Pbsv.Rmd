@@ -29,7 +29,7 @@ wddir <- "."
 ```
 
 
-### Overview
+## Overview
 
 ```{r sample, echo=FALSE, message=FALSE}
 params$sample
@@ -46,7 +46,7 @@ kable(counts, caption = "Summary stats")
 barplot(t(as.matrix(counts)), main="Summary stats", cex.main=0.7, cex.names=0.7, las=2)
 ```
 
-### SV types by length 
+## SV types by length 
 
 ```{r s1, echo=FALSE, message=FALSE}
   tbl<-read.table(paste0(wddir, "/", params$sample, ".stats.txt"), header=TRUE)
@@ -61,7 +61,7 @@ barplot(t(as.matrix(counts)), main="Summary stats", cex.main=0.7, cex.names=0.7,
   #dev.off()
 ```
 
-### SV types by chr 
+## SV types by chr 
 
 ```{r s2, echo=FALSE, message=FALSE}
   df<-read.table(paste0(wddir, "/", params$sample, ".stats.txt_CHR"), header=TRUE)
@@ -76,7 +76,7 @@ barplot(t(as.matrix(counts)), main="Summary stats", cex.main=0.7, cex.names=0.7,
   #dev.off()
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

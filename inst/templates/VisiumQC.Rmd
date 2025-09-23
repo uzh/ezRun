@@ -13,8 +13,6 @@ editor_options:
 
 # {.tabset}
 
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
-
 
 ```{r setup spatialQC, include=FALSE}
 # Global options
@@ -39,6 +37,8 @@ if(param$visiumType == 'SD'){
 
 
 ## Overview
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 
 ```{r overview, echo=FALSE, message=FALSE, warning=FALSE, fig.width=min(10+(nrow(data)-10)*0.2,20), fig.height=7, results='asis'}
 datatable(
