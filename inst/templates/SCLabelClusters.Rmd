@@ -1,18 +1,19 @@
 ---
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-author: "Functional Genomics Center Zurich"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
-    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+# {.tabset}
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 
 ```{r setup, include=FALSE}
@@ -51,7 +52,6 @@ species <- getSpecies(param$refBuild)
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 ```
 
-## Analysis results {.tabset}
 
 ### Quality control
 

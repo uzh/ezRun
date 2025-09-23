@@ -1,17 +1,19 @@
 ---
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-author: "Functional Genomics Center Zurich"
 output: 
   html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
-    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+# {.tabset}
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
@@ -33,7 +35,6 @@ expression = dyno_dataset$expression
 clusters=object$ident
 ```
 
-## Trajectory analysis {.tabset}
 
 <br/>
 Cells differentiation was modeled using trajectory inference (TI) methods (also known as pseudotemporal ordering methods), which use single-cell profiles from a population in which the cells are at different unknown points in the dynamic process. These methods computationally order the cells along a trajectory topology, which can be linear, bifurcating, or a more complex tree or graph structure. Because TI methods offer an unbiased and transcriptome-wide understanding of a dynamic process,they allow the objective identification of new subsets of cells, delineation of a differentiation tree, and inference of regulatory interaction responsible for one or more bifurcations.

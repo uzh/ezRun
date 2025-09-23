@@ -11,6 +11,10 @@ editor_options:
   chunk_output_type: inline
 ---
 
+# {.tabset}
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -41,9 +45,6 @@ colnames(ans4Report) <- 'Read Count'
 
 debug <- FALSE
 ```
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
-
-## FastqScreen_Result {.tabset}
 
 
 ### FastqScreen Mapping Rates to Adapters and rRNA

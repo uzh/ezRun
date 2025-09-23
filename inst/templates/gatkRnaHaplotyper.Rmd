@@ -1,22 +1,25 @@
 ---
-title: "`r paste('VCF-Report:', param$name)`"
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
-    self_contained: false
+    self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
 ---
+
+# {.tabset}
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ## It needs bamDataset, hcd, and others
 ```
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-## VCF-Report {.tabset}
 
 ### IGV
 IGV link to view variants: [IGV](igv.jnlp).

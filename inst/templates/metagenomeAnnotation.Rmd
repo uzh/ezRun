@@ -1,12 +1,14 @@
 ---
-title: "`r paste('Shotgun metagenomics analysis report')`"
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
-    self_contained: false
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -127,10 +129,6 @@ rarefPlot_2 <- rarefactionPlot(binBasedAbundTable,2) +labs(title=plotTitle_2) +
     theme(plot.title=element_text(size=11,hjust=0.5))
 ```
 
-
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
-
-## Data pre-processing {.tabset}
 
 ### Binning summary: size
 ```{r binnSummarySize, echo=FALSE,out.width="100%"}

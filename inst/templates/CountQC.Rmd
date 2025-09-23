@@ -11,6 +11,10 @@ editor_options:
   chunk_output_type: inline
 ---
 
+# {.tabset}
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 ```{r setup countQC, include=FALSE}
 library(knitr)
 library(kableExtra)
@@ -90,7 +94,6 @@ isPresentCond <- t(sweep(isPresentCond, 1,
 rowData(rawData)$isValid <- rowMeans(isPresentCond) >= 0.5
 ```
 
-# {.tabset}
 
 ## Settings
 ```{r setting, echo=FALSE}

@@ -11,6 +11,8 @@ editor_options:
   chunk_output_type: inline
 ---
 
+# {.tabset}
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -29,9 +31,9 @@ samples = input$getNames()
 
 debug <- FALSE
 ```
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-## CRISPR ScreenQC Results {.tabset}
+
+`r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ### 1. Per sample sgRNA library barplots
 

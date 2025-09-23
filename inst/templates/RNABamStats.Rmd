@@ -11,6 +11,10 @@ editor_options:
   chunk_output_type: inline
 ---
 
+# {.tabset}
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 ```{r setup RNABamStats, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(knitr)
@@ -66,7 +70,7 @@ if (param$writeIgvSessionLink){
 }
 ```
 
-## RNA_BAM_Statistics {.tabset}
+
 
 <!-- ### Read Alignment Statistics -->
 

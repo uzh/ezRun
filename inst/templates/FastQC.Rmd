@@ -1,5 +1,5 @@
 ---
-title: "FastQC Report"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
@@ -11,14 +11,15 @@ editor_options:
   chunk_output_type: inline
 ---
 
+# {.tabset}
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(plotly)
 ```
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-#  {.tabset}
 
 ## Read Counts
 The read counts in each sample.
