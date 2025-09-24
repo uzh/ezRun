@@ -51,7 +51,7 @@ EzAppSpatialSeuratHD <-
                                                            DefaultValue=0.6,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         cellsFraction=ezFrame(Type="numeric", 
-                                                                DefaultValue=0.0001, 
+                                                                DefaultValue=0, 
                                                                 Description="A gene will be kept if it is expressed in at least this percentage of cells"),
                                         nUMIs=ezFrame(Type="numeric", 
                                                       DefaultValue=1, 

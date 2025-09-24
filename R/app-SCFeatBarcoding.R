@@ -52,7 +52,7 @@ EzAppSCFeatBarcoding <-
                                           Description = "Low quality cells have more than \"perc_ribo\" percent of ribosomal genes. Only when applying fixed thresholds."
                                         ),
                                         cellsFraction=ezFrame(Type="numeric", 
-                                                                DefaultValue=0.05, 
+                                                                DefaultValue=0, 
                                                                 Description="A gene will be kept if it is expressed in at least this percentage of cells"),
                                         nUMIs=ezFrame(Type="numeric", 
                                                       DefaultValue=1, 
