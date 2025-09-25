@@ -9,7 +9,7 @@
 ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   sampleDataset = getAtacSampleSheet(input, param)
   refbuild = param$refBuild
-  outFolder = paste0(param$name, '_results')
+  outFolder = input$getColumn("ATAC_Result") |> basename()
   
   fullGenomeSize <- param$ezRef@refFastaFile %>% Rsamtools::FaFile() %>% GenomeInfoDb::seqlengths() %>% sum()
   effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
