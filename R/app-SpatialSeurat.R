@@ -233,8 +233,10 @@ runBasicProcessing <- function(scData, input, featInfo, param, BPPARAM){
     #scData$Condition <- unname(input$getColumn("Condition"))
     scData@meta.data$Sample <- input$getNames()
     scData[["Spatial"]] <- AddMetaData(object = scData[["Spatial"]], metadata = featInfo[rownames(scData), ])
-    
-    scData_list <- filterCellsAndGenes(scData, param) # return sce objects filtered and unfiltered to show the QC metrics later in the rmd
+    spotSweeperStats <- runSpotSweeper(scData)
+    colnames(spotSweeperStats) <- sub('_outliers$', '_SpotSweeper_outliers', colnames(spotSweeperStats))
+    scData <- AddMetaData(object = scData, metadata = spotSweeperStats)
+    scData_list <- filterCellsAndGenes(scData, param) # return seurat objects filtered and unfiltered to show the QC metrics later in the rmd
     scData <- scData_list$scData
     scData.unfiltered <- scData_list$scData.unfiltered
     cellsPerGeneFraction <- scData_list$cellsPerGeneFraction
@@ -249,6 +251,37 @@ runBasicProcessing <- function(scData, input, featInfo, param, BPPARAM){
     return(list(scData = scData, scData.unfiltered = scData.unfiltered, cellsPerGeneFraction = cellsPerGeneFraction))
 }
 
+runSpotSweeper <- function(scData){
+    require(readr)
+    require(dplyr)
+    require(stringr)
+    require(SpatialExperiment)
+    library(SpotSweeper)
+    
+    scData <- PercentageFeatureSet(scData, "(?i)^MT-", col.name = "percent_mito")
+    centroids <- scData[[names(scData@images)]]@boundaries$centroids
+    coords <- setNames(as.data.frame(centroids@coords), c("x", "y"))
+    rownames(coords) <- centroids@cells
+    scData$x <- coords[colnames(scData), "x"]
+    scData$y <- coords[colnames(scData), "y"]
+    
+    scData_spe <- Seurat_to_SPE(scData, as.matrix(coords))
+    
+    scData_spe <- localOutliers(scData_spe,
+                               metric = "nCount_Spatial",
+                               direction = "lower",
+                               log = TRUE)
+    scData_spe <- localOutliers(scData_spe,
+                               metric = "nFeature_Spatial",
+                               direction = "lower",
+                               log = TRUE)
+    scData_spe <- localOutliers(scData_spe,
+                               metric = "percent_mito",
+                               direction = "higher",
+                               log = TRUE)
+    spotSweeperStats <- data.frame(scData_spe@colData)[, c("nFeature_Spatial_outliers", "nCount_Spatial_outliers", "percent_mito_outliers")]
+    return(spotSweeperStats)
+}
 
 getSpatialSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM){
     #positive cluster markers

@@ -9,7 +9,7 @@
 ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   sampleDataset = getAtacSampleSheet(input, param)
   refbuild = param$refBuild
-  outFolder = paste0(param$name, '_results')
+  outFolder = input$getColumn("ATAC_Result") |> basename()
   
   fullGenomeSize <- param$ezRef@refFastaFile %>% Rsamtools::FaFile() %>% GenomeInfoDb::seqlengths() %>% sum()
   effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
@@ -47,15 +47,24 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     grouping <- input$getColumn(param$grouping)
     dds <- getDdsFromConcensusPeaks(output, param, grouping)
     outDir <- file.path(basename(output$getColumn('Result')), 'diffpeak_analysis')
-    if(!dir.exists(outDir)) dir.create(outDir, recursive = TRUE)
+    cd = getwd()
     setwdNew(outDir)
-
     makeRmdReport(
       output = output, param = param, peakAnno=peakAnno, dds=dds, selfContained = TRUE,
       rmdFile = "DiffPeak.Rmd", htmlFile = "DifferentialPeakAnalysisReport.html",
       reportTitle = 'Differential Peak Analysis', use.qs2 = TRUE
     )
+    setwd(cd)
   }
+
+  dirsToRemove <- c("genome", "trimgalore", "fastqc")
+  if(ezIsSpecified(param$keepBams)){
+    keepBams <- param$keepBams
+  } else {
+    keepBams <- TRUE
+  }
+  cleanupOutFolder(outFolder, dirsToRemove, keepBams)
+
   return("Success")
 }
 
@@ -72,7 +81,8 @@ EzAppNfCoreAtacSeq <- setRefClass(
       appDefaults <<- rbind(
         runTwoGroupAnalysis = ezFrame(Type = "logical", DefaultValue = TRUE, Description = "Run two group analysis"),
         peakStyle  = ezFrame(Type="character", DefaultValue="broad", Description="Run MACS2 in broadPeak mode, otherwise in narrowPeak mode"),
-        varStabilizationMethod = ezFrame(Type="character", DefaultValue="vst", Description="Use rlog transformation or vst (DESeq2)")
+        varStabilizationMethod = ezFrame(Type="character", DefaultValue="vst", Description="Use rlog transformation or vst (DESeq2)"),
+        keepBams = ezFrame(Type="logical", DefaultValue = FALSE, Description= "Should bam files be stored")
       )
     }
   )
@@ -136,4 +146,16 @@ getDdsFromConcensusPeaks <- function(output, param, grouping){
   design(dds) <- ~ Condition
 
   return(dds)  
+}
+
+cleanupOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
+  if(!keepBams){
+    bamPath <- paste0(outFolder,"/bwa/")
+    bamsToDelete <- dir(path=bamPath, pattern="*.bam(.bai)?$", recursive=TRUE)
+    file.remove(file.path(bamPath, bamsToDelete))
+    cat("Deleted bam and bam.bai files form bwa directory.\n")
+  }
+  absolutePaths <- paste(outFolder, dirsToRemove, sep="/")
+  unlink(absolutePaths, recursive=TRUE)
+  cat(paste0("Deleted subdirectory: ",dirsToRemove, "\n"))
 }

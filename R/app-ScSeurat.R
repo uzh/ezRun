@@ -18,7 +18,7 @@ EzAppScSeurat <-
                       Type = "numeric",
                       DefaultValue = 3000,
                       Description = "number of variable genes for SCT"
-                  ),
+                    ),
                     npcs = ezFrame(
                       Type = "numeric",
                       DefaultValue = 20,
@@ -168,7 +168,7 @@ EzAppScSeurat <-
   )
 
 ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
-                               htmlFile = "00index.html") {
+                             htmlFile = "00index.html") {
   library(HDF5Array)
   library(AUCell)
   library(GSEABase)
@@ -182,7 +182,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   library(enrichR)
   library(decoupleR)
   library(Azimuth)
-
+  
   if (param$cores > 1){
     BPPARAM <- MulticoreParam(workers = param$cores)
   } else {
@@ -261,7 +261,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
     if (any(geneAnno$type == "rRNA")){
       featInfo$isRibosomal <- geneAnno[featInfo$gene_id, "type"] == "rRNA"
       if(any(is.na(featInfo[, "isRibosomal"]))){
-          featInfo[, "isRibosomal"][which(is.na(featInfo[, "isRibosomal"]))] <- FALSE
+        featInfo[, "isRibosomal"][which(is.na(featInfo[, "isRibosomal"]))] <- FALSE
       }
     }
   }
@@ -299,39 +299,38 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   }
   if (file.exists(rawDir) && rawDir != cmDir){
     if(param$cellbender){
-        rawCts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_raw_seurat.h5'), use.names = FALSE)
+      rawCts <- Read10X_h5(file.path(dirname(cmDir), 'cellbender_raw_seurat.h5'), use.names = FALSE)
     } else {
-        rawCts <- Read10X(rawDir, gene.column = 1)
+      rawCts <- Read10X(rawDir, gene.column = 1)
     }
     if (is.list(rawCts)) {
       rawCts <- rawCts$`Gene Expression`
       rawCts <- rawCts[featInfo$gene_id,]
     }
-      
+    
     if (("SCDataOrigin" %in% input$colNames) && 
         input$getColumn("SCDataOrigin") == 'BDRhapsody') {
       rawCts <- rawCts[featInfo$gene_id,]
     }
     
-    if(param$cellbender){
-      rawCts <- rawCts[featInfo$gene_id,]
-    }
-    
-     if(length(setdiff(rownames(rawCts), featInfo$gene_id)) > 0){
-      rawCts <- rawCts[featInfo$gene_id,] 
-     }
-    stopifnot(rownames(rawCts) == featInfo$gene_id)
-    emptyStats <- emptyDrops(rawCts[!featInfo$isMito & !featInfo$isRiboprot, ],
-                             BPPARAM=BPPARAM, niters=1e5)
-    scData$negLog10CellPValue <- - log10(emptyStats[colnames(scData), "PValue"])
-    emptyStats <- emptyDrops(rawCts, BPPARAM=BPPARAM, niters=1e5)
-    scData$negLog10CellPValue <- pmin(scData$negLog10CellPValue, -log10(emptyStats[colnames(scData), "PValue"]))
-    scData@meta.data$negLog10CellPValue[is.na(scData$negLog10CellPValue)] <- 0
     scData$qc.empty <- FALSE
-    
-    if(param$maxEmptyDropPValue < 1){
+    if(!param$cellbender){
+      
+      if(length(setdiff(rownames(rawCts), featInfo$gene_id)) > 0){
+        rawCts <- rawCts[featInfo$gene_id,] 
+      }
+      stopifnot(rownames(rawCts) == featInfo$gene_id)
+      emptyStats <- emptyDrops(rawCts[!featInfo$isMito & !featInfo$isRiboprot, ],
+                               BPPARAM=BPPARAM, niters=1e5)
+      scData$negLog10CellPValue <- - log10(emptyStats[colnames(scData), "PValue"])
+      emptyStats <- emptyDrops(rawCts, BPPARAM=BPPARAM, niters=1e5)
+      scData$negLog10CellPValue <- pmin(scData$negLog10CellPValue, -log10(emptyStats[colnames(scData), "PValue"]))
+      scData@meta.data$negLog10CellPValue[is.na(scData$negLog10CellPValue)] <- 0
+      
+      if(param$maxEmptyDropPValue < 1){
         scData$qc.empty[scData$negLog10CellPValue < -log10(param$maxEmptyDropPValue)] <- TRUE
         scData$useCell[scData$qc.empty] <- FALSE
+      }
     }
     remove(rawCts)
   }
@@ -347,10 +346,10 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData <- scData[is.expressed,]
   
   if(ezIsSpecified(param$excludeGenes) && param$excludeGenes!=''){
-      genesToExclude <- ezRead.table(param$excludeGenes, header = FALSE, row.names = NULL)
-      genesToExclude <- unique(genesToExclude$V1)
-      genesToKeep <- setdiff(rownames(scData), genesToExclude)
-      scData <- subset(scData, features = genesToKeep)
+    genesToExclude <- ezRead.table(param$excludeGenes, header = FALSE, row.names = NULL)
+    genesToExclude <- unique(genesToExclude$V1)
+    genesToKeep <- setdiff(rownames(scData), genesToExclude)
+    scData <- subset(scData, features = genesToKeep)
   }
   
   ## Add Cell Cycle information to Seurat object as metadata columns
@@ -360,7 +359,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   scData <- seuratStandardSCTPreprocessing(scData, param)
   ## defaultAssay is now SCT
   scData <- seuratStandardWorkflow(scData, param, ident.name="seurat_clusters")
-
+  
   # estimate ambient first
   if (ezIsSpecified(param$estimateAmbient) && param$estimateAmbient) {
     scData <- addAmbientEstimateToSeurat(scData, rawDir=rawDir, param = param)
@@ -372,7 +371,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   # save markers
   markers <- anno$markers
   writexl::write_xlsx(markers, path="posMarkers.xlsx")
-
+  
   ## generate template for manual cluster annotation -----
   ## we only deal with one sample
   stopifnot(length(input$getNames()) == 1)

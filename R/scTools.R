@@ -363,13 +363,17 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
     assay <- "RNA"
   }
   
-  if (is.na(param$nreads)) {
+  if (is.na(param$nreads) & assay != 'Spatial') {
     qc.lib <- isOutlier(scData@meta.data[,att_nCounts], log = TRUE, nmads = param$nmad, type = "lower")
+  } else if(assay == 'Spatial' & is.na(param$nreads)){
+    qc.lib <- scData@meta.data[,'nCount_Spatial_SpotSweeper_outliers']  
   } else {
     qc.lib <- scData@meta.data[,att_nCounts] < param$nreads
   }
-  if (is.na(param$ngenes)) {
+  if (is.na(param$ngenes) & assay != 'Spatial') {
     qc.nexprs <- isOutlier(scData@meta.data[,att_nGenes], nmads = param$nmad, log = TRUE, type = "lower")
+  } else if(assay == 'Spatial' & is.na(param$ngenes)){
+    qc.nexprs <- scData@meta.data[,'nFeature_Spatial_SpotSweeper_outliers']
   } else {
     qc.nexprs <- scData@meta.data[,att_nGenes] < param$ngenes
   }
