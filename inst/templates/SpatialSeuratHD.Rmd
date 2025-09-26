@@ -191,7 +191,7 @@ sp_plot <- function(obj,
 ### QC diagnostic plots
 
 <details>
-  <summary>Metrics (low-quality bins)</summary>
+  <summary>Metrics to identify bins (spots) of low quality</summary>
   
 ```{r QC metrics, echo=F, message=F, warning=F}
 
@@ -201,15 +201,15 @@ qcMetrics <- tibble(
 ) |>
   add_row(
     metric = "Library size – total sum of counts across all relevant features for each spot",
-    interpretation = "Small library sizes → low quality (RNA may have been lost during library preparation)"
+    interpretation = "Small library sizes indicate low quality (RNA may have been lost during library preparation)"
   ) |>
   add_row(
     metric = "Number of expressed genes with non-zero counts in each spot",
-    interpretation = "Very few expressed genes → poor capture of the transcript population → low quality"
+    interpretation = "Very few expressed genes means poor capture of the transcript population"
   ) |>
   add_row(
     metric = "Mitochondrial proportion – percentage of reads mapping to mitochondrial genes in each spot",
-    interpretation = "High mitochondrial proportion → poor quality (loss of cytoplasmic RNA from perforated bins) (Islam et al. 2014; Ilicic et al. 2016)"
+    interpretation = "High mitochondrial proportion indicate poor quality (loss of cytoplasmic RNA from perforated bins) (Islam et al. 2014; Ilicic et al. 2016)"
   )
 
 datatable(
@@ -232,12 +232,7 @@ datatable(
   )
 
 ```
-</details>
-
-
-<details>
-  <summary>Evaluation
-</summary>
+### Evaluation
 
 ```{r diagnostics plots, echo=F, message=F, warning=F}
 
@@ -288,7 +283,6 @@ datatable(
 ```
 </details>
 
-<br>
 
 ```{r 1st line of plots, fig.width=12, fig.height=4}
 
@@ -540,7 +534,7 @@ plot10 + plot11 + plot12
 ### Bins filtering
 
 <details>
-  <summary>Cell filtering rules</summary>
+  <summary>Filtering rules</summary>
 
 ```{r cell filter, echo=F, message=F, warning=F}
 
@@ -558,7 +552,7 @@ cellFilter <- tibble(
   ) |>
   add_row(
     criterion = "Adaptive: library size (nreads)",
-    rule = "Exclude cells with library size < median − 3 × MAD."
+    rule = "Exclude cells with library size < median − 3 × MAD (Median Absolute Deviation)"
   ) |>
   add_row(
     criterion = "Adaptive: detected genes (ngenes)",
@@ -576,10 +570,10 @@ cellFilter <- tibble(
 datatable(
   cellFilter,
   class = 'cell-border stripe',
-  caption = htmltools::tags$caption(
-    style = 'caption-side: top; text-align: left; font-weight: bold; font-size: 16px;',
-    "MAD = median absolute deviation"
-  ),
+  # caption = htmltools::tags$caption(
+  #   #style = 'caption-side: top; text-align: left; font-weight: bold; font-size: 16px;',
+  #   "MAD = median absolute deviation"
+  # ),
   escape = FALSE,
   rownames = FALSE,
   #colnames = rep("", ncol(cellFilter)),  # hide headers
@@ -599,12 +593,13 @@ datatable(
 <div class = "row">
 <div class = "col-md-6">
 
+Number of bins filtered by the individual quality criterions.
 ```{r low quality Bins, fig.align='center'}
 
 qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
 qcList <- qcList[sapply(qcList, length) > 0]
 if (length(qcList) > 1){
-  UpSetR::upset(fromList(qcList), nsets = 5)
+  UpSetR::upset(fromList(qcList), nsets = 5, mainbar.y.label="#bins")
 }
 ```
 </div>
@@ -697,7 +692,7 @@ htmlwidgets::prependContent(
 
 
 <details>
-  <summary>PC overview</summary>
+  <summary>Background information</summary>
 
 ```{r dim_ tbl, echo=F, message=F, warning=F}
 dimred_tbl <- tibble(
@@ -775,26 +770,28 @@ pca_name <- if ("pca.sketch" %in% names(scData@reductions)) "pca.sketch" else "p
 
 k <- param$npcs 
 
-top_n <- 80                  
+top_n <- max(80,k)
 
 stdev <- scData[[pca_name]]@stdev %>% head(top_n)
 
 
 pct  <- ((stdev^2) / sum(stdev^2)) * 100        
-mode <- sprintf("Variance-normalized%s", 
-                       paste0(", top ", length(stdev), " PCs"))
+# mode <- sprintf("Variance-normalized%s", 
+#                        paste0(", top ", length(stdev), " PCs"))
 
 
 cumu    <- cumsum(pct)
 plot_df <- data.frame(pct = pct, cumu = cumu, rank = seq_along(pct))
+plot_df$used <- factor(plot_df$rank <= k, levels=c(TRUE, FALSE))
 
 ggplot(plot_df, aes(x = cumu, 
                     y = pct, 
                     label = rank, 
-                    color = rank > k)) +
-  geom_point(size = 1.6) +
+                    color = used)) +
+  geom_point(size = 1.6) + 
   geom_text(vjust = -0.8, size = 2) +
   geom_vline(xintercept = cumu[k], color = "grey50", linetype = "dashed") +
+  
   # 
   # scale_color_manual(
   #   values = c("FALSE" = "#2B7A78", "TRUE" = "#1E88E5"),
@@ -804,10 +801,10 @@ ggplot(plot_df, aes(x = cumu,
   # ) +
   
   labs(
-    title    = "PCA percent variance explained",
-    subtitle = paste0(mode, "; k = ", k, " (variance used at k shown)"),
-    x = "Cumulative % ",
-    y = "Per PC %"
+    title    = "Percent variance explained by the principal components",
+    subtitle = paste0("number of PCs used: ", k),
+    x = "Cumulative percent variance explained ",
+    y = "Per PC variance explained"
   ) +
   
   annotate(
@@ -816,8 +813,7 @@ ggplot(plot_df, aes(x = cumu,
     label = paste0("Variance used: ", sprintf("%.2f", cumu[k]), "%"),
     vjust = -0.4, size = 3, color = gg_color_hue(2)[1]
   ) + theme(legend.position = "none") +
-  theme_bw() + 
-  theme(legend.position = "bottom")
+  theme_bw() +theme(legend.position = "none")
 
 ```
 
@@ -1008,7 +1004,7 @@ ggplot(plot_df, aes(x = seurat_clusters,
   theme(legend.position="none", 
         panel.grid.minor=element_blank(),
         panel.grid.major=element_blank(),
-        axis.title.y=element_blank(),
+        axis.title.y="#",
         axis.text.x=element_text(size=8, 
                                  face="bold")) +
   
@@ -1020,45 +1016,29 @@ ggplot(plot_df, aes(x = seurat_clusters,
 
 <div class = "col-md-3">
 ```{r, echo=FALSE}
-# cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Batch")
-
-
-# kable(cells_prop, row.names=FALSE, format="html", caption="Spot proportions") %>%
-#   kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
 
 df <- cellsProportion(scData, 
                       groupVar1 = "seurat_clusters", 
                       groupVar2 = "Batch")
 
-num_cols <- which(vapply(df, 
-                         is.numeric, 
-                         logical(1L)))
+df <- df |>
+  as.data.frame(check.names = FALSE, stringsAsFactors = FALSE) |> 
+  rename("seurat_clusters"="Cluster")
+  
 
-df <- as.data.frame(df, 
-                    check.names = FALSE, 
-                    stringsAsFactors = FALSE)
+is_pct_col <- grepl("_fraction$", colnames(df))
+colnames(df) <- colnames(df) |> str_replace_all("_fraction$", " (%)")
+is_count_col <- !is_pct_col & colnames(df) != "Cluster"
+colnames(df)[is_count_col] <- colnames(df)[is_count_col] |> paste("(n)")
 
-cn <- colnames(df)
 
-cn[cn == "seurat_clusters"] <- "Cluster"
-
-is_frac  <- grepl("_fraction$", cn)
-cn[is_frac] <- sub("_fraction$", " (%)", cn[is_frac])
-
-is_count <- !(cn == "Cluster") & !grepl(" \\(\\%\\)$", cn)
-
-cn[is_count] <- paste0(cn[is_count], " (n)")
-
-colnames(df) <- cn
-
-pct_cols <- grep(" \\(\\%\\)$", names(df))
 
 DT::datatable(
   df,
   class   = "cell-border stripe compact",
   caption = htmltools::tags$caption(
-    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
-    "Spot proportions"
+#    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
+    "Bins per cluster and sample"
   ),
   extensions = "Buttons",
   rownames   = FALSE,
