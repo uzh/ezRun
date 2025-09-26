@@ -11,6 +11,7 @@ editor_options:
   chunk_output_type: inline
 ---
 
+
 ```{r setup Dmrseq, include=FALSE}
 library(dmrseq)
 library(rtracklayer)
@@ -58,6 +59,7 @@ if(file.exists('dss_results.qs2')){
 ```
 
 # {.tabset}
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ## Settings
 ```{r setting, echo=FALSE}
@@ -76,7 +78,6 @@ kable(settings, row.names=TRUE,
                 position = "left")
 ```
 
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 
 ## Data Files

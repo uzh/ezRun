@@ -44,7 +44,7 @@ sampleName <- output$getNames()
 
 ## Overview
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 * Total Number of sgRNAs: `r nrow(res)`
 * Median Reads per sgRNA = `r median(res$Count)`

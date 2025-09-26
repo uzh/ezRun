@@ -96,7 +96,7 @@ EzAppScSeurat <-
                     ),
                     cellsFraction = ezFrame(
                       Type = "numeric",
-                      DefaultValue = 0.01,
+                      DefaultValue = 0,
                       Description = "A gene will be kept if it is expressed in at least this percentage of cells"
                     ),
                     nUMIs = ezFrame(

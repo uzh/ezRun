@@ -1,18 +1,17 @@
 ---
-title:  "`r metadata(sce)$param$name`"
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
-    self_contained: false
+    self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+# {.tabset}
 
 ```{r setup, include=FALSE}
 library(SummarizedExperiment)
@@ -67,9 +66,9 @@ if(toupper(param$scProtocol) == "SMART-SEQ2"){
 }
 ```
 
-## CountQC_Result {.tabset}
 
-### Overview
+## Overview
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 * Total Number of Cells: `r ncol(sce)`
 * Median Genes per Cell = `r median(sceFixName$detected)`
@@ -77,7 +76,7 @@ if(toupper(param$scProtocol) == "SMART-SEQ2"){
 * Number of input reads (Smart-Seq2 only) = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["Number of input reads",2])`
 * % of reads mapped to multiple loci (Smart-Seq2 only) = `r ifelse(is.null(metadata(sce)$mlog), NA, metadata(sce)$mlog["% of reads mapped to multiple loci",2])`
 
-### Saturation
+## Saturation
 
 This plot shows the Median Genes per Cell as a function of downsampled sequencing depth in mean reads per cell, up to the observed sequencing depth. 
 The slope of the curve near the endpoint can be interpreted as an upper bound to the benefit to be gained from increasing the sequencing depth beyond this point.
@@ -105,7 +104,7 @@ plot_ly(data=toPlot, x=~x, y=~y, type = 'scatter', mode = 'lines') %>%
          xaxis = xax, yaxis = yax)
 ```
 
-### Diagnostic plots of cells
+## Diagnostic plots of cells
 
 Interactive plot showing the read counts vs the number of expressed genes and mitochondial content for all cells. Each dot is a cell.
 
@@ -125,7 +124,7 @@ subplot(p1, p2, titleX=TRUE, titleY=TRUE, nrows=1) %>%
   layout(showlegend = FALSE)
 ```
 
-### QC metrics on the cells
+## QC metrics on the cells
 
 Histograms of read counts, number of expressed genes and proportion of reads assigned to mitochondrial genes for all cells
 
@@ -155,7 +154,7 @@ p <- plot_grid(p1, p2, p3, ncol=3)
 print(p)
 ```
 
-### Highly expressed features
+## Highly expressed features
 
 Percentage of total counts assigned to the top 50 (by default) most-expressed features. Each row in the plot below corresponds to a gene, and each bar corresponds to the expression of a gene in a single cell. The circle indicates the median expression of each gene, with which genes are sorted.
 
@@ -167,7 +166,7 @@ The feature control is mitochondrial gene.
 plotHighestExprs(sceFixName, n=50, exprs_values = "counts")
 ```
 
-### Heatmap of reads per cell on the plate
+## Heatmap of reads per cell on the plate
 
 Sequenced reads on the plate layout.The heatmap values are in $log10$ scale.
 The colorScale ranges from half of median value to twice of median value.
@@ -197,7 +196,7 @@ if(!is.na(plateMatrix)){
 ```
 
 
-### Gene Detection Rates
+## Gene Detection Rates
 
 ```{r gene detection rates gc vs width, fig.width=7, fig.height=7, echo=FALSE, message=FALSE, eval=!debug}
 scePC = sce
@@ -268,7 +267,7 @@ pheatmap(gcWidthScoresRelRanged[ ,order(Matrix::colSums(assays(scePC)$counts > 3
          )
 ```
 
-### Picard Metrics
+## Picard Metrics
 A overview of scRNA-Seq QC metrics from Picard over the plate. 
 For the detais of the metrics, please refer to 
 https://broadinstitute.github.io/picard/picard-metric-definitions.html
@@ -370,7 +369,7 @@ for(plateName in names(plateMatrix)){
 l
 ```
 
-### Picard Metrics Summary
+## Picard Metrics Summary
 
 This is only available for plate based single cell protocol.
 
@@ -401,7 +400,7 @@ p2 <- plot_ly(alpha = 0.6) %>%
 p2
 ```
 
-### Data availability
+## Data availability
 
 **Expression matrix**
 
@@ -442,7 +441,7 @@ cat("\n")
 invisible(file.remove(c("cpm.txt")))
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

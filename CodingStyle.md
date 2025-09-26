@@ -7,6 +7,8 @@ Basic paradigms:
 * use the RStudio Addin to style code: https://github.com/r-lib/styler
 * only use ascii characters in all files; neve use Umlaut and other characters
 * in any file: All names and comments must be based on English
+* useful suggestions from Sarah Johnson: https://gist.github.com/sj-io/3828d64d0969f2a0f05297e59e6c15ad
+
 
 
 ## Naming

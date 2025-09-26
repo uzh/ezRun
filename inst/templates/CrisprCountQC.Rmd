@@ -86,6 +86,8 @@ rowData(rawData)$isValid <- rowMeans(isPresentCond) >= 0.5
 # {.tabset}
 
 ## Settings
+
+
 ```{r setting, echo=FALSE}
 settings = character()
 settings["Reference:"] = param$refBuild

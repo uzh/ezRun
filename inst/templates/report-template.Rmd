@@ -1,23 +1,20 @@
 ---
-title: "FILL ME"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
-    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
-    code_folding: hide
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
   chunk_output_type: inline
 ---
 
-
 # {.tabset}
+`r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ## Overview
-
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup}
 knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE, knitr.table.format = "html")

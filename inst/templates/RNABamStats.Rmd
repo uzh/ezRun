@@ -11,6 +11,9 @@ editor_options:
   chunk_output_type: inline
 ---
 
+# {.tabset}
+
+
 ```{r setup RNABamStats, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(knitr)
@@ -66,11 +69,13 @@ if (param$writeIgvSessionLink){
 }
 ```
 
-## RNA_BAM_Statistics {.tabset}
+
 
 <!-- ### Read Alignment Statistics -->
 
-### Multi-Matching Reported in Bam File
+## Multi-Matching Reported in Bam File
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 The plot holds for each sample the number of reads in Millions 
 that have X matches in the target and are reported in the file.
 
@@ -331,7 +336,7 @@ if(exists('dupPlot'))
 ```
 
 
-### Input Dataset
+## Input Dataset
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(dataset)
 ```

@@ -11,6 +11,8 @@ editor_options:
   chunk_output_type: inline
 ---
 
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 
 ```{r cluster plot, echo=FALSE, fig.width=max(8,4+0.15*ncol(ncol(rawData))), fig.height=10, fig.retina=2, warning=FALSE}
 ## Cluster plot again

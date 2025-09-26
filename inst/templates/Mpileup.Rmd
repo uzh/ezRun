@@ -1,15 +1,19 @@
 ---
-title: "`r if (exists('reportTitle')) reportTitle else 'Mpileup'`"
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
-    lib_dir: rmarkdownLib
     includes:
-      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
-    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
 ---
+
+# {.tabset}
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -34,12 +38,8 @@ samples = input$getNames()
 conds = ezConditionsFromDataset(dataset, param=param)
 sampleColors = getSampleColors(conds, colorNames = names(conds))
 ```
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-## Mpileup {.tabset}
-
-
-### Sample Clustering 
+## Sample Clustering 
 ```{r clustering, echo=FALSE, eval=length(samples) > 3, fig.width=min(5 + length(samples)*0.33, 20), fig.height = 8}
 
 idxMat = ezMatrix(match(gt, c("0/0", "0/1", "1/1")) -2, rows=rownames(gt), cols=colnames(gt))
@@ -53,7 +53,7 @@ if (all(!is.na(d))){
 }
 ```
 
-### Variants by Chromosomes
+## Variants by Chromosomes
 
 ```{r chrom variants, echo=FALSE, eval=nrow(gt) >0, fig.width=min(5 + length(samples)*0.33, 20), fig.height = min(5 + length(samples)*0.2, 15)}
 
@@ -83,12 +83,12 @@ for (ch in names(chromUse)){
 
 ```
 
-### Input Dataset
+## Input Dataset
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(values=dataset)
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

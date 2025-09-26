@@ -1,16 +1,17 @@
 ---
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+# {.tabset}
 
 ```{r setup, include=FALSE}
 library(SingleCellExperiment)
@@ -48,9 +49,9 @@ output <- metadata(sce)$output
 ```
 
 
-## Analysis results {.tabset}
 
-### Batch QC
+## Batch QC
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 We identified and filtered low-quality cells in each batch separately using several common QC metrics. However, it is useful to compare the remaining cells in each batch to detect a possible variability between batches. 
 
@@ -69,7 +70,7 @@ plotColData(sce, x="Batch", y="detected", colour_by = "Batch") + scale_y_log10()
 plotColData(sce, x="Batch", y="subsets_Mito_percent", colour_by = "Batch") + ggtitle("Mito percent")
 ```
 
-### Batch effects
+## Batch effects
 
 We always look at our cells before deciding whether we need to perform integration. Te main goal of dataset integration is to identify shared cell states that are present across different datasets, in case they were collected from different individuals, experimental conditions, technologies, or even species. Large single-cell RNA sequencing projects usually need to generate data across multiple batches due to logistical constraints. This results in systematic differences in the observed expression in cells from different batches, which we refer to as “batch effects”. Batch effects are problematic as they can be major drivers of heterogeneity in the data, masking the relevant biological differences and complicating interpretation of the results.
 The UMAPs and the barplot below can help us to visualize if the clusters are balanced and composed by cells from the different batches. If we see clusters that are comprised of cells from a single batch, this indicates that cells of the same type are artificially separated due to technical differences between batches. In this case, we may also consider that there are cell types that are unique to each batch. If a cluster only contains cells from a single batch, one can always debate whether that is caused by technical differences or if there is truly a batch-specific subpopulation. 
@@ -96,7 +97,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per co
 ```
 
 
-### Clustering
+## Clustering
 
 Clustering is an unsupervised learning procedure that is used in scRNA-seq data analysis to empirically define groups of cells with similar expression profiles. We have to be aware that clusters not always represent the true cell types. We can define as many clusters as we like, with whatever algorithm we like - each clustering will represent its own partitioning of the high-dimensional expression space, and is as “real” as any other clustering. The clustering results will be used to find out the cell types that are present in the experiment.
 
@@ -128,7 +129,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 plotReducedDim(sce, dimred="UMAP", colour_by="ident", text_by="ident", text_size=5) 
 ```
 
-### Cluster assessment
+## Cluster assessment
 
 
 #### Segregation of clusters by various sources of uninteresting variation.
@@ -171,7 +172,7 @@ Below, it is shown a clustering tree that helps us to visualize the relationship
 clustree::clustree(sce, prefix = "k.")
 ```
 
-### Cluster markers
+## Cluster markers
 
 <br> 
 To interpret the clustering results we identify the genes that drive separation between clusters using differential expression between clusters. These marker genes allow us to assign biological meaning to each cluster based on their functional annotation. In the most obvious case, the marker genes for each cluster are a priori associated with particular cell types, allowing us to treat the clusters as cell types. 
@@ -189,7 +190,7 @@ posMarkers$gene_name = as.factor(posMarkers$gene_name)
 ezInteractiveTableRmd(posMarkers, digits=4)
 ```
 
-### Marker plots
+## Marker plots
 
 Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
@@ -209,7 +210,7 @@ plotHeatmap(sce, features=unique(genesToPlot), center=TRUE, zlim=c(-2, 2),
 plotDots(sce, features=genesToPlot, group="ident") + scale_y_discrete(limits=rev(genesToPlot))
 ```
 
-### Cell annotation
+## Cell annotation
 
 The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we use different approaches which are explained below. However, these methods should be complemented with the biological knowledge from the researcher.
 
@@ -303,7 +304,7 @@ The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general
 The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("Report"),"/sce_h5")}`){target="_blank"}
 
 
-### Methods
+## Methods
 
 #### Data processing
 
@@ -336,7 +337,7 @@ if(species == "Human") {
   }       
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

@@ -1,20 +1,23 @@
 ---
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-author: "Functional Genomics Center Zurich"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
-    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
   chunk_output_type: inline
 ---
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+# {.tabset}
 
-```{r setup, include=FALSE}
+## Quality control
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
+```{r setup, include=FALSE, echo=FALSE}
 # input for this report: sce
 library(clustree)
 library(kableExtra)
@@ -130,11 +133,6 @@ if (any(is.na(clusterSet))){
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 clusterNameNChar = max(nchar(levels(Idents(scData))))
 ```
-
-
-## Analysis results {.tabset}
-
-### Quality control
 
 #### Selected QC metrics
 
@@ -333,7 +331,7 @@ kable(enrichrTable, format="html", escape=FALSE,
   kable_styling("striped", full_width = F, position = "left")
 ```
 
-### Clustering
+## Clustering
 
 In order to find clusters of cells we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the cells involved, with higher weight given to cells that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of cells that are more connected to cells in the same community than they are to cells of different communities. Each community represents a cluster that we can use for downstream interpretation. 
 
@@ -366,7 +364,7 @@ cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = 
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
-### Cluster assessment
+## Cluster assessment
 
 
 #### Segregation of clusters by various sources of uninteresting variation.
@@ -443,7 +441,7 @@ Below, it is shown a clustering tree that helps us to visualize the relationship
 clustree::clustree(scData, prefix = paste0(DefaultAssay(scData), "_snn_res."))
 ```
 
-### Cluster markers
+## Cluster markers
 
 ```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
 cat("We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
@@ -458,7 +456,7 @@ cat("We found positive markers that defined clusters compared to all other cells
 ezInteractiveTableRmd(data.frame(posMarkers), digits=4)
 ```
 
-### Marker plots
+## Marker plots
 
 Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
@@ -503,7 +501,7 @@ if (length(genesToPlot) > 0){
 ```
 
 
-### EnrichR
+## EnrichR
 
 Cell type scoring using the EnrichR tool. This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters.
 
@@ -575,7 +573,7 @@ for (cluster in names(enrichRout)) {
 
 <br/>
 
-### SingleR
+## SingleR
 
 Matching of clusters to annotated reference datasets using SingleR.
 
@@ -662,7 +660,7 @@ ezInteractiveTableRmd(bind_rows(clusterInfosList))
 cat("\n\n")
 ```
 
-### AUCell
+## AUCell
 
 Matching the cells to marker gene sets that are known to be characteristic for cell types. We use marker gene sets from the CellMarker database (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
 
@@ -719,7 +717,7 @@ try({
 })
 ```
 
-### Azimuth
+## Azimuth
 
 ```{r azimuth, eval=!is.null(scData@meta.data$Azimuth.celltype.l1), fig.width=15, fig.height=8}
 options(ggrepel.max.overlaps = Inf)
@@ -739,7 +737,7 @@ if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
   theme(aspect.ratio = 1)
 ```
 
-### Azimuth Pan-Human
+## Azimuth Pan-Human
 
 `r if(azimuth_available) "Azimuth Pan-Human provides neural network-based cell type annotation using the Satija lab reference (HUMAN DATASETS ONLY)."`
 
@@ -835,7 +833,7 @@ if(azimuth_available && !is.null(azimuth_results)){
 }
 ```
 
-### Cell x gene
+## Cell x gene
 ```{r cellxgene, eval=!is.null(cellxgeneResults), fig.width=7, fig.height=7}
 
 options(ggrepel.max.overlaps = Inf)
@@ -885,7 +883,7 @@ tryCatch({
 })
 ```
 
-### scType
+## scType
 
 `r if(sctype_available) "scType provides fully-automated cell-type identification using specific marker combinations (human and mouse supported)."`
 
@@ -909,7 +907,7 @@ if(sctype_available && !is.null(sctype_results)){
 }
 ```
 
-### Interactive
+## Interactive
 
 The link below will take you to an interactive Shiny app which can be used to make 
 production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
@@ -926,7 +924,7 @@ production-ready plots and figures. You can also use this app to explore your ow
 
 `r if(sctype_available) "[scType_results.xlsx](scType_results.xlsx) -- scType cell type annotation results"`
 
-### SessionInfo
+## SessionInfo
 ```{r report parameters, echo=FALSE}
 param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "cellsFraction", "nUMIs", "nmad", "normalize")]
 ```

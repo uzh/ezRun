@@ -1,19 +1,17 @@
 ---
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-author: "Functional Genomics Center Zurich"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
-    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
-
+# {.tabset}
 
 ```{r setup, include=FALSE}
 # input for this report: sce
@@ -51,9 +49,9 @@ species <- getSpecies(param$refBuild)
 var_height = 1 #This ensures that chunks that use the length of this variable to set the fig size, don't fail.
 ```
 
-## Analysis results {.tabset}
 
-### Quality control
+## Quality control
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 #### Selected QC metrics
 
@@ -84,7 +82,7 @@ It is also worth to plot the proportion of mitochondrial counts against the libr
 
 <br/>
 
-### Dimensionality reduction
+## Dimensionality reduction
 
 Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
 
@@ -125,7 +123,7 @@ The uniform manifold approximation and projection (UMAP) method (McInnes, Healy,
 
 <br/><br/>
 
-### Clustering
+## Clustering
 
 In order to find clusters of cells we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the cells involved, with higher weight given to cells that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of cells that are more connected to cells in the same community than they are to cells of different communities. Each community represents a cluster that we can use for downstream interpretation. 
 
@@ -153,7 +151,7 @@ cells_prop = cellsProportion(sce, groupVar1 = "ident", groupVar2 = "Batch")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
-### Cluster assessment
+## Cluster assessment
 
 
 #### Segregation of clusters by various sources of uninteresting variation.
@@ -187,7 +185,7 @@ if (ezIsSpecified(param$controlSeqs)) {
 }
 ```
 
-### Cluster markers
+## Cluster markers
 
 ```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
 cat("We found positive markers that defined clusters compared to all other cells via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the cells in the tested cluster and the rest of the cells and an adjusted p-value < 0.05 were declared as significant.")
@@ -206,7 +204,7 @@ posMarkers$gene = as.factor(posMarkers$gene)
 ezInteractiveTableRmd(posMarkers, digits=4)
 ```
 
-### Marker plots
+## Marker plots
 
 Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
@@ -228,7 +226,7 @@ plotDots(sce, features=genesToPlot, group="cellType") + theme(axis.text.x = elem
   labs(x="", y="")
 ```
 
-### Cell annotation
+## Cell annotation
 
 The most challenging task in scRNA-seq data analysis is the interpretation of the results. Once we have obtained a set of clusters we want to determine what biological state is represented by each of them. To do this, we have implemmented 3 different approaches which are explained below. However, these methods should be complemented with the biological knowledge from the researcher.
 
@@ -315,7 +313,7 @@ kable_styling("striped", full_width = F, position = "left")
 <!-- <br/> -->
 
 
-### Interactive explorer
+## Interactive explorer
 
 <br>
 The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general visual interface for exploring single cell data. iSEE allows users to simultaneously visualize multiple aspects of a given data set, including experimental data, metadata, and analysis results. Dynamic linking and point selection facilitate the flexible exploration of interactions between different data aspects.
@@ -324,7 +322,7 @@ The iSEE (Interactive SummarizedExperiment Explorer) explorer provides a general
 The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastProjectDigit = stringr::str_sub( sub("\\/.*", "", output$getColumn("SC Celltype Report")), start = -1); paste0("http://fgcz-shiny.uzh.ch/fgcz_iSEE", lastProjectDigit, "/?data=",output$getColumn("SC Celltype Report"),"/sce_h5")}`){target="_blank"}
 
 
-### Data availability
+## Data availability
 
 ##### Mean expression of every gene across the cells in each cluster
 
@@ -337,13 +335,13 @@ The iSEE shiny app can be accessed through this link [iSEE explorer](`r {lastPro
 
 ##### The final Single Cell Experiment Object is [here](sce_h5)
 
-### Parameters
+## Parameters
 ```{r report parameters, echo=FALSE}
 param[c( "DE.method")]
 ```
 
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```
