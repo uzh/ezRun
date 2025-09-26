@@ -232,7 +232,9 @@ datatable(
   )
 
 ```
-### Evaluation
+
+Evaluation
+
 
 ```{r diagnostics plots, echo=F, message=F, warning=F}
 
@@ -1004,7 +1006,7 @@ ggplot(plot_df, aes(x = seurat_clusters,
   theme(legend.position="none", 
         panel.grid.minor=element_blank(),
         panel.grid.major=element_blank(),
-        axis.title.y="#",
+        axis.title.y=element_text("# bins"),
         axis.text.x=element_text(size=8, 
                                  face="bold")) +
   
@@ -1056,7 +1058,7 @@ DT::datatable(
     columnDefs   = list(list(className = "dt-left", targets = 0))
   )
 ) |>
-  DT::formatPercentage(columns = pct_cols, digits = 1) |>
+  DT::formatPercentage(columns = is_pct_col, digits = 1) |>
   DT::formatStyle(columns = names(df), `white-space` = "pre-wrap")
 
 ```
@@ -1136,9 +1138,35 @@ DT::datatable(
 
 </details> 
 
-<br>
+
 
 ```{r uninteresting variation, fig.height=16, fig.width=18}
+boxplot_data_nCount <- FetchData(scData, vars = c(nCountCol, "seurat_clusters"))
+boxplot_data_nCount$seurat_clusters <- factor(boxplot_data_nCount$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nCount$seurat_clusters))))
+plot1 <- ggplot(boxplot_data_nCount, aes(x = seurat_clusters, y = .data[[nCountCol]], fill = seurat_clusters))
+plot1 <- plot1 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
+plot1 <- plot1 + scale_fill_viridis_d(option = "turbo")  
+plot1 <- plot1 + ggtitle("Number of UMIs vs cluster") + xlab("Cluster") + ylab(nCountCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
+
+boxplot_data_nFeature <- FetchData(scData, vars = c(nFeatureCol, "seurat_clusters"))
+boxplot_data_nFeature$seurat_clusters <- factor(boxplot_data_nFeature$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nFeature$seurat_clusters))))
+plot2 <- ggplot(boxplot_data_nFeature, aes(x = seurat_clusters, y = .data[[nFeatureCol]], fill = seurat_clusters))
+plot2 <- plot2 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
+plot2 <- plot2 + scale_fill_viridis_d(option = "turbo")  
+plot2 <- plot2 + ggtitle("Number of genes vs cluster") + xlab("Cluster") + ylab(nFeatureCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
+
+boxplot_data_mito <- FetchData(scData, vars = c("percent_mito", "seurat_clusters"))
+boxplot_data_mito$seurat_clusters <- factor(boxplot_data_mito$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_mito$seurat_clusters))))
+plot3 <- ggplot(boxplot_data_mito, aes(x = seurat_clusters, y = percent_mito, fill = seurat_clusters))
+plot3 <- plot3 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
+plot3 <- plot3 + scale_fill_viridis_d(option = "turbo")  
+plot3 <- plot3 + ggtitle("Mitochondrial percentage vs cluster") + xlab("Cluster") + ylab("percent_mito") + theme_minimal(base_size = 14) + theme(legend.position = "none")
+plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
+
+```
+
+
+```{r uninteresting variation old, fig.height=16, fig.width=18, include=FALSE}
 
 # UMIs
 boxplot_data_nCount <- FetchData(scData, vars = c(nCountCol, 
@@ -1230,7 +1258,7 @@ plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
 ## Cluster markers
 
 <details>
-  <summary>Positive marker detection (Wilcoxon + effect size)</summary>
+  <summary>Positive marker detection</summary>
 
 ```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
 marker_tbl <- tibble(
@@ -1311,11 +1339,8 @@ DT::datatable(
     `vertical-align` = "top"
   )
 ```
-</details> 
+Marker detection summary
 
-
-<details>
-  <summary>Marker detection summary</summary>
 ```{r LR test, eval=(param$DE.method=="LR"), results='asis'}
 
 marker_desc <- tibble(
@@ -1344,31 +1369,7 @@ marker_desc <- tibble(
 ```
   
  </details>
-  
-```{r uninteresting variation, fig.height=16, fig.width=18}
-boxplot_data_nCount <- FetchData(scData, vars = c(nCountCol, "seurat_clusters"))
-boxplot_data_nCount$seurat_clusters <- factor(boxplot_data_nCount$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nCount$seurat_clusters))))
-plot1 <- ggplot(boxplot_data_nCount, aes(x = seurat_clusters, y = .data[[nCountCol]], fill = seurat_clusters))
-plot1 <- plot1 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
-plot1 <- plot1 + scale_fill_viridis_d(option = "turbo")  
-plot1 <- plot1 + ggtitle("Number of UMIs vs cluster") + xlab("Cluster") + ylab(nCountCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
 
-boxplot_data_nFeature <- FetchData(scData, vars = c(nFeatureCol, "seurat_clusters"))
-boxplot_data_nFeature$seurat_clusters <- factor(boxplot_data_nFeature$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nFeature$seurat_clusters))))
-plot2 <- ggplot(boxplot_data_nFeature, aes(x = seurat_clusters, y = .data[[nFeatureCol]], fill = seurat_clusters))
-plot2 <- plot2 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
-plot2 <- plot2 + scale_fill_viridis_d(option = "turbo")  
-plot2 <- plot2 + ggtitle("Number of genes vs cluster") + xlab("Cluster") + ylab(nFeatureCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
-
-boxplot_data_mito <- FetchData(scData, vars = c("percent_mito", "seurat_clusters"))
-boxplot_data_mito$seurat_clusters <- factor(boxplot_data_mito$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_mito$seurat_clusters))))
-plot3 <- ggplot(boxplot_data_mito, aes(x = seurat_clusters, y = percent_mito, fill = seurat_clusters))
-plot3 <- plot3 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
-plot3 <- plot3 + scale_fill_viridis_d(option = "turbo")  
-plot3 <- plot3 + ggtitle("Mitochondrial percentage vs cluster") + xlab("Cluster") + ylab("percent_mito") + theme_minimal(base_size = 14) + theme(legend.position = "none")
-
-```
-</details> 
 
 
 ```{r pos markers}
@@ -1571,8 +1572,7 @@ datatable(
 # kable_styling("striped", full_width = F, position = "left")
 ```
 
-:::
-:::
+
 
 ## Data availability
 
