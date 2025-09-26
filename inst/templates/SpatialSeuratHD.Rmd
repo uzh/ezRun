@@ -1170,14 +1170,14 @@ datatable(
 ```{r uninteresting variation, fig.height=16, fig.width=18}
 boxplot_data_nCount <- FetchData(scData, vars = c(nCountCol, "seurat_clusters"))
 boxplot_data_nCount$seurat_clusters <- factor(boxplot_data_nCount$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nCount$seurat_clusters))))
-plot1 <- ggplot(boxplot_data_nCount, aes(x = seurat_clusters, y = nCountCol, fill = seurat_clusters))
+plot1 <- ggplot(boxplot_data_nCount, aes(x = seurat_clusters, y = .data[[nCountCol]], fill = seurat_clusters))
 plot1 <- plot1 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
 plot1 <- plot1 + scale_fill_viridis_d(option = "turbo")  
 plot1 <- plot1 + ggtitle("Number of UMIs vs cluster") + xlab("Cluster") + ylab(nCountCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
 
 boxplot_data_nFeature <- FetchData(scData, vars = c(nFeatureCol, "seurat_clusters"))
 boxplot_data_nFeature$seurat_clusters <- factor(boxplot_data_nFeature$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nFeature$seurat_clusters))))
-plot2 <- ggplot(boxplot_data_nFeature, aes(x = seurat_clusters, y = nFeatureCol, fill = seurat_clusters))
+plot2 <- ggplot(boxplot_data_nFeature, aes(x = seurat_clusters, y = .data[[nFeatureCol]], fill = seurat_clusters))
 plot2 <- plot2 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
 plot2 <- plot2 + scale_fill_viridis_d(option = "turbo")  
 plot2 <- plot2 + ggtitle("Number of genes vs cluster") + xlab("Cluster") + ylab(nFeatureCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
