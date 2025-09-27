@@ -9,7 +9,7 @@
 ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   sampleDataset = getAtacSampleSheet(input, param)
   refbuild = param$refBuild
-  outFolder = input$getColumn("ATAC_Result") |> basename()
+  outFolder = output$getColumn("ATAC_Result") |> basename()
   
   fullGenomeSize <- param$ezRef@refFastaFile %>% Rsamtools::FaFile() %>% GenomeInfoDb::seqlengths() %>% sum()
   effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
@@ -94,8 +94,6 @@ getAtacSampleSheet <- function(input, param){
   if(any(groups == "") || any(is.na(groups)))
     stop("No conditions detected. Please add them in the dataset before calling NfCoreAtacSeqApp.")
 
-  # oDir <- '.' ## param[['resultDir']]
-  #if(!dir.exists(oDir)) dir.create(path = oDir)
 
   csvPath <- file.path('dataset.csv')
   listFastq1 <- input$getFullPathsList("Read1")
