@@ -98,14 +98,15 @@ getAtacSampleSheet <- function(input, param){
   #if(!dir.exists(oDir)) dir.create(path = oDir)
 
   csvPath <- file.path('dataset.csv')
-  listFastq <- input$getFullPathsList("Read1")
-
+  listFastq1 <- input$getFullPathsList("Read1")
+  listFastq2 <- input$getFullPathsList("Read2")
+  
   nfSampleInfo <- ezFrame(
-    sample = rep(input$getColumn(param$grouping), lengths(listFastq)),
-    fastq_1 = unlist(listFastq),
-    fastq_2 = unlist(listFastq),
-    replicate = rep(ezReplicateNumber(input$getColumn(param$grouping)), lengths(listFastq)),
-    sid = rep(input$getNames(), lengths(listFastq))
+    sample = rep(input$getColumn(param$grouping), lengths(listFastq1)),
+    fastq_1 = unlist(listFastq1),
+    fastq_2 = unlist(listFastq2),
+    replicate = rep(ezReplicateNumber(input$getColumn(param$grouping)), lengths(listFastq1)),
+    sid = rep(input$getNames(), lengths(listFastq1))
   )
   write_csv(nfSampleInfo, csvPath)
   
