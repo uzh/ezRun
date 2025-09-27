@@ -9,7 +9,7 @@
 ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   sampleDataset = getAtacSampleSheet(input, param)
   refbuild = param$refBuild
-  outFolder = input$getColumn("ATAC_Result") |> basename()
+  outFolder = output$getColumn("ATAC_Result") |> basename()
   
   fullGenomeSize <- param$ezRef@refFastaFile %>% Rsamtools::FaFile() %>% GenomeInfoDb::seqlengths() %>% sum()
   effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
@@ -94,18 +94,17 @@ getAtacSampleSheet <- function(input, param){
   if(any(groups == "") || any(is.na(groups)))
     stop("No conditions detected. Please add them in the dataset before calling NfCoreAtacSeqApp.")
 
-  # oDir <- '.' ## param[['resultDir']]
-  #if(!dir.exists(oDir)) dir.create(path = oDir)
 
   csvPath <- file.path('dataset.csv')
-
-  ## TODO: does not yet support comma-separated file paths
+  listFastq1 <- input$getFullPathsList("Read1")
+  listFastq2 <- input$getFullPathsList("Read2")
+  
   nfSampleInfo <- ezFrame(
-    sample = input$getColumn(param$grouping),
-    fastq_1 = input$getFullPaths("Read1"),
-    fastq_2 = input$getFullPaths("Read2"),
-    replicate = ezReplicateNumber(input$getColumn(param$grouping)),
-    sid = input$getNames()
+    sample = rep(input$getColumn(param$grouping), lengths(listFastq1)),
+    fastq_1 = unlist(listFastq1),
+    fastq_2 = unlist(listFastq2),
+    replicate = rep(ezReplicateNumber(input$getColumn(param$grouping)), lengths(listFastq1)),
+    sid = rep(input$getNames(), lengths(listFastq1))
   )
   write_csv(nfSampleInfo, csvPath)
   
