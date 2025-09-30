@@ -193,6 +193,12 @@ ezInteractiveTableRmd = function(values, digits=NULL,
                                  format=NULL, envir=parent.frame()){
   suppressMessages(require(DT, quietly=TRUE))
   suppressMessages(require(htmltools, quietly=TRUE))
+
+  # Convert tibbles to data.frame for consistent behavior
+  if (inherits(values, "tbl_df")) {
+    values <- as.data.frame(values)
+  }
+  
   if (!is.null(digits)){
     for (i in 1:ncol(values)) {
       if(typeof(values[ ,i]) == "double"){
