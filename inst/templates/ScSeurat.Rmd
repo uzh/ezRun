@@ -134,64 +134,276 @@ var_height = 1 #This ensures that chunks that use the length of this variable to
 clusterNameNChar = max(nchar(levels(Idents(scData))))
 ```
 
-#### Selected QC metrics
 
-We use several common QC metrics to identify low-quality cells based on their expression profiles. The metrics that were chosen are described below.
-
-1. The library size is defined as the total sum of counts across all relevant features for each cell. Cells with small library sizes are of low quality as the RNA has been lost at some point during library preparation.
-2. The number of expressed features in each cell is defined as the number of genes with non-zero counts for that cell. Any cell with very few expressed genes is likely to be of poor quality as the diverse transcript population has not been successfully captured.
-3. The proportions of mitochondrial and ribosomal genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
-
-<br/>
 ```{r prepare QC}
 xxAll <- SingleCellExperiment(colData = allCellsMeta)
 xxAll$discard <- !xxAll$useCell
 ```
 
 
-#### Diagnostic plots
+### QC diagnostic plots
 
-A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial or ribosomal proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
+```{r QC plots line 1, fig.height=4, fig.width=8}
 
-```{r QC plots1, fig.height=4}
-plotColData(xxAll, x="Sample", y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
+xxAll$genePerCount <- xxAll$nFeature_RNA / xxAll$nCount_RNA 
+
+
+plot1 <- plotColData(
+  xxAll, x = "Sample", 
+  y = "nCount_RNA", 
+  colour_by = "discard"
+) +
+  
+  scale_y_log10() +
+  labs(title = "UMI counts", 
+       y = "UMI counts per spot") +
+  theme(
+    legend.position = "top",
+    axis.title.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+
+# invisible placeholder tile
+p_invisible <- ggplot() + theme_void() +
+  theme(
+    plot.background  = element_rect(fill = "transparent", colour = NA),
+    panel.background = element_rect(fill = "transparent", colour = NA)
+  )
+plot1 + p_invisible
+
+# plotColData(xxAll, x="Sample", 
+#             y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
 ```
 
-```{r QC plots2, fig.height=4}
+```{r 2nd line of plots, fig.width=8, fig.height=4}
 
-plotColData(xxAll, x="Sample", y="nFeature_RNA", colour_by="discard") + ggtitle("Detected genes")
-plotColData(xxAll, x="nCount_RNA", y="nFeature_RNA", colour_by="discard")+ scale_x_log10() + scale_y_log10()
+plot2 <- plotColData(
+  xxAll,
+  x = "Sample",
+  y = "genePerCount",
+  colour_by = "discard"
+) +
+  labs(
+    title = "Detected genes",
+    y = "Detected genes"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.title.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 
-xxAll$genePerCount <- xxAll$nFeature_RNA / xxAll$nCount_RNA
-plotColData(xxAll, x="Sample", y="genePerCount", colour_by="discard") + ggtitle("Detected genes")
-plotColData(xxAll, x="nCount_RNA", y="genePerCount", colour_by="discard")+ scale_x_log10() + xlim(1, 10000) + ylim(0.2, 0.8)
 
-plotColData(xxAll, x="Sample", y="percent_mito", colour_by="discard") + ggtitle("Mito percent")
-plotColData(xxAll, x="nCount_RNA", y="percent_mito", colour_by="discard")+ scale_x_log10()
+plot3 <- plotColData(
+  xxAll,
+  x = "nCount_RNA",
+  y = "genePerCount",
+  colour_by = "discard"
+) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    title = "",
+    x = "UMI counts",
+    y = "Detected genes"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 
-plotColData(xxAll, x="Sample", y="percent_riboprot", colour_by="discard") + ggtitle("Riboprot percent")
-plotColData(xxAll, x="nCount_RNA", y="percent_riboprot", colour_by="discard")+ scale_x_log10()
+plot2 + plot3
 
-if (!is.null(xxAll$percent_ribosomal)){
-  print(plotColData(xxAll, x="Sample", y="percent_ribosomal", colour_by="discard") + ggtitle("Ribosomal percent"))
-  print(plotColData(xxAll, x="nCount_RNA", y="percent_ribosomal", colour_by="discard")+ scale_x_log10())
-}
+# plotColData(xxAll, 
+#             x="Sample", 
+#             y="genePerCount", 
+#             colour_by="discard") + 
+#   ggtitle("Detected genes")
+# 
+# plotColData(xxAll, 
+#             x="nCount_RNA", 
+#             y="genePerCount", 
+#             colour_by="discard") + 
+#   scale_x_log10() + 
+#   xlim(1, 10000) + 
+#   ylim(0.2, 0.8)
 
-plotColData(xxAll, x="Sample", y="doubletScore", colour_by="discard") + ggtitle("Doublet score")
-plotColData(xxAll, x="nCount_RNA", y="doubletScore", colour_by="discard") + scale_x_log10()
+```
+
+```{r 3d line of plots, fig.width=8, fig.height=4}
+
+plot4 <- plotColData(
+  xxAll,
+  x = "Sample",
+  y = "percent_mito",
+  colour_by = "discard"
+) +
+  labs(
+    title = "Mito percent",
+    y = "Mitochondrial reads %"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.title.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank(),
+    plot.margin = margin(2, 2, 2, 2) 
+    )
+
+
+plot5 <- plotColData(
+  xxAll,
+  x = "nCount_RNA",
+  y = "percent_mito",
+  colour_by = "discard"
+) +
+  scale_x_log10() +
+  labs(
+    x = "UMI counts",
+    y = "Mitochondrial reads %"
+  ) +
+  theme(
+    legend.position = "none", 
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank(),
+    plot.margin = margin(2, 2, 2, 2) 
+  )
+
+
+plot4 + plot5
+
+# plotColData(xxAll, 
+#             x="Sample", 
+#             y="percent_mito", 
+#             colour_by="discard") + 
+#   ggtitle("Mito percent")
+# 
+# plotColData(xxAll, 
+#             x="nCount_RNA", 
+#             y="percent_mito", 
+#             colour_by="discard") + 
+#   scale_x_log10()
+
+```
+
+
+```{r 4th line of plots, fig.width=8, fig.height=4}
+
+plot6 <- plotColData(
+      xxAll,
+      x = "Sample",
+      y = "percent_riboprot",
+      colour_by = "discard"
+    ) +
+      labs(
+        title = "Ribosomal percent",
+        y = "Ribosomal protein reads %"
+      ) +
+      theme(
+        legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank()
+      )
+
+plot7 <- plotColData(
+      xxAll,
+      x = "nCount_RNA",
+      y = "percent_riboprot",
+      colour_by = "discard"
+    ) +
+      scale_x_log10() +
+      labs(
+        x = "UMI counts",
+        y = "Ribosomal protein reads %"
+      ) +
+      theme(
+        legend.position = "none",
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank()
+      )
+
+plot6 + plot7
+
+# plotColData(xxAll, 
+#             x="Sample", 
+#             y="percent_riboprot", 
+#             colour_by="discard") + 
+#   ggtitle("Riboprot percent")
+# 
+# plotColData(xxAll, 
+#             x="nCount_RNA", 
+#             y="percent_riboprot", 
+#             colour_by="discard") + 
+#   scale_x_log10()
+
+
+```
+
+
+```{r  5th line of plots, fig.width=8, fig.height=4}
+
+plot8 <- plotColData(
+      xxAll,
+      x="Sample", 
+      y="doubletScore", 
+      colour_by = "discard") +
+  
+      labs(
+        title = "Doublet score",
+        y = "Doublet score"
+      ) +
+  
+      theme(
+        legend.position = "none",
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank()
+      )
+
+plot9 <- plotColData(
+      xxAll,
+      x="nCount_RNA", 
+      y="doubletScore",
+      colour_by = "discard"
+    ) +
+      labs(
+        x = "UMI counts",
+        y = "Percent ribosomal protein reads"
+      ) +
+      theme(
+        legend.position = "none",
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank()
+      )
+
+plot8 + plot9
+
+# plotColData(xxAll, 
+#             x="Sample", 
+#             y="doubletScore", 
+#             colour_by="discard") + 
+#   ggtitle("Doublet score")
+# 
+# plotColData(xxAll, 
+#             x="nCount_RNA", 
+#             y="doubletScore", 
+#             colour_by="discard") + 
+#   scale_x_log10()
+
 ```
 
 
 <br/>
 
-#### Cell filtering
+### Cell filtering
 
-A standard approach is to filter cells with a low amount of reads as well as genes that are present in at least a certain amount of cells. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality cells. 
-When the parameter values of nreads, ngenes and perc_mito are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding cells that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Cells with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
+::: {.row}
+::: {.col-md-6}
 
-<div class = "row">
-<div class = "col-md-6">
-```{r low quality cells}
+```{r low quality cells, fig.align='center'}
 library(UpSetR)
 qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
 qcList <- qcList[sapply(qcList, length) > 0]
@@ -199,10 +411,10 @@ if (length(qcList) > 1){
   UpSetR::upset(fromList(qcList), nsets = 5)
 }
 ```
-</div>
+:::
 
-<div class = "col-md-6">
-```{r qc table, echo=FALSE}
+::: {.col-md-6}
+```{r qc table, echo=FALSE, fig.align='center'}
 qcStats <- ezFrame("Number of Cells"=integer(0), 
                    "Min Pass Value"=integer(0), 
                    "Max Pass Value"=integer(0), 
@@ -254,13 +466,64 @@ qcStats[ "Cells remaining", ] <- c(
   round(sum(ncol(scData))/nrow(allCellsMeta), 2)
 )
 
-kable(qcStats,
-      row.names=TRUE,
-      caption="Number of cells removed") %>%
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% kableExtra::group_rows(group_label = "Cells Removed by QC Thresholds", start_row = 1, end_row = 5)
+qc_dt <- as.data.frame(qcStats) |>
+  rownames_to_column(var = "Metric")
+
+qc_dt$Group <- ""
+qc_dt$Group[1:5] <- "Cells Removed by QC Thresholds"
+
+
+qc_dt <- qc_dt[, c("Group", "Metric", setdiff(names(qc_dt), c("Group", "Metric")))]
+
+
+dt <- datatable(
+  qc_dt,
+  class   = "cell-border stripe",
+  caption = tags$caption(
+    style = "caption-side: top; text-align: left;",
+    HTML(sprintf("<span style='font-weight: normal; font-size: 14px;'>Bin size: %s</span>", param$binSize))
+  ),
+  escape   = FALSE,
+  rownames = FALSE,
+  extensions = "RowGroup",
+  options  = list(
+    autoWidth = TRUE,
+    dom = "t",
+    paging = FALSE,
+    ordering = FALSE,
+    rowGroup = list(dataSrc = 0),  # group by the first column ("Group")
+    columnDefs = list(
+      list(visible = FALSE, targets = 0)  # hide the Group column itself
+    )
+  )
+)
+
+
+num_cols <- which(vapply(qc_dt, is.numeric, logical(1)))
+
+if (length(num_cols)) {
+  if (length(num_cols) >= 2) {
+    dt <- DT::formatRound(dt, columns = num_cols[-length(num_cols)], digits = 0)
+    dt <- DT::formatRound(dt, columns = num_cols[length(num_cols)],  digits = 2)
+  } else {
+    dt <- DT::formatRound(dt, columns = num_cols, digits = 0)
+  }
+}
+
+
+htmlwidgets::prependContent(
+  dt,
+  tags$style(HTML("table.dataTable tbody td:empty::before{content:'-'; color:#6c757d;}"))
+)
+
+
+# kable(qcStats,
+#       row.names=TRUE,
+#       caption="Number of cells removed") %>%
+#   kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% kableExtra::group_rows(group_label = "Cells Removed by QC Thresholds", start_row = 1, end_row = 5)
 ```
-</div>
-</div>
+:::
+:::
 
 <br/>
 
@@ -330,6 +593,28 @@ kable(enrichrTable, format="html", escape=FALSE,
       caption=paste0("GeneSet enrichment")) %>%
   kable_styling("striped", full_width = F, position = "left")
 ```
+
+
+#### Selected QC metrics
+
+We use several common QC metrics to identify low-quality cells based on their expression profiles. The metrics that were chosen are described below.
+
+1. The library size is defined as the total sum of counts across all relevant features for each cell. Cells with small library sizes are of low quality as the RNA has been lost at some point during library preparation.
+2. The number of expressed features in each cell is defined as the number of genes with non-zero counts for that cell. Any cell with very few expressed genes is likely to be of poor quality as the diverse transcript population has not been successfully captured.
+3. The proportions of mitochondrial and ribosomal genes per cell. High proportions are indicative of poor-quality cells (Islam et al. 2014; Ilicic et al. 2016), presumably because of the loss of cytoplasmic RNA from perforated cells.
+
+<br/>
+
+#### Diagnostic plots
+
+A key assumption here is that the QC metrics are independent of the biological state of each cell. Poor values (e.g., low library sizes, high mitochondrial or ribosomal proportions) are presumed to be driven by technical factors rather than biological processes, meaning that the subsequent removal of cells will not misrepresent the biology in downstream analyses. Major violations of this assumption would potentially result in the loss of cell types that have, say, systematically low RNA content or high numbers of mitochondria. We can check for such violations using some diagnostics plots. In the most ideal case, we would see normal distributions that would justify the thresholds used in outlier detection. A large proportion of cells in another mode suggests that the QC metrics might be correlated with some biological state, potentially leading to the loss of distinct cell types during filtering. 
+
+<br>
+
+#### Cell filtering
+
+A standard approach is to filter cells with a low amount of reads as well as genes that are present in at least a certain amount of cells. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality cells. 
+When the parameter values of nreads, ngenes and perc_mito are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding cells that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Cells with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
 
 ## Clustering
 
