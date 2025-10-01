@@ -21,6 +21,8 @@ editor_options:
 # input for this report: sce
 library(clustree)
 library(kableExtra)
+library(htmltools)
+library(DT)
 library(NMF)
 library(pheatmap)
 library(viridis)
@@ -153,27 +155,16 @@ plot1 <- plotColData(
   y = "nCount_RNA", 
   colour_by = "discard"
 ) +
-  
   scale_y_log10() +
-  labs(title = "UMI counts", 
+  labs(title = "UMI counts",
+       x = "",
        y = "UMI counts per spot") +
   theme(
     legend.position = "top",
-    axis.title.x = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank()
   )
+plot1 + plot_layout(ncol=2)
 
-# invisible placeholder tile
-p_invisible <- ggplot() + theme_void() +
-  theme(
-    plot.background  = element_rect(fill = "transparent", colour = NA),
-    panel.background = element_rect(fill = "transparent", colour = NA)
-  )
-plot1 + p_invisible
 
-# plotColData(xxAll, x="Sample", 
-#             y="nCount_RNA", colour_by="discard") + scale_y_log10() + ggtitle("Number of UMIs")
 ```
 
 ```{r 2nd line of plots, fig.width=8, fig.height=4}
@@ -186,13 +177,11 @@ plot2 <- plotColData(
 ) +
   labs(
     title = "Detected genes",
+    x = "",
     y = "Detected genes"
   ) +
   theme(
     legend.position = "none", 
-    axis.title.x = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank()
   )
 
 
@@ -200,7 +189,7 @@ plot3 <- plotColData(
   xxAll,
   x = "nCount_RNA",
   y = "genePerCount",
-  colour_by = "discard"
+  colour_by = "discard",
 ) +
   scale_x_log10() +
   scale_y_log10() +
@@ -211,25 +200,10 @@ plot3 <- plotColData(
   ) +
   theme(
     legend.position = "none", 
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank()
   )
 
 plot2 + plot3
 
-# plotColData(xxAll, 
-#             x="Sample", 
-#             y="genePerCount", 
-#             colour_by="discard") + 
-#   ggtitle("Detected genes")
-# 
-# plotColData(xxAll, 
-#             x="nCount_RNA", 
-#             y="genePerCount", 
-#             colour_by="discard") + 
-#   scale_x_log10() + 
-#   xlim(1, 10000) + 
-#   ylim(0.2, 0.8)
 
 ```
 
@@ -243,14 +217,11 @@ plot4 <- plotColData(
 ) +
   labs(
     title = "Mito percent",
+    x = "",
     y = "Mitochondrial reads %"
   ) +
   theme(
-    legend.position = "none", 
-    axis.title.x = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank(),
-    plot.margin = margin(2, 2, 2, 2) 
+    legend.position = "none"
     )
 
 
@@ -266,26 +237,12 @@ plot5 <- plotColData(
     y = "Mitochondrial reads %"
   ) +
   theme(
-    legend.position = "none", 
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank(),
-    plot.margin = margin(2, 2, 2, 2) 
+    legend.position = "none"
   )
 
 
 plot4 + plot5
 
-# plotColData(xxAll, 
-#             x="Sample", 
-#             y="percent_mito", 
-#             colour_by="discard") + 
-#   ggtitle("Mito percent")
-# 
-# plotColData(xxAll, 
-#             x="nCount_RNA", 
-#             y="percent_mito", 
-#             colour_by="discard") + 
-#   scale_x_log10()
 
 ```
 
@@ -293,52 +250,36 @@ plot4 + plot5
 ```{r 4th line of plots, fig.width=8, fig.height=4}
 
 plot6 <- plotColData(
-      xxAll,
-      x = "Sample",
-      y = "percent_riboprot",
-      colour_by = "discard"
-    ) +
-      labs(
-        title = "Ribosomal percent",
-        y = "Ribosomal protein reads %"
-      ) +
-      theme(
-        legend.position = "none",
-        axis.title.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.ticks.x = element_blank()
-      )
+  xxAll,
+  x = "Sample",
+  y = "percent_riboprot",
+  colour_by = "discard"
+) +
+  labs(
+    x = "",
+    title = "Ribosomal percent",
+    y = "Ribosomal protein reads %"
+  ) +
+  theme(
+    legend.position = "none"
+  )
 
 plot7 <- plotColData(
-      xxAll,
-      x = "nCount_RNA",
-      y = "percent_riboprot",
-      colour_by = "discard"
-    ) +
-      scale_x_log10() +
-      labs(
-        x = "UMI counts",
-        y = "Ribosomal protein reads %"
-      ) +
-      theme(
-        legend.position = "none",
-        axis.ticks.y = element_blank(),
-        axis.ticks.x = element_blank()
-      )
+  xxAll,
+  x = "nCount_RNA",
+  y = "percent_riboprot",
+  colour_by = "discard"
+) +
+  scale_x_log10() +
+  labs(
+    x = "UMI counts",
+    y = "Ribosomal protein reads %"
+  ) +
+  theme(
+    legend.position = "none"
+  )
 
 plot6 + plot7
-
-# plotColData(xxAll, 
-#             x="Sample", 
-#             y="percent_riboprot", 
-#             colour_by="discard") + 
-#   ggtitle("Riboprot percent")
-# 
-# plotColData(xxAll, 
-#             x="nCount_RNA", 
-#             y="percent_riboprot", 
-#             colour_by="discard") + 
-#   scale_x_log10()
 
 
 ```
@@ -347,51 +288,37 @@ plot6 + plot7
 ```{r  5th line of plots, fig.width=8, fig.height=4}
 
 plot8 <- plotColData(
-      xxAll,
-      x="Sample", 
-      y="doubletScore", 
-      colour_by = "discard") +
-  
-      labs(
-        title = "Doublet score",
-        y = "Doublet score"
-      ) +
-  
-      theme(
-        legend.position = "none",
-        axis.ticks.y = element_blank(),
-        axis.ticks.x = element_blank()
-      )
+  xxAll,
+  x="Sample", 
+  y="doubletScore", 
+  colour_by = "discard"
+) +
+  labs(
+    title = "Doublet score",
+    y = "Doublet score"
+  ) +
+  theme(
+    legend.position = "none",
+    axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 
 plot9 <- plotColData(
-      xxAll,
-      x="nCount_RNA", 
-      y="doubletScore",
-      colour_by = "discard"
-    ) +
-      labs(
-        x = "UMI counts",
-        y = "Percent ribosomal protein reads"
-      ) +
-      theme(
-        legend.position = "none",
-        axis.ticks.y = element_blank(),
-        axis.ticks.x = element_blank()
-      )
+  xxAll,
+  x="nCount_RNA", 
+  y="doubletScore",
+  colour_by = "discard"
+) +
+  labs(
+    x = "UMI counts",
+    y = "Percent ribosomal protein reads"
+  ) +
+  theme(
+    legend.position = "none"
+  )
 
 plot8 + plot9
 
-# plotColData(xxAll, 
-#             x="Sample", 
-#             y="doubletScore", 
-#             colour_by="discard") + 
-#   ggtitle("Doublet score")
-# 
-# plotColData(xxAll, 
-#             x="nCount_RNA", 
-#             y="doubletScore", 
-#             colour_by="discard") + 
-#   scale_x_log10()
 
 ```
 
@@ -479,9 +406,9 @@ qc_dt <- qc_dt[, c("Group", "Metric", setdiff(names(qc_dt), c("Group", "Metric")
 dt <- datatable(
   qc_dt,
   class   = "cell-border stripe",
-  caption = tags$caption(
+  caption = htmltools::tags$caption(
     style = "caption-side: top; text-align: left;",
-    HTML(sprintf("<span style='font-weight: normal; font-size: 14px;'>Bin size: %s</span>", param$binSize))
+    htmltools::HTML(sprintf("<span style='font-weight: normal; font-size: 14px;'>Bin size: %s</span>", param$binSize))
   ),
   escape   = FALSE,
   rownames = FALSE,
