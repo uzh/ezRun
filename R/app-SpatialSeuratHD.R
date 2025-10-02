@@ -240,7 +240,7 @@ runBasicProcessingHD <- function(scData, input, featInfo, param, BPPARAM){
     if(nrow(scData@meta.data) < 50000){
         scData <- RunPCA(scData, npcs = 80)
         scData <- FindNeighbors(scData, dims = 1:param$npcs)
-        scData <- FindClusters(scData, cluster.name = "seurat_cluster", resolution = param$resolution)
+        scData <- FindClusters(scData, cluster.name = "seurat_clusters", resolution = param$resolution)
         scData <- RunUMAP(scData, reduction = "pca", reduction.name = "umap", return.model = T, dims = 1:param$npcs)
     }
     else {
@@ -255,7 +255,7 @@ runBasicProcessingHD <- function(scData, input, featInfo, param, BPPARAM){
         scData <- ScaleData(scData)
         scData <- RunPCA(scData, assay = "sketch", reduction.name = "pca.sketch", npcs = 80)
         scData <- FindNeighbors(scData, assay = "sketch", reduction = "pca.sketch", dims = 1:param$npcs)
-        scData <- FindClusters(scData, cluster.name = "seurat_cluster.sketched", resolution = 3)
+        scData <- FindClusters(scData, cluster.name = "seurat_cluster.sketched", resolution = param$resolution)
         scData <- RunUMAP(scData, reduction = "pca.sketch", reduction.name = "umap.sketch", return.model = T, dims = 1:param$npcs)
         
         scData <- ProjectData(
@@ -268,9 +268,11 @@ runBasicProcessingHD <- function(scData, input, featInfo, param, BPPARAM){
             dims = 1:param$npcs,
             refdata = list(seurat_cluster.projected = "seurat_cluster.sketched")
         )
+        scData$seurat_cluster.projected <- factor(scData$seurat_cluster.projected, levels(scData$seurat_cluster.sketched))
         
         # switch to full dataset
         Idents(scData) <- "seurat_cluster.projected"
+        scData$seurat_clusters <- Idents(scData)
         DefaultAssay(scData) <- myAssay
     }
     if(!('Batch' %in% colnames(scData@meta.data))) {
