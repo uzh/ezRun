@@ -144,7 +144,6 @@ scData   <- rgb_order(scData,
 
 ```{r template for spatialFeaturePlot}
 
-
 sp_plot <- function(obj,
                     feature,
                     title = feature,
@@ -767,7 +766,7 @@ datatable(
 
 
 ```{r, fig.width=10}
-# --- SETTINGS ---------------------------------------------------------------
+
 pca_name <- if ("pca.sketch" %in% names(scData@reductions)) "pca.sketch" else "pca"
 
 k <- param$npcs 
@@ -1008,7 +1007,8 @@ ggplot(plot_df, aes(x = seurat_clusters,
         panel.grid.major=element_blank(),
         axis.title.y=element_text("# bins"),
         axis.text.x=element_text(size=8, 
-                                 face="bold")) +
+                                 face="bold",
+                                 angle = 45)) +
   
   scale_y_continuous(expand = expansion(mult = c(0.02, 0.15))) 
 
@@ -1019,14 +1019,10 @@ ggplot(plot_df, aes(x = seurat_clusters,
 <div class = "col-md-3">
 ```{r, echo=FALSE}
 
-df <- cellsProportion(scData, 
-                      groupVar1 = "seurat_clusters", 
-                      groupVar2 = "Batch")
+df <- cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Batch") 
 
-df <- df |>
-  as.data.frame(check.names = FALSE, stringsAsFactors = FALSE) |> 
-  rename("seurat_clusters"="Cluster")
-  
+df <- df |> as.data.frame(check.names = FALSE, stringsAsFactors = FALSE) |> rename("seurat_clusters"="Cluster")
+ 
 
 is_pct_col <- grepl("_fraction$", colnames(df))
 colnames(df) <- colnames(df) |> str_replace_all("_fraction$", " (%)")
@@ -1413,6 +1409,39 @@ datatable(
 ```
  
 
+## Marker plots
+
+```{r marker plot setup}
+top5 <- posMarkers %>% 
+  group_by(cluster) %>%
+  slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
+genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
+genesToPlot <- intersect(genesToPlot, rownames(scData))
+```
+
+
+### DotPlot
+
+```{r dotplot, fig.width  = 15, fig.height = `r genesToPlot`}
+
+DotPlot(scData, features=genesToPlot) + coord_flip() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+```
+
+
+```{r plot of user genes, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)/5, c(6, 12)), eval=ezIsSpecified(param$controlSeqs)}
+genesToPlot <- intersect(param$controlSeqs, rownames(scData))
+
+if (length(genesToPlot) > 0){
+  DoHeatmap(scData, features=unique(genesToPlot))
+  DotPlot(scData, features=genesToPlot) + coord_flip() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+} else { 
+  cat("controlseqs not found")
+}
+```
+
+Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
 
 ## EnrichR
