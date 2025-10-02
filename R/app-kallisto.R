@@ -29,21 +29,11 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
     if (!is.null(val) && val != 0) { paste(name, val) } else { "" }
   }
   
-  # Determine pseudo bam options, should they be required
-  pseudoBamOpts <- iftrue(
-    param$pseudobam,
-    paste("--pseudobam",
-          "--genomebam",
-          "--gtf", param$ezRef["refFeatureFile"],
-          "--chromosomes", param$ezRef["refChromSizesFile"])
-  )
-  
   # Specifying all options
   opt = paste(
     "-i", refIdx,
     "-o", param$outputDir,
     "-t", ezThreads(),
-    iftrue(param$bias, "--bias"),
     condCharAdd("--bootstrap-samples", param$"bootstrap-samples"),
     condCharAdd("--seed", param$seed),
     iftrue(param$paired, "", "--single"),
@@ -52,8 +42,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
                        "antisense"="--rf-stranded",
                        "both"=""),
     condNumAdd("--fragment-length", param$"fragment-length"),
-    condNumAdd("--sd", param$sd),
-    pseudoBamOpts
+    condNumAdd("--sd", param$sd)
   )
   
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
@@ -66,8 +55,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
   pathAbundance.h5 = file.path(param$outputDir, "abundance.h5")
   pathAbundance.tsv = file.path(param$outputDir, "abundance.tsv")
   pathRunInfo = file.path(param$outputDir, "run_info.json")
-  pathPseudobam = file.path(param$outputDir, "pseudoalignments.bam")
-  
+
   cmd = paste(
     "export HDF5_DISABLE_VERSION_CHECK=1 kallisto; kallisto",
     "quant",
@@ -84,10 +72,6 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
     ezSystem(paste("mv", pathAbundance.h5, basename(output$getColumn("bootstrappedCount"))))
   }
   ezSystem(paste("mv", pathRunInfo, basename(output$getColumn("runInfo"))))
-  if (!is.null(param$pseudobam) && param$pseudobam){
-    fnBam = basename(output$getColumn("BAM"))
-    ezSortIndexBam(pathPseudobam, fnBam, ram=param$ram, cores=min(param$cores, 8))
-  }
   
   return("Success")
 }
@@ -128,16 +112,6 @@ EzAppKallisto <-
                       Type = "numeric",
                       DefaultValue = 0,
                       Description = 'estimated fragment length standard deviation (required for single-end reads but should be set to 0 for paired-end reads)'
-                    ),
-                    bias = ezFrame(
-                      Type = "logical",
-                      DefaultValue = T,
-                      Description = 'perform sequence based bias correction'
-                    ),
-                    pseudobam = ezFrame(
-                      Type = "logical",
-                      DefaultValue = F,
-                      Description = 'generate a bam file with pseudoalignments'
                     ),
                     outputDir = ezFrame(
                       Type = "character",
