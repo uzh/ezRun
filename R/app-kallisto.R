@@ -143,6 +143,11 @@ EzAppKallisto <-
                       Type = "character",
                       DefaultValue = ".",
                       Description = "Output directory"
+                    ),
+                    secondRef = ezFrame(
+                      Type = "character",
+                      DefaultValue = "",
+                      Description = "Path to fasta file with additional sequences to add to reference"
                     )
                   )
                 }
@@ -152,8 +157,22 @@ EzAppKallisto <-
 
 getKallistoReference = function(param){
 
+  ## Get kallisto version for index versioning
+  versionCmd = "kallisto version 2>&1 | head -1"
+  versionOutput = system(versionCmd, intern = TRUE)
+  ## Extract version number (e.g., "kallisto, version 0.51.0" -> "v51-0")
+  versionMatch = regmatches(versionOutput, regexpr("[0-9]+\\.[0-9]+\\.[0-9]+", versionOutput))
+  if (length(versionMatch) > 0) {
+    versionParts = strsplit(versionMatch, "\\.")[[1]]
+    kallistoVersion = paste0("_v", versionParts[1], versionParts[2], "-", versionParts[3])
+  } else {
+    kallistoVersion = ""
+  }
+
+  ## default values
+  pathTranscripts = NULL
   if (ezIsSpecified(param$transcriptFasta)){
-    refBase = file.path(getwd(), "kallistoIndex/transcripts") 
+    refBase = file.path(getwd(), paste0("kallistoIndex", kallistoVersion, "/transcripts"))
     #paste0(file_path_sans_ext(param$trinityFasta), "_kallistoIndex/transcripts")
   } else {
     if(ezIsSpecified(param$transcriptTypes)){
@@ -163,11 +182,18 @@ getKallistoReference = function(param){
       kallistoBase <- ""
     }
     refBase = ifelse(param$ezRef["refIndex"] == "",
-                     sub(".gtf$", 
-                         paste0("_", kallistoBase, "_kallistoIndex/transcripts"),
+                     sub(".gtf$",
+                         paste0("_", kallistoBase, "_kallistoIndex", kallistoVersion, "/transcripts"),
                          param$ezRef["refFeatureFile"]),
                      param$ezRef["refIndex"])
   }
+
+  ## update if secondRef exists - build a temporary index
+  if (ezIsSpecified(param$secondRef)) {
+    stopifnot(file.exists(param$secondRef))
+    refBase = file.path(getwd(), paste0("Custom_kallistoIndex", kallistoVersion, "/transcripts"))
+  }
+
   lockFile = file.path(dirname(refBase), "lock")
   i = 0
   while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
@@ -186,7 +212,7 @@ getKallistoReference = function(param){
   }
   ## we have to build the reference
   wd = getwd()
-  dir.create(dirname(refBase))
+  dir.create(dirname(refBase), recursive = TRUE)
   setwd(dirname(refBase))
   ezWrite(Sys.info(), con=lockFile)
   on.exit(file.remove(lockFile))
@@ -206,11 +232,24 @@ getKallistoReference = function(param){
       transcriptsUse <- intersect(transcriptsUse, names(transcripts))
       transcripts <- transcripts[unique(transcriptsUse)]
     }
+
+    ## If secondRef is specified, add those sequences
+    if (ezIsSpecified(param$secondRef)) {
+      require(Biostrings)
+      secondRefSeqs = readDNAStringSet(param$secondRef)
+      transcripts = c(transcripts, secondRefSeqs)
+    }
+
     writeXStringSet(transcripts, pathTranscripts)
   }
   cmdTemplate = "kallisto index -i %s.idx %s"
   cmd = sprintf(cmdTemplate, refBase, pathTranscripts)
   ezSystem(cmd)
+
+  ## Run kallisto inspect to create transcripts.info file
+  inspectCmd = sprintf("kallisto inspect %s.idx > %s.info", refBase, refBase)
+  ezSystem(inspectCmd)
+
   ezWriteElapsed(job, "done")
   return(refBase)
 }
