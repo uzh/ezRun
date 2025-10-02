@@ -1001,9 +1001,10 @@ ggplot(cellIdents_perSample, aes(x = seurat_clusters,
 ```{r, echo=FALSE}
 
 df <- cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Batch") 
+df <- df |> as.data.frame(check.names = FALSE, stringsAsFactors = FALSE) |>
+  dplyr::rename("Cluster"="seurat_clusters")
 
-df <- df |> as.data.frame(check.names = FALSE, stringsAsFactors = FALSE) |> rename("seurat_clusters"="Cluster")
- 
+
 
 is_pct_col <- grepl("_fraction$", colnames(df))
 colnames(df) <- colnames(df) |> str_replace_all("_fraction$", " (%)")
