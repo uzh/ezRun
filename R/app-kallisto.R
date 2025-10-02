@@ -37,48 +37,48 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
           "--gtf", param$ezRef["refFeatureFile"],
           "--chromosomes", param$ezRef["refChromSizesFile"])
   )
-
+  
   # Specifying all options
   opt = paste(
-      "-i", refIdx,
-      "-o", param$outputDir,
-      "-t", ezThreads(),
-      iftrue(param$bias, "--bias"),
-      condCharAdd("--bootstrap-samples", param$"bootstrap-samples"),
-      condCharAdd("--seed", param$seed),
-      iftrue(param$paired, "", "--single"),
-      strandOpt = switch(param$strandMode,
-                         "sense"="--fr-stranded",
-                         "antisense"="--rf-stranded",
-                         "both"=""),
-      condNumAdd("--fragment-length", param$"fragment-length"),
-      condNumAdd("--sd", param$sd),
-      pseudoBamOpts
+    "-i", refIdx,
+    "-o", param$outputDir,
+    "-t", ezThreads(),
+    iftrue(param$bias, "--bias"),
+    condCharAdd("--bootstrap-samples", param$"bootstrap-samples"),
+    condCharAdd("--seed", param$seed),
+    iftrue(param$paired, "", "--single"),
+    strandOpt = switch(param$strandMode,
+                       "sense"="--fr-stranded",
+                       "antisense"="--rf-stranded",
+                       "both"=""),
+    condNumAdd("--fragment-length", param$"fragment-length"),
+    condNumAdd("--sd", param$sd),
+    pseudoBamOpts
   )
-
+  
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
-
+  
   pathFastqFiles = paste(
-      trimmedInput$getColumn("Read1"),
-      iftrue(param$paired, trimmedInput$getColumn("Read2"))
+    trimmedInput$getColumn("Read1"),
+    iftrue(param$paired, trimmedInput$getColumn("Read2"))
   )
-
+  
   pathAbundance.h5 = file.path(param$outputDir, "abundance.h5")
   pathAbundance.tsv = file.path(param$outputDir, "abundance.tsv")
   pathRunInfo = file.path(param$outputDir, "run_info.json")
   pathPseudobam = file.path(param$outputDir, "pseudoalignments.bam")
-
+  
   cmd = paste(
-      "export HDF5_DISABLE_VERSION_CHECK=1 kallisto; kallisto",
-      "quant",
-      opt,
-      pathFastqFiles
-      #  capture kallisto.stderr that contains fragment length estimate; that differs from the fastp estimate
-      # "2> kallisto.stderr",
-      # " > kallisto.stdout"
+    "export HDF5_DISABLE_VERSION_CHECK=1 kallisto; kallisto",
+    "quant",
+    opt,
+    pathFastqFiles
+    #  capture kallisto.stderr that contains fragment length estimate; that differs from the fastp estimate
+    # "2> kallisto.stderr",
+    # " > kallisto.stdout"
   )
   ezSystem(cmd)
-
+  
   ezSystem(paste("mv", pathAbundance.tsv, basename(output$getColumn("Count"))))
   if (!is.null(param$"bootstrap-samples") && param$"bootstrap-samples" > 0) {
     ezSystem(paste("mv", pathAbundance.h5, basename(output$getColumn("bootstrappedCount"))))
@@ -88,7 +88,7 @@ ezMethodKallisto = function(input=NA, output=NA, param=NA){
     fnBam = basename(output$getColumn("BAM"))
     ezSortIndexBam(pathPseudobam, fnBam, ram=param$ram, cores=min(param$cores, 8))
   }
-
+  
   return("Success")
 }
 
@@ -156,7 +156,7 @@ EzAppKallisto <-
 
 
 getKallistoReference = function(param){
-
+  
   ## Get kallisto version for index versioning
   versionCmd = "kallisto version 2>&1 | head -1"
   versionOutput = system(versionCmd, intern = TRUE)
@@ -168,7 +168,7 @@ getKallistoReference = function(param){
   } else {
     kallistoVersion = ""
   }
-
+  
   ## default values
   pathTranscripts = NULL
   if (ezIsSpecified(param$transcriptFasta)){
@@ -187,13 +187,13 @@ getKallistoReference = function(param){
                          param$ezRef["refFeatureFile"]),
                      param$ezRef["refIndex"])
   }
-
+  
   ## update if secondRef exists - build a temporary index
   if (ezIsSpecified(param$secondRef)) {
     stopifnot(file.exists(param$secondRef))
     refBase = file.path(getwd(), paste0("Custom_kallistoIndex", kallistoVersion, "/transcripts"))
   }
-
+  
   lockFile = file.path(dirname(refBase), "lock")
   i = 0
   while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
@@ -217,7 +217,7 @@ getKallistoReference = function(param){
   ezWrite(Sys.info(), con=lockFile)
   on.exit(file.remove(lockFile))
   on.exit(setwd(wd), add=TRUE)
-
+  
   job = ezJobStart("kallisto index")
   if (ezIsSpecified(param$transcriptFasta)){
     pathTranscripts = param$transcriptFasta
@@ -232,24 +232,24 @@ getKallistoReference = function(param){
       transcriptsUse <- intersect(transcriptsUse, names(transcripts))
       transcripts <- transcripts[unique(transcriptsUse)]
     }
-
+    
     ## If secondRef is specified, add those sequences
     if (ezIsSpecified(param$secondRef)) {
       require(Biostrings)
       secondRefSeqs = readDNAStringSet(param$secondRef)
       transcripts = c(transcripts, secondRefSeqs)
     }
-
+    
     writeXStringSet(transcripts, pathTranscripts)
   }
   cmdTemplate = "kallisto index -i %s.idx %s"
   cmd = sprintf(cmdTemplate, refBase, pathTranscripts)
   ezSystem(cmd)
-
+  
   ## Run kallisto inspect to create transcripts.info file
   inspectCmd = sprintf("kallisto inspect %s.idx > %s.info", refBase, refBase)
   ezSystem(inspectCmd)
-
+  
   ezWriteElapsed(job, "done")
   return(refBase)
 }
