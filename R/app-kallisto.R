@@ -132,8 +132,7 @@ EzAppKallisto <-
 getKallistoReference = function(param){
   
   ## Get kallisto version for index versioning
-  versionCmd = "kallisto version 2>&1 | head -1"
-  versionOutput = system(versionCmd, intern = TRUE)
+  versionOutput = system2("kallisto", args = "version", stdout = TRUE, stderr = TRUE)[1]
   ## Extract version number (e.g., "kallisto, version 0.51.0" -> "v51-0")
   versionMatch = regmatches(versionOutput, regexpr("[0-9]+\\.[0-9]+\\.[0-9]+", versionOutput))
   if (length(versionMatch) > 0) {
@@ -221,7 +220,7 @@ getKallistoReference = function(param){
   ezSystem(cmd)
   
   ## Run kallisto inspect to create transcripts.info file
-  inspectCmd = sprintf("kallisto inspect %s.idx > %s.info", refBase, refBase)
+  inspectCmd = sprintf("kallisto inspect %s.idx > %s.info 2>&1", refBase, refBase)
   ezSystem(inspectCmd)
   
   ezWriteElapsed(job, "done")
