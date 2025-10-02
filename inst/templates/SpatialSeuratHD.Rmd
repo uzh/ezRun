@@ -1403,7 +1403,7 @@ genesToPlot <- intersect(genesToPlot, rownames(scData))
 
 ### DotPlot
 
-```{r dotplot, fig.width  = 15, fig.height = `r genesToPlot`}
+```{r dotplot, fig.width  = 15, fig.height = 30}
 
 DotPlot(scData, features=genesToPlot) + coord_flip() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
