@@ -441,38 +441,90 @@ htmlwidgets::prependContent(
 
 
 ```{r scree plot, fig.align='center', fig.width=14}
-pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
-cumu <- cumsum(pct)
-plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
 
-# Elbow plot
-p <- ggplot(plot_df, aes(cumu, pct, label = rank, color = rank > param$npcs))
-p <- p + geom_vline(xintercept = cumu[param$npcs], color = "grey") + geom_text() 
-p <- p + xlab(paste("Variance based on 50 PCs of", param$nfeatures, "features")) +  
-  ylab("Cumulative variance in % explained per PC") 
-p <- p + theme_bw() + labs(color = paste("PC >", param$npcs)) + theme(legend.position = "bottom")
-p <- p + annotate(geom="text", y=max(plot_df$pct), x=max(plot_df$cumu[param$npcs]), 
-                  label=paste('Variance used:', round(plot_df$cumu[param$npcs], digits = 2), '%'), color="red")
-p
+pca_name <- if ("pca.sketch" %in% names(scData@reductions)) "pca.sketch" else "pca"
+
+k <- param$npcs 
+
+top_n <- max(80,k)
+
+stdev <- scData[[pca_name]]@stdev %>% head(top_n)
+
+
+pct  <- ((stdev^2) / sum(stdev^2)) * 100        
+# mode <- sprintf("Variance-normalized%s", 
+#                        paste0(", top ", length(stdev), " PCs"))
+
+
+cumu    <- cumsum(pct)
+plot_df <- data.frame(pct = pct, cumu = cumu, rank = seq_along(pct))
+plot_df$used <- factor(plot_df$rank <= k, levels=c(TRUE, FALSE))
+
+ggplot(plot_df, aes(x = cumu, 
+                    y = pct, 
+                    label = rank, 
+                    color = used)) +
+  geom_point(size = 3) + 
+  geom_text(vjust = -0.8, size = 3) +
+  geom_vline(xintercept = cumu[k], color = "grey50", linetype = "dashed") +
+  
+  labs(
+    title    = "Percent variance explained by the principal components",
+    subtitle = paste0("number of PCs used: ", k),
+    x = "Cumulative percent variance explained ",
+    y = "Per PC variance explained"
+  ) +
+  
+  annotate(
+    "text",
+    x = cumu[k], y = max(plot_df$pct),
+    label = paste0("Variance used: ", sprintf("%.2f", cumu[k]), "%"),
+    vjust = -0.4, size = 3, color = gg_color_hue(2)[1]
+  ) + 
+  theme(legend.position = "none") +
+  theme_bw() +
+  theme(legend.position = "none")
+
+# pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
+# cumu <- cumsum(pct)
+# plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
+# 
+# # Elbow plot
+# p <- ggplot(plot_df, aes(cumu, pct, label = rank, color = rank > param$npcs))
+# p <- p + geom_vline(xintercept = cumu[param$npcs], color = "grey") + geom_text() 
+# p <- p + xlab(paste("Variance based on 50 PCs of", param$nfeatures, "features")) +  
+#   ylab("Cumulative variance in % explained per PC") 
+# p <- p + theme_bw() + labs(color = paste("PC >", param$npcs)) + theme(legend.position = "bottom")
+# p <- p + annotate(geom="text", y=max(plot_df$pct), x=max(plot_df$cumu[param$npcs]), 
+#                   label=paste('Variance used:', round(plot_df$cumu[param$npcs], digits = 2), '%'), color="red")
+# p
 ```
 
 <br/>
 
+### GeneSet enrichment 
 
 ```{r exploreHVGs, echo=FALSE, results='asis'}
 HVGs <- VariableFeatures(object = scData)
 
 jsCall = paste0('enrich({list: "', paste(HVGs, collapse="\\n"), '", popup: true});')
-enrichrCall <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
-                       "'>Analyse HVGs at Enrichr website</a>")
+enrichrCall <- paste0("<a href='javascript:void(0)' onClick='", 
+                      jsCall, 
+                       "'>Enrichr website</a>")
 
 
 enrichrTable <- tibble(GeneSet='HVGs',
-                       "# of HVGs"=length(HVGs),
-                       "Enrichr link"=enrichrCall)
-kable(enrichrTable, format="html", escape=FALSE,
-      caption=paste0("GeneSet enrichment")) %>%
-  kable_styling("striped", full_width = F, position = "left")
+                       "N HVGs"=length(HVGs),
+                       "Link"=enrichrCall)
+
+kable(enrichrTable, 
+      format="html", 
+      escape=FALSE
+      ) |> 
+  
+  kable_styling("striped", 
+                full_width = F, 
+                position = "left")
 ```
 
 The dimension reduction is based on the top `r param$nfeatures` highly variable genes (HVGs): `r enrichrCall`
@@ -502,41 +554,155 @@ The numbers of PCs that should be retained for downstream analyses typically ran
 
 ## Clustering
 
-In order to find clusters of cells we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the cells involved, with higher weight given to cells that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of cells that are more connected to cells in the same community than they are to cells of different communities. Each community represents a cluster that we can use for downstream interpretation. 
-
-We can visualize the distribution of clusters in the TSNE and UMAP plots. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
+`r paste("Resolution:", param$resolution)`
 
 ```{r clustering plot1, fig.height=8, fig.width=20}
-p1 <- DimPlot(scData, reduction="tsne", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
-p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
 
-p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
-p2 <- LabelClusters(p2, id = "ident",  fontface = "bold", color = "black", size = 6)
+n_clusters <- nlevels(Idents(scData))
+show_leg   <- n_clusters <= 20
 
-p1 + p2 + plot_annotation(
-) + plot_layout(nrow = 1)
+
+p1 <- DimPlot(scData,
+              label = FALSE,
+              pt.size = 1.5) +
+  labs(color = "Clusters") +
+  theme_void() +
+  guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
+  ggtitle("UMAP")
+
+p1 <- Seurat::LabelClusters(
+  plot     = p1,
+  id       = "ident",
+  fontface = "bold",
+  color    = "#383838",
+  size     = 4
+)
+
+p2 <- DimPlot(scData,
+              label = FALSE,
+              reduction="tsne",
+              pt.size = 1.5) +
+  labs(color = "Clusters") +
+  theme_void() +
+  guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
+  ggtitle("TSNE")
+
+p2 <- Seurat::LabelClusters(
+  plot     = p1,
+  id       = "ident",
+  fontface = "bold",
+  color    = "#383838",
+  size     = 4
+)
+
+(p1 + p2) +
+  plot_layout(nrow = 1, guides = if (show_leg) "collect" else "keep") +
+  plot_annotation(
+    theme = theme(
+      plot.caption = element_text(size = 9, hjust = 1, colour = "#6B6B6B"),
+      plot.margin  = margin(t = 4, r = 8, b = 8, l = 8)
+    )
+  ) &
+  theme(legend.position = if (show_leg) "right" else "none")
+
+# p1 <- DimPlot(scData, reduction="tsne", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
+# p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
+# 
+# p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
+# p2 <- LabelClusters(p2, id = "ident",  fontface = "bold", color = "black", size = 6)
+# 
+# p2 + p1 + plot_annotation(
+# ) + plot_layout(nrow = 1)
 ```
 
 <br/><br/>
 
-The number of cells in each cluster and sample is represented in this barplot.
 
 <br/>
 
 ```{r number of cells in each cluster}
 cellIdents_perSample <- data.frame(ident = Idents(scData), Sample=scData$Sample)
-barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Sample)) + geom_bar(stat="Count") + NoLegend()
-barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample") + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
+
+if(!('Batch' %in% colnames(scData@meta.data))){
+    scData@meta.data$Batch <- scData@meta.data$Sample
+}
+
+cellIdents_perSample <- scData@meta.data[,c('seurat_clusters', 'Batch')]
+cellIdents_perSample$Batch <- factor(cellIdents_perSample$Batch)
+
+ggplot(cellIdents_perSample, aes(x = seurat_clusters, 
+                    fill = Batch)) +
+  geom_bar() +
+#  scale_fill_manual(values = pal) +
+  labs(title = "Cells per cluster and sample (counts)",
+       x = NULL, 
+       y = "N cells"
+  ) + 
+  theme_minimal() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  theme(legend.position="none", 
+        panel.grid.minor=element_blank(),
+        panel.grid.major=element_blank(),
+        scale_y_continuous(expand = expansion(mult = c(0.02, 0.15))),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)
+  )
+
+# barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Sample)) + geom_bar(stat="Count") + NoLegend()
+# barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample") + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
 
 
 cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Sample")
-kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+ 
+if ("seurat_clusters" %in% names(df)) {
+  names(df)[names(df) == "seurat_clusters"] <- "Cluster"
+}
+
+is_pct_col <- grepl("_fraction$", colnames(df))
+colnames(df) <- colnames(df) |> str_replace_all("_fraction$", " (%)")
+is_count_col <- !is_pct_col & colnames(df) != "seurat_clusters"
+colnames(df)[is_count_col] <- colnames(df)[is_count_col] |> paste("(n)")
+
+
+
+DT::datatable(
+  df,
+  class   = "cell-border stripe compact",
+  caption = htmltools::tags$caption(
+#    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
+    "Bins per cluster and sample"
+  ),
+  extensions = "Buttons",
+  rownames   = FALSE,
+  escape     = FALSE,
+  filter     = "none",
+  options    = list(
+    paging       = TRUE,
+    pageLength   = 12,
+    dom          = "Bfrtip",  
+    autoWidth    = TRUE,
+    buttons      = list(
+      list(extend = "excel", text = "Excel", filename = "markers")
+    ),
+    fixedColumns = list(leftColumns = 1),
+    columnDefs   = list(list(className = "dt-left", targets = 0))
+  )
+) |>
+  DT::formatPercentage(columns = is_pct_col, digits = 1) |>
+  DT::formatStyle(columns = names(df), `white-space` = "pre-wrap")
+
+# kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
+
+### Clustering
+
+In order to find clusters of cells we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the cells involved, with higher weight given to cells that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of cells that are more connected to cells in the same community than they are to cells of different communities. Each community represents a cluster that we can use for downstream interpretation. 
+
+We can visualize the distribution of clusters in the TSNE and UMAP plots. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
 
 ## Cluster assessment
 
 
-#### Segregation of clusters by various sources of uninteresting variation.
+### Segregation of clusters by various sources of uninteresting variation.
 
 Once we have created the clusters we need to assess if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
