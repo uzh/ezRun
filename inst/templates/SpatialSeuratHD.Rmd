@@ -917,7 +917,6 @@ datatable(
 n_clusters <- nlevels(Idents(scData))
 show_leg   <- n_clusters <= 20
 
-scData$seurat_clusters <- Idents(scData)
 
 p1 <- DimPlot(scData,
               label = FALSE,
@@ -964,54 +963,36 @@ if(!('Batch' %in% colnames(scData@meta.data))){
     scData@meta.data$Batch <- scData@meta.data$Sample
 }
 
-cellIdents_perSample <- as.data.frame(scData@meta.data[,c('seurat_clusters', 
-                                                          'Batch')])
-
-cluster_levels <- cellIdents_perSample |>
-  dplyr::count(seurat_clusters, name = "n") |>
-  dplyr::arrange(dplyr::desc(n)) |>
-  dplyr::pull(seurat_clusters)
-
-plot_df <- cellIdents_perSample %>%
-  mutate(
-    seurat_clusters = factor(seurat_clusters, levels = cluster_levels),
-    Batch = factor(Batch)
-  )
+cellIdents_perSample <- scData@meta.data[,c('seurat_clusters', 'Batch')]
+cellIdents_perSample$Batch <- factor(cellIdents_perSample$Batch)
 
 
-if (!exists("pal")) pal <- scales::hue_pal()(nlevels(plot_df$Batch))
-if (is.null(names(pal)) || !all(levels(plot_df$Batch) %in% names(pal))) {
-  pal <- setNames(pal, levels(plot_df$Batch))
-}
+# if (!exists("pal")) pal <- scales::hue_pal()(nlevels(plot_df$Batch))
+# if (is.null(names(pal)) || !all(levels(plot_df$Batch) %in% names(pal))) {
+#   pal <- setNames(pal, levels(plot_df$Batch))
+# }
+# 
+# 
+# lvls <- levels(factor(plot_df$Batch))  # or cellIdents_perSample$Batch
+# pal  <- setNames(viridisLite::viridis(length(lvls), option = "D"), lvls)
+# # pals::glasbey, pals::alphabet, RColorBrewer::brewer.pal
 
-
-lvls <- levels(factor(plot_df$Batch))  # or cellIdents_perSample$Batch
-pal  <- setNames(viridisLite::viridis(length(lvls), option = "D"), lvls)
-# pals::glasbey, pals::alphabet, RColorBrewer::brewer.pal
-
-ggplot(plot_df, aes(x = seurat_clusters, 
+ggplot(cellIdents_perSample, aes(x = seurat_clusters, 
                     fill = Batch)) +
-  
   geom_bar() +
-  
-  scale_fill_manual(values = pal) +
-  
+#  scale_fill_manual(values = pal) +
   labs(title = "Bins per cluster and sample (counts)",
        x = NULL, 
-       y = NULL) +
-  
-  theme_minimal(base_size = 12) +
-  
-  theme(legend.position="none", 
+       y = "# bins"
+  ) + 
+  theme_minimal()+
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) + ## make sure the y axis is not expanded at the bottom
+  theme(#legend.position="none", 
         panel.grid.minor=element_blank(),
         panel.grid.major=element_blank(),
-        axis.title.y=element_text("# bins"),
-        axis.text.x=element_text(size=8, 
-                                 face="bold",
-                                 angle = 45)) +
-  
-  scale_y_continuous(expand = expansion(mult = c(0.02, 0.15))) 
-
+        scale_y_continuous(expand = expansion(mult = c(0.02, 0.15))),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)
+  )
 
 ```
 </div>
@@ -1136,23 +1117,23 @@ DT::datatable(
 
 
 
-```{r uninteresting variation, fig.height=16, fig.width=18}
+```{r uninteresting variation, fig.height=16, fig.width=12}
 boxplot_data_nCount <- FetchData(scData, vars = c(nCountCol, "seurat_clusters"))
-boxplot_data_nCount$seurat_clusters <- factor(boxplot_data_nCount$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nCount$seurat_clusters))))
+#boxplot_data_nCount$seurat_clusters <- factor(boxplot_data_nCount$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nCount$seurat_clusters))))
 plot1 <- ggplot(boxplot_data_nCount, aes(x = seurat_clusters, y = .data[[nCountCol]], fill = seurat_clusters))
 plot1 <- plot1 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
 plot1 <- plot1 + scale_fill_viridis_d(option = "turbo")  
 plot1 <- plot1 + ggtitle("Number of UMIs vs cluster") + xlab("Cluster") + ylab(nCountCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
 
 boxplot_data_nFeature <- FetchData(scData, vars = c(nFeatureCol, "seurat_clusters"))
-boxplot_data_nFeature$seurat_clusters <- factor(boxplot_data_nFeature$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nFeature$seurat_clusters))))
+#boxplot_data_nFeature$seurat_clusters <- factor(boxplot_data_nFeature$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nFeature$seurat_clusters))))
 plot2 <- ggplot(boxplot_data_nFeature, aes(x = seurat_clusters, y = .data[[nFeatureCol]], fill = seurat_clusters))
 plot2 <- plot2 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
 plot2 <- plot2 + scale_fill_viridis_d(option = "turbo")  
 plot2 <- plot2 + ggtitle("Number of genes vs cluster") + xlab("Cluster") + ylab(nFeatureCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
 
 boxplot_data_mito <- FetchData(scData, vars = c("percent_mito", "seurat_clusters"))
-boxplot_data_mito$seurat_clusters <- factor(boxplot_data_mito$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_mito$seurat_clusters))))
+#boxplot_data_mito$seurat_clusters <- factor(boxplot_data_mito$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_mito$seurat_clusters))))
 plot3 <- ggplot(boxplot_data_mito, aes(x = seurat_clusters, y = percent_mito, fill = seurat_clusters))
 plot3 <- plot3 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
 plot3 <- plot3 + scale_fill_viridis_d(option = "turbo")  
