@@ -273,6 +273,9 @@ runBasicProcessingHD <- function(scData, input, featInfo, param, BPPARAM){
         Idents(scData) <- "seurat_cluster.projected"
         DefaultAssay(scData) <- myAssay
     }
+    if(!('Batch' %in% colnames(scData@meta.data))) {
+        scData$Batch <- scData$Sample
+    }
     return(list(scData = scData, scData.unfiltered = scData.unfiltered, cellsPerGeneFraction = cellsPerGeneFraction))
 }
 
