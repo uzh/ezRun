@@ -311,18 +311,12 @@ plot3 <- sp_plot(
   scData, nCountCol,
   title  = "Raw image",
   label  = NULL,
-  images = img_name,
+#  images = img_name,
   alpha  = c(0, 0)
 ) + guides(fill = "none")
 
-plot <- sp_plot(
-  scData, 
-  nCountCol,
-  title  = "Microscopy image",
-  label  = NULL,
-  images = img_name,
-  alpha  = c(0, 0)
-) + guides(fill = "none")
+
+
 
 plot1 + plot2 + plot3
 
@@ -451,17 +445,13 @@ if (!is.null(xxAll$percent_riboprot)) {
         axis.ticks.x = element_blank()
       )
   
-  
-    plot11 <- if ("percent_riboprot" %in% c(rownames(scData), colnames(scData[[]]))) {
-      sp_plot(
-        scData, "percent_riboprot",
-        title = "",
-        label = "Ribo %"
-      )
-    } else {
-      NULL
-    }
-     
+   
+   plot11 <- sp_plot(
+     scData, "percent_riboprot",
+     title = "",
+     label = "Ribo %"
+   )
+
     plot12 <- plotColData(
       xxAll,
       x = nCountCol,
@@ -590,11 +580,17 @@ datatable(
 </details>
 
 
+```{r}
+
+SpatialPlot(scData.unfiltered_spatial, group.by = "discard") + labs(title="Filtered Bins")
+
+```
+
 
 ::: {.row}
 ::: {.col-md-6}
 
-Number of bins filtered by the individual quality criterions.
+Number of bins filtered by the individual quality criteria.
 ```{r low quality Bins, fig.align='center'}
 
 qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
