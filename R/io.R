@@ -133,9 +133,14 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
 }
 
 
-ezKable <- function(df){
-  kable(df) |>
+ezKable <- function(df, format.args = list(big.mark = ","), ...){
+  kable(df, format.args = format.args, ...) |>
     kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
+}
+
+ezListAsKable <- function(my_list, ...){
+  ezFrame(Value=my_list |> unlist(recursive = FALSE)) |> rownames_to_column("Name") |>
+  ezKable(...)
 }
 
 
@@ -151,7 +156,7 @@ ezKable <- function(df){
 ##' @examples 
 ##' table = data.frame(a=c(1.11, 2:100), b=201:300)
 ##' ezInteractiveTableRmd(table)
-ezInteractiveTableRmd = function(values, 
+ezInteractiveTableRmd = function(values, filter="top",
                                  digits=NULL, columnsToRound= sapply(values, typeof) == "double",
                                  colNames=colnames(values), rowNames=rownames(values), title=""){
   library(DT)
@@ -169,11 +174,12 @@ ezInteractiveTableRmd = function(values,
   } else {
     caption = htmltools::tags$caption(htmltools::h1(title))
   }
-  interactiveTable <- datatable(values, 
+  interactiveTable <- datatable(values,
                                 #class    = "cell-border stripe compact",
-                                extensions=c("Buttons"), filter="top", 
+                                extensions=c("Buttons"), filter=filter, 
+                                escape=FALSE,
                                 caption=caption, colnames=colNames, rownames=rowNames,
-                                options=list(buttons = c('excel'), 
+                                options=list(buttons = c('excel'), dom = "Bfrtip",
                                              pageLength=25, autoWidth=TRUE)
                                 )
   if (!is.null(digits)){
