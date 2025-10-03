@@ -171,6 +171,8 @@ When the parameter values of nreads, ngenes, perc_mito and perc_ribo are specifi
 <div class = "row">
 <div class = "col-md-6">
 ```{r low quality spots}
+SpatialFeaturePlot(scData.unfiltered_spatial, features = 'discard', pt.size.factor = param$pt.size.factor) + ggplot2::scale_fill_continuous(limits = c(0,1), breaks = c(0.0, 1.0)) + theme(legend.position = "right") + theme(aspect.ratio = myRatio) + labs(fill = "Discarded")
+
 library(UpSetR)
 qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
 qcList <- qcList[sapply(qcList, length) > 0]
