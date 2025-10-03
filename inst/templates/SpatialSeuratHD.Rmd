@@ -179,11 +179,6 @@ sp_plot <- function(obj,
     )
 
 }
-
-#if(any(is.nan(scData.unfiltered_spatial$percent_mito))){
-#  toKeep <- rownames(scData.unfiltered_spatial@meta.data)[-which(is.nan(scData.unfiltered_spatial$percent_mito))]
-#  scData.unfiltered_spatial <- subset(scData.unfiltered_spatial, cells = toKeep)
-#}
 ```
 
 
@@ -211,24 +206,8 @@ qcMetrics <- tibble(
     interpretation = "High mitochondrial proportion indicate poor quality (loss of cytoplasmic RNA from perforated bins) (Islam et al. 2014; Ilicic et al. 2016)"
   )
 
-datatable(
-  qcMetrics,
-  class = 'compact cell-border stripe', #or 'cell-border stripe'
-  # caption = htmltools::tags$caption(
-  #   style = 'caption-side: top; text-align: left; font-weight: bold; font-size: 16px;',
-  #   "QC Metrics Used to Identify Low-Quality Bins"
-  # ),
-  escape = FALSE,
-  rownames = FALSE,
-  colnames = rep("", ncol(qcMetrics)),
-  options = list(
-    autoWidth = TRUE,
-    dom = 't'  
-  )
-) |> 
-  formatStyle(
-    columns = names(qcMetrics)  
-  )
+ezKable(qcMetrics)
+
 
 ```
 
@@ -262,24 +241,7 @@ qcDiagnostics <- tibble(
     interpretation = "Visualize QC metrics across the tissue to detect spatial patterns of low quality."
   )
 
-datatable(
-  qcDiagnostics,
-#   caption = htmltools::tags$caption(
-#     style = 'caption-side: top; text-align: left; font-weight: bold; font-size: 16px;',
-#     "Diagnostic Plots Used for QC Evaluation"
-#   ),
-  class = 'cell-border stripe',
-  escape = FALSE,
-  rownames = FALSE,
-  #colnames = rep("", ncol(qcDiagnostics)), 
-  options = list(
-    autoWidth = TRUE,
-    dom = 't' 
-  )
-) |> 
-  formatStyle(
-    columns = names(qcDiagnostics)
-  )
+ezKable(qcDiagnostics)
 
 ```
 </details>
@@ -475,52 +437,6 @@ plot10 + plot11 + plot12
 
 ```
 
-```{r genes by count, fig.width=12, fig.height=6, include=FALSE}
-
-#xxAll$genePerCount <- xxAll[[nFeatureCol]] / xxAll[[nCountCol]]
-
-# plot13 <- plotColData(
-#   xxAll,
-#   x = "Sample",
-#   y = "genePerCount",
-#   colour_by = "discard"
-# ) +
-#   labs(
-#     title = "Genes per UMI",
-#     y = "Gene/UMI ratio"
-#   ) +
-#   theme(
-#     legend.position = "none", 
-#     axis.title.x = element_blank(),
-#     axis.ticks.y = element_blank(),
-#     axis.ticks.x = element_blank()
-#   )
-# 
-# plot14 <- plotColData(
-#   xxAll,
-#   x = nCountCol,
-#   y = "genePerCount",
-#   colour_by = "discard"
-# ) +
-#   scale_x_log10() +
-#   xlim(1, 10000) +
-#   ylim(0.2, 0.8) +
-#   labs(
-#     title = "Gene/UMI ratio vs UMIs",
-#     x = "UMI counts",
-#     y = "Gene/UMI ratio"
-#   ) +
-#   theme(
-#     legend.position = "none", 
-#     axis.ticks.y = element_blank(),
-#     axis.ticks.x = element_blank()
-#   )
-# 
-# 
-# plot13 + plot14
-
-```
-
 
 ### Bins filtering
 
@@ -558,26 +474,12 @@ cellFilter <- tibble(
     rule = "Keep genes present in ≥ N cells (or ≥ p% of cells); drop low-prevalence genes."
   )
 
-datatable(
-  cellFilter,
-  class = 'cell-border stripe',
-  # caption = htmltools::tags$caption(
-  #   #style = 'caption-side: top; text-align: left; font-weight: bold; font-size: 16px;',
-  #   "MAD = median absolute deviation"
-  # ),
-  escape = FALSE,
-  rownames = FALSE,
-  #colnames = rep("", ncol(cellFilter)),  # hide headers
-  options = list(
-    autoWidth = TRUE,
-    dom = 't'
-  )
-) |>
-  formatStyle(
-    columns = names(cellFilter),
-  )
+ezKable(cellFilter)
 ```
 </details>
+
+::: {.row}
+::: {.col-md-6}
 
 
 ```{r}
@@ -586,6 +488,22 @@ SpatialPlot(scData.unfiltered_spatial, group.by = "discard") + labs(title="Filte
 
 ```
 
+:::
+
+::: {.col-md-6}
+
+```{r}
+
+filterStats <- list(
+  "Total removed (thresholding)"= sum(!allCellsMeta$useCell),
+  "Total removed (manual)" = sum(allCellsMeta$useCell) - ncol(scData),
+  "Bins remaining" = sum(ncol(scData))
+)
+
+ezListAsKable(filterStats, col.names=c("", "Number of Bins"))
+```
+:::
+:::
 
 ::: {.row}
 ::: {.col-md-6}
@@ -628,54 +546,9 @@ qcStats[ "Ribosomal protein Percent", ] <- c(
   round(sum(allCellsMeta$qc.ribo)/nrow(allCellsMeta), 2)
 )
 
-qcStats[ "Total removed (thresholding)", ] <- c(
-  sum(!allCellsMeta$useCell), 
-  NA, 
-  NA, 
-  round(sum(!allCellsMeta$useCell)/nrow(allCellsMeta), 2)
-)
+ezKable(qcStats)
 
-qcStats[ "Total removed (manual)", ] <- c(
-  sum(allCellsMeta$useCell) - ncol(scData), 
-  NA, 
-  NA, 
-  round((sum(allCellsMeta$useCell) - ncol(scData))/nrow(allCellsMeta), 2)
-)
 
-qcStats[ "Bins remaining", ] <- c(
-  sum(ncol(scData)), 
-  NA, 
-  NA, 
-  round(sum(ncol(scData))/nrow(allCellsMeta), 2)
-)
-
-qc_tbl <- cbind(Metric = rownames(qcStats), as.data.frame(qcStats), row.names = NULL)
-
-dt <- datatable(
-  qc_tbl,
-  caption = htmltools::tags$caption(style = "caption-side: top; text-align: left;",
-  htmltools::HTML(sprintf(
-   "<span style='font-weight: normal; font-size: 14px;'>Bin size: %s</span>",
-   param$binSize
-))
-
-  ),
-  escape   = FALSE,
-  rownames = FALSE,
-  options  = list(
-    autoWidth = TRUE,
-    dom = "t"
-  )
-) |>
-  formatRound(
-    columns = which(map_lgl(qc_tbl, is.numeric)),
-    digits = 0
-  )
-
-htmlwidgets::prependContent(
-  dt,
-  tags$style(HTML("table.dataTable tbody td:empty::before{content:'-'; color:#6c757d;}"))
-)
 ```
 :::
 :::
@@ -733,25 +606,7 @@ dimred_tbl <- tibble(
     )
   )
 
-datatable(
-  dimred_tbl,
-  class = "cell-border stripe",
-  # caption = tags$caption(
-  #   style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
-  #   "Overview and PC selection"
-  # ),
-  escape = FALSE,
-  rownames = FALSE,
-  options = list(
-    autoWidth = TRUE,
-    dom = "t"
-  )
-) |>
-  formatStyle(
-    columns = names(dimred_tbl),
-    `white-space` = "pre-wrap",
-    `vertical-align` = "top"
-  )
+ezKable(dimred_tbl)
 
 ```
 </details>
@@ -762,21 +617,17 @@ datatable(
 
 pca_name <- if ("pca.sketch" %in% names(scData@reductions)) "pca.sketch" else "pca"
 
-k <- param$npcs 
-
-top_n <- max(80,k)
-
-stdev <- scData[[pca_name]]@stdev %>% head(top_n)
+stdev <- scData[[pca_name]]@stdev
+stopifnot(param$npcs <= length(stdev))
 
 
 pct  <- ((stdev^2) / sum(stdev^2)) * 100        
-# mode <- sprintf("Variance-normalized%s", 
-#                        paste0(", top ", length(stdev), " PCs"))
 
 
 cumu    <- cumsum(pct)
 plot_df <- data.frame(pct = pct, cumu = cumu, rank = seq_along(pct))
-plot_df$used <- factor(plot_df$rank <= k, levels=c(TRUE, FALSE))
+plot_df$used <- factor(plot_df$rank <= param$npcs, levels=c(TRUE, FALSE))
+
 
 ggplot(plot_df, aes(x = cumu, 
                     y = pct, 
@@ -784,27 +635,20 @@ ggplot(plot_df, aes(x = cumu,
                     color = used)) +
   geom_point(size = 1.6) + 
   geom_text(vjust = -0.8, size = 2) +
-  geom_vline(xintercept = cumu[k], color = "grey50", linetype = "dashed") +
+  geom_vline(xintercept = cumu[param$npcs], color = "grey50", linetype = "dashed") +
   
-  # 
-  # scale_color_manual(
-  #   values = c("FALSE" = "#2B7A78", "TRUE" = "#1E88E5"),
-  #   breaks = c(FALSE, TRUE),
-  #   labels = c(paste0("PC % ", k), paste0("PC > ", k)),
-  #   name   = NULL
-  # ) +
-  
+
   labs(
     title    = "Percent variance explained by the principal components",
-    subtitle = paste0("number of PCs used: ", k),
+    subtitle = paste0("number of PCs used: ", param$npcs),
     x = "Cumulative percent variance explained ",
     y = "Per PC variance explained"
   ) +
   
   annotate(
     "text",
-    x = cumu[k], y = max(plot_df$pct),
-    label = paste0("Variance used: ", sprintf("%.2f", cumu[k]), "%"),
+    x = cumu[param$npcs], y = max(plot_df$pct),
+    label = paste0("Variance used: ", sprintf("%.2f", cumu[param$npcs]), "%"),
     vjust = -0.4, size = 3, color = gg_color_hue(2)[1]
   ) + theme(legend.position = "none") +
   theme_bw() +theme(legend.position = "none")
@@ -879,25 +723,8 @@ cluster_tbl <- tibble(
     )
   )
 
+ezKable(cluster_tbl)
 
-datatable(
-  cluster_tbl,
-  class   = "cell-border stripe",
-  caption = tags$caption(
-    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
-    "Graph-based clustering overview (KNN → communities → clusters)"
-  ),
-  rownames = FALSE,
-  options  = list(
-    autoWidth = TRUE,
-    dom = "t"
-  )
-) |>
-  formatStyle(
-    columns = names(cluster_tbl),
-    `white-space`   = "pre-wrap",
-    `vertical-align`= "top"
-  )
 ```
 </details>
 
@@ -999,28 +826,9 @@ colnames(df) <- colnames(df) |> str_replace_all("_fraction$", " (%)")
 is_count_col <- !is_pct_col & colnames(df) != "Cluster"
 colnames(df)[is_count_col] <- colnames(df)[is_count_col] |> paste("(n)")
 
+ezInteractiveTableRmd(df, rowNames = FALSE, title="number of bins", filter="none")|>
+  DT::formatPercentage(columns = is_pct_col, digits = 2) 
 
-
-DT::datatable(
-  df,
-#   caption = htmltools::tags$caption(
-# #    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
-#     "Bins per cluster and sample"
-#   ),
-  extensions = "Buttons",
-  rownames   = FALSE,
-  filter     = "none",
-  options    = list(
-    paging       = TRUE,
-    pageLength   = 12,
-    dom          = "Bfrtip",  
-    autoWidth    = TRUE,
-    buttons      = list(
-      list(extend = "excel", text = "Excel", filename = "markers")
-    )
-  )
-) |>
-  DT::formatPercentage(columns = is_pct_col, digits = 1) 
 
 ```
 :::
@@ -1079,21 +887,7 @@ driver_qc_tbl <- tibble(
     )
   )
 
-DT::datatable(
-  driver_qc_tbl,
-  class   = "cell-border stripe",
-  # caption = tags$caption(
-  #   style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
-  #   "Are clusters driven by technical artifacts or uninteresting variability?"
-  # ),
-  rownames = FALSE,
-  options  = list(autoWidth = TRUE, dom = "t")
-) |>
-  DT::formatStyle(
-    columns = names(driver_qc_tbl),
-    `white-space`    = "pre-wrap",
-    `vertical-align` = "top"
-  )
+ezKable(driver_qc_tbl)
 ```
 
 </details> 
@@ -1125,94 +919,6 @@ plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
 
 ```
 
-
-```{r uninteresting variation old, fig.height=16, fig.width=18, include=FALSE}
-
-# UMIs
-boxplot_data_nCount <- FetchData(scData, vars = c(nCountCol, 
-                                                  "seurat_clusters"))
-
-boxplot_data_nCount$seurat_clusters <- factor(boxplot_data_nCount$seurat_clusters, 
-                                              levels = sort(as.numeric(levels(boxplot_data_nCount$seurat_clusters))))
-
-plot1 <- ggplot(boxplot_data_nCount,
-                aes(x = seurat_clusters,
-                    y = .data[[nCountCol]],
-                    fill = seurat_clusters)) +
-
-  geom_boxplot(outlier.size = 0.5,
-               alpha = 0.9) +
-    
-  scale_fill_viridis_d(option = "turbo") +
-    
-  scale_y_continuous(labels = label_comma()) +     
-    
-  labs(
-    title = "Number of UMIs vs cluster",
-    #x = "Cluster",
-    y = "UMIs per cell"
-  ) +
-    
-  theme_minimal(base_size = 14) +
-    
-  theme(legend.position = "none",
-        axis.title.x = element_blank(),
-        plot.margin = margin(b = 20)
-        )
-
-# Features
-boxplot_data_nFeature <- FetchData(scData, 
-                                   vars = c(nFeatureCol, 
-                                            "seurat_clusters")) 
-
-boxplot_data_nFeature$seurat_clusters <- factor(boxplot_data_nFeature$seurat_clusters, 
-                                                levels = sort(as.numeric(levels(boxplot_data_nFeature$seurat_clusters))))
-
-plot2 <- ggplot(boxplot_data_nFeature,
-                aes(x = seurat_clusters,
-                    y = .data[[nFeatureCol]],
-                    fill = seurat_clusters)) +
-  geom_boxplot(outlier.size = 0.5, alpha = 0.9) +
-  scale_fill_viridis_d(option = "turbo") +
-  scale_y_continuous(labels = label_comma()) +
-  labs(
-    title = "Number of genes vs cluster",
-    #x = "Cluster",
-    y = "Genes detected per cell"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "none",
-        axis.title.x = element_blank(),
-        plot.margin = margin(t = 20, b = 20)
-        )
-
-# Mito %
-
-boxplot_data_mito <- FetchData(scData, vars = c("percent_mito", 
-                                                "seurat_clusters")) 
-boxplot_data_mito$seurat_clusters <- factor(boxplot_data_mito$seurat_clusters, 
-                                            levels = sort(as.numeric(levels(boxplot_data_mito$seurat_clusters))))
-
-plot3 <- ggplot(boxplot_data_mito,
-                aes(x = seurat_clusters,
-                    y = percent_mito,
-                    fill = seurat_clusters)) +
-  geom_boxplot(outlier.size = 0.5, alpha = 0.9) +
-  scale_fill_viridis_d(option = "turbo") +
-  scale_y_continuous(labels = label_number(accuracy = 0.1)) +
-  labs(
-    title = "Mito percentage vs cluster",
-    x = "Cluster",
-    y = "Mito %"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "none",
-        plot.margin = margin(t = 20)
-        )
-
-plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
-
-```
 
 
 ## Cluster markers
@@ -1280,25 +986,9 @@ marker_tbl <- tibble(
     )
   )
 
-DT::datatable(
-  marker_tbl,
-  class   = "cell-border stripe",
-  # caption = htmltools::tags$caption(
-  #   style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
-  #   "Positive marker detection (Wilcoxon + effect size)"
-  # ),
-  rownames = FALSE,
-  options  = list(
-    autoWidth = TRUE,
-    dom = "t"
-  )
-) |>
-  DT::formatStyle(
-    columns = names(marker_tbl),
-    `white-space`    = "pre-wrap",
-    `vertical-align` = "top"
-  )
+ezKable(marker_tbl)
 ```
+
 Marker detection summary
 
 ```{r LR test, eval=(param$DE.method=="LR"), results='asis'}
@@ -1314,18 +1004,7 @@ marker_desc <- tibble(
   )
 )
 
-  datatable(
-  marker_desc,
-  class   = "cell-border stripe",
-  # caption = htmltools::tags$caption(
-  #   style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
-  #   "Marker detection summary"
-  # ),
-  rownames = FALSE,
-  options  = list(autoWidth = TRUE, dom = "t")
-) |>
-  formatStyle(names(marker_desc), `white-space` = "pre-wrap", 
-              `vertical-align` = "top")
+ezKable(marker_desc)
 ```
   
  </details>
@@ -1336,73 +1015,6 @@ marker_desc <- tibble(
 
 
 ezInteractiveTableRmd(posMarkers, digits=3, rowNames=FALSE)
-
-# ezInteractiveTableRmd_elena <- function(values, digits=NULL, 
-#                                  colNames=colnames(values), 
-#                                  rowNames=rownames(values),
-#                                  title="", 
-#                                  format=NULL, 
-#                                  envir=parent.frame()){
-#   
-#   suppressMessages(require(DT, quietly=TRUE))
-#   suppressMessages(require(htmltools, quietly=TRUE))
-#   
-#   if (!is.null(digits)){
-#     for (i in 1:ncol(values)) {
-#       if(typeof(values[ ,i]) == "double"){
-#         values[ ,i] = signif(values[ ,i], digits=digits)
-#       }
-#     }
-#     captionText = paste("Numeric values are rounded to", 
-#                         digits, 
-#                         "digits.")
-#     
-#     caption = htmltools::tags$caption(htmltools::h1(title), 
-#                                       htmltools::p(captionText))
-#   } else {
-#     caption = htmltools::tags$caption(htmltools::h1(title))
-#   }
-#   interactiveTable <- datatable(values, 
-#                                 class    = "cell-border stripe compact",
-#                                 extensions=c("Buttons"),
-#                                 filter="bottom", 
-#                                 #filter="top", 
-#                                 caption=caption,
-#                                 colnames=colNames,
-#                                 rownames=rowNames,
-#                                 options    = list(dom = "Bfrtip",
-#                                                   buttons = list(list(extend = "excel", 
-#                                                                        text = "Excel",
-#                                                                        filename = "markers") #deleted buttons
-#                                                                  ),
-#                                                   pageLength = 20,
-#                                                  # pageLength = 25,
-#                                                   autoWidth  = TRUE
-#                                                   )
-#                                 )
-#   if (!is.null(format)){
-#     currEnv = list2env(list(interactiveTable = interactiveTable, 
-#                             values = values), 
-#                        parent = envir)
-#     interactiveTable = eval(format, envir=c(currEnv))
-#     #currEnv = environment()
-#     #interactiveTable = eval(format, envir=c(envir, currEnv)) #makes list, not env
-#   }
-#   return(interactiveTable)
-# }
-# 
-# 
-# display_cols <- c("pct.1",
-#                      "pct.2",
-#                      "avg_log2FC",
-#                      "p_val_adj",
-#                      "diff_pct")
-# 
-# 
-# ezInteractiveTableRmd_elena(data.frame(posMarkers)) |>
-#   DT::formatSignif(display_cols,
-#                    digits = 3) |> 
-#   formatStyle(display_cols, `white-space` = "pre-wrap")
 
 
 ```
@@ -1491,24 +1103,7 @@ enrichr_tbl <- tibble(
     )
   )
 
-datatable(
-  enrichr_tbl,
-  class   = "cell-border stripe",
-  # caption = tags$caption(
-  #   style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
-  #   "Cell type scoring using Enrichr"
-  # ),
-  rownames = FALSE,
-  options  = list(
-    autoWidth = TRUE,
-    dom = "t"
-  )
-) |>
-  formatStyle(
-    columns = names(enrichr_tbl),
-    `white-space`    = "pre-wrap",
-    `vertical-align` = "top"
-  )
+ezKable(enrichr_tbl)
 ```
   
 </details> 
@@ -1550,8 +1145,6 @@ enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='",
 
 ```
 
-::: {.row}
-::: {.col-md-3}
 
 ```{r enrichr markers, echo=FALSE, results='asis'}
 enrichrTable <- tibble(Cluster=names(genesPerCluster),
@@ -1578,26 +1171,16 @@ if (!is.null(enrichRout)){
   enrichrTable <- merge(enrichrTable, enrichRTerm, by = "Cluster")
 }
 
-datatable(
-  enrichrTable,
-  rownames   = FALSE,
-  escape     = FALSE,
-  options    = list(
-    paging       = TRUE,
-    pageLength   = 15,      
-    dom          = "tip",    
-    autoWidth    = TRUE
-  )
-) 
+## settings needed to make sure links remain links
+ezKable(enrichrTable, escape=FALSE, format="html", format.args=list())
 
-# kable(enrichrTable, format="html", escape=FALSE,
-#         caption=paste0("GeneSet enrichment")) %>%
-# kable_styling("striped", full_width = F, position = "left")
 ```
 
 
 
-## Data availability
+## Links
+
+### Data files
 
 ##### Aggregated expression of every gene across the bins in each cluster
 
@@ -1614,20 +1197,30 @@ datatable(
 
 ##### The final Seurat Object is [here](scData.qs2)
 
-## Session Info
+## Parameters
+
+### Parameters used
+
 ```{r report parameters, echo=FALSE}
-param[c("binSize",
+
+ezListAsKable(param[c("binSize",
         "npcs",
-        "pcGenes",
         "resolution", 
         "DE.method", 
-        # "cellsFraction", 
         "nUMIs", 
-        "nmad")]
+        "nmad")],
+        col.names=c("Parameter", "Value"),
+        caption="Parameters used")
+
+  
 ```
 
+### Session Info
 
 ```{r, echo=FALSE}
+
+
 format(Sys.time(), '%Y-%m-%d %H:%M:%S')
 ezSessionInfo()
 ```
+
