@@ -400,21 +400,10 @@ qc_dt <- qc_dt[, c("Metric", setdiff(names(qc_dt), "Metric"))]
 
 dt <- DT::datatable(
   qc_dt,
-  class     = "cell-border stripe",
-  caption   = htmltools::tags$caption(
-    style = "caption-side: top; text-align: left;",
-    htmltools::HTML(sprintf(
-      "<span style='font-weight: normal; font-size: 14px;'>Bin size: %s</span>",
-      param$binSize
-    ))
-  ),
-  escape    = FALSE,
   rownames  = FALSE,
   options   = list(
     autoWidth = TRUE,
-    dom       = "t",
-    paging    = FALSE,
-    ordering  = FALSE
+    dom       = "t"
   )
 )
 
@@ -535,7 +524,7 @@ The numbers of PCs that should be retained for downstream analyses typically ran
 
 `r paste("Resolution:", param$resolution)`
 
-```{r clustering plot1, fig.height=6, fig.width=12}
+```{r clustering plot1, fig.width=9}
 
 n_clusters <- nlevels(Idents(scData))
 show_leg   <- n_clusters <= 20
@@ -546,7 +535,9 @@ p1 <- DimPlot(scData,
               pt.size = 1.5) +
   labs(color = "Clusters") +
   guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
-  ggtitle("UMAP")
+  ggtitle("UMAP") +
+  theme_void() +
+  theme(legend.position = "none")
 
 p1 <- Seurat::LabelClusters(
   plot     = p1,
@@ -562,7 +553,8 @@ p2 <- DimPlot(scData,
               pt.size = 1.5) +
   labs(color = "Clusters") +
   guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
-  ggtitle("TSNE")
+  ggtitle("TSNE")+
+  theme_void()
 
 p2 <- Seurat::LabelClusters(
   plot     = p2,
@@ -574,13 +566,6 @@ p2 <- Seurat::LabelClusters(
 
 (p1 + p2) +
   plot_layout(nrow = 1, guides = if (show_leg) "keep" else "none")
-  # plot_annotation(
-  #   theme = theme(
-  #     plot.caption = element_text(size = 9, hjust = 1, colour = "#6B6B6B"),
-  #     plot.margin  = margin(t = 4, r = 8, b = 8, l = 8)
-  #   )
-  # ) &
-  # theme(legend.position = if (show_leg) "right" else "none")
 
 # p1 <- DimPlot(scData, reduction="tsne", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
 # p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
@@ -596,6 +581,9 @@ p2 <- Seurat::LabelClusters(
 
 <br/>
 
+::: {.row}
+::: {.col-md-9}
+
 ```{r number of cells in each cluster}
 cellIdents_perSample <- data.frame(ident = Idents(scData), Sample=scData$Sample)
 
@@ -609,65 +597,70 @@ cellIdents_perSample$Batch <- factor(cellIdents_perSample$Batch)
 ggplot(cellIdents_perSample, aes(x = seurat_clusters, 
                     fill = Batch)) +
   geom_bar() +
-#  scale_fill_manual(values = pal) +
   labs(title = "Cells per cluster and sample (counts)",
        x = NULL, 
        y = "N cells"
   ) + 
   theme_minimal() +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
   theme(legend.position="none", 
         panel.grid.minor=element_blank(),
         panel.grid.major=element_blank(),
-        scale_y_continuous(expand = expansion(mult = c(0.02, 0.15))),
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)
+        axis.text.x = element_text(angle = 45)
   )
 
 # barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Sample)) + geom_bar(stat="Count") + NoLegend()
 # barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample") + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
 
+```
 
-df = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Sample")
- 
-if ("seurat_clusters" %in% names(df)) {
-  names(df)[names(df) == "seurat_clusters"] <- "Cluster"
-}
+:::
+
+::: {.row}
+::: {.col-md-3}
+
+```{r cells/cluster}
+
+df <- cellsProportion(scData, 
+                      groupVar1 = "seurat_clusters", 
+                      groupVar2 = "Sample") |>
+  as.data.frame() |>
+  dplyr::rename(Cluster = seurat_clusters)
+
 
 is_pct_col <- grepl("_fraction$", colnames(df))
-colnames(df) <- colnames(df) |> str_replace_all("_fraction$", " (%)")
-is_count_col <- !is_pct_col & colnames(df) != "seurat_clusters"
-colnames(df)[is_count_col] <- colnames(df)[is_count_col] |> paste("(n)")
 
+new_names <- colnames(df)
 
+new_names[is_pct_col] <- sub("_fraction$", " (%)", 
+                             new_names[is_pct_col])
 
-DT::datatable(
+is_count_col <- !is_pct_col & new_names != "Cluster"
+new_names[is_count_col] <- paste0(new_names[is_count_col], " (n)")
+
+colnames(df) <- new_names
+
+datatable(
   df,
-  class   = "cell-border stripe compact",
-  caption = htmltools::tags$caption(
-#    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
-    "Bins per cluster and sample"
-  ),
-  extensions = "Buttons",
-  rownames   = FALSE,
-  escape     = FALSE,
-  filter     = "none",
-  options    = list(
+  caption   = htmltools::tags$caption("Cells per cluster and sample"),
+  extensions = c("Buttons"),
+  rownames  = FALSE,
+  escape    = TRUE,    
+  options   = list(
     paging       = TRUE,
-    pageLength   = 12,
-    dom          = "Bfrtip",  
-    autoWidth    = TRUE,
-    buttons      = list(
-      list(extend = "excel", text = "Excel", filename = "markers")
-    ),
-    fixedColumns = list(leftColumns = 1),
-    columnDefs   = list(list(className = "dt-left", targets = 0))
+    dom          = "Bfrtip",
+    autoWidth    = TRUE,             
+    buttons      = list(list(extend = "excel", 
+                             text = "Excel", 
+                             filename = "clusters")
+                        )
   )
-) |>
-  DT::formatPercentage(columns = is_pct_col, digits = 1) |>
-  DT::formatStyle(columns = names(df), `white-space` = "pre-wrap")
+) |> formatPercentage(columns = which(is_pct_col), digits = 1)
+
+
 
 # kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
+:::
 
 ### Clustering
 
@@ -1046,21 +1039,21 @@ try({
 ### Azimuth
 
 ```{r azimuth, eval=!is.null(scData@meta.data$Azimuth.celltype.l1), fig.width=15, fig.height=8}
-options(ggrepel.max.overlaps = Inf)
-
-cat(sprintf("Analysis was performed using the Azimuth reference map: %s", param$Azimuth))
-
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap", cols = shared_colors) +
-  theme(aspect.ratio = 1)
-if('Azimuth.celltype.l2' %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap", cols = shared_colors) +
-  theme(aspect.ratio = 1)
-if('Azimuth.celltype.l3' %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap", cols = shared_colors) +
-  theme(aspect.ratio = 1)
-if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap", cols = shared_colors) +
-  theme(aspect.ratio = 1)
+# options(ggrepel.max.overlaps = Inf)
+# 
+# cat(sprintf("Analysis was performed using the Azimuth reference map: %s", param$Azimuth))
+# 
+# DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap", cols = shared_colors) +
+#   theme(aspect.ratio = 1)
+# if('Azimuth.celltype.l2' %in% colnames(scData@meta.data))
+#   DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap", cols = shared_colors) +
+#   theme(aspect.ratio = 1)
+# if('Azimuth.celltype.l3' %in% colnames(scData@meta.data))
+#   DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap", cols = shared_colors) +
+#   theme(aspect.ratio = 1)
+# if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
+#   DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap", cols = shared_colors) +
+#   theme(aspect.ratio = 1)
 ```
 
 ### Azimuth Pan-Human
@@ -1259,9 +1252,9 @@ production-ready plots and figures. You can also use this app to explore your ow
 ```{r report parameters, echo=FALSE}
 
 
-ezFrame(Value=param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "cellsFraction", "nUMIs", "nmad", "normalize")] |> 
-          unlist()) |> rownames_to_column("Parameter") |>
-  ezKable()
+# ezFrame(Value=param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "cellsFraction", "nUMIs", "nmad", "normalize")] |> 
+#           unlist()) |> rownames_to_column("Parameter") |>
+  # ezKable()
   
 ```
 
