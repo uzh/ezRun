@@ -495,6 +495,7 @@ writePresplicedGtf <- function (param, featureFile=param$ezRef["refFeatureFile"]
 
 getTranscriptSequences = function(param=NULL, genomeFn=NULL, featureFn=NULL){
   require(GenomicFeatures)
+  require(txdbmaker)
   require(Rsamtools)
   if(!is.null(param)){
     genomeFn <- param$ezRef["refFastaFile"]

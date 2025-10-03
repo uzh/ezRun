@@ -132,73 +132,37 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
   }
 }
 
-##' @title Saves an interactive table
-##' @description Saves an interactive table accessible with the provided \code{tableLink}.
-##' @param values a data.frame or table to create an interactive table from.
-##' @param tableLink a character ending with .html representing the link to the interactive table
-##' @param digits the number of digits to round to, if rounding is desired.
-##' @param colNames a character vector specifying the column names of the interactive table.
-##' @param title a character representing the title of the interactive table.
-##' @param format formatting options passed as an expression. The table argument in formatting functions must be named \code{interactiveTable}.
-##' @param envir the environment to evaluate \code{format} in.
-##' @template roxygen-template
-##' @seealso \code{\link[DT]{datatable}}
-##' @seealso \code{\link[DT]{saveWidget}}
-##' @examples 
-##' tableLink = "exampleTable.html"
-##' table = data.frame(a=c(1.11, 2:100), b=201:300)
-##' ezInteractiveTable(table, tableLink)
-ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(values), title="", format=NULL, envir=parent.frame()){
-  require(DT, quietly=TRUE)
-  require(htmltools, quietly=TRUE)
-  if (!is.null(digits)){
-    for (i in 1:ncol(values)) {
-      if(typeof(values[ ,i]) == "double"){
-        values[ ,i] = signif(values[ ,i], digits=digits)
-      }
-    }
-    captionText = paste("Numeric values are rounded to", digits, "digits.")
-    caption = htmltools::tags$caption(htmltools::h1(title), 
-                                      htmltools::p(captionText))
-  } else {
-    caption = htmltools::tags$caption(htmltools::h1(title))
-  }
-  interactiveTable = datatable(values, 
-                                   extensions=c("Buttons"), filter="top", caption=caption, colnames=colNames,
-                                   options=list(dom = 'Bfrtip', buttons = c('colvis','copy', 'csv', 'excel', 'pdf', 'print'), pageLength=25, autoWidth=TRUE)
-                                   )
-  if (!is.null(format)){
-    currEnv = environment()
-    interactiveTable = eval(format, envir=c(envir, currEnv))
-  }
-  saveWidget(interactiveTable, tableLink)
+
+ezKable <- function(df){
+  kable() |>
+    kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
 }
+
 
 ##' @title Generates an interactive table
 ##' @description Generates an interactive table embeded in rmarkdown document.
 ##' @param values a data.frame or table to create an interactive table from.
 ##' @param digits the number of digits to round to, if rounding is desired.
+##' @param columnsToRound
 ##' @param colNames a character vector specifying the column names of the interactive table.
 ##' @param title a character representing the title of the interactive table.
-##' @param format formatting options passed as an expression. The table argument in formatting functions must be named \code{interactiveTable}.
-##' @param envir the environment to evaluate \code{format} in.
 ##' @template roxygen-template
 ##' @seealso \code{\link[DT]{datatable}}
-##' @seealso \code{\link[DT]{saveWidget}}
 ##' @examples 
 ##' table = data.frame(a=c(1.11, 2:100), b=201:300)
 ##' ezInteractiveTableRmd(table)
-ezInteractiveTableRmd = function(values, digits=NULL, 
-                                 colNames=colnames(values), rowNames=rownames(values), title="", 
-                                 format=NULL, envir=parent.frame()){
-  suppressMessages(require(DT, quietly=TRUE))
-  suppressMessages(require(htmltools, quietly=TRUE))
+ezInteractiveTableRmd = function(values, 
+                                 digits=NULL, columnsToRound= sapply(values, typeof) == "double",
+                                 colNames=colnames(values), rowNames=rownames(values), title=""){
+  library(DT)
+  library(htmltools)
+  
+  # Convert tibbles to data.frame for consistent behavior
+  if (inherits(values, "tbl_df")) {
+    values <- as.data.frame(values)
+  }
+  
   if (!is.null(digits)){
-    for (i in 1:ncol(values)) {
-      if(typeof(values[ ,i]) == "double"){
-        values[ ,i] = signif(values[ ,i], digits=digits)
-      }
-    }
     captionText = paste("Numeric values are rounded to", digits, "digits.")
     caption = htmltools::tags$caption(htmltools::h1(title), 
                                       htmltools::p(captionText))
@@ -208,14 +172,16 @@ ezInteractiveTableRmd = function(values, digits=NULL,
   interactiveTable <- datatable(values, 
                                 extensions=c("Buttons"), filter="top", 
                                 caption=caption, colnames=colNames, rownames=rowNames,
-                                options=list(dom = 'Bfrtip', 
-                                             buttons = c('colvis','copy', 'csv',
-                                                         'excel'), 
+                                options=list(buttons = c('excel'), 
                                              pageLength=25, autoWidth=TRUE)
                                 )
-  if (!is.null(format)){
-    currEnv = environment()
-    interactiveTable = eval(format, envir=c(envir, currEnv))
+  if (!is.null(digits)){
+    if (is.logical(columnsToRound)){
+      ## this is needed for cases where the row names are printed; they shift the column index by 1
+      columnsToRound <- colnames(values)[columnsToRound]
+    }
+    interactiveTable <- interactiveTable |>
+        DT::formatSignif(columnsToRound, digits = 3)
   }
   return(interactiveTable)
 }

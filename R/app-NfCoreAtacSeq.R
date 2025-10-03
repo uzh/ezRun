@@ -9,7 +9,7 @@
 ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   sampleDataset = getAtacSampleSheet(input, param)
   refbuild = param$refBuild
-  outFolder = input$getColumn("ATAC_Result") |> basename()
+  outFolder = output$getColumn("ATAC_Result") |> basename()
   
   fullGenomeSize <- param$ezRef@refFastaFile %>% Rsamtools::FaFile() %>% GenomeInfoDb::seqlengths() %>% sum()
   effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
@@ -35,9 +35,16 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     "-r 2.1.2" #,
     # "-resume"  ## for testing
   )
+  
 
   ezSystem(cmd)
-
+  
+  writeAtacIgvSession(jsonFile= poste0(outFolder, "/igv_session.json"), bigwigPath=file.path(outFolder, "bwa/merged_library/bigwig/"),
+                      baseURl=file.path(PROJECT_BASE_URL, output$getColumn("ATAC_Result")))
+  ## TODO write igv json file here
+  
+  
+  
   if(param[['runTwoGroupAnalysis']]){
     library(DESeq2)
     nfCoreOutDir <- paste0(param$name, '_results', '/bwa/merged_replicate/macs2/', param$peakStyle, '_peak/consensus')
@@ -94,18 +101,17 @@ getAtacSampleSheet <- function(input, param){
   if(any(groups == "") || any(is.na(groups)))
     stop("No conditions detected. Please add them in the dataset before calling NfCoreAtacSeqApp.")
 
-  # oDir <- '.' ## param[['resultDir']]
-  #if(!dir.exists(oDir)) dir.create(path = oDir)
 
   csvPath <- file.path('dataset.csv')
-
-  ## TODO: does not yet support comma-separated file paths
+  listFastq1 <- input$getFullPathsList("Read1")
+  listFastq2 <- input$getFullPathsList("Read2")
+  
   nfSampleInfo <- ezFrame(
-    sample = input$getColumn(param$grouping),
-    fastq_1 = input$getFullPaths("Read1"),
-    fastq_2 = input$getFullPaths("Read2"),
-    replicate = ezReplicateNumber(input$getColumn(param$grouping)),
-    sid = input$getNames()
+    sample = rep(input$getColumn(param$grouping), lengths(listFastq1)),
+    fastq_1 = unlist(listFastq1),
+    fastq_2 = unlist(listFastq2),
+    replicate = rep(ezReplicateNumber(input$getColumn(param$grouping)), lengths(listFastq1)),
+    sid = rep(input$getNames(), lengths(listFastq1))
   )
   write_csv(nfSampleInfo, csvPath)
   
@@ -159,3 +165,9 @@ cleanupOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
   unlink(absolutePaths, recursive=TRUE)
   cat(paste0("Deleted subdirectory: ",dirsToRemove, "\n"))
 }
+
+writeAtacIgvSession <- function(jsonFile){
+  
+}
+## TODO write igv json file here
+

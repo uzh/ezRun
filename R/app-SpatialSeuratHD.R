@@ -275,6 +275,9 @@ runBasicProcessingHD <- function(scData, input, featInfo, param, BPPARAM){
         scData$seurat_clusters <- Idents(scData)
         DefaultAssay(scData) <- myAssay
     }
+    if(!('Batch' %in% colnames(scData@meta.data))) {
+        scData$Batch <- scData$Sample
+    }
     return(list(scData = scData, scData.unfiltered = scData.unfiltered, cellsPerGeneFraction = cellsPerGeneFraction))
 }
 
