@@ -377,13 +377,17 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
   } else {
     qc.nexprs <- scData@meta.data[,att_nGenes] < param$ngenes
   }
-  if (is.na(param$perc_mito)) {
+  if (is.na(param$perc_mito) & assay != 'Spatial') {
     qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, type = "higher")
+  } else if(assay == 'Spatial' & is.na(param$perc_mito)){
+    qc.mito <- scData@meta.data[,"percent_mito_SpotSweeper_outliers"]
   } else {
     qc.mito <- scData@meta.data[,"percent_mito"] > param$perc_mito
   }
-  if (is.na(param$perc_ribo )) {
+  if (is.na(param$perc_ribo ) & assay != 'Spatial') {
     qc.ribo <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher")
+  } else if(assay == 'Spatial' & is.na(param$perc_ribo)){
+    qc.ribo <- rep(FALSE, nrow(scData@meta.data))  # no ribosomal genes filtering for spatial data
   } else {
     qc.ribo <- scData@meta.data[,"percent_riboprot"] > param$perc_ribo
   }
