@@ -1351,80 +1351,76 @@ marker_desc <- tibble(
 
 
 ```{r pos markers}
-# ezInteractiveTableRmd(data.frame(posMarkers)) |> 
-#   DT::formatSignif(c("pct.1", 
-#                      "pct.2", 
-#                      "avg_log2FC", 
-#                      "p_val_adj", 
-#                      "diff_pct"), 
-#                    digits = 3)
-
-ezInteractiveTableRmd_elena <- function(values, digits=NULL, 
-                                 colNames=colnames(values), 
-                                 rowNames=rownames(values),
-                                 title="", 
-                                 format=NULL, 
-                                 envir=parent.frame()){
-  
-  suppressMessages(require(DT, quietly=TRUE))
-  suppressMessages(require(htmltools, quietly=TRUE))
-  
-  if (!is.null(digits)){
-    for (i in 1:ncol(values)) {
-      if(typeof(values[ ,i]) == "double"){
-        values[ ,i] = signif(values[ ,i], digits=digits)
-      }
-    }
-    captionText = paste("Numeric values are rounded to", 
-                        digits, 
-                        "digits.")
-    
-    caption = htmltools::tags$caption(htmltools::h1(title), 
-                                      htmltools::p(captionText))
-  } else {
-    caption = htmltools::tags$caption(htmltools::h1(title))
-  }
-  interactiveTable <- datatable(values, 
-                                class    = "cell-border stripe compact",
-                                extensions=c("Buttons"),
-                                filter="bottom", 
-                                #filter="top", 
-                                caption=caption,
-                                colnames=colNames,
-                                rownames=rowNames,
-                                options    = list(dom = "Bfrtip",
-                                                  buttons = list(list(extend = "excel", 
-                                                                       text = "Excel",
-                                                                       filename = "markers") #deleted buttons
-                                                                 ),
-                                                  pageLength = 20,
-                                                 # pageLength = 25,
-                                                  autoWidth  = TRUE
-                                                  )
-                                )
-  if (!is.null(format)){
-    currEnv = list2env(list(interactiveTable = interactiveTable, 
-                            values = values), 
-                       parent = envir)
-    interactiveTable = eval(format, envir=c(currEnv))
-    #currEnv = environment()
-    #interactiveTable = eval(format, envir=c(envir, currEnv)) #makes list, not env
-  }
-  return(interactiveTable)
-}
 
 
-display_cols <- c("pct.1",
-                     "pct.2",
-                     "avg_log2FC",
-                     "p_val_adj",
-                     "diff_pct")
+ezInteractiveTableRmd(posMarkers, digits=3, rowNames=FALSE)
 
-
-ezInteractiveTableRmd_elena(data.frame(posMarkers)) |>
-  DT::formatSignif(display_cols,
-                   digits = 3) |> 
-  formatStyle(display_cols, `white-space` = "pre-wrap")
+# ezInteractiveTableRmd_elena <- function(values, digits=NULL, 
+#                                  colNames=colnames(values), 
+#                                  rowNames=rownames(values),
+#                                  title="", 
+#                                  format=NULL, 
+#                                  envir=parent.frame()){
+#   
+#   suppressMessages(require(DT, quietly=TRUE))
+#   suppressMessages(require(htmltools, quietly=TRUE))
+#   
+#   if (!is.null(digits)){
+#     for (i in 1:ncol(values)) {
+#       if(typeof(values[ ,i]) == "double"){
+#         values[ ,i] = signif(values[ ,i], digits=digits)
+#       }
+#     }
+#     captionText = paste("Numeric values are rounded to", 
+#                         digits, 
+#                         "digits.")
+#     
+#     caption = htmltools::tags$caption(htmltools::h1(title), 
+#                                       htmltools::p(captionText))
+#   } else {
+#     caption = htmltools::tags$caption(htmltools::h1(title))
+#   }
+#   interactiveTable <- datatable(values, 
+#                                 class    = "cell-border stripe compact",
+#                                 extensions=c("Buttons"),
+#                                 filter="bottom", 
+#                                 #filter="top", 
+#                                 caption=caption,
+#                                 colnames=colNames,
+#                                 rownames=rowNames,
+#                                 options    = list(dom = "Bfrtip",
+#                                                   buttons = list(list(extend = "excel", 
+#                                                                        text = "Excel",
+#                                                                        filename = "markers") #deleted buttons
+#                                                                  ),
+#                                                   pageLength = 20,
+#                                                  # pageLength = 25,
+#                                                   autoWidth  = TRUE
+#                                                   )
+#                                 )
+#   if (!is.null(format)){
+#     currEnv = list2env(list(interactiveTable = interactiveTable, 
+#                             values = values), 
+#                        parent = envir)
+#     interactiveTable = eval(format, envir=c(currEnv))
+#     #currEnv = environment()
+#     #interactiveTable = eval(format, envir=c(envir, currEnv)) #makes list, not env
+#   }
+#   return(interactiveTable)
+# }
+# 
+# 
+# display_cols <- c("pct.1",
+#                      "pct.2",
+#                      "avg_log2FC",
+#                      "p_val_adj",
+#                      "diff_pct")
+# 
+# 
+# ezInteractiveTableRmd_elena(data.frame(posMarkers)) |>
+#   DT::formatSignif(display_cols,
+#                    digits = 3) |> 
+#   formatStyle(display_cols, `white-space` = "pre-wrap")
 
 
 ```

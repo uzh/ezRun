@@ -773,35 +773,6 @@ cat("We found positive markers that defined clusters compared to all other cells
 
 ```{r pos markers}
 
-numeric_columns <- apply(as.data.frame(posMarkers), 2, typeof)
-
-ezInteractiveTableRmd2 = function(values, 
-                                 colNames=colnames(values), rowNames=rownames(values), title=""){
-  library(DT)
-  library(htmltools)
-
-  # Convert tibbles to data.frame for consistent behavior
-  if (inherits(values, "tbl_df")) {
-    values <- as.data.frame(values)
-  }
-  interactiveTable <- datatable(values, 
-                                extensions=c("Buttons"), filter="top", 
-                                caption=title, colnames=colNames, rownames=rowNames,
-                                autoHideNavigation = TRUE,
-                                options=list(buttons = c('excel'), 
-                                             pageLength=25)
-                                )
-  return(interactiveTable)
-}
-
-ezInteractiveTableRmd2(data.frame(posMarkers), rowNames=FALSE, title="foo") |>
-  DT::formatSignif(c("pct.1",
-                     "pct.2",
-                     "avg_log2FC",
-                     "p_val_adj",
-                     "diff_pct"),
-                   digits = 3)
-
 
 ezInteractiveTableRmd(posMarkers, digits=3, rowNames = FALSE)
 
