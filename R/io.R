@@ -134,7 +134,7 @@ ezWrite.table = function(values, file=file, head="Identifier", row.names=TRUE, c
 
 
 ezKable <- function(df){
-  kable() |>
+  kable(df) |>
     kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
 }
 
@@ -170,6 +170,7 @@ ezInteractiveTableRmd = function(values,
     caption = htmltools::tags$caption(htmltools::h1(title))
   }
   interactiveTable <- datatable(values, 
+                                #class    = "cell-border stripe compact",
                                 extensions=c("Buttons"), filter="top", 
                                 caption=caption, colnames=colNames, rownames=rowNames,
                                 options=list(buttons = c('excel'), 
