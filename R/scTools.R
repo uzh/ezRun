@@ -363,33 +363,44 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
     assay <- "RNA"
   }
   
-  if (is.na(param$nreads) & assay != 'Spatial') {
-    qc.lib <- isOutlier(scData@meta.data[,att_nCounts], log = TRUE, nmads = param$nmad, type = "lower")
-  } else if(assay == 'Spatial' & is.na(param$nreads)){
-    qc.lib <- scData@meta.data[,'nCount_Spatial_SpotSweeper_outliers']  
+  if (is.na(param$nreads)){
+      if(assay == 'Spatial') {
+          qc.lib <- scData@meta.data[,'nCount_Spatial_SpotSweeper_outliers'] 
+      } else {
+          qc.lib <- isOutlier(scData@meta.data[,att_nCounts], log = TRUE, nmads = param$nmad, type = "lower")
+      }
   } else {
-    qc.lib <- scData@meta.data[,att_nCounts] < param$nreads
+      qc.lib <- scData@meta.data[,att_nCounts] < param$nreads
   }
-  if (is.na(param$ngenes) & assay != 'Spatial') {
-    qc.nexprs <- isOutlier(scData@meta.data[,att_nGenes], nmads = param$nmad, log = TRUE, type = "lower")
-  } else if(assay == 'Spatial' & is.na(param$ngenes)){
-    qc.nexprs <- scData@meta.data[,'nFeature_Spatial_SpotSweeper_outliers']
+  
+  if (is.na(param$ngenes)){
+      if(assay == 'Spatial') {
+          qc.nexprs <- scData@meta.data[,'nFeature_Spatial_SpotSweeper_outliers'] 
+       } else {
+          qc.nexprs <- isOutlier(scData@meta.data[,att_nGenes], nmads = param$nmad, log = TRUE, type = "lower")
+      }
   } else {
-    qc.nexprs <- scData@meta.data[,att_nGenes] < param$ngenes
+      qc.nexprs <- scData@meta.data[,att_nGenes] < param$ngenes
   }
-  if (is.na(param$perc_mito) & assay != 'Spatial') {
-    qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, type = "higher")
-  } else if(assay == 'Spatial' & is.na(param$perc_mito)){
-    qc.mito <- scData@meta.data[,"percent_mito_SpotSweeper_outliers"]
+  
+  if (is.na(param$perc_mito)){
+      if(assay == 'Spatial') {
+          qc.mito <- scData@meta.data[,"percent_mito_SpotSweeper_outliers"]
+      } else  {
+          qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, log = TRUE, type = "lower")
+      }
   } else {
-    qc.mito <- scData@meta.data[,"percent_mito"] > param$perc_mito
+      qc.mito <- scData@meta.data[,"percent_mito"] > param$perc_mito
   }
-  if (is.na(param$perc_ribo ) & assay != 'Spatial') {
-    qc.ribo <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher")
-  } else if(assay == 'Spatial' & is.na(param$perc_ribo)){
-    qc.ribo <- rep(FALSE, nrow(scData@meta.data))  # no ribosomal genes filtering for spatial data
+  
+  if (is.na(param$perc_ribo )) {
+      if(assay == 'Spatial'){
+          qc.ribo <- rep(FALSE, nrow(scData@meta.data))
+      } else {
+          qc.ribo <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher")
+      }
   } else {
-    qc.ribo <- scData@meta.data[,"percent_riboprot"] > param$perc_ribo
+      qc.ribo <- scData@meta.data[,"percent_riboprot"] > param$perc_ribo
   }
   
   discard <- qc.lib | qc.nexprs | qc.mito | qc.ribo
