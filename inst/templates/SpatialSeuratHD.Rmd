@@ -591,8 +591,8 @@ datatable(
 
 
 
-<div class = "row">
-<div class = "col-md-6">
+::: {.row}
+::: {.col-md-6}
 
 Number of bins filtered by the individual quality criterions.
 ```{r low quality Bins, fig.align='center'}
@@ -603,9 +603,9 @@ if (length(qcList) > 1){
   UpSetR::upset(fromList(qcList), nsets = 5, mainbar.y.label="#bins")
 }
 ```
-</div>
+:::
 
-<div class = "col-md-6">
+::: {.col-md-6}
 ```{r echo=FALSE, fig.align='center'}
 qcStats <- ezFrame("Number of Bins"=integer(0), 
                    "Min Pass Value"=integer(0), 
@@ -657,8 +657,6 @@ qc_tbl <- cbind(Metric = rownames(qcStats), as.data.frame(qcStats), row.names = 
 
 dt <- datatable(
   qc_tbl,
-  
-  class   = "cell-border stripe",
   caption = htmltools::tags$caption(style = "caption-side: top; text-align: left;",
   htmltools::HTML(sprintf(
    "<span style='font-weight: normal; font-size: 14px;'>Bin size: %s</span>",
@@ -666,7 +664,6 @@ dt <- datatable(
 ))
 
   ),
-  
   escape   = FALSE,
   rownames = FALSE,
   options  = list(
@@ -684,8 +681,8 @@ htmlwidgets::prependContent(
   tags$style(HTML("table.dataTable tbody td:empty::before{content:'-'; color:#6c757d;}"))
 )
 ```
-</div>
-</div>
+:::
+:::
 
 
 
@@ -924,7 +921,8 @@ p1 <- DimPlot(scData,
   labs(color = "Clusters") +
   theme_void() +
   guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
-  ggtitle("UMAP")
+  ggtitle("UMAP") +
+  theme(legend.position = "none")
 
 p1 <- Seurat::LabelClusters(
   plot     = p1,
@@ -943,21 +941,15 @@ p2 <- SpatialDimPlot(scData,
 
 
 (p1 + p2) +
-  plot_layout(nrow = 1, guides = if (show_leg) "collect" else "keep") +
-  plot_annotation(
-    theme = theme(
-      plot.caption = element_text(size = 9, hjust = 1, colour = "#6B6B6B"),
-      plot.margin  = margin(t = 4, r = 8, b = 8, l = 8)
-    )
-  ) &
-  theme(legend.position = if (show_leg) "right" else "none")
+  plot_layout(nrow = 1, guides = if (show_leg) "collect" else "keep") 
+ 
 
 ```
 
 <br>
 
-<div class = "row">
-<div class = "col-md-9">
+::: {.row}
+::: {.col-md-9}
 ```{r number of cells in each cluster, fig.width=12, fig.height=6}
 if(!('Batch' %in% colnames(scData@meta.data))){
     scData@meta.data$Batch <- scData@meta.data$Sample
@@ -995,9 +987,9 @@ ggplot(cellIdents_perSample, aes(x = seurat_clusters,
   )
 
 ```
-</div>
+:::
 
-<div class = "col-md-3">
+::: {.col-md-3}
 ```{r, echo=FALSE}
 
 df <- cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Batch") 
@@ -1040,11 +1032,10 @@ DT::datatable(
   DT::formatStyle(columns = names(df), `white-space` = "pre-wrap")
 
 ```
-</div>
-</div>
+:::
+:::
+
 <br/>
-
-
 
 
 ## Cluster assessment
@@ -1581,7 +1572,10 @@ if (!is.null(enrichRout)){
   enrichRTerm <- as.data.frame(do.call(rbind,
                                        lapply(enrichRout, as.vector)))
 
-  enrichRTerm <- map_df(enrichRTerm, ~ map_df(.x, ~ replace(.x, is.null(.x), NA)), .id = "database")
+  enrichRTerm <- map_df(enrichRTerm, 
+                        ~ map_df(.x, 
+                                 ~ replace(.x, is.null(.x), NA)), 
+                        .id = "database")
 
   enrichRTerm <- enrichRTerm |>
     group_by(., Cluster, database) |>
@@ -1595,21 +1589,13 @@ if (!is.null(enrichRout)){
 
 datatable(
   enrichrTable,
-  class   = "cell-border stripe compact",
-  caption = htmltools::tags$caption(
-    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
-    "Enrichment"
-  ),
   rownames   = FALSE,
   escape     = FALSE,
-  filter     = "none",
   options    = list(
     paging       = TRUE,
     pageLength   = 15,      
     dom          = "tip",    
-    autoWidth    = TRUE,
-    fixedColumns = list(leftColumns = 1),
-    columnDefs   = list(list(className = "dt-left", targets = 0))
+    autoWidth    = TRUE
   )
 ) 
 
