@@ -449,21 +449,16 @@ k <- param$npcs
 top_n <- max(80,k)
 
 stdev <- scData[[pca_name]]@stdev %>% head(top_n)
-
-
 pct  <- ((stdev^2) / sum(stdev^2)) * 100        
-# mode <- sprintf("Variance-normalized%s", 
-#                        paste0(", top ", length(stdev), " PCs"))
-
 
 cumu    <- cumsum(pct)
 plot_df <- data.frame(pct = pct, cumu = cumu, rank = seq_along(pct))
-plot_df$used <- factor(plot_df$rank <= k, levels=c(TRUE, FALSE))
+plot_df$included <- factor(plot_df$rank <= k, levels=c(TRUE, FALSE))
 
 ggplot(plot_df, aes(x = cumu, 
                     y = pct, 
                     label = rank, 
-                    color = used)) +
+                    color = included)) +
   geom_point(size = 3) + 
   geom_text(vjust = -0.8, size = 3) +
   geom_vline(xintercept = cumu[k], color = "grey50", linetype = "dashed") +
@@ -481,23 +476,8 @@ ggplot(plot_df, aes(x = cumu,
     label = paste0("Variance used: ", sprintf("%.2f", cumu[k]), "%"),
     vjust = -0.4, size = 3, color = gg_color_hue(2)[1]
   ) + 
-  theme(legend.position = "none") +
-  theme_bw() +
-  theme(legend.position = "none")
+  theme_bw()
 
-# pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
-# cumu <- cumsum(pct)
-# plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
-# 
-# # Elbow plot
-# p <- ggplot(plot_df, aes(cumu, pct, label = rank, color = rank > param$npcs))
-# p <- p + geom_vline(xintercept = cumu[param$npcs], color = "grey") + geom_text() 
-# p <- p + xlab(paste("Variance based on 50 PCs of", param$nfeatures, "features")) +  
-#   ylab("Cumulative variance in % explained per PC") 
-# p <- p + theme_bw() + labs(color = paste("PC >", param$npcs)) + theme(legend.position = "bottom")
-# p <- p + annotate(geom="text", y=max(plot_df$pct), x=max(plot_df$cumu[param$npcs]), 
-#                   label=paste('Variance used:', round(plot_df$cumu[param$npcs], digits = 2), '%'), color="red")
-# p
 ```
 
 <br/>
@@ -521,7 +501,6 @@ kable(enrichrTable,
       format="html", 
       escape=FALSE
       ) |> 
-  
   kable_styling("striped", 
                 full_width = F, 
                 position = "left")
@@ -556,7 +535,7 @@ The numbers of PCs that should be retained for downstream analyses typically ran
 
 `r paste("Resolution:", param$resolution)`
 
-```{r clustering plot1, fig.height=8, fig.width=20}
+```{r clustering plot1, fig.height=6, fig.width=12}
 
 n_clusters <- nlevels(Idents(scData))
 show_leg   <- n_clusters <= 20
@@ -566,7 +545,6 @@ p1 <- DimPlot(scData,
               label = FALSE,
               pt.size = 1.5) +
   labs(color = "Clusters") +
-  theme_void() +
   guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
   ggtitle("UMAP")
 
@@ -583,12 +561,11 @@ p2 <- DimPlot(scData,
               reduction="tsne",
               pt.size = 1.5) +
   labs(color = "Clusters") +
-  theme_void() +
   guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
   ggtitle("TSNE")
 
 p2 <- Seurat::LabelClusters(
-  plot     = p1,
+  plot     = p2,
   id       = "ident",
   fontface = "bold",
   color    = "#383838",
@@ -596,14 +573,14 @@ p2 <- Seurat::LabelClusters(
 )
 
 (p1 + p2) +
-  plot_layout(nrow = 1, guides = if (show_leg) "collect" else "keep") +
-  plot_annotation(
-    theme = theme(
-      plot.caption = element_text(size = 9, hjust = 1, colour = "#6B6B6B"),
-      plot.margin  = margin(t = 4, r = 8, b = 8, l = 8)
-    )
-  ) &
-  theme(legend.position = if (show_leg) "right" else "none")
+  plot_layout(nrow = 1, guides = if (show_leg) "keep" else "none")
+  # plot_annotation(
+  #   theme = theme(
+  #     plot.caption = element_text(size = 9, hjust = 1, colour = "#6B6B6B"),
+  #     plot.margin  = margin(t = 4, r = 8, b = 8, l = 8)
+  #   )
+  # ) &
+  # theme(legend.position = if (show_leg) "right" else "none")
 
 # p1 <- DimPlot(scData, reduction="tsne", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
 # p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
@@ -615,7 +592,6 @@ p2 <- Seurat::LabelClusters(
 # ) + plot_layout(nrow = 1)
 ```
 
-<br/><br/>
 
 
 <br/>
@@ -651,7 +627,7 @@ ggplot(cellIdents_perSample, aes(x = seurat_clusters,
 # barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample") + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
 
 
-cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Sample")
+df = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Sample")
  
 if ("seurat_clusters" %in% names(df)) {
   names(df)[names(df) == "seurat_clusters"] <- "Cluster"
@@ -796,7 +772,41 @@ cat("We found positive markers that defined clusters compared to all other cells
 
 
 ```{r pos markers}
-ezInteractiveTableRmd(data.frame(posMarkers), digits=4)
+
+numeric_columns <- apply(as.data.frame(posMarkers), 2, typeof)
+
+ezInteractiveTableRmd2 = function(values, 
+                                 colNames=colnames(values), rowNames=rownames(values), title=""){
+  library(DT)
+  library(htmltools)
+
+  # Convert tibbles to data.frame for consistent behavior
+  if (inherits(values, "tbl_df")) {
+    values <- as.data.frame(values)
+  }
+  interactiveTable <- datatable(values, 
+                                extensions=c("Buttons"), filter="top", 
+                                caption=title, colnames=colNames, rownames=rowNames,
+                                autoHideNavigation = TRUE,
+                                options=list(buttons = c('excel'), 
+                                             pageLength=25)
+                                )
+  return(interactiveTable)
+}
+
+ezInteractiveTableRmd2(data.frame(posMarkers), rowNames=FALSE, title="foo") |>
+  DT::formatSignif(c("pct.1",
+                     "pct.2",
+                     "avg_log2FC",
+                     "p_val_adj",
+                     "diff_pct"),
+                   digits = 3)
+
+
+ezInteractiveTableRmd(posMarkers, digits=3, rowNames = FALSE)
+
+
+
 ```
 
 ## Marker plots
@@ -1273,18 +1283,18 @@ production-ready plots and figures. You can also use this app to explore your ow
 
 ## Parameters
 
+### Parameters used
+
 ```{r report parameters, echo=FALSE}
 
 
 ezFrame(Value=param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "cellsFraction", "nUMIs", "nmad", "normalize")] |> 
           unlist()) |> rownames_to_column("Parameter") |>
-  kable(format="html") |>
-  kable_styling(bootstrap_options = "striped", full_width = F,
-                position = "left")
-  
+  ezKable()
   
 ```
 
+### Session Info
 
 ```{r, echo=FALSE}
 ezSessionInfo()
