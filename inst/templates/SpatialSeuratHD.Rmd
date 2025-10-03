@@ -1003,14 +1003,12 @@ colnames(df)[is_count_col] <- colnames(df)[is_count_col] |> paste("(n)")
 
 DT::datatable(
   df,
-  class   = "cell-border stripe compact",
-  caption = htmltools::tags$caption(
-#    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
-    "Bins per cluster and sample"
-  ),
+#   caption = htmltools::tags$caption(
+# #    style = "caption-side: top; text-align: left; font-weight: bold; font-size: 16px;",
+#     "Bins per cluster and sample"
+#   ),
   extensions = "Buttons",
   rownames   = FALSE,
-  escape     = FALSE,
   filter     = "none",
   options    = list(
     paging       = TRUE,
@@ -1019,13 +1017,10 @@ DT::datatable(
     autoWidth    = TRUE,
     buttons      = list(
       list(extend = "excel", text = "Excel", filename = "markers")
-    ),
-    fixedColumns = list(leftColumns = 1),
-    columnDefs   = list(list(className = "dt-left", targets = 0))
+    )
   )
 ) |>
-  DT::formatPercentage(columns = is_pct_col, digits = 1) |>
-  DT::formatStyle(columns = names(df), `white-space` = "pre-wrap")
+  DT::formatPercentage(columns = is_pct_col, digits = 1) 
 
 ```
 :::
