@@ -732,7 +732,7 @@ ezKable(cluster_tbl)
 
 `r paste("Resolution:", param$resolution)`
 
-```{r, fig.height=8, fig.width=16}
+```{r, fig.height=6, fig.width=12}
 
 n_clusters <- nlevels(Idents(scData))
 show_leg   <- n_clusters <= 20
@@ -1033,6 +1033,9 @@ genesToPlot <- intersect(genesToPlot, rownames(scData))
 
 ### DotPlot
 
+Visualization of the top 5 markers in each cluster. If a gene is a top marker for multiple clusters it is shown only once.
+
+
 ```{r dotplot, fig.width  = 15, fig.height = 30}
 
 DotPlot(scData, features=genesToPlot) + coord_flip() +
@@ -1052,7 +1055,6 @@ if (length(genesToPlot) > 0){
 }
 ```
 
-Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
 
 ## EnrichR
