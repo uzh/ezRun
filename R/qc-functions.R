@@ -28,13 +28,13 @@
 #' ezComputeBias(dsFile)
 
 ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/analysis/p2220/RNA-seq-bias-results", refBuildMap=getRefBuildMap(), minReadsPerSample=30000,
-                       maxReadsPerSample=1e6,
-                       minReadsPerGene=3, minPresentFraction=0.2, toMail='', tag = ''){
+                         maxReadsPerSample=1e6,
+                         minReadsPerGene=3, minPresentFraction=0.2, toMail='', tag = ''){
   
   inputMeta = ezRead.table(file=dsFile)
   inputMeta = inputMeta[ inputMeta$"Read Count" > minReadsPerSample, ]
   inputMeta$Name = rownames(inputMeta)
-
+  
   outMeta = inputMeta
   outMeta$'Count [File]' = paste0(rownames(outMeta), "-count.txt")
   outMeta$'bootstrappedCount [File]' = paste0(rownames(outMeta), "-bootstrap.h5")
@@ -56,10 +56,10 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
     param[['seed']] = '42'
     param[['fragment-length']] = '150'
     param[['sd']] = '70'
-    param[['bias']] = 'true'
-    param[['pseudobam']] = 'true'
     param[['transcriptFasta']] = ''
     param[['transcriptTypes']] = 'protein_coding'
+    param[['markDuplicates']] = FALSE  ## STAR parameter for BAM generation
+    param[['twopassMode']] = FALSE  ## STAR parameter - use single pass for speed
     param[['trimAdapter']] = 'true'
     param[['cut_front']] = 'false'
     param[['trim_front1']] = '0'
@@ -88,7 +88,7 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
     param$nReads = maxReadsPerSample
   }
   if(!ezIsSpecified(param$nReads)){
-      param$nReads = maxReadsPerSample
+    param$nReads = maxReadsPerSample
   }
   
   if(param[['paired']]){
@@ -99,13 +99,13 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
   paramList = param
   
   if(is.na(paramList$refBuild)){
-      paramList$refBuild = refBuildMap[inputMeta$Species[1]]
-      if (is.na(paramList$refBuild)){
-          stop(paste("refBuild not defined for species:", refBuildMap[inputMeta$Species[1]]))
-      }
+    paramList$refBuild = refBuildMap[inputMeta$Species[1]]
+    if (is.na(paramList$refBuild)){
+      stop(paste("refBuild not defined for species:", refBuildMap[inputMeta$Species[1]]))
+    }
   }
   
-    
+  
   if (is.null(dsName)){
     ## assumes the dsFile has the format: /srv/gstore/projects/<project>/<read folder>
     parentDirs = strsplit(dirname(dsFile), "/")[[1]]
@@ -118,8 +118,8 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
   message(dsName)
   resultDir = file.path(qcSummaryDir, dsName)
   setwdNew(resultDir)
-
-  ## align and count with kallisto + coverage profiles
+  
+  ## count with kallisto, align with STAR, and compute coverage profiles
   for (i in 1:nrow(inputMeta)){
     message(i)
     covStatFile = file.path(resultDir, outMeta[i, "CovStat [File]"])
@@ -129,8 +129,17 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
     }
     scratchDir = paste0("/scratch/", dsName, "-", rownames(inputMeta)[i], "-", ezTime())
     setwdNew(scratchDir)
+    
+    ## Run Kallisto for quantification
     EzAppKallisto$new()$run(input=inputMeta[i, ], output=outMeta[i, ], param=paramList)
     ezSystem(paste("mv", outMeta$`Count [File]`[i], resultDir))
+    
+    ## Run STAR for BAM generation (needed for coverage analysis)
+    starOutput = outMeta[i, ]
+    starOutput$BAM = outMeta[i, "BAM [File]"]
+    starOutput$STARLog = paste0(rownames(outMeta)[i], "-STAR.log")
+    EzAppSTAR$new()$run(input=inputMeta[i, ], output=starOutput, param=paramList)
+    
     ga = ezReadGappedAlignments(outMeta[i, "BAM [File]"])
     tcList = coverage(ga)
     transcriptLengthTotal <- elementNROWS(tcList)
@@ -167,13 +176,13 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
     setwd(resultDir)
     unlink(scratchDir, recursive = TRUE)
   }
-    
+  
   
   ## compute the stats from the 
   param = ezParam(paramList)
   setwd(qcSummaryDir)
   
-    
+  
   countDs = outMeta
   countDs$featureLevel = "isoform"
   countDs = countDs[file.exists(file.path(resultDir, countDs$`Count [File]`)), ]
@@ -201,7 +210,7 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
                           "width > 4000nt"=as.numeric(rowData(rawData)$featWidth) > 4000,
                           check.names=FALSE)
   widthEffect = apply(logRatio, 2, function(x){mean(x[widthTypes$`width > 4000nt`], na.rm =TRUE) - mean(x[widthTypes$`width < 800nt`] ,na.rm = TRUE)})
-    
+  
   if (!is.null(meta$`PlatePosition [Characteristic]`)){
     ptLabels = sub(".*_", "", meta$`PlatePosition [Characteristic]`)
   } else {
@@ -209,10 +218,10 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
   }
   
   countDs$"Read Count"[countDs$"Read Count" > param$maxReadsPerSample] = param$maxReadsPerSample
-    
+  
   widthEffect = shrinkToRange(widthEffect, c(-1, 1))
   gcEffect = shrinkToRange(gcEffect, c(-1, 1))
-    
+  
   ## plot the 3'-enrichment
   biasScores = sapply(countDs$`CovStat [File]`, function(rdsFile){
     gbCov = readRDS(file.path(resultDir, rdsFile))
@@ -232,10 +241,10 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
   smoothScatter(widthEffect, gcEffect, xlim=c(-1, 1), ylim=c(-1, 1), main=paste(dsName, tag), nrpoints = 0, nbin=40, bandwidth = 0.05,
                 cex.main=0.8, colramp=colorRampPalette(c("white", blues9[1:6])))
   text(widthEffect, gcEffect, labels = ptLabels, cex=0.8)
-
+  
   dsty = density(gcEffect, bw=0.05, from=-1, to=1)
   plot(dsty$y, dsty$x, type="l", xlab="density", ylab="", main=countDs$LibraryPrepKit[1], cex.main=0.8)
-    
+  
   plateRow = substr(ptLabels, start = 1, stop=1)
   plateCol = substr(ptLabels, start = 2, stop=3)
   mat = ezMatrix(NA, rows=toupper(letters[1:8]), cols=as.character(1:12))
@@ -247,7 +256,7 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
         xlim=c(0.5, ncol(mat)+0.5), ylim=c(0.5, nrow(mat)+0.5), xlab="", ylab="")
   axis(1, 1:12, labels = colnames(mat))
   axis(2, 1:8, labels = rownames(mat), las=2)
-    
+  
   logWidthBreaks = c(9.5, 10.5, 11.5)
   gcBreaks = c(0.42, 0.48, 0.53, 0.57, 0.62)
   #gcBreaks = c(0.4, 0.43, 0.46, 0.49, 0.53, 0.57, 0.61, 0.64, 0.67)
@@ -259,7 +268,7 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
   image(1:nrow(mat), 1:ncol(mat), shrinkToRange(mat, lim), col=getBlueRedScale(), breaks = seq(from = lim[1], to = lim[2], length.out = 257), axes=FALSE,
         xlim=c(0.5, nrow(mat)+0.5), ylim=c(0.5, ncol(mat)+0.5), ylab="GC", xlab="width")
   
-
+  
   ## second row of plots
   plot(1:length(gcEffect), gcEffect, type="n", ylim=c(-1, 1))
   text(1:length(gcEffect), gcEffect, labels = ptLabels, cex=0.8)
@@ -272,7 +281,7 @@ ezComputeBias = function(dsFile, dsName=NULL, param=NULL, qcSummaryDir="/srv/GT/
                 cex.main=0.8, colramp=colorRampPalette(c("white", blues9[1:6])))
   abline(h=0.2, v=0.2, col="gray")
   text(biasScores[ , "medium genes"], biasScores[ , "long genes"], labels = ptLabels, cex=0.8)
-    
+  
   readCount = countDs[names(nGenes), "Read Count"] * exp(runif(length(nGenes), min=-0.1, max=0.1))
   plot(readCount,
        nGenes, log="xy",
