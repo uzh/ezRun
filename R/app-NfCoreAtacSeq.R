@@ -35,9 +35,16 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     "-r 2.1.2" #,
     # "-resume"  ## for testing
   )
+  
 
   ezSystem(cmd)
-
+  
+  writeAtacIgvSession(jsonFile= poste0(outFolder, "/igv_session.json"), bigwigPath=file.path(outFolder, "bwa/merged_library/bigwig/"),
+                      baseURl=file.path(PROJECT_BASE_URL, output$getColumn("ATAC_Result")))
+  ## TODO write igv json file here
+  
+  
+  
   if(param[['runTwoGroupAnalysis']]){
     library(DESeq2)
     nfCoreOutDir <- paste0(param$name, '_results', '/bwa/merged_replicate/macs2/', param$peakStyle, '_peak/consensus')
@@ -158,3 +165,9 @@ cleanupOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
   unlink(absolutePaths, recursive=TRUE)
   cat(paste0("Deleted subdirectory: ",dirsToRemove, "\n"))
 }
+
+writeAtacIgvSession <- function(jsonFile){
+  
+}
+## TODO write igv json file here
+

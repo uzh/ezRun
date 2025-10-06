@@ -170,7 +170,9 @@ When the parameter values of nreads, ngenes, perc_mito and perc_ribo are specifi
 
 <div class = "row">
 <div class = "col-md-6">
-```{r low quality spots}
+```{r low quality spots, fig.width=7}
+SpatialDimPlot(scData.unfiltered_spatial, group.by = 'discard', pt.size.factor = param$pt.size.factor, cols = c('TRUE'='blue', 'FALSE'='black')) + theme(aspect.ratio = myRatio)
+
 library(UpSetR)
 qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
 qcList <- qcList[sapply(qcList, length) > 0]

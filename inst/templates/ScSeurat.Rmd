@@ -162,8 +162,8 @@ plot1 <- plotColData(
   theme(
     legend.position = "top",
   )
-plot1 + plot_layout(ncol=2)
 
+plot1 + plot_layout(ncol=2)
 
 ```
 
@@ -394,55 +394,26 @@ qcStats[ "Cells remaining", ] <- c(
 )
 
 qc_dt <- as.data.frame(qcStats) |>
-  rownames_to_column(var = "Metric")
+  tibble::rownames_to_column(var = "Metric")
 
-qc_dt$Group <- ""
-qc_dt$Group[1:5] <- "Cells Removed by QC Thresholds"
+qc_dt <- qc_dt[, c("Metric", setdiff(names(qc_dt), "Metric"))]
 
-
-qc_dt <- qc_dt[, c("Group", "Metric", setdiff(names(qc_dt), c("Group", "Metric")))]
-
-
-dt <- datatable(
+dt <- DT::datatable(
   qc_dt,
-  class   = "cell-border stripe",
-  caption = htmltools::tags$caption(
-    style = "caption-side: top; text-align: left;",
-    htmltools::HTML(sprintf("<span style='font-weight: normal; font-size: 14px;'>Bin size: %s</span>", param$binSize))
-  ),
-  escape   = FALSE,
-  rownames = FALSE,
-  extensions = "RowGroup",
-  options  = list(
+  rownames  = FALSE,
+  options   = list(
     autoWidth = TRUE,
-    dom = "t",
-    paging = FALSE,
-    ordering = FALSE,
-    rowGroup = list(dataSrc = 0),  # group by the first column ("Group")
-    columnDefs = list(
-      list(visible = FALSE, targets = 0)  # hide the Group column itself
-    )
+    dom       = "t"
   )
 )
 
 
-num_cols <- which(vapply(qc_dt, is.numeric, logical(1)))
-
-if (length(num_cols)) {
-  if (length(num_cols) >= 2) {
-    dt <- DT::formatRound(dt, columns = num_cols[-length(num_cols)], digits = 0)
-    dt <- DT::formatRound(dt, columns = num_cols[length(num_cols)],  digits = 2)
-  } else {
-    dt <- DT::formatRound(dt, columns = num_cols, digits = 0)
-  }
-}
-
-
 htmlwidgets::prependContent(
   dt,
-  tags$style(HTML("table.dataTable tbody td:empty::before{content:'-'; color:#6c757d;}"))
+  htmltools::tags$style(htmltools::HTML(
+    "table.dataTable tbody td:empty::before{content:'-'; color:#6c757d;}"
+  ))
 )
-
 
 # kable(qcStats,
 #       row.names=TRUE,
@@ -452,74 +423,79 @@ htmlwidgets::prependContent(
 :::
 :::
 
-<br/>
-
-#### Gene filtering
-
-We also excluded genes that are lowly or not expressed in our system, as they do not contribute any information to our experiment and may add noise. In this case, we removed genes that were not expressed in at least `r 100*param$cellsFraction` % of the cells. In case one or more rare cell populations are expected we might need to decrease the percentage of cells.
-
-```{r gene qc, fig.align='center', fig.width=14, results='asis'}
-cat("total genes:", nrow(cellsPerGeneFraction), "\n")
-cat("genes kept:", nrow(scData), ", fraction:", round(nrow(scData)/nrow(cellsPerGeneFraction), digits = 2), " \n")
-if(!is.null(cellsPerGeneFraction)) {
-  p = ggplot(cellsPerGeneFraction, aes(frac)) + geom_histogram(
-    aes(y = after_stat(density)),
-    colour = "black",
-    fill = "white",
-    binwidth = 0.005
-  )
-  p = p + geom_vline(
-    aes(xintercept = param$cellsFraction),
-    color = "red",
-    linetype = "dashed",
-    size = 1
-  )
-  p = p + geom_density(alpha = .2, fill = "#FF6666") + labs(x = "Fraction") + ggtitle('Fraction of cells per gene')
-  p
-}
-```
 
 <br/>
 
-#### Dimensionality reduction
+### Dimensionality reduction
 
-Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
-
-The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
 
 ```{r scree plot, fig.align='center', fig.width=14}
-pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
-cumu <- cumsum(pct)
-plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
 
-# Elbow plot
-p <- ggplot(plot_df, aes(cumu, pct, label = rank, color = rank > param$npcs))
-p <- p + geom_vline(xintercept = cumu[param$npcs], color = "grey") + geom_text() 
-p <- p + xlab(paste("Variance based on 50 PCs of", param$nfeatures, "features")) +  ylab("Cumulative variance in % explained per PC") 
-p <- p + theme_bw() + labs(color = paste("PC >", param$npcs)) + theme(legend.position = "bottom")
-p <- p + annotate(geom="text", y=max(plot_df$pct), x=max(plot_df$cumu[param$npcs]), label=paste('Variance used:', round(plot_df$cumu[param$npcs], digits = 2), '%'), color="red")
-p
+pca_name <- if ("pca.sketch" %in% names(scData@reductions)) "pca.sketch" else "pca"
+
+k <- param$npcs 
+
+top_n <- max(80,k)
+
+stdev <- scData[[pca_name]]@stdev %>% head(top_n)
+pct  <- ((stdev^2) / sum(stdev^2)) * 100        
+
+cumu    <- cumsum(pct)
+plot_df <- data.frame(pct = pct, cumu = cumu, rank = seq_along(pct))
+plot_df$included <- factor(plot_df$rank <= k, levels=c(TRUE, FALSE))
+
+ggplot(plot_df, aes(x = cumu, 
+                    y = pct, 
+                    label = rank, 
+                    color = included)) +
+  geom_point(size = 3) + 
+  geom_text(vjust = -0.8, size = 3) +
+  geom_vline(xintercept = cumu[k], color = "grey50", linetype = "dashed") +
+  
+  labs(
+    title    = "Percent variance explained by the principal components",
+    subtitle = paste0("number of PCs used: ", k),
+    x = "Cumulative percent variance explained ",
+    y = "Per PC variance explained"
+  ) +
+  
+  annotate(
+    "text",
+    x = cumu[k], y = max(plot_df$pct),
+    label = paste0("Variance used: ", sprintf("%.2f", cumu[k]), "%"),
+    vjust = -0.4, size = 3, color = gg_color_hue(2)[1]
+  ) + 
+  theme_bw()
+
 ```
 
 <br/>
 
-The dimension reduction is based on the top `r param$nfeatures` highly variable genes.
+### GeneSet enrichment 
 
 ```{r exploreHVGs, echo=FALSE, results='asis'}
 HVGs <- VariableFeatures(object = scData)
 
 jsCall = paste0('enrich({list: "', paste(HVGs, collapse="\\n"), '", popup: true});')
-enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
-                       "'>Analyse at Enrichr website</a>")
+enrichrCall <- paste0("<a href='javascript:void(0)' onClick='", 
+                      jsCall, 
+                       "'>Enrichr website</a>")
 
 
 enrichrTable <- tibble(GeneSet='HVGs',
-                       "# of HVGs"=length(HVGs),
-                       "Enrichr link"=enrichrCalls)
-kable(enrichrTable, format="html", escape=FALSE,
-      caption=paste0("GeneSet enrichment")) %>%
-  kable_styling("striped", full_width = F, position = "left")
+                       "N HVGs"=length(HVGs),
+                       "Link"=enrichrCall)
+
+kable(enrichrTable, 
+      format="html", 
+      escape=FALSE
+      ) |> 
+  kable_styling("striped", 
+                full_width = F, 
+                position = "left")
 ```
+
+The dimension reduction is based on the top `r param$nfeatures` highly variable genes (HVGs): `r enrichrCall`
 
 
 #### Selected QC metrics
@@ -538,48 +514,164 @@ A key assumption here is that the QC metrics are independent of the biological s
 
 <br>
 
-#### Cell filtering
+#### Dimensionality reduction
 
-A standard approach is to filter cells with a low amount of reads as well as genes that are present in at least a certain amount of cells. While simple, using fixed thresholds requires knowledge of the experiment and of the experimental protocol. An alternative approach is to use adaptive, data-driven thresholds to identify outlying cells, based on the set of QC metrics just calculated. To obtain an adaptive threshold, we assume that most of the dataset consists of high-quality cells. 
-When the parameter values of nreads, ngenes and perc_mito are specified, fixed thresholds are used for filtering. Otherwise, filtering is performed excluding cells that are outliers by more than `r param$nmad` MADs below the median for the library size and the number of genes detected. Cells with a percentage counts of mitochondrial genes above the median by `r param$nmad` MADs are also excluded. 
+Dimensionality reduction aims to reduce the number of separate dimensions in the data. This is possible because different genes are correlated if they are affected by the same biological process. Thus, we do not need to store separate information for individual genes, but can instead compress multiple features into a single dimension. This reduces computational work in downstream analyses, as calculations only need to be performed for a few dimensions rather than thousands of genes; reduces noise by averaging across multiple genes to obtain a more precise representation of the patterns in the data, and enables effective plotting of the data.
+
+The numbers of PCs that should be retained for downstream analyses typically range from 10 to 50. However, identifying the true dimensionality of a dataset can be challenging, that's why we recommend considering the ‘Elbow plot’ approach. a ranking of principal components based on the percentage of variance explained by each one. The assumption is that each of the top PCs capturing biological signal should explain much more variance than the remaining PCs. Thus, there should be a sharp drop in the percentage of variance explained when we move past the last “biological” PC. This manifests as an elbow in the scree plot, the location of which serves as a natural choice for a number of PCs.
 
 ## Clustering
+
+`r paste("Resolution:", param$resolution)`
+
+```{r clustering plot1, fig.width=9}
+
+n_clusters <- nlevels(Idents(scData))
+show_leg   <- n_clusters <= 20
+
+
+p1 <- DimPlot(scData,
+              label = FALSE,
+              pt.size = 1.5) +
+  labs(color = "Clusters") +
+  guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
+  ggtitle("UMAP") +
+  theme_void() +
+  theme(legend.position = "none")
+
+p1 <- Seurat::LabelClusters(
+  plot     = p1,
+  id       = "ident",
+  fontface = "bold",
+  color    = "#383838",
+  size     = 4
+)
+
+p2 <- DimPlot(scData,
+              label = FALSE,
+              reduction="tsne",
+              pt.size = 1.5) +
+  labs(color = "Clusters") +
+  guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
+  ggtitle("TSNE")+
+  theme_void()
+
+p2 <- Seurat::LabelClusters(
+  plot     = p2,
+  id       = "ident",
+  fontface = "bold",
+  color    = "#383838",
+  size     = 4
+)
+
+(p1 + p2) +
+  plot_layout(nrow = 1, guides = if (show_leg) "keep" else "none")
+
+# p1 <- DimPlot(scData, reduction="tsne", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
+# p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
+# 
+# p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
+# p2 <- LabelClusters(p2, id = "ident",  fontface = "bold", color = "black", size = 6)
+# 
+# p2 + p1 + plot_annotation(
+# ) + plot_layout(nrow = 1)
+```
+
+
+
+<br/>
+
+::: {.row}
+::: {.col-md-9}
+
+```{r number of cells in each cluster}
+cellIdents_perSample <- data.frame(ident = Idents(scData), Sample=scData$Sample)
+
+if(!('Batch' %in% colnames(scData@meta.data))){
+    scData@meta.data$Batch <- scData@meta.data$Sample
+}
+
+cellIdents_perSample <- scData@meta.data[,c('seurat_clusters', 'Batch')]
+cellIdents_perSample$Batch <- factor(cellIdents_perSample$Batch)
+
+ggplot(cellIdents_perSample, aes(x = seurat_clusters, 
+                    fill = Batch)) +
+  geom_bar() +
+  labs(title = "Cells per cluster and sample (counts)",
+       x = NULL, 
+       y = "N cells"
+  ) + 
+  theme_minimal() +
+  theme(legend.position="none", 
+        panel.grid.minor=element_blank(),
+        panel.grid.major=element_blank(),
+        axis.text.x = element_text(angle = 45)
+  )
+
+# barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Sample)) + geom_bar(stat="Count") + NoLegend()
+# barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample") + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
+
+```
+
+:::
+
+::: {.row}
+::: {.col-md-3}
+
+```{r cells/cluster}
+
+df <- cellsProportion(scData, 
+                      groupVar1 = "seurat_clusters", 
+                      groupVar2 = "Sample") |>
+  as.data.frame() |>
+  dplyr::rename(Cluster = seurat_clusters)
+
+
+is_pct_col <- grepl("_fraction$", colnames(df))
+
+new_names <- colnames(df)
+
+new_names[is_pct_col] <- sub("_fraction$", " (%)", 
+                             new_names[is_pct_col])
+
+is_count_col <- !is_pct_col & new_names != "Cluster"
+new_names[is_count_col] <- paste0(new_names[is_count_col], " (n)")
+
+colnames(df) <- new_names
+
+datatable(
+  df,
+  caption   = htmltools::tags$caption("Cells per cluster and sample"),
+  extensions = c("Buttons"),
+  rownames  = FALSE,
+  escape    = TRUE,    
+  options   = list(
+    paging       = TRUE,
+    dom          = "Bfrtip",
+    autoWidth    = TRUE,             
+    buttons      = list(list(extend = "excel", 
+                             text = "Excel", 
+                             filename = "clusters")
+                        )
+  )
+) |> formatPercentage(columns = which(is_pct_col), digits = 1)
+
+
+
+# kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+```
+:::
+
+### Clustering
 
 In order to find clusters of cells we first built a graph called K-nearest neighbor (KNN), where each node is a cell that is connected to its nearest neighbors in the high-dimensional space. Edges are weighted based on the similarity between the cells involved, with higher weight given to cells that are more closely related. This step takes as input the previously defined dimensionality of the dataset (first `r param$npcs` PCs). We then applied algorithms to identify “communities” of cells that are more connected to cells in the same community than they are to cells of different communities. Each community represents a cluster that we can use for downstream interpretation. 
 
 We can visualize the distribution of clusters in the TSNE and UMAP plots. However, we should not perform downstream analyses directly on their coordinates. These plots are most useful for checking whether two clusters are actually neighboring subclusters or whether a cluster can be split into further subclusters. 
 
-```{r clustering plot1, fig.height=8, fig.width=20}
-p1 <- DimPlot(scData, reduction="tsne", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
-p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
-
-p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
-p2 <- LabelClusters(p2, id = "ident",  fontface = "bold", color = "black", size = 6)
-
-p1 + p2 + plot_annotation(
-) + plot_layout(nrow = 1)
-```
-
-<br/><br/>
-
-The number of cells in each cluster and sample is represented in this barplot.
-
-<br/>
-
-```{r number of cells in each cluster}
-cellIdents_perSample <- data.frame(ident = Idents(scData), Sample=scData$Sample)
-barplot = ggplot(data=cellIdents_perSample, aes(x=ident, fill=Sample)) + geom_bar(stat="Count") + NoLegend()
-barplot + labs(x="Cluster", y = "Number of cells", fill = "Sample") + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1))
-
-
-cells_prop = cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Sample")
-kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
-```
-
 ## Cluster assessment
 
 
-#### Segregation of clusters by various sources of uninteresting variation.
+### Segregation of clusters by various sources of uninteresting variation.
 
 Once we have created the clusters we need to assess if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences. 
@@ -615,19 +707,27 @@ VlnPlot(scData, features ="doubletScore") + ggtitle("DoubletScore vs ident") + N
 FeaturePlot(scData, features="doubletScore", label = TRUE)
 ```
 
-```{r decontx, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10), eval=!is.null(scData@meta.data$DecontX_contFrac)}
+```{r decontx, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10)}
+
+if (!is.null(scData@meta.data$DecontX_contFrac)){
 VlnPlot(scData, features ="DecontX_contFrac", y.max=1) + ggtitle("DecontX ambient fraction vs ident") + NoLegend()
 FeaturePlot(scData, features="DecontX_contFrac", label = TRUE)
+}
 ```
 
-```{r soupx, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10), eval=!is.null(scData@meta.data$SoupX_contFrac)}
-VlnPlot(scData, features ="SoupX_contFrac", y.max=1) + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
-FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
+```{r soupx, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10)}
+if (!is.null(scData@meta.data$SoupX_contFrac)){
+  VlnPlot(scData, features ="SoupX_contFrac", y.max=1) + ggtitle("SoupX ambient fraction vs ident") + NoLegend()
+  FeaturePlot(scData, features="SoupX_contFrac", label = TRUE)
+}
 ```
 
-```{r cell probability, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10), eval=!is.null(scData@meta.data$negLog10CellPValue)}
+```{r cell probability, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10)}
+
+if (!is.null(scData@meta.data$negLog10CellPValue)){
 VlnPlot(scData, features ="negLog10CellPValue") + ggtitle("negative log10 Cell PValue") + NoLegend()
 FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
+}
 ```
 
 ```{r control seq plot, fig.width=12, fig.height=shrinkToRange(length(param$controlSeqs)*3/4, c(6, 18)), eval=ezIsSpecified(param$controlSeqs)}
@@ -665,7 +765,12 @@ cat("We found positive markers that defined clusters compared to all other cells
 
 
 ```{r pos markers}
-ezInteractiveTableRmd(data.frame(posMarkers), digits=4)
+
+
+ezInteractiveTableRmd(posMarkers, digits=3, rowNames = FALSE)
+
+
+
 ```
 
 ## Marker plots
@@ -712,8 +817,10 @@ if (length(genesToPlot) > 0){
 }
 ```
 
+## Cell type annotation {.tabset}
 
-## EnrichR
+
+### EnrichR
 
 Cell type scoring using the EnrichR tool. This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters.
 
@@ -785,7 +892,7 @@ for (cluster in names(enrichRout)) {
 
 <br/>
 
-## SingleR
+### SingleR
 
 Matching of clusters to annotated reference datasets using SingleR.
 
@@ -872,7 +979,7 @@ ezInteractiveTableRmd(bind_rows(clusterInfosList))
 cat("\n\n")
 ```
 
-## AUCell
+### AUCell
 
 Matching the cells to marker gene sets that are known to be characteristic for cell types. We use marker gene sets from the CellMarker database (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
 
@@ -929,27 +1036,27 @@ try({
 })
 ```
 
-## Azimuth
+### Azimuth
 
 ```{r azimuth, eval=!is.null(scData@meta.data$Azimuth.celltype.l1), fig.width=15, fig.height=8}
-options(ggrepel.max.overlaps = Inf)
-
-cat(sprintf("Analysis was performed using the Azimuth reference map: %s", param$Azimuth))
-
-DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap", cols = shared_colors) +
-  theme(aspect.ratio = 1)
-if('Azimuth.celltype.l2' %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap", cols = shared_colors) +
-  theme(aspect.ratio = 1)
-if('Azimuth.celltype.l3' %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap", cols = shared_colors) +
-  theme(aspect.ratio = 1)
-if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
-  DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap", cols = shared_colors) +
-  theme(aspect.ratio = 1)
+# options(ggrepel.max.overlaps = Inf)
+# 
+# cat(sprintf("Analysis was performed using the Azimuth reference map: %s", param$Azimuth))
+# 
+# DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l1", repel = TRUE, reduction = "umap", cols = shared_colors) +
+#   theme(aspect.ratio = 1)
+# if('Azimuth.celltype.l2' %in% colnames(scData@meta.data))
+#   DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l2", repel = TRUE, reduction = "umap", cols = shared_colors) +
+#   theme(aspect.ratio = 1)
+# if('Azimuth.celltype.l3' %in% colnames(scData@meta.data))
+#   DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l3", repel = TRUE, reduction = "umap", cols = shared_colors) +
+#   theme(aspect.ratio = 1)
+# if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
+#   DimPlot(scData, label=TRUE, group.by = "Azimuth.celltype.l4", repel = TRUE, reduction = "umap", cols = shared_colors) +
+#   theme(aspect.ratio = 1)
 ```
 
-## Azimuth Pan-Human
+### Azimuth Pan-Human
 
 `r if(azimuth_available) "Azimuth Pan-Human provides neural network-based cell type annotation using the Satija lab reference (HUMAN DATASETS ONLY)."`
 
@@ -1045,7 +1152,7 @@ if(azimuth_available && !is.null(azimuth_results)){
 }
 ```
 
-## Cell x gene
+### Cell x gene
 ```{r cellxgene, eval=!is.null(cellxgeneResults), fig.width=7, fig.height=7}
 
 options(ggrepel.max.overlaps = Inf)
@@ -1095,7 +1202,7 @@ tryCatch({
 })
 ```
 
-## scType
+### scType
 
 `r if(sctype_available) "scType provides fully-automated cell-type identification using specific marker combinations (human and mouse supported)."`
 
@@ -1119,14 +1226,16 @@ if(sctype_available && !is.null(sctype_results)){
 }
 ```
 
-## Interactive
+## Links
+
+### Interactive Single Cell Explorer
 
 The link below will take you to an interactive Shiny app which can be used to make 
 production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
 
 [Single Cell Explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("SC Cluster Report"), "/scData.qs2")}`){target="_blank"}
 
-### Data availability
+### Data files
 
 [clusterInfos.xlsx](clusterInfos.xlsx) -- use this xls file to manually relabel the clusters
 
@@ -1136,18 +1245,22 @@ production-ready plots and figures. You can also use this app to explore your ow
 
 `r if(sctype_available) "[scType_results.xlsx](scType_results.xlsx) -- scType cell type annotation results"`
 
-## SessionInfo
+## Parameters
+
+### Parameters used
+
 ```{r report parameters, echo=FALSE}
-param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "cellsFraction", "nUMIs", "nmad", "normalize")]
+
+
+# ezFrame(Value=param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "cellsFraction", "nUMIs", "nmad", "normalize")] |> 
+#           unlist()) |> rownames_to_column("Parameter") |>
+  # ezKable()
+  
 ```
 
+### Session Info
 
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```
 
-```{r save_final_scData, echo=FALSE, message=FALSE}
-# Save final scData object with all metadata (including cellxgene, azimuth, etc.)
-# This ensures the final object includes all annotation results from the report
-qs2::qs_save(scData, "scData.qs2", nthreads = param$cores)
-```

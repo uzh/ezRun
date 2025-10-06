@@ -301,14 +301,18 @@ filterCellsAndGenesHD <- function(scData, param, myAssay) {
         qc.nexprs <- scData@meta.data[,att_nGenes] < param$ngenes
     }
     if (is.na(param$perc_mito)) {
-        qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, type = "higher")
+        qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, type = "higher") |> as.vector() |>
+          replace_na(FALSE)
     } else {
-        qc.mito <- scData@meta.data[,"percent_mito"] > param$perc_mito
+        qc.mito <- (scData@meta.data[,"percent_mito"] > param$perc_mito) |>
+          replace_na(FALSE)
     }
     if (is.na(param$perc_ribo )) {
-        qc.ribo <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher")
+        qc.ribo <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher") |> as.vector() |>
+          replace_na(FALSE)
     } else {
-        qc.ribo <- scData@meta.data[,"percent_riboprot"] > param$perc_ribo
+        qc.ribo <- (scData@meta.data[,"percent_riboprot"] > param$perc_ribo) |>
+          replace_na(FALSE)
     }
     
     discard <- qc.lib | qc.nexprs | qc.mito | qc.ribo
