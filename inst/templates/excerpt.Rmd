@@ -1,17 +1,16 @@
 ---
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-author: "Functional Genomics Center Zurich"
 output: 
   html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
-    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
   chunk_output_type: inline
 ---
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`.
 
 ```{r debug, include=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -30,9 +29,10 @@ plots = readRDS("plots.rds")
 nSamples <- length(unique(plots$`read-length distributions: raw read count`$data$sample))
 ```
 
-## exceRpt_Result ([article](https://www.sciencedirect.com/science/article/pii/S2405471219300742)) {.tabset}
+# {.tabset}
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
-### Data Files
+## Data Files
 The data files are in tabular text format and can also be opened with a spreadsheet program (e.g. Excel).
 
 When opening with Excel, do make sure that the Gene symbols are loaded into a column formatted as 'text' that prevents
@@ -48,7 +48,7 @@ for(each in dataFiles){
 }
 ```
 
-### Read-length distributions
+## Read-length distributions
 ```{r read-length vs counts, echo=FALSE, message=FALSE, warning=FALSE, fig.width=10}
 ## raw
 plots$`read-length distributions: raw read count` +
@@ -58,7 +58,7 @@ plots$`read-length distributions: normalised read fraction` +
   theme_half_open() + background_grid(minor="none")
 ```
 
-### Fractions of aligned reads
+## Fractions of aligned reads
 ```{r fractions of aligned reads, echo=FALSE, message=FALSE, warning=FALSE, fig.width= 3+nSamples*0.5, fig.height=8}
 ## normalized by total input reads
 plots$`fraction aligned reads (normalised by # input reads)`
@@ -68,7 +68,7 @@ plots$`fraction aligned reads (normalised by # adapter-clipped reads)`
 plots$`fraction aligned reads (normalised by # non-contaminant reads)`
 ```
 
-### QC result (ERCC's)
+## QC result (ERCC's)
 The NIH Extracellular RNA Communication Consortium (ERCC) base their QC metrics on the number of transcriptome reads and the ratio of RNA-annotated reads to the genome reads. The horizontal and vertical lines define QC threshold minima. Therefore, good-quality samples should appear at the upper-right grey area.
 
 ```{r QC ERCC, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8}
@@ -79,7 +79,7 @@ ggplotly(plots$`QC result: overall` + theme_half_open() + background_grid(minor=
 plots$`QC result: per-sample results`
 ```
 
-### Biotypes
+## Biotypes
 Reads distributions for the different types of RNA.
 
 ```{r biotypes, echo=FALSE, message=FALSE, warning=FALSE, fig.height=8}
@@ -93,7 +93,7 @@ plots$`Biotypes: distributions, normalised` + theme_half_open() +
 ggplotly(plots$`Biotypes: per-sample, normalised`)
 ```
 
-### miRNA abundance distribution
+## miRNA abundance distribution
 ```{r miRNA abundance, echo=FALSE, message=FALSE, warning=FALSE, fig.width=10}
 ## raw
 plots$`miRNA abundance distributions (raw counts)` + theme_half_open() + 
@@ -103,7 +103,7 @@ plots$`miRNA abundance distributions (RPM)` + theme_half_open() +
   background_grid(minor="none")
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

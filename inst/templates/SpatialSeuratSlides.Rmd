@@ -1,19 +1,17 @@
 ---
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-author: "Functional Genomics Center Zurich"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
-    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
-
+# {.tabset}
 
 ```{r setup, include=FALSE}
 library(Seurat)
@@ -39,9 +37,9 @@ DefaultAssay(scData) = "SCT"
 output <- readRDS("output.rds")
 ```
 
-## Analysis results {.tabset}
 
-### Quality control
+## Quality control
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 We can compare the different slides based on different QC metrics. Here we plot the number of reads and genes, mitochondrial and ribosomal content on violin plots and on the tissue sections. 
 
@@ -61,12 +59,13 @@ if('percent_ribo' %in% colnames(myMeta)){
 VlnPlot(scData, features = myFeatures, group.by = "Batch", pt.size = 0.001) + NoLegend() + plot_layout(ncol=2)
 ```
 
+
 ```{r QC tissueplots, fig.width=min(24, length(unique(scData$Batch))*8), fig.height=12}
 SpatialFeaturePlot(scData, features = myFeatures, pt.size.factor = param$pt.size.factor)+ plot_layout(nrow=length(myFeatures), ncol=length(unique(scData$Batch))) & theme(legend.text = element_text(size = 6))
 ```
 
 
-### Batch effects
+## Batch effects
 
 We always look at our spots before deciding whether we need to perform integration. Te main goal of dataset integration is to identify shared cell states that are present across different datasets, in case they were collected from different individuals, experimental conditions, technologies, or even species. Large single-cell RNA sequencing projects usually need to generate data across multiple batches due to logistical constraints. This results in systematic differences in the observed expression in spots from different batches, which we refer to as “batch effects”. Batch effects are problematic as they can be major drivers of heterogeneity in the data, masking the relevant biological differences and complicating interpretation of the results.
 The UMAPs and the barplot below can help us visualize if the clusters are balanced and composed by spots from the different batches. If we see clusters that are comprised of spots from a single batch, this indicates that spots of the same cell type type are artificially separated due to technical differences between batches. In this case, we may also consider that there are cell types that are unique to each batch. If a cluster only contains spots from a single batch, one can always debate whether that is caused by technical differences or if there is truly a batch-specific subpopulation.
@@ -96,7 +95,7 @@ cells_prop = cellsProportion(scData, groupVar1 = "ident_noCorrected", groupVar2 
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per condition") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
 
-### Clustering
+## Clustering
 
 ```{r no_integration, eval = !param$batchCorrection,results='asis'}
 cat("We started by merging all the samples in one dataset and then used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.")
@@ -162,7 +161,7 @@ SpatialDimPlot(scData, label = TRUE, label.size = 3, pt.size.factor = param$pt.s
 ```
 
 
-### Cluster markers
+## Cluster markers
 
 ```{r wilcoxon test, eval=(param$DE.method=="wilcox"), results='asis'}
 cat("We found positive markers that defined clusters compared to all other spots via differential expression. The test we used was the Wilcoxon Rank Sum test. Genes with an average, at least 0.25-fold difference (log-scale) between the spots in the tested cluster and the rest of the spots and an adjusted p-value < 0.05 were declared as significant.")
@@ -181,7 +180,7 @@ posMarkers$gene = as.factor(posMarkers$gene)
 ezInteractiveTableRmd(posMarkers, digits=4)
 ```
 
-### Markers plots
+## Markers plots
 
 We plot on the tissue the top 3 markers in each cluster. Be aware that some genes may be in the top markers for different clusters.
 
@@ -210,7 +209,7 @@ for (eachCluster in clustersToPlot) {
 }
 ```
 
-### Spatially Variable Genes plots 
+## Spatially Variable Genes plots 
 
 We also identify molecular features that correlate with spatial location within a tissue. Here we show the expression of the top 5 features identified by this measure. The full list can be found in the Data availability section.
 
@@ -223,11 +222,11 @@ for(gene in top.features) {
 }
 ```
 
-### Interactive
+## Interactive
 [simple explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSpatial", "/?data=",dirname(output$getColumn("Static Report")), "/scData.rds")}`){target="_blank"}
 
 
-### Data availability
+## Data availability
 
 ##### Positive markers of each cluster
 
@@ -240,14 +239,14 @@ for(gene in top.features) {
 [spatialMarkers](spatial_markers.tsv)
 
 
-### Parameters
+## Parameters
 
 ```{r report parameters, echo=FALSE}
 param[c("npcs", "resolution", "batchCorrection", "SCT.regress.CellCycle", "DE.method", "DE.regress")]
 ```
 
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

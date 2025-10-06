@@ -1,14 +1,18 @@
 ---
-title: "`r if (exists('reportTitle')) reportTitle else 'Fastq Screen'`"
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
-    self_contained: false
-    lib_dir: rmarkdownLib
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
 ---
+
+# {.tabset}
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -23,9 +27,7 @@ param <- readRDS("param.rds")
 
 debug <- FALSE
 ```
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-## FastqScreen_Result {.tabset}
 
 ```{r rename, include=FALSE}
 fastqData=fastqData_ppData
@@ -33,7 +35,9 @@ fastqDataAdapters=fastqData_rawData
 ```
 
 
-### FastqScreen Mapping Rates to Adapters and rRNA
+## FastqScreen Mapping Rates to Adapters and rRNA
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 ```{r overview plotly, fig.height=7, fig.width=min(max(7, 7+(nrow(dataset)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
 m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0) # more margin space
 # Mapping rate
@@ -135,7 +139,7 @@ for (nm in rownames(dataset)){
 }
 ```
 
-### Mapping to RefSeq mRNA Per Sample
+## Mapping to RefSeq mRNA Per Sample
 
 ```{r mRNAPerSample, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 for (nm in rownames(dataset)){
@@ -150,7 +154,7 @@ for (nm in rownames(dataset)){
 }
 ```
 
-### Mapping to Genomes with Kraken
+## Mapping to Genomes with Kraken
 
 Abundances above 5% are truncated.
 
@@ -162,7 +166,7 @@ for (i in c(1:length(krakenResult))){
 }
 ```
 
-### Virus Check
+## Virus Check
 
 ```{r virus, echo=FALSE, results='hide', warning=FALSE, message=FALSE, eval=!debug}
 if(param[['virusCheck']]){
@@ -180,7 +184,7 @@ if(param[['virusCheck']]){
 ```
 
 
-### RIN
+## RIN
 
 #### RIN vs Read Count
 ```{r rin1, echo=FALSE, message=FALSE, warning=FALSE}
@@ -219,7 +223,7 @@ if (nrow(dataset) > 1){
 }
 ```
 
-### Settings
+## Settings
 ```{r setting, echo=FALSE}
 getAppVer <- function(appName) { sub("^.+/([^/]+)$", "\\1", Sys.getenv(appName)) }
 settings = character()
@@ -235,12 +239,12 @@ kable(as.data.frame(settings), col.names=NA, row.names=TRUE, format="html") %>%
                 position = "left")
 ```
 
-### Input Dataset
+## Input Dataset
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(values=dataset)
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

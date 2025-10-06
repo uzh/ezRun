@@ -1,13 +1,19 @@
 ---
-title: "Structural Variant Analysis"
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
-    self_contained: false
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
 ---
+
+# {.tabset}
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -22,9 +28,8 @@ wddir <- "."
 ## end of debug
 ```
 
-## Result {.tabset}
 
-### Overview
+## Overview
 
 ```{r sample, echo=FALSE, message=FALSE}
 params$sample
@@ -41,7 +46,7 @@ kable(counts, caption = "Summary stats")
 barplot(t(as.matrix(counts)), main="Summary stats", cex.main=0.7, cex.names=0.7, las=2)
 ```
 
-### SV types by length 
+## SV types by length 
 
 ```{r s1, echo=FALSE, message=FALSE}
   tbl<-read.table(paste0(wddir, "/", params$sample, ".stats.txt"), header=TRUE)
@@ -56,7 +61,7 @@ barplot(t(as.matrix(counts)), main="Summary stats", cex.main=0.7, cex.names=0.7,
   #dev.off()
 ```
 
-### SV types by chr 
+## SV types by chr 
 
 ```{r s2, echo=FALSE, message=FALSE}
   df<-read.table(paste0(wddir, "/", params$sample, ".stats.txt_CHR"), header=TRUE)
@@ -71,7 +76,7 @@ barplot(t(as.matrix(counts)), main="Summary stats", cex.main=0.7, cex.names=0.7,
   #dev.off()
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

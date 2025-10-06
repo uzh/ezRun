@@ -363,29 +363,44 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
     assay <- "RNA"
   }
   
-  if (is.na(param$nreads) & assay != 'Spatial') {
-    qc.lib <- isOutlier(scData@meta.data[,att_nCounts], log = TRUE, nmads = param$nmad, type = "lower")
-  } else if(assay == 'Spatial' & is.na(param$nreads)){
-    qc.lib <- scData@meta.data[,'nCount_Spatial_SpotSweeper_outliers']  
+  if (is.na(param$nreads)){
+      if(assay == 'Spatial') {
+          qc.lib <- scData@meta.data[,'nCount_Spatial_SpotSweeper_outliers'] 
+      } else {
+          qc.lib <- isOutlier(scData@meta.data[,att_nCounts], log = TRUE, nmads = param$nmad, type = "lower")
+      }
   } else {
-    qc.lib <- scData@meta.data[,att_nCounts] < param$nreads
+      qc.lib <- scData@meta.data[,att_nCounts] < param$nreads
   }
-  if (is.na(param$ngenes) & assay != 'Spatial') {
-    qc.nexprs <- isOutlier(scData@meta.data[,att_nGenes], nmads = param$nmad, log = TRUE, type = "lower")
-  } else if(assay == 'Spatial' & is.na(param$ngenes)){
-    qc.nexprs <- scData@meta.data[,'nFeature_Spatial_SpotSweeper_outliers']
+  
+  if (is.na(param$ngenes)){
+      if(assay == 'Spatial') {
+          qc.nexprs <- scData@meta.data[,'nFeature_Spatial_SpotSweeper_outliers'] 
+       } else {
+          qc.nexprs <- isOutlier(scData@meta.data[,att_nGenes], nmads = param$nmad, log = TRUE, type = "lower")
+      }
   } else {
-    qc.nexprs <- scData@meta.data[,att_nGenes] < param$ngenes
+      qc.nexprs <- scData@meta.data[,att_nGenes] < param$ngenes
   }
-  if (is.na(param$perc_mito)) {
-    qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, type = "higher")
+  
+  if (is.na(param$perc_mito)){
+      if(assay == 'Spatial') {
+          qc.mito <- scData@meta.data[,"percent_mito_SpotSweeper_outliers"]
+      } else  {
+          qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, log = TRUE, type = "lower")
+      }
   } else {
-    qc.mito <- scData@meta.data[,"percent_mito"] > param$perc_mito
+      qc.mito <- scData@meta.data[,"percent_mito"] > param$perc_mito
   }
+  
   if (is.na(param$perc_ribo )) {
-    qc.ribo <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher")
+      if(assay == 'Spatial'){
+          qc.ribo <- rep(FALSE, nrow(scData@meta.data))
+      } else {
+          qc.ribo <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher")
+      }
   } else {
-    qc.ribo <- scData@meta.data[,"percent_riboprot"] > param$perc_ribo
+      qc.ribo <- scData@meta.data[,"percent_riboprot"] > param$perc_ribo
   }
   
   discard <- qc.lib | qc.nexprs | qc.mito | qc.ribo
@@ -408,52 +423,3 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
   return(list(scData.unfiltered = scData.unfiltered, scData = scData, cellsPerGeneFraction = cellsPerGeneFraction))
 }
 
-filterCellsAndGenes.SingleCellExperiment <- function(sce, param) {
-  library(scater)
-  library(Matrix)
-  
-  # Cells filtering
-  mito.genes <- grep("^MT.", rownames(sce), ignore.case = TRUE)
-  ribo.genes <- grep("^RPS|^RPL", rownames(sce), ignore.case = TRUE)
-  
-  sce <- addPerCellQC(sce, subsets = list(Mito = mito.genes, Ribo = ribo.genes))
-  
-  if (is.na(param$nreads)) {
-    qc.lib <- isOutlier(sce$sum, log = TRUE, nmads = param$nmad, type = "lower")
-  } else {
-    qc.lib <- sce$sum < as.double(param$nreads)
-  }
-  if (is.na(param$ngenes)) {
-    qc.nexprs <- isOutlier(sce$detected, nmads = param$nmad, log = TRUE, type = "lower")
-  } else {
-    qc.nexprs <- sce$detected < as.double(param$ngenes)
-  }
-  if (is.na(param$perc_mito)) {
-    qc.mito <- isOutlier(sce$subsets_Mito_percent, nmads = param$nmad, type = "higher")
-  } else {
-    qc.mito <- sce$subsets_Mito_percent > as.double(param$perc_mito)
-  }
-  
-  if (is.na(param$perc_ribo)) {
-    qc.ribo <- isOutlier(sce$subsets_Ribo_percent, nmads = param$nmad, type = "higher")
-  } else {
-    qc.ribo <- sce$subsets_Ribo_percent > as.double(param$perc_ribo)
-  }
-  
-  discard <- qc.lib | qc.nexprs | qc.mito | qc.ribo
-  sce$discard <- discard
-  sce$qc.lib <- qc.lib
-  sce$qc.nexprs <- qc.nexprs
-  sce$qc.mito <- qc.mito
-  sce$qc.ribo <- qc.ribo
-  sce.unfiltered <- sce
-  sce <- sce[, !discard]
-  
-  # Genes filtering
-  num.cells <- param$cellsFraction * ncol(sce) # if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
-  is.expressed <- Matrix::rowSums(counts(sce) >= param$nUMIs) >= num.cells
-  sce <- sce[is.expressed, ]
-  rowData(sce.unfiltered)$is.expressed <- is.expressed
-  
-  return(list(sce.unfiltered = sce.unfiltered, sce = sce))
-}

@@ -11,6 +11,9 @@ editor_options:
   chunk_output_type: inline
 ---
 
+# {.tabset}
+
+
 ```{r include=FALSE}
 knitr::opts_chunk$set(
   comment = '', fig.width = 8, fig.height = 8, warning = FALSE, error = FALSE,
@@ -105,9 +108,9 @@ difabundance <- "./ancom_group.qzv.zip.folder/data/index.html"
 ```
 
 
-# {.tabset}
 
 ## Demultiplexing summary 
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 #### Read Frequency Histogram
 

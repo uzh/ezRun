@@ -1,14 +1,19 @@
 ---
-title: "GCE"
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
 ---
+
+# {.tabset}
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -21,9 +26,7 @@ wddir <- "."
 ## end of debug
 ```
 
-## Result {.tabset}
-
-### Genome Size
+## Genome Size
 
 ```{r sample, echo=FALSE, message=FALSE}
 params$sample
@@ -36,7 +39,7 @@ library(knitr)
 cat(dat[c(19:22)], sep = '\n')
 ```
 
-### kmer frequency plot 
+## kmer frequency plot 
 
 ```{r svg, echo=FALSE, message=FALSE}
 svg.file <- file.path(wddir, paste0(params$sample,".kmer.freq.stat_real_theory_distribution.svg"))
@@ -47,7 +50,7 @@ rsvg_png(svg.file, png.file)
 
 ![kmer frequency plot](`r png.file`)
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

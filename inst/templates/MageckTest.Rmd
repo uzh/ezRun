@@ -1,17 +1,19 @@
 ---
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-author: "Functional Genomics Center Zurich"
 output: 
   html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
-    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
   chunk_output_type: inline
 ---
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+# {.tabset}
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r setup, include=FALSE}
 library(kableExtra)
@@ -34,9 +36,7 @@ sgRNAResult <- read_xlsx(sgRNALink)
 geneResult <- read_xlsx(geneLink)
 ```
 
-## Analysis results {.tabset}
-
-### Results
+## Results
 
 The MAGeCK (mageck test) uses Robust Rank Aggregation (RRA -[Li et al. 2014](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-014-0554-4)) for robust identification of CRISPR-screen hits, and outputs the summary results at both sgRNA and gene level.
 
@@ -88,7 +88,7 @@ The sgRNA Summary file contains the columns described below. We can use the sgRN
 | FDR |	false discovery rate |
 | high_in_treatment |	Whether the abundance is higher in treatment samples |
 
-### Plots 
+## Plots 
 
 #### sgRNA-Level
 ```{r, echo=FALSE, fig.width=10, fig.height=6, message=FALSE, warning=FALSE}
@@ -112,7 +112,7 @@ EnhancedVolcano(geneResult, lab = geneResult[['id']], x = 'pos|lfc', y = 'pos|fd
 
 ```
 
-### Reports
+## Reports
 ```{r}
 #PDF Report MAGECK:
 summaryLink <- paste0(param$comparison, '_summary.pdf')
@@ -138,13 +138,13 @@ The R package [MAGeCKFlute](https://www.bioconductor.org/packages/release/bioc/h
 [Summary Report of MAGeCKFlute](`r fluteLink`){target="_blank"}
 
 
-### Parameters
+## Parameters
 ```{r report parameters, echo=FALSE}
 param[c("species","libName","grouping", "sampleGroup", "refGroup", "cmdOptions")]
 ```
 
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

@@ -13,7 +13,9 @@ editor_options:
 
 # {.tabset}
 
+
 ## Settings
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 
 ```{r setup, include=FALSE}
@@ -65,9 +67,6 @@ design <- ezDesignFromDataset(dataset, param)
 hasMassiveFeats <- nrow(seqAnno) >= 200e3
 ```
 
-
-
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setting, echo=FALSE}
 kable(makeCountResultSummary(param, se),
@@ -966,9 +965,6 @@ if (all(c("gc", "featWidth") %in% colnames(x))) {
   }
 }
 ```
-
-
-
 
 
 ## Input dataset

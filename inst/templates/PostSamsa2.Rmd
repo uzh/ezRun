@@ -1,15 +1,18 @@
 ---
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-author: "Functional Genomics Center Zurich"
 output: 
   html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
-    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
   chunk_output_type: inline
 ---
+
+# {.tabset}
+
 
     
 ```{r setup, include=FALSE}
@@ -43,9 +46,9 @@ org_deseq_results <- readRDS("org_deseq_results.rds")
 func_deseq_results <- readRDS("func_deseq_results.rds")
 ```
 
-# {.tabset}
 
 ## Diversity
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ### Lineage diversity
 ```{r echo=FALSE}

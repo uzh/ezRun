@@ -1,13 +1,19 @@
 ---
-title: "`r paste('Mothur data analysis report: preprocessing')`"
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
-    self_contained: false
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
 ---
+
+# {.tabset}
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE,out.width="70%")
@@ -15,23 +21,20 @@ knitr::opts_chunk$set(echo = TRUE,warning=FALSE, message=FALSE,out.width="70%")
 debug <- FALSE
 ```
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-## Data pre-processing {.tabset}
-
-### Summary of the raw reads
+## Summary of the raw reads
 ```{r RawDataSummary, echo=FALSE}
 RDSplot <- plotFromMothurSumm(finalListOfSummaryTables["RawDataSummary"]$RawDataSummary)
 plot(RDSplot)
 ```
 
-### Summary of the deduplicated reads
+## Summary of the deduplicated reads
 ```{r DeduppedSummary, echo=FALSE}
 DDplot <- plotFromMothurSumm(finalListOfSummaryTables["DeduppedSummary"]$DeduppedSummary)
 plot(DDplot)
 ```
 
-### Summary of the reads filtered by length and homopolymers
+## Summary of the reads filtered by length and homopolymers
 ```{r LenAndHomopSummary, echo=FALSE}
 LHplot <- plotFromMothurSumm(finalListOfSummaryTables["LenAndHomopSummary"]$LenAndHomopSummary)
 plot(LHplot)

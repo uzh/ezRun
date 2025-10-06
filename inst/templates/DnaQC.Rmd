@@ -1,15 +1,15 @@
 ---
-title: "`r paste('DNA-Seq QC Report:', param$name)`"
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
-    self_contained: false
+    self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
 ---
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 ```{r setup DnaQC, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -54,10 +54,11 @@ if (param$writeIgvSessionLink){
 }
 ```
 
-## DNA_QC_Statistics {.tabset}
+# {.tabset}
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 <!-- ### Read Alignment Statistics -->
-### Overview
+## Overview
 
 ```{r overview table, echo=FALSE}
 is.numeric0 <- function(x) {
@@ -80,7 +81,7 @@ for (sm in samples){
 ezInteractiveTableRmd(basicStats, digits=3)
 ```
 
-### Multi-Matching Reported in Bam File
+## Multi-Matching Reported in Bam File
 The plot holds for each sample the number of reads in Millions 
 that have X matches in the target and are reported in the file.
 
@@ -108,7 +109,7 @@ ezWrite.table(mmCounts, file=txtFile, head="Sample")
 ```
 [`r txtFile`](`r txtFile`)
 
-### InsertSize
+## InsertSize
 
 ```{r insert, results='asis', echo = FALSE}
 plots <- list.files(".","fragmentSize_.*png$")
@@ -118,7 +119,7 @@ plots <- list.files(".","fragmentSize_.*png$")
    }
 ```
 
-### Library Complexity
+## Library Complexity
 
 ```{r complexity, results='asis', echo = FALSE}
 plots <- list.files(".","libComplexity_.*png$")
@@ -131,11 +132,11 @@ plots <- list.files(".","libComplexity_.*png$")
 Plots about DuplicationRate
 
 
-### Coverage
+## Coverage
 
 
 
-### Qualimap
+## Qualimap
 
 [Multi-Sample Report](qualimap_MultiSample/multisampleBamQcReport.html)
 
@@ -158,12 +159,12 @@ datatable(qualimapResults, escape = F,
                                 options=list(dom = 'Bfrtip', pageLength=25, autoWidth=TRUE))
 ```
 
-### Input Dataset
+## Input Dataset
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(dataset)
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

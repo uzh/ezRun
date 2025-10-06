@@ -51,7 +51,7 @@ EzAppSpatialSeuratHD <-
                                                            DefaultValue=0.6,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         cellsFraction=ezFrame(Type="numeric", 
-                                                                DefaultValue=0.0001, 
+                                                                DefaultValue=0, 
                                                                 Description="A gene will be kept if it is expressed in at least this percentage of cells"),
                                         nUMIs=ezFrame(Type="numeric", 
                                                       DefaultValue=1, 
@@ -240,7 +240,7 @@ runBasicProcessingHD <- function(scData, input, featInfo, param, BPPARAM){
     if(nrow(scData@meta.data) < 50000){
         scData <- RunPCA(scData, npcs = 80)
         scData <- FindNeighbors(scData, dims = 1:param$npcs)
-        scData <- FindClusters(scData, cluster.name = "seurat_cluster", resolution = param$resolution)
+        scData <- FindClusters(scData, cluster.name = "seurat_clusters", resolution = param$resolution)
         scData <- RunUMAP(scData, reduction = "pca", reduction.name = "umap", return.model = T, dims = 1:param$npcs)
     }
     else {
@@ -255,7 +255,7 @@ runBasicProcessingHD <- function(scData, input, featInfo, param, BPPARAM){
         scData <- ScaleData(scData)
         scData <- RunPCA(scData, assay = "sketch", reduction.name = "pca.sketch", npcs = 80)
         scData <- FindNeighbors(scData, assay = "sketch", reduction = "pca.sketch", dims = 1:param$npcs)
-        scData <- FindClusters(scData, cluster.name = "seurat_cluster.sketched", resolution = 3)
+        scData <- FindClusters(scData, cluster.name = "seurat_cluster.sketched", resolution = param$resolution)
         scData <- RunUMAP(scData, reduction = "pca.sketch", reduction.name = "umap.sketch", return.model = T, dims = 1:param$npcs)
         
         scData <- ProjectData(
@@ -268,10 +268,15 @@ runBasicProcessingHD <- function(scData, input, featInfo, param, BPPARAM){
             dims = 1:param$npcs,
             refdata = list(seurat_cluster.projected = "seurat_cluster.sketched")
         )
+        scData$seurat_cluster.projected <- factor(scData$seurat_cluster.projected, levels(scData$seurat_cluster.sketched))
         
         # switch to full dataset
         Idents(scData) <- "seurat_cluster.projected"
+        scData$seurat_clusters <- Idents(scData)
         DefaultAssay(scData) <- myAssay
+    }
+    if(!('Batch' %in% colnames(scData@meta.data))) {
+        scData$Batch <- scData$Sample
     }
     return(list(scData = scData, scData.unfiltered = scData.unfiltered, cellsPerGeneFraction = cellsPerGeneFraction))
 }
@@ -296,14 +301,18 @@ filterCellsAndGenesHD <- function(scData, param, myAssay) {
         qc.nexprs <- scData@meta.data[,att_nGenes] < param$ngenes
     }
     if (is.na(param$perc_mito)) {
-        qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, type = "higher")
+        qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, type = "higher") |> as.vector() |>
+          replace_na(FALSE)
     } else {
-        qc.mito <- scData@meta.data[,"percent_mito"] > param$perc_mito
+        qc.mito <- (scData@meta.data[,"percent_mito"] > param$perc_mito) |>
+          replace_na(FALSE)
     }
     if (is.na(param$perc_ribo )) {
-        qc.ribo <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher")
+        qc.ribo <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher") |> as.vector() |>
+          replace_na(FALSE)
     } else {
-        qc.ribo <- scData@meta.data[,"percent_riboprot"] > param$perc_ribo
+        qc.ribo <- (scData@meta.data[,"percent_riboprot"] > param$perc_ribo) |>
+          replace_na(FALSE)
     }
     
     discard <- qc.lib | qc.nexprs | qc.mito | qc.ribo

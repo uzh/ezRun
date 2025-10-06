@@ -1,17 +1,17 @@
 ---
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-author: "Functional Genomics Center Zurich"
 output: 
   html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
-     in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
-    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+# {.tabset}
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
@@ -33,15 +33,14 @@ expression = dyno_dataset$expression
 clusters=object$ident
 ```
 
-## Trajectory analysis {.tabset}
-
 <br/>
 Cells differentiation was modeled using trajectory inference (TI) methods (also known as pseudotemporal ordering methods), which use single-cell profiles from a population in which the cells are at different unknown points in the dynamic process. These methods computationally order the cells along a trajectory topology, which can be linear, bifurcating, or a more complex tree or graph structure. Because TI methods offer an unbiased and transcriptome-wide understanding of a dynamic process,they allow the objective identification of new subsets of cells, delineation of a differentiation tree, and inference of regulatory interaction responsible for one or more bifurcations.
 
 A key characteristic of TI methods is the selection of prior information that a method requires or can optionally exploit. Prior information can be supplied as a starting cell from which the trajectory will originate, a set of important marker genes, or even a grouping of cells into cell states. Providing prior information to a TI method can be both a blessing and a curse. In one way, prior information can help the method to find the correct trajectory among many, equally likely, alternatives. On the other hand,incorrect or noisy prior information can bias the trajectory towards current knowledge.
 <br/>
 
-### Method selection
+## Method selection
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 <br/>
 As the performance of a method most heavily depends on the topology of the trajectory,the choice of TI method will be primarily influenced by the user’s existing knowledge about the expected topology in the data. We therefore show a set of practical guidelines, which combines the method’s performance, user friendliness and the number of assumptions a user is willing to make about the topology of the trajectory. The guidelines are based on an evaluation study ^[ A comparison of single-cell trajectory inference methods Helena Todorov, Yvan Saeys.Nat Biotech (Apr. 2019) doi:10.1038/s41587-019-0071-9] that compared 45 methods on four aspects:
@@ -72,7 +71,7 @@ for(i in 1:nrow(model)) {
 ```
 
 
-### Dimensionality reduction
+## Dimensionality reduction
 
 ```{r methods selection, eval=param$TI_method=="none", results='asis'}
 cat("The performance of a method depends on many factors, mainly the dimensions of the data and the kind of trajectory present in the data. Based on this, we selected the 2 most optimal set of methods for the analysis.")
@@ -152,7 +151,7 @@ for(i in 1:nrow(model)){
 ```
 
 
-### Differential expression
+## Differential expression
 
 Different kinds of differential expression on the trajectories were calculated:
 
@@ -234,7 +233,7 @@ if(nrow(branch_point_feature_importance) > 0) {
 }
 ```
 
-### Data availability
+## Data availability
 
 ##### Genes that change anywhere in the trajectory
 
@@ -248,13 +247,13 @@ if(nrow(branch_point_feature_importance) > 0) {
 
 [branch_point_feature_importance](branch_point_feature_importance.tsv)
 
-### Parameters
+## Parameters
 ```{r report parameters, echo=FALSE}
 param[c("start_id", "end_id", "start_n","end_n", "TI_method", "root_expression", "show_genes", "diff_Branch", "diff_Branch_Point")]
 ```
 
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```

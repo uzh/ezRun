@@ -11,10 +11,8 @@ editor_options:
   chunk_output_type: inline
 ---
 
-
 # {.tabset}
 
-## Summary
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -22,7 +20,6 @@ library(plotly)
 library(kableExtra)
 ```
 
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
 
 ```{r, echo=FALSE, message=FALSE}
@@ -53,6 +50,8 @@ ezInteractiveTableRmd(values=mySummary)
 ```
 
 ## Sample Stats
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(values=result)
 ```

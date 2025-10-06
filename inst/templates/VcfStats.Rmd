@@ -1,25 +1,27 @@
 ---
-title: "`r paste('VcfStats:', param$name)`"
-author: "Functional Genomics Center Zurich"
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
 output: 
   html_document:
-    self_contained: false
-    lib_dir: rmarkdownLib
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
     includes:
-      in_header: fgcz_header.html
-    css: fgcz.css
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
 ---
+
+# {.tabset}
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(plotly)
 library(magrittr)
 ```
-Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-## VcfStats_Result {.tabset}
 
-### Number of SNPs
+## Number of SNPs
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r SNP counts, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
 data <- read.table(snp_counts, sep="\t", skip=2)
@@ -28,7 +30,7 @@ samples <- gsub("samples/", "", data$Sample)
 plot_ly(data, x = samples, y = data$Counts)
 ```
 
-### Private/Shared SNPs
+## Private/Shared SNPs
 
 ```{r Private SNPs, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
 data <- read.table(private_snp_counts, sep="\t", skip=1)
@@ -46,7 +48,7 @@ fig <- fig %>% layout(title = 'Shared SNPs', yaxis = list(title = 'Count'), xaxi
 fig
 ```
 
-### Transisions/Transversions
+## Transisions/Transversions
 
 ```{r tstv, fig.width=8, fig.height=5, echo=FALSE, message=FALSE, warning=FALSE}
 data <- read.table(tstv, sep="\t", skip=1)
@@ -56,12 +58,12 @@ fig <- fig %>% layout(yaxis = list(title = 'ts/tv'), xaxis=list(title=''))
 fig
 ```
 
-### Input Dataset
+## Input Dataset
 ```{r, echo=FALSE, message=FALSE}
 ezInteractiveTableRmd(values=ans4Report[["dataset"]])
 ```
 
-### SessionInfo
+## SessionInfo
 ```{r, echo=FALSE}
 ezSessionInfo()
 ```
