@@ -39,12 +39,10 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
 
   ezSystem(cmd)
   
-  writeAtacIgvSession(jsonFile= poste0(outFolder, "/igv_session.json"), bigwigPath=file.path(outFolder, "bwa/merged_library/bigwig/"),
-                      baseURl=file.path(PROJECT_BASE_URL, output$getColumn("ATAC_Result")))
-  ## TODO write igv json file here
+  writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/bwa/merged_library/bigwig/",
+                      baseURl = file.path(PROJECT_BASE_URL, output$getColumn("ATAC_Result")))
   
-  
-  
+
   if(param[['runTwoGroupAnalysis']]){
     library(DESeq2)
     nfCoreOutDir <- paste0(param$name, '_results', '/bwa/merged_replicate/macs2/', param$peakStyle, '_peak/consensus')
@@ -166,8 +164,32 @@ cleanupOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
   cat(paste0("Deleted subdirectory: ",dirsToRemove, "\n"))
 }
 
-writeAtacIgvSession <- function(jsonFile){
-  
-}
-## TODO write igv json file here
+writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, baseURl){
+  bigwigPath=file.path(outFolder, bigwigRelPath)
 
+  bigwigFiles <- dir(path=bigwigPath, pattern="*.bigWig$")
+  
+  refBuildName = param$ezRef@refBuildName
+  refUrlBase = file.path(REF_HOST, param$ezRef@refBuild)
+  fastaUrl = sub("Annotation.*", "Sequence/WholeGenomeFasta/genome.fa", refUrlBase)
+  faiUrl = paste0(fastaUrl, ".fai")
+
+  bigwigFiles <- dir(path=bigwigPath, pattern="*.bigWig$")
+  tracks <- list()
+  tracks[[1]] <- list(type=	"sequence")
+  for (i in 1:length(bigwigFiles)){
+    tracks[[i+1]] <- list(id = "samplename_bigwig",
+                          url = paste0(baseURl,file.path(bigwigRelPath, bigwigFiles[[i]])),
+                          format =	"bigWig",
+                          name	= "samplename_bigwig")
+
+  }
+
+  jsonLines <- list( version =	"3.5.3",
+                     showSampleNames = FALSE,
+                     reference = list(id = refBuildName , fastaUrl = fastaUrl, indexURL = faiUrl),
+                     tracks = tracks
+  )
+  jsonFile <- rjson::toJSON(jsonLines, indent=5, method="C")
+  write(jsonFile, jsonFileName)
+}
