@@ -49,6 +49,7 @@ library(Banksy)
 
 k_geom <- 50 #Local neighborhood size. Larger values will yield larger domains
 lambda <- 0.8 #Influence of the neighborhood. Larger values yield more spatially coherent domains
+assay_sc <- "Spatial.016um"
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
@@ -1066,14 +1067,13 @@ if (length(genesToPlot) > 0){
 ## Niches
 
 
-
 ```{r runBanksy, echo=F, message=F, warning=F}
 
 
-banksyObj <- RunBanksy(scData,
+scData <- RunBanksy(scData,
                     lambda = lambda, 
                     verbose = TRUE,
-                    assay = "Spatial.016um", 
+                    assay = assay_sc, 
                     slot = "data", 
                     features = "variable",
                     k_geom = k_geom
@@ -1084,12 +1084,12 @@ banksyObj <- RunBanksy(scData,
 
 ```{r banksy PCA, echo=F, message=F, warning=F}
 
-DefaultAssay(banksyObj) <- "BANKSY"
+DefaultAssay(scData) <- "BANKSY"
 
-banksyObj <- RunPCA(banksyObj, 
+scData <- RunPCA(scData, 
                  assay = "BANKSY", 
                  reduction.name = "pca.banksy", 
-                 features = rownames(banksyObj), 
+                 features = rownames(scData), 
                  npcs = param$npcs)
 
 
@@ -1097,14 +1097,14 @@ banksyObj <- RunPCA(banksyObj,
 
 ```{r neighbors, echo=F, message=F, warning=F}
 
-banksyObj <- FindNeighbors(banksyObj, 
+scData <- FindNeighbors(scData, 
                            reduction = "pca.banksy", 
                            dims = 1:30)
 
 ```
 
 ```{r find clusters, echo=F, message=F, warning=F}
-banksyObj <- FindClusters(banksyObj, 
+scData <- FindClusters(scData, 
                           cluster.name = "banksy_cluster", 
                           resolution = param$resolution,
                           verbose = F)
@@ -1117,12 +1117,12 @@ banksyObj <- FindClusters(banksyObj,
 `r paste("Resolution:", param$resolution)`
 
 ```{r banksy plot spatial, fig.width=6, fig.height=6}
-Idents(banksyObj) <- "banksy_cluster"
+Idents(scData) <- "banksy_cluster"
 
-n_clusters_banksy <- nlevels(Idents(banksyObj))
+n_clusters_banksy <- nlevels(Idents(scData))
 show_leg_banksy   <- n_clusters <= 20
 
-p_spatialNiches <- SpatialDimPlot(banksyObj, 
+p_spatialNiches <- SpatialDimPlot(scData, 
                     group.by = "banksy_cluster", 
                     label = T, 
                     repel = T, 
@@ -1138,9 +1138,9 @@ p_spatialNiches
 
 
 ```{r, fig.width=20, fig.height=20}
-banksy_cells <- CellsByIdentities(banksyObj)
+banksy_cells <- CellsByIdentities(scData)
 
-p_niches <- SpatialDimPlot(banksyObj,
+p_niches <- SpatialDimPlot(scData,
                            cells.highlight = banksy_cells[setdiff(names(banksy_cells), "NA")], 
                            cols.highlight = c("#FFFF00", 
                                               "grey50"), 
