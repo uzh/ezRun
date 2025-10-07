@@ -1055,7 +1055,100 @@ if (length(genesToPlot) > 0){
 }
 ```
 
+## Niches
 
+
+
+```{r runBanksy, echo=F, message=F, warning=F}
+
+library(SeuratWrappers)
+library(Banksy)
+
+#put to params
+
+k_geom <- 50 #Local neighborhood size. Larger values will yield larger domains
+lambda <- 0.8 #Influence of the neighborhood. Larger values yield more spatially coherent domains
+
+banksyObj <- RunBanksy(scData,
+                    lambda = lambda, 
+                    verbose = TRUE,
+                    assay = "Spatial.016um", 
+                    slot = "data", 
+                    features = "variable",
+                    k_geom = k_geom
+                    )
+
+
+```
+
+```{r banksy PCA, echo=F, message=F, warning=F}
+
+DefaultAssay(banksyObj) <- "BANKSY"
+
+banksyObj <- RunPCA(banksyObj, 
+                 assay = "BANKSY", 
+                 reduction.name = "pca.banksy", 
+                 features = rownames(banksyObj), 
+                 npcs = param$npcs)
+
+
+```
+
+```{r neighbors, echo=F, message=F, warning=F}
+
+banksyObj <- FindNeighbors(banksyObj, 
+                           reduction = "pca.banksy", 
+                           dims = 1:30)
+
+```
+
+```{r find clusters, echo=F, message=F, warning=F}
+banksyObj <- FindClusters(banksyObj, 
+                          cluster.name = "banksy_cluster", 
+                          resolution = param$resolution,
+                          verbose = F)
+```
+
+
+
+#### Analysis using "local neighborhood size" and "influence of the neighborhood"
+
+`r paste("Resolution:", param$resolution)`
+
+```{r banksy plot spatial, fig.width=6, fig.height=6}
+Idents(banksyObj) <- "banksy_cluster"
+
+n_clusters_banksy <- nlevels(Idents(banksyObj))
+show_leg_banksy   <- n_clusters <= 20
+
+p_spatialNiches <- SpatialDimPlot(banksyObj, 
+                    group.by = "banksy_cluster", 
+                    label = T, 
+                    repel = T, 
+                    label.size = 4) +
+  
+  labs(fill = "Clusters") +
+  guides(fill = if (show_leg_banksy) guide_legend(title = "Clusters") else "none")
+
+p_spatialNiches
+```
+
+
+
+
+```{r, fig.width=20, fig.height=20}
+banksy_cells <- CellsByIdentities(banksyObj)
+
+p_niches <- SpatialDimPlot(banksyObj,
+                           cells.highlight = banksy_cells[setdiff(names(banksy_cells), "NA")], 
+                           cols.highlight = c("#FFFF00", 
+                                              "grey50"), 
+                           facet.highlight = T, 
+                           combine = T) + 
+  NoLegend()
+
+p_niches
+```
 
 ## EnrichR
 
@@ -1225,4 +1318,6 @@ ezListAsKable(param[c("binSize",
 format(Sys.time(), '%Y-%m-%d %H:%M:%S')
 ezSessionInfo()
 ```
+
+
 
