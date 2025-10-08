@@ -47,7 +47,9 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   sampleCountFiles <- writePerSampleCountFiles(nfSampleInfo, countDir=paste0(outFolder, "/bwa/merged_library/macs2/", param$peakStyle, "_peak/consensus/"))
   
   writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/bwa/merged_library/bigwig/",
-                      baseURl = file.path(PROJECT_BASE_URL, output$getColumn("ATAC_Result")))
+                      baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("ATAC_Result")))
+  writeHtmlWrapper(input$getColumn("IGV"), 
+                   igvAppLink = paste0("https://igv.org/app/?sessionURL=", PROJECT_BASE_URL, "/", outFolder, "/igv_session.json"))
   
 
   if(param[['runTwoGroupAnalysis']]){
@@ -153,6 +155,31 @@ writePerSampleCountFiles <- function(nfSampleInfo, countDir="."){
 
 
 
+writeHtmlWrapper <- function(htmlFile, igvAppLink){
+  library(htmltools)
+  
+  page <- htmlTemplate(
+    text_ = "
+  <!DOCTYPE html>
+  <html>
+    <head><title>{{title}}</title></head>
+    <body>
+      <h1>{{header}}</h1>
+      <a href={{igvAppLink}}>{{igvAppLink}}</a>
+    </body>
+  </html>
+  ",
+    title = "IGV Starter",
+    header = "IGV Starter Link",
+    igvAppLink = igvAppLink
+  )
+  
+  # Save to file
+  save_html(page, htmlFile)
+  
+}
+
+
 getDdsFromConcensusPeaks <- function(output, param, grouping){
   nfCoreOutDir <- paste0(param$name, '_results', '/bwa/merged_replicate/macs2/', 
                          param$peakStyle, '_peak/consensus')
@@ -184,7 +211,7 @@ cleanupOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
   cat(paste0("Deleted subdirectory: ",dirsToRemove, "\n"))
 }
 
-writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, baseURl){
+writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, baseUrl){
   bigwigPath=file.path(outFolder, bigwigRelPath)
 
   bigwigFiles <- dir(path=bigwigPath, pattern="*.bigWig$")
@@ -199,7 +226,7 @@ writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, b
   tracks[[1]] <- list(type=	"sequence")
   for (i in 1:length(bigwigFiles)){
     tracks[[i+1]] <- list(id = "samplename_bigwig",
-                          url = paste0(baseURl,file.path(bigwigRelPath, bigwigFiles[[i]])),
+                          url = paste0(baseUrl,file.path(bigwigRelPath, bigwigFiles[[i]])),
                           format =	"bigWig",
                           name	= "samplename_bigwig")
 
