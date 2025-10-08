@@ -31,8 +31,8 @@ EzAppScSeuratCombine <-
                                                            DefaultValue=0.6,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         integrationMethod=ezFrame(Type="character", 
-                                                                  DefaultValue="CCA", 
-                                                                  Description="Choose integration method in Seurat (CCA or RPCA)"),
+                                                                  DefaultValue="Harmony", 
+                                                                  Description="Choose integration method in Seurat (Harmony, CCA, RPCA)"),
                                         enrichrDatabase=ezFrame(Type = "charVector", 
                                                                 DefaultValue = "", 
                                                                 Description="enrichR databases to search"),
@@ -128,19 +128,9 @@ ezMethodScSeuratCombine = function(input=NA, output=NA, param=NA, htmlFile="00in
       }
     }
     # Harmony will complain if the Condition is the same across all samples
-    if (param$integrationMethod == "Harmony" && 
+    if (param$integrationMethod == "Harmony" &&
         length(unique(input$meta$`Condition`)) == 1) {
       scData$Condition <- scData$Sample
-    } else if (ezIsSpecified(param$STACASAnnotationFile)) {
-      clusterAnnoFn <- file.path(param$dataRoot, param$STACASAnnotationFile)
-      clusterAnno <- readxl::read_xlsx(clusterAnnoFn) %>% 
-        as_tibble() %>%
-        dplyr::select(1:3) %>% # remove all other columns
-        dplyr::rename(c("Sample"=1, "Cluster"=2, "ClusterLabel"=3)) %>%
-        dplyr::filter(Sample == sm)
-      labelMap <- as.character(clusterAnno$ClusterLabel)
-      names(labelMap) <- as.character(clusterAnno$Cluster)
-      scData$stacasLabelColumn <- unname(labelMap[as.character(Idents(scData))])
     }
     # Also add the other factors in the input dataset to the objects
     if (ezIsSpecified(param$additionalFactors)) {
