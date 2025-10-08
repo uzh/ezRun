@@ -202,52 +202,35 @@ buildRefDir <- function(x, genomeFile, genesFile=NULL, keepOriginalIDs = FALSE){
 
 ##' @describeIn listBiotypes returns the Ensembl gene_biotypes according to more general groups.
 listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
-                                  "short_noncoding", "rRNA", "tRNA", "Mt_tRNA", "Mt_rRNA", "pseudogene",
-                                  "all")){
+                                  "short_noncoding", "rRNA", "tRNA", "Mt_tRNA", 
+                                  "Mt_rRNA", "pseudogene", "all")) {
+  require(yaml)
+  
   ## Based on http://www.ensembl.org/Help/Faq?id=468
   ## http://vega.archive.ensembl.org/info/about/gene_and_transcript_types.html
   ## http://www.ensembl.org/Help/Glossary
   select <- match.arg(select)
-  ## The following are from Ensembl glossary
-  proteinCoding <- c("IG_C_gene", "IG_D_gene", "IG_J_gene", "IG_LV_gene",
-                     "IG_M_gene", "IG_V_gene", "IG_Z_gene",
-                     "nonsense_mediated_decay", "nontranslating_CDS",
-                     "non_stop_decay", "polymorphic_pseudogene",
-                     "protein_coding", "TR_C_gene", "TR_D_gene", "TR_gene",
-                     "TR_J_gene", "TR_V_gene",
-                     "TEC")
-  pseudogene <- c("disrupted_domain", "IG_C_pseudogene", "IG_J_pseudogene",
-                  "IG_pseudogene", "IG_V_pseudogene", "processed_pseudogene",
-                  "pseudogene", "transcribed_processed_pseudogene",
-                  "transcribed_unprocessed_pseudogene",
-                  "translated_processed_pseudogene",
-                  "translated_unprocessed_pseudogene", "TR_J_pseudogene",
-                  "TR_V_pseudogene", "unitary_pseudogene",
-                  "unprocessed_pseudogene",
-                  "transcribed_unitary_pseudogene",
-                  "miRNA_pseudogene", "misc_RNA_pseudogene",
-                  "Mt_tRNA_pseudogene", "rRNA_pseudogene",
-                  "scRNA_pseudogene", "snRNA_pseudogene",
-                  "snoRNA_pseudogene", "tRNA_pseudogene",
-                  "IG_D_pseudogene", "transposable_element")
-  lnc <- c("3prime_overlapping_ncrna", "ambiguous_orf", "antisense", "antisense_RNA" ,"lincRNA",
-           "ncrna_host", "non_coding", "processed_transcript",
-           "retained_intron", "sense_intronic", "sense_overlapping",
-           "3prime_overlapping_ncRNA", "bidirectional_promoter_lncRNA",
-           "macro_lncRNA", "lncRNA")
-  shnc <- c("miRNA", "misc_RNA", "piRNA",
-            "Mt_rRNA", "Mt_tRNA", "ncRNA", "pre_miRNA",
-            "RNase_MRP_RNA", "RNase_P_RNA", "rRNA",
-            "snlRNA", "snoRNA",
-            "snRNA", "SRP_RNA", "tmRNA", "tRNA",
-            "scaRNA", "scRNA", "sRNA", "ribozyme", "vaultRNA", "vault_RNA", "Y_RNA")
+  
+  ## Load biotype mappings from YAML configuration file
+  configFile <- system.file("extdata", "biotypes.yml", package="ezRun")
+  if (!file.exists(configFile)) {
+    stop("Biotypes configuration file not found at: ", configFile)
+  }
+  biotypesConfig <- read_yaml(configFile)
+  
+  ## Extract biotype categories from config
+  proteinCoding <- biotypesConfig$protein_coding
+  pseudogene <- biotypesConfig$pseudogene
+  lnc <- biotypesConfig$long_noncoding
+  shnc <- biotypesConfig$short_noncoding
+  
   unionBiotypes <- unique(c(proteinCoding, pseudogene, lnc, shnc))
   ## genes.gtf
   genes <- unique(c(setdiff(unionBiotypes, pseudogene),
                     grep("transcribed", pseudogene, value=TRUE)
-                    )
-                  )
-
+  )
+  )
+  
   types <- switch(select,
                   "genes"=genes,
                   "protein_coding"=proteinCoding,
@@ -259,7 +242,7 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
                   "Mt_tRNA"=c("Mt_tRNA"),
                   "Mt_rRNA"=c("Mt_rRNA"),
                   "all"=unionBiotypes
-                  )
+  )
   return(types)
 }
 
