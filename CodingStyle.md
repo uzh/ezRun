@@ -1,15 +1,17 @@
 # Coding Style
 
 ## General Rules
+
 Basic paradigms:
 
 * follow the tidyverse-style: https://style.tidyverse.org/
 * use the RStudio Addin to style code: https://github.com/r-lib/styler
-* only use ascii characters in all files; neve use Umlaut and other characters
+* only use ASCII characters in all files; never use Umlaut and other characters
 * in any file: All names and comments must be based on English
 * useful suggestions from Sarah Johnson: https://gist.github.com/sj-io/3828d64d0969f2a0f05297e59e6c15ad
 
-
+Formatting:
+* The tab spacing must be 2
 
 ## Naming
 
@@ -19,7 +21,6 @@ Basic paradigms:
 ** counting variables: `nSamples`, `nReads`
 ** use plural in vectors and matrices: `reads`
 
-
 ## Conventions
 
 * always use curly braces also for very simple `if` statements
@@ -28,7 +29,6 @@ Basic paradigms:
 * never access columns/rows by hard-coded indices, be aware that column or row ordering may change, use column or row names if possible
 * never user `for (i in 1:length(x))`, if the length of `x` is zero, this fails, always use `for (i in seq_along(x))`
 
-
 ## Functions
 
-Named functions should never rely on a variable of the parent environment. Only exception should be anonymous functions.
+* Named functions should never rely on a variable of the parent environment. Only exception should be anonymous functions.
