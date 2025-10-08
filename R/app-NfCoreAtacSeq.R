@@ -7,17 +7,20 @@
 
 
 ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
-  sampleDataset = getAtacSampleSheet(input, param)
   refbuild = param$refBuild
   outFolder = output$getColumn("ATAC_Result") |> basename()
   
   fullGenomeSize <- param$ezRef@refFastaFile %>% Rsamtools::FaFile() %>% GenomeInfoDb::seqlengths() %>% sum()
   effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
 
+  nfSampleFile <- file.path('dataset.csv')
+  nfSampleInfo = getAtacSampleSheet(input, param)
+  write_csv(nfSampleInfo, csvPath)
+  
   cmd = paste(
     "nextflow run nf-core/atacseq",
      ## i/o
-    "--input", sampleDataset,
+    "--input", nfSampleFile,
     "--outdir", outFolder,
     ## genome files
     "--fasta", param$ezRef@refFastaFile,
@@ -35,9 +38,13 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     "-r 2.1.2" #,
     # "-resume"  ## for testing
   )
-  
-
   ezSystem(cmd)
+  ## multiple fastq files per library have been merged by the processing (if any)
+  ## now we work with the library names and reduce the dataset
+  nfSampleInfo$libName <- paste0(nfSampleInfo$sample, "_REP", nfSampleInfo$replicate)
+  nfSampleInfo <- nfSampleInfo[!duplicated(nfSampleInfo$sid), ]
+  
+  sampleCountFiles <- writePerSampleCountFiles(nfSampleInfo, countDir=paste0(outFolder, "/bwa/merged_library/macs2/", param$peakStyle, "_peak/consensus/"))
   
   writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/bwa/merged_library/bigwig/",
                       baseURl = file.path(PROJECT_BASE_URL, output$getColumn("ATAC_Result")))
@@ -100,7 +107,6 @@ getAtacSampleSheet <- function(input, param){
     stop("No conditions detected. Please add them in the dataset before calling NfCoreAtacSeqApp.")
 
 
-  csvPath <- file.path('dataset.csv')
   listFastq1 <- input$getFullPathsList("Read1")
   listFastq2 <- input$getFullPathsList("Read2")
   
@@ -111,7 +117,6 @@ getAtacSampleSheet <- function(input, param){
     replicate = rep(ezReplicateNumber(input$getColumn(param$grouping)), lengths(listFastq1)),
     sid = rep(input$getNames(), lengths(listFastq1))
   )
-  write_csv(nfSampleInfo, csvPath)
   
   # input$meta |> 
   #   arrange(`Condition [Factor]`, `Read1 [File]`, `Read2 [File]`) |>
@@ -130,8 +135,23 @@ getAtacSampleSheet <- function(input, param){
   #          fastq_2 = replace(fastq_2, sid %in% names(input$getFullPaths('Read2')), input$getFullPaths('Read2')[sid])) |>
   #   write_csv(csvPath)
 
-  return(csvPath)
+  return(nfSampleInfo)
 }
+
+writePerSampleCountFiles <- function(nfSampleInfo, countDir="."){
+  libColumnNames <- paste0(nfSampleInfo$libName, ".mLb.clN.sorted.bam")
+  sampleNames <- nfSampleInfo$sid
+  sampleCountFiles <- paste0(countDir, "/", sampleNames, ".txt")
+  annoColumnNames <- c("Geneid", "Chr", "Start", "End", "Strand", "Length")
+  x <- data.table::fread(file.path(countDir, "consensus_peaks.mLb.clN.featureCounts.txt"))
+  for (i in 1:nrow(nfSampleInfo)){
+    xSel <- x[ , c(annoColumnNames, libColumnNames[i])] |> dplyr::rename(!!libColumnNames[i] := !!sampleNames[i])
+    ezWrite.table(xSel, file=sampleCountFiles[i])
+  }
+  return(sampleCountFiles)
+}
+
+
 
 getDdsFromConcensusPeaks <- function(output, param, grouping){
   nfCoreOutDir <- paste0(param$name, '_results', '/bwa/merged_replicate/macs2/', 
