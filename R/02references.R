@@ -30,16 +30,16 @@
 ##' seqAnno = writeAnnotationFromGtf(param=param)
 ## featureFile=param$ezRef["refFeatureFile"], featAnnoFile=param$ezRef["refAnnotationFile"])
 setClass("EzRef", slots = c(refBuild="character",
-                           refBuildName="character",
-                           refBuildDir="character",
-                           refIndex="character",
-                           refFeatureFile="character",
-                           refAnnotationFile="character",
-                           refFastaFile="character",
-                           refChromSizesFile="character",
-                           refAnnotationVersion="character",
-                           refVariantsDir="character")
-                 )
+                            refBuildName="character",
+                            refBuildDir="character",
+                            refIndex="character",
+                            refFeatureFile="character",
+                            refAnnotationFile="character",
+                            refFastaFile="character",
+                            refChromSizesFile="character",
+                            refAnnotationVersion="character",
+                            refVariantsDir="character")
+)
 
 ##' @describeIn EzRef Initializes the slots of EzRef. It will also try to specify some fields and if necessary get full file paths.
 EzRef <- function(param){
@@ -104,13 +104,13 @@ EzRef <- function(param){
     refFastaFile <- file.path(refBuildDir, param$refFastaFile)
   }
   refChromSizesFile <- str_replace(refFastaFile, "\\.fa$", "-chromsizes.txt")
-
+  
   new("EzRef", refBuild=refBuild, refBuildName=refBuildName,
       refBuildDir=refBuildDir, refVariantsDir=refVariantsDir,
       refAnnotationVersion=refAnnotationVersion, refIndex=refIndex,
       refAnnotationFile=refAnnotationFile, refFeatureFile=refFeatureFile,
       refFastaFile=refFastaFile, refChromSizesFile=refChromSizesFile
-      )
+  )
 }
 
 ##' @describeIn EzRef Access of slots by name with square brackets [ ]
@@ -132,7 +132,7 @@ buildRefDir <- function(x, genomeFile, genesFile=NULL, keepOriginalIDs = FALSE){
   # x is EzRef object
   require(rtracklayer)
   require(Rsamtools)
-
+  
   gtfPath <- dirname(x@refFeatureFile)
   fastaPath <- dirname(x@refFastaFile)
   dir.create(gtfPath, recursive=TRUE)
@@ -142,7 +142,7 @@ buildRefDir <- function(x, genomeFile, genesFile=NULL, keepOriginalIDs = FALSE){
     file.symlink(file.path(x@refAnnotationVersion, "Genes"),
                  file.path(x@refBuildDir, "Annotation", "Genes"))
   }
-
+  
   ## fasta
   genome <- readBStringSet(genomeFile)
   ### remove everything after chr id
@@ -162,7 +162,7 @@ buildRefDir <- function(x, genomeFile, genesFile=NULL, keepOriginalIDs = FALSE){
                "-R", x@refFastaFile, "-O", dictFile)
   ezSystem(cmd)
   
-
+  
   if (!is.null(genesFile)){  
     ## 2 GTF files:
     ### features.gtf
@@ -248,7 +248,7 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
 
 buildIgvGenome <- function(x){
   # x is a EzRef object
-
+  
   ## create transcript.only.gtf
   gtfFile <- x@refFeatureFile
   genomeFile <- x@refFastaFile
@@ -267,18 +267,18 @@ buildIgvGenome <- function(x){
     message("Could not load features. Copy the annotation file instead.")
     file.copy(gtfFile, trxFile)
   })
-
+  
   ## sort and index genes.gtf
   sortedGtfFile <- file.path(dirname(gtfFile), "genes.sorted.gtf")
   cmd <- paste("igvtools", "sort", gtfFile, sortedGtfFile)
   ezSystem(cmd)
   cmd <- paste("igvtools", "index", sortedGtfFile)
   ezSystem(cmd)
-
+  
   ## make chrom_alias.tab
   chromFile <- file.path(x@refBuildDir, "chrom_alias.tab")
   write_lines(fasta.index(genomeFile)$desc, chromFile)
-
+  
   ## make property.txt
   propertyFile <- file.path(x@refBuildDir, "property.txt")
   id <- x@refBuildName
@@ -287,9 +287,9 @@ buildIgvGenome <- function(x){
   properties <- c(properties, str_c("id=", id), str_c("name=", name),
                   str_c("sequenceLocation=", genomeFileURL))
   properties <- c(properties, "geneFile=transcripts.only.gtf",
-                 "chrAliasFile=chrom_alias.tab")
+                  "chrAliasFile=chrom_alias.tab")
   write_lines(properties, propertyFile)
-
+  
   ## make zip file and clean up
   zipFile <- paste0("igv_", id, ".genome")
   filesToZip <- c(trxFile, chromFile, propertyFile)
@@ -320,12 +320,12 @@ makeBiomartFile <- function(gtf){
   require(jsonlite)
   require(xml2)
   require(GO.db)
-
+  
   server <- "http://rest.ensembl.org"
-
+  
   txids <- unique(na.omit(gtf$transcript_id))
   tb0 <- tibble("Transcript stable ID"=txids)
-
+  
   ## txid, GO ID
   goList <- list()
   for(txid in txids){
@@ -338,13 +338,13 @@ makeBiomartFile <- function(gtf){
   tb1 <- as_tibble(tb1) %>% mutate(ind=as.character(ind)) %>%
     rename("Transcript stable ID"=ind,
            "GO term accession"=values)
-
-
+  
+  
   ## txid, gene name
   tb2 <- mcols(gtf)[ ,c("gene_name", "transcript_id")]
   tb2 <- as_tibble(tb2) %>% filter(!is.na(transcript_id)) %>%
     rename("Transcript stable ID"=transcript_id, "Gene description"=gene_name)
-
+  
   ## GO ID, GO domain
   # uniqueGOIDs <- unique(tb1$`GO term accession`)
   # goDomain <- setNames(character(length(uniqueGOIDs)), uniqueGOIDs)
@@ -364,7 +364,7 @@ makeBiomartFile <- function(gtf){
                                               "MF"="molecular_function",
                                               "CC"="cellular_component")[ONTOLOGY])
   tb3 <- rename(tb3, "GO term accession"=GOID, "GO domain"=ONTOLOGY)
-
+  
   tb <- left_join(left_join(left_join(tb0, tb1), tb2), tb3)
   tb <- dplyr:: select(tb, `Transcript stable ID`, `Gene description`,
                        `GO term accession`, `GO domain`)
