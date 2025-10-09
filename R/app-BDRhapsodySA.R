@@ -168,12 +168,6 @@ makeBdRhapRefYmlFile <- function(fasta_path, gtf_path, archive_prefix, param) {
   return(bdYaml)
 }
 
-getFastqDirs <- function(input, column, sampleName) {
-  fastqDirs <- strsplit(input$getColumn(column), ",")[[sampleName]]
-  fastqDirs <- file.path(input$dataRoot, fastqDirs)
-  return(fastqDirs)
-}
-
 getBdWtaReference <- function(param) {
   require(rtracklayer)
   cwd <- getwd()

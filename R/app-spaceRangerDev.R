@@ -230,8 +230,3 @@ ezMethodSpaceRangerDev <- function(input=NA, output=NA, param=NA){
   return("Success")
 }
 
-getFastqDirs <- function(input, column, sampleName) {
-  fastqDirs <- strsplit(input$getColumn(column), ",")[[sampleName]]
-  fastqDirs <- file.path(input$dataRoot, fastqDirs)
-  return(fastqDirs)
-}
