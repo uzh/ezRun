@@ -5,14 +5,14 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-EzAppSpaceRanger <-
-  setRefClass("EzAppSpaceRanger",
+EzAppSpaceRangerDev <-
+  setRefClass("EzAppSpaceRangerDev",
               contains = "EzApp",
               methods = list(
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodSpaceRanger
+                  runMethod <<- ezMethodSpaceRangerDev
                   name <<- "EzAppSpaceRanger"
                   appDefaults <<- rbind(controlSeqs=ezFrame(Type="charVector",
                                                             DefaultValue="",
@@ -42,7 +42,7 @@ EzAppSpaceRanger <-
               )
   )
 
-ezMethodSpaceRanger <- function(input=NA, output=NA, param=NA){
+ezMethodSpaceRangerDev <- function(input=NA, output=NA, param=NA){
   library(Seurat)
   sampleName <- input$getNames()
   
