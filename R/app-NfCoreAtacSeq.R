@@ -212,23 +212,21 @@ cleanupOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
 }
 
 writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, baseUrl){
-  bigwigPath=file.path(outFolder, bigwigRelPath)
-
-  bigwigFiles <- dir(path=bigwigPath, pattern="*.bigWig$")
-  
   refBuildName = param$ezRef@refBuildName
   refUrlBase = file.path(REF_HOST, param$ezRef@refBuild)
   fastaUrl = sub("Annotation.*", "Sequence/WholeGenomeFasta/genome.fa", refUrlBase)
   faiUrl = paste0(fastaUrl, ".fai")
 
+  bigwigPath=file.path(outFolder, bigwigRelPath)
   bigwigFiles <- dir(path=bigwigPath, pattern="*.bigWig$")
+  trackNames <- sapply(strsplit(bigwigFiles, "\\."), `[`, 1)
   tracks <- list()
   tracks[[1]] <- list(type=	"sequence")
   for (i in 1:length(bigwigFiles)){
-    tracks[[i+1]] <- list(id = "samplename_bigwig",
+    tracks[[i+1]] <- list(id = trackNames[[i]],
                           url = paste0(baseUrl,file.path(bigwigRelPath, bigwigFiles[[i]])),
                           format =	"bigWig",
-                          name	= "samplename_bigwig")
+                          name	= trackNames[[i]])
 
   }
 
