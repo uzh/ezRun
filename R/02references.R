@@ -30,16 +30,16 @@
 ##' seqAnno = writeAnnotationFromGtf(param=param)
 ## featureFile=param$ezRef["refFeatureFile"], featAnnoFile=param$ezRef["refAnnotationFile"])
 setClass("EzRef", slots = c(refBuild="character",
-                           refBuildName="character",
-                           refBuildDir="character",
-                           refIndex="character",
-                           refFeatureFile="character",
-                           refAnnotationFile="character",
-                           refFastaFile="character",
-                           refChromSizesFile="character",
-                           refAnnotationVersion="character",
-                           refVariantsDir="character")
-                 )
+                            refBuildName="character",
+                            refBuildDir="character",
+                            refIndex="character",
+                            refFeatureFile="character",
+                            refAnnotationFile="character",
+                            refFastaFile="character",
+                            refChromSizesFile="character",
+                            refAnnotationVersion="character",
+                            refVariantsDir="character")
+)
 
 ##' @describeIn EzRef Initializes the slots of EzRef. It will also try to specify some fields and if necessary get full file paths.
 EzRef <- function(param){
@@ -104,13 +104,13 @@ EzRef <- function(param){
     refFastaFile <- file.path(refBuildDir, param$refFastaFile)
   }
   refChromSizesFile <- str_replace(refFastaFile, "\\.fa$", "-chromsizes.txt")
-
+  
   new("EzRef", refBuild=refBuild, refBuildName=refBuildName,
       refBuildDir=refBuildDir, refVariantsDir=refVariantsDir,
       refAnnotationVersion=refAnnotationVersion, refIndex=refIndex,
       refAnnotationFile=refAnnotationFile, refFeatureFile=refFeatureFile,
       refFastaFile=refFastaFile, refChromSizesFile=refChromSizesFile
-      )
+  )
 }
 
 ##' @describeIn EzRef Access of slots by name with square brackets [ ]
@@ -132,7 +132,7 @@ buildRefDir <- function(x, genomeFile, genesFile=NULL, keepOriginalIDs = FALSE){
   # x is EzRef object
   require(rtracklayer)
   require(Rsamtools)
-
+  
   gtfPath <- dirname(x@refFeatureFile)
   fastaPath <- dirname(x@refFastaFile)
   dir.create(gtfPath, recursive=TRUE)
@@ -142,7 +142,7 @@ buildRefDir <- function(x, genomeFile, genesFile=NULL, keepOriginalIDs = FALSE){
     file.symlink(file.path(x@refAnnotationVersion, "Genes"),
                  file.path(x@refBuildDir, "Annotation", "Genes"))
   }
-
+  
   ## fasta
   genome <- readBStringSet(genomeFile)
   ### remove everything after chr id
@@ -162,7 +162,7 @@ buildRefDir <- function(x, genomeFile, genesFile=NULL, keepOriginalIDs = FALSE){
                "-R", x@refFastaFile, "-O", dictFile)
   ezSystem(cmd)
   
-
+  
   if (!is.null(genesFile)){  
     ## 2 GTF files:
     ### features.gtf
@@ -202,52 +202,35 @@ buildRefDir <- function(x, genomeFile, genesFile=NULL, keepOriginalIDs = FALSE){
 
 ##' @describeIn listBiotypes returns the Ensembl gene_biotypes according to more general groups.
 listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
-                                  "short_noncoding", "rRNA", "tRNA", "Mt_tRNA", "Mt_rRNA", "pseudogene",
-                                  "all")){
+                                  "short_noncoding", "rRNA", "tRNA", "Mt_tRNA", 
+                                  "Mt_rRNA", "pseudogene", "all")) {
+  require(yaml)
+  
   ## Based on http://www.ensembl.org/Help/Faq?id=468
   ## http://vega.archive.ensembl.org/info/about/gene_and_transcript_types.html
   ## http://www.ensembl.org/Help/Glossary
   select <- match.arg(select)
-  ## The following are from Ensembl glossary
-  proteinCoding <- c("IG_C_gene", "IG_D_gene", "IG_J_gene", "IG_LV_gene",
-                     "IG_M_gene", "IG_V_gene", "IG_Z_gene",
-                     "nonsense_mediated_decay", "nontranslating_CDS",
-                     "non_stop_decay", "polymorphic_pseudogene",
-                     "protein_coding", "TR_C_gene", "TR_D_gene", "TR_gene",
-                     "TR_J_gene", "TR_V_gene",
-                     "TEC")
-  pseudogene <- c("disrupted_domain", "IG_C_pseudogene", "IG_J_pseudogene",
-                  "IG_pseudogene", "IG_V_pseudogene", "processed_pseudogene",
-                  "pseudogene", "transcribed_processed_pseudogene",
-                  "transcribed_unprocessed_pseudogene",
-                  "translated_processed_pseudogene",
-                  "translated_unprocessed_pseudogene", "TR_J_pseudogene",
-                  "TR_V_pseudogene", "unitary_pseudogene",
-                  "unprocessed_pseudogene",
-                  "transcribed_unitary_pseudogene",
-                  "miRNA_pseudogene", "misc_RNA_pseudogene",
-                  "Mt_tRNA_pseudogene", "rRNA_pseudogene",
-                  "scRNA_pseudogene", "snRNA_pseudogene",
-                  "snoRNA_pseudogene", "tRNA_pseudogene",
-                  "IG_D_pseudogene", "transposable_element")
-  lnc <- c("3prime_overlapping_ncrna", "ambiguous_orf", "antisense", "antisense_RNA" ,"lincRNA",
-           "ncrna_host", "non_coding", "processed_transcript",
-           "retained_intron", "sense_intronic", "sense_overlapping",
-           "3prime_overlapping_ncRNA", "bidirectional_promoter_lncRNA",
-           "macro_lncRNA", "lncRNA")
-  shnc <- c("miRNA", "misc_RNA", "piRNA",
-            "Mt_rRNA", "Mt_tRNA", "ncRNA", "pre_miRNA",
-            "RNase_MRP_RNA", "RNase_P_RNA", "rRNA",
-            "snlRNA", "snoRNA",
-            "snRNA", "SRP_RNA", "tmRNA", "tRNA",
-            "scaRNA", "scRNA", "sRNA", "ribozyme", "vaultRNA", "vault_RNA", "Y_RNA")
+  
+  ## Load biotype mappings from YAML configuration file
+  configFile <- system.file("extdata", "biotypes.yml", package="ezRun")
+  if (!file.exists(configFile)) {
+    stop("Biotypes configuration file not found at: ", configFile)
+  }
+  biotypesConfig <- read_yaml(configFile)
+  
+  ## Extract biotype categories from config
+  proteinCoding <- biotypesConfig$protein_coding
+  pseudogene <- biotypesConfig$pseudogene
+  lnc <- biotypesConfig$long_noncoding
+  shnc <- biotypesConfig$short_noncoding
+  
   unionBiotypes <- unique(c(proteinCoding, pseudogene, lnc, shnc))
   ## genes.gtf
   genes <- unique(c(setdiff(unionBiotypes, pseudogene),
                     grep("transcribed", pseudogene, value=TRUE)
-                    )
-                  )
-
+  )
+  )
+  
   types <- switch(select,
                   "genes"=genes,
                   "protein_coding"=proteinCoding,
@@ -259,13 +242,13 @@ listBiotypes <- function(select=c("genes", "protein_coding", "long_noncoding",
                   "Mt_tRNA"=c("Mt_tRNA"),
                   "Mt_rRNA"=c("Mt_rRNA"),
                   "all"=unionBiotypes
-                  )
+  )
   return(types)
 }
 
 buildIgvGenome <- function(x){
   # x is a EzRef object
-
+  
   ## create transcript.only.gtf
   gtfFile <- x@refFeatureFile
   genomeFile <- x@refFastaFile
@@ -284,18 +267,18 @@ buildIgvGenome <- function(x){
     message("Could not load features. Copy the annotation file instead.")
     file.copy(gtfFile, trxFile)
   })
-
+  
   ## sort and index genes.gtf
   sortedGtfFile <- file.path(dirname(gtfFile), "genes.sorted.gtf")
   cmd <- paste("igvtools", "sort", gtfFile, sortedGtfFile)
   ezSystem(cmd)
   cmd <- paste("igvtools", "index", sortedGtfFile)
   ezSystem(cmd)
-
+  
   ## make chrom_alias.tab
   chromFile <- file.path(x@refBuildDir, "chrom_alias.tab")
   write_lines(fasta.index(genomeFile)$desc, chromFile)
-
+  
   ## make property.txt
   propertyFile <- file.path(x@refBuildDir, "property.txt")
   id <- x@refBuildName
@@ -304,9 +287,9 @@ buildIgvGenome <- function(x){
   properties <- c(properties, str_c("id=", id), str_c("name=", name),
                   str_c("sequenceLocation=", genomeFileURL))
   properties <- c(properties, "geneFile=transcripts.only.gtf",
-                 "chrAliasFile=chrom_alias.tab")
+                  "chrAliasFile=chrom_alias.tab")
   write_lines(properties, propertyFile)
-
+  
   ## make zip file and clean up
   zipFile <- paste0("igv_", id, ".genome")
   filesToZip <- c(trxFile, chromFile, propertyFile)
@@ -337,12 +320,12 @@ makeBiomartFile <- function(gtf){
   require(jsonlite)
   require(xml2)
   require(GO.db)
-
+  
   server <- "http://rest.ensembl.org"
-
+  
   txids <- unique(na.omit(gtf$transcript_id))
   tb0 <- tibble("Transcript stable ID"=txids)
-
+  
   ## txid, GO ID
   goList <- list()
   for(txid in txids){
@@ -355,13 +338,13 @@ makeBiomartFile <- function(gtf){
   tb1 <- as_tibble(tb1) %>% mutate(ind=as.character(ind)) %>%
     rename("Transcript stable ID"=ind,
            "GO term accession"=values)
-
-
+  
+  
   ## txid, gene name
   tb2 <- mcols(gtf)[ ,c("gene_name", "transcript_id")]
   tb2 <- as_tibble(tb2) %>% filter(!is.na(transcript_id)) %>%
     rename("Transcript stable ID"=transcript_id, "Gene description"=gene_name)
-
+  
   ## GO ID, GO domain
   # uniqueGOIDs <- unique(tb1$`GO term accession`)
   # goDomain <- setNames(character(length(uniqueGOIDs)), uniqueGOIDs)
@@ -381,7 +364,7 @@ makeBiomartFile <- function(gtf){
                                               "MF"="molecular_function",
                                               "CC"="cellular_component")[ONTOLOGY])
   tb3 <- rename(tb3, "GO term accession"=GOID, "GO domain"=ONTOLOGY)
-
+  
   tb <- left_join(left_join(left_join(tb0, tb1), tb2), tb3)
   tb <- dplyr:: select(tb, `Transcript stable ID`, `Gene description`,
                        `GO term accession`, `GO domain`)
