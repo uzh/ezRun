@@ -49,7 +49,7 @@ library(Banksy)
 
 k_geom <- 50 #Local neighborhood size. Larger values will yield larger domains
 lambda <- 0.8 #Influence of the neighborhood. Larger values yield more spatially coherent domains
-assay_sc <- "Spatial.016um"
+
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
@@ -1069,11 +1069,14 @@ if (length(genesToPlot) > 0){
 
 ```{r runBanksy, echo=F, message=F, warning=F}
 
+assaySCnames<- names(scData@assays) 
+visiumHDassays <- c("Spatial", "Spatial.016um", "Spatial.008um")
+assaySC <- intersect(visiumHDassays, assaySCnames)[1]
 
 scData <- RunBanksy(scData,
                     lambda = lambda, 
                     verbose = TRUE,
-                    assay = assay_sc, 
+                    assay = assaySC, 
                     slot = "data", 
                     features = "variable",
                     k_geom = k_geom
@@ -1112,7 +1115,46 @@ scData <- FindClusters(scData,
 
 
 
-#### Analysis using "local neighborhood size" and "influence of the neighborhood"
+#### Communities of spatially adjacent spots
+
+<details>
+  <summary>Niche defining</summary>
+
+```{r}
+banksy_niches <- tibble(
+  Concept = character(),
+  Definition = character(),
+  `Key params` = character(),
+  `Practical tip` = character()
+) |>
+  add_row(
+    Concept = "Niche (BANKSY cluster)",
+    Definition = "Community of spatially adjacent spots with neighborhood-smoothed expression.",
+    `Key params` = "k_geom, λ",
+    `Practical tip` = "Represents a tissue microenvironment."
+  ) |>
+  add_row(
+    Concept = "k_geom (local neighborhood size)",
+    Definition = "How many nearest spatial neighbors define a spot’s niche.",
+    `Key params` = "Integer (e.g., 6–12 for HD bins)",
+    `Practical tip` = "↑k = smoother/merge risk; ↓k = sharper/border-preserving."
+  ) |>
+  add_row(
+    Concept = "λ (neighbor influence)",
+    Definition = "How strongly neighbors affect each spot’s expression.",
+    `Key params` = "0–1 (start ≈ 0.4)",
+    `Practical tip` = "↑λ = denoise/over-smooth risk; ↓λ = crisp/possibly noisy."
+  ) |>
+  add_row(
+    Concept = "Outcome",
+    Definition = "Denoised matrix and niches that align with histology.",
+    `Key params` = "features = 'variable'",
+    `Practical tip` = "Validate on image & markers; adjust k_geom/λ as needed."
+  )
+
+ezKable(banksy_niches)
+```
+</details>
 
 `r paste("Resolution:", param$resolution)`
 
@@ -1126,7 +1168,10 @@ p_spatialNiches <- SpatialDimPlot(scData,
                     group.by = "banksy_cluster", 
                     label = T, 
                     repel = T, 
-                    label.size = 4) +
+                    label.size = 4
+                    # ,
+                    # interactive = T #to check on segmentation 
+                    ) +
   
   labs(fill = "Clusters") +
   guides(fill = if (show_leg_banksy) guide_legend(title = "Clusters") else "none")
