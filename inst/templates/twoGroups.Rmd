@@ -547,9 +547,8 @@ if (isTRUE(param$runGO)) {
           )
           enrichrTablePath <- paste0("enrichrTable_", mySel, ".html")
           ezInteractiveTable(resMerged,
-                             tableLink = enrichrTablePath,
                              title = paste("Enrichr report for ", mySel)
-          )
+          ) |> saveWidget(enrichrTablePath)
           enrichrLinks[mySel, "Precomputed"] <- ezLink(
             link = enrichrTablePath,
             label = "Report",

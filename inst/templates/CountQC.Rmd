@@ -185,14 +185,13 @@ tableLink = sub(".xlsx", "-viewHighExpressionGenes.html", signalFile)
 ## select top genes
 combinedTopGenes = combined[which(rownames(combined) %in% topGenes),]
 ## restrict number of table rows if necessary
-interactiveTable = head(combinedTopGenes[, useInInteractiveTable, drop=FALSE], 
+topGenesDf = head(combinedTopGenes[, useInInteractiveTable, drop=FALSE], 
                         param$maxTableRows)
-nRows = ifelse(length(topGenes)>=param$maxTableRows, param$maxTableRows,
-               length(topGenes))
-ezInteractiveTable(interactiveTable, tableLink=tableLink, digits=3, 
-                   colNames=c("ID", colnames(interactiveTable)),
-                   title=paste("Showing the top", nRows, 
-                               "genes with the highest expression"))
+ezInteractiveTableRmd(topGenesDf, digits=3, 
+                      colNames=c("ID", colnames(topGenesDf)),
+                      title=paste("Showing the top", nrow(topGenesDf), 
+                                  "genes with the highest expression")) |>
+  saveWidget(tableLink)
 
 rpkmFile <- paste0(ezValidFilename(param$name), "-rpkm.xlsx")
 rpkm <- as_tibble(getRpkm(rawData), rownames="Feature ID")
