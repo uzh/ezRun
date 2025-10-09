@@ -219,7 +219,7 @@ writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, b
 
   bigwigPath=file.path(outFolder, bigwigRelPath)
   bigwigFiles <- dir(path=bigwigPath, pattern="*.bigWig$")
-  trackNames <- sapply(strsplit(bigwigFiles, "\\."), `[`, 1)
+  trackNames <- bigwigFiles |> str_replace("\\..*", "")
   tracks <- list()
   tracks[[1]] <- list(type=	"sequence")
   for (i in 1:length(bigwigFiles)){
