@@ -1069,14 +1069,10 @@ if (length(genesToPlot) > 0){
 
 ```{r runBanksy, echo=F, message=F, warning=F}
 
-assaySCnames<- names(scData@assays) 
-visiumHDassays <- c("Spatial", "Spatial.016um", "Spatial.008um")
-assaySC <- intersect(visiumHDassays, assaySCnames)[1]
-
 scData <- RunBanksy(scData,
                     lambda = lambda, 
                     verbose = TRUE,
-                    assay = assaySC, 
+                    assay = DefaultAssay(scData), 
                     slot = "data", 
                     features = "variable",
                     k_geom = k_geom
@@ -1185,15 +1181,14 @@ p_spatialNiches
 ```{r, fig.width=20, fig.height=20}
 banksy_cells <- CellsByIdentities(scData)
 
-p_niches <- SpatialDimPlot(scData,
-                           cells.highlight = banksy_cells[setdiff(names(banksy_cells), "NA")], 
+SpatialDimPlot(scData, 
+               cells.highlight = banksy_cells[setdiff(names(banksy_cells), "NA")], 
                            cols.highlight = c("#FFFF00", 
                                               "grey50"), 
                            facet.highlight = T, 
                            combine = T) + 
   NoLegend()
 
-p_niches
 ```
 
 ## EnrichR
