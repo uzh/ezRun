@@ -147,7 +147,8 @@ writePerSampleCountFiles <- function(nfSampleInfo, countDir="."){
   annoColumnNames <- c("Geneid", "Chr", "Start", "End", "Strand", "Length")
   x <- data.table::fread(file.path(countDir, "consensus_peaks.mLb.clN.featureCounts.txt"))
   for (i in 1:nrow(nfSampleInfo)){
-    xSel <- x[ , c(annoColumnNames, libColumnNames[i])] |> dplyr::rename(!!sampleNames[i] := !!libColumnNames[i])
+    colSelection <- c(annoColumnNames,libColumnNames[i])
+    xSel <- x[ , ..colSelection] |> dplyr::rename(!!sampleNames[i] := !!libColumnNames[i])
     ezWrite.table(xSel, file=sampleCountFiles[i])
   }
   return(sampleCountFiles)
