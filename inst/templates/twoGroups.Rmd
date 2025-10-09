@@ -193,7 +193,7 @@ if (isTRUE(isTwoGroup)) {
       mode = "plotly"
     )
     scatterHtml <- paste0(param$comparison, "-scatter.html")
-    saveWidget(as_widget(p_scatter), scatterHtml)
+     DT::saveWidget(as_widget(p_scatter), scatterHtml)
   }
 }
 ```
@@ -229,7 +229,7 @@ if (isTRUE(isTwoGroup)) {
       mode = "plotly"
     )
     volcanoHtml <- paste0(param$comparison, "-volcano.html")
-    saveWidget(as_widget(p_volcano), volcanoHtml)
+     DT::saveWidget(as_widget(p_volcano), volcanoHtml)
   }
 }
 ```
@@ -548,7 +548,7 @@ if (isTRUE(param$runGO)) {
           enrichrTablePath <- paste0("enrichrTable_", mySel, ".html")
           ezInteractiveTable(resMerged,
                              title = paste("Enrichr report for ", mySel)
-          ) |> saveWidget(enrichrTablePath)
+          ) |>  DT::saveWidget(enrichrTablePath)
           enrichrLinks[mySel, "Precomputed"] <- ezLink(
             link = enrichrTablePath,
             label = "Report",

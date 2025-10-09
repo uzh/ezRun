@@ -129,7 +129,7 @@ ezMethodCountSpacer = function(input=NA, output=NA, param=NA){
                            "$(this.api().table().header()).css({'background-color': '#0000A0', 'color': '#fff'});",
                            "}"),
                            dom = c('Bfrtip'),buttons = c('colvis','copy', 'csv', 'excel', 'pdf', 'print'), pageLength = 100, autoWidth=TRUE))
-    saveWidget(myDT, 'underrepresentedTargets.html')
+    DT::saveWidget(myDT, 'underrepresentedTargets.html')
   } else {
       myMessage ='Too many underrepresented target for HTML output. Please check txt-files.'
       write.table(myMessage, 'underrepresentedTargets.html', col.names = FALSE, row.names = FALSE)

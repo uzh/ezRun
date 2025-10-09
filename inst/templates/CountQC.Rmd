@@ -191,7 +191,7 @@ ezInteractiveTableRmd(topGenesDf, digits=3,
                       colNames=c("ID", colnames(topGenesDf)),
                       title=paste("Showing the top", nrow(topGenesDf), 
                                   "genes with the highest expression")) |>
-  saveWidget(tableLink)
+   DT::saveWidget(tableLink)
 
 rpkmFile <- paste0(ezValidFilename(param$name), "-rpkm.xlsx")
 rpkm <- as_tibble(getRpkm(rawData), rownames="Feature ID")
