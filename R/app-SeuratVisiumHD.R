@@ -47,7 +47,7 @@ EzAppSeuratVisiumHD <-
                                           DefaultValue = 0.25,
                                           Description = "Used in calculating cluster markers: Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells."
                                         ),
-                                        resolution=ezFrame(Type="numeric", 
+                                        clusterResolution=ezFrame(Type="numeric", 
                                                            DefaultValue=0.6,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         cellsFraction=ezFrame(Type="numeric", 
@@ -105,9 +105,9 @@ EzAppSeuratVisiumHD <-
                                             Description = "pt.size.factor for spatial plots"
                                         ),
                                         binSize = ezFrame(
-                                            Type = "numeric",
-                                            DefaultValue = 16,
-                                            Description = "bin size for spatial data"
+                                            Type = "character",
+                                            DefaultValue = "",
+                                            Description = "binning for Visium HD data"
                                         )
                                     )
                 }
