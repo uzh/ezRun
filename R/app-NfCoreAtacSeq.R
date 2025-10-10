@@ -48,8 +48,8 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   
   writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/bwa/merged_library/bigwig/",
                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("ATAC_Result")))
-  writeHtmlWrapper(input$getColumn("IGV"), 
-                   igvAppLink = paste0("https://igv.org/app/?sessionURL=", PROJECT_BASE_URL, "/", outFolder, "/igv_session.json"))
+  # writeHtmlWrapper(file.path(outFolder, basename(output$getColumn("IGV"))),
+  #                  igvAppLink = paste0("https://igv.org/app/?sessionURL=", PROJECT_BASE_URL, "/", output$getColumn("ATAC_Result"), "/igv_session.json"))
   
 
   if(param[['runTwoGroupAnalysis']]){
@@ -145,10 +145,10 @@ writePerSampleCountFiles <- function(nfSampleInfo, countDir="."){
   sampleNames <- nfSampleInfo$sid
   sampleCountFiles <- paste0(countDir, "/", sampleNames, ".txt")
   annoColumnNames <- c("Geneid", "Chr", "Start", "End", "Strand", "Length")
-  x <- data.table::fread(file.path(countDir, "consensus_peaks.mLb.clN.featureCounts.txt"))
+  x <- data.table::fread(file.path(countDir, "consensus_peaks.mLb.clN.featureCounts.txt"), data.table=FALSE)
   for (i in 1:nrow(nfSampleInfo)){
-    xSel <- x[ , c(annoColumnNames, libColumnNames[i])] |> dplyr::rename(!!sampleNames[i] := !!libColumnNames[i])
-    ezWrite.table(xSel, file=sampleCountFiles[i])
+    xSel <- x[ , c(annoColumnNames, libColumnNames[i])] |> dplyr::rename("matchCounts" := !!libColumnNames[i])
+    ezWrite.table(xSel, file=sampleCountFiles[i], row.names = FALSE)
   }
   return(sampleCountFiles)
 }
@@ -212,23 +212,21 @@ cleanupOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
 }
 
 writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, baseUrl){
-  bigwigPath=file.path(outFolder, bigwigRelPath)
-
-  bigwigFiles <- dir(path=bigwigPath, pattern="*.bigWig$")
-  
   refBuildName = param$ezRef@refBuildName
   refUrlBase = file.path(REF_HOST, param$ezRef@refBuild)
   fastaUrl = sub("Annotation.*", "Sequence/WholeGenomeFasta/genome.fa", refUrlBase)
   faiUrl = paste0(fastaUrl, ".fai")
 
+  bigwigPath=file.path(outFolder, bigwigRelPath)
   bigwigFiles <- dir(path=bigwigPath, pattern="*.bigWig$")
+  trackNames <- bigwigFiles |> str_replace("\\..*", "")
   tracks <- list()
   tracks[[1]] <- list(type=	"sequence")
   for (i in 1:length(bigwigFiles)){
-    tracks[[i+1]] <- list(id = "samplename_bigwig",
+    tracks[[i+1]] <- list(id = trackNames[[i]],
                           url = paste0(baseUrl,file.path(bigwigRelPath, bigwigFiles[[i]])),
                           format =	"bigWig",
-                          name	= "samplename_bigwig")
+                          name	= trackNames[[i]])
 
   }
 

@@ -47,7 +47,7 @@ EzAppSeuratVisiumHD <-
                                           DefaultValue = 0.25,
                                           Description = "Used in calculating cluster markers: Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells."
                                         ),
-                                        resolution=ezFrame(Type="numeric", 
+                                        clusterResolution=ezFrame(Type="numeric", 
                                                            DefaultValue=0.6,
                                                            Description="Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."),
                                         cellsFraction=ezFrame(Type="numeric", 
@@ -105,9 +105,9 @@ EzAppSeuratVisiumHD <-
                                             Description = "pt.size.factor for spatial plots"
                                         ),
                                         binSize = ezFrame(
-                                            Type = "numeric",
-                                            DefaultValue = 16,
-                                            Description = "bin size for spatial data"
+                                            Type = "character",
+                                            DefaultValue = "",
+                                            Description = "binning for Visium HD data"
                                         )
                                     )
                 }
@@ -117,7 +117,7 @@ EzAppSeuratVisiumHD <-
 ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA, 
                              htmlFile="00index.html"){
   cwd <- getwd()
-  setwdNew(basename(output$getColumn("Report")))
+  setwdNew(basename(output$getColumn("Seurat Visium HD")))
   on.exit(setwd(cwd), add=TRUE)
   library(Seurat)
   library(scater)
@@ -137,17 +137,17 @@ ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA,
   future.seed = TRUE
   options(future.rng.onMisuse="ignore")
   options(future.globals.maxSize = param$ram*1024^3)
-  dataDir <- file.path(dirname(input$getFullPaths("CountMatrix")), 'binned_outputs')
-  if(param$binSize == 8){
-      dataDir <- file.path(dataDir, 'square_008um')
-  } else if(param$binSize >= 10 & param$binSize < 100){
-      dataDir <- file.path(dataDir, paste0('square_0', param$binSize, 'um'))
-  } else {
-      stop("Only bin sizes of 8 and 16 or even numbers between 10-100 are supported if the parameter --custom-bin-size was used for SpaceRanger before") 
-  }
+  dataDir <- file.path(input$getFullPaths("SpaceRangerDir"), param$binSize)
+  # if(param$binSize == 8){
+  #     dataDir <- file.path(dataDir, 'square_008um')
+  # } else if(param$binSize >= 10 & param$binSize < 100){
+  #     dataDir <- file.path(dataDir, paste0('square_0', param$binSize, 'um'))
+  # } else {
+  #     stop("Only bin sizes of 8 and 16 or even numbers between 10-100 are supported if the parameter --custom-bin-size was used for SpaceRanger before") 
+  # }
   scData <- Load10X_Spatial(data.dir = dataDir)
-  cmDir <- input$getFullPaths("CountMatrix")
-  featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
+  featInfo <- ezRead.table(paste0(dataDir, "/filtered_feature_bc_matrix/features.tsv.gz"), 
+                           header = FALSE, row.names = NULL)
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
   featInfo$isRiboprot = grepl(  "(?i)^RPS|^RPL", featInfo$gene_name)

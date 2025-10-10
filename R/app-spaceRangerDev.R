@@ -225,7 +225,7 @@ ezMethodSpaceRangerDev <- function(input=NA, output=NA, param=NA){
     bulkData <- rowSums(data.frame(cts))
   }
   bulkData <- data.frame(Identifier = names(bulkData), matchCounts = bulkData)
-  countFile <- paste0(finalSampleName,'-counts.txt')
+  countFile <- paste0(finalSampleName,'-summedCounts.txt')
   ezWrite.table(bulkData, file.path(finalSampleName, countFile), row.names = FALSE)
   return("Success")
 }
