@@ -137,7 +137,7 @@ ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA,
   future.seed = TRUE
   options(future.rng.onMisuse="ignore")
   options(future.globals.maxSize = param$ram*1024^3)
-  dataDir <- file.path(dirname(input$getFullPaths("SpaceRangerDir")), param$binSize)
+  dataDir <- file.path(input$getFullPaths("SpaceRangerDir"), param$binSize)
   # if(param$binSize == 8){
   #     dataDir <- file.path(dataDir, 'square_008um')
   # } else if(param$binSize >= 10 & param$binSize < 100){
