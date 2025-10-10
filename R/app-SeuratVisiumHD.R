@@ -117,7 +117,7 @@ EzAppSeuratVisiumHD <-
 ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA, 
                              htmlFile="00index.html"){
   cwd <- getwd()
-  setwdNew(basename(output$getColumn("Report")))
+  setwdNew(basename(output$getColumn("Seurat Visium HD")))
   on.exit(setwd(cwd), add=TRUE)
   library(Seurat)
   library(scater)
@@ -137,7 +137,8 @@ ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA,
   future.seed = TRUE
   options(future.rng.onMisuse="ignore")
   options(future.globals.maxSize = param$ram*1024^3)
-  dataDir <- file.path(dirname(input$getFullPaths("SpaceRangerDir")), param$binSize, 'filtered_feature_bc_matrix')
+  #cmDir <- file.path(dirname(input$getFullPaths("SpaceRangerDir")), param$binSize, 'filtered_feature_bc_matrix')
+  dataDir <- file.path(dirname(input$getFullPaths("SpaceRangerDir")), param$binSize)
   # if(param$binSize == 8){
   #     dataDir <- file.path(dataDir, 'square_008um')
   # } else if(param$binSize >= 10 & param$binSize < 100){
@@ -145,9 +146,9 @@ ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA,
   # } else {
   #     stop("Only bin sizes of 8 and 16 or even numbers between 10-100 are supported if the parameter --custom-bin-size was used for SpaceRanger before") 
   # }
-  scData <- Load10X_Spatial(data.dir = dataDir)
-  cmDir <- input$getFullPaths("CountMatrix")
-  featInfo <- ezRead.table(paste0(cmDir, "/features.tsv.gz"), header = FALSE, row.names = NULL)
+  scData <- Load10X_Spatial(data.dir = cmDir)
+  featInfo <- ezRead.table(paste0(dataDir, "/filtered_feature_bc_matrix/features.tsv.gz"), 
+                           header = FALSE, row.names = NULL)
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
   featInfo$isRiboprot = grepl(  "(?i)^RPS|^RPL", featInfo$gene_name)
