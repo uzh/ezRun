@@ -71,7 +71,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     setwd(cd)
   }
 
-  dirsToRemove <- c("genome", "trimgalore", "fastqc")
+  dirsToRemove <- c("genome", "trimgalore", "fastqc", "igv")
   if(ezIsSpecified(param$keepBams)){
     keepBams <- param$keepBams
   } else {
