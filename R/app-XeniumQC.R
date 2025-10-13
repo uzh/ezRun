@@ -119,7 +119,7 @@ EzAppXeniumQC <-
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodXeniumQC
         name <<- "EzAppXeniumQC"
-        appDefaults <<- rbind()
+        appDefaults <<- data.frame()
       }
     )
   )
