@@ -76,7 +76,13 @@ ezMethodXeniumQC <- function(input = NA, output = NA, param = NA,
         }
     }
 
-    rownames(stats) <- stats$sampleName
+    # Make unique rownames by combining name with row index if there are duplicates
+    if (anyDuplicated(stats$sampleName)) {
+        rownames(stats) <- make.unique(as.character(stats$sampleName), sep = "_")
+    } else {
+        rownames(stats) <- stats$sampleName
+    }
+
     colnames(stats) <- gsub(' ', '_', colnames(stats))
     colnames(stats) <- gsub('-', '__', colnames(stats))
 
