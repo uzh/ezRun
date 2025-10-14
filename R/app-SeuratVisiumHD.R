@@ -146,7 +146,17 @@ ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA,
   #     stop("Only bin sizes of 8 and 16 or even numbers between 10-100 are supported if the parameter --custom-bin-size was used for SpaceRanger before") 
   # }
   scData <- Load10X_Spatial(data.dir = dataDir)
-  featInfo <- ezRead.table(paste0(dataDir, "/filtered_feature_bc_matrix/features.tsv.gz"), 
+
+  # Determine correct matrix folder name based on binSize
+  # segmented_outputs uses 'filtered_feature_cell_matrix'
+  # binned_outputs (square_*um) uses 'filtered_feature_bc_matrix'
+  matrixFolder <- if(grepl("segmented", param$binSize)) {
+    "filtered_feature_cell_matrix"
+  } else {
+    "filtered_feature_bc_matrix"
+  }
+
+  featInfo <- ezRead.table(paste0(dataDir, "/", matrixFolder, "/features.tsv.gz"),
                            header = FALSE, row.names = NULL)
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
