@@ -565,7 +565,7 @@ p2 <- Seurat::LabelClusters(
 )
 
 (p1 + p2) +
-  plot_layout(nrow = 1, guides = if (show_leg) "keep" else "none")
+  plot_layout(nrow = 1, guides = if (show_leg) "keep" else "auto")
 
 # p1 <- DimPlot(scData, reduction="tsne", label = FALSE, pt.size = 1.5) + labs(color = "seurat_clusters")
 # p1 <- LabelClusters(p1, id = "ident",  fontface = "bold", color = "black", size = 6)
