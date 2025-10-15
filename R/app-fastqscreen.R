@@ -25,19 +25,13 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
   }
   
   # Handle readFileToUse parameter
+  if (param$readFileToUse != "both") {
+    param$paired = FALSE
+  }
+  
   if (param$readFileToUse == "Read2") {
-    # Rename Read2 to Read1 for processing
-    dataset <- input$meta
-    samples <- rownames(dataset)
-    outputFiles <- c()
-    for (j in 1:length(samples)){
-      r2File <- file.path(param$dataRoot, dataset$Read2[j])
-      outputFile <- paste0(samples[j], '_R1_fromR2.fastq.gz')
-      ezSystem(paste('cp', r2File, outputFile))
-      outputFiles <- c(outputFiles, outputFile)
-    }
-    input$setColumn("Read1", file.path(getwd(), outputFiles))
-    input <- EzDataset$new(meta=input$meta, dataRoot='')
+    input$setColumn("Read1", input$getColumn("Read2"))
+    input$meta$Read2 <- NULL
   }
   
   if(any(grepl(',',input$meta$Read1))){
@@ -53,7 +47,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
       outputFiles <- c(outputFiles, outputFile)
     }
     input$setColumn("Read1", file.path(getwd(), outputFiles))
-    if(param$readFileToUse == "both") {
+    if(isTRUE(param$paired)) {
       outputFiles <- c()
       for (j in 1:length(samples)){
         files <- file.path(param$dataRoot, limma::strsplit2(dataset$Read2[j],','))
@@ -108,7 +102,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
   }
   names(PWMs[['R1']]) <- sampleNames
   
-  if(param$readFileToUse == "both"){
+  if(param$paired){
     PWMs[['R2']] <- list()
     inputFiles_R2  <- inputProc$getFullPaths("Read2")
     for (i in 1:length(sampleNames)){
@@ -123,7 +117,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
   
   file.remove(inputProc$getFullPaths("Read1"))
   file.remove(inputRaw$getFullPaths("Read1"))
-  if(param$readFileToUse == "both"){
+  if(param$paired){  
     file.remove(inputProc$getFullPaths("Read2"))
     file.remove(inputRaw$getFullPaths("Read2"))
   }
