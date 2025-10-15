@@ -23,6 +23,23 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
       OUTPUT_PER_RG = TRUE
     )
   }
+
+  # Handle readFileToUse parameter
+  if (param$readFileToUse == "Read2") {
+    # Rename Read2 to Read1 for processing
+    dataset <- input$meta
+    samples <- rownames(dataset)
+    outputFiles <- c()
+    for (j in 1:length(samples)){
+      r2File <- file.path(param$dataRoot, dataset$Read2[j])
+      outputFile <- paste0(samples[j], '_R1_fromR2.fastq.gz')
+      ezSystem(paste('cp', r2File, outputFile))
+      outputFiles <- c(outputFiles, outputFile)
+    }
+    input$setColumn("Read1", file.path(getwd(), outputFiles))
+    input <- EzDataset$new(meta=input$meta, dataRoot='')
+  }
+
   if(any(grepl(',',input$meta$Read1))){
         dataset <- input$meta
         samples <- rownames(dataset)
@@ -36,7 +53,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
             outputFiles <- c(outputFiles, outputFile)
         }
         input$setColumn("Read1", file.path(getwd(), outputFiles))
-        if(isTRUE(param$paired)) {
+        if(param$readFileToUse == "both") {
             outputFiles <- c()
             for (j in 1:length(samples)){
                 files <- file.path(param$dataRoot, limma::strsplit2(dataset$Read2[j],','))
@@ -90,8 +107,8 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
       PWMs[['R1']][[i]] <- makePWM(consMatrix)
   }
   names(PWMs[['R1']]) <- sampleNames
-  
-if(param$paired){
+
+if(param$readFileToUse == "both"){
   PWMs[['R2']] <- list()
   inputFiles_R2  <- inputProc$getFullPaths("Read2")
   for (i in 1:length(sampleNames)){
@@ -106,7 +123,7 @@ if(param$paired){
   
   file.remove(inputProc$getFullPaths("Read1"))
   file.remove(inputRaw$getFullPaths("Read1"))
-  if(param$paired){  
+  if(param$readFileToUse == "both"){
     file.remove(inputProc$getFullPaths("Read2"))
     file.remove(inputRaw$getFullPaths("Read2"))
   }
@@ -159,7 +176,9 @@ EzAppFastqScreen <-
           trimAdapter = ezFrame(Type = "logical", DefaultValue = TRUE,
                                 Description = "whether to search for the adapters and trim them"),
           copyReadsLocally = ezFrame(Type = "logical", DefaultValue = FALSE,
-                                     Description = "copy reads to scratch first")
+                                     Description = "copy reads to scratch first"),
+          readFileToUse = ezFrame(Type = "character", DefaultValue = "Read1",
+                                  Description = "which read file(s) to use for the analysis: Read1, Read2, or both")
         )
       }
     )
