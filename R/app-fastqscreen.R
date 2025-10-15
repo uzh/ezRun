@@ -31,7 +31,6 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
   
   if (param$readFileToUse == "Read2") {
     input$setColumn("Read1", input$getColumn("Read2"))
-    input$meta$Read2 <- NULL
   }
   
   if(any(grepl(',',input$meta$Read1))){
