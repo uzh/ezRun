@@ -7,7 +7,7 @@
 
 ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
                                 htmlFile = "00index.html") {
-
+  
   require(seqLogo)
   require(ShortRead)
   
@@ -23,7 +23,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
       OUTPUT_PER_RG = TRUE
     )
   }
-
+  
   # Handle readFileToUse parameter
   if (param$readFileToUse == "Read2") {
     # Rename Read2 to Read1 for processing
@@ -39,40 +39,40 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
     input$setColumn("Read1", file.path(getwd(), outputFiles))
     input <- EzDataset$new(meta=input$meta, dataRoot='')
   }
-
+  
   if(any(grepl(',',input$meta$Read1))){
-        dataset <- input$meta
-        samples <- rownames(dataset)
-        ##local copy of data
-        outputFiles <- c()
-        for (j in 1:length(samples)){
-            files <- file.path(param$dataRoot, limma::strsplit2(dataset$Read1[j],','))
-            outputFile <- paste0(samples[j], '_R1.fastq.gz')
-            ezSystem(paste('touch', outputFile))
-            sapply(files, function(x) system(paste("cat", x, " >>", outputFile)))
-            outputFiles <- c(outputFiles, outputFile)
-        }
-        input$setColumn("Read1", file.path(getwd(), outputFiles))
-        if(param$readFileToUse == "both") {
-            outputFiles <- c()
-            for (j in 1:length(samples)){
-                files <- file.path(param$dataRoot, limma::strsplit2(dataset$Read2[j],','))
-                outputFile <- paste0(samples[j], '_R2.fastq.gz')
-                ezSystem(paste('touch', outputFile))
-                sapply(files, function(x) system(paste("cat", x, " >>", outputFile)))
-                outputFiles <- c(outputFiles, outputFile)
-            }
-            input$setColumn("Read2", file.path(getwd(), outputFiles))
-        }
-        ##update input
-        input <- EzDataset$new(meta=input$meta,dataRoot='')
+    dataset <- input$meta
+    samples <- rownames(dataset)
+    ##local copy of data
+    outputFiles <- c()
+    for (j in 1:length(samples)){
+      files <- file.path(param$dataRoot, limma::strsplit2(dataset$Read1[j],','))
+      outputFile <- paste0(samples[j], '_R1.fastq.gz')
+      ezSystem(paste('touch', outputFile))
+      sapply(files, function(x) system(paste("cat", x, " >>", outputFile)))
+      outputFiles <- c(outputFiles, outputFile)
+    }
+    input$setColumn("Read1", file.path(getwd(), outputFiles))
+    if(param$readFileToUse == "both") {
+      outputFiles <- c()
+      for (j in 1:length(samples)){
+        files <- file.path(param$dataRoot, limma::strsplit2(dataset$Read2[j],','))
+        outputFile <- paste0(samples[j], '_R2.fastq.gz')
+        ezSystem(paste('touch', outputFile))
+        sapply(files, function(x) system(paste("cat", x, " >>", outputFile)))
+        outputFiles <- c(outputFiles, outputFile)
+      }
+      input$setColumn("Read2", file.path(getwd(), outputFiles))
+    }
+    ##update input
+    input <- EzDataset$new(meta=input$meta,dataRoot='')
   }
-    
+  
   inputRaw <- ezMethodSubsampleFastq(input = input, param = param, n=param$nReads)
   param$trimAdapter <- TRUE
   param$nReads <- 0 #prevent second round of subsampling
   inputProc <- ezMethodFastpTrim(input = inputRaw, param = param)
-
+  
   ## map to adapters ----
   rawScreenResult = getFastqScreenStats(param,
                                         confFile = FASTQSCREEN_ADAPTER_CONF,
@@ -90,7 +90,7 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
     virusResult = ''
   }
   refseqResult = map_and_count_refseq(param, inputProc$getFullPaths("Read1"), workDir="refseqResult", 
-                       readCount = inputProc$getColumn("Read Count"))
+                                      readCount = inputProc$getColumn("Read Count"))
   
   rRNAstrandResult <- get_rRNA_Strandness(param, inputProc)
   krakenResult <- runKraken(param, inputProc)
@@ -100,26 +100,26 @@ ezMethodFastqScreen <- function(input = NA, output = NA, param = NA,
   PWMs[['R1']] <- list()
   inputFiles_R1  <- inputProc$getFullPaths("Read1")
   for (i in 1:length(sampleNames)){
-      fq <- readFastq(inputFiles_R1[i])
-      reads <- sread(fq)
-      consMatrix <- consensusMatrix(reads, as.prob = TRUE)
-      consMatrix <- consMatrix[rownames(consMatrix) %in% c('A', 'C','G','T'),]
-      PWMs[['R1']][[i]] <- makePWM(consMatrix)
+    fq <- readFastq(inputFiles_R1[i])
+    reads <- sread(fq)
+    consMatrix <- consensusMatrix(reads, as.prob = TRUE)
+    consMatrix <- consMatrix[rownames(consMatrix) %in% c('A', 'C','G','T'),]
+    PWMs[['R1']][[i]] <- makePWM(consMatrix)
   }
   names(PWMs[['R1']]) <- sampleNames
-
-if(param$readFileToUse == "both"){
-  PWMs[['R2']] <- list()
-  inputFiles_R2  <- inputProc$getFullPaths("Read2")
-  for (i in 1:length(sampleNames)){
+  
+  if(param$readFileToUse == "both"){
+    PWMs[['R2']] <- list()
+    inputFiles_R2  <- inputProc$getFullPaths("Read2")
+    for (i in 1:length(sampleNames)){
       fq <- readFastq(inputFiles_R2[i])
       reads <- sread(fq)
       consMatrix <- consensusMatrix(reads, as.prob = TRUE)
       consMatrix <- consMatrix[rownames(consMatrix) %in% c('A', 'C','G','T'),]
       PWMs[['R2']][[i]] <- makePWM(consMatrix)
+    }
+    names(PWMs[['R2']]) <- sampleNames
   }
-  names(PWMs[['R2']]) <- sampleNames
-}
   
   file.remove(inputProc$getFullPaths("Read1"))
   file.remove(inputRaw$getFullPaths("Read1"))
@@ -158,30 +158,30 @@ if(param$readFileToUse == "both"){
 ##' }
 EzAppFastqScreen <-
   setRefClass("EzAppFastqScreen",
-    contains = "EzApp",
-    methods = list(
-      initialize = function() {
-        "Initializes the application using its specific defaults."
-        runMethod <<- ezMethodFastqScreen
-        name <<- "EzAppFastqScreen"
-        appDefaults <<- rbind(
-          nTopSpecies = ezFrame(Type = "integer", DefaultValue = 10,
-                                Description = "number of species to show in the plots"),
-          confFile = ezFrame(Type = "character", DefaultValue = "",
-                             Description = "the configuration file for fastq screen"),
-          virusCheck = ezFrame(Type = "logical", DefaultValue = FALSE,
-                               Description = "check for viruses in unmapped data"),
-          minAlignmentScore = ezFrame(Type = "integer", DefaultValue = "-20",
-                                      Description = "the min alignment score for bowtie2"),
-          trimAdapter = ezFrame(Type = "logical", DefaultValue = TRUE,
-                                Description = "whether to search for the adapters and trim them"),
-          copyReadsLocally = ezFrame(Type = "logical", DefaultValue = FALSE,
-                                     Description = "copy reads to scratch first"),
-          readFileToUse = ezFrame(Type = "character", DefaultValue = "Read1",
-                                  Description = "which read file(s) to use for the analysis: Read1, Read2, or both")
-        )
-      }
-    )
+              contains = "EzApp",
+              methods = list(
+                initialize = function() {
+                  "Initializes the application using its specific defaults."
+                  runMethod <<- ezMethodFastqScreen
+                  name <<- "EzAppFastqScreen"
+                  appDefaults <<- rbind(
+                    nTopSpecies = ezFrame(Type = "integer", DefaultValue = 10,
+                                          Description = "number of species to show in the plots"),
+                    confFile = ezFrame(Type = "character", DefaultValue = "",
+                                       Description = "the configuration file for fastq screen"),
+                    virusCheck = ezFrame(Type = "logical", DefaultValue = FALSE,
+                                         Description = "check for viruses in unmapped data"),
+                    minAlignmentScore = ezFrame(Type = "integer", DefaultValue = "-20",
+                                                Description = "the min alignment score for bowtie2"),
+                    trimAdapter = ezFrame(Type = "logical", DefaultValue = TRUE,
+                                          Description = "whether to search for the adapters and trim them"),
+                    copyReadsLocally = ezFrame(Type = "logical", DefaultValue = FALSE,
+                                               Description = "copy reads to scratch first"),
+                    readFileToUse = ezFrame(Type = "character", DefaultValue = "Read1",
+                                            Description = "which read file(s) to use for the analysis: Read1, Read2, or both")
+                  )
+                }
+              )
   )
 
 
@@ -195,13 +195,13 @@ getFastqScreenStats <- function(param, confFile = NULL, files, workDir="fastqScr
   )
   
   if(length(files) > 384){
-      cat(cmd, file = 'fastqScreenCall.sh')
-      result <- ezSystem('bash fastqScreenCall.sh')
+    cat(cmd, file = 'fastqScreenCall.sh')
+    result <- ezSystem('bash fastqScreenCall.sh')
   } else {
-      result <- ezSystem(cmd)
+    result <- ezSystem(cmd)
   }
   gc()
-
+  
   fastqData <- list()
   for (nm in names(files)) {
     resultFile = str_replace(basename(files[nm]), "\\.gz$", "") %>%
@@ -222,13 +222,13 @@ getFastqScreenStats <- function(param, confFile = NULL, files, workDir="fastqScr
 get_rRNA_Strandness <- function(param, input) {
   rRNA_REF <- "/srv/GT/reference/Silva/silva/release_123_1/SILVA_123.1_LSU_SSU"
   r1Files <- input$getFullPaths("Read1")
-
+  
   countFiles <- character()
   for (nm in names(r1Files)) {
     countFiles[nm] <- paste0(nm, "-counts.txt")
     bowtie2options <- param$cmdOptions
     writeLines("ReadID\tFlag\tID\tAlignmentScore", countFiles[nm])
-
+    
     cmd <- paste(
       "bowtie2", "-x", rRNA_REF,
       " -U ", r1Files[nm], bowtie2options, "-p", param$cores,
@@ -238,7 +238,7 @@ get_rRNA_Strandness <- function(param, input) {
     
     ezSystem(cmd)
   }
-
+  
   rRNA_strandInfo = input$meta[ , "Read Count", drop=FALSE]
   rRNA_strandInfo$Sense = 0
   rRNA_strandInfo$Antisense = 0
@@ -322,25 +322,25 @@ map_and_count_refseq <- function(param, files, workDir="refseqResult", readCount
     ezSystem(paste('sort -k1', outputCountFile, '>', completeOutputCountFile))
     system(paste('join -j 1 -o 1.1,1.2,1.3,2.2', completeOutputCountFile, readToReadGroupFile,'>', outputCountFile)) #ezSystem thinks that it fails
     file.remove(completeOutputCountFile, bamFile, inputFastq, readToReadGroupFile)
-  
+    
     countFiles <- character()
     for (nm in names(files)) {
-        countFiles[nm] <- paste0(workDir, "/", nm, "-counts.txt")
-        writeLines("ReadID\tRefSeqID\tAlignmentScore\tName", countFiles[nm])
-        system(paste('grep', paste0('\" ', nm, '$\"'), outputCountFile, '|sed s/[[:blank:]]/\\\t/g >>', countFiles[nm]))
+      countFiles[nm] <- paste0(workDir, "/", nm, "-counts.txt")
+      writeLines("ReadID\tRefSeqID\tAlignmentScore\tName", countFiles[nm])
+      system(paste('grep', paste0('\" ', nm, '$\"'), outputCountFile, '|sed s/[[:blank:]]/\\\t/g >>', countFiles[nm]))
     }
     countList = collectBowtie2Output(param, countFiles, readCount, virusResult = FALSE)
     return(countList)
   } else {
-      return(NULL)
+    return(NULL)
   }
 }
 
 
 collectBowtie2Output <- function(param, countFiles, readCount, virusResult = F) {
   tax2name <- read.table(sub("Sequence.*", "Annotation/tax2name.txt", REFSEQ_mRNA_REF),
-    header = F, stringsAsFactors = F, sep = "\t",
-    colClasses = "character", quote = "", comment.char = ""
+                         header = F, stringsAsFactors = F, sep = "\t",
+                         colClasses = "character", quote = "", comment.char = ""
   )
   tax2name <- set_names(tax2name[, 3], tax2name[, 1])
   speciesPercentageTop <- list()
@@ -359,19 +359,19 @@ collectBowtie2Output <- function(param, countFiles, readCount, virusResult = F) 
       uniqSpeciesHitsPerRead <- names(speciesHitsPerRead)[lengths(speciesHitsPerRead) == 1]
       ### Result UniqHits:
       uniqSpeciesHits <- sort(table(unlist(speciesHitsPerRead[uniqSpeciesHitsPerRead])),
-        decreasing = T
+                              decreasing = T
       )
       ### Results MultipleHits:
       multipleSpeciesHitsPerRead <- countData[!(countData$ReadID %in% uniqSpeciesHitsPerRead), ]
       by <- paste(multipleSpeciesHitsPerRead$ReadID,
-        multipleSpeciesHitsPerRead$species,
-        sep = "_"
+                  multipleSpeciesHitsPerRead$species,
+                  sep = "_"
       )
       ## multipleSpeciesHits = sort(table(multipleSpeciesHitsPerRead$species[!duplicated(by)]), decreasing=T) # is equivalent to the row below
       multipleSpeciesHits <- sort(table(tapply(multipleSpeciesHitsPerRead$species, by, unique)),
-        decreasing = T
+                                  decreasing = T
       )
-
+      
       if (length(uniqSpeciesHits) > param$nTopSpecies) {
         topSpeciesUniq <- uniqSpeciesHits[1:param$nTopSpecies]
       } else {
@@ -385,10 +385,10 @@ collectBowtie2Output <- function(param, countFiles, readCount, virusResult = F) 
           length(multipleSpeciesHits)
         )]
       }
-
+      
       multipleSpeciesHits[setdiff(names(topSpeciesUniq), names(multipleSpeciesHits))] <- 0
       topSpeciesMultiple <- multipleSpeciesHits[names(topSpeciesUniq)]
-
+      
       taxIds <- names(topSpeciesUniq)
       taxNames <- tax2name[taxIds]
       hasNoName <- is.na(taxNames)
@@ -429,7 +429,7 @@ makeScatterplot <- function(dataset, colname1, colname2) {
         y <- a * x + b
         return(y)
       }
-
+      
       p <- plot_ly(
         x = dataset[[colname1]], y = dataset[[colname2]],
         text = rownames(dataset)
