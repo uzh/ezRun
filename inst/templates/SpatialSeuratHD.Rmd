@@ -25,7 +25,7 @@ library(patchwork)
 library(dplyr)
 library(RColorBrewer)
 library(kableExtra)
-library(clustree)
+#library(clustree)
 library(ezRun)
 library(scater)
 library(SingleCellExperiment)
@@ -47,7 +47,7 @@ library(Banksy)
 
 #put to params
 
-k_geom <- 50 #Local neighborhood size. Larger values will yield larger domains
+
 lambda <- 0.8 #Influence of the neighborhood. Larger values yield more spatially coherent domains
 
 
@@ -1053,9 +1053,15 @@ Visualization of the top 5 markers in each cluster. If a gene is a top marker fo
 
 ```{r dotplot, fig.width  = 15, fig.height = 30}
 
-DotPlot(scData, features=rev(genesToPlot)) + 
+DotPlot(scData, 
+        assay = "Spatial",
+        features=rev(genesToPlot)
+        ) + 
   coord_flip() +
-  scale_y_discrete(limits = levels(Idents(scData))) +
+  scale_y_discrete(limits = as.character(sort(as.integer(levels(Idents(scData)))
+                                              )
+                                         )
+                   ) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 ```
 
@@ -1208,7 +1214,7 @@ scData <- RunBanksy(scData,
                     assay = DefaultAssay(scData), 
                     slot = "data", 
                     features = "variable",
-                    k_geom = k_geom
+                    k_geom = 50 #Local neighborhood size. Larger values will yield larger domains
                     )
 
 
@@ -1448,7 +1454,9 @@ Visualization of the top 5 markers in each cluster. If a gene is a top marker fo
 
 ```{r dotplot banksy, fig.width  = 20, fig.height = 30}
 
-DotPlot(scData, features=genesToPlot) + coord_flip() +
+DotPlot(scData, features=rev(genesToPlot)) + 
+  coord_flip() +
+  scale_y_discrete(limits = levels(Idents(scData))) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 ```
 
