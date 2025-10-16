@@ -124,6 +124,7 @@ ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA,
   library(enrichR)
   library(future)
   library(BiocParallel)
+  library(sf)
   
   
   if (param$cores > 1){
@@ -137,16 +138,30 @@ ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA,
   future.seed = TRUE
   options(future.rng.onMisuse="ignore")
   options(future.globals.maxSize = param$ram*1024^3)
-  dataDir <- file.path(input$getFullPaths("SpaceRangerDir"), param$binSize)
-  # if(param$binSize == 8){
-  #     dataDir <- file.path(dataDir, 'square_008um')
-  # } else if(param$binSize >= 10 & param$binSize < 100){
-  #     dataDir <- file.path(dataDir, paste0('square_0', param$binSize, 'um'))
-  # } else {
-  #     stop("Only bin sizes of 8 and 16 or even numbers between 10-100 are supported if the parameter --custom-bin-size was used for SpaceRanger before") 
-  # }
-  scData <- Load10X_Spatial(data.dir = dataDir)
-  featInfo <- ezRead.table(paste0(dataDir, "/filtered_feature_bc_matrix/features.tsv.gz"), 
+
+  # Handle segmented vs binned outputs
+  if(grepl("segmented", param$binSize, ignore.case = TRUE)) {
+    # Segmented outputs: use parent directory and bin.size = "polygons"
+    dataDir <- input$getFullPaths("SpaceRangerDir")
+    scData <- Load10X_Spatial(data.dir = dataDir, bin.size = "polygons")
+  } else {
+    # Binned outputs: use standard approach with specific bin directory
+    dataDir <- file.path(input$getFullPaths("SpaceRangerDir"), param$binSize)
+    scData <- Load10X_Spatial(data.dir = dataDir)
+  }
+
+  # Determine correct matrix folder name and path based on binSize
+  # segmented_outputs uses 'filtered_feature_cell_matrix'
+  # binned_outputs (square_*um) uses 'filtered_feature_bc_matrix'
+  if(grepl("segmented", param$binSize, ignore.case = TRUE)) {
+    matrixFolder <- "filtered_feature_cell_matrix"
+    matrixPath <- file.path(dataDir, param$binSize, matrixFolder)
+  } else {
+    matrixFolder <- "filtered_feature_bc_matrix"
+    matrixPath <- file.path(dataDir, matrixFolder)
+  }
+
+  featInfo <- ezRead.table(paste0(matrixPath, "/features.tsv.gz"),
                            header = FALSE, row.names = NULL)
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
@@ -240,7 +255,7 @@ runBasicProcessingHD_Dev <- function(scData, input, featInfo, param, BPPARAM){
     if(nrow(scData@meta.data) < 50000){
         scData <- RunPCA(scData, npcs = 80)
         scData <- FindNeighbors(scData, dims = 1:param$npcs)
-        scData <- FindClusters(scData, cluster.name = "seurat_clusters", resolution = param$resolution)
+        scData <- FindClusters(scData, resolution = param$resolution)
         scData <- RunUMAP(scData, reduction = "pca", reduction.name = "umap", return.model = T, dims = 1:param$npcs)
     }
     else {
@@ -255,7 +270,8 @@ runBasicProcessingHD_Dev <- function(scData, input, featInfo, param, BPPARAM){
         scData <- ScaleData(scData)
         scData <- RunPCA(scData, assay = "sketch", reduction.name = "pca.sketch", npcs = 80)
         scData <- FindNeighbors(scData, assay = "sketch", reduction = "pca.sketch", dims = 1:param$npcs)
-        scData <- FindClusters(scData, cluster.name = "seurat_cluster.sketched", resolution = param$resolution)
+        scData <- FindClusters(scData, resolution = param$resolution)
+        scData$seurat_cluster.sketched <- scData$seurat_clusters
         scData <- RunUMAP(scData, reduction = "pca.sketch", reduction.name = "umap.sketch", return.model = T, dims = 1:param$npcs)
         
         scData <- ProjectData(
