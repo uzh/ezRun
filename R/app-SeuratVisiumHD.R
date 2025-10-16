@@ -255,7 +255,7 @@ runBasicProcessingHD_Dev <- function(scData, input, featInfo, param, BPPARAM){
     if(nrow(scData@meta.data) < 50000){
         scData <- RunPCA(scData, npcs = 80)
         scData <- FindNeighbors(scData, dims = 1:param$npcs)
-        scData <- FindClusters(scData, resolution = param$resolution)
+        scData <- FindClusters(scData, resolution = param$clusterResolution)
         scData <- RunUMAP(scData, reduction = "pca", reduction.name = "umap", return.model = T, dims = 1:param$npcs)
     }
     else {
@@ -270,7 +270,7 @@ runBasicProcessingHD_Dev <- function(scData, input, featInfo, param, BPPARAM){
         scData <- ScaleData(scData)
         scData <- RunPCA(scData, assay = "sketch", reduction.name = "pca.sketch", npcs = 80)
         scData <- FindNeighbors(scData, assay = "sketch", reduction = "pca.sketch", dims = 1:param$npcs)
-        scData <- FindClusters(scData, resolution = param$resolution)
+        scData <- FindClusters(scData, resolution = param$clusterResolution)
         scData$seurat_cluster.sketched <- scData$seurat_clusters
         scData <- RunUMAP(scData, reduction = "pca.sketch", reduction.name = "umap.sketch", return.model = T, dims = 1:param$npcs)
         
