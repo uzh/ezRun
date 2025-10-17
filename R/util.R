@@ -970,3 +970,7 @@ ezLoadRobj <- function(filePath, nthreads=1L) {
     }
   )
 }
+
+setNFCacheDir <- function(cacheDir = '/misc/fgcz01/nextflow_apptainer_cache'){
+    ezSetEnv('NXF_APPTAINER_CACHEDIR', cacheDir)
+}
