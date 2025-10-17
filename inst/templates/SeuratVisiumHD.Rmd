@@ -13,7 +13,10 @@ editor_options:
 
 # {.tabset}
 
-## Quality control
+## QC
+
+### {.tabset}
+
 
 `r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
@@ -25,7 +28,6 @@ library(patchwork)
 library(dplyr)
 library(RColorBrewer)
 library(kableExtra)
-#library(clustree)
 library(ezRun)
 library(scater)
 library(SingleCellExperiment)
@@ -44,6 +46,9 @@ library(UpSetR)
 
 library(SeuratWrappers)
 library(Banksy)
+
+library(sf)
+library(Matrix)
 
 lambda <- 0.8 #Influence of the neighborhood. Larger values yield more spatially coherent domains
 
@@ -147,47 +152,6 @@ scData   <- rgb_order(scData,
 ```
 
 
-```{r template for spatialFeaturePlot}
-
-sp_plot <- function(obj,
-                    feature,
-                    title = feature,
-                    label = feature,
-                    pt.size.factor = 2,
-                    min.cutoff = "q01",
-                    max.cutoff = "q99",
-                    legend.pos = "right",
-                    palette = "turbo",
-                    ...) {
-
-  SpatialFeaturePlot(
-    object         = obj,
-    features       = feature,
-    pt.size.factor = pt.size.factor,
-    min.cutoff     = min.cutoff,
-    max.cutoff     = max.cutoff,
-    ...                   
-  ) +
-    labs(title = title, fill = label) +
-    scale_fill_viridis_c(option = palette, 
-                         na.value = "grey95") +
-    theme_void() +
-    theme(
-      legend.position   = legend.pos,
-      plot.title        = element_text(size = 12, 
-                                       face = "bold", 
-                                       margin = margin(b = 4)),
-      legend.title      = element_text(size = 8),
-      legend.text       = element_text(size = 8),
-      legend.key.height = unit(10, "pt"),
-      legend.key.width  = unit(6, "pt")
-    )
-
-}
-```
-
-
-### QC diagnostic plots
 
 <details>
   <summary>Metrics to identify bins (spots) of low quality</summary>
@@ -252,6 +216,49 @@ ezKable(qcDiagnostics)
 </details>
 
 
+```{r template for spatialFeaturePlot}
+
+sp_plot <- function(obj,
+                    feature,
+                    title = feature,
+                    label = feature,
+                    pt.size.factor = 2,
+                    min.cutoff = "q01",
+                    max.cutoff = "q99",
+                    legend.pos = "right",
+                    palette = "turbo",
+                    ...) {
+
+  SpatialFeaturePlot(
+    object         = obj,
+    features       = feature,
+    images = Images(scData),
+    plot_segmentations = T,
+    pt.size.factor = pt.size.factor,
+    min.cutoff     = min.cutoff,
+    max.cutoff     = max.cutoff,
+    ...                   
+  ) +
+    labs(title = title, fill = label) +
+    scale_fill_viridis_c(option = palette, 
+                         na.value = "grey95") +
+    theme_void() +
+    theme(
+      legend.position   = legend.pos,
+      plot.title        = element_text(size = 12, 
+                                       face = "bold", 
+                                       margin = margin(b = 4)),
+      legend.title      = element_text(size = 8),
+      legend.text       = element_text(size = 8),
+      legend.key.height = unit(10, "pt"),
+      legend.key.width  = unit(6, "pt")
+    )
+
+}
+```
+
+#### Diagnostic plots
+
 ```{r 1st line of plots, fig.width=12, fig.height=4}
 
 plot1 <- plotColData(
@@ -281,7 +288,6 @@ plot3 <- sp_plot(
 #  images = img_name,
   alpha  = c(0, 0)
 ) + guides(fill = "none")
-
 
 
 
@@ -443,7 +449,7 @@ plot10 + plot11 + plot12
 ```
 
 
-### Bins filtering
+##### Bins filtering
 
 <details>
   <summary>Filtering rules</summary>
@@ -560,7 +566,7 @@ ezKable(qcStats)
 
 
 
-### Dimensionality reduction
+##### Dimensionality reduction
 
 
 <details>
@@ -660,8 +666,17 @@ ggplot(plot_df, aes(x = cumu,
 
 ```
 
+#### Segmentation mask
 
+```{r, fig.height=20, fig.width=25}
+SpatialFeaturePlot(
+  scData,
+  nCountCol,
+  images = Images(scData),
+  pt.size.factor = 2
+)
 
+```
 
 
 ## Clustering
@@ -811,7 +826,7 @@ ggplot(cellIdents_perSample, aes(x = seurat_clusters,
   ) + 
   theme_minimal()+
   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) + ## make sure the y axis is not expanded at the bottom
-  theme(#legend.position="none", 
+  theme(legend.position="top", 
         panel.grid.minor=element_blank(),
         panel.grid.major=element_blank(),
         scale_y_continuous(expand = expansion(mult = c(0.02, 0.15))),
@@ -1344,7 +1359,7 @@ p_spatialNiches <- SpatialDimPlot(scData,
 ::: {.row}
 ::: {.col-md-9}
 
-```{r number of cells in each cluster banksy, fig.width=18, fig.height=6}
+```{r number of cells in each cluster banksy, fig.width=18, fig.height=10}
 if(!('Batch' %in% colnames(scData@meta.data))){
     scData@meta.data$Batch <- scData@meta.data$Sample
 }
@@ -1364,7 +1379,7 @@ ggplot(cellIdents_perSample, aes(x = banksy_cluster,
   ) + 
   theme_minimal()+
   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) + 
-  theme(#legend.position="none", 
+  theme(legend.position="top", 
         panel.grid.minor=element_blank(),
         panel.grid.major=element_blank(),
         scale_y_continuous(expand = expansion(mult = c(0.02, 0.15))),
