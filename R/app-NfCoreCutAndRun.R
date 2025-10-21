@@ -46,6 +46,14 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
     "-r 3.2.2"
   )
   ezSystem(cmd)
+
+  if(ezIsSpecified(param$keepBams)){
+    keepBams <- param$keepBams
+  } else {
+    keepBams <- TRUE
+  }
+  cleanupOutFolder(outFolder, keepBams)
+
   return("Success")
 }
 
@@ -96,4 +104,17 @@ getCutAndRunSampleSheet <- function(input, param){
   )
 
   return(nfSampleInfo)
+}
+
+cleanupOutFolder <- function(outFolder, keepBams=TRUE){
+  if(!keepBams){
+    bamPath <- paste0(outFolder,"/02_alignment/")
+    bamsToDelete <- dir(path=bamPath, pattern="*.bam(.bai)?$", recursive=TRUE)
+    file.remove(file.path(bamPath, bamsToDelete))
+    cat("Deleted bam and bam.bai files form bwa directory.\n")
+  }
+  genomePath <- paste0(outFolder,"/04_reporting/igv/")
+  filesToDelete <- dir(path=genomePath, pattern="genome.fa(.fai)?$")
+  file.remove(file.path(genomePath, filesToDelete))
+  cat("Deleted genome.fa and genome.fai files from 04_reporting/igv/ directory.\n")
 }
