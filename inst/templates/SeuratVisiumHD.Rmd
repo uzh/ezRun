@@ -17,10 +17,6 @@ editor_options:
 
 ### {.tabset}
 
-
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
-
-
 ```{r setup, include=FALSE}
 library(Seurat)
 library(ggplot2)
@@ -669,12 +665,30 @@ ggplot(plot_df, aes(x = cumu,
 #### Segmentation mask
 
 ```{r, fig.height=20, fig.width=25}
-SpatialFeaturePlot(
+sp_plot(
   scData,
   nCountCol,
-  images = Images(scData),
+  stroke = 0.2,
   pt.size.factor = 2
 )
+
+```
+
+
+#### Cropped mask
+
+
+```{r, fig.width=25, fig.height=20}
+
+sp_plot(
+  scData,
+  nCountCol,
+  pt.size.factor = 5,
+  stroke = 0.2,
+  crop = TRUE
+) +
+  coord_sf(xlim = c(200, 350), 
+           ylim = c(200, 350), expand = T)
 
 ```
 
