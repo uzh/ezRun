@@ -15,7 +15,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
 
   blackListFile <- getBlackListFile(input, param)
-
+  setNFCacheDir()
   cmd = paste(
     "nextflow run nf-core/cutandrun",
      ## i/o

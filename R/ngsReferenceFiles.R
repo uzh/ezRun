@@ -16,6 +16,7 @@
 ##' rfbed = getReferenceFeaturesBed(param)
 ##' }
 getReferenceFeaturesBed <- function(param) {
+  require(GenomicFeatures)
   bedFile <- str_replace(param$ezRef["refFeatureFile"], "\\.gtf$", ".bed")
   if (file.exists(bedFile)) {
     return(bedFile)
@@ -30,8 +31,20 @@ getReferenceFeaturesBed <- function(param) {
     message("generating bed file from gtf")
     ## the gtf file must contain at least CDS and exons, otherwise there is an error using itemrgb ... blah
     stopifnot(c("CDS", "exon") %in% import(param$ezRef["refFeatureFile"])$type)
-    txdb <- GenomicFeatures::makeTxDbFromGFF(param$ezRef["refFeatureFile"], dataSource="FGCZ", organism=NA, taxonomyId=NA, chrominfo = NULL)
-    export.bed(txdb, bedFile)
+    txdb <- txdbmaker::makeTxDbFromGFF(param$ezRef["refFeatureFile"], dataSource="FGCZ", organism=NA, taxonomyId=NA, chrominfo = NULL, format = 'gtf')
+    export(txdb, "tmp_transcripts.bed", format="bed")  
+    bed12 <- import("tmp_transcripts.bed", format="bed")
+    tx2gene <- select(txdb,
+                      keys=bed12$name,
+                      keytype="TXID",
+                      columns=c("TXNAME","GENEID"))
+    gtf <- rtracklayer::import("genes.gtf")
+    gene_ann <- mcols(gtf)[mcols(gtf)$type == "gene", c("gene_id","gene_name")]
+    
+    tx2gene$GENENAME <- gene_ann$gene_name[match(tx2gene$GENEID, gene_ann$gene_id)]
+    bed12$name <- paste0(tx2gene$GENENAME, "_", tx2gene$TXNAME)[match(bed12$name, tx2gene$TXID)]
+    export(bed12, bedFile, format="bed")
+    system('rm tmp_transcripts.bed')
     return(bedFile)
   }
   ## I wait until it is build

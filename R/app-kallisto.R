@@ -167,7 +167,7 @@ getKallistoReference = function(param){
     refBase = file.path(getwd(), paste0("Custom_kallistoIndex", kallistoVersion, "/transcripts"))
   }
   
-  lockFile = file.path(dirname(refBase), "lock")
+  lockFile = paste0(dirname(refBase), ".lock")
   i = 0
   while(file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT){
     ### somebody else builds and we wait
