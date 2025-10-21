@@ -7,19 +7,23 @@
 
 
 ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
-  sampleDataset = getCutAndRunSampleSheet(input, param)
   refbuild = param$refBuild
-  outFolder = paste0(param$name, '_results')
-  
-  fullGenomeSize <- fullGenomeSize <- param$ezRef@refFastaFile %>% Rsamtools::FaFile() %>% GenomeInfoDb::seqlengths() %>% sum()
+  outFolder = output$getColumn("Result") |> basename()
+
+  fullGenomeSize <- param$ezRef@refFastaFile %>% Rsamtools::FaFile() %>% GenomeInfoDb::seqlengths() %>% sum()
   effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
+
+  nfSampleFile <- file.path('dataset.csv')
+  nfSampleInfo = getCutAndRunSampleSheet(input, param)
+  write_csv(nfSampleInfo, nfSampleFile)
+
 
   blackListFile <- getBlackListFile(input, param)
 
   cmd = paste(
     "nextflow run nf-core/cutandrun",
      ## i/o
-    "--input", sampleDataset,
+    "--input", nfSampleInfo,
     "--outdir", outFolder,
     ## genome files
     "--fasta", param$ezRef@refFastaFile,
@@ -59,7 +63,8 @@ EzAppNfCoreCutAndRun <- setRefClass(
         peakCaller = ezFrame(Type="character", DefaultValue="macs2", Description="Select the peak caller for the pipeline"),
         spikeinGenome = ezFrame(Type="character", DefaultValue="macs2", Description="Select the reference for the spike-in genome"),
         normalization = ezFrame(Type="character", DefaultValue="macs2", Description="Select the target read normalization mode"),
-        peakStyle  = ezFrame(Type="character", DefaultValue="broad", Description="Run MACS2 in broadPeak mode, otherwise in narrowPeak mode")
+        peakStyle  = ezFrame(Type="character", DefaultValue="broad", Description="Run MACS2 in broadPeak mode, otherwise in narrowPeak mode"),
+        keepBams = ezFrame(Type="logical", DefaultValue = FALSE, Description= "Should bam files be stored")
       )
     }
   )
@@ -81,8 +86,6 @@ getBlackListFile <- function(input, param){
 
 ##' @description get an nf-core/cutandrun-formatted csv file
 getCutAndRunSampleSheet <- function(input, param){
-  csvPath <- file.path('./dataset.csv')
-  
   ## TODO: does not yet support comma-separated file paths
   nfSampleInfo <- ezFrame(
     group = input$getColumn(param$grouping),
@@ -91,7 +94,6 @@ getCutAndRunSampleSheet <- function(input, param){
     fastq_2 = input$getFullPaths("Read2"),
     control = input$getColumn(param$controlColumn)
   )
-  write_csv(nfSampleInfo, csvPath)
 
-  return(csvPath)
+  return(nfSampleInfo)
 }
