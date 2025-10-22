@@ -17,10 +17,6 @@ editor_options:
 
 ### {.tabset}
 
-
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
-
-
 ```{r setup, include=FALSE}
 library(Seurat)
 library(ggplot2)
@@ -50,8 +46,6 @@ library(Banksy)
 library(sf)
 library(Matrix)
 
-lambda <- 0.8 #Influence of the neighborhood. Larger values yield more spatially coherent domains
-
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
 
@@ -59,6 +53,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 ```{r}
 posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
 param <- qs_read("param.qs2")
+lambda <- param$lambda  # BANKSY spatial weighting parameter
 input <- qs_read("input.qs2")
 output <- qs_read("output.qs2")
 scData <- qs_read("scData.qs2")
@@ -669,12 +664,30 @@ ggplot(plot_df, aes(x = cumu,
 #### Segmentation mask
 
 ```{r, fig.height=20, fig.width=25}
-SpatialFeaturePlot(
+sp_plot(
   scData,
   nCountCol,
-  images = Images(scData),
+  stroke = 0.2,
   pt.size.factor = 2
 )
+
+```
+
+
+#### Cropped mask
+
+
+```{r, fig.width=25, fig.height=20}
+
+sp_plot(
+  scData,
+  nCountCol,
+  pt.size.factor = 5,
+  stroke = 0.2,
+  crop = TRUE
+) +
+  coord_sf(xlim = c(200, 350), 
+           ylim = c(200, 350), expand = T)
 
 ```
 
@@ -1247,10 +1260,52 @@ scData <- FindNeighbors(scData,
 ```
 
 ```{r find clusters, echo=F, message=F, warning=F}
-scData <- FindClusters(scData, 
-                          cluster.name = "banksy_cluster", 
+scData <- FindClusters(scData,
+                          cluster.name = "banksy_cluster",
                           resolution = param$clusterResolution,
                           verbose = F)
+```
+
+```{r compute banksy markers, echo=F, message=F, warning=F}
+# Compute positive markers for BANKSY clusters
+Idents(scData) <- "banksy_cluster"
+vars.to.regress <- NULL
+
+markers_banksy <- FindAllMarkers(
+  object = scData,
+  test.use = param$DE.method,
+  only.pos = TRUE,
+  latent.vars = vars.to.regress,
+  min.pct = param$min.pct,
+  return.thresh = param$pvalue_allMarkers,
+  logfc.threshold = param$logfc.threshold
+)
+
+# Process markers (same as classical markers)
+posMarkersBanksy <- markers_banksy[, c("gene", "cluster", "pct.1", "pct.2", "avg_log2FC", "p_val_adj")]
+posMarkersBanksy$cluster <- as.factor(posMarkersBanksy$cluster)
+diff_pct <- abs(posMarkersBanksy$pct.1 - posMarkersBanksy$pct.2)
+posMarkersBanksy$diff_pct <- diff_pct
+posMarkersBanksy <- posMarkersBanksy[order(posMarkersBanksy$diff_pct, decreasing = TRUE), ] %>%
+  mutate_if(is.numeric, round, digits = 30)
+posMarkersBanksy <- posMarkersBanksy[posMarkersBanksy$p_val_adj < param$pvalue_allMarkers, ]
+rownames(posMarkersBanksy) <- NULL
+
+# Make sure the loaded cluster uses proper integer ordering if all levels are integer!
+clusterSet_banksy <- posMarkersBanksy$cluster %>% as.integer() %>% unique() %>% sort(na.last = TRUE)
+if (any(is.na(clusterSet_banksy))) {
+  posMarkersBanksy$cluster <- as.factor(posMarkersBanksy$cluster)
+} else {
+  posMarkersBanksy$cluster <- factor(posMarkersBanksy$cluster, levels = clusterSet_banksy)
+}
+posMarkersBanksy$p_val_adj[posMarkersBanksy$p_val_adj == 0] <- min(posMarkersBanksy$p_val_adj[posMarkersBanksy$p_val_adj > 0])
+
+# Save to Excel
+writexl::write_xlsx(posMarkersBanksy, path = "posMarkersBanksy.xlsx")
+
+# Save to TSV for download
+write.table(posMarkersBanksy, file = "cluster_markers_banksy.tsv", sep = "\t",
+            row.names = FALSE, quote = FALSE)
 ```
 
 ### {.tabset}
@@ -1442,10 +1497,109 @@ plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
 
 ```
 
+#### Cluster markers
+
+<details>
+  <summary>Positive marker detection for BANKSY niches</summary>
+
+```{r wilcoxon test banksy, eval=(param$DE.method=="wilcox"), results='asis'}
+marker_tbl <- tibble(
+  Step = character(),
+  Details = character()
+) |>
+  add_row(
+    Step = "Goal",
+    Details = paste(
+      "Identify genes that are significantly higher in a given BANKSY niche compared to all other bins (\"positive markers\").",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Test",
+    Details = paste(
+      "Wilcoxon Rank Sum test (niche vs. all other bins).",
+      "Non-parametric; robust to non-normal distributions.",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Effect size filter",
+    Details = paste(
+      "Average log-fold change ≥ 0.25 (log-scale).",
+      "Ensures selected markers have a meaningful up-regulation.",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Significance threshold",
+    Details = paste(
+      "Adjusted p-value < 0.05.",
+      "Controls for multiple testing across genes.",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Direction",
+    Details = paste(
+      "Keep only **up-regulated** genes in the target niche (\"positive\" markers).",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Outputs",
+    Details = paste(
+      "For each niche: gene list with log2FC, pct.1 (in-niche detection), pct.2 (out-of-niche), p_val_adj, etc.",
+      "Significant markers satisfy both effect-size and adjusted p-value criteria.",
+      sep = "\n"
+    )
+  ) |>
+  add_row(
+    Step = "Notes",
+    Details = paste(
+      "Inspect pct.1 vs pct.2 to confirm specificity.",
+      "Very small p-values should be displayed in scientific notation; export raw values to avoid rounding to 0 in Excel.",
+      sep = "\n"
+    )
+  )
+
+ezKable(marker_tbl)
+```
+
+Marker detection summary
+
+```{r LR test banksy, eval=(param$DE.method=="LR"), results='asis'}
+
+marker_desc <- tibble(
+  Item    = c("Test", "Covariate", "Effect size", "Significance", "Definition"),
+  Details = c(
+    "Logistic regression (niche vs all other bins).",
+    "Cell cycle included as a batch effect in the model.",
+    "Average log-fold change ≥ 0.25 (log scale).",
+    "Adjusted p-value < 0.05.",
+    "Genes meeting both thresholds are called significant positive markers."
+  )
+)
+
+ezKable(marker_desc)
+```
+
+ </details>
+
+
+
+```{r pos markers banksy}
+
+
+ezInteractiveTableRmd(posMarkersBanksy, digits=3, rowNames=FALSE)
+
+
+```
+
+
 #### Marker plots
 
 ```{r marker plot setup banksy}
-top5 <- posMarkers %>% 
+top5 <- posMarkersBanksy %>%
   group_by(cluster) %>%
   slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
@@ -1475,8 +1629,8 @@ markersPerClusterTable <- c()
 
 eachCluster <- 0
 
-for (eachCluster in levels(posMarkers$cluster)) {
-  markersPerCluster <- dplyr::filter(posMarkers,
+for (eachCluster in levels(posMarkersBanksy$cluster)) {
+  markersPerCluster <- dplyr::filter(posMarkersBanksy,
                                      cluster == eachCluster) |>
     dplyr::arrange(desc(avg_log2FC))
 
@@ -1553,6 +1707,10 @@ ezKable(enrichrTable1, escape=FALSE, format="html", format.args=list())
 
 [posMarkers](cluster_markers.tsv)
 
+##### Positive markers of each BANKSY niche
+
+[posMarkersBanksy](cluster_markers_banksy.tsv)
+
 
 ##### The final Seurat Object is [here](scData.qs2)
 
@@ -1564,9 +1722,10 @@ ezKable(enrichrTable1, escape=FALSE, format="html", format.args=list())
 
 ezListAsKable(param[c("binSize",
         "npcs",
-        "clusterResolution", 
-        "DE.method", 
-        "nUMIs", 
+        "clusterResolution",
+        "lambda",
+        "DE.method",
+        "nUMIs",
         "nmad")],
         col.names=c("Parameter", "Value"),
         caption="Parameters used")
