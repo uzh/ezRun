@@ -108,6 +108,11 @@ EzAppSeuratVisiumHD <-
                                             Type = "character",
                                             DefaultValue = "",
                                             Description = "binning for Visium HD data"
+                                        ),
+                                        lambda = ezFrame(
+                                            Type = "numeric",
+                                            DefaultValue = 0.8,
+                                            Description = "BANKSY lambda: spatial weighting parameter (0-1). Larger values (0.8) find spatial domains; smaller values (0.2) perform cell typing."
                                         )
                                     )
                 }
