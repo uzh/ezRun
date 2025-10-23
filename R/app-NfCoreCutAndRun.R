@@ -49,6 +49,8 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
 
   writeAtacIgvSession(param, outFolder, jsonFileName = paste0("/scratch/mderrico/TestNfCoreCutNRun", "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("Result")))
+  makeRmdReportWrapper(outFolder, rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun")
+
   
   if(ezIsSpecified(param$keepBams)){
     keepBams <- param$keepBams
@@ -149,4 +151,13 @@ writeCutAndRunIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPa
   )
   jsonFile <- rjson::toJSON(jsonLines, indent=5, method="C")
   write(jsonFile, jsonFileName)
+}
+
+##' @description write HTML report
+makeRmdReportWrapper <- function(outFolder,rmdFile, reportTitle){
+  plotsPath <- paste0(outFolder,"/04_reporting/deeptools_heatmaps/")
+  filesToPlot <- dir(path=plotsPath, pattern=".pdf$", recursive=TRUE)
+
+  makeRmdReport(filesToPlot=file.path(plotsPath, filesToPlot), rmdFile=rmdFile,
+                reportTitle=reportTitle, selfContained = TRUE)
 }
