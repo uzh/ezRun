@@ -193,6 +193,36 @@ ezInteractiveTableRmd = function(values, filter="top",
   return(interactiveTable)
 }
 
+
+
+# ezInteractiveTable = function(values, tableLink, digits=NULL, colNames=colnames(values), title="", format=NULL, envir=parent.frame()){
+#   require(DT, quietly=TRUE)
+#   require(htmltools, quietly=TRUE)
+#   if (!is.null(digits)){
+#     for (i in 1:ncol(values)) {
+#       if(typeof(values[ ,i]) == "double"){
+#         values[ ,i] = signif(values[ ,i], digits=digits)
+#       }
+#     }
+#     captionText = paste("Numeric values are rounded to", digits, "digits.")
+#     caption = htmltools::tags$caption(htmltools::h1(title), 
+#                                       htmltools::p(captionText))
+#   } else {
+#     caption = htmltools::tags$caption(htmltools::h1(title))
+#   }
+#   interactiveTable = datatable(values, 
+#                                extensions=c("Buttons"), filter="top", caption=caption, colnames=colNames,
+#                                options=list(dom = 'Bfrtip', buttons = c('colvis','copy', 'csv', 'excel', 'pdf', 'print'), pageLength=25, autoWidth=TRUE)
+#   )
+#   if (!is.null(format)){
+#     currEnv = environment()
+#     interactiveTable = eval(format, envir=c(envir, currEnv))
+#   }
+#   saveWidget(interactiveTable, tableLink)
+# }
+
+
+
 ##' @title Write in a single line
 ##' @description Concatenates its arguments and writes it as a single line.
 ##' @param ... the arguments to concatenate.

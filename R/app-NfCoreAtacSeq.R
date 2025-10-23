@@ -16,7 +16,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   nfSampleFile <- file.path('dataset.csv')
   nfSampleInfo = getAtacSampleSheet(input, param)
   write_csv(nfSampleInfo, nfSampleFile)
-  
+  setNFCacheDir()
   cmd = paste(
     "nextflow run nf-core/atacseq",
      ## i/o
@@ -231,6 +231,12 @@ writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, b
                           name	= trackNames[[i]])
 
   }
+  tracks[[i+1]] <- list(
+      id = "genes",
+      url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/genes.bed'),
+      format =	"bed",
+      type = "annotation",
+      name = "genes")
 
   jsonLines <- list( version =	"3.5.3",
                      showSampleNames = FALSE,

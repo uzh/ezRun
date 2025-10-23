@@ -42,7 +42,7 @@ countDensGGPlot <- function(cts, xmin=min(cts, na.rm=TRUE)-5,
   data = data.frame(signal = unlist(cts),sampleName=rep(colnames(cts),each=nrow(cts)), stringsAsFactors = F)
   xvar = 'signal'
   split = 'sampleName'
-  p = ggplot(data=data, aes_string(x=xvar, fill=split))
+  p = ggplot(data=data, aes(x=xvar, fill=split))
   p = p + xlim(xmin,xmax) + geom_density(alpha=alpha) + scale_fill_manual(values=colors)
   p = p + ylab("density of transcripts") + xlab("log2 expression") + ggtitle(paste(main, "(",nrow(cts), ")"))
   p = p + theme_bw() + theme(plot.background = element_blank(), #Remove default GRID
@@ -92,7 +92,7 @@ ezMdsGG2 <- function(signal, design, ndim=2, main="MDS plot", addLabels=TRUE){
   toPlot <- dplyr::bind_cols(toPlot, as_tibble(mdsOut))
   if(ncol(design) > 1L){
     p <- ggplot(toPlot, aes(`Leading logFC dim1`, `Leading logFC dim2`)) +
-      geom_point(aes_string(colour=colnames(design)[1],
+      geom_point(aes(colour=colnames(design)[1],
                             shape =colnames(design)[2]),
                  size = 3) + 
       ggtitle(main) + theme_half_open() + background_grid()
@@ -101,7 +101,7 @@ ezMdsGG2 <- function(signal, design, ndim=2, main="MDS plot", addLabels=TRUE){
     }
   }else{
     p <- ggplot(toPlot, aes(`Leading logFC dim1`, `Leading logFC dim2`)) +
-      geom_point(aes_string(colour=colnames(design)[1]),
+      geom_point(aes(colour=colnames(design)[1]),
                  size = 3) +
       ggtitle(main) + theme_half_open() + background_grid()
     if(isTRUE(addLabels)){

@@ -25,7 +25,7 @@ library(patchwork)
 library(dplyr)
 library(RColorBrewer)
 library(kableExtra)
-library(clustree)
+#library(clustree)
 library(ezRun)
 library(scater)
 library(SingleCellExperiment)
@@ -41,6 +41,15 @@ library(htmltools)
 library(patchwork)
 library(scales)
 library(UpSetR)
+
+library(SeuratWrappers)
+library(Banksy)
+
+#put to params
+
+
+lambda <- 0.8 #Influence of the neighborhood. Larger values yield more spatially coherent domains
+
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
@@ -661,6 +670,10 @@ ggplot(plot_df, aes(x = cumu,
 
 ## Clustering
 
+### {.tabset}
+
+#### Clusters 
+
 <details>
   <summary>KNN → communities → clusters</summary>
 
@@ -837,7 +850,7 @@ ezInteractiveTableRmd(df, rowNames = FALSE, title="number of bins", filter="none
 <br/>
 
 
-## Cluster assessment
+#### Cluster assessment
 
 <details>
   <summary>Technical vs. biological clustering driver</summary>
@@ -921,7 +934,7 @@ plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
 
 
 
-## Cluster markers
+#### Cluster markers
 
 <details>
   <summary>Positive marker detection</summary>
@@ -1020,25 +1033,35 @@ ezInteractiveTableRmd(posMarkers, digits=3, rowNames=FALSE)
 ```
  
 
-## Marker plots
+#### Marker plots
 
 ```{r marker plot setup}
-top5 <- posMarkers %>% 
-  group_by(cluster) %>%
+top5 <- posMarkers  |> 
+  group_by(cluster) |> 
   slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
+
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
+
 genesToPlot <- intersect(genesToPlot, rownames(scData))
 ```
 
 
-### DotPlot
+##### DotPlot
 
 Visualization of the top 5 markers in each cluster. If a gene is a top marker for multiple clusters it is shown only once.
 
 
 ```{r dotplot, fig.width  = 15, fig.height = 30}
 
-DotPlot(scData, features=genesToPlot) + coord_flip() +
+DotPlot(scData, 
+        assay = "Spatial",
+        features=rev(genesToPlot)
+        ) + 
+  coord_flip() +
+  scale_y_discrete(limits = as.character(sort(as.integer(levels(Idents(scData)))
+                                              )
+                                         )
+                   ) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 ```
 
@@ -1056,8 +1079,7 @@ if (length(genesToPlot) > 0){
 ```
 
 
-
-## EnrichR
+#### EnrichR
 
 <details>
   <summary>Cell type scoring (Enrichr)</summary>
@@ -1180,6 +1202,333 @@ ezKable(enrichrTable, escape=FALSE, format="html", format.args=list())
 
 
 
+
+## Niches
+
+
+```{r runBanksy, echo=F, message=F, warning=F}
+
+scData <- RunBanksy(scData,
+                    lambda = lambda, 
+                    verbose = TRUE,
+                    assay = DefaultAssay(scData), 
+                    slot = "data", 
+                    features = "variable",
+                    k_geom = 50 #Local neighborhood size. Larger values will yield larger domains
+                    )
+
+
+```
+
+```{r banksy PCA, echo=F, message=F, warning=F}
+
+DefaultAssay(scData) <- "BANKSY"
+
+scData <- RunPCA(scData, 
+                 assay = "BANKSY", 
+                 reduction.name = "pca.banksy", 
+                 features = rownames(scData), 
+                 npcs = param$npcs)
+
+
+```
+
+```{r neighbors, echo=F, message=F, warning=F}
+
+scData <- FindNeighbors(scData, 
+                           reduction = "pca.banksy", 
+                           dims = 1:30)
+
+```
+
+```{r find clusters, echo=F, message=F, warning=F}
+scData <- FindClusters(scData, 
+                          cluster.name = "banksy_cluster", 
+                          resolution = param$resolution,
+                          verbose = F)
+```
+
+### {.tabset}
+
+#### Clustering
+
+##### Communities of spatially adjacent spots
+
+<details>
+  <summary>Niche defining</summary>
+
+```{r}
+banksy_niches <- tibble(
+  Concept = character(),
+  Definition = character(),
+  `Key params` = character(),
+  `Practical tip` = character()
+) |>
+  add_row(
+    Concept = "Niche (BANKSY cluster)",
+    Definition = "Community of spatially adjacent spots with neighborhood-smoothed expression.",
+    `Key params` = "k_geom, λ",
+    `Practical tip` = "Represents a tissue microenvironment."
+  ) |>
+  add_row(
+    Concept = "k_geom (local neighborhood size)",
+    Definition = "How many nearest spatial neighbors define a spot’s niche.",
+    `Key params` = "Integer (e.g., 6–12 for HD bins)",
+    `Practical tip` = "↑k = smoother/merge risk; ↓k = sharper/border-preserving."
+  ) |>
+  add_row(
+    Concept = "λ (neighbor influence)",
+    Definition = "How strongly neighbors affect each spot’s expression.",
+    `Key params` = "0–1 (start ≈ 0.4)",
+    `Practical tip` = "↑λ = denoise/over-smooth risk; ↓λ = crisp/possibly noisy."
+  ) |>
+  add_row(
+    Concept = "Outcome",
+    Definition = "Denoised matrix and niches that align with histology.",
+    `Key params` = "features = 'variable'",
+    `Practical tip` = "Validate on image & markers; adjust k_geom/λ as needed."
+  )
+
+ezKable(banksy_niches)
+```
+</details>
+
+`r paste("Resolution:", param$resolution)`
+
+
+```{r banksy plot spatial, fig.width=12, fig.height=6}
+Idents(scData) <- "banksy_cluster"
+
+n_clusters_banksy <- nlevels(Idents(scData))
+show_leg_banksy   <- n_clusters <= 20
+
+p1 <- DimPlot(scData,
+              label = FALSE,
+              pt.size = 1.5) +
+  labs(color = "Clusters") +
+  theme_void() +
+  guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
+  ggtitle("UMAP") +
+  theme(legend.position = "none")
+
+p1 <- Seurat::LabelClusters(
+  plot     = p1,
+  id       = "ident",
+  fontface = "bold",
+  color    = "#383838",
+  size     = 4
+)
+
+p_spatialNiches <- SpatialDimPlot(scData, 
+                    group.by = "banksy_cluster", 
+                    label = T, 
+                    repel = T, 
+                    label.size = 4
+                    # ,
+                    # interactive = T #to check on segmentation 
+                    ) +
+  
+  labs(fill = "Clusters") +
+  guides(fill = if (show_leg_banksy) guide_legend(title = "Clusters") else "none")
+
+(p1 + p_spatialNiches) +
+  plot_layout(nrow = 1, guides = if (show_leg) "collect" else "keep") 
+```
+
+
+
+```{r, fig.width=20, fig.height=20, dpi=300}
+# banksy_cells <- CellsByIdentities(scData)
+# 
+# SpatialDimPlot(scData, 
+#                cells.highlight = banksy_cells[setdiff(names(banksy_cells), "NA")], 
+#                            cols.highlight = c("#FFFF00", 
+#                                               "grey50"), 
+#                            facet.highlight = T, 
+#                            combine = T) + 
+#   NoLegend() 
+
+```
+
+<br>
+
+::: {.row}
+::: {.col-md-9}
+
+```{r number of cells in each cluster banksy, fig.width=18, fig.height=6}
+if(!('Batch' %in% colnames(scData@meta.data))){
+    scData@meta.data$Batch <- scData@meta.data$Sample
+}
+
+cellIdents_perSample <- scData@meta.data[,c('banksy_cluster', 'Batch')]
+cellIdents_perSample$Batch <- factor(cellIdents_perSample$Batch)
+
+
+
+ggplot(cellIdents_perSample, aes(x = banksy_cluster, 
+                    fill = Batch)) +
+  geom_bar() +
+#  scale_fill_manual(values = pal) +
+  labs(title = "Bins per cluster and sample (counts)",
+       x = NULL, 
+       y = "# bins"
+  ) + 
+  theme_minimal()+
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) + 
+  theme(#legend.position="none", 
+        panel.grid.minor=element_blank(),
+        panel.grid.major=element_blank(),
+        scale_y_continuous(expand = expansion(mult = c(0.02, 0.15))),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)
+  )
+
+```
+:::
+
+::: {.col-md-3}
+```{r, echo=FALSE}
+
+df <- cellsProportion(scData, groupVar1 = "banksy_cluster", groupVar2 = "Batch") 
+df <- df |> as.data.frame(check.names = FALSE, stringsAsFactors = FALSE) |>
+  dplyr::rename("Cluster"="banksy_cluster")
+
+
+
+is_pct_col <- grepl("_fraction$", colnames(df))
+colnames(df) <- colnames(df) |> str_replace_all("_fraction$", " (%)")
+is_count_col <- !is_pct_col & colnames(df) != "Cluster"
+colnames(df)[is_count_col] <- colnames(df)[is_count_col] |> paste("(n)")
+
+ezInteractiveTableRmd(df, rowNames = FALSE, title="number of bins", filter="none")|>
+  DT::formatPercentage(columns = is_pct_col, digits = 2) 
+
+
+```
+:::
+:::
+
+
+#### Cluster assessment
+
+
+```{r uninteresting variation banksy, fig.height=16, fig.width=18}
+boxplot_data_nCount <- FetchData(scData, vars = c(nCountCol, "banksy_cluster"))
+#boxplot_data_nCount$banksy_cluster <- factor(boxplot_data_nCount$banksy_cluster, levels = sort(as.numeric(levels(boxplot_data_nCount$banksy_cluster))))
+plot1 <- ggplot(boxplot_data_nCount, aes(x = banksy_cluster, y = .data[[nCountCol]], fill = banksy_cluster))
+plot1 <- plot1 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
+plot1 <- plot1 + scale_fill_viridis_d(option = "turbo")  
+plot1 <- plot1 + ggtitle("Number of UMIs vs cluster") + xlab("Cluster") + ylab(nCountCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
+
+boxplot_data_nFeature <- FetchData(scData, vars = c(nFeatureCol, "banksy_cluster"))
+#boxplot_data_nFeature$banksy_cluster <- factor(boxplot_data_nFeature$banksy_cluster, levels = sort(as.numeric(levels(boxplot_data_nFeature$banksy_cluster))))
+plot2 <- ggplot(boxplot_data_nFeature, aes(x = banksy_cluster, y = .data[[nFeatureCol]], fill = banksy_cluster))
+plot2 <- plot2 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
+plot2 <- plot2 + scale_fill_viridis_d(option = "turbo")  
+plot2 <- plot2 + ggtitle("Number of genes vs cluster") + xlab("Cluster") + ylab(nFeatureCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
+
+boxplot_data_mito <- FetchData(scData, vars = c("percent_mito", "banksy_cluster"))
+#boxplot_data_mito$banksy_cluster <- factor(boxplot_data_mito$banksy_cluster, levels = sort(as.numeric(levels(boxplot_data_mito$banksy_cluster))))
+plot3 <- ggplot(boxplot_data_mito, aes(x = banksy_cluster, y = percent_mito, fill = banksy_cluster))
+plot3 <- plot3 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
+plot3 <- plot3 + scale_fill_viridis_d(option = "turbo")  
+plot3 <- plot3 + ggtitle("Mitochondrial percentage vs cluster") + xlab("Cluster") + ylab("percent_mito") + theme_minimal(base_size = 14) + theme(legend.position = "none")
+plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
+
+```
+
+#### Marker plots
+
+```{r marker plot setup banksy}
+top5 <- posMarkers %>% 
+  group_by(cluster) %>%
+  slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
+genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
+genesToPlot <- intersect(genesToPlot, rownames(scData))
+```
+
+
+##### DotPlot
+
+Visualization of the top 5 markers in each cluster. If a gene is a top marker for multiple clusters it is shown only once.
+
+
+```{r dotplot banksy, fig.width  = 20, fig.height = 30}
+
+DotPlot(scData, features=rev(genesToPlot)) + 
+  coord_flip() +
+  scale_y_discrete(limits = levels(Idents(scData))) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+```
+
+
+#### EnrichR
+```{r query online enrichR version banksy, echo=FALSE, results='asis'}
+markersPerClusterTable <- c()
+
+eachCluster <- 0
+
+for (eachCluster in levels(posMarkers$cluster)) {
+  markersPerCluster <- dplyr::filter(posMarkers,
+                                     cluster == eachCluster) |>
+    dplyr::arrange(desc(avg_log2FC))
+
+  markersPerCluster <- head(markersPerCluster,
+                            min(nrow(markersPerCluster), 500)
+                            )
+
+  markersPerClusterTable <- rbind(markersPerClusterTable,
+                                  markersPerCluster)
+}
+
+genesPerCluster <- split(markersPerClusterTable$gene,
+                         markersPerClusterTable$cluster)
+
+jsCall = paste0('enrich({list: "',
+                sapply(genesPerCluster,
+                       paste,
+                       collapse="\\n"),
+                '", popup: true});')
+
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='",
+                       jsCall,
+                       # "'>Analyse at Enrichr website</a>"
+                       "'>Open</a>")
+
+
+
+```
+
+
+```{r enrichr markers banksy, echo=FALSE, results='asis'}
+enrichrTable1 <- tibble(Cluster=names(genesPerCluster),
+                         # "# of posMarkers"=lengths(genesPerCluster),
+                         "N posMarkers"=lengths(genesPerCluster),
+                         "Enrichr link"=enrichrCalls)
+
+if (!is.null(enrichRout)){
+  enrichRTerm <- as.data.frame(do.call(rbind,
+                                       lapply(enrichRout, as.vector)))
+
+  enrichRTerm <- map_df(enrichRTerm, 
+                        ~ map_df(.x, 
+                                 ~ replace(.x, is.null(.x), NA)), 
+                        .id = "database")
+
+  enrichRTerm <- enrichRTerm |>
+    group_by(., Cluster, database) |>
+    summarise(topTerms = paste(Term, collapse = "; ")) |>
+    as.data.frame()
+
+  enrichRTerm <- dcast(enrichRTerm, ... ~ database)
+
+  enrichrTable1 <- merge(enrichrTable1, enrichRTerm, by = "Cluster")
+}
+
+## settings needed to make sure links remain links
+ezKable(enrichrTable1, escape=FALSE, format="html", format.args=list())
+
+```
+
 ## Links
 
 ### Data files
@@ -1225,4 +1574,6 @@ ezListAsKable(param[c("binSize",
 format(Sys.time(), '%Y-%m-%d %H:%M:%S')
 ezSessionInfo()
 ```
+
+
 

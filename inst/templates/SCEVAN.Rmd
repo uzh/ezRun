@@ -1,0 +1,764 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SCEVAN CNV Analysis'`"
+output:
+  html_document:
+    self_contained: true
+    includes:
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun", lib.loc=.libPaths())
+    css: !expr system.file("templates/fgcz.css", package="ezRun", lib.loc=.libPaths())
+    code_folding: hide
+editor_options:
+  chunk_output_type: console
+---
+
+# {.tabset}
+
+## Overview
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE,
+                      fig.width = 10, fig.height = 7)
+```
+
+```{r load packages, include=FALSE}
+# Load ezRun first (provides ezLoadPackage function)
+library(ezRun)
+
+# Load required packages
+ezLoadPackage('Seurat')
+ezLoadPackage('qs2')
+ezLoadPackage('dplyr')
+ezLoadPackage('tidyr')
+ezLoadPackage('ggplot2')
+ezLoadPackage('patchwork')
+ezLoadPackage('DT')
+ezLoadPackage('dittoSeq')
+ezLoadPackage('ComplexHeatmap')
+ezLoadPackage('circlize')
+ezLoadPackage('RColorBrewer')
+ezLoadPackage('pals')
+```
+
+```{r load data, include=FALSE}
+# Load parameters
+param <- readRDS('param.rds')
+
+# Load Seurat object
+seuratObj <- qs2::qs_read("seurat_object.qs2", nthreads = param$cores)
+
+# Load SCEVAN results
+resultsList <- qs2::qs_read("scevan_results_list.qs2", nthreads = param$cores)
+
+# Load multi-sample results if available
+multiSampleFile <- "scevan_multi_sample_results.qs2"
+if (file.exists(multiSampleFile)) {
+  multiSampleResults <- qs2::qs_read(multiSampleFile, nthreads = param$cores)
+} else {
+  multiSampleResults <- NULL
+}
+
+# Create output directory
+output_dir <- "Outputs/"
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+# Get metadata
+metadata <- seuratObj@meta.data
+```
+
+### Analysis Summary
+
+- **Project**: `r param$name`
+- **Organism**: `r param$organism`
+- **Total cells analyzed**: `r ncol(seuratObj)`
+- **Reference (normal) cells**: `r length(param$normCells)` (`r round(100 * length(param$normCells) / ncol(seuratObj), 2)`%)
+- **Number of samples**: `r length(param$samples)`
+- **Successfully processed**: `r param$nSuccessful`
+- **Cell type column used**: `r param$cellTypeColumn`
+- **Sample column used**: `r param$sampleColumn`
+- **Subclone analysis**: `r ifelse(param$subclones, "Enabled", "Disabled")`
+
+### Reference Cell Types
+
+The following cell types were used as normal reference:
+
+```{r ref cell types, echo=FALSE}
+data.frame(
+  CellType = param$referenceCellTypes,
+  Count = sapply(param$referenceCellTypes, function(ct) {
+    sum(metadata[[param$cellTypeColumn]] == ct)
+  })
+) %>%
+  DT::datatable(
+    rownames = FALSE,
+    options = list(pageLength = 10, dom = 't'),
+    class = 'cell-border stripe'
+  )
+```
+
+### Sample Breakdown
+
+```{r sample breakdown, echo=FALSE}
+sampleStats <- metadata %>%
+  group_by(!!sym(param$sampleColumn)) %>%
+  summarise(
+    TotalCells = n(),
+    NormalCells = sum(rownames(metadata) %in% param$normCells),
+    NormalPct = round(100 * NormalCells / TotalCells, 2)
+  ) %>%
+  arrange(desc(TotalCells))
+
+DT::datatable(
+  sampleStats,
+  rownames = FALSE,
+  options = list(pageLength = 20),
+  class = 'cell-border stripe'
+)
+```
+
+```{r add scevan to metadata, include=FALSE}
+# Add SCEVAN results to Seurat metadata
+for (sampleName in names(resultsList)) {
+  scevanData <- resultsList[[sampleName]]
+
+  # Add classification (tumor/normal)
+  if (!is.null(scevanData$class)) {
+    classData <- scevanData$class
+    names(classData) <- rownames(scevanData)
+
+    # Create sample-specific column
+    seuratObj <- AddMetaData(
+      object = seuratObj,
+      metadata = classData,
+      col.name = paste0("SCEVAN_", sampleName)
+    )
+
+    # Also add to general column (will be overwritten for multi-sample)
+    seuratObj <- AddMetaData(
+      object = seuratObj,
+      metadata = classData,
+      col.name = "SCEVAN_class"
+    )
+  }
+
+  # Add subclone data if available
+  if (!is.null(scevanData$subclone)) {
+    subcloneData <- scevanData$subclone
+    names(subcloneData) <- rownames(scevanData)
+
+    seuratObj <- AddMetaData(
+      object = seuratObj,
+      metadata = subcloneData,
+      col.name = paste0("SCEVAN_subclone_", sampleName)
+    )
+  }
+}
+
+# Update metadata
+metadata <- seuratObj@meta.data
+
+# Create cell type color palette (used across multiple sections)
+cellTypes <- unique(metadata[[param$cellTypeColumn]])
+nCellTypes <- length(cellTypes)
+cellTypeColors <- unname(pals::polychrome())[1:min(nCellTypes, 36)]
+names(cellTypeColors) <- cellTypes
+```
+
+---
+
+## Cell Type Annotations
+
+UMAP showing all cells colored by the cell type annotation column used for reference cell selection.
+
+```{r umap celltype, fig.width=10, fig.height=10, out.width="800px", out.height="800px"}
+# Create UMAP
+p <- DimPlot(seuratObj,
+            group.by = param$cellTypeColumn,
+            cols = cellTypeColors,
+            reduction = "umap",
+            order = TRUE,
+            repel = TRUE) +
+  ggtitle(paste("Cell Type Annotations -", param$cellTypeColumn))
+
+print(p)
+ggsave(file.path(output_dir, "umap_celltypes.png"),
+       p, width = 10, height = 10, dpi = 300, bg = "white")
+```
+
+**Reference cell types** (used as normal cells for SCEVAN): **`r paste(param$referenceCellTypes, collapse = ", ")`**
+
+- **Total reference cells**: `r length(param$normCells)` / `r ncol(seuratObj)` (`r round(100 * length(param$normCells) / ncol(seuratObj), 2)`%)
+
+---
+
+## Tumor Classification {.tabset}
+
+### Merged UMAP
+
+UMAP showing all cells colored by SCEVAN classification (tumor vs. normal).
+
+```{r umap tumor merged, fig.width=10, fig.height=10, out.width="800px", out.height="800px"}
+if ("SCEVAN_class" %in% colnames(metadata)) {
+  p <- DimPlot(seuratObj,
+              group.by = 'SCEVAN_class',
+              cols = c("normal" = "gray70", "tumor" = "firebrick"),
+              reduction = "umap",
+              order = TRUE,
+              repel = TRUE) +
+    ggtitle("SCEVAN Classification - All Samples")
+
+  print(p)
+  ggsave(file.path(output_dir, "umap_scevan_classification_merged.png"),
+         p, width = 10, height = 10, dpi = 300, bg = "white")
+} else {
+  cat("SCEVAN classification not available.\n")
+}
+```
+
+### Per Sample UMAPs
+
+```{r umap tumor per sample, fig.width=10, fig.height=10, out.width="800px", out.height="800px", results='asis'}
+for (sampleName in names(resultsList)) {
+  colName <- paste0("SCEVAN_", sampleName)
+
+  if (colName %in% colnames(metadata)) {
+    cat("\n\n####", sampleName, "\n\n")
+
+    p <- DimPlot(seuratObj,
+                group.by = colName,
+                cols = c("normal" = "gray70", "tumor" = "firebrick"),
+                reduction = "umap",
+                order = TRUE,
+                repel = TRUE) +
+      ggtitle(paste("SCEVAN Classification -", sampleName))
+
+    print(p)
+
+    ggsave(file.path(output_dir, paste0("umap_scevan_", sampleName, ".png")),
+           p, width = 10, height = 10, dpi = 300, bg = "white")
+  }
+}
+```
+
+### Composition Barplots
+
+Distribution of tumor vs. normal cells across cell types.
+
+```{r barplot tumor by celltype, fig.width=10, fig.height=7}
+if ("SCEVAN_class" %in% colnames(metadata)) {
+  # Define consistent colors for tumor/normal (matching UMAPs)
+  scevan_color_map <- c("normal" = "gray70", "tumor" = "firebrick")
+
+  # Plot 1: SCEVAN classification by cell type
+  plot_data1 <- metadata %>%
+    count(!!sym(param$cellTypeColumn), SCEVAN_class) %>%
+    group_by(!!sym(param$cellTypeColumn)) %>%
+    mutate(proportion = n / sum(n))
+
+  p1 <- ggplot(plot_data1, aes(x = !!sym(param$cellTypeColumn),
+                                y = proportion,
+                                fill = SCEVAN_class)) +
+    geom_col(position = "stack") +
+    scale_fill_manual(values = scevan_color_map) +
+    theme_minimal() +
+    labs(y = "Percent of cells", fill = "SCEVAN", x = param$cellTypeColumn) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    ggtitle("SCEVAN Classification by Cell Type")
+
+  print(p1)
+  ggsave(file.path(output_dir, "barplot_scevan_by_celltype.png"),
+         p1, width = 10, height = 7, dpi = 300, bg = "white")
+
+  # Plot 2: Cell type distribution in tumor vs normal
+  plot_data2 <- metadata %>%
+    count(SCEVAN_class, !!sym(param$cellTypeColumn)) %>%
+    group_by(SCEVAN_class) %>%
+    mutate(proportion = n / sum(n))
+
+  p2 <- ggplot(plot_data2, aes(x = SCEVAN_class,
+                                y = proportion,
+                                fill = !!sym(param$cellTypeColumn))) +
+    geom_col(position = "stack") +
+    scale_fill_manual(values = cellTypeColors) +
+    theme_minimal() +
+    labs(y = "Percent of cells", fill = "Cell Type", x = "SCEVAN Class") +
+    ggtitle("Cell Type Distribution in Tumor vs Normal")
+
+  print(p2)
+  ggsave(file.path(output_dir, "barplot_celltype_by_scevan.png"),
+         p2, width = 10, height = 7, dpi = 300, bg = "white")
+}
+```
+
+---
+
+## Subclones {.tabset}
+
+```{r check subclones, include=FALSE}
+hasSubclones <- any(grepl("^SCEVAN_subclone_", colnames(metadata)))
+```
+
+`r if(!hasSubclones) {"### No Subclone Data Available\n\nSubclone analysis was not enabled or did not produce results."}`
+
+```{r subclone umaps, eval=hasSubclones, fig.width=10, fig.height=10, out.width="800px", out.height="800px", results='asis'}
+if (hasSubclones) {
+  for (sampleName in names(resultsList)) {
+    subcloneCol <- paste0("SCEVAN_subclone_", sampleName)
+
+    if (subcloneCol %in% colnames(metadata)) {
+      # Check if there are actual subclone assignments (not all NA)
+      subclone_vals <- metadata[[subcloneCol]]
+      if (all(is.na(subclone_vals))) {
+        next
+      }
+
+      cat("\n\n###", sampleName, "\n\n")
+
+      # Get number of unique subclones (excluding NA)
+      nSubclones <- length(unique(na.omit(subclone_vals)))
+
+      if (nSubclones > 0) {
+        # Use polychrome palette for subclones
+        subclone_colors <- unname(pals::polychrome())[1:min(nSubclones, 36)]
+
+        # Subset to cells with subclone assignments for plotting
+        cells_with_subclones <- !is.na(subclone_vals)
+
+        p <- DimPlot(seuratObj,
+                    cells = colnames(seuratObj)[cells_with_subclones],
+                    group.by = subcloneCol,
+                    cols = subclone_colors,
+                    reduction = "umap",
+                    order = TRUE) +
+          ggtitle(paste("SCEVAN Subclones -", sampleName, "(", nSubclones, "subclones)"))
+
+        print(p)
+
+        ggsave(file.path(output_dir, paste0("umap_subclones_", sampleName, ".png")),
+               p, width = 10, height = 10, dpi = 300, bg = "white")
+      }
+    }
+  }
+}
+```
+
+```{r subclone barplots, eval=hasSubclones, fig.width=12, fig.height=7, results='asis'}
+if (hasSubclones) {
+  cat("\n\n### Subclone Composition\n\n")
+
+  for (sampleName in names(resultsList)) {
+    subcloneCol <- paste0("SCEVAN_subclone_", sampleName)
+
+    if (subcloneCol %in% colnames(metadata)) {
+      cat("\n\n####", sampleName, "\n\n")
+
+      # Match colors used in DimPlot - use polychrome palette
+      subclone_vals <- metadata[[subcloneCol]]
+      subclone_vals_clean <- na.omit(subclone_vals)
+      nSubclones <- length(unique(subclone_vals_clean))
+      subclone_colors <- unname(pals::polychrome())[1:min(nSubclones, 36)]
+      names(subclone_colors) <- as.character(sort(unique(subclone_vals_clean)))
+
+      # Prepare data for ggplot - convert subclone to factor for proper color mapping
+      plot_data <- metadata %>%
+        filter(!is.na(!!sym(subcloneCol))) %>%
+        mutate(!!sym(subcloneCol) := factor(!!sym(subcloneCol))) %>%
+        count(!!sym(param$cellTypeColumn), !!sym(subcloneCol)) %>%
+        group_by(!!sym(param$cellTypeColumn)) %>%
+        mutate(proportion = n / sum(n))
+
+      p <- ggplot(plot_data, aes(x = !!sym(param$cellTypeColumn),
+                                  y = proportion,
+                                  fill = !!sym(subcloneCol))) +
+        geom_col(position = "stack") +
+        scale_fill_manual(values = subclone_colors) +
+        theme_minimal() +
+        labs(y = "Percent of cells", fill = "Subclone", x = param$cellTypeColumn) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+        ggtitle(paste("Subclone Distribution by Cell Type -", sampleName))
+
+      print(p)
+
+      ggsave(file.path(output_dir, paste0("barplot_subclones_", sampleName, ".png")),
+             p, width = 12, height = 7, dpi = 300, bg = "white")
+    }
+  }
+}
+```
+
+---
+
+## Chromosome CNV {.tabset}
+
+```{r check cnv chr, include=FALSE}
+# Check if chromosome CNV data is available from SCEVAN output
+hasChrCNV <- FALSE
+cnvChrData <- NULL
+
+# Try to extract chromosome-level CNV from SCEVAN results
+if (length(resultsList) > 0) {
+  # Check first sample for CNV matrix structure
+  firstResult <- resultsList[[1]]
+
+  # SCEVAN saves CNV matrices in the output directory
+  # Try to load them if they exist
+  sampleName <- names(resultsList)[1]
+  cnaFile <- file.path("output", paste0(sampleName, "_CNAmtx.RData"))
+  annotFile <- file.path("output", paste0(sampleName, "_count_mtx_annot.RData"))
+
+  if (file.exists(cnaFile) && file.exists(annotFile)) {
+    hasChrCNV <- TRUE
+
+    # Initialize chromosome CNV matrix
+    nChr <- 22  # Human chromosomes (adjust for mouse if needed)
+    cnvChrData <- matrix(NA, nrow = ncol(seuratObj), ncol = nChr)
+    rownames(cnvChrData) <- colnames(seuratObj)
+    colnames(cnvChrData) <- paste0("CNV_chr", 1:nChr)
+
+    # Process each sample
+    for (sampleName in names(resultsList)) {
+      cnaFile <- file.path("output", paste0(sampleName, "_CNAmtx.RData"))
+      annotFile <- file.path("output", paste0(sampleName, "_count_mtx_annot.RData"))
+
+      if (file.exists(cnaFile) && file.exists(annotFile)) {
+        # Load CNA matrix
+        env <- new.env()
+        load(cnaFile, envir = env)
+        CNA_mtx_relat <- env$CNA_mtx_relat
+
+        # Load annotation
+        env2 <- new.env()
+        load(annotFile, envir = env2)
+        count_mtx_annot <- env2$count_mtx_annot
+
+        # Calculate chromosome means
+        for (chr in 1:nChr) {
+          chrRows <- which(count_mtx_annot$seqnames == chr)
+          if (length(chrRows) > 0) {
+            cnvChrData[colnames(CNA_mtx_relat), chr] <-
+              colMeans(CNA_mtx_relat[chrRows, , drop = FALSE])
+          }
+        }
+      }
+    }
+
+    # Add to Seurat metadata
+    for (chr in 1:nChr) {
+      seuratObj <- AddMetaData(
+        object = seuratObj,
+        metadata = cnvChrData[, chr],
+        col.name = paste0("CNV_chr", chr)
+      )
+    }
+
+    metadata <- seuratObj@meta.data
+  }
+}
+```
+
+`r if(!hasChrCNV) {"### CNV Data Not Available\n\nChromosome-level CNV data could not be loaded. This may be normal if SCEVAN did not generate detailed CNV matrices."}`
+
+```{r cnv chr umaps, eval=hasChrCNV, fig.width=10, fig.height=10, out.width="800px", out.height="800px", results='asis'}
+if (hasChrCNV) {
+  # Custom color scale centered at 0
+  create_custom_colors <- function(n_colors = 100) {
+    colors_neg <- colorRampPalette(c("blue", "white"))(n_colors/2)
+    colors_pos <- colorRampPalette(c("white", "red"))(n_colors/2)
+    c(colors_neg, colors_pos)
+  }
+
+  custom_colors <- create_custom_colors()
+
+  # Create tabs for each chromosome
+  for (chr in 1:22) {
+    cat("\n\n###", paste("Chr", chr), "\n\n")
+
+    cnvCol <- paste0("CNV_chr", chr)
+
+    if (cnvCol %in% colnames(metadata)) {
+      p <- FeaturePlot(
+        seuratObj,
+        features = cnvCol,
+        reduction = "umap",
+        order = TRUE
+      ) +
+        scale_color_gradientn(
+          colors = custom_colors,
+          limits = c(-0.5, 0.5),
+          oob = scales::squish,
+          name = "CNV Score"
+        ) +
+        ggtitle(paste("Chromosome", chr, "CNV"))
+
+      print(p)
+
+      ggsave(file.path(output_dir, paste0("umap_cnv_chr", chr, ".png")),
+             p, width = 10, height = 10, dpi = 300, bg = "white")
+    }
+  }
+}
+```
+
+---
+
+## CNV Heatmaps {.tabset}
+
+```{r check cnv matrices, include=FALSE}
+hasCNVMatrices <- FALSE
+
+# Check if CNV matrices exist in output/ subdirectory
+sampleName <- names(resultsList)[1]
+cnaFile <- file.path("output", paste0(sampleName, "_CNAmtx.RData"))
+if (file.exists(cnaFile)) {
+  hasCNVMatrices <- TRUE
+}
+```
+
+`r if(!hasCNVMatrices) {"### CNV Matrices Not Available\n\nDetailed CNV matrices were not found in the SCEVAN output directory."}`
+
+```{r cnv heatmap function, eval=hasCNVMatrices, include=FALSE}
+create_cnv_heatmap <- function(sampleName, seuratObj, param) {
+  # Load CNA matrix from output/ subdirectory
+  cnaFile <- file.path("output", paste0(sampleName, "_CNAmtx.RData"))
+  annotFile <- file.path("output", paste0(sampleName, "_count_mtx_annot.RData"))
+
+  if (!file.exists(cnaFile) || !file.exists(annotFile)) {
+    return(NULL)
+  }
+
+  # Load CNA matrix
+  env <- new.env()
+  load(cnaFile, envir = env)
+  CNA_mtx_relat <- env$CNA_mtx_relat
+
+  # Load annotation to get chromosome information
+  env2 <- new.env()
+  load(annotFile, envir = env2)
+  count_mtx_annot <- env2$count_mtx_annot
+
+  # Get cells for this sample
+  sampleCells <- colnames(seuratObj)[seuratObj@meta.data[[param$sampleColumn]] == sampleName]
+
+  # Find matching cells
+  matchingCells <- intersect(colnames(CNA_mtx_relat), sampleCells)
+
+  if (length(matchingCells) == 0) {
+    return(NULL)
+  }
+
+  # Subset matrix
+  cnaMtx <- CNA_mtx_relat[, matchingCells]
+
+  # Get metadata for these cells
+  cellMeta <- seuratObj@meta.data[matchingCells, ]
+
+  # Create color palettes for cell annotations
+  cellTypes <- unique(cellMeta[[param$cellTypeColumn]])
+  nCellTypes <- length(cellTypes)
+  cellTypeColors <- unname(pals::polychrome())[1:min(nCellTypes, 36)]
+  names(cellTypeColors) <- cellTypes
+
+  scevanCol <- paste0("SCEVAN_", sampleName)
+
+  # Create column (cell) annotation
+  if (scevanCol %in% colnames(cellMeta)) {
+    ha_col <- HeatmapAnnotation(
+      CellType = cellMeta[[param$cellTypeColumn]],
+      SCEVAN = cellMeta[[scevanCol]],
+      col = list(
+        CellType = cellTypeColors,
+        SCEVAN = c("normal" = "gray70", "tumor" = "firebrick")
+      ),
+      show_legend = c(TRUE, TRUE),
+      annotation_name_side = "left"
+    )
+  } else {
+    ha_col <- HeatmapAnnotation(
+      CellType = cellMeta[[param$cellTypeColumn]],
+      col = list(CellType = cellTypeColors),
+      show_legend = TRUE,
+      annotation_name_side = "left"
+    )
+  }
+
+  # Create row (gene/chromosome) annotation
+  # Extract chromosome info for genes in the matrix - match by gene_name, not gene_id
+  gene_chr <- count_mtx_annot$seqnames[match(rownames(cnaMtx), count_mtx_annot$gene_name)]
+
+  # Convert to factor with numeric levels for proper ordering (1, 2, 3, ... 22)
+  gene_chr_factor <- factor(gene_chr, levels = as.character(1:22))
+
+  # Create 22 distinct chromosome colors
+  chr_colors <- setNames(
+    colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(22),
+    as.character(1:22)
+  )
+
+  # Create chromosome annotation - use factor for proper numeric ordering
+  ha_row <- rowAnnotation(
+    Chromosome = gene_chr_factor,
+    col = list(Chromosome = chr_colors),
+    show_annotation_name = TRUE,
+    annotation_name_side = "top",
+    width = unit(1, "cm"),
+    show_legend = TRUE
+  )
+
+  # Create heatmap
+  ht <- Heatmap(
+    cnaMtx,
+    name = "CNV",
+    column_title = paste(sampleName, "-", length(matchingCells), "cells"),
+    show_column_names = FALSE,
+    show_row_names = FALSE,
+    cluster_columns = TRUE,
+    cluster_rows = FALSE,
+    top_annotation = ha_col,
+    right_annotation = ha_row,  # Chromosome annotation on the right
+    col = colorRamp2(
+      c(min(cnaMtx, na.rm = TRUE), 0, max(cnaMtx, na.rm = TRUE)),
+      c("blue", "white", "red")
+    ),
+    use_raster = TRUE,
+    raster_quality = 2
+  )
+
+  return(ht)
+}
+```
+
+```{r cnv heatmaps per sample, eval=hasCNVMatrices, fig.width=14, fig.height=10, results='asis'}
+if (hasCNVMatrices) {
+  for (sampleName in names(resultsList)) {
+    cat("\n\n###", sampleName, "\n\n")
+
+    ht <- create_cnv_heatmap(sampleName, seuratObj, param)
+
+    if (!is.null(ht)) {
+      print(ht)
+
+      # Save as PNG
+      pngFile <- file.path(output_dir, paste0("heatmap_cnv_", sampleName, ".png"))
+      png(pngFile, width = 14, height = 10, units = "in", res = 300)
+      draw(ht)
+      dev.off()
+    } else {
+      cat("CNV heatmap could not be generated for", sampleName, "\n")
+    }
+  }
+}
+```
+
+---
+
+## Results Table
+
+Interactive table with SCEVAN classification results for all cells.
+
+```{r results table, echo=FALSE}
+# Prepare results table
+resultsDF <- metadata %>%
+  tibble::rownames_to_column("Cell") %>%
+  select(Cell,
+         Sample = !!sym(param$sampleColumn),
+         CellType = !!sym(param$cellTypeColumn),
+         matches("^SCEVAN_"))
+
+# Create interactive table
+DT::datatable(
+  resultsDF,
+  rownames = FALSE,
+  filter = 'top',
+  extensions = c('Buttons', 'FixedHeader'),
+  options = list(
+    pageLength = 25,
+    autoWidth = TRUE,
+    scrollX = TRUE,
+    fixedHeader = TRUE,
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel'),
+    columnDefs = list(
+      list(className = 'dt-center', targets = "_all")
+    )
+  ),
+  class = 'cell-border stripe hover'
+) %>%
+  DT::formatStyle(
+    'SCEVAN_class',
+    backgroundColor = DT::styleEqual(
+      c('tumor', 'normal'),
+      c('#ffcccc', '#cccccc')
+    )
+  )
+```
+
+---
+
+## Methods
+
+### SCEVAN Parameters
+
+```{r methods parameters, echo=FALSE}
+paramDF <- data.frame(
+  Parameter = c(
+    "Organism",
+    "Cell Type Column",
+    "Sample Column",
+    "Reference Cell Types",
+    "Number of Cores",
+    "Subclone Analysis",
+    "Beta Vega Parameter"
+  ),
+  Value = c(
+    param$organism,
+    param$cellTypeColumn,
+    param$sampleColumn,
+    paste(param$referenceCellTypes, collapse = ", "),
+    param$cores,
+    ifelse(param$subclones, "Enabled", "Disabled"),
+    param$betaVega
+  )
+)
+
+knitr::kable(paramDF, col.names = c("Parameter", "Value"))
+```
+
+### Reference Cell Types
+
+Total reference (normal) cells used: **`r length(param$normCells)`** (`r round(100 * length(param$normCells) / ncol(seuratObj), 2)`%)
+
+Cell types classified as normal reference:
+
+```{r methods ref celltypes, echo=FALSE}
+refDF <- data.frame(
+  CellType = param$referenceCellTypes,
+  Count = sapply(param$referenceCellTypes, function(ct) {
+    sum(metadata[[param$cellTypeColumn]] == ct)
+  })
+) %>%
+  arrange(desc(Count))
+
+knitr::kable(refDF, col.names = c("Cell Type", "Number of Cells"))
+```
+
+### Processing Summary
+
+- **Samples processed successfully**: `r param$nSuccessful` / `r length(param$samples)`
+- **Multi-sample comparison**: `r ifelse(!is.null(multiSampleResults), "Yes", "No")`
+
+`r if (length(param$failedSamples) > 0) paste0("\n**Failed samples**: ", paste(param$failedSamples, collapse = ", "))`
+
+### Session Info
+
+```{r session info}
+sessionInfo()
+```
+
+### References
+
+- **SCEVAN**: De Falco, A., et al. (2023). "A variational algorithm to detect the clonal copy number substructure of tumors from scRNA-seq data." *Nature Communications*. [GitHub](https://github.com/AntonioDeFalco/SCEVAN)
+
+---
+
+Report generated on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`

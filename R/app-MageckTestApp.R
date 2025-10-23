@@ -53,8 +53,20 @@ ezMethodMageckTest = function(input=NA, output=NA, param=NA){
   local_CondaEnv("gi_mageck", pathToMiniConda = "/usr/local/ngseq/miniforge3")
   
   ctrlFile <- list.files(param$libName, pattern = 'MAGeCK_Ctrl.csv$', full.names = TRUE)
-  if(length(ctrlFile) == 1L){
-    opt <- c(opt, "--control-sgrna", ctrlFile)
+  if(length(ctrlFile) == 1L && param$useControls){
+      opt <- c(opt, "--control-sgrna", ctrlFile)
+  }
+  if(!param$useControls && param$normalizationMethod == 'control'){
+      warning("No control file provided, switching normalization method to 'median'")
+      param$normalizationMethod <- 'median'
+  }
+  # Additional options based on parameters
+  if(param$normalizationMethod != 'median'){
+      opt <- c(opt, "--norm-method", param$normalizationMethod)
+  }
+  
+  if(param$geneLFCMethod != 'median'){
+      opt <- c(opt, "--gene-lfc-method", param$geneLFCMethod)
   }
   # Execute the command
   system2("mageck", args=opt)
@@ -110,11 +122,10 @@ EzAppMageckTest <-
                   runMethod <<- ezMethodMageckTest
                   name <<- "EzAppMageckTest"
                   appDefaults <<- rbind(
-                    outputDir = ezFrame(
-                      Type = "character",
-                      DefaultValue = ".",
-                      Description = "Output directory"
-                    )
+                    outputDir = ezFrame(Type = "character", DefaultValue = ".", Description = "Output directory"),
+                    normalizationMethod = ezFrame(Type = "character", DefaultValue = "median", Description = "Normalization method"),
+                    geneLFCMethod = ezFrame(Type = "character", DefaultValue = "median", Description = "Gene LFC method"),
+                    useControls = ezFrame(Type = "logical", DefaultValue = TRUE, Description = "Use control sgRNAs")
                   )
                 }
               )

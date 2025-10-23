@@ -46,7 +46,15 @@ ezMethodSpaceRangerDev <- function(input=NA, output=NA, param=NA){
   library(Seurat)
   sampleName <- input$getNames()
   
-  sampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
+  visiumVersion <- input$getColumn("Slide") |> str_replace("-.*", "") |>
+    switch(V1="SD",
+           V4="SD",
+           V5="SD",
+           H1="HD",
+           stop("unsupported slide name: ", input$getColumn("Slide")))
+  
+
+    sampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
   sampleNameFQ <- sub('.tar', '', basename(sampleDirs))
   finalSampleName <-sampleName
   spaceRangerMainVersion <- as.numeric(sub('\\..*','',basename(param$SpaceRangerVersion)))
@@ -208,25 +216,16 @@ ezMethodSpaceRangerDev <- function(input=NA, output=NA, param=NA){
       }
   }
   
-  cmDir <- file.path(finalSampleName, 'filtered_feature_bc_matrix')
-  if(dir.exists(cmDir)){
-    cts <- Read10X(cmDir, gene.column = 1)
-  } else { ##visium HD data
-      setwd(finalSampleName)
-      system('ln -s binned_outputs/square_016um/filtered_feature_bc_matrix .')
-      setwd('..')
-      cmDir <- file.path(finalSampleName, 'binned_outputs/square_016um/filtered_feature_bc_matrix')
-      cts <- Read10X(cmDir, gene.column = 1)
-  }
+  cmDir <- switch(visiumVersion,
+                  SD=file.path(finalSampleName, 'filtered_feature_bc_matrix'),
+                  HD=file.path(finalSampleName, 'binned_outputs/square_016um/filtered_feature_bc_matrix')
+  )
+  cts <- Read10X(cmDir, gene.column = 1)
   if(is.list(cts)){
       cts <- cts[['Gene Expression']]
-      bulkData <- apply(cts,1,sum)
-  } else {
-    bulkData <- rowSums(data.frame(cts))
   }
-  bulkData <- data.frame(Identifier = names(bulkData), matchCounts = bulkData)
-  countFile <- paste0(finalSampleName,'-counts.txt')
-  ezWrite.table(bulkData, file.path(finalSampleName, countFile), row.names = FALSE)
+  cts |> rowSums2() |> 
+    ezWrite.table(file.path(finalSampleName, countFile), row.names = TRUE)
   return("Success")
 }
 

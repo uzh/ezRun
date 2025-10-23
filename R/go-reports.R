@@ -36,8 +36,9 @@ goClusterTableRmd = function(param, clusterResult, seqAnno){
       if (nrow(goFrame)==0)
         next
       linkTable[i, onto] = paste0("Cluster-", onto, "-", i, ".html")
-      ezInteractiveTable(goFrame, tableLink=linkTable[i, onto], digits=3,
-                         title=paste("GO categories of cluster", i, "and ontology", onto))
+      ezInteractiveTableRmd(goFrame, digits=3,
+                         title=paste("GO categories of cluster", i, "and ontology", onto)) |>
+        DT::saveWidget(linkTable[i, onto])
       linkTable[i, onto] = ezLink(linkTable[i, onto], target="_blank")
       goFrame$Term = substr(goFrame$Term, 1, 30)
     }
@@ -109,9 +110,10 @@ goUpDownTables = function(param, goResult){
       if (nrow(goFrame)==0)
         next
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
-      ezInteractiveTable(goFrame, tableLink=linkTable[onto, sub], digits=3,
+      ezInteractiveTableRmd(goFrame, digits=3,
                          title=paste(sub("enrich", "", sub), 
-                                     "enriched GO categories of ontology", onto))
+                                     "enriched GO categories of ontology", onto)) |>
+        DT::saveWidget(linkTable[onto, sub])
       linkTable[onto, sub] = ezLink(linkTable[onto, sub], 
                                             target = "_blank")
     }

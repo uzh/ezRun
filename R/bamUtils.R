@@ -105,7 +105,7 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
 ### Make or remove duplicated in bam file
 dupBam <- function(inBam, outBam, operation = c("mark", "remove"), ram = 20, dupDistance = 100) {
   operation <- match.arg(operation)
-  javaCall = paste0("/usr/local/ngseq/packages/Dev/jdk/21/bin/java", " -Djava.io.tmpdir=. -Xmx", ram, "g")
+  javaCall = paste0("/usr/local/ngseq/packages/Dev/jdk/21/bin/java", " -Djava.io.tmpdir=. -Xmx", round(0.8*ram), "g")
   metricsFile <- sub('.bam$','_metrics.txt', outBam)
   cmd <- paste(javaCall, " -jar ", Sys.getenv("Picard_jar"), 
                "MarkDuplicates",

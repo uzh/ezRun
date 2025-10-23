@@ -1,0 +1,345 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+output:
+  html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
+    includes:
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options:
+  chunk_output_type: inline
+---
+
+# {.tabset}
+
+```{r setup xeniumQC, include=FALSE}
+# Global options
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load required libraries
+ezLoadPackage('DT')
+ezLoadPackage('ggplot2')
+ezLoadPackage('plotly')
+ezLoadPackage('dplyr')
+ezLoadPackage('tidyr')
+ezLoadPackage('scales')
+```
+
+```{r prepare data xeniumQC, include=FALSE}
+# Read data with error handling
+if (!file.exists("metrics_summary.tsv")) {
+  stop("metrics_summary.tsv not found in working directory: ", getwd())
+}
+if (!file.exists("param.rds")) {
+  stop("param.rds not found in working directory: ", getwd())
+}
+
+data <- ezRead.table("metrics_summary.tsv", row.names = NULL)
+param <- readRDS('param.rds')
+
+# Check data
+if (nrow(data) == 0) {
+  stop("metrics_summary.tsv is empty")
+}
+```
+
+## Overview
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
+This report presents quality control metrics for Xenium spatial transcriptomics data across multiple samples/regions.
+
+```{r overview table, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=7, results='asis'}
+datatable(
+  data,
+  options = list(
+    pageLength = 20,
+    autoWidth = TRUE,
+    scrollX = TRUE
+  ),
+  rownames = FALSE
+)
+```
+
+## Barplots per Metric
+```{r barplots per metric, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=min(8+(nrow(data)-5)*0.3, 20), fig.height=6}
+# Identify numeric columns (exclude first few metadata columns)
+numeric_cols <- names(data)[sapply(data, is.numeric)]
+
+# Skip problematic columns with very small values that cause plotting issues
+skip_cols <- c("negative_control_probe_counts_per_control_per_cell",
+               "genomic_control_probe_counts_per_control_per_cell",
+               "estimated_number_of_false_positive_transcripts_per_cell",
+               "estimated_number_of_false_positive_transcripts_per_cell_including_genomic_counts")
+
+# Create barplots for key metrics
+for (col in numeric_cols) {
+    # Skip problematic columns
+    if (col %in% skip_cols) {
+      next
+    }
+
+    p <- ggplot(data, aes(x = sampleName, y = !!sym(col))) +
+    geom_bar(stat = "identity", fill = "steelblue") +
+    xlab('Sample') +
+    ylab(gsub('_', ' ', col)) +
+    theme_bw() +
+    ggtitle(gsub('_', ' ', col)) +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+
+    # Add percentage labels on y-axis for fraction columns
+    if (grepl("fraction|rate|frac", col, ignore.case = TRUE)) {
+      p <- p + scale_y_continuous(labels = scales::percent, limits = c(0, NA))
+    } else {
+      # Remove scientific notation for large numbers
+      p <- p + scale_y_continuous(labels = scales::comma)
+    }
+
+  print(p)
+}
+```
+
+## Key Quality Metrics
+```{r key quality metrics, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=min(8+(nrow(data)-5)*0.3, 20), fig.height=6}
+# Total transcripts
+if ("total_high_quality_decoded_transcripts" %in% colnames(data)) {
+  p1 <- ggplot(data, aes(x = sampleName, y = total_high_quality_decoded_transcripts / 1e6)) +
+    geom_bar(stat = "identity", fill = "#3498db") +
+    xlab('Sample') +
+    ylab('Total Transcripts (millions)') +
+    ggtitle('Total High Quality Decoded Transcripts') +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p1)
+}
+
+# Cells detected
+if ("num_cells_detected" %in% colnames(data)) {
+  p2 <- ggplot(data, aes(x = sampleName, y = num_cells_detected)) +
+    geom_bar(stat = "identity", fill = "#2ecc71") +
+    scale_y_continuous(labels = scales::comma) +
+    xlab('Sample') +
+    ylab('Number of Cells') +
+    ggtitle('Cells Detected') +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p2)
+}
+
+# Q20 fraction
+if ("fraction_transcripts_decoded_q20" %in% colnames(data)) {
+  p3 <- ggplot(data, aes(x = sampleName, y = fraction_transcripts_decoded_q20)) +
+    geom_bar(stat = "identity", fill = "#e74c3c") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    xlab('Sample') +
+    ylab('Q20 Fraction') +
+    ggtitle('Fraction of Transcripts Decoded with Q20') +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p3)
+}
+
+# Transcripts assigned
+if ("fraction_transcripts_assigned" %in% colnames(data)) {
+  p4 <- ggplot(data, aes(x = sampleName, y = fraction_transcripts_assigned)) +
+    geom_bar(stat = "identity", fill = "#9b59b6") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    xlab('Sample') +
+    ylab('Fraction Assigned') +
+    ggtitle('Fraction of Transcripts Assigned to Cells') +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p4)
+}
+
+# Empty cells fraction
+if ("fraction_empty_cells" %in% colnames(data)) {
+  p5 <- ggplot(data, aes(x = sampleName, y = fraction_empty_cells)) +
+    geom_bar(stat = "identity", fill = "#f39c12") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+    xlab('Sample') +
+    ylab('Fraction Empty Cells') +
+    ggtitle('Fraction of Empty Cells') +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p5)
+}
+```
+
+## Per-Cell Metrics
+```{r per cell metrics, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=min(8+(nrow(data)-5)*0.3, 20), fig.height=6}
+# Median genes per cell
+if ("median_genes_per_cell" %in% colnames(data)) {
+  p_genes <- ggplot(data, aes(x = sampleName, y = median_genes_per_cell)) +
+    geom_bar(stat = "identity", fill = "#1abc9c") +
+    xlab('Sample') +
+    ylab('Median Genes') +
+    ggtitle('Median Genes per Cell') +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p_genes)
+}
+
+# Median transcripts per cell
+if ("median_transcripts_per_cell" %in% colnames(data)) {
+  p_tx <- ggplot(data, aes(x = sampleName, y = median_transcripts_per_cell)) +
+    geom_bar(stat = "identity", fill = "#34495e") +
+    xlab('Sample') +
+    ylab('Median Transcripts') +
+    ggtitle('Median Transcripts per Cell') +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p_tx)
+}
+
+# Comparison of predesigned vs custom genes
+if (all(c("median_predesigned_genes_per_cell", "median_custom_genes_per_cell") %in% colnames(data))) {
+  data_long <- data %>%
+    select(sampleName, median_predesigned_genes_per_cell, median_custom_genes_per_cell) %>%
+    pivot_longer(
+      cols = c(median_predesigned_genes_per_cell, median_custom_genes_per_cell),
+      names_to = "gene_type",
+      values_to = "count"
+    ) %>%
+    mutate(gene_type = gsub("median_|_genes_per_cell", "", gene_type))
+
+  p_comparison <- ggplot(data_long, aes(x = sampleName, y = count, fill = gene_type)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    scale_fill_manual(
+      values = c("predesigned" = "#3498db", "custom" = "#e67e22"),
+      labels = c("Predesigned", "Custom")
+    ) +
+    xlab('Sample') +
+    ylab('Median Genes per Cell') +
+    ggtitle('Predesigned vs Custom Genes per Cell') +
+    labs(fill = "Gene Type") +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      legend.position = "top",
+      legend.text = element_text(size = 11)
+    )
+  print(p_comparison)
+}
+```
+
+## Segmentation Quality
+```{r segmentation quality, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=min(8+(nrow(data)-5)*0.3, 20), fig.height=6}
+# Segmentation method breakdown
+if (all(c("segmented_cell_boundary_count", "segmented_cell_interior_count", "segmented_cell_nuc_expansion_count") %in% colnames(data))) {
+
+  seg_data <- data %>%
+    select(sampleName, segmented_cell_boundary_count, segmented_cell_interior_count, segmented_cell_nuc_expansion_count) %>%
+    pivot_longer(
+      cols = starts_with("segmented_cell"),
+      names_to = "method",
+      values_to = "count"
+    ) %>%
+    mutate(method = gsub("segmented_cell_|_count", "", method))
+
+  p_seg <- ggplot(seg_data, aes(x = sampleName, y = count, fill = method)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(
+      values = c("boundary" = "#e74c3c", "interior" = "#2ecc71", "nuc_expansion" = "#3498db"),
+      labels = c("Boundary", "Interior", "Nuc Expansion")
+    ) +
+    xlab('Sample') +
+    ylab('Cell Count') +
+    ggtitle('Segmentation Method Breakdown') +
+    labs(fill = "Segmentation Method") +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      legend.position = "top",
+      legend.text = element_text(size = 11)
+    )
+  print(p_seg)
+
+  # Segmentation fractions
+  p_seg_frac <- ggplot(seg_data, aes(x = sampleName, y = count, fill = method)) +
+    geom_bar(stat = "identity", position = "fill") +
+    scale_fill_manual(
+      values = c("boundary" = "#e74c3c", "interior" = "#2ecc71", "nuc_expansion" = "#3498db"),
+      labels = c("Boundary", "Interior", "Nuc Expansion")
+    ) +
+    scale_y_continuous(labels = scales::percent) +
+    xlab('Sample') +
+    ylab('Fraction') +
+    ggtitle('Segmentation Method Fractions') +
+    labs(fill = "Segmentation Method") +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      legend.position = "top",
+      legend.text = element_text(size = 11)
+    )
+  print(p_seg_frac)
+}
+
+# Stain-based segmentation fraction
+if ("segmented_cell_stain_frac" %in% colnames(data)) {
+  p_stain <- ggplot(data, aes(x = sampleName, y = segmented_cell_stain_frac)) +
+    geom_bar(stat = "identity", fill = "#16a085") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    xlab('Sample') +
+    ylab('Stain-based Fraction') +
+    ggtitle('Fraction of Cells Segmented Using Stain Method') +
+    theme_bw() +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p_stain)
+}
+```
+
+## Panel Information
+```{r panel info, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+if ("panel_name" %in% colnames(data)) {
+  panel_summary <- data %>%
+    select(sampleName, panel_name, panel_design_id) %>%
+    distinct()
+
+  datatable(
+    panel_summary,
+    options = list(
+      pageLength = 20,
+      autoWidth = TRUE
+    ),
+    rownames = FALSE,
+    caption = "Panel Information per Sample"
+  )
+}
+```
+
+## SessionInfo
+```{r session info, echo=FALSE}
+ezSessionInfo()
+```
