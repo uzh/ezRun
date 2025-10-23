@@ -47,6 +47,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   )
   ezSystem(cmd)
 
+  getFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
   writeAtacIgvSession(param, outFolder, jsonFileName = paste0("/scratch/mderrico/TestNfCoreCutNRun", "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("Result")))
   makeRmdReportWrapper(outFolder, rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun")
@@ -153,8 +154,20 @@ writeCutAndRunIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPa
   write(jsonFile, jsonFileName)
 }
 
+##' @description generate fasta files from BED files
+getFastaFromBedFiles <- function(outFolder, refFile){
+  bedFilePath <- paste0(outFolder,"/04_reporting/igv/")
+  bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE)
+  for (name in bedFileNames){
+    peakBedFile <- file.path(bedFilePath, name)
+    peakSeqFile = paste0(peakBedFile, "_peaks.fa")
+    cmd = paste("bedtools", " getfasta -fi", refFile, "-bed", peakBedFile, " -name -fo ",peakSeqFile)
+    ezSystem(cmd)
+  }
+}
+
 ##' @description write HTML report
-makeRmdReportWrapper <- function(outFolder,rmdFile, reportTitle){
+makeRmdReportWrapper <- function(outFolder, rmdFile, reportTitle){
   plotsPath <- paste0(outFolder,"/04_reporting/deeptools_heatmaps/")
   filesToPlot <- dir(path=plotsPath, pattern=".pdf$", recursive=TRUE)
 
