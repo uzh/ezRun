@@ -23,7 +23,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   cmd = paste(
     "nextflow run nf-core/cutandrun",
      ## i/o
-    "--input", nfSampleInfo,
+    "--input", nfSampleFile,
     "--outdir", outFolder,
     ## genome files
     "--fasta", param$ezRef@refFastaFile,
@@ -48,11 +48,11 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   ezSystem(cmd)
 
   getFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
-  writeAtacIgvSession(param, outFolder, jsonFileName = paste0("/scratch/mderrico/TestNfCoreCutNRun", "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
+  writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("Result")))
   makeRmdReportWrapper(outFolder, rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun")
 
-  
+
   if(ezIsSpecified(param$keepBams)){
     keepBams <- param$keepBams
   } else {
