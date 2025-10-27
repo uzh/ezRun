@@ -1,0 +1,38 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+output: 
+  html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
+    includes:
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options: 
+  chunk_output_type: inline
+---
+
+# {.tabset}
+`r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE, knitr.table.format = "html")
+require(ChIPpeakAnno)
+require(rtracklayer)
+require(GenomicRanges)
+```
+
+```{r input, include=FALSE}
+filesToPlot <- readRDS("filesToPlot.rds") 
+```
+
+## Plots
+
+Here, we use a heatmap to visualize ...
+
+<br/>
+
+```{r heatmaps, results = "asis", echo=FALSE, message=FALSE}
+for (i in filesToPlot){
+   cat(paste0("![](",i,")"), " \n")
+}
+```

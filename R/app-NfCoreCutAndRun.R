@@ -23,7 +23,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   cmd = paste(
     "nextflow run nf-core/cutandrun",
      ## i/o
-    "--input", nfSampleInfo,
+    "--input", nfSampleFile,
     "--outdir", outFolder,
     ## genome files
     "--fasta", param$ezRef@refFastaFile,
@@ -47,9 +47,12 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   )
   ezSystem(cmd)
 
-  writeAtacIgvSession(param, outFolder, jsonFileName = paste0("/scratch/mderrico/TestNfCoreCutNRun", "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
+  getFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
+  writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("Result")))
-  
+  makeRmdReportWrapper(outFolder, rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun")
+
+
   if(ezIsSpecified(param$keepBams)){
     keepBams <- param$keepBams
   } else {
@@ -149,4 +152,25 @@ writeCutAndRunIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPa
   )
   jsonFile <- rjson::toJSON(jsonLines, indent=5, method="C")
   write(jsonFile, jsonFileName)
+}
+
+##' @description generate fasta files from BED files
+getFastaFromBedFiles <- function(outFolder, refFile){
+  bedFilePath <- paste0(outFolder,"/04_reporting/igv/")
+  bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE)
+  for (name in bedFileNames){
+    peakBedFile <- file.path(bedFilePath, name)
+    peakSeqFile = paste0(peakBedFile, "_peaks.fa")
+    cmd = paste("bedtools", " getfasta -fi", refFile, "-bed", peakBedFile, " -name -fo ",peakSeqFile)
+    ezSystem(cmd)
+  }
+}
+
+##' @description write HTML report
+makeRmdReportWrapper <- function(outFolder, rmdFile, reportTitle){
+  plotsPath <- paste0(outFolder,"/04_reporting/deeptools_heatmaps/")
+  filesToPlot <- dir(path=plotsPath, pattern=".pdf$", recursive=TRUE)
+
+  makeRmdReport(filesToPlot=file.path(plotsPath, filesToPlot), rmdFile=rmdFile,
+                reportTitle=reportTitle, selfContained = TRUE)
 }
