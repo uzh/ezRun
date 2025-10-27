@@ -8,7 +8,7 @@
 
 ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   refbuild = param$refBuild
-  outFolder = output$getColumn("Result") |> basename()
+  outFolder = output$getColumn("CutAndRun_Result") |> basename()
 
   fullGenomeSize <- param$ezRef@refFastaFile %>% Rsamtools::FaFile() %>% GenomeInfoDb::seqlengths() %>% sum()
   effectiveGenomeSize <- (fullGenomeSize * 0.8 ) %>% round()
