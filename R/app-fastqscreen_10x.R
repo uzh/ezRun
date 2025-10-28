@@ -73,7 +73,9 @@ EzAppFastqScreen_10x <-
             Type = "logical",
             DefaultValue = TRUE,
             Description = "whether to search for the adapters and trim them"
-          )
+          ),
+          readFileToUse = ezFrame(Type = "character", DefaultValue = "Read1",
+                                  Description = "which read file(s) to use for the analysis: Read1, Read2, or both")
         )
       }
     )

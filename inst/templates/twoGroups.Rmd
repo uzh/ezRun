@@ -593,7 +593,7 @@ if (!doEnrichr(param)) {
 
 ## Overrepresentation Analysis (ORA) {.tabset}
 
-```{r prepare ora plots, echo=FALSE, message=FALSE, eval=!debug & isTRUE(param$runGO)}
+```{r prepare ora plots, echo=FALSE, message=FALSE, eval=!debug & isTRUE(param$runGO), warning=FALSE}
 enrichResultPlots <- list()
 if (isTRUE(param$runGO)) {
   for (onto in names(enrichResult)) {
@@ -686,7 +686,7 @@ Cut Offs:
 
 *** 
 
-```{r ora overview, echo=F, message=F, eval=!debug & isTRUE(param$runGO), results='asis'}
+```{r ora overview, echo=F, message=F, eval=!debug & isTRUE(param$runGO), results='asis',warning=FALSE}
   ora.overview = ezFrame("Number of Significant Terms"=numeric())
   for (goDomain in names(enrichResult)){
     for (resName in names(enrichResult[[goDomain]])){
@@ -713,7 +713,7 @@ Cut Offs:
   cat("\n\n")
 ```
 
-```{r tabs with ora plots, results='asis', echo = FALSE, eval = isTRUE(param$runGO), fig.height=8, fig.width=8, fig.align = "left"}
+```{r tabs with ora plots, results='asis', echo = FALSE, eval = isTRUE(param$runGO), fig.height=8, fig.width=8, fig.align = "left", message=FALSE, warning=FALSE}
   for (onto in names(enrichResult)) {
     cat("###", onto, "{.tabset}", "\n")
     for (sig in names(enrichResult[[onto]])) {
@@ -741,7 +741,7 @@ Cut Offs:
 
 ## Gene set enrichment analysis {.tabset}
 
-```{r prepare gsea plots, echo=FALSE, message=FALSE, eval=!debug & isTRUE(param$runGO)}
+```{r prepare gsea plots, echo=FALSE, message=FALSE, eval=!debug & isTRUE(param$runGO), warning=FALSE}
 enrichResultGSEAPlots <- list()
   for (onto in names(enrichResultGSEA)) {
     enrichResultGSEAPlots[[onto]] <- list()
@@ -839,9 +839,9 @@ Gene Ranking:
 
 * all present genes are sorted by log2 ratio
 
-***
 
-```{r gsea overview, echo=F, message=F, eval=!debug & isTRUE(param$runGO), results = 'asis'}
+
+```{r gsea overview, echo=F, message=F, eval=!debug & isTRUE(param$runGO), results = 'asis', warning=FALSE}
   gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
   for (i in 1:length(names(enrichResultGSEA))){
     testName = paste(names(enrichResultGSEA)[i])
