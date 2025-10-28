@@ -38,7 +38,7 @@ getReferenceFeaturesBed <- function(param) {
                       keys=bed12$name,
                       keytype="TXID",
                       columns=c("TXNAME","GENEID"))
-    gtf <- rtracklayer::import("genes.gtf")
+    gtf <- rtracklayer::import(param$ezRef["refFeatureFile"])
     gene_ann <- mcols(gtf)[mcols(gtf)$type == "gene", c("gene_id","gene_name")]
     
     tx2gene$GENENAME <- gene_ann$gene_name[match(tx2gene$GENEID, gene_ann$gene_id)]
