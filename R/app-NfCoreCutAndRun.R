@@ -48,6 +48,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   ezSystem(cmd)
 
   getFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
+  getAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, outFolder)
   writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("Result")))
   makeRmdReportWrapper(outFolder, rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun")
@@ -163,6 +164,40 @@ getFastaFromBedFiles <- function(outFolder, refFile){
     peakSeqFile = paste0(peakBedFile, "_peaks.fa")
     cmd = paste("bedtools", " getfasta -fi", refFile, "-bed", peakBedFile, " -name -fo ",peakSeqFile)
     ezSystem(cmd)
+  }
+}
+
+##' @description annotate peaks in BED files
+getAnnotatedPeaks <- function(gtfFile, outFolder){
+  gtf <- rtracklayer::import(gtfFile)
+  if('gene' %in% unique(gtf$type)){
+    idx = gtf$type == 'gene'
+  } else if('transcript' %in% unique(gtf$type)) {
+    idx = gtf$type == 'transcript'
+  } else if('start_codon' %in% unique(gtf$type)){
+    idx = gtf$type =='start_codon'
+  } else {
+    message('gtf is incompatabible. Peak annotation skipped!')
+    return(NULL)
+  }
+  gtf = gtf[idx]
+  if(grepl('gtf$',gtfFile)){
+    names_gtf = make.unique(gtf$'gene_id')
+  } else {
+    names_gtf = make.unique(gtf$'ID')
+  }
+  names(gtf) = names_gtf
+
+  bedFilePath <- paste0(outFolder,"/04_reporting/igv/")
+  bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE)
+  for (name in bedFileNames){
+    peakBedFile <- file.path(bedFilePath, name)
+    peakAnnFile = paste0(peakBedFile, ".xlsx")
+    myPeaks = ezRead.table(peakBedFile, row.names = NULL, header = F)
+    peaksRD = makeGRangesFromDataFrame(myPeaks, keep.extra.columns = TRUE, start.field = "V2", end.field = "V3", seqnames.field="V1")
+    annotatedPeaks <- annotatePeakInBatch(peaksRD, AnnotationData = gtf, output='nearestStart', multiple=FALSE, FeatureLocForDistance='TSS')
+    annotatedPeaks = merge(myPeaks, annotatedPeaks,by.x = c('V6','V4','V5','V2','V3','V1'), by.y = c('V6','V4','V5','start','end','seqnames'), all.x = TRUE)
+    writexl::write_xlsx(annotatedPeaks, peakAnnFile)
   }
 }
 
