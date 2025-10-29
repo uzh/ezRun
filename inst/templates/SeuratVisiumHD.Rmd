@@ -865,9 +865,7 @@ if (identical(param$binSize, "segmented_outputs")) {
           plot.title = element_blank()
           )
   
-} else {
-  cat("> **Note:** This tab is only for *segmented outputs* and isn’t applicable to bin-based results.\n")
-}
+} 
 
 ```
 <br>
@@ -1645,8 +1643,8 @@ p1 <- Seurat::LabelClusters(
 p_spatialNiches <- SpatialDimPlot(scData, 
                     group.by = "banksy_cluster", 
                     label = T, 
-                    repel = T, 
                     plot_segmentations = T,
+                    repel = T, 
                     label.size = 4
                     # ,
                     # interactive = T #to check on segmentation 
