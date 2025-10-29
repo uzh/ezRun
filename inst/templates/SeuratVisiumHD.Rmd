@@ -15,8 +15,6 @@ editor_options:
 
 ## QC {.tabset}
 
-
-
 ```{r setup, include=FALSE}
 library(Seurat)
 library(ggplot2)
@@ -628,8 +626,6 @@ ezKable(dimred_tbl)
 
 ```{r, fig.width=10}
 
-
-
 # pca_name <- if ("pca.sketch" %in% names(scData@reductions)) "pca.sketch" else "pca"
 # 
 # stdev <- scData[[pca_name]]@stdev
@@ -736,6 +732,13 @@ ggplot(df,
 
 ### Segmentation mask
 
+`r {
+  if (identical(param$binSize, "segmented_outputs")) {
+    n <- nrow(scData@images[[Images(scData)]]@boundaries$segmentation@sf.data)
+    paste("N cells:", n)
+  } else ""
+}`
+
 ```{r, fig.height=20, fig.width=25}
 
 sp_plot(
@@ -768,10 +771,179 @@ sp_plot(
 
 ```
 
+### Cell size/density
+
+<details>
+  <summary>Segmentation QC</summary>
+  
+```{r}
+
+if (identical(param$binSize, "segmented_outputs")) {
+
+    qc_text_tbl <- tibble(
+    topic = c(
+      "Cell size distributions (per image)",
+      "Image area covered by cells"
+    ),
+    summary = c(
+      paste(
+        "Compare the distributions of cell size across individual images.",
+        "Differences can indicate segmentation bias (e.g., density-dependent over/under-segmentation)",
+        "or genuine biology driven by cell-type composition",
+        "(e.g., tumor cells often larger than immune cells).",
+        sep = " "
+      ),
+      paste(
+        "Coverage = total cell area ÷ image area (per ROI).",
+        "Low coverage flags ROIs with few cells, possibly due to incorrect ROI selection",
+        "or non-tissue/artifact regions; review recommended.",
+        sep = " "
+      )
+    )
+  )
+
+  ezKable(qc_text_tbl, 
+          caption = "QC notes for image-level metrics", 
+          escape = FALSE)
+
+}
+
+```
+  </details>
+  
+`r {
+  if (identical(param$binSize, "segmented_outputs")) {
+    d <- dim(scData@images[[Images(scData)[1]]]@image)
+    paste("Image dimension:", paste(d, collapse = " × "))
+  } else "This tab is only for *segmented outputs* and isn’t applicable to bin-based results"
+}`
+
+
+
+
+##### Cell size
+
+::: {.row}
+::: {.col-md-6}
+
+
+```{r cell area plot}
+
+if (identical(param$binSize, "segmented_outputs")) {
+
+  sfPolys <- scData@images[[Images(scData)]]@boundaries$segmentation@sf.data
+  areasFR  <- st_area(sfPolys)   # FULL-RES px²
+  
+  lo <- scData@images[[Images(scData)]]@scale.factors$hires
+  
+  areasLO <- areasFR * (lo^2)
+  
+  barcodes  <- sfPolys$barcodes
+
+  scData <- AddMetaData(scData, 
+                        metadata = setNames(areasLO, barcodes),
+                        col.name = "areaPX2hires")
+
+  scSub <- subset(scData, cells = barcodes)
+  Idents(scSub) <- factor(rep(Images(scData), ncol(scSub)))
+
+
+  VlnPlot(scSub, 
+          features = "areaPX2hires", 
+          pt.size = 0,
+          cols = "#93AECA") +
+  
+    labs(y = expression("cell area, " * px^2),  # "Area, px²"
+        subtitle = "HIRES pixel space")  +  
+  
+    theme_minimal(base_size = 12) +
+  
+    theme(legend.position = "top",
+          legend.justification = "left",
+          axis.title.x = element_blank(),
+          axis.text.x = element_blank(),
+          plot.title = element_blank()
+          )
+  
+} 
+
+```
+<br>
+<br>
+
+```{r cell area stats}
+if (identical(param$binSize, "segmented_outputs")) {
+  vals <- scSub$areaPX2hires
+
+  qs  <- quantile(vals, 
+                  probs = c(0, .25, .5, .75, 1), 
+                  names = FALSE, 
+                  na.rm = TRUE)
+
+  mn  <- mean(vals, na.rm = TRUE)
+
+  N   <- length(vals)
+
+  qcArea <- ezFrame(
+    "N cells" = integer(0),
+    "Min"     = numeric(0),
+    "1st Qu." = numeric(0),
+    "Median"  = numeric(0),
+    "Mean"    = numeric(0),
+    "3rd Qu." = numeric(0),
+    "Max"     = numeric(0)
+  )
+
+  qcArea[ Images(scData), ] <- c(N, 
+                           qs[1], 
+                           qs[2], 
+                           qs[3], 
+                           mn, 
+                           qs[4], 
+                           qs[5]) |> round(0)
+
+  ezKable(qcArea)
+}
+```
+:::
+::: {.col-md-6}
+
+##### Cell density
+
+
+```{r}
+
+if (identical(param$binSize, "segmented_outputs")) {
+ 
+  sfp <- scData@images[[Images(scData)]]@boundaries$segmentation@sf.data
+  lo  <- scData@images[[Images(scData)]]@scale.factors$lowres
+
+  W <- dim(scData@images[[Images(scData)]]@image)[2]/lo
+  H <- dim(scData@images[[Images(scData)]]@image)[1]/lo
+  covered <- sum(st_area(sfp)) / (W * H)
+
+  ggplot(data.frame(sample=Images(scData), 
+                    covered=covered),
+         aes(sample, 
+             covered)) +
+  
+    geom_point(size = 3) + 
+  
+    theme_minimal(base_size = 12) +
+  
+    ylim(0,1) +
+  
+    labs(y="% covered area", 
+         x = "")
+  
+} 
+
+```
+:::
+:::
+
 
 ## Clusters  {.tabset}
-
-`r paste("Resolution:", param$clusterResolution)`
 
 ### Clustering
 
@@ -841,9 +1013,9 @@ ezKable(cluster_tbl)
 
 ```
 </details>
+`r paste("Resolution:", param$clusterResolution)`
 
 <br>
-
 
 
 ```{r, fig.height=6, fig.width=12}
@@ -851,10 +1023,16 @@ ezKable(cluster_tbl)
 n_clusters <- nlevels(Idents(scData))
 show_leg   <- n_clusters <= 20
 
+namedPalette <- setNames(
+  DiscretePalette(length(levels(Idents(scData))
+                         ), 
+                  palette = "polychrome"), 
+  levels(Idents(scData))
+)
 
 p1 <- DimPlot(scData,
               label = FALSE,
-              pt.size = 1.5) +
+              pt.size = 0.5) +
   labs(color = "Clusters") +
   theme_void() +
   guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
@@ -862,24 +1040,33 @@ p1 <- DimPlot(scData,
   theme(legend.position = "none")
 
 p1 <- Seurat::LabelClusters(
-  plot     = p1,
+  plot     = p1, 
+  repel = T,
+  box = T,
   id       = "ident",
   fontface = "bold",
-  color    = "#383838",
+  color    = "white",
   size     = 4
 )
 
-p2 <- SpatialDimPlot(scData,
-                     label = TRUE,
-                     label.size = 4,
-                     pt.size.factor = 2) +
+
+p2 <- SpatialDimPlot(
+  scData,
+  label              = T,
+  label.size         = 4,
+  repel              = T,        
+  plot_segmentations = T,
+  pt.size.factor     = 2
+) +
   labs(fill = "Clusters") +
   guides(fill = if (show_leg) guide_legend(title = "Clusters") else "none")
 
 
 (p1 + p2) +
-  plot_layout(nrow = 1, guides = if (show_leg) "collect" else "keep") 
- 
+  plot_layout(nrow = 1,
+              guides = if (show_leg) "collect" else "keep")
+
+
 
 ```
 
@@ -908,7 +1095,7 @@ cellIdents_perSample <- scData@meta.data[,c('seurat_clusters', 'Sample')]
 
 ggplot(cellIdents_perSample, aes(x = seurat_clusters, 
                     fill = Sample)) +
-  geom_bar() +
+  geom_bar(fill = "#93AECA") +
 #  scale_fill_manual(values = pal) +
   labs(title = "Bins/cells per cluster and sample (counts)",
        x = NULL, 
@@ -917,6 +1104,7 @@ ggplot(cellIdents_perSample, aes(x = seurat_clusters,
   theme_minimal()+
   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) + ## make sure the y axis is not expanded at the bottom
   theme(legend.position="top", 
+        legend.justification = "left",
         panel.grid.minor=element_blank(),
         panel.grid.major=element_blank(),
         scale_y_continuous(expand = expansion(mult = c(0.02, 0.15))),
@@ -1126,11 +1314,7 @@ ezKable(marker_desc)
 
 
 ```{r pos markers}
-
-
 ezInteractiveTableRmd(posMarkers, digits=3, rowNames=FALSE)
-
-
 ```
  
 
@@ -1429,7 +1613,7 @@ ezKable(banksy_niches)
 
 </details>
 
-`r paste("Resolution:", param$clusterResolution)`
+`r paste("Resolution:", param$clusterResolution/4)`
 
 
 ```{r banksy plot spatial, fig.width=12, fig.height=6}
@@ -1440,7 +1624,7 @@ show_leg_banksy   <- n_clusters <= 20
 
 p1 <- DimPlot(scData,
               label = FALSE,
-              pt.size = 1.5) +
+              pt.size = 0.5) +
   labs(color = "Clusters") +
   theme_void() +
   guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
@@ -1451,13 +1635,15 @@ p1 <- Seurat::LabelClusters(
   plot     = p1,
   id       = "ident",
   fontface = "bold",
-  color    = "#383838",
+  box = T,
+  color    = "white",
   size     = 4
 )
 
 p_spatialNiches <- SpatialDimPlot(scData, 
                     group.by = "banksy_cluster", 
                     label = T, 
+                    plot_segmentations = T,
                     repel = T, 
                     label.size = 4
                     # ,
@@ -1501,7 +1687,7 @@ cellIdents_perSample <- scData@meta.data[,c('banksy_cluster', 'Sample')]
 
 ggplot(cellIdents_perSample, aes(x = banksy_cluster, 
                     fill = Sample)) +
-  geom_bar() +
+  geom_bar(fill = "#93AECA") +
 #  scale_fill_manual(values = pal) +
   labs(title = "Bins/cells per cluster and sample (counts)",
        x = NULL, 
