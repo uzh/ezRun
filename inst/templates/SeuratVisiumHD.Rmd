@@ -826,7 +826,6 @@ if (identical(param$binSize, "segmented_outputs")) {
 ::: {.row}
 ::: {.col-md-6}
 
-
 ```{r cell area plot}
 
 if (identical(param$binSize, "segmented_outputs")) {
@@ -1197,30 +1196,62 @@ ezKable(driver_qc_tbl)
 
 
 ```{r uninteresting variation, fig.height=16, fig.width=12}
-boxplot_data_nCount <- FetchData(scData, vars = c(nCountCol, "seurat_clusters"))
-#boxplot_data_nCount$seurat_clusters <- factor(boxplot_data_nCount$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nCount$seurat_clusters))))
-plot1 <- ggplot(boxplot_data_nCount, aes(x = seurat_clusters, y = .data[[nCountCol]], fill = seurat_clusters))
-plot1 <- plot1 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
-plot1 <- plot1 + scale_fill_viridis_d(option = "turbo")  
-plot1 <- plot1 + ggtitle("Number of UMIs vs cluster") + xlab("Cluster") + ylab(nCountCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
 
-boxplot_data_nFeature <- FetchData(scData, vars = c(nFeatureCol, "seurat_clusters"))
-#boxplot_data_nFeature$seurat_clusters <- factor(boxplot_data_nFeature$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_nFeature$seurat_clusters))))
-plot2 <- ggplot(boxplot_data_nFeature, aes(x = seurat_clusters, y = .data[[nFeatureCol]], fill = seurat_clusters))
-plot2 <- plot2 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
-plot2 <- plot2 + scale_fill_viridis_d(option = "turbo")  
-plot2 <- plot2 + ggtitle("Number of genes vs cluster") + xlab("Cluster") + ylab(nFeatureCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
+plot1 <- VlnPlot(scData,
+                 nCountCol,
+                 group.by = "seurat_clusters",
+                 pt.size = 0,          
+                 raster = T) +
+  
+  ggtitle("Number of UMIs vs cluster") +
+  
+  ylab(nCountCol) +
+  
+  theme_minimal(base_size = 12) +
+  
+  theme(legend.position = "none",
+        axis.title.x = element_blank()) +
+  
+  scale_y_log10(
+    breaks = log_breaks(base = 10),
+    labels = label_number()
+  )
 
-boxplot_data_mito <- FetchData(scData, vars = c("percent_mito", "seurat_clusters"))
-#boxplot_data_mito$seurat_clusters <- factor(boxplot_data_mito$seurat_clusters, levels = sort(as.numeric(levels(boxplot_data_mito$seurat_clusters))))
-plot3 <- ggplot(boxplot_data_mito, aes(x = seurat_clusters, y = percent_mito, fill = seurat_clusters))
-plot3 <- plot3 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
-plot3 <- plot3 + scale_fill_viridis_d(option = "turbo")  
-plot3 <- plot3 + ggtitle("Mitochondrial percentage vs cluster") + xlab("Cluster") + ylab("percent_mito") + theme_minimal(base_size = 14) + theme(legend.position = "none")
+plot2 <- VlnPlot(scData,
+                 nFeatureCol,     
+                 group.by = "seurat_clusters",
+                 pt.size  = 0,
+                 raster   = T) +
+  
+  ggtitle("Number of genes vs cluster") +
+  
+  ylab(nFeatureCol) +
+  
+  theme_minimal(base_size = 12) +
+  
+  theme(legend.position = "none",
+        axis.title.x = element_blank()) +
+  
+  scale_y_log10(
+    breaks = log_breaks(base = 10),
+    labels = label_number()
+  )
+
+
+plot3 <- VlnPlot(scData,
+                 "percent_mito",     
+                 group.by = "seurat_clusters",
+                 pt.size = 0,
+                 raster = T) +
+  ggtitle("Mitochondrial percentage vs cluster") +
+  xlab("Cluster") +
+  ylab("percent_mito") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none")
+
 plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
 
 ```
-
 
 
 ### Cluster markers
@@ -1734,26 +1765,58 @@ ezInteractiveTableRmd(df, rowNames = FALSE, title="number of bins/cells", filter
 
 
 ```{r uninteresting variation banksy, fig.height=16, fig.width=18}
-boxplot_data_nCount <- FetchData(scData, vars = c(nCountCol, "banksy_cluster"))
-#boxplot_data_nCount$banksy_cluster <- factor(boxplot_data_nCount$banksy_cluster, levels = sort(as.numeric(levels(boxplot_data_nCount$banksy_cluster))))
-plot1 <- ggplot(boxplot_data_nCount, aes(x = banksy_cluster, y = .data[[nCountCol]], fill = banksy_cluster))
-plot1 <- plot1 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
-plot1 <- plot1 + scale_fill_viridis_d(option = "turbo")  
-plot1 <- plot1 + ggtitle("Number of UMIs vs cluster") + xlab("Cluster") + ylab(nCountCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
+plot1 <- VlnPlot(scData,
+                 nCountCol,
+                 group.by = "banksy_cluster",
+                 pt.size = 0,          
+                 raster = T) +
+  
+  ggtitle("Number of UMIs vs cluster") +
+  
+  ylab(nCountCol) +
+  
+  theme_minimal(base_size = 12) +
+  
+  theme(legend.position = "none",
+        axis.title.x = element_blank()) +
+  
+  scale_y_log10(
+    breaks = log_breaks(base = 10),
+    labels = label_number()
+  )
 
-boxplot_data_nFeature <- FetchData(scData, vars = c(nFeatureCol, "banksy_cluster"))
-#boxplot_data_nFeature$banksy_cluster <- factor(boxplot_data_nFeature$banksy_cluster, levels = sort(as.numeric(levels(boxplot_data_nFeature$banksy_cluster))))
-plot2 <- ggplot(boxplot_data_nFeature, aes(x = banksy_cluster, y = .data[[nFeatureCol]], fill = banksy_cluster))
-plot2 <- plot2 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
-plot2 <- plot2 + scale_fill_viridis_d(option = "turbo")  
-plot2 <- plot2 + ggtitle("Number of genes vs cluster") + xlab("Cluster") + ylab(nFeatureCol) + theme_minimal(base_size = 14) + theme(legend.position = "none")
+plot2 <- VlnPlot(scData,
+                 nFeatureCol,     
+                 group.by = "banksy_cluster",
+                 pt.size  = 0,
+                 raster   = T) +
+  
+  ggtitle("Number of genes vs cluster") +
+  
+  ylab(nFeatureCol) +
+  
+  theme_minimal(base_size = 12) +
+  
+  theme(legend.position = "none",
+        axis.title.x = element_blank()) +
+  
+  scale_y_log10(
+    breaks = log_breaks(base = 10),
+    labels = label_number()
+  )
 
-boxplot_data_mito <- FetchData(scData, vars = c("percent_mito", "banksy_cluster"))
-#boxplot_data_mito$banksy_cluster <- factor(boxplot_data_mito$banksy_cluster, levels = sort(as.numeric(levels(boxplot_data_mito$banksy_cluster))))
-plot3 <- ggplot(boxplot_data_mito, aes(x = banksy_cluster, y = percent_mito, fill = banksy_cluster))
-plot3 <- plot3 + geom_boxplot(outlier.size = 0.5, alpha = 0.9)
-plot3 <- plot3 + scale_fill_viridis_d(option = "turbo")  
-plot3 <- plot3 + ggtitle("Mitochondrial percentage vs cluster") + xlab("Cluster") + ylab("percent_mito") + theme_minimal(base_size = 14) + theme(legend.position = "none")
+
+plot3 <- VlnPlot(scData,
+                 "percent_mito",     
+                 group.by = "banksy_cluster",
+                 pt.size = 0,
+                 raster = T) +
+  ggtitle("Mitochondrial percentage vs cluster") +
+  xlab("Cluster") +
+  ylab("percent_mito") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none")
+
 plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
 
 ```
