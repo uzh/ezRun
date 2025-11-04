@@ -192,7 +192,8 @@ if ("fraction_empty_cells" %in% colnames(data)) {
 }
 
 # Nuclear transcripts per 100 µm²
-if ("nuclear_transcripts_per_100um2" %in% colnames(data)) {
+if ("nuclear_transcripts_per_100um2" %in% colnames(data) &&
+    any(!is.na(data$nuclear_transcripts_per_100um2))) {
   p6 <- ggplot(data, aes(x = sampleName, y = nuclear_transcripts_per_100um2)) +
     geom_bar(stat = "identity", fill = "#8e44ad") +
     geom_hline(yintercept = 10, linetype = "dashed", color = "orange", size = 0.8) +
@@ -227,7 +228,8 @@ if ("negative_control_probe_counts_per_control_per_cell" %in% colnames(data)) {
 }
 
 # Predesigned transcripts Q20 fraction
-if ("fraction_predesigned_transcripts_q20" %in% colnames(data)) {
+if ("fraction_predesigned_transcripts_q20" %in% colnames(data) &&
+    any(!is.na(data$fraction_predesigned_transcripts_q20))) {
   p8 <- ggplot(data, aes(x = sampleName, y = fraction_predesigned_transcripts_q20)) +
     geom_bar(stat = "identity", fill = "#27ae60") +
     geom_hline(yintercept = 0.60, linetype = "dashed", color = "orange", size = 0.8) +
@@ -245,7 +247,8 @@ if ("fraction_predesigned_transcripts_q20" %in% colnames(data)) {
 }
 
 # Custom transcripts Q20 fraction
-if ("fraction_custom_transcripts_q20" %in% colnames(data)) {
+if ("fraction_custom_transcripts_q20" %in% colnames(data) &&
+    any(!is.na(data$fraction_custom_transcripts_q20))) {
   p9 <- ggplot(data, aes(x = sampleName, y = fraction_custom_transcripts_q20)) +
     geom_bar(stat = "identity", fill = "#d35400") +
     geom_hline(yintercept = 0.60, linetype = "dashed", color = "orange", size = 0.8) +
@@ -263,7 +266,8 @@ if ("fraction_custom_transcripts_q20" %in% colnames(data)) {
 }
 
 # Genomic control probe counts per control per cell (Xenium Prime only)
-if ("genomic_control_probe_counts_per_control_per_cell" %in% colnames(data)) {
+if ("genomic_control_probe_counts_per_control_per_cell" %in% colnames(data) &&
+    any(!is.na(data$genomic_control_probe_counts_per_control_per_cell))) {
   p10 <- ggplot(data, aes(x = sampleName, y = genomic_control_probe_counts_per_control_per_cell)) +
     geom_bar(stat = "identity", fill = "#7f8c8d") +
     geom_hline(yintercept = 0.01, linetype = "dashed", color = "orange", size = 0.8) +
