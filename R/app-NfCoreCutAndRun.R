@@ -50,7 +50,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   getFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
   getAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, outFolder)
   writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
-                      baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("Result")))
+                      baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("CutAndRun_Result")))
   makeRmdReportWrapper(outFolder, rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun")
 
 
@@ -169,6 +169,9 @@ getFastaFromBedFiles <- function(outFolder, refFile){
 
 ##' @description annotate peaks in BED files
 getAnnotatedPeaks <- function(gtfFile, outFolder){
+  require(ChIPpeakAnno)
+  require(GenomicRanges)
+  require(rtracklayer)
   gtf <- rtracklayer::import(gtfFile)
   if('gene' %in% unique(gtf$type)){
     idx = gtf$type == 'gene'
@@ -204,8 +207,8 @@ getAnnotatedPeaks <- function(gtfFile, outFolder){
 ##' @description write HTML report
 makeRmdReportWrapper <- function(outFolder, rmdFile, reportTitle){
   plotsPath <- paste0(outFolder,"/04_reporting/deeptools_heatmaps/")
-  filesToPlot <- dir(path=plotsPath, pattern=".pdf$", recursive=TRUE)
+  filesToPlot <- dir(path=plotsPath, pattern=".pdf$", recursive=TRUE, full.names = TRUE)
 
-  makeRmdReport(filesToPlot=file.path(plotsPath, filesToPlot), rmdFile=rmdFile,
+  makeRmdReport(filesToPlot, rmdFile=rmdFile,
                 reportTitle=reportTitle, selfContained = TRUE)
 }
