@@ -45,14 +45,6 @@ EzAppNfCoreSmRnaSeq <- setRefClass(
       "Initializes the application using its specific defaults."
       runMethod <<- ezMethodNfCoreSmRnaSeq
       name <<- "EzAppNfCoreSmRnaSeq"
-      ## minimum nf-core parameters
-      appDefaults <<- rbind(
-        peakCaller = ezFrame(Type="character", DefaultValue="macs2", Description="Select the peak caller for the pipeline"),
-        spikeinGenome = ezFrame(Type="character", DefaultValue="macs2", Description="Select the reference for the spike-in genome"),
-        normalization = ezFrame(Type="character", DefaultValue="macs2", Description="Select the target read normalization mode"),
-        peakStyle  = ezFrame(Type="character", DefaultValue="broad", Description="Run MACS2 in broadPeak mode, otherwise in narrowPeak mode"),
-        keepBams = ezFrame(Type="logical", DefaultValue = FALSE, Description= "Should bam files be stored")
-      )
     }
   )
 )
