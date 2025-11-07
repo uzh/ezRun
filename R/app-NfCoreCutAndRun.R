@@ -159,11 +159,10 @@ writeCutAndRunIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPa
 ##' @description generate fasta files from BED files
 getFastaFromBedFiles <- function(outFolder, refFile){
   bedFilePath <- paste0(outFolder,"/04_reporting/igv/")
-  bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE)
+  bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE, full.names = TRUE)
   for (name in bedFileNames){
-    peakBedFile <- file.path(bedFilePath, name)
-    peakSeqFile = paste0(peakBedFile, "_peaks.fa")
-    cmd = paste("bedtools", " getfasta -fi", refFile, "-bed", peakBedFile, " -name -fo ",peakSeqFile)
+    peakSeqFile = paste0(name, "_peaks.fa")
+    cmd = paste("bedtools", " getfasta -fi", refFile, "-bed", name, " -name -fo ",peakSeqFile)
     ezSystem(cmd)
   }
 }
