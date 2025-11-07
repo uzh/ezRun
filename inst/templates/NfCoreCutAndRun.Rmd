@@ -16,9 +16,6 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE, knitr.table.format = "html")
-require(ChIPpeakAnno)
-require(rtracklayer)
-require(GenomicRanges)
 ```
 
 ```{r input, include=FALSE}
@@ -29,10 +26,10 @@ filesToPlot <- readRDS("filesToPlot.rds")
 
 Here, we use a heatmap to visualize ...
 
-<br/>
-
-```{r heatmaps, results = "asis", echo=FALSE, message=FALSE}
-for (i in filesToPlot){
-   cat(paste0("![](",i,")"), " \n")
+```{r heatmaps, results = "asis", echo=FALSE, out.width="100%", message=FALSE}
+cat('<div style="display: flex; flex-wrap: wrap;">')
+for (pdf in filesToPlot){
+    cat(sprintf('<div style="margin: 10px;"><embed src="%s" width="400px" height="500px"></div>', pdf))
 }
+cat('</div>')
 ```
