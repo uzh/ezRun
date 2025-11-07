@@ -43,7 +43,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
     ## configuration
     "-work-dir work",
     "-profile apptainer",
-    "-r 3.2.2"
+    "-r", param$pipelineVersion
   )
   ezSystem(cmd)
 
@@ -79,7 +79,8 @@ EzAppNfCoreCutAndRun <- setRefClass(
         spikeinGenome = ezFrame(Type="character", DefaultValue="macs2", Description="Select the reference for the spike-in genome"),
         normalization = ezFrame(Type="character", DefaultValue="macs2", Description="Select the target read normalization mode"),
         peakStyle  = ezFrame(Type="character", DefaultValue="broad", Description="Run MACS2 in broadPeak mode, otherwise in narrowPeak mode"),
-        keepBams = ezFrame(Type="logical", DefaultValue = FALSE, Description= "Should bam files be stored")
+        keepBams = ezFrame(Type="logical", DefaultValue = FALSE, Description= "Should bam files be stored"),
+        pipelineVersion = ezFrame(Type="character", DefaultValue = '3.2.2', Description= "specify pipeline version")
       )
     }
   )

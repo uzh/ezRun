@@ -35,7 +35,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     ## configuration
     "-work-dir nfatacseq_work",
     "-profile apptainer",
-    "-r 2.1.2" #,
+    "-r", param$pipelineVersion #,
     # "-resume"  ## for testing
   )
   ezSystem(cmd)
@@ -96,7 +96,8 @@ EzAppNfCoreAtacSeq <- setRefClass(
         runTwoGroupAnalysis = ezFrame(Type = "logical", DefaultValue = TRUE, Description = "Run two group analysis"),
         peakStyle  = ezFrame(Type="character", DefaultValue="broad", Description="Run MACS2 in broadPeak mode, otherwise in narrowPeak mode"),
         varStabilizationMethod = ezFrame(Type="character", DefaultValue="vst", Description="Use rlog transformation or vst (DESeq2)"),
-        keepBams = ezFrame(Type="logical", DefaultValue = FALSE, Description= "Should bam files be stored")
+        keepBams = ezFrame(Type="logical", DefaultValue = FALSE, Description= "Should bam files be stored"),
+        pipelineVersion = ezFrame(Type="character", DefaultValue = '2.1.2', Description= "specify pipeline version")
       )
     }
   )

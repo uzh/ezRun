@@ -162,6 +162,9 @@ getSampleMultiplexFiles <- function(input) {
   projectId <- strsplit(dirname(input$meta[['RawDataDir']]),'/')[[1]][1]
   sampleMultiplexFolder <- file.path(input$dataRoot, projectId, paste0('o',input$meta[['Order Id']], '_metaData'))
   sampleMultiplexFiles <- list.files(sampleMultiplexFolder, full.names = TRUE)
+  if(length(sampleMultiplexFiles) == 0){
+    stop(paste0('No multiplexing files found in ', sampleMultiplexFolder, '. Please add this information to gstore!'))
+  }
   return(sampleMultiplexFiles)
 }
 
@@ -305,7 +308,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     # prefix, since sometimes parts of the library information are 
     # as postfixes. This may potentially cause collisions but we risk it
     names(sampleMultiplexFiles) <- paste0('^', sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles)))
-    sampleMultiplexFile <- sampleMultiplexFiles[which(sapply(names(sampleMultiplexFiles), grepl, sampleName))]
+    sampleMultiplexFile <- sampleMultiplexFiles[sapply(names(sampleMultiplexFiles), grepl, pattern = sampleName, ignore.case = TRUE)]
     sampleMultiplexMapping <- read_csv(sampleMultiplexFile, show_col_types = FALSE)
     concatCols <- function(y) {return(paste(as.character(y), collapse=","))}
     if(!("fixedRNA" %in% libraryTypes)){

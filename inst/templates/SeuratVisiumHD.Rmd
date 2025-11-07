@@ -13,9 +13,7 @@ editor_options:
 
 # {.tabset}
 
-## QC
-
-### {.tabset}
+## QC {.tabset}
 
 ```{r setup, include=FALSE}
 library(Seurat)
@@ -147,9 +145,11 @@ scData   <- rgb_order(scData,
 ```
 
 
+### Diagnostic plots
+`r paste("Output:", param$binSize)`
 
 <details>
-  <summary>Metrics to identify bins (spots) of low quality</summary>
+  <summary>Metrics to identify bins/cells of low quality</summary>
   
 ```{r QC metrics, echo=F, message=F, warning=F}
 
@@ -158,15 +158,15 @@ qcMetrics <- tibble(
   interpretation = character()
 ) |>
   add_row(
-    metric = "Library size – total sum of counts across all relevant features for each spot",
+    metric = "Library size – total sum of counts across all relevant features for each bin/cell",
     interpretation = "Small library sizes indicate low quality (RNA may have been lost during library preparation)"
   ) |>
   add_row(
-    metric = "Number of expressed genes with non-zero counts in each spot",
+    metric = "Number of expressed genes with non-zero counts in each bin/cell",
     interpretation = "Very few expressed genes means poor capture of the transcript population"
   ) |>
   add_row(
-    metric = "Mitochondrial proportion – percentage of reads mapping to mitochondrial genes in each spot",
+    metric = "Mitochondrial proportion – percentage of reads mapping to mitochondrial genes in each bin/cell",
     interpretation = "High mitochondrial proportion indicate poor quality (loss of cytoplasmic RNA from perforated bins) (Islam et al. 2014; Ilicic et al. 2016)"
   )
 
@@ -198,7 +198,7 @@ qcDiagnostics <- tibble(
   ) |>
   add_row(
     check = "Violin plots",
-    interpretation = "Show bins kept (`FALSE`) vs discarded (`TRUE`) after QC filtering, highlighting potential biases."
+    interpretation = "Show bins/cells kept (`FALSE`) vs discarded (`TRUE`) after QC filtering, highlighting potential biases."
   ) |>
   add_row(
     check = "Spatial plots",
@@ -222,37 +222,37 @@ sp_plot <- function(obj,
                     max.cutoff = "q99",
                     legend.pos = "right",
                     palette = "turbo",
+                    title_size = 11,             
                     ...) {
 
   SpatialFeaturePlot(
-    object         = obj,
-    features       = feature,
-    images = Images(scData),
-    plot_segmentations = T,
-    pt.size.factor = pt.size.factor,
-    min.cutoff     = min.cutoff,
-    max.cutoff     = max.cutoff,
-    ...                   
+    object              = obj,
+    features            = feature,
+    images              = Images(obj),  
+    plot_segmentations  = TRUE,
+    pt.size.factor      = pt.size.factor,
+    min.cutoff          = min.cutoff,
+    max.cutoff          = max.cutoff,
+    ...
   ) +
     labs(title = title, fill = label) +
-    scale_fill_viridis_c(option = palette, 
-                         na.value = "grey95") +
+    scale_fill_viridis_c(option = palette, na.value = "grey95") +
     theme_void() +
     theme(
       legend.position   = legend.pos,
-      plot.title        = element_text(size = 12, 
+      plot.title        = element_text(size = title_size, 
                                        face = "bold", 
-                                       margin = margin(b = 4)),
+                                       margin = margin(b = 6)),
       legend.title      = element_text(size = 8),
       legend.text       = element_text(size = 8),
       legend.key.height = unit(10, "pt"),
       legend.key.width  = unit(6, "pt")
     )
-
 }
+
 ```
 
-#### Diagnostic plots
+
 
 ```{r 1st line of plots, fig.width=12, fig.height=4}
 
@@ -262,7 +262,7 @@ plot1 <- plotColData(
   colour_by = "discard"
 ) +
   scale_y_log10() +
-  labs(title = "UMI counts", y = "UMI counts per spot") +
+  #labs(title = "UMI counts", y = "UMI counts per bin/cell") +
   theme(
     legend.position = "top",
     axis.title.x = element_blank(),
@@ -272,7 +272,7 @@ plot1 <- plotColData(
 
 plot2 <- sp_plot(
   scData, nCountCol,
-  title = "UMI per spot",
+  title = "UMI per bin/cell",
   label = "UMI counts"
 )
 
@@ -299,8 +299,8 @@ plot4 <- plotColData(
   colour_by = "discard"
 ) +
   labs(
-    title = "Detected genes",
-    y = "Number of detected genes"
+    title = "Detected genes"#,
+    #y = "Number of detected genes"
   ) +
   theme(
     legend.position = "none", 
@@ -325,9 +325,9 @@ plot6 <- plotColData(
   scale_x_log10() +
   scale_y_log10() +
   labs(
-    title = "",
-    x = "UMI counts",
-    y = "Detected genes"
+    title = ""#,
+   # x = "UMI counts",
+   #  y = "Detected genes"
   ) +
   theme(
     legend.position = "none", 
@@ -376,7 +376,7 @@ plot9 <- plotColData(
 ) +
   scale_x_log10() +
   labs(
-    x = "UMI counts",
+  #   x = "UMI counts",
     y = "Percent mitochondrial reads"
   ) +
   theme(
@@ -428,7 +428,7 @@ if (!is.null(xxAll$percent_riboprot)) {
     ) +
       scale_x_log10() +
       labs(
-        x = "UMI counts",
+        #x = "UMI counts",
         y = "Percent ribosomal protein reads"
       ) +
       theme(
@@ -443,8 +443,6 @@ plot10 + plot11 + plot12
 
 ```
 
-
-##### Bins filtering
 
 <details>
   <summary>Filtering rules</summary>
@@ -488,9 +486,16 @@ ezKable(cellFilter)
 ::: {.col-md-6}
 
 
-```{r}
+```{r, fig.height=4}
 
-SpatialPlot(scData.unfiltered_spatial, group.by = "discard") + labs(title="Filtered Bins")
+SpatialPlot(scData.unfiltered_spatial, group.by = "discard") + 
+  labs(title="Filtered bins/cells") +
+  theme_void() +
+  theme(legend.position = "top", # to be consistent with other diagnostic plots
+        plot.title = element_text(size = 12, face = "bold"),
+        legend.title = element_text(size = 10),
+        legend.text  = element_text(size = 10)
+        )
 
 ```
 
@@ -503,10 +508,10 @@ SpatialPlot(scData.unfiltered_spatial, group.by = "discard") + labs(title="Filte
 filterStats <- list(
   "Total removed (thresholding)"= sum(!allCellsMeta$useCell),
   "Total removed (manual)" = sum(allCellsMeta$useCell) - ncol(scData),
-  "Bins remaining" = sum(ncol(scData))
+  "Bins/cells remaining" = sum(ncol(scData))
 )
 
-ezListAsKable(filterStats, col.names=c("", "Number of Bins"))
+ezListAsKable(filterStats, col.names=c("", "Number of bins/cells"))
 ```
 :::
 :::
@@ -514,20 +519,20 @@ ezListAsKable(filterStats, col.names=c("", "Number of Bins"))
 ::: {.row}
 ::: {.col-md-6}
 
-Number of bins filtered by the individual quality criteria.
-```{r low quality Bins, fig.align='center'}
+Number of bins/cells filtered by the individual quality criteria.
+```{r low quality BinsCells, fig.align='center'}
 
 qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
 qcList <- qcList[sapply(qcList, length) > 0]
 if (length(qcList) > 1){
-  UpSetR::upset(fromList(qcList), nsets = 5, mainbar.y.label="#bins")
+  UpSetR::upset(fromList(qcList), nsets = 5, mainbar.y.label="bins/cells")
 }
 ```
 :::
 
 ::: {.col-md-6}
 ```{r echo=FALSE, fig.align='center'}
-qcStats <- ezFrame("Number of Bins"=integer(0), 
+qcStats <- ezFrame("Number of bins/cells"=integer(0), 
                    "Min Pass Value"=integer(0), 
                    "Max Pass Value"=integer(0), 
                    Fraction = integer(0))
@@ -561,7 +566,7 @@ ezKable(qcStats)
 
 
 
-##### Dimensionality reduction
+#### Dimensionality reduction
 
 
 <details>
@@ -621,60 +626,133 @@ ezKable(dimred_tbl)
 
 ```{r, fig.width=10}
 
+# pca_name <- if ("pca.sketch" %in% names(scData@reductions)) "pca.sketch" else "pca"
+# 
+# stdev <- scData[[pca_name]]@stdev
+# stopifnot(param$npcs <= length(stdev))
+# 
+# 
+# pct  <- ((stdev^2) / sum(stdev^2)) * 100        
+# 
+# 
+# cumu    <- cumsum(pct)
+# plot_df <- data.frame(pct = pct, cumu = cumu, rank = seq_along(pct))
+# plot_df$used <- factor(plot_df$rank <= param$npcs, levels=c(TRUE, FALSE))
+
+# ggplot(plot_df, aes(x = cumu, 
+#                     y = pct, 
+#                     label = rank, 
+#                     color = used)) +
+#   geom_point(size = 1.6) + 
+#   geom_text(vjust = -0.8, size = 2) +
+#   geom_vline(xintercept = cumu[param$npcs], color = "grey50", linetype = "dashed") +
+#   
+# 
+#   labs(
+#     title    = "Percent variance explained by the principal components",
+#     subtitle = paste0("number of PCs used: ", param$npcs),
+#     x = "Cumulative percent variance explained ",
+#     y = "Per PC variance explained"
+#   ) +
+#   
+#   annotate(
+#     "text",
+#     x = cumu[param$npcs], y = max(plot_df$pct),
+#     label = paste0("Variance used: ", sprintf("%.2f", cumu[param$npcs]), "%"),
+#     vjust = -0.4, size = 3, color = gg_color_hue(2)[1]
+#   ) + theme(legend.position = "none") +
+#   theme_bw() +theme(legend.position = "none")
+
 pca_name <- if ("pca.sketch" %in% names(scData@reductions)) "pca.sketch" else "pca"
 
 stdev <- scData[[pca_name]]@stdev
-stopifnot(param$npcs <= length(stdev))
 
+n_use <- if (exists("param") && !is.null(param$npcs)) param$npcs else min(30, length(stdev))
+stopifnot(n_use >= 1, n_use <= length(stdev))
 
-pct  <- ((stdev^2) / sum(stdev^2)) * 100        
+var_pct <- (stdev^2) / sum(stdev^2) * 100
+cum_pct <- cumsum(var_pct)
 
+df <- data.frame(
+  PC   = seq_along(stdev),
+  perc = var_pct,
+  cum  = cum_pct,
+  used = seq_along(stdev) <= n_use
+)
 
-cumu    <- cumsum(pct)
-plot_df <- data.frame(pct = pct, cumu = cumu, rank = seq_along(pct))
-plot_df$used <- factor(plot_df$rank <= param$npcs, levels=c(TRUE, FALSE))
-
-
-ggplot(plot_df, aes(x = cumu, 
-                    y = pct, 
-                    label = rank, 
-                    color = used)) +
-  geom_point(size = 1.6) + 
-  geom_text(vjust = -0.8, size = 2) +
-  geom_vline(xintercept = cumu[param$npcs], color = "grey50", linetype = "dashed") +
+ggplot(df, 
+       aes(x = PC)) +
   
+  geom_col(aes(y = perc, 
+               fill = used), 
+           width = 0.7, 
+           show.legend = FALSE) +
+  
+  scale_fill_manual(values = c(`TRUE` = "grey20", 
+                               `FALSE` = "grey75")) +
+  
+  geom_line(aes(y = cum / max(cum) * max(perc), 
+                group = 1), 
+            linewidth = 0.5, 
+            color = "orange") +
+  
+  geom_point(aes(y = cum / max(cum) * max(perc)), 
+             size = 1, color = "orange") +
 
-  labs(
-    title    = "Percent variance explained by the principal components",
-    subtitle = paste0("number of PCs used: ", param$npcs),
-    x = "Cumulative percent variance explained ",
-    y = "Per PC variance explained"
+  geom_vline(xintercept = n_use, 
+             linetype = "dashed", 
+             color = "grey40") +
+ 
+  scale_y_continuous(
+    name = "Variance explained (%)",
+    sec.axis = sec_axis(~ . / max(df$perc) * 100, 
+                        name = "Cumulative variance (%)")
   ) +
   
-  annotate(
-    "text",
-    x = cumu[param$npcs], y = max(plot_df$pct),
-    label = paste0("Variance used: ", sprintf("%.2f", cumu[param$npcs]), "%"),
-    vjust = -0.4, size = 3, color = gg_color_hue(2)[1]
-  ) + theme(legend.position = "none") +
-  theme_bw() +theme(legend.position = "none")
+  labs(
+    title    = "PCA variance explained",
+    subtitle = paste0("PCs used: ", 
+                      n_use, 
+                      "   |   Cumulative: ", 
+                      sprintf('%.2f%%', 
+                              df$cum[n_use])),
+    x = NULL) +
+  
+  theme_minimal(base_size = 9) +
+  
+  theme(
+    text               = element_text(face = "bold"),
+    axis.title.y.left  = element_text(color = "grey20"),
+    axis.title.y.right = element_text(color = "orange"),
+    plot.title         = element_text(hjust = 0.5),
+    panel.grid.minor   = element_blank()
+  )
 
 ```
 
-#### Segmentation mask
+### Segmentation mask
+
+`r {
+  if (identical(param$binSize, "segmented_outputs")) {
+    n <- nrow(scData@images[[Images(scData)]]@boundaries$segmentation@sf.data)
+    paste("N cells:", n)
+  } else ""
+}`
 
 ```{r, fig.height=20, fig.width=25}
+
 sp_plot(
   scData,
   nCountCol,
+  label = "UMI counts",
   stroke = 0.2,
-  pt.size.factor = 2
+  title_size = 16
 )
 
 ```
 
 
-#### Cropped mask
+### Cropped mask
 
 
 ```{r, fig.width=25, fig.height=20}
@@ -683,20 +761,191 @@ sp_plot(
   scData,
   nCountCol,
   pt.size.factor = 5,
+  label = "UMI counts",
   stroke = 0.2,
-  crop = TRUE
+  crop = TRUE,
+  title_size = 16
 ) +
   coord_sf(xlim = c(200, 350), 
            ylim = c(200, 350), expand = T)
 
 ```
 
+### Cell size/density
 
-## Clustering
+<details>
+  <summary>Segmentation QC</summary>
+  
+```{r}
 
-### {.tabset}
+if (identical(param$binSize, "segmented_outputs")) {
 
-#### Clusters 
+    qc_text_tbl <- tibble(
+    topic = c(
+      "Cell size distributions (per image)",
+      "Image area covered by cells"
+    ),
+    summary = c(
+      paste(
+        "Compare the distributions of cell size across individual images.",
+        "Differences can indicate segmentation bias (e.g., density-dependent over/under-segmentation)",
+        "or genuine biology driven by cell-type composition",
+        "(e.g., tumor cells often larger than immune cells).",
+        sep = " "
+      ),
+      paste(
+        "Coverage = total cell area ÷ image area (per ROI).",
+        "Low coverage flags ROIs with few cells, possibly due to incorrect ROI selection",
+        "or non-tissue/artifact regions; review recommended.",
+        sep = " "
+      )
+    )
+  )
+
+  ezKable(qc_text_tbl, 
+          caption = "QC notes for image-level metrics", 
+          escape = FALSE)
+
+}
+
+```
+  </details>
+  
+`r {
+  if (identical(param$binSize, "segmented_outputs")) {
+    d <- dim(scData@images[[Images(scData)[1]]]@image)
+    paste("Image dimension:", paste(d, collapse = " × "))
+  } else "This tab is only for *segmented outputs* and isn’t applicable to bin-based results"
+}`
+
+
+
+
+##### Cell size
+
+::: {.row}
+::: {.col-md-6}
+
+
+```{r cell area plot}
+
+if (identical(param$binSize, "segmented_outputs")) {
+
+  sfPolys <- scData@images[[Images(scData)]]@boundaries$segmentation@sf.data
+  areasFR  <- st_area(sfPolys)   # FULL-RES px²
+  
+  lo <- scData@images[[Images(scData)]]@scale.factors$hires
+  
+  areasLO <- areasFR * (lo^2)
+  
+  barcodes  <- sfPolys$barcodes
+
+  scData <- AddMetaData(scData, 
+                        metadata = setNames(areasLO, barcodes),
+                        col.name = "areaPX2hires")
+
+  scSub <- subset(scData, cells = barcodes)
+  Idents(scSub) <- factor(rep(Images(scData), ncol(scSub)))
+
+
+  VlnPlot(scSub, 
+          features = "areaPX2hires", 
+          pt.size = 0,
+          cols = "#93AECA") +
+  
+    labs(y = expression("cell area, " * px^2),  # "Area, px²"
+        subtitle = "HIRES pixel space")  +  
+  
+    theme_minimal(base_size = 12) +
+  
+    theme(legend.position = "top",
+          legend.justification = "left",
+          axis.title.x = element_blank(),
+          axis.text.x = element_blank(),
+          plot.title = element_blank()
+          )
+  
+} 
+
+```
+<br>
+<br>
+
+```{r cell area stats}
+if (identical(param$binSize, "segmented_outputs")) {
+  vals <- scSub$areaPX2hires
+
+  qs  <- quantile(vals, 
+                  probs = c(0, .25, .5, .75, 1), 
+                  names = FALSE, 
+                  na.rm = TRUE)
+
+  mn  <- mean(vals, na.rm = TRUE)
+
+  N   <- length(vals)
+
+  qcArea <- ezFrame(
+    "N cells" = integer(0),
+    "Min"     = numeric(0),
+    "1st Qu." = numeric(0),
+    "Median"  = numeric(0),
+    "Mean"    = numeric(0),
+    "3rd Qu." = numeric(0),
+    "Max"     = numeric(0)
+  )
+
+  qcArea[ Images(scData), ] <- c(N, 
+                           qs[1], 
+                           qs[2], 
+                           qs[3], 
+                           mn, 
+                           qs[4], 
+                           qs[5]) |> round(0)
+
+  ezKable(qcArea)
+}
+```
+:::
+::: {.col-md-6}
+
+##### Cell density
+
+
+```{r}
+
+if (identical(param$binSize, "segmented_outputs")) {
+ 
+  sfp <- scData@images[[Images(scData)]]@boundaries$segmentation@sf.data
+  lo  <- scData@images[[Images(scData)]]@scale.factors$lowres
+
+  W <- dim(scData@images[[Images(scData)]]@image)[2]/lo
+  H <- dim(scData@images[[Images(scData)]]@image)[1]/lo
+  covered <- sum(st_area(sfp)) / (W * H)
+
+  ggplot(data.frame(sample=Images(scData), 
+                    covered=covered),
+         aes(sample, 
+             covered)) +
+  
+    geom_point(size = 3) + 
+  
+    theme_minimal(base_size = 12) +
+  
+    ylim(0,1) +
+  
+    labs(y="% covered area", 
+         x = "")
+  
+} 
+
+```
+:::
+:::
+
+
+## Clusters  {.tabset}
+
+### Clustering
 
 <details>
   <summary>KNN → communities → clusters</summary>
@@ -711,8 +960,8 @@ cluster_tbl <- tibble(
   add_row(
     Step = "Build KNN graph",
     Details = paste(
-      "Each node = bin (cell).",
-      sprintf("Connect each bin to its k nearest neighbors in %s space.", npcs_txt),
+      "Each node = bin/cell.",
+      sprintf("Connect each bin/cell to its k nearest neighbors in %s space.", npcs_txt),
       "Distance usually Euclidean (on PCs) or cosine.",
       sep = "\n"
     )
@@ -721,7 +970,7 @@ cluster_tbl <- tibble(
     Step = "Edge weighting",
     Details = paste(
       "Edges weighted by similarity (e.g., shared nearest neighbors/Jaccard).",
-      "Higher weight = more similar bins.",
+      "Higher weight = more similar bins/cells.",
       sep = "\n"
     )
   ) |>
@@ -736,7 +985,7 @@ cluster_tbl <- tibble(
   add_row(
     Step = "Cluster labels",
     Details = paste(
-      "Each community becomes a cluster ID per bin.",
+      "Each community becomes a cluster ID per bin/cell.",
       "Used for downstream interpretation (markers, enrichment, etc.).",
       sep = "\n"
     )
@@ -764,20 +1013,26 @@ ezKable(cluster_tbl)
 
 ```
 </details>
+`r paste("Resolution:", param$clusterResolution)`
 
 <br>
 
-`r paste("Resolution:", param$clusterResolution)`
 
 ```{r, fig.height=6, fig.width=12}
 
 n_clusters <- nlevels(Idents(scData))
 show_leg   <- n_clusters <= 20
 
+namedPalette <- setNames(
+  DiscretePalette(length(levels(Idents(scData))
+                         ), 
+                  palette = "polychrome"), 
+  levels(Idents(scData))
+)
 
 p1 <- DimPlot(scData,
               label = FALSE,
-              pt.size = 1.5) +
+              pt.size = 0.5) +
   labs(color = "Clusters") +
   theme_void() +
   guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
@@ -785,24 +1040,33 @@ p1 <- DimPlot(scData,
   theme(legend.position = "none")
 
 p1 <- Seurat::LabelClusters(
-  plot     = p1,
+  plot     = p1, 
+  repel = T,
+  box = T,
   id       = "ident",
   fontface = "bold",
-  color    = "#383838",
+  color    = "white",
   size     = 4
 )
 
-p2 <- SpatialDimPlot(scData,
-                     label = TRUE,
-                     label.size = 4,
-                     pt.size.factor = 2) +
+
+p2 <- SpatialDimPlot(
+  scData,
+  label              = T,
+  label.size         = 4,
+  repel              = T,        
+  plot_segmentations = T,
+  pt.size.factor     = 2
+) +
   labs(fill = "Clusters") +
   guides(fill = if (show_leg) guide_legend(title = "Clusters") else "none")
 
 
 (p1 + p2) +
-  plot_layout(nrow = 1, guides = if (show_leg) "collect" else "keep") 
- 
+  plot_layout(nrow = 1,
+              guides = if (show_leg) "collect" else "keep")
+
+
 
 ```
 
@@ -811,12 +1075,12 @@ p2 <- SpatialDimPlot(scData,
 ::: {.row}
 ::: {.col-md-9}
 ```{r number of cells in each cluster, fig.width=12, fig.height=6}
-if(!('Batch' %in% colnames(scData@meta.data))){
-    scData@meta.data$Batch <- scData@meta.data$Sample
-}
+# if(!('Batch' %in% colnames(scData@meta.data))){
+#     scData@meta.data$Batch <- scData@meta.data$Sample
+# }
 
-cellIdents_perSample <- scData@meta.data[,c('seurat_clusters', 'Batch')]
-cellIdents_perSample$Batch <- factor(cellIdents_perSample$Batch)
+cellIdents_perSample <- scData@meta.data[,c('seurat_clusters', 'Sample')]
+#cellIdents_perSample$Batch <- factor(cellIdents_perSample$Sample)
 
 
 # if (!exists("pal")) pal <- scales::hue_pal()(nlevels(plot_df$Batch))
@@ -830,16 +1094,17 @@ cellIdents_perSample$Batch <- factor(cellIdents_perSample$Batch)
 # # pals::glasbey, pals::alphabet, RColorBrewer::brewer.pal
 
 ggplot(cellIdents_perSample, aes(x = seurat_clusters, 
-                    fill = Batch)) +
-  geom_bar() +
+                    fill = Sample)) +
+  geom_bar(fill = "#93AECA") +
 #  scale_fill_manual(values = pal) +
-  labs(title = "Bins per cluster and sample (counts)",
+  labs(title = "Bins/cells per cluster and sample (counts)",
        x = NULL, 
-       y = "# bins"
+       y = "bins/cells"
   ) + 
   theme_minimal()+
   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) + ## make sure the y axis is not expanded at the bottom
   theme(legend.position="top", 
+        legend.justification = "left",
         panel.grid.minor=element_blank(),
         panel.grid.major=element_blank(),
         scale_y_continuous(expand = expansion(mult = c(0.02, 0.15))),
@@ -852,7 +1117,7 @@ ggplot(cellIdents_perSample, aes(x = seurat_clusters,
 ::: {.col-md-3}
 ```{r, echo=FALSE}
 
-df <- cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Batch") 
+df <- cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Sample") 
 df <- df |> as.data.frame(check.names = FALSE, stringsAsFactors = FALSE) |>
   dplyr::rename("Cluster"="seurat_clusters")
 
@@ -863,7 +1128,7 @@ colnames(df) <- colnames(df) |> str_replace_all("_fraction$", " (%)")
 is_count_col <- !is_pct_col & colnames(df) != "Cluster"
 colnames(df)[is_count_col] <- colnames(df)[is_count_col] |> paste("(n)")
 
-ezInteractiveTableRmd(df, rowNames = FALSE, title="number of bins", filter="none")|>
+ezInteractiveTableRmd(df, rowNames = FALSE, title="number of bins/cells", filter="none")|>
   DT::formatPercentage(columns = is_pct_col, digits = 2) 
 
 
@@ -874,7 +1139,7 @@ ezInteractiveTableRmd(df, rowNames = FALSE, title="number of bins", filter="none
 <br/>
 
 
-#### Cluster assessment
+### Cluster assessment
 
 <details>
   <summary>Technical vs. biological clustering driver</summary>
@@ -958,7 +1223,7 @@ plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
 
 
 
-#### Cluster markers
+### Cluster markers
 
 <details>
   <summary>Positive marker detection</summary>
@@ -971,14 +1236,14 @@ marker_tbl <- tibble(
   add_row(
     Step = "Goal",
     Details = paste(
-      "Identify genes that are significantly higher in a given cluster compared to all other bins (\"positive markers\").",
+      "Identify genes that are significantly higher in a given cluster compared to all other bins/cells (\"positive markers\").",
       sep = "\n"
     )
   ) |>
   add_row(
     Step = "Test",
     Details = paste(
-      "Wilcoxon Rank Sum test (cluster vs. all other bins).",
+      "Wilcoxon Rank Sum test (cluster vs. all other bins/cells).",
       "Non-parametric; robust to non-normal distributions.",
       sep = "\n"
     )
@@ -1033,7 +1298,7 @@ Marker detection summary
 marker_desc <- tibble(
   Item    = c("Test", "Covariate", "Effect size", "Significance", "Definition"),
   Details = c(
-    "Logistic regression (cluster vs all other bins).",
+    "Logistic regression (cluster vs all other bins/cells).",
     "Cell cycle included as a batch effect in the model.",
     "Average log-fold change ≥ 0.25 (log scale).",
     "Adjusted p-value < 0.05.",
@@ -1049,15 +1314,11 @@ ezKable(marker_desc)
 
 
 ```{r pos markers}
-
-
 ezInteractiveTableRmd(posMarkers, digits=3, rowNames=FALSE)
-
-
 ```
  
 
-#### Marker plots
+### Marker plots
 
 ```{r marker plot setup}
 top5 <- posMarkers  |> 
@@ -1070,7 +1331,7 @@ genesToPlot <- intersect(genesToPlot, rownames(scData))
 ```
 
 
-##### DotPlot
+#### DotPlot
 
 Visualization of the top 5 markers in each cluster. If a gene is a top marker for multiple clusters it is shown only once.
 
@@ -1100,7 +1361,7 @@ if (length(genesToPlot) > 0){
 
 
 
-#### EnrichR
+### EnrichR
 
 <details>
   <summary>Cell type scoring (Enrichr)</summary>
@@ -1221,7 +1482,7 @@ ezKable(enrichrTable, escape=FALSE, format="html", format.args=list())
 
 ```
 
-## Niches
+## Niches {.tabset}
 
 
 ```{r runBanksy, echo=F, message=F, warning=F}
@@ -1255,14 +1516,14 @@ scData <- RunPCA(scData,
 
 scData <- FindNeighbors(scData, 
                            reduction = "pca.banksy", 
-                           dims = 1:30)
+                           dims = 1:12)
 
 ```
 
 ```{r find clusters, echo=F, message=F, warning=F}
 scData <- FindClusters(scData,
                           cluster.name = "banksy_cluster",
-                          resolution = param$clusterResolution,
+                          resolution = param$clusterResolution/4,
                           verbose = F)
 ```
 
@@ -1308,11 +1569,9 @@ write.table(posMarkersBanksy, file = "cluster_markers_banksy.tsv", sep = "\t",
             row.names = FALSE, quote = FALSE)
 ```
 
-### {.tabset}
+### Spatial clustering 
 
-#### Clustering
-
-##### Communities of spatially adjacent spots
+#### Communities of spatially adjacent bins/cells
 
 <details>
   <summary>Niche defining</summary>
@@ -1326,19 +1585,19 @@ banksy_niches <- tibble(
 ) |>
   add_row(
     Concept = "Niche (BANKSY cluster)",
-    Definition = "Community of spatially adjacent spots with neighborhood-smoothed expression.",
+    Definition = "Community of spatially adjacent bins/cells with neighborhood-smoothed expression.",
     `Key params` = "k_geom, λ",
     `Practical tip` = "Represents a tissue microenvironment."
   ) |>
   add_row(
     Concept = "k_geom (local neighborhood size)",
-    Definition = "How many nearest spatial neighbors define a spot’s niche.",
-    `Key params` = "Integer (e.g., 6–12 for HD bins)",
+    Definition = "How many nearest spatial neighbors define a bin’s/cell's niche.",
+    `Key params` = "Integer (e.g., 6–12 for HD bins/cells)",
     `Practical tip` = "↑k = smoother/merge risk; ↓k = sharper/border-preserving."
   ) |>
   add_row(
     Concept = "λ (neighbor influence)",
-    Definition = "How strongly neighbors affect each spot’s expression.",
+    Definition = "How strongly neighbors affect each bin’s/cell's expression.",
     `Key params` = "0–1 (start ≈ 0.4)",
     `Practical tip` = "↑λ = denoise/over-smooth risk; ↓λ = crisp/possibly noisy."
   ) |>
@@ -1354,7 +1613,7 @@ ezKable(banksy_niches)
 
 </details>
 
-`r paste("Resolution:", param$clusterResolution)`
+`r paste("Resolution:", param$clusterResolution/4)`
 
 
 ```{r banksy plot spatial, fig.width=12, fig.height=6}
@@ -1365,7 +1624,7 @@ show_leg_banksy   <- n_clusters <= 20
 
 p1 <- DimPlot(scData,
               label = FALSE,
-              pt.size = 1.5) +
+              pt.size = 0.5) +
   labs(color = "Clusters") +
   theme_void() +
   guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
@@ -1376,13 +1635,15 @@ p1 <- Seurat::LabelClusters(
   plot     = p1,
   id       = "ident",
   fontface = "bold",
-  color    = "#383838",
+  box = T,
+  color    = "white",
   size     = 4
 )
 
 p_spatialNiches <- SpatialDimPlot(scData, 
                     group.by = "banksy_cluster", 
                     label = T, 
+                    plot_segmentations = T,
                     repel = T, 
                     label.size = 4
                     # ,
@@ -1415,22 +1676,22 @@ p_spatialNiches <- SpatialDimPlot(scData,
 ::: {.col-md-9}
 
 ```{r number of cells in each cluster banksy, fig.width=18, fig.height=10}
-if(!('Batch' %in% colnames(scData@meta.data))){
-    scData@meta.data$Batch <- scData@meta.data$Sample
-}
+# if(!('Batch' %in% colnames(scData@meta.data))){
+#     scData@meta.data$Batch <- scData@meta.data$Sample
+# }
 
-cellIdents_perSample <- scData@meta.data[,c('banksy_cluster', 'Batch')]
-cellIdents_perSample$Batch <- factor(cellIdents_perSample$Batch)
+cellIdents_perSample <- scData@meta.data[,c('banksy_cluster', 'Sample')]
+#cellIdents_perSample$Batch <- factor(cellIdents_perSample$Batch)
 
 
 
 ggplot(cellIdents_perSample, aes(x = banksy_cluster, 
-                    fill = Batch)) +
-  geom_bar() +
+                    fill = Sample)) +
+  geom_bar(fill = "#93AECA") +
 #  scale_fill_manual(values = pal) +
-  labs(title = "Bins per cluster and sample (counts)",
+  labs(title = "Bins/cells per cluster and sample (counts)",
        x = NULL, 
-       y = "# bins"
+       y = "bins/cells"
   ) + 
   theme_minimal()+
   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) + 
@@ -1448,7 +1709,7 @@ ggplot(cellIdents_perSample, aes(x = banksy_cluster,
 ::: {.col-md-3}
 ```{r, echo=FALSE}
 
-df <- cellsProportion(scData, groupVar1 = "banksy_cluster", groupVar2 = "Batch") 
+df <- cellsProportion(scData, groupVar1 = "banksy_cluster", groupVar2 = "Sample") 
 df <- df |> as.data.frame(check.names = FALSE, stringsAsFactors = FALSE) |>
   dplyr::rename("Cluster"="banksy_cluster")
 
@@ -1459,7 +1720,7 @@ colnames(df) <- colnames(df) |> str_replace_all("_fraction$", " (%)")
 is_count_col <- !is_pct_col & colnames(df) != "Cluster"
 colnames(df)[is_count_col] <- colnames(df)[is_count_col] |> paste("(n)")
 
-ezInteractiveTableRmd(df, rowNames = FALSE, title="number of bins", filter="none")|>
+ezInteractiveTableRmd(df, rowNames = FALSE, title="number of bins/cells", filter="none")|>
   DT::formatPercentage(columns = is_pct_col, digits = 2) 
 
 
@@ -1469,7 +1730,7 @@ ezInteractiveTableRmd(df, rowNames = FALSE, title="number of bins", filter="none
 :::
 
 
-#### Cluster assessment
+### Niches assessment
 
 
 ```{r uninteresting variation banksy, fig.height=16, fig.width=18}
@@ -1497,7 +1758,7 @@ plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
 
 ```
 
-#### Cluster markers
+### Niches markers
 
 <details>
   <summary>Positive marker detection for BANKSY niches</summary>
@@ -1510,14 +1771,14 @@ marker_tbl <- tibble(
   add_row(
     Step = "Goal",
     Details = paste(
-      "Identify genes that are significantly higher in a given BANKSY niche compared to all other bins (\"positive markers\").",
+      "Identify genes that are significantly higher in a given BANKSY niche compared to all other bins/cells (\"positive markers\").",
       sep = "\n"
     )
   ) |>
   add_row(
     Step = "Test",
     Details = paste(
-      "Wilcoxon Rank Sum test (niche vs. all other bins).",
+      "Wilcoxon Rank Sum test (niche vs. all other bins/cells).",
       "Non-parametric; robust to non-normal distributions.",
       sep = "\n"
     )
@@ -1572,7 +1833,7 @@ Marker detection summary
 marker_desc <- tibble(
   Item    = c("Test", "Covariate", "Effect size", "Significance", "Definition"),
   Details = c(
-    "Logistic regression (niche vs all other bins).",
+    "Logistic regression (niche vs all other bins/cells).",
     "Cell cycle included as a batch effect in the model.",
     "Average log-fold change ≥ 0.25 (log scale).",
     "Adjusted p-value < 0.05.",
@@ -1589,14 +1850,12 @@ ezKable(marker_desc)
 
 ```{r pos markers banksy}
 
-
 ezInteractiveTableRmd(posMarkersBanksy, digits=3, rowNames=FALSE)
-
 
 ```
 
 
-#### Marker plots
+### Marker plots
 
 ```{r marker plot setup banksy}
 top5 <- posMarkersBanksy %>%
@@ -1607,7 +1866,7 @@ genesToPlot <- intersect(genesToPlot, rownames(scData))
 ```
 
 
-##### DotPlot
+#### DotPlot
 
 Visualization of the top 5 markers in each cluster. If a gene is a top marker for multiple clusters it is shown only once.
 
@@ -1623,7 +1882,7 @@ DotPlot(scData, features=rev(genesToPlot)) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 ```
 
-#### EnrichR
+### EnrichR
 ```{r query online enrichR version banksy, echo=FALSE, results='asis'}
 markersPerClusterTable <- c()
 
@@ -1695,11 +1954,11 @@ ezKable(enrichrTable1, escape=FALSE, format="html", format.args=list())
 
 ### Data files
 
-##### Aggregated expression of every gene across the bins in each cluster
+##### Aggregated expression of every gene across the bins/cells in each cluster
 
 [geneExprPerCluster](bulkSignalPerCluster.tsv)
 
-##### Aggregated expression of every gene across all the bins
+##### Aggregated expression of every gene across all the bins/cells
 
 [geneExprPerSample](bulkSignalPerSample.tsv)
 

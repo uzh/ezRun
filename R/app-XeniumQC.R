@@ -30,7 +30,7 @@ ezMethodXeniumQC <- function(input = NA, output = NA, param = NA,
 
         sampleMetrics <- ezRead.table(metricsFile, sep = ',', header = TRUE)
 
-        # Extract panel information from gene_panel.json
+        # Extract RNA panel information from gene_panel.json
         panelFile <- file.path(xeniumPath, 'gene_panel.json')
         panelName <- NA
         panelDesignId <- NA
@@ -49,6 +49,70 @@ ezMethodXeniumQC <- function(input = NA, output = NA, param = NA,
             }
         }
 
+        # Extract protein panel information from protein_panel.json
+        proteinPanelFile <- file.path(xeniumPath, 'protein_panel.json')
+        hasProteinPanel <- FALSE
+        numProteins <- 0
+        proteinPanelName <- NA
+        proteinTargets <- NA
+
+        if (file.exists(proteinPanelFile)) {
+            hasProteinPanel <- TRUE
+            proteinPanelData <- tryCatch({
+                jsonlite::fromJSON(proteinPanelFile)
+            }, error = function(e) {
+                list()
+            })
+
+            # Extract protein panel metadata
+            if (!is.null(proteinPanelData$payload$panel$num_targets)) {
+                numProteins <- proteinPanelData$payload$panel$num_targets
+            }
+            if (!is.null(proteinPanelData$payload$panel$identity$name)) {
+                proteinPanelName <- proteinPanelData$payload$panel$identity$name
+            }
+
+            # Extract protein target names
+            if (!is.null(proteinPanelData$payload$panel$targets)) {
+                targetsData <- proteinPanelData$payload$panel$targets
+
+                # jsonlite converts to data frame if all elements have same structure
+                if (is.data.frame(targetsData)) {
+                    # Filter out placeholders (marker_type == PROTEIN_MARKER_TYPE_PLACEHOLDER)
+                    if ("marker_type" %in% colnames(targetsData)) {
+                        proteinList <- targetsData$short_name[is.na(targetsData$marker_type)]
+                    } else {
+                        proteinList <- targetsData$short_name
+                    }
+                } else if (is.list(targetsData)) {
+                    # Handle as list of lists
+                    proteinList <- sapply(targetsData, function(x) {
+                        if (!is.null(x$marker_type)) {
+                            return(NA)  # Skip placeholders
+                        }
+                        return(x$short_name)
+                    })
+                    proteinList <- proteinList[!is.na(proteinList)]
+                }
+
+                # Remove "n/a" entries
+                proteinList <- proteinList[proteinList != "n/a"]
+                proteinTargets <- paste(proteinList, collapse=", ")
+            }
+        }
+
+        # Verify protein features in cell_feature_matrix
+        featuresFile <- file.path(xeniumPath, 'cell_feature_matrix', 'features.tsv.gz')
+        numProteinFeaturesDetected <- 0
+        numGeneFeaturesDetected <- 0
+
+        if (file.exists(featuresFile)) {
+            features <- read.table(gzfile(featuresFile), sep = "\t",
+                                  header = FALSE, stringsAsFactors = FALSE)
+            numProteinFeaturesDetected <- sum(features$V3 == "Protein Expression", na.rm = TRUE)
+            numGeneFeaturesDetected <- sum(features$V3 == "Gene Expression", na.rm = TRUE)
+        }
+
         # Remove panel columns from sampleMetrics if they exist to avoid duplicates
         sampleMetrics$panel_name <- NULL
         sampleMetrics$panel_design_id <- NULL
@@ -58,6 +122,12 @@ ezMethodXeniumQC <- function(input = NA, output = NA, param = NA,
             sampleName = sampleName,
             panel_name = ifelse(is.na(panelName), "NA", panelName),
             panel_design_id = ifelse(is.na(panelDesignId), "NA", panelDesignId),
+            num_gene_features = numGeneFeaturesDetected,
+            has_protein_panel = hasProteinPanel,
+            num_protein_targets = numProteins,
+            num_proteins_detected = numProteinFeaturesDetected,
+            protein_panel_name = ifelse(is.na(proteinPanelName), "NA", proteinPanelName),
+            protein_targets = ifelse(is.na(proteinTargets), "NA", proteinTargets),
             sampleMetrics,
             check.names = FALSE
         )
@@ -88,6 +158,8 @@ ezMethodXeniumQC <- function(input = NA, output = NA, param = NA,
 
     # Reorder columns to put interesting metrics first
     priority_cols <- c("sampleName", "panel_name", "panel_design_id",
+                       "num_gene_features", "has_protein_panel", "num_protein_targets",
+                       "num_proteins_detected", "protein_panel_name",
                        "num_cells_detected", "median_genes_per_cell", "median_transcripts_per_cell",
                        "total_high_quality_decoded_transcripts", "fraction_transcripts_decoded_q20",
                        "fraction_transcripts_assigned", "fraction_empty_cells",

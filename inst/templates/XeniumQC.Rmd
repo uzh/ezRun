@@ -24,6 +24,7 @@ ezLoadPackage('plotly')
 ezLoadPackage('dplyr')
 ezLoadPackage('tidyr')
 ezLoadPackage('scales')
+ezLoadPackage('Seurat')
 ```
 
 ```{r prepare data xeniumQC, include=FALSE}
@@ -66,11 +67,14 @@ datatable(
 # Identify numeric columns (exclude first few metadata columns)
 numeric_cols <- names(data)[sapply(data, is.numeric)]
 
-# Skip problematic columns with very small values that cause plotting issues
-skip_cols <- c("negative_control_probe_counts_per_control_per_cell",
+# Skip columns that have dedicated plots with thresholds in Key Quality Metrics section
+skip_cols <- c("estimated_number_of_false_positive_transcripts_per_cell",
+               "estimated_number_of_false_positive_transcripts_per_cell_including_genomic_counts",
+               "negative_control_probe_counts_per_control_per_cell",
                "genomic_control_probe_counts_per_control_per_cell",
-               "estimated_number_of_false_positive_transcripts_per_cell",
-               "estimated_number_of_false_positive_transcripts_per_cell_including_genomic_counts")
+               "fraction_predesigned_transcripts_q20",
+               "fraction_custom_transcripts_q20",
+               "nuclear_transcripts_per_100um2")
 
 # Create barplots for key metrics
 for (col in numeric_cols) {
@@ -85,8 +89,8 @@ for (col in numeric_cols) {
     ylab(gsub('_', ' ', col)) +
     theme_bw() +
     ggtitle(gsub('_', ' ', col)) +
+    RotatedAxis() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
 
@@ -112,8 +116,8 @@ if ("total_high_quality_decoded_transcripts" %in% colnames(data)) {
     ylab('Total Transcripts (millions)') +
     ggtitle('Total High Quality Decoded Transcripts') +
     theme_bw() +
+    RotatedAxis() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
   print(p1)
@@ -128,40 +132,43 @@ if ("num_cells_detected" %in% colnames(data)) {
     ylab('Number of Cells') +
     ggtitle('Cells Detected') +
     theme_bw() +
+    RotatedAxis() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
   print(p2)
 }
 
-# Q20 fraction
+# Q20 fraction (all gene transcripts)
 if ("fraction_transcripts_decoded_q20" %in% colnames(data)) {
   p3 <- ggplot(data, aes(x = sampleName, y = fraction_transcripts_decoded_q20)) +
     geom_bar(stat = "identity", fill = "#e74c3c") +
+    geom_hline(yintercept = 0.60, linetype = "dashed", color = "orange", size = 0.8) +
+    geom_hline(yintercept = 0.50, linetype = "dashed", color = "red", size = 0.8) +
     scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
     xlab('Sample') +
     ylab('Q20 Fraction') +
-    ggtitle('Fraction of Transcripts Decoded with Q20') +
+    ggtitle('Fraction of Gene Transcripts Decoded with Q20 (Warning <60%, Error <50%)') +
     theme_bw() +
+    RotatedAxis() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
   print(p3)
 }
 
-# Transcripts assigned
+# Transcripts assigned to cells
 if ("fraction_transcripts_assigned" %in% colnames(data)) {
   p4 <- ggplot(data, aes(x = sampleName, y = fraction_transcripts_assigned)) +
     geom_bar(stat = "identity", fill = "#9b59b6") +
+    geom_hline(yintercept = 0.50, linetype = "dashed", color = "orange", size = 0.8) +
     scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
     xlab('Sample') +
     ylab('Fraction Assigned') +
-    ggtitle('Fraction of Transcripts Assigned to Cells') +
+    ggtitle('Fraction of Transcripts Assigned to Cells (Warning <50%)') +
     theme_bw() +
+    RotatedAxis() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
   print(p4)
@@ -171,16 +178,110 @@ if ("fraction_transcripts_assigned" %in% colnames(data)) {
 if ("fraction_empty_cells" %in% colnames(data)) {
   p5 <- ggplot(data, aes(x = sampleName, y = fraction_empty_cells)) +
     geom_bar(stat = "identity", fill = "#f39c12") +
+    geom_hline(yintercept = 0.10, linetype = "dashed", color = "red", size = 0.8) +
     scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
     xlab('Sample') +
     ylab('Fraction Empty Cells') +
-    ggtitle('Fraction of Empty Cells') +
+    ggtitle('Fraction of Empty Cells (Error >10%)') +
     theme_bw() +
+    RotatedAxis() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
   print(p5)
+}
+
+# Nuclear transcripts per 100 µm²
+if ("nuclear_transcripts_per_100um2" %in% colnames(data) &&
+    any(!is.na(data$nuclear_transcripts_per_100um2))) {
+  p6 <- ggplot(data, aes(x = sampleName, y = nuclear_transcripts_per_100um2)) +
+    geom_bar(stat = "identity", fill = "#8e44ad") +
+    geom_hline(yintercept = 10, linetype = "dashed", color = "orange", size = 0.8) +
+    geom_hline(yintercept = 1, linetype = "dashed", color = "red", size = 0.8) +
+    xlab('Sample') +
+    ylab('Transcripts per 100 µm²') +
+    ggtitle('Nuclear Transcripts per 100 µm² (Warning <10, Error <1)') +
+    theme_bw() +
+    RotatedAxis() +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p6)
+}
+
+# Negative control probe counts per control per cell
+if ("negative_control_probe_counts_per_control_per_cell" %in% colnames(data)) {
+  p7 <- ggplot(data, aes(x = sampleName, y = negative_control_probe_counts_per_control_per_cell)) +
+    geom_bar(stat = "identity", fill = "#c0392b") +
+    geom_hline(yintercept = 0.025, linetype = "dashed", color = "orange", size = 0.8) +
+    geom_hline(yintercept = 0.05, linetype = "dashed", color = "red", size = 0.8) +
+    scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+    xlab('Sample') +
+    ylab('NCP per Control per Cell') +
+    ggtitle('Negative Control Probe Counts per Control per Cell (Warning >2.5%, Error >5%)') +
+    theme_bw() +
+    RotatedAxis() +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p7)
+}
+
+# Predesigned transcripts Q20 fraction
+if ("fraction_predesigned_transcripts_q20" %in% colnames(data) &&
+    any(!is.na(data$fraction_predesigned_transcripts_q20))) {
+  p8 <- ggplot(data, aes(x = sampleName, y = fraction_predesigned_transcripts_q20)) +
+    geom_bar(stat = "identity", fill = "#27ae60") +
+    geom_hline(yintercept = 0.60, linetype = "dashed", color = "orange", size = 0.8) +
+    geom_hline(yintercept = 0.50, linetype = "dashed", color = "red", size = 0.8) +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    xlab('Sample') +
+    ylab('Predesigned Q20 Fraction') +
+    ggtitle('Fraction of Predesigned Gene Transcripts with Q20 (Warning <60%, Error <50%)') +
+    theme_bw() +
+    RotatedAxis() +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p8)
+}
+
+# Custom transcripts Q20 fraction
+if ("fraction_custom_transcripts_q20" %in% colnames(data) &&
+    any(!is.na(data$fraction_custom_transcripts_q20))) {
+  p9 <- ggplot(data, aes(x = sampleName, y = fraction_custom_transcripts_q20)) +
+    geom_bar(stat = "identity", fill = "#d35400") +
+    geom_hline(yintercept = 0.60, linetype = "dashed", color = "orange", size = 0.8) +
+    geom_hline(yintercept = 0.50, linetype = "dashed", color = "red", size = 0.8) +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    xlab('Sample') +
+    ylab('Custom Q20 Fraction') +
+    ggtitle('Fraction of Custom Gene Transcripts with Q20 (Warning <60%, Error <50%)') +
+    theme_bw() +
+    RotatedAxis() +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p9)
+}
+
+# Genomic control probe counts per control per cell (Xenium Prime only)
+if ("genomic_control_probe_counts_per_control_per_cell" %in% colnames(data) &&
+    any(!is.na(data$genomic_control_probe_counts_per_control_per_cell))) {
+  p10 <- ggplot(data, aes(x = sampleName, y = genomic_control_probe_counts_per_control_per_cell)) +
+    geom_bar(stat = "identity", fill = "#7f8c8d") +
+    geom_hline(yintercept = 0.01, linetype = "dashed", color = "orange", size = 0.8) +
+    geom_hline(yintercept = 0.02, linetype = "dashed", color = "red", size = 0.8) +
+    scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+    xlab('Sample') +
+    ylab('GCP per Control per Cell') +
+    ggtitle('Genomic Control Probe Counts per Control per Cell (Warning >1%, Error >2%)') +
+    theme_bw() +
+    RotatedAxis() +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p10)
 }
 ```
 
@@ -194,8 +295,8 @@ if ("median_genes_per_cell" %in% colnames(data)) {
     ylab('Median Genes') +
     ggtitle('Median Genes per Cell') +
     theme_bw() +
+    RotatedAxis() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
   print(p_genes)
@@ -209,8 +310,8 @@ if ("median_transcripts_per_cell" %in% colnames(data)) {
     ylab('Median Transcripts') +
     ggtitle('Median Transcripts per Cell') +
     theme_bw() +
+    RotatedAxis() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
   print(p_tx)
@@ -238,8 +339,8 @@ if (all(c("median_predesigned_genes_per_cell", "median_custom_genes_per_cell") %
     ggtitle('Predesigned vs Custom Genes per Cell') +
     labs(fill = "Gene Type") +
     theme_bw() +
+    RotatedAxis() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
       plot.title = element_text(hjust = 0.5, face = "bold"),
       legend.position = "top",
       legend.text = element_text(size = 11)
@@ -273,8 +374,8 @@ if (all(c("segmented_cell_boundary_count", "segmented_cell_interior_count", "seg
     ggtitle('Segmentation Method Breakdown') +
     labs(fill = "Segmentation Method") +
     theme_bw() +
+    RotatedAxis() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
       plot.title = element_text(hjust = 0.5, face = "bold"),
       legend.position = "top",
       legend.text = element_text(size = 11)
@@ -294,8 +395,8 @@ if (all(c("segmented_cell_boundary_count", "segmented_cell_interior_count", "seg
     ggtitle('Segmentation Method Fractions') +
     labs(fill = "Segmentation Method") +
     theme_bw() +
+    RotatedAxis() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
       plot.title = element_text(hjust = 0.5, face = "bold"),
       legend.position = "top",
       legend.text = element_text(size = 11)
@@ -307,13 +408,15 @@ if (all(c("segmented_cell_boundary_count", "segmented_cell_interior_count", "seg
 if ("segmented_cell_stain_frac" %in% colnames(data)) {
   p_stain <- ggplot(data, aes(x = sampleName, y = segmented_cell_stain_frac)) +
     geom_bar(stat = "identity", fill = "#16a085") +
+    geom_hline(yintercept = 0.70, linetype = "dashed", color = "orange", size = 0.8) +
+    geom_hline(yintercept = 0.50, linetype = "dashed", color = "red", size = 0.8) +
     scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
     xlab('Sample') +
     ylab('Stain-based Fraction') +
-    ggtitle('Fraction of Cells Segmented Using Stain Method') +
+    ggtitle('Fraction of Cells Segmented Using Stain Method (Warning <70%, Error <50%)') +
     theme_bw() +
+    RotatedAxis() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
   print(p_stain)
@@ -334,8 +437,133 @@ if ("panel_name" %in% colnames(data)) {
       autoWidth = TRUE
     ),
     rownames = FALSE,
-    caption = "Panel Information per Sample"
+    caption = "RNA Panel Information per Sample"
   )
+}
+```
+
+## Protein Panel Information {.tabset}
+
+### Protein Panel Overview
+```{r protein overview, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+if ("has_protein_panel" %in% colnames(data)) {
+  protein_summary <- data %>%
+    select(sampleName, has_protein_panel, num_protein_targets,
+           num_proteins_detected, protein_panel_name) %>%
+    mutate(
+      has_protein_panel = ifelse(has_protein_panel, "Yes", "No"),
+      detection_match = ifelse(num_protein_targets == num_proteins_detected,
+                               "Match", "Mismatch")
+    )
+
+  datatable(
+    protein_summary,
+    options = list(pageLength = 20, autoWidth = TRUE, scrollX = TRUE),
+    rownames = FALSE,
+    caption = "Protein Panel Detection Summary"
+  )
+
+  # Summary statistics
+  num_with_protein <- sum(data$has_protein_panel, na.rm = TRUE)
+  num_total <- nrow(data)
+  cat("\n\n**Samples with protein panels:**", num_with_protein, "/", num_total, "\n\n")
+}
+```
+
+### Protein Targets per Sample
+```{r protein targets barplot, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=min(8+(nrow(data)-5)*0.3, 20), fig.height=6}
+if ("num_protein_targets" %in% colnames(data) &&
+    any(data$num_protein_targets > 0, na.rm = TRUE)) {
+
+  protein_data <- data %>%
+    filter(num_protein_targets > 0)
+
+  p <- ggplot(protein_data, aes(x = sampleName, y = num_protein_targets)) +
+    geom_bar(stat = "identity", fill = "#e67e22") +
+    geom_text(aes(label = num_protein_targets), vjust = -0.5, size = 3) +
+    xlab('Sample') +
+    ylab('Number of Protein Targets') +
+    ggtitle('Protein Targets per Sample') +
+    theme_bw() +
+    RotatedAxis() +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  print(p)
+}
+```
+
+### Protein Panel Types
+```{r protein panel types, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+if ("protein_panel_name" %in% colnames(data)) {
+  panel_types <- data %>%
+    filter(protein_panel_name != "NA") %>%
+    group_by(protein_panel_name, num_protein_targets) %>%
+    summarise(num_samples = n(), .groups = "drop") %>%
+    arrange(desc(num_samples))
+
+  if (nrow(panel_types) > 0) {
+    datatable(
+      panel_types,
+      options = list(pageLength = 10, autoWidth = TRUE),
+      rownames = FALSE,
+      caption = "Protein Panel Usage Summary",
+      colnames = c("Protein Panel", "Targets", "Number of Samples")
+    )
+  }
+}
+```
+
+### Gene vs Protein Features
+```{r gene vs protein features, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=min(8+(nrow(data)-5)*0.3, 20), fig.height=6}
+if (all(c("num_gene_features", "num_proteins_detected") %in% colnames(data))) {
+  feature_data <- data %>%
+    select(sampleName, num_gene_features, num_proteins_detected) %>%
+    pivot_longer(cols = c(num_gene_features, num_proteins_detected),
+                 names_to = "feature_type", values_to = "count") %>%
+    mutate(feature_type = recode(feature_type,
+                                 num_gene_features = "Gene Features",
+                                 num_proteins_detected = "Protein Features"))
+
+  p <- ggplot(feature_data, aes(x = sampleName, y = count, fill = feature_type)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    scale_fill_manual(values = c("Gene Features" = "#9b59b6",
+                                 "Protein Features" = "#e67e22")) +
+    xlab('Sample') +
+    ylab('Feature Count') +
+    ggtitle('Gene vs Protein Feature Counts') +
+    labs(fill = "Feature Type") +
+    theme_bw() +
+    RotatedAxis() +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      legend.position = "top",
+      legend.text = element_text(size = 11)
+    )
+  print(p)
+}
+```
+
+### Protein Target Details
+```{r protein target list, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+if ("protein_targets" %in% colnames(data)) {
+  protein_details <- data %>%
+    filter(protein_targets != "NA") %>%
+    select(sampleName, protein_panel_name, num_protein_targets, protein_targets)
+
+  if (nrow(protein_details) > 0) {
+    datatable(
+      protein_details,
+      options = list(
+        pageLength = 10,
+        autoWidth = TRUE,
+        scrollX = TRUE,
+        columnDefs = list(list(width = '300px', targets = 3))
+      ),
+      rownames = FALSE,
+      caption = "Protein Target List per Sample"
+    )
+  }
 }
 ```
 
