@@ -10,7 +10,7 @@ ezMethodNfCoreSmRnaSeq <- function(input = NA, output = NA, param = NA) {
   refbuild = param$refBuild
   outFolder = output$getColumn("Result") |> basename()
   
-  nfSampleFile <- file.path('datasetSmRnaSeq.csv')
+  nfSampleFile <- file.path('dataset.csv')
   nfSampleInfo = getSmRnaSeqSampleSheet(input)
   write_csv(nfSampleInfo, nfSampleFile)
   
