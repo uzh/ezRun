@@ -198,7 +198,9 @@ getAnnotatedPeaks <- function(gtfFile, outFolder){
 makeRmdReportWrapper <- function(outFolder, rmdFile, reportTitle){
   plotsPath <- paste0(outFolder,"/04_reporting/deeptools_heatmaps/")
   filesToPlot <- dir(path=plotsPath, pattern=".pdf$", recursive=TRUE, full.names = TRUE)
-
+  cd = getwd()
+  setwdNew(paste0(outFolder,"/04_reporting/"))
   makeRmdReport(filesToPlot, rmdFile=rmdFile,
                 reportTitle=reportTitle, selfContained = TRUE)
+  setwd(cd)
 }
