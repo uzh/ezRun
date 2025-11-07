@@ -174,17 +174,6 @@ getAnnotatedPeaks <- function(gtfFile, outFolder){
   require(GenomicRanges)
   require(rtracklayer)
   gtf <- rtracklayer::import(gtfFile)
-  if('gene' %in% unique(gtf$type)){
-    idx = gtf$type == 'gene'
-  } else if('transcript' %in% unique(gtf$type)) {
-    idx = gtf$type == 'transcript'
-  } else if('start_codon' %in% unique(gtf$type)){
-    idx = gtf$type =='start_codon'
-  } else {
-    message('gtf is incompatabible. Peak annotation skipped!')
-    return(NULL)
-  }
-  gtf = gtf[idx]
   if(grepl('gtf$',gtfFile)){
     names_gtf = make.unique(gtf$'gene_id')
   } else {
