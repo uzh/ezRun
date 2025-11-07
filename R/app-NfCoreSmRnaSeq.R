@@ -32,6 +32,9 @@ ezMethodNfCoreSmRnaSeq <- function(input = NA, output = NA, param = NA) {
   )
   ezSystem(cmd)
   
+  writePerSampleCountFiles(nfSampleInfo, countDir=paste0(outFolder, "/mirna_quant/mirtop/"))
+
+
   return("Success")
 }
 
@@ -59,3 +62,14 @@ getSmRnaSeqSampleSheet <- function(input){
   return(nfSampleInfo)
 }
 
+##' @description split counts by sample
+writePerSampleCountFiles <- function(nfSampleInfo, countDir="."){
+  sampleNames <- nfSampleInfo$sample
+  sampleCountFiles <- paste0(countDir, "/", sampleNames, ".txt")
+  annoColumnNames <- c("miRNA")
+  x <- data.table::fread(file.path(countDir, "mirna.tsv"), data.table=FALSE)
+  for (i in 1:nrow(nfSampleInfo)){
+    xSel <- x[ , c(annoColumnNames, sampleNames[i])] |> dplyr::rename("matchCounts" := !!sampleNames[i], "Identifier" := !!annoColumnNames)
+    ezWrite.table(xSel, file=sampleCountFiles[i], row.names = FALSE)
+  }
+}
