@@ -196,10 +196,10 @@ getAnnotatedPeaks <- function(gtfFile, outFolder){
 ##' @description write HTML report
 makeRmdReportWrapper <- function(outFolder, rmdFile, reportTitle){
   plotsPath <- paste0(outFolder,"/04_reporting/deeptools_heatmaps/")
-  filesToPlot <- dir(path=plotsPath, pattern=".pdf$", recursive=TRUE, full.names = TRUE)
+  filesToPlot <- dir(path=plotsPath, pattern=".pdf$", recursive=TRUE)
   cd = getwd()
   setwdNew(paste0(outFolder,"/04_reporting/"))
-  makeRmdReport(filesToPlot, rmdFile=rmdFile,
+  makeRmdReport(filesToPlot=file.path("./deeptools_heatmaps", filesToPlot), rmdFile=rmdFile,
                 reportTitle=reportTitle, selfContained = TRUE)
   setwd(cd)
 }
