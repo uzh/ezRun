@@ -14,7 +14,7 @@ ezMethodNfCoreSmRnaSeq <- function(input = NA, output = NA, param = NA) {
   nfSampleInfo = getSmRnaSeqSampleSheet(input)
   write_csv(nfSampleInfo, nfSampleFile)
   
-  
+  setNFTmpDir()
   setNFCacheDir()
   cmd = paste(
     "nextflow run nf-core/smrnaseq",

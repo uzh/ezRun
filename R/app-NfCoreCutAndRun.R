@@ -19,6 +19,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
 
 
   blackListFile <- getBlackListFile(input, param)
+  setNFTmpDir()
   setNFCacheDir()
   cmd = paste(
     "nextflow run nf-core/cutandrun",
