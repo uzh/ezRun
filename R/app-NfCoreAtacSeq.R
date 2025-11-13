@@ -36,7 +36,8 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     ## configuration
     "-work-dir nfatacseq_work",
     "-profile apptainer",
-    "-r", param$pipelineVersion #,
+    "-r", param$pipelineVersion,
+    param$cmdOptions #,
     # "-resume"  ## for testing
   )
   ezSystem(cmd)

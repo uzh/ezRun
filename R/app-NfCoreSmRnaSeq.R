@@ -28,7 +28,8 @@ ezMethodNfCoreSmRnaSeq <- function(input = NA, output = NA, param = NA) {
     ## configuration
     "-work-dir work",
     "-profile apptainer",
-    "-r", param$pipelineVersion
+    "-r", param$pipelineVersion,
+    param$cmdOptions
   )
   ezSystem(cmd)
   
