@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="description" content="">
+    <meta name="author" content="FGCZ">
+    <link rel="shortcut icon" href="https://igv.org/web/img/favicon.ico">
+                
+    <title>igv.js</title>
+    
+    <!-- IGV JS-->
+    
+    <script src="https://cdn.jsdelivr.net/npm/igv@2.7.2/dist/igv.min.js"></script>
+      
+  </head>
+                  
+  <body>
+                  
+                  
+  <div id="igv-div" style="padding-top: 10px;padding-bottom: 10px; border:1px solid lightgray"></div>
+                    
+  <script type="text/javascript">
+    
+    document.addEventListener("DOMContentLoaded", function () {
+      
+      var igvDiv = document.getElementById("igv-div");
+      var options = "IGV_JSON_CONTENT"
+      
+      
+      igv.createBrowser(igvDiv, options)
+      .then(function (browser) {
+        console.log("Created IGV browser");
+      })
+      
+    });
+  
+  </script>
+    
+  </body>
+    
+  </html>
