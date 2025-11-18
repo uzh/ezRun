@@ -42,6 +42,10 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
       resultPath <- input$getColumn("ResultDir")
       cmDir <- file.path(param$dataRoot, resultPath, 
                          "multi/count/raw_feature_bc_matrix")
+      if(!exists(cmDir)){
+          cmDir <- file.path(param$dataRoot, resultPath, 
+                             "count/raw_feature_bc_matrix")
+      }
     }
   }, error = function(e) {
     stop(sprintf("Failed to construct path: %s", e$message))
