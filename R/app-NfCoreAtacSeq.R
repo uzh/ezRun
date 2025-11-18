@@ -48,10 +48,9 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   
   sampleCountFiles <- writePerSampleCountFiles(nfSampleInfo, countDir=paste0(outFolder, "/bwa/merged_library/macs2/", param$peakStyle, "_peak/consensus/"))
   
-  writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/bwa/merged_library/bigwig/",
+  jsonFile <- writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/bwa/merged_library/bigwig/",
                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("ATAC_Result")))
-  # writeHtmlWrapper(file.path(outFolder, basename(output$getColumn("IGV"))),
-  #                  igvAppLink = paste0("https://igv.org/app/?sessionURL=", PROJECT_BASE_URL, "/", output$getColumn("ATAC_Result"), "/igv_session.json"))
+  writeNfCoreIgvHtml(param, jsonFile, title = "NfCoreAtacSeq MultiSample Coverage Tracks", htmlTemplate = "templates/igvNfCoreTemplate.html", htmlFileName = paste0(outFolder, "/igv_session.html"))
   
 
   if(param[['runTwoGroupAnalysis']]){
@@ -248,4 +247,13 @@ writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, b
   )
   jsonFile <- rjson::toJSON(jsonLines, indent=5, method="C")
   write(jsonFile, jsonFileName)
+  return(jsonFile)
+}
+
+##' @description write html wrapper for IGV session
+writeNfCoreIgvHtml = function(param, jsonFile, title, htmlTemplate, htmlFileName){
+  htmlLines = readLines(system.file(htmlTemplate, package="ezRun", mustWork = TRUE))
+  htmlLines = gsub("TITLE", title, htmlLines)
+  htmlLines = gsub("IGV_JSON_CONTENT", jsonFile, htmlLines)
+  writeLines(htmlLines, htmlFileName)
 }
