@@ -103,7 +103,7 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
     readSet = switch(nm,
                      multiMatchTargetTypeCounts="Uniquely and multi-matching reads:",
                      uniqueMatchTargetTypeCounts="Uniquely matching reads:")
-    cat("\n###", paste(readSet, "Match Count Percentages"), "\n")
+    cat("\n##", paste(readSet, "Match Count Percentages"), "\n")
     tct = getTypeCountTable(resultList, nm)
     ezWrite.table(tct, file=paste0(nm, ".txt"), digits=4)
     tpt = as.matrix(tct)
@@ -134,7 +134,7 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
           "\n")
     }
     
-    cat("###", paste(readSet, "Read Starts per Base"), "\n")
+    cat("##", paste(readSet, "Read Starts per Base"), "\n")
     tct = as.matrix(getTypeCoverageTable(resultList, nm))
     if (nrow(tct) >= 2 && ncol(tct) >= 2){
       tctRel = log2(sweep(tct, 2, tct["total", ], FUN="/"))
@@ -164,8 +164,8 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
 
 ```{r genebody coverage legend, echo=FALSE, fig.width=10, fig.height=7, results='asis'}
 if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be done better by searching alls results for a valid genebody_coverage element
-  cat("###", "Coverage plot\n")
-  cat("####", "Genebody coverage plots\n")
+  cat("##", "Coverage plot\n")
+  cat("###", "Genebody coverage plots\n")
   covValues = ezMatrix(NA, cols=0:100, rows=samples)
   for (sm in samples){
     y = resultList[[sm]][["genebody_coverage"]][["1200 to 2400nt"]][["medium expressed"]]
@@ -187,7 +187,7 @@ if (length(resultList[[1]][["genebody_coverage"]]) != 0){ ## TODO this could be 
 
 tlc = resultList[[1]][["TranscriptsCovered"]]
 if (!is.null(tlc)){
-  cat("\n\n####", "The fraction of isoform length covered\n")
+  cat("\n\n###", "The fraction of isoform length covered\n")
   geneFraction = ezMatrix(NA, cols=names(tlc), rows=samples)
   for (sm in samples){
     tlc = resultList[[sm]][["TranscriptsCovered"]]
@@ -212,7 +212,7 @@ if(exists('gbcp'))
 
 ```{r junction saturation plot for all samples, echo=FALSE, results='asis'}
 if(!is.null(resultList[[1]][["Junction"]])){
-  cat("###", "Junction saturation plot for all samples\n")
+  cat("##", "Junction saturation plot for all samples\n")
   junctionMaxVal = numeric()
   for (nm in names(resultList[[1]][["Junction"]])){
     junctionMaxVal[nm] = 0
@@ -245,10 +245,10 @@ if(exists('junctionPlots')){
 
 ```{r junction plot, echo=FALSE, results='asis', eval=FALSE}
 if (!is.null(resultList[[1]][["Junction"]])){
-  cat("###", "Junction plots\n")
+  cat("##", "Junction plots\n")
   for (sm in samples){
     cat("\n")
-    cat("####", sm, "\n")
+    cat("###", sm, "\n")
     for (nm in names(resultList[[sm]][["Junction"]])){
       junctionPlot = resultList[[sm]][["Junction"]][[nm]]
       plotCmd = expression({
@@ -276,7 +276,7 @@ if (!is.null(resultList[[1]][["Junction"]])){
 
 ```{r fragSizeHist, echo=FALSE, results='asis'}
 if(!is.null(resultList[[1]]$fragSizeHist)){
-  cat("###", "Length distribution of fragments for paired reads\n")
+  cat("##", "Length distribution of fragments for paired reads\n")
   for (sm in samples){
     fsh = resultList[[sm]]$fragSizeHist
     ezWrite.table(cbind(Length=fsh$mids, Count=fsh$counts),
@@ -295,7 +295,7 @@ if(!is.null(resultList[[1]]$fragSizeHist)){
 
 ```{r Read position specific error rate, echo=FALSE, results='asis', fig.width=16}
 if (!is.null(resultList[[1]][["ErrorRates"]])){
-  cat("###", "Read position specific error rate\n")
+  cat("##", "Read position specific error rate\n")
   for (sm in samples){
     for (nm in names(resultList[[sm]][["ErrorRates"]])){
       errorRate = resultList[[sm]][["ErrorRates"]][[nm]]
@@ -309,7 +309,7 @@ if (!is.null(resultList[[1]][["ErrorRates"]])){
 
 ```{r duplication rates, echo=FALSE, results='asis'}
 if(!is.null(resultList[[1]][["dupRate"]])){
-  cat("###", "Duplication rate quality control\n")
+  cat("##", "Duplication rate quality control\n")
   cat("\n")
   cat("The number of reads per base assigned to a gene in an ideal RNA-Seq data set is expected to be proportional to the abundance of its transcripts in the sample. For lowly expressed genes we expect read duplication to happen rarely by chance, while for highly expressed genes - depending on the total sequencing depth - we expect read duplication to happen often.", "\n")
   cat("\n")
