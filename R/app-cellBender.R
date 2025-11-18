@@ -44,7 +44,7 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
                          "multi/count/raw_feature_bc_matrix")
       if(!exists(cmDir)){
           cmDir <- file.path(param$dataRoot, resultPath, 
-                             "count/raw_feature_bc_matrix")
+                             "count/sample_raw_feature_bc_matrix")
       }
     }
   }, error = function(e) {
