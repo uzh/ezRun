@@ -14,10 +14,10 @@ EzAppCellBender <-
                   name <<- "EzAppCellBender"
                   appDefaults <<- rbind(
                     cmdOptions=ezFrame(Type="character", DefaultValue="", Description="for -expected-cells and --total-droplets-included"),
-                    gpuMode = ezFrame(
-                      Type = "logical",
-                      DefaultValue = FALSE,
-                      Description = "run with cuda option"
+                    gpu = ezFrame(
+                      Type = "numeric",
+                      DefaultValue = 0,
+                      Description = "defines the number of gpu to run it with cuda option"
                     )
                   )
                 }
@@ -42,6 +42,10 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
       resultPath <- input$getColumn("ResultDir")
       cmDir <- file.path(param$dataRoot, resultPath, 
                          "multi/count/raw_feature_bc_matrix")
+      if(!exists(cmDir)){
+          cmDir <- file.path(param$dataRoot, resultPath, 
+                             "count/sample_raw_feature_bc_matrix")
+      }
     }
   }, error = function(e) {
     stop(sprintf("Failed to construct path: %s", e$message))
@@ -78,7 +82,7 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
     cmd <- paste(cmd, param$cmdOptions)
   }
   
-  if(param$gpuMode) {
+  if(param$gpu>0){
     cmd <- paste(cmd, "--cuda")
   } else {
     cmd <- paste(cmd, '--cpu-threads', param$cores)
