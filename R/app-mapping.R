@@ -65,11 +65,13 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       chrSizes <- ezRead.table(chrFile, header = FALSE)
       
       reads_per_chromosome <- table(seqnames(bam))
-      chrLengths <- seqlengths(seqinfo(bam))
+      chrLengths <- seqlengths(seqinfo(bam))[names(reads_per_chromosome)]
+      chrLengths <- chrLengths[names(reads_per_chromosome)]
       readSize <- mean(qwidth(bam))
       stats <- data.frame(seqname = names(reads_per_chromosome), readsPerChr= as.vector(reads_per_chromosome), lengthPerChr = chrLengths, avgCov = as.vector(reads_per_chromosome*readSize/chrLengths))
-      
       myChr <- levels(seqnames(bam))
+      myChr <- intersect(levels(seqnames(bam)),names(reads_per_chromosome))
+      
       extraChr <- setdiff(myChr, rownames(chrSizes))
       extraChrCov <- list()
       for (k in 1:length(extraChr)) {
