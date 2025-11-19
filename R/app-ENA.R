@@ -91,22 +91,17 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
             }
           }
         } else {
-            tryCatch({
-                experimentID <- xmlToList(runInfo)[[1]]$EXPERIMENT_REF$.attrs
-                if(length(experimentID) > 1){
-                    experimentID <- experimentID['accession']
-                }
-                cmd = paste0("curl -o ", experimentID,".xml ", "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",experimentID,"?download=true\'")
-                ezSystem(cmd)
-                xml <- xmlParse(paste0(experimentID, '.xml'))
-                experimentInfo <- xmlToList(xml)
-                cleanName <-  gsub("[\\# \\(\\):,;]", "_", experimentInfo$EXPERIMENT$TITLE)
-                fastqInfo[['Name']][i] <- paste(cleanName, sampleID, sep = '_')},
-                warning=function(w) {
-                    message('sample title not available in experiment accession file')
-                    print(w)
-                    return(NA)
-                })
+            out <- tryCatch({experimentID <- xmlToList(runInfo)[[1]]$EXPERIMENT_REF$.attrs
+                            if(length(experimentID) > 1){
+                                experimentID <- experimentID['accession']
+                            }
+                            cmd = paste0("curl -o ", experimentID,".xml ", "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",experimentID,"?download=true\'")
+                            ezSystem(cmd)
+                            xml <- xmlParse(paste0(experimentID, '.xml'))
+                            experimentInfo <- xmlToList(xml)
+                            cleanName <-  gsub("[\\# \\(\\):,;]", "_", experimentInfo$EXPERIMENT$TITLE)
+                            fastqInfo[['Name']][i] <- paste(cleanName, sampleID, sep = '_')}, 
+                            error = function(e) return(message('sample title not available in experiment accession file')))
             }
         
         if(grepl(';',fastqInfo$fastq_ftp[i])) {
