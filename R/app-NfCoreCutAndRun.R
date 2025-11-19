@@ -49,8 +49,8 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   )
   ezSystem(cmd)
 
-  getFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
-  getAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, outFolder)
+  generateFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
+  generateAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, outFolder)
   jsonFile = writeCutAndRunIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("CutAndRun_Result")))
   writeNfCoreIgvHtml(param, jsonFile, title = "NfCoreCutAndRun MultiSample Coverage Tracks", htmlTemplate = "templates/igvNfCoreTemplate.html", htmlFileName = paste0(outFolder, "/igv_session.html"))
@@ -90,16 +90,15 @@ EzAppNfCoreCutAndRun <- setRefClass(
 
 ##' @description fetch nfcore blacklist files
 getBlackListFile <- function(input, param){
-  buildName = param$ezRef@refBuildName
+  baseBuildName = param$ezRef@refBuildName |> str_replace("\\.p.*", "")
   basePath = '/srv/GT/databases/nf-core/cutandrun/'
-  blackListPath <- case_when(
-    grepl('GRCm39', buildName, ignore.case = TRUE) ~ paste0(basePath, 'GRCm39-blacklist.bed'),
-    grepl('GRCm38', buildName, ignore.case = TRUE) ~ paste0(basePath, 'GRCm38-blacklist.bed'),
-    grepl('GRCh38', buildName, ignore.case = TRUE) ~ paste0(basePath, 'GRCh38-blacklist.bed'),
-    grepl('GRCh37', buildName, ignore.case = TRUE) ~ paste0(basePath, 'GRCh37-blacklist.bed'),
-    TRUE ~ ""
-  )
-  return(blackListPath)
+  blackListPath <- paste0(basePath, "/", baseBuildName, "-blacklist.bed")
+  if (file.exists(blackListPath)){
+    return(blackListPath)
+  } else{
+    warning("no blacklist file for: ", baseBuildName, " available in ", basePath)
+    return("")
+  }
 }
 
 ##' @description get an nf-core/cutandrun-formatted csv file
@@ -143,10 +142,10 @@ writeCutAndRunIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPa
   tracks <- list()
   tracks[[1]] <- list(type=	"sequence")
   for (i in 1:length(bigwigFiles)){
-    tracks[[i+1]] <- list(id = trackNames[[i]],
-                          url = paste0(baseUrl,file.path(bigwigRelPath, bigwigFiles[[i]])),
+    tracks[[i+1]] <- list(id = trackNames[i],
+                          url = paste0(baseUrl,file.path(bigwigRelPath, bigwigFiles[i])),
                           format =	"bigWig",
-                          name	= trackNames[[i]])
+                          name	= trackNames[i])
 
   }
   jsonLines <- list( version =	"3.5.3",
@@ -169,7 +168,7 @@ writeNfCoreIgvHtml = function(param, jsonFile, title, htmlTemplate, htmlFileName
 
 
 ##' @description generate fasta files from BED files
-getFastaFromBedFiles <- function(outFolder, refFile){
+generateFastaFromBedFiles <- function(outFolder, refFile){
   bedFilePath <- paste0(outFolder,"/04_reporting/igv/")
   bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE, full.names = TRUE)
   for (name in bedFileNames){
@@ -180,10 +179,10 @@ getFastaFromBedFiles <- function(outFolder, refFile){
 }
 
 ##' @description annotate peaks in BED files
-getAnnotatedPeaks <- function(gtfFile, outFolder){
-  require(ChIPpeakAnno)
-  require(GenomicRanges)
-  require(rtracklayer)
+generateAnnotatedPeaks <- function(gtfFile, outFolder){
+  library(ChIPpeakAnno)
+  library(GenomicRanges)
+  library(rtracklayer)
   gtf <- rtracklayer::import(gtfFile)
   if(grepl('gtf$',gtfFile)){
     names_gtf = make.unique(gtf$'gene_id')
@@ -196,11 +195,15 @@ getAnnotatedPeaks <- function(gtfFile, outFolder){
   bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE)
   for (name in bedFileNames){
     peakBedFile <- file.path(bedFilePath, name)
-    peakAnnFile = paste0(peakBedFile, ".xlsx")
+    peakAnnFile = paste0(peakBedFile, ".xlsx") ## TODO suffix should only be .xlsx no .bed.xlsx
     myPeaks = ezRead.table(peakBedFile, row.names = NULL, header = F)
+    ## we know the column names of the bed files; so we use set them instead of working with the anonymous V* variables
+    #colnames(myPeaks)[1:6] <- c("chrom", "start", "end", "name", "score", "strand") 
     peaksRD = makeGRangesFromDataFrame(myPeaks, keep.extra.columns = TRUE, start.field = "V2", end.field = "V3", seqnames.field="V1")
     annotatedPeaks <- annotatePeakInBatch(peaksRD, AnnotationData = gtf, output='nearestStart', multiple=FALSE, FeatureLocForDistance='TSS')
-    annotatedPeaks = merge(myPeaks, annotatedPeaks,by.x = c('V6','V4','V5','V2','V3','V1'), by.y = c('V6','V4','V5','start','end','seqnames'), all.x = TRUE)
+    ## why was this column ordering chosen? I would expect: chrom, start, end, strand, score", width....
+    annotatedPeaks = merge(myPeaks, annotatedPeaks,by.x = c('V6','V4','V5','V2','V3','V1'), 
+                           by.y = c('V6','V4','V5','start','end','seqnames'), all.x = TRUE)
     writexl::write_xlsx(annotatedPeaks, peakAnnFile)
   }
 }
