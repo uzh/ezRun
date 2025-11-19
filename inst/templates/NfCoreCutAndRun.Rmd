@@ -16,10 +16,15 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE, knitr.table.format = "html")
+library(ezRun)
+library(kableExtra)
 ```
 
 ```{r input, include=FALSE}
-filesToPlot <- readRDS("filesToPlot.rds") 
+filesToPlot <- readRDS("filesToPlot.rds")
+annotatedPeaks <- readRDS("annotatedPeaks.rds")
+sequencePeaks <- readRDS("sequencePeaks.rds")
+baseUrl <- readRDS("baseUrl.rds")
 ```
 
 ## Plots
@@ -33,3 +38,17 @@ for (pdf in filesToPlot){
 }
 cat('</div>')
 ```
+
+## Peaks annotation and sequences
+
+```{r peaks_links, results = "asis", echo=FALSE, out.width="100%", message=FALSE}
+annotatedPeaks <- basename(annotatedPeaks)
+sequencePeaks <- basename(sequencePeaks)
+sampleNames <- sub("\\..*", "", annotatedPeaks)
+annotatedLinks <- paste0("<a href=", baseUrl, annotatedPeaks, ">", annotatedPeaks, "</a>")
+sequenceLinks <- paste0("<a href=", baseUrl, sequencePeaks,">", sequencePeaks, "</a>")
+
+peaks <- ezFrame("Sample Name" = sampleNames, "Annotated Peaks" = annotatedLinks, "Sequence Peaks" = sequenceLinks)
+knitr::kable(peaks, format = "html", escape = FALSE) |> kable_styling("striped", full_width = F, position = "left")
+```
+
