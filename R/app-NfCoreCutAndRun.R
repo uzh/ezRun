@@ -51,10 +51,10 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
 
   getFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
   getAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, outFolder)
-  writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
+  jsonFile = writeCutAndRunIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("CutAndRun_Result")))
+  writeNfCoreIgvHtml(param, jsonFile, title = "NfCoreCutAndRun MultiSample Coverage Tracks", htmlTemplate = "templates/igvNfCoreTemplate.html", htmlFileName = paste0(outFolder, "/igv_session.html"))
   makeRmdReportWrapper(outFolder, rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun")
-
 
   if(ezIsSpecified(param$keepBams)){
     keepBams <- param$keepBams
@@ -156,7 +156,17 @@ writeCutAndRunIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPa
   )
   jsonFile <- rjson::toJSON(jsonLines, indent=5, method="C")
   write(jsonFile, jsonFileName)
+  return(jsonFile)
 }
+
+##' @description write html wrapper for IGV session
+writeNfCoreIgvHtml = function(param, jsonFile, title, htmlTemplate, htmlFileName){
+  htmlLines = readLines(system.file(htmlTemplate, package="ezRun", mustWork = TRUE))
+  htmlLines = gsub("TITLE", title, htmlLines)
+  htmlLines = gsub("IGV_JSON_CONTENT", jsonFile, htmlLines)
+  writeLines(htmlLines, htmlFileName)
+}
+
 
 ##' @description generate fasta files from BED files
 getFastaFromBedFiles <- function(outFolder, refFile){
