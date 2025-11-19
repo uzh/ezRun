@@ -21,6 +21,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   blackListFile <- getBlackListFile(input, param)
   setNFTmpDir()
   setNFCacheDir()
+  configFile <- writeNextflowLimits(param)
   cmd = paste(
     "nextflow run nf-core/cutandrun",
      ## i/o
@@ -45,6 +46,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
     "-work-dir work",
     "-profile apptainer",
     "-r", param$pipelineVersion,
+    "-c", configFile,
     param$cmdOptions
   )
   ezSystem(cmd)

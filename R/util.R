@@ -997,4 +997,6 @@ executor {
 }', 
 param$cores, param$ram, param$cores, param$ram)
     writeLines(txt, file)
+    return(file)
 }
+
