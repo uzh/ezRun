@@ -50,7 +50,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
     param$cmdOptions
   )
   ezSystem(cmd)
-
+  ezSystem(paste('mv', configFile, outFolder))
   getFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
   getAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, outFolder)
   jsonFile = writeCutAndRunIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",

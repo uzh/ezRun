@@ -18,6 +18,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   write_csv(nfSampleInfo, nfSampleFile)
   setNFTmpDir()
   setNFCacheDir()
+  configFile <- writeNextflowLimits(param)
   cmd = paste(
     "nextflow run nf-core/atacseq",
      ## i/o
@@ -37,10 +38,12 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     "-work-dir nfatacseq_work",
     "-profile apptainer",
     "-r", param$pipelineVersion,
+    "-c", configFile,
     param$cmdOptions #,
     # "-resume"  ## for testing
   )
   ezSystem(cmd)
+  ezSystem(paste('mv', configFile, outFolder))
   ## multiple fastq files per library have been merged by the processing (if any)
   ## now we work with the library names and reduce the dataset
   nfSampleInfo$libName <- paste0(nfSampleInfo$sample, "_REP", nfSampleInfo$replicate)

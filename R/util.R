@@ -985,17 +985,12 @@ setNFCacheDir <- function(cacheDir = '/misc/fgcz01/nextflow_apptainer_cache'){
 
 writeNextflowLimits <- function(param, file = "maxResources.config"){
     txt <- sprintf(
-        'process {
-  resourceLimits = [
-    cpus: %d,
-    memory: %d.GB
-  ]
-}
+        '
 executor {
   cpus = %d
   memory = "%d GB"
 }', 
-param$cores, param$ram, param$cores, param$ram)
+param$cores, param$ram)
     writeLines(txt, file)
     return(file)
 }

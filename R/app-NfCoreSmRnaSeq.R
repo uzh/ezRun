@@ -16,6 +16,7 @@ ezMethodNfCoreSmRnaSeq <- function(input = NA, output = NA, param = NA) {
   
   setNFTmpDir()
   setNFCacheDir()
+  configFile <- writeNextflowLimits(param)
   cmd = paste(
     "nextflow run nf-core/smrnaseq",
     ## i/o
@@ -29,10 +30,11 @@ ezMethodNfCoreSmRnaSeq <- function(input = NA, output = NA, param = NA) {
     "-work-dir work",
     "-profile apptainer",
     "-r", param$pipelineVersion,
+    "-c", configFile,
     param$cmdOptions
   )
   ezSystem(cmd)
-  
+  ezSystem(paste('mv', configFile, outFolder))
   writePerSampleCountFiles(nfSampleInfo, countDir=paste0(outFolder, "/mirna_quant/mirtop/"))
 
 
