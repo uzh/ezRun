@@ -54,7 +54,8 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   jsonFile = writeCutAndRunIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("CutAndRun_Result")))
   writeNfCoreIgvHtml(param, jsonFile, title = "NfCoreCutAndRun MultiSample Coverage Tracks", htmlTemplate = "templates/igvNfCoreTemplate.html", htmlFileName = paste0(outFolder, "/igv_session.html"))
-  makeRmdReportWrapper(outFolder, rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun",
+  sampleNames <- paste(nfSampleInfo[["group"]], nfSampleInfo[["replicate"]], sep = "_R")
+  makeRmdReportWrapper(outFolder, sampleNames, rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun",
                        baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("CutAndRun_Result")))
 
   if(ezIsSpecified(param$keepBams)){
@@ -210,7 +211,7 @@ generateAnnotatedPeaks <- function(gtfFile, outFolder){
 }
 
 ##' @description write HTML report
-makeRmdReportWrapper <- function(outFolder, rmdFile, reportTitle, baseUrl){
+makeRmdReportWrapper <- function(outFolder, sampleNames, rmdFile, reportTitle, baseUrl){
   plotsPath <- paste0(outFolder,"/04_reporting/deeptools_heatmaps/")
   filesToPlot <- dir(path=plotsPath, pattern=".pdf$", recursive=TRUE)
   peaksPath <- paste0(outFolder,"/04_reporting/igv/")
@@ -222,6 +223,7 @@ makeRmdReportWrapper <- function(outFolder, rmdFile, reportTitle, baseUrl){
                 annotatedPeaks=file.path("./igv", annotatedPeaks),
                 sequencePeaks=file.path("./igv", sequencePeaks),
                 baseUrl = paste0(baseUrl,"/04_reporting/igv/", sep="/"),
+                sampleNames = sampleNames,
                 rmdFile=rmdFile,
                 reportTitle=reportTitle, selfContained = TRUE)
   setwd(cd)

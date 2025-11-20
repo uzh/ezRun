@@ -25,6 +25,7 @@ filesToPlot <- readRDS("filesToPlot.rds")
 annotatedPeaks <- readRDS("annotatedPeaks.rds")
 sequencePeaks <- readRDS("sequencePeaks.rds")
 baseUrl <- readRDS("baseUrl.rds")
+sampleNames <- readRDS("sampleNames.rds")
 ```
 
 ## Plots
@@ -44,11 +45,15 @@ cat('</div>')
 ```{r peaks_links, results = "asis", echo=FALSE, out.width="100%", message=FALSE}
 annotatedPeaks <- basename(annotatedPeaks)
 sequencePeaks <- basename(sequencePeaks)
-sampleNames <- sub("\\..*", "", annotatedPeaks)
-annotatedLinks <- paste0("<a href=", baseUrl, annotatedPeaks, ">", annotatedPeaks, "</a>")
-sequenceLinks <- paste0("<a href=", baseUrl, sequencePeaks,">", sequencePeaks, "</a>")
 
-peaks <- ezFrame("Sample Name" = sampleNames, "Annotated Peaks" = annotatedLinks, "Sequence Peaks" = sequenceLinks)
+annotatedLinks <- sapply(sampleNames, function(x) annotatedPeaks[which(grepl(x, annotatedPeaks))])
+annotatedLinks <- lapply(annotatedLinks, function(x) if(identical(x, character(0))) "None" else paste0("<a href=", baseUrl, x, ">", x, "</a>"))
+
+sequenceLinks <- sapply(sampleNames, function(x) sequencePeaks[which(grepl(x, sequencePeaks))])
+sequenceLinks <- lapply(sequenceLinks, function(x) if(identical(x, character(0))) "None" else paste0("<a href=", baseUrl, x, ">", x, "</a>"))
+
+
+peaks <- ezFrame("Sample Name" = sampleNames, "Annotated Peaks" = as.character(annotatedLinks), "Sequence Peaks" = as.character(sequenceLinks))
 knitr::kable(peaks, format = "html", escape = FALSE) |> kable_styling("striped", full_width = F, position = "left")
 ```
 
