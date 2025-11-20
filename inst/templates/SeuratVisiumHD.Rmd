@@ -1523,7 +1523,7 @@ scData <- FindNeighbors(scData,
 ```{r find clusters, echo=F, message=F, warning=F}
 scData <- FindClusters(scData,
                           cluster.name = "banksy_cluster",
-                          resolution = param$clusterResolution/4,
+                          resolution = param$Niche_resolution,
                           verbose = F)
 ```
 
