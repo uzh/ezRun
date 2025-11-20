@@ -983,6 +983,16 @@ setNFCacheDir <- function(cacheDir = '/misc/fgcz01/nextflow_apptainer_cache'){
     Sys.setenv(NXF_APPTAINER_CACHEDIR = cacheDir)
 }
 
+setNFHomeDir <- function(homeDir = '/misc/fgcz01/nextflow_home_dir'){
+    Sys.setenv(NXF_HOME = homeDir)
+}
+
+prepNFCoreEnv <- function(cacheDir = 'misc/fgcz01/nextflow_apptainer_cache', homeDir = '/misc/fgcz01/nextflow_home_dir'){
+    setNFTmpDir()
+    setNFCacheDir(cacheDir)
+    setNFHomeDir(homeDir)
+}
+    
 writeNextflowLimits <- function(param, file = "maxResources.config"){
     txt <- sprintf(
         '

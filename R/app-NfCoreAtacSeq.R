@@ -16,8 +16,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   nfSampleFile <- file.path('dataset.csv')
   nfSampleInfo = getAtacSampleSheet(input, param)
   write_csv(nfSampleInfo, nfSampleFile)
-  setNFTmpDir()
-  setNFCacheDir()
+  prepNFCoreEnv()
   configFile <- writeNextflowLimits(param)
   cmd = paste(
     "nextflow run nf-core/atacseq",
