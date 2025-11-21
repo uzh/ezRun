@@ -30,7 +30,6 @@ library(SCpubr)
 library(qs2)
 
 library(DT)
-library(scater)
 library(ggtext)
 library(grid) 
 library(htmltools)
@@ -43,6 +42,8 @@ library(Banksy)
 
 library(sf)
 library(Matrix)
+library(SpotSweeper)
+library(SpatialExperiment)
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
@@ -54,14 +55,21 @@ param <- qs_read("param.qs2")
 lambda <- param$lambda  # BANKSY spatial weighting parameter
 input <- qs_read("input.qs2")
 output <- qs_read("output.qs2")
-scData <- qs_read("scData.qs2")
-scData.unfiltered_spatial <- qs_read("scData.unfiltered.qs2")
-imageName <- names(scData@images)
-nCountCol <- grep('^nCount_Spatial.*', colnames(scData@meta.data), value=TRUE) %>% head(1)
-nFeatureCol <- grep('^nFeature_Spatial.*', colnames(scData@meta.data), value=TRUE) %>% head(1)
+#scData <- qs_read("scData.qs2")
+scData <- qs_read("scData.unfiltered.qs2")
 
-allCellsMeta <- qs_read("allCellsMeta.qs2")
-sampleName <- input$getNames()
+nCountCol <- grep('^nCount_Spatial.*', 
+                  colnames(scData@meta.data), 
+                  value=TRUE) %>% head(1)
+
+nFeatureCol <- grep('^nFeature_Spatial.*', 
+                    colnames(scData@meta.data), 
+                    value=TRUE) %>% head(1)
+
+imageName <- names(scData@images)
+
+#allCellsMeta <- qs_read("allCellsMeta.qs2")
+#sampleName <- input$getNames()
 
 if (file.exists("cellsPerGeneFraction.qs2")){
   cellsPerGeneFraction <-  qs_read("cellsPerGeneFraction.qs2")
@@ -84,13 +92,194 @@ if (any(is.na(clusterSet))){
 posMarkers$p_val_adj[posMarkers$p_val_adj==0] <- min(posMarkers$p_val_adj[posMarkers$p_val_adj>0])
 ```
 
+```{r seurat to spe}
 
-```{r}
-xxAll <- SingleCellExperiment(colData = allCellsMeta)
-xxAll$discard <- !xxAll$useCell
-colData(xxAll)$Sample<- sampleName
-scData.unfiltered <- CreateSeuratObject(ezMatrix(0, rows=1:10, cols=rownames(allCellsMeta)), meta.data = allCellsMeta)
-scData.unfiltered$discard <- !colnames(scData.unfiltered) %in% colnames(scData)
+centroids <- scData[[names(scData@images)]]@boundaries$centroids
+  coords <- setNames(as.data.frame(centroids@coords), c("x", "y"))
+  
+  scData_spe <- Seurat_to_SPE(scData, as.matrix(coords))
+  
+  colData(scData_spe) <- colData(scData_spe)[
+    , setdiff(names(colData(scData_spe)), c("x","y")), drop = FALSE
+  ]
+
+```
+
+
+### Diagnostic plots
+`r paste("Output:", param$binSize)`
+
+::: {.row}
+::: {.col-md-6}
+
+```{r,  echo=F, message=F, warning=F}
+  
+if (param$binSize %in% c("binned_outputs/square_016um",
+                         "binned_outputs/square_008um")) {
+  
+  centroids <- scData[[names(scData@images)]]@boundaries$centroids
+  coords <- setNames(as.data.frame(centroids@coords), c("x", "y"))
+  
+  scData_spe <- Seurat_to_SPE(scData, as.matrix(coords))
+  
+  colData(scData_spe) <- colData(scData_spe)[
+    , setdiff(names(colData(scData_spe)), c("x","y")), drop = FALSE
+  ]
+  
+  lib_cutoff <- if (identical(param$binSize, "binned_outputs/square_016um")) {
+    20
+  } else if (identical(param$binSize, "binned_outputs/square_008um")) {
+    10
+  } 
+  
+  qc_lib_size <- colData(scData_spe)$nCount_Spatial < lib_cutoff
+  table(qc_lib_size)
+  
+  scData_spe$qc_lib_size     <- qc_lib_size
+  scData_spe$global_outliers <- qc_lib_size
+  
+  plotQCmetrics(
+    scData_spe, 
+    metric   = "percent_mito", 
+    outliers = "global_outliers", 
+    point_size = 1.1, 
+    stroke     = 0.75
+  ) +
+    coord_flip() + 
+    scale_x_reverse() +
+    scale_y_continuous(position = "right") +
+    labs(title = "Library size outliers") +
+    theme(
+    plot.title = element_text(size = 8)   
+    )
+  
+}
+
+```
+:::
+
+::: {.col-md-6}
+```{r, echo=F, message=F, warning=F}
+
+if (param$binSize %in% c("binned_outputs/square_016um",
+                         "binned_outputs/square_008um")) {
+  
+  meta_spe <- as.data.frame(colData(scData_spe))
+
+  filterStats <- list(
+    "Total bins/cells (before QC)"          = length(meta_spe$global_outliers),
+    "Total removed (library size outliers)" = sum(meta_spe$global_outliers),
+    "Bins/cells remaining"                  = sum(!meta_spe$global_outliers)
+  )
+  
+  ezListAsKable(filterStats, col.names = c("", "Number of bins/cells"))
+  
+}
+ 
+```
+
+
+:::
+:::
+
+::: {.row}
+::: {.col-md-6}
+
+```{r, echo=F, message=F, warning=F}
+
+if (param$binSize %in% c("binned_outputs/square_016um",
+                         "binned_outputs/square_008um")) {
+  
+  meta_spe <- as.data.frame(colData(scData_spe))
+
+  qc_cols <- grepl("^qc", colnames(meta_spe)) | colnames(meta_spe) == "global_outliers"
+  qcMat   <- meta_spe[ , qc_cols, drop = FALSE]
+  
+  qcList <- map(
+    qcMat,
+    ~ rownames(meta_spe)[which(.x)]
+  )
+  
+  qcList <- qcList[lengths(qcList) > 0]
+  
+  if (length(qcList) > 1) {
+    
+    UpSetR::upset(
+      fromList(qcList),
+      nsets = min(5, length(qcList)),
+      mainbar.y.label = "bins/cells"
+    )
+    
+  }
+  
+}
+  
+```
+:::
+
+::: {.col-md-6}
+
+```{r, echo=F, message=F, warning=F}
+
+if (param$binSize %in% c("binned_outputs/square_016um",
+                         "binned_outputs/square_008um")) {
+  
+  meta <- as.data.frame(colData(scData_spe))
+
+
+pass <- !meta$global_outliers
+
+qcStats <- ezFrame(
+  "Number of bins/cells" = numeric(0), 
+  "Min Pass Value"       = numeric(0), 
+  "Max Pass Value"       = numeric(0), 
+  Fraction               = numeric(0)
+)
+
+qcStats["Library Size", ] <- c(
+  c(sum(meta$qc_lib_size),
+    range(meta$nCount_Spatial[pass])) %>% as.integer(),
+  round(sum(meta$qc_lib_size) / nrow(meta), 2)
+)
+
+qcStats["Expressed genes", ] <- c(
+  c(sum(meta$qc.nexprs),
+    range(meta$nFeature_Spatial[pass])) %>% as.integer(),
+  round(sum(meta$qc.nexprs) / nrow(meta), 2)
+)
+
+qcStats["Mitochondrial Percent", ] <- c(
+  c(sum(meta$qc.mito),
+    range(meta$percent_mito[pass])) %>% as.integer(),
+  round(sum(meta$qc.mito) / nrow(meta), 2)
+)
+
+qcStats["Ribosomal protein Percent", ] <- c(
+  c(sum(meta$qc.ribo),
+    range(meta$percent_riboprot[pass])) %>% as.integer(),
+  round(sum(meta$qc.ribo) / nrow(meta), 2)
+)
+
+ezKable(qcStats)
+  
+}
+
+```
+
+:::
+
+::: 
+```{r, echo=F, message=F, warning=F}
+
+if (param$binSize %in% c("binned_outputs/square_016um",
+                         "binned_outputs/square_008um")) {
+  global_outliers <- unname(scData_spe$global_outliers)
+  scData$global_outliers <- global_outliers
+
+  scData <- subset(scData, subset = !global_outliers)
+  
+}
+
 ```
 
 ```{r}
@@ -141,12 +330,9 @@ scData   <- rgb_order(scData,
                       eps = 0.02, 
                       margin = 0.01)
 
-
 ```
 
 
-### Diagnostic plots
-`r paste("Output:", param$binSize)`
 
 <details>
   <summary>Metrics to identify bins/cells of low quality</summary>
@@ -254,10 +440,12 @@ sp_plot <- function(obj,
 
 
 
+
+
 ```{r 1st line of plots, fig.width=12, fig.height=4}
 
 plot1 <- plotColData(
-  xxAll, x = "Sample", 
+  scData_spe, x = "Sample", 
   y = nCountCol, 
   colour_by = "discard"
 ) +
@@ -293,7 +481,7 @@ plot1 + plot2 + plot3
 
 ```{r 2nd line of plots, fig.width=12, fig.height=4}
 plot4 <- plotColData(
-  xxAll,
+  scData_spe,
   x = "Sample",
   y = nFeatureCol,
   colour_by = "discard"
@@ -317,7 +505,7 @@ plot5 <- sp_plot(
 )
 
 plot6 <- plotColData(
-  xxAll,
+  scData_spe,
   x = nCountCol,
   y = nFeatureCol,
   colour_by = "discard"
@@ -343,7 +531,7 @@ plot4 + plot5 + plot6
 ```{r 3th line of plots, fig.width=12, fig.height=4}
 
 plot7 <- plotColData(
-  xxAll,
+  scData_spe,
   x = "Sample",
   y = "percent_mito",
   colour_by = "discard"
@@ -360,16 +548,20 @@ plot7 <- plotColData(
     plot.margin = margin(2, 2, 2, 2) 
     )
 
+scData$percent_mito[is.nan(scData$percent_mito)] <- NA_real_
+
 plot8 <- sp_plot(
-  scData, 
+  scData,
   "percent_mito",
-  title = "",
-  label = "Mito %"
+  title      = "",
+  label      = "Mito %",
+  min.cutoff = NA,
+  max.cutoff = NA
 )
 
 
 plot9 <- plotColData(
-  xxAll,
+  scData_spe,
   x = nCountCol,
   y = "percent_mito",
   colour_by = "discard"
@@ -394,10 +586,10 @@ plot7 + plot8 + plot9
 
 ```{r 4th line of plots, fig.width=12, fig.height=4}
 
-if (!is.null(xxAll$percent_riboprot)) {
+if (!is.null(scData_spe$percent_riboprot)) {
 
    plot10 <- plotColData(
-      xxAll,
+      scData_spe,
       x = "Sample",
       y = "percent_riboprot",
       colour_by = "discard"
@@ -412,16 +604,18 @@ if (!is.null(xxAll$percent_riboprot)) {
         axis.ticks.y = element_blank(),
         axis.ticks.x = element_blank()
       )
-  
-   
+
+
    plot11 <- sp_plot(
      scData, "percent_riboprot",
      title = "",
-     label = "Ribo %"
+     label = "Ribo %",
+     min.cutoff = NA,
+     max.cutoff = NA
    )
 
     plot12 <- plotColData(
-      xxAll,
+      scData_spe,
       x = nCountCol,
       y = "percent_riboprot",
       colour_by = "discard"
@@ -436,7 +630,7 @@ if (!is.null(xxAll$percent_riboprot)) {
         axis.ticks.y = element_blank(),
         axis.ticks.x = element_blank()
       )
-  
+
 }
 
 plot10 + plot11 + plot12
@@ -481,89 +675,6 @@ cellFilter <- tibble(
 ezKable(cellFilter)
 ```
 </details>
-
-::: {.row}
-::: {.col-md-6}
-
-
-```{r, fig.height=4}
-
-SpatialPlot(scData.unfiltered_spatial, group.by = "discard") + 
-  labs(title="Filtered bins/cells") +
-  theme_void() +
-  theme(legend.position = "top", # to be consistent with other diagnostic plots
-        plot.title = element_text(size = 12, face = "bold"),
-        legend.title = element_text(size = 10),
-        legend.text  = element_text(size = 10)
-        )
-
-```
-
-:::
-
-::: {.col-md-6}
-
-```{r}
-
-filterStats <- list(
-  "Total removed (thresholding)"= sum(!allCellsMeta$useCell),
-  "Total removed (manual)" = sum(allCellsMeta$useCell) - ncol(scData),
-  "Bins/cells remaining" = sum(ncol(scData))
-)
-
-ezListAsKable(filterStats, col.names=c("", "Number of bins/cells"))
-```
-:::
-:::
-
-::: {.row}
-::: {.col-md-6}
-
-Number of bins/cells filtered by the individual quality criteria.
-```{r low quality BinsCells, fig.align='center'}
-
-qcList <- lapply(allCellsMeta[ ,grep("^qc", colnames(allCellsMeta))], function(x){rownames(allCellsMeta)[x]})
-qcList <- qcList[sapply(qcList, length) > 0]
-if (length(qcList) > 1){
-  UpSetR::upset(fromList(qcList), nsets = 5, mainbar.y.label="bins/cells")
-}
-```
-:::
-
-::: {.col-md-6}
-```{r echo=FALSE, fig.align='center'}
-qcStats <- ezFrame("Number of bins/cells"=integer(0), 
-                   "Min Pass Value"=integer(0), 
-                   "Max Pass Value"=integer(0), 
-                   Fraction = integer(0))
-
-qcStats[ "Library Size", ] <- c(
-  c(sum(allCellsMeta$qc.lib), range(allCellsMeta[[nCountCol]][allCellsMeta$useCell])) %>% as.integer(),
-  round(sum(allCellsMeta$qc.lib)/nrow(allCellsMeta), 2)
-)
-
-qcStats[ "Expressed genes", ] <- c(
-  c(sum(allCellsMeta$qc.nexprs), range(allCellsMeta[[nFeatureCol]][allCellsMeta$useCell])) %>% as.integer(),
-  round(sum(allCellsMeta$qc.nexprs)/nrow(allCellsMeta), 2)
-)
-
-qcStats[ "Mitochondrial Percent", ] <- c(
-  c(sum(allCellsMeta$qc.mito), range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer(),
-  round(sum(allCellsMeta$qc.mito)/nrow(allCellsMeta), 2)
-)
-
-qcStats[ "Ribosomal protein Percent", ] <- c(
-  c(sum(allCellsMeta$qc.ribo), range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer(),
-  round(sum(allCellsMeta$qc.ribo)/nrow(allCellsMeta), 2)
-)
-
-ezKable(qcStats)
-
-
-```
-:::
-:::
-
 
 
 #### Dimensionality reduction
@@ -622,46 +733,116 @@ ezKable(dimred_tbl)
 ```
 </details>
 
+```{r pca calc,  echo=F, message=F, warning=F}
+
+orig_assay <- DefaultAssay(scData)
+
+scData <- NormalizeData(scData)
+
+scData <- FindVariableFeatures(scData)
+
+scData <- ScaleData(scData)
 
 
-```{r, fig.width=10}
+ncells <- ncol(scData)
 
-# pca_name <- if ("pca.sketch" %in% names(scData@reductions)) "pca.sketch" else "pca"
-# 
-# stdev <- scData[[pca_name]]@stdev
-# stopifnot(param$npcs <= length(stdev))
-# 
-# 
-# pct  <- ((stdev^2) / sum(stdev^2)) * 100        
-# 
-# 
-# cumu    <- cumsum(pct)
-# plot_df <- data.frame(pct = pct, cumu = cumu, rank = seq_along(pct))
-# plot_df$used <- factor(plot_df$rank <= param$npcs, levels=c(TRUE, FALSE))
+if (ncells < 50000) {
+  # (no sketch)
+  scData <- RunPCA(scData, npcs = param$npcs)
+  scData <- FindNeighbors(scData, dims = 1:param$npcs)
+  scData <- FindClusters(scData, resolution = param$clusterResolution)
+  scData <- RunUMAP(
+    scData,
+    reduction     = "pca",
+    reduction.name = "umap",
+    return.model  = TRUE,
+    dims          = 1:param$npcs
+  )
+  
+} else {
+  #sketch workflow
+  scData <- SketchData(
+    object         = scData,
+    ncells         = 50000,
+    method         = "LeverageScore",
+    sketched.assay = "sketch",
+    features       = VariableFeatures(scData)
+  )
+  
+  DefaultAssay(scData) <- "sketch"
+  
+  scData <- FindVariableFeatures(scData)
+    
+  scData <- ScaleData(scData)
+  
+  scData <- RunPCA(
+        scData,
+        assay          = "sketch",
+        reduction.name = "pca.sketch",
+        npcs           = param$npcs
+      )
+    
+  scData <- FindNeighbors(
+        scData,
+        assay     = "sketch",
+        reduction = "pca.sketch",
+        dims      = 1:param$npcs,
+        verbose   = FALSE
+      ) 
+  
+  scData <- FindClusters(
+        scData,
+        resolution = param$clusterResolution,
+        verbose    = FALSE
+      ) 
 
-# ggplot(plot_df, aes(x = cumu, 
-#                     y = pct, 
-#                     label = rank, 
-#                     color = used)) +
-#   geom_point(size = 1.6) + 
-#   geom_text(vjust = -0.8, size = 2) +
-#   geom_vline(xintercept = cumu[param$npcs], color = "grey50", linetype = "dashed") +
-#   
-# 
-#   labs(
-#     title    = "Percent variance explained by the principal components",
-#     subtitle = paste0("number of PCs used: ", param$npcs),
-#     x = "Cumulative percent variance explained ",
-#     y = "Per PC variance explained"
-#   ) +
-#   
-#   annotate(
-#     "text",
-#     x = cumu[param$npcs], y = max(plot_df$pct),
-#     label = paste0("Variance used: ", sprintf("%.2f", cumu[param$npcs]), "%"),
-#     vjust = -0.4, size = 3, color = gg_color_hue(2)[1]
-#   ) + theme(legend.position = "none") +
-#   theme_bw() +theme(legend.position = "none")
+
+  scData$seurat_cluster.sketched <- scData$seurat_clusters
+  
+  scData <- RunUMAP(
+      scData,
+      reduction      = "pca.sketch",
+      reduction.name = "umap.sketch",
+      return.model   = TRUE,
+      dims           = 1:param$npcs
+    )
+  
+
+  DefaultAssay(scData) <- orig_assay
+  
+  sketch_levels <- sort(unique(scData$seurat_cluster.sketched[!is.na(scData$seurat_cluster.sketched)]))
+
+  scData <- ProjectData(
+    object            = scData,
+    assay             = orig_assay,
+    full.reduction    = "full.pca.sketch",
+    sketched.assay    = "sketch",
+    sketched.reduction = "pca.sketch",
+    umap.model        = "umap.sketch",
+    dims              = 1:param$npcs,
+    refdata           = list(
+      seurat_cluster.projected = "seurat_cluster.sketched"
+    )
+  )
+  
+  scData$seurat_cluster.projected <- factor(scData$seurat_cluster.projected, levels(scData$seurat_cluster.sketched))
+    
+    # switch to full dataset
+    Idents(scData) <- "seurat_cluster.projected"
+    scData$seurat_clusters <- Idents(scData)
+    DefaultAssay(scData) <- orig_assay
+  
+}
+
+if (!("Batch" %in% colnames(scData@meta.data))) {
+  scData$Batch <- scData$Sample
+}
+
+
+```
+
+
+```{r, fig.width=10, echo=F, message=F, warning=F}
 
 pca_name <- if ("pca.sketch" %in% names(scData@reductions)) "pca.sketch" else "pca"
 
@@ -729,6 +910,8 @@ ggplot(df,
   )
 
 ```
+
+
 
 ### Segmentation mask
 
@@ -867,6 +1050,7 @@ if (identical(param$binSize, "segmented_outputs")) {
 } 
 
 ```
+
 <br>
 <br>
 
@@ -1051,6 +1235,7 @@ p1 <- Seurat::LabelClusters(
 
 p2 <- SpatialDimPlot(
   scData,
+  images = Images(scData),
   label              = T,
   label.size         = 4,
   repel              = T,        
@@ -1513,6 +1698,8 @@ ezKable(enrichrTable, escape=FALSE, format="html", format.args=list())
 
 ```
 
+
+
 ## Niches {.tabset}
 
 
@@ -1522,9 +1709,9 @@ scData <- RunBanksy(scData,
                     lambda = lambda, 
                     verbose = TRUE,
                     assay = DefaultAssay(scData), 
-                    slot = "data", 
+                    slot = "data",
                     features = "variable",
-                    k_geom = 50 #Local neighborhood size. Larger values will yield larger domains
+                    k_geom = 30 #Local neighborhood size. Larger values will yield larger domains
                     )
 
 
@@ -1554,7 +1741,7 @@ scData <- FindNeighbors(scData,
 ```{r find clusters, echo=F, message=F, warning=F}
 scData <- FindClusters(scData,
                           cluster.name = "banksy_cluster",
-                          resolution = param$clusterResolution/4,
+                          resolution = param$Niche_resolution,
                           verbose = F)
 ```
 
@@ -1644,7 +1831,7 @@ ezKable(banksy_niches)
 
 </details>
 
-`r paste("Resolution:", param$clusterResolution/4)`
+`r paste("Resolution:", param$Niche_resolution)`
 
 
 ```{r banksy plot spatial, fig.width=12, fig.height=6}
@@ -2045,6 +2232,7 @@ ezKable(enrichrTable1, escape=FALSE, format="html", format.args=list())
 ezListAsKable(param[c("binSize",
         "npcs",
         "clusterResolution",
+        "Niche_resolution",
         "lambda",
         "DE.method",
         "nUMIs",
