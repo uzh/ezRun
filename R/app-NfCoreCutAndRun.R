@@ -150,6 +150,19 @@ writeCutAndRunIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPa
                           name	= trackNames[[i]])
 
   }
+  tracks[[i+2]] <- list(
+      id = "genes",
+      url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/transcripts.only.gtf'),
+      format =	"gtf",
+      type = "annotation",
+      name = "genes")
+  
+  tracks[[i+3]] <- list(
+      id = "exons",
+      url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/genes.bed'),
+      format =	"bed",
+      type = "annotation",
+      name = "exons")
   jsonLines <- list( version =	"3.5.3",
                      showSampleNames = FALSE,
                      reference = list(id = refBuildName , fastaUrl = fastaUrl, indexURL = faiUrl),

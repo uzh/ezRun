@@ -204,7 +204,7 @@ getDdsFromConcensusPeaks <- function(output, param, grouping){
 }
 
 ##' @description clean up NfCoreAtacSeq_result directory
-cleanupOutAtacFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
+cleanupAtacOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
   if(!keepBams){
     bamPath <- paste0(outFolder,"/bwa/")
     bamsToDelete <- dir(path=bamPath, pattern="*.bam(.bai)?$", recursive=TRUE)
@@ -235,13 +235,19 @@ writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, b
                           name	= trackNames[[i]])
 
   }
-  tracks[[i+1]] <- list(
+  tracks[[i+2]] <- list(
       id = "genes",
+      url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/transcripts.only.gtf'),
+      format =	"gtf",
+      type = "annotation",
+      name = "genes")
+  
+  tracks[[i+3]] <- list(
+      id = "exons",
       url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/genes.bed'),
       format =	"bed",
       type = "annotation",
-      name = "genes")
-
+      name = "exons")
   jsonLines <- list( version =	"3.5.3",
                      showSampleNames = FALSE,
                      reference = list(id = refBuildName , fastaUrl = fastaUrl, indexURL = faiUrl),
