@@ -62,7 +62,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   } else {
     keepBams <- TRUE
   }
-  cleanupOutFolder(outFolder, keepBams)
+  cleanupCarOutFolder(outFolder, keepBams)
 
   return("Success")
 }
@@ -118,7 +118,7 @@ getCutAndRunSampleSheet <- function(input, param){
 }
 
 ##' @description clean up NfCoreCutAndRun_result directory
-cleanupOutFolder <- function(outFolder, keepBams=TRUE){
+cleanupCarOutFolder <- function(outFolder, keepBams=TRUE){
   if(!keepBams){
     bamPath <- paste0(outFolder,"/02_alignment/")
     bamsToDelete <- dir(path=bamPath, pattern="*.bam(.bai)?$", recursive=TRUE)

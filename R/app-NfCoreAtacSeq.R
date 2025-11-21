@@ -48,7 +48,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   nfSampleInfo$libName <- paste0(nfSampleInfo$sample, "_REP", nfSampleInfo$replicate)
   nfSampleInfo <- nfSampleInfo[!duplicated(nfSampleInfo$sid), ]
   
-  sampleCountFiles <- writePerSampleCountFiles(nfSampleInfo, countDir=paste0(outFolder, "/bwa/merged_library/macs2/", param$peakStyle, "_peak/consensus/"))
+  sampleCountFiles <- writePerSampleCountPeaksFiles(nfSampleInfo, countDir=paste0(outFolder, "/bwa/merged_library/macs2/", param$peakStyle, "_peak/consensus/"))
   
   jsonFile <- writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/bwa/merged_library/bigwig/",
                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("ATAC_Result")))
@@ -80,7 +80,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   } else {
     keepBams <- TRUE
   }
-  cleanupOutFolder(outFolder, dirsToRemove, keepBams)
+  cleanupAtacOutFolder(outFolder, dirsToRemove, keepBams)
 
   return("Success")
 }
@@ -144,7 +144,7 @@ getAtacSampleSheet <- function(input, param){
   return(nfSampleInfo)
 }
 
-writePerSampleCountFiles <- function(nfSampleInfo, countDir="."){
+writePerSampleCountPeaksFiles <- function(nfSampleInfo, countDir="."){
   libColumnNames <- paste0(nfSampleInfo$libName, ".mLb.clN.sorted.bam")
   sampleNames <- nfSampleInfo$sid
   sampleCountFiles <- paste0(countDir, "/", sampleNames, ".txt")
@@ -204,7 +204,7 @@ getDdsFromConcensusPeaks <- function(output, param, grouping){
 }
 
 ##' @description clean up NfCoreAtacSeq_result directory
-cleanupOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
+cleanupOutAtacFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
   if(!keepBams){
     bamPath <- paste0(outFolder,"/bwa/")
     bamsToDelete <- dir(path=bamPath, pattern="*.bam(.bai)?$", recursive=TRUE)
