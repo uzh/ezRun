@@ -75,7 +75,7 @@ aziResults <- NULL
 # Process the posMarkers
 posMarkers$gene = as.factor(posMarkers$gene)
 # make sure the loaded cluster uses proper integer ordering if all levels are integer!
-clusterSet <- posMarkers$cluster %>% as.integer() %>% unique() %>% sort(na.last=TRUE)
+clusterSet <- posMarkers$cluster %>% as.character() %>% as.integer() %>% unique() %>% sort(na.last=TRUE)
 if (any(is.na(clusterSet))){
   posMarkers$cluster = as.factor(posMarkers$cluster)
 } else {
@@ -1553,7 +1553,7 @@ posMarkersBanksy <- posMarkersBanksy[posMarkersBanksy$p_val_adj < param$pvalue_a
 rownames(posMarkersBanksy) <- NULL
 
 # Make sure the loaded cluster uses proper integer ordering if all levels are integer!
-clusterSet_banksy <- posMarkersBanksy$cluster %>% as.integer() %>% unique() %>% sort(na.last = TRUE)
+clusterSet_banksy <- posMarkersBanksy$cluster %>% as.character() %>% as.integer() %>% unique() %>% sort(na.last = TRUE)
 if (any(is.na(clusterSet_banksy))) {
   posMarkersBanksy$cluster <- as.factor(posMarkersBanksy$cluster)
 } else {
