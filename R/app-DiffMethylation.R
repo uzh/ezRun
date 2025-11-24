@@ -79,7 +79,7 @@ ezMethodDiffMethylation <- function(input=NA, output=NA, param=NA){
     )
     
     #Run DSS
-    dmlTest.sm = DMLtest(bismarkBSseq_filtered, group1=rownames(pData(bismarkBSseq_filtered))[pData(bismarkBSseq_filtered)$Condition  %in% param$sampleGroup], group2=rownames(pData(bismarkBSseq_filtered))[pData(bismarkBSseq_filtered)$Condition  %in% param$refGroup], smoothing = TRUE)
+    dmlTest.sm = DMLtest(bismarkBSseq_filtered, ncores = param$cores, group1=rownames(pData(bismarkBSseq_filtered))[pData(bismarkBSseq_filtered)$Condition  %in% param$sampleGroup], group2=rownames(pData(bismarkBSseq_filtered))[pData(bismarkBSseq_filtered)$Condition  %in% param$refGroup], smoothing = TRUE)
     dmlResults <- list()
     dmlResults[['dmls']] = callDML(dmlTest.sm, delta=param$minDelta, p.threshold=param$qVal_perSite)
     dmlResults[['dmls']] = dmlResults[['dmls']][dmlResults[['dmls']]$fdr <= param$qVal_perSite,]
