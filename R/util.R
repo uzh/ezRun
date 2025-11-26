@@ -995,7 +995,7 @@ prepNFCoreEnv <- function(cacheDir = '/misc/fgcz01/nextflow_apptainer_cache', ho
 
 
 
-write_nextflow_limits <- function(param, file = "maxResources.config") {
+writeNextflowLimits <- function(param, file = "maxResources.config") {
     txt <- sprintf(
         'process {
   resourceLimits = [
