@@ -19,8 +19,8 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
 
 
   blackListFile <- getBlackListFile(input, param)
-  setNFTmpDir()
-  setNFCacheDir()
+  prepNFCoreEnv()
+  configFile <- writeNextflowLimits(param)
   cmd = paste(
     "nextflow run nf-core/cutandrun",
      ## i/o
@@ -45,10 +45,11 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
     "-work-dir work",
     "-profile apptainer",
     "-r", param$pipelineVersion,
+    "-c", configFile,
     param$cmdOptions
   )
   ezSystem(cmd)
-
+  ezSystem(paste('mv', configFile, outFolder))
   generateFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
   generateAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, outFolder)
   jsonFile = writeCutAndRunIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
@@ -63,7 +64,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   } else {
     keepBams <- TRUE
   }
-  cleanupOutFolder(outFolder, keepBams)
+  cleanupCarOutFolder(outFolder, keepBams)
 
   return("Success")
 }
@@ -118,7 +119,7 @@ getCutAndRunSampleSheet <- function(input, param){
 }
 
 ##' @description clean up NfCoreCutAndRun_result directory
-cleanupOutFolder <- function(outFolder, keepBams=TRUE){
+cleanupCarOutFolder <- function(outFolder, keepBams=TRUE){
   if(!keepBams){
     bamPath <- paste0(outFolder,"/02_alignment/")
     bamsToDelete <- dir(path=bamPath, pattern="*.bam(.bai)?$", recursive=TRUE)
@@ -150,6 +151,19 @@ writeCutAndRunIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPa
                           name	= trackNames[i])
 
   }
+  tracks[[i+2]] <- list(
+      id = "genes",
+      url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/transcripts.only.gtf'),
+      format =	"gtf",
+      type = "annotation",
+      name = "genes")
+  
+  tracks[[i+3]] <- list(
+      id = "exons",
+      url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/genes.bed'),
+      format =	"bed",
+      type = "annotation",
+      name = "exons")
   jsonLines <- list( version =	"3.5.3",
                      showSampleNames = FALSE,
                      reference = list(id = refBuildName , fastaUrl = fastaUrl, indexURL = faiUrl),

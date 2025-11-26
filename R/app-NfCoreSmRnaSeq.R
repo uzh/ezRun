@@ -13,9 +13,8 @@ ezMethodNfCoreSmRnaSeq <- function(input = NA, output = NA, param = NA) {
   nfSampleFile <- file.path('dataset.csv')
   nfSampleInfo = getSmRnaSeqSampleSheet(input)
   write_csv(nfSampleInfo, nfSampleFile)
-  
-  setNFTmpDir()
-  setNFCacheDir()
+  prepNFCoreEnv()
+  configFile <- writeNextflowLimits(param)
   cmd = paste(
     "nextflow run nf-core/smrnaseq",
     ## i/o
@@ -29,11 +28,12 @@ ezMethodNfCoreSmRnaSeq <- function(input = NA, output = NA, param = NA) {
     "-work-dir work",
     "-profile apptainer",
     "-r", param$pipelineVersion,
+    "-c", configFile,
     param$cmdOptions
   )
   ezSystem(cmd)
-  
-  writePerSampleCountFiles(nfSampleInfo, countDir=paste0(outFolder, "/mirna_quant/mirtop/"))
+  ezSystem(paste('mv', configFile, outFolder))
+  writePerSampleCountSmRnaFiles(nfSampleInfo, countDir=paste0(outFolder, "/mirna_quant/mirtop/"))
 
 
   return("Success")
@@ -64,7 +64,7 @@ getSmRnaSeqSampleSheet <- function(input){
 }
 
 ##' @description split counts by sample
-writePerSampleCountFiles <- function(nfSampleInfo, countDir="."){
+writePerSampleSmRnaCountFiles <- function(nfSampleInfo, countDir="."){
   sampleNames <- nfSampleInfo$sample
   sampleCountFiles <- paste0(countDir, "/", sampleNames, ".txt")
   annoColumnNames <- c("miRNA")
