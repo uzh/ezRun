@@ -16,7 +16,8 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   nfSampleFile <- file.path('dataset.csv')
   nfSampleInfo = getAtacSampleSheet(input, param)
   write_csv(nfSampleInfo, nfSampleFile)
-  setNFCacheDir()
+  prepNFCoreEnv()
+  configFile <- writeNextflowLimits(param)
   cmd = paste(
     "nextflow run nf-core/atacseq",
      ## i/o
@@ -35,21 +36,23 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     ## configuration
     "-work-dir nfatacseq_work",
     "-profile apptainer",
-    "-r 2.1.2" #,
+    "-r", param$pipelineVersion,
+    "-c", configFile,
+    param$cmdOptions #,
     # "-resume"  ## for testing
   )
   ezSystem(cmd)
+  ezSystem(paste('mv', configFile, outFolder))
   ## multiple fastq files per library have been merged by the processing (if any)
   ## now we work with the library names and reduce the dataset
   nfSampleInfo$libName <- paste0(nfSampleInfo$sample, "_REP", nfSampleInfo$replicate)
   nfSampleInfo <- nfSampleInfo[!duplicated(nfSampleInfo$sid), ]
   
-  sampleCountFiles <- writePerSampleCountFiles(nfSampleInfo, countDir=paste0(outFolder, "/bwa/merged_library/macs2/", param$peakStyle, "_peak/consensus/"))
+  sampleCountFiles <- writePerSampleCountPeaksFiles(nfSampleInfo, countDir=paste0(outFolder, "/bwa/merged_library/macs2/", param$peakStyle, "_peak/consensus/"))
   
-  writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/bwa/merged_library/bigwig/",
+  jsonFile <- writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/bwa/merged_library/bigwig/",
                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("ATAC_Result")))
-  # writeHtmlWrapper(file.path(outFolder, basename(output$getColumn("IGV"))),
-  #                  igvAppLink = paste0("https://igv.org/app/?sessionURL=", PROJECT_BASE_URL, "/", output$getColumn("ATAC_Result"), "/igv_session.json"))
+  writeNfCoreIgvHtml(param, jsonFile, title = "NfCoreAtacSeq MultiSample Coverage Tracks", htmlTemplate = "templates/igvNfCoreTemplate.html", htmlFileName = paste0(outFolder, "/igv_session.html"))
   
 
   if(param[['runTwoGroupAnalysis']]){
@@ -77,7 +80,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   } else {
     keepBams <- TRUE
   }
-  cleanupOutFolder(outFolder, dirsToRemove, keepBams)
+  cleanupAtacOutFolder(outFolder, dirsToRemove, keepBams)
 
   return("Success")
 }
@@ -96,7 +99,8 @@ EzAppNfCoreAtacSeq <- setRefClass(
         runTwoGroupAnalysis = ezFrame(Type = "logical", DefaultValue = TRUE, Description = "Run two group analysis"),
         peakStyle  = ezFrame(Type="character", DefaultValue="broad", Description="Run MACS2 in broadPeak mode, otherwise in narrowPeak mode"),
         varStabilizationMethod = ezFrame(Type="character", DefaultValue="vst", Description="Use rlog transformation or vst (DESeq2)"),
-        keepBams = ezFrame(Type="logical", DefaultValue = FALSE, Description= "Should bam files be stored")
+        keepBams = ezFrame(Type="logical", DefaultValue = FALSE, Description= "Should bam files be stored"),
+        pipelineVersion = ezFrame(Type="character", DefaultValue = '2.1.2', Description= "specify pipeline version")
       )
     }
   )
@@ -140,7 +144,7 @@ getAtacSampleSheet <- function(input, param){
   return(nfSampleInfo)
 }
 
-writePerSampleCountFiles <- function(nfSampleInfo, countDir="."){
+writePerSampleCountPeaksFiles <- function(nfSampleInfo, countDir="."){
   libColumnNames <- paste0(nfSampleInfo$libName, ".mLb.clN.sorted.bam")
   sampleNames <- nfSampleInfo$sid
   sampleCountFiles <- paste0(countDir, "/", sampleNames, ".txt")
@@ -200,7 +204,7 @@ getDdsFromConcensusPeaks <- function(output, param, grouping){
 }
 
 ##' @description clean up NfCoreAtacSeq_result directory
-cleanupOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
+cleanupAtacOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
   if(!keepBams){
     bamPath <- paste0(outFolder,"/bwa/")
     bamsToDelete <- dir(path=bamPath, pattern="*.bam(.bai)?$", recursive=TRUE)
@@ -231,13 +235,19 @@ writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, b
                           name	= trackNames[[i]])
 
   }
-  tracks[[i+1]] <- list(
+  tracks[[i+2]] <- list(
       id = "genes",
+      url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/transcripts.only.gtf'),
+      format =	"gtf",
+      type = "annotation",
+      name = "genes")
+  
+  tracks[[i+3]] <- list(
+      id = "exons",
       url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/genes.bed'),
       format =	"bed",
       type = "annotation",
-      name = "genes")
-
+      name = "exons")
   jsonLines <- list( version =	"3.5.3",
                      showSampleNames = FALSE,
                      reference = list(id = refBuildName , fastaUrl = fastaUrl, indexURL = faiUrl),
@@ -245,4 +255,13 @@ writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, b
   )
   jsonFile <- rjson::toJSON(jsonLines, indent=5, method="C")
   write(jsonFile, jsonFileName)
+  return(jsonFile)
+}
+
+##' @description write html wrapper for IGV session
+writeNfCoreIgvHtml = function(param, jsonFile, title, htmlTemplate, htmlFileName){
+  htmlLines = readLines(system.file(htmlTemplate, package="ezRun", mustWork = TRUE))
+  htmlLines = gsub("TITLE", title, htmlLines)
+  htmlLines = gsub("IGV_JSON_CONTENT", jsonFile, htmlLines)
+  writeLines(htmlLines, htmlFileName)
 }

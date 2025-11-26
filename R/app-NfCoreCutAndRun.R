@@ -19,7 +19,8 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
 
 
   blackListFile <- getBlackListFile(input, param)
-  setNFCacheDir()
+  prepNFCoreEnv()
+  configFile <- writeNextflowLimits(param)
   cmd = paste(
     "nextflow run nf-core/cutandrun",
      ## i/o
@@ -43,22 +44,27 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
     ## configuration
     "-work-dir work",
     "-profile apptainer",
-    "-r 3.2.2"
+    "-r", param$pipelineVersion,
+    "-c", configFile,
+    param$cmdOptions
   )
   ezSystem(cmd)
-
-  getFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
-  writeAtacIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
-                      baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("Result")))
-  makeRmdReportWrapper(outFolder, rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun")
-
+  ezSystem(paste('mv', configFile, outFolder))
+  generateFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
+  generateAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, outFolder)
+  jsonFile = writeCutAndRunIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
+                      baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("CutAndRun_Result")))
+  writeNfCoreIgvHtml(param, jsonFile, title = "NfCoreCutAndRun MultiSample Coverage Tracks", htmlTemplate = "templates/igvNfCoreTemplate.html", htmlFileName = paste0(outFolder, "/igv_session.html"))
+  sampleNames <- paste(nfSampleInfo[["group"]], nfSampleInfo[["replicate"]], sep = "_R")
+  makeRmdReportWrapper(outFolder, sampleNames, rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun",
+                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("CutAndRun_Result")))
 
   if(ezIsSpecified(param$keepBams)){
     keepBams <- param$keepBams
   } else {
     keepBams <- TRUE
   }
-  cleanupOutFolder(outFolder, keepBams)
+  cleanupCarOutFolder(outFolder, keepBams)
 
   return("Success")
 }
@@ -78,7 +84,8 @@ EzAppNfCoreCutAndRun <- setRefClass(
         spikeinGenome = ezFrame(Type="character", DefaultValue="macs2", Description="Select the reference for the spike-in genome"),
         normalization = ezFrame(Type="character", DefaultValue="macs2", Description="Select the target read normalization mode"),
         peakStyle  = ezFrame(Type="character", DefaultValue="broad", Description="Run MACS2 in broadPeak mode, otherwise in narrowPeak mode"),
-        keepBams = ezFrame(Type="logical", DefaultValue = FALSE, Description= "Should bam files be stored")
+        keepBams = ezFrame(Type="logical", DefaultValue = FALSE, Description= "Should bam files be stored"),
+        pipelineVersion = ezFrame(Type="character", DefaultValue = '3.2.2', Description= "specify pipeline version")
       )
     }
   )
@@ -86,16 +93,15 @@ EzAppNfCoreCutAndRun <- setRefClass(
 
 ##' @description fetch nfcore blacklist files
 getBlackListFile <- function(input, param){
-  buildName = param$ezRef@refBuildName
+  baseBuildName = param$ezRef@refBuildName |> str_replace("\\.p.*", "")
   basePath = '/srv/GT/databases/nf-core/cutandrun/'
-  blackListPath <- case_when(
-    grepl('GRCm39', buildName, ignore.case = TRUE) ~ paste0(basePath, 'GRCm39-blacklist.bed'),
-    grepl('GRCm38', buildName, ignore.case = TRUE) ~ paste0(basePath, 'GRCm38-blacklist.bed'),
-    grepl('GRCh38', buildName, ignore.case = TRUE) ~ paste0(basePath, 'GRCh38-blacklist.bed'),
-    grepl('GRCh37', buildName, ignore.case = TRUE) ~ paste0(basePath, 'GRCh37-blacklist.bed'),
-    TRUE ~ ""
-  )
-  return(blackListPath)
+  blackListPath <- paste0(basePath, "/", baseBuildName, "-blacklist.bed")
+  if (file.exists(blackListPath)){
+    return(blackListPath)
+  } else{
+    warning("no blacklist file for: ", baseBuildName, " available in ", basePath)
+    return("")
+  }
 }
 
 ##' @description get an nf-core/cutandrun-formatted csv file
@@ -113,7 +119,7 @@ getCutAndRunSampleSheet <- function(input, param){
 }
 
 ##' @description clean up NfCoreCutAndRun_result directory
-cleanupOutFolder <- function(outFolder, keepBams=TRUE){
+cleanupCarOutFolder <- function(outFolder, keepBams=TRUE){
   if(!keepBams){
     bamPath <- paste0(outFolder,"/02_alignment/")
     bamsToDelete <- dir(path=bamPath, pattern="*.bam(.bai)?$", recursive=TRUE)
@@ -139,12 +145,25 @@ writeCutAndRunIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPa
   tracks <- list()
   tracks[[1]] <- list(type=	"sequence")
   for (i in 1:length(bigwigFiles)){
-    tracks[[i+1]] <- list(id = trackNames[[i]],
-                          url = paste0(baseUrl,file.path(bigwigRelPath, bigwigFiles[[i]])),
+    tracks[[i+1]] <- list(id = trackNames[i],
+                          url = paste0(baseUrl,file.path(bigwigRelPath, bigwigFiles[i])),
                           format =	"bigWig",
-                          name	= trackNames[[i]])
+                          name	= trackNames[i])
 
   }
+  tracks[[i+2]] <- list(
+      id = "genes",
+      url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/transcripts.only.gtf'),
+      format =	"gtf",
+      type = "annotation",
+      name = "genes")
+  
+  tracks[[i+3]] <- list(
+      id = "exons",
+      url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/genes.bed'),
+      format =	"bed",
+      type = "annotation",
+      name = "exons")
   jsonLines <- list( version =	"3.5.3",
                      showSampleNames = FALSE,
                      reference = list(id = refBuildName , fastaUrl = fastaUrl, indexURL = faiUrl),
@@ -152,25 +171,74 @@ writeCutAndRunIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPa
   )
   jsonFile <- rjson::toJSON(jsonLines, indent=5, method="C")
   write(jsonFile, jsonFileName)
+  return(jsonFile)
 }
 
+##' @description write html wrapper for IGV session
+writeNfCoreIgvHtml = function(param, jsonFile, title, htmlTemplate, htmlFileName){
+  htmlLines = readLines(system.file(htmlTemplate, package="ezRun", mustWork = TRUE))
+  htmlLines = gsub("TITLE", title, htmlLines)
+  htmlLines = gsub("IGV_JSON_CONTENT", jsonFile, htmlLines)
+  writeLines(htmlLines, htmlFileName)
+}
+
+
 ##' @description generate fasta files from BED files
-getFastaFromBedFiles <- function(outFolder, refFile){
+generateFastaFromBedFiles <- function(outFolder, refFile){
   bedFilePath <- paste0(outFolder,"/04_reporting/igv/")
-  bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE)
+  bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE, full.names = TRUE)
   for (name in bedFileNames){
-    peakBedFile <- file.path(bedFilePath, name)
-    peakSeqFile = paste0(peakBedFile, "_peaks.fa")
-    cmd = paste("bedtools", " getfasta -fi", refFile, "-bed", peakBedFile, " -name -fo ",peakSeqFile)
+    peakSeqFile = paste0(name, "_peaks.fa")
+    cmd = paste("bedtools", " getfasta -fi", refFile, "-bed", name, " -name -fo ",peakSeqFile)
     ezSystem(cmd)
   }
 }
 
+##' @description annotate peaks in BED files
+generateAnnotatedPeaks <- function(gtfFile, outFolder){
+  library(ChIPpeakAnno)
+  library(GenomicRanges)
+  library(rtracklayer)
+  gtf <- rtracklayer::import(gtfFile)
+  if(grepl('gtf$',gtfFile)){
+    names_gtf = make.unique(gtf$'gene_id')
+  } else {
+    names_gtf = make.unique(gtf$'ID')
+  }
+  names(gtf) = names_gtf
+
+  bedFilePath <- paste0(outFolder,"/04_reporting/igv/")
+  bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE)
+  for (name in bedFileNames){
+    peakBedFile <- file.path(bedFilePath, name)
+    peakAnnFile = paste0(peakBedFile, ".xlsx") ## TODO suffix should only be .xlsx no .bed.xlsx
+    myPeaks = ezRead.table(peakBedFile, row.names = NULL, header = F)
+    ## we know the column names of the bed files; so we use set them instead of working with the anonymous V* variables
+    #colnames(myPeaks)[1:6] <- c("chrom", "start", "end", "name", "score", "strand") 
+    peaksRD = makeGRangesFromDataFrame(myPeaks, keep.extra.columns = TRUE, start.field = "V2", end.field = "V3", seqnames.field="V1")
+    annotatedPeaks <- annotatePeakInBatch(peaksRD, AnnotationData = gtf, output='nearestStart', multiple=FALSE, FeatureLocForDistance='TSS')
+    ## why was this column ordering chosen? I would expect: chrom, start, end, strand, score", width....
+    annotatedPeaks = merge(myPeaks, annotatedPeaks,by.x = c('V6','V4','V5','V2','V3','V1'), 
+                           by.y = c('V6','V4','V5','start','end','seqnames'), all.x = TRUE)
+    writexl::write_xlsx(annotatedPeaks, peakAnnFile)
+  }
+}
+
 ##' @description write HTML report
-makeRmdReportWrapper <- function(outFolder, rmdFile, reportTitle){
+makeRmdReportWrapper <- function(outFolder, sampleNames, rmdFile, reportTitle, baseUrl){
   plotsPath <- paste0(outFolder,"/04_reporting/deeptools_heatmaps/")
   filesToPlot <- dir(path=plotsPath, pattern=".pdf$", recursive=TRUE)
-
-  makeRmdReport(filesToPlot=file.path(plotsPath, filesToPlot), rmdFile=rmdFile,
+  peaksPath <- paste0(outFolder,"/04_reporting/igv/")
+  annotatedPeaks <- dir(path=peaksPath, pattern=".xlsx$")
+  sequencePeaks <- dir(path=peaksPath, pattern="_peaks.fa$")
+  cd = getwd()
+  setwdNew(paste0(outFolder,"/04_reporting/"))
+  makeRmdReport(filesToPlot=file.path("./deeptools_heatmaps", filesToPlot),
+                annotatedPeaks=file.path("./igv", annotatedPeaks),
+                sequencePeaks=file.path("./igv", sequencePeaks),
+                baseUrl = paste0(baseUrl,"/04_reporting/igv/", sep="/"),
+                sampleNames = sampleNames,
+                rmdFile=rmdFile,
                 reportTitle=reportTitle, selfContained = TRUE)
+  setwd(cd)
 }

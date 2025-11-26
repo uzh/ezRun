@@ -489,7 +489,7 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
       }
       
       # Run CloudAzimuth - this handles everything automatically
-      scData <- CloudAzimuth(scData)
+      scData <- CloudAzimuth(scData, model_version = "v1")
       
       # Restore original seurat_clusters as default Idents (CloudAzimuth changes this)
       Idents(scData) <- scData$seurat_clusters
