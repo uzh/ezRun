@@ -24,6 +24,7 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   cmd = paste(
     "nextflow run -c", configFile,
     "nf-core/cutandrun",
+    "-ansi-log false",
      ## i/o
     "--input", nfSampleFile,
     "--outdir", outFolder,
