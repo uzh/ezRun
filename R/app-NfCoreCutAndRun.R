@@ -209,18 +209,16 @@ generateAnnotatedPeaks <- function(gtfFile, outFolder){
   names(gtf) = names_gtf
 
   bedFilePath <- paste0(outFolder,"/04_reporting/igv/")
-  bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE)
-  for (name in bedFileNames){
-    peakBedFile <- file.path(bedFilePath, name)
-    peakAnnFile = paste0(peakBedFile, ".xlsx") ## TODO suffix should only be .xlsx no .bed.xlsx
-    myPeaks = ezRead.table(peakBedFile, row.names = NULL, header = F)
-    ## we know the column names of the bed files; so we use set them instead of working with the anonymous V* variables
-    #colnames(myPeaks)[1:6] <- c("chrom", "start", "end", "name", "score", "strand") 
-    peaksRD = makeGRangesFromDataFrame(myPeaks, keep.extra.columns = TRUE, start.field = "V2", end.field = "V3", seqnames.field="V1")
+  bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE, full.names = TRUE)
+  for (bedFile in bedFileNames){
+    peakAnnFile = paste0(sub("\\.bed$", "", bedFile), ".xlsx")
+    myPeaks = ezRead.table(bedFile, row.names = NULL, header = F)
+    colnames(myPeaks)[1:6] <- c("chrom", "start", "end", "name", "score", "strand")
+    peaksRD = makeGRangesFromDataFrame(myPeaks, keep.extra.columns = TRUE, start.field = "start", end.field = "end", seqnames.field="chrom")
     annotatedPeaks <- annotatePeakInBatch(peaksRD, AnnotationData = gtf, output='nearestStart', multiple=FALSE, FeatureLocForDistance='TSS')
-    ## why was this column ordering chosen? I would expect: chrom, start, end, strand, score", width....
-    annotatedPeaks = merge(myPeaks, annotatedPeaks,by.x = c('V6','V4','V5','V2','V3','V1'), 
-                           by.y = c('V6','V4','V5','start','end','seqnames'), all.x = TRUE)
+    annotatedPeaks <- as.data.frame(annotatedPeaks)
+    colnames(annotatedPeaks)[10] <- "feature_start"
+    colnames(annotatedPeaks)[11] <- "feature_end"
     writexl::write_xlsx(annotatedPeaks, peakAnnFile)
   }
 }
