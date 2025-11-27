@@ -16,7 +16,7 @@ ezMethodONTwfAAVqc <- function(input = NA, output = NA, param = NA) {
   itr2Start= param$itr2Start
   itr2End= param$itr2End
   refHost = file.path(dirname(dirname(file.path('/srv/GT/reference/',param$refBuild))), 'Sequence/WholeGenomeFasta/genome.fa')
-  
+  opt = param$cmdOptions
   cmd = paste("nextflow run /srv/GT/software/epi2me-labs/wf-aav-qc/", 
               "-w", paste0(samplename,"_workspace"),
               "--fastq", sampledataset,
@@ -29,6 +29,7 @@ ezMethodONTwfAAVqc <- function(input = NA, output = NA, param = NA) {
               "--ref_rep_cap", refRepCap,
               "--ref_transgene_plasmid", refTrans,
               "--out_dir", samplename,
+	      opt,
               "-profile singularity"
               )
   ezSystem(cmd)
