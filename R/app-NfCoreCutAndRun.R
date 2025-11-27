@@ -22,7 +22,9 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   prepNFCoreEnv()
   configFile <- writeNextflowLimits(param)
   cmd = paste(
-    "nextflow run nf-core/cutandrun",
+    "nextflow run -c", configFile,
+    "nf-core/cutandrun",
+    "-ansi-log false",
      ## i/o
     "--input", nfSampleFile,
     "--outdir", outFolder,
@@ -45,7 +47,6 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
     "-work-dir work",
     "-profile apptainer",
     "-r", param$pipelineVersion,
-    "-c", configFile,
     param$cmdOptions
   )
   ezSystem(cmd)
