@@ -29,7 +29,7 @@ ezMethodJoinGenoTypesRNASeq <- function(input=NA, output=NA, param=NA){
     makeRmdReport(
         input=input,
         output = output, param = param, chromSizes=chromSizes, gt=gt,
-        rmdFile = "Mpileup.Rmd", reportTitle = '00index.html'
+        rmdFile = "Mpileup.Rmd", reportTitle = 'GATK Joint Genotyping RNA-Seq Report'
     )
     return("Success")
 }
