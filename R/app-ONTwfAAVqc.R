@@ -8,6 +8,7 @@ ezMethodONTwfAAVqc <- function(input = NA, output = NA, param = NA) {
   
   sampledataset = input$getFullPaths("Read1")
   samplename = input$getNames()
+  cores = param$cores
   refHelper = param$refHelper
   refRepCap = param$refRepCap
   refTrans= param$refTrans
@@ -19,6 +20,7 @@ ezMethodONTwfAAVqc <- function(input = NA, output = NA, param = NA) {
   opt = param$cmdOptions
   cmd = paste("nextflow run /srv/GT/software/epi2me-labs/wf-aav-qc/", 
               "-w", paste0(samplename,"_workspace"),
+              "--threads", cores,
               "--fastq", sampledataset,
               "--itr1_start", itr1Start,
               "--itr1_end", itr1End,
@@ -28,8 +30,8 @@ ezMethodONTwfAAVqc <- function(input = NA, output = NA, param = NA) {
 	      "--ref_host", refHost,
               "--ref_rep_cap", refRepCap,
               "--ref_transgene_plasmid", refTrans,
-              "--out_dir", samplename,
 	      opt,
+              "--out_dir", samplename,
               "-profile singularity"
               )
   ezSystem(cmd)
