@@ -94,13 +94,9 @@ posMarkers$p_val_adj[posMarkers$p_val_adj==0] <- min(posMarkers$p_val_adj[posMar
 
 ```{r seurat to spe}
 
-centroids <- scData[[names(scData@images)]]@boundaries$centroids
-  coords <- setNames(as.data.frame(centroids@coords), c("x", "y"))
+scData_spe <- Seurat_to_SPE(scData, scData[[names(scData@images)]]@boundaries$centroids@coords)
   
-  scData_spe <- Seurat_to_SPE(scData, as.matrix(coords))
-  
-  colData(scData_spe) <- colData(scData_spe)[
-    , setdiff(names(colData(scData_spe)), c("x","y")), drop = FALSE
+colData(scData_spe) <- colData(scData_spe)[, setdiff(names(colData(scData_spe)), c("x","y")), drop = FALSE
   ]
 
 ```
