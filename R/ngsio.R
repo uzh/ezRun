@@ -47,7 +47,7 @@ loadCountDataset <- function(input, param){
     stopifnot(identical(seqAnnoDFData$transcript_id, x[[identifier]]))
     
     x$gene_id <- seqAnnoDFData$gene_id
-    x <- select(x, -id) %>% group_by(gene_id) %>% 
+    x <- dplyr::select(x, -id) %>% group_by(gene_id) %>% 
       summarise_all(funs(sum))
     ## TODO: consider using rowsum()
   }

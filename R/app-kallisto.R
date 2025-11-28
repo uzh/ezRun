@@ -220,8 +220,9 @@ getKallistoReference = function(param){
   ezSystem(cmd)
   
   ## Run kallisto inspect to create transcripts.info file
-  inspectCmd = sprintf("kallisto inspect %s.idx > %s.info 2>&1", refBase, refBase)
-  ezSystem(inspectCmd)
+  # We skip this for now as it causes memory overflow
+  # inspectCmd = sprintf("kallisto inspect %s.idx > %s.info 2>&1", refBase, refBase)
+  # ezSystem(inspectCmd)
   
   ezWriteElapsed(job, "done")
   return(refBase)

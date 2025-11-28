@@ -113,13 +113,18 @@ EzAppSeuratVisiumHD <-
                       Type = "numeric",
                       DefaultValue = 0.8,
                       Description = "BANKSY lambda: spatial weighting parameter (0-1). Larger values (0.8) find spatial domains; smaller values (0.2) perform cell typing."
+                    ),
+                    Niche_resolution = ezFrame(
+                      Type = "numeric",
+                      DefaultValue = 0.5,
+                      Description = "Value of the Niche resolution parameter for BANKSY clustering, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."
                     )
                   )
                 }
               )
   )
 
-ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA, 
+ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA,
                                    htmlFile="00index.html"){
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Seurat Visium HD")))
@@ -130,8 +135,8 @@ ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA,
   library(future)
   library(BiocParallel)
   library(sf)
-  
-  
+
+
   if (param$cores > 1){
     BPPARAM <- MulticoreParam(workers = param$cores)
   } else {
