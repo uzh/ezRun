@@ -232,6 +232,9 @@ buildMultiConfigFile <- function(input, param, dirList) {
     annotation <- ezRead.table(file.path(refDir, 'star', 'geneInfo.tab'), row.names = NULL, skip = 1, header = FALSE)
     intersectionGeneIDs <- intersect(annotation$V1, probeInfo$gene_id)
     probeInfo <- probeInfo[probeInfo$gene_id %in% intersectionGeneIDs, ]
+    if(length(probeInfo$gene_name) == 0){
+        probeInfo$gene_name <- limma::strsplit2(probeInfo$probe_id,'\\|')[,2]
+    }
     intersectionGeneNames <- intersect(annotation$V2, probeInfo$gene_name)
     probeInfo <- probeInfo[probeInfo$gene_name %in% intersectionGeneNames, ]
     writeLines(headerSection, outputFile)
