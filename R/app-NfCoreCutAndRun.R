@@ -218,8 +218,7 @@ generateAnnotatedPeaks <- function(gtfFile, outFolder){
     peaksRD = makeGRangesFromDataFrame(myPeaks, keep.extra.columns = TRUE, start.field = "start", end.field = "end", seqnames.field="chrom")
     annotatedPeaks <- annotatePeakInBatch(peaksRD, AnnotationData = gtf, output='nearestStart', multiple=FALSE, FeatureLocForDistance='TSS')
     annotatedPeaks <- as.data.frame(annotatedPeaks)
-    colnames(annotatedPeaks)[10] <- "feature_start"
-    colnames(annotatedPeaks)[11] <- "feature_end"
+    annotatedPeaks <- annotatedPeaks %>% rename("feature_start" = "start_position" , "feature_end" = "end_position")
     writexl::write_xlsx(annotatedPeaks, peakAnnFile)
   }
 }
