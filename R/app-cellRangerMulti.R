@@ -237,6 +237,10 @@ buildMultiConfigFile <- function(input, param, dirList) {
     }
     intersectionGeneNames <- intersect(annotation$V2, probeInfo$gene_name)
     probeInfo <- probeInfo[probeInfo$gene_name %in% intersectionGeneNames, ]
+    myID_probes <- paste0(probeInfo$gene_name,'--', probeInfo$gene_id)
+    annotationIDs <- paste0(annotation$V2,'--', annotation$V1)
+    probeInfo <- probeInfo[match(annotationIDs[annotationIDs %in% myID_probes], myID_probes), ]
+    
     writeLines(headerSection, outputFile)
     ezWrite.table(probeInfo, outputFile, sep = ',', row.names = FALSE, append = TRUE)
     fileContents <- append(fileContents, sprintf("probe-set,%s", file.path(getwd(), outputFile)))
