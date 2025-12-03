@@ -51,14 +51,15 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   )
   ezSystem(cmd)
   ezSystem(paste('mv', configFile, outFolder))
+  baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("CutAndRun_Result"))
   generateFastaFromBedFiles(outFolder, refFile = param$ezRef["refFastaFile"])
   generateAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, outFolder)
-  jsonFile = writeCutAndRunIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"), bigwigRelPath = "/04_reporting/igv/",
-                      baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("CutAndRun_Result")))
+  jsonFile = writeCutAndRunIgvSession(param, outFolder, jsonFileName = paste0(outFolder, "/igv_session.json"),
+                                      bigwigRelPath = "/04_reporting/igv/", baseUrl)
   writeNfCoreIgvHtml(param, jsonFile, title = "NfCoreCutAndRun MultiSample Coverage Tracks", htmlTemplate = "templates/igvNfCoreTemplate.html", htmlFileName = paste0(outFolder, "/igv_session.html"))
   sampleNames <- paste(nfSampleInfo[["group"]], nfSampleInfo[["replicate"]], sep = "_R")
-  makeRmdReportWrapper(outFolder, sampleNames, rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun",
-                       baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("CutAndRun_Result")))
+  makeRmdReportWrapper(htmlPath = paste0(outFolder,"/04_reporting/"), rmdFile="NfCoreCutAndRun.Rmd", reportTitle="NfCoreCutAndRun",
+                       baseUrlPeaks = paste0(baseUrl,"/04_reporting/igv/", sep="/"), sampleNames)
 
   if(ezIsSpecified(param$keepBams)){
     keepBams <- param$keepBams
@@ -209,35 +210,24 @@ generateAnnotatedPeaks <- function(gtfFile, outFolder){
   names(gtf) = names_gtf
 
   bedFilePath <- paste0(outFolder,"/04_reporting/igv/")
-  bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE)
-  for (name in bedFileNames){
-    peakBedFile <- file.path(bedFilePath, name)
-    peakAnnFile = paste0(peakBedFile, ".xlsx") ## TODO suffix should only be .xlsx no .bed.xlsx
-    myPeaks = ezRead.table(peakBedFile, row.names = NULL, header = F)
-    ## we know the column names of the bed files; so we use set them instead of working with the anonymous V* variables
-    #colnames(myPeaks)[1:6] <- c("chrom", "start", "end", "name", "score", "strand") 
-    peaksRD = makeGRangesFromDataFrame(myPeaks, keep.extra.columns = TRUE, start.field = "V2", end.field = "V3", seqnames.field="V1")
+  bedFileNames <- dir(path=bedFilePath, pattern=".bed$", recursive=TRUE, full.names = TRUE)
+  for (bedFile in bedFileNames){
+    peakAnnFile = paste0(sub("\\.bed$", "", bedFile), ".xlsx")
+    myPeaks = ezRead.table(bedFile, row.names = NULL, header = F)
+    colnames(myPeaks)[1:6] <- c("chrom", "start", "end", "name", "score", "strand")
+    peaksRD = makeGRangesFromDataFrame(myPeaks, keep.extra.columns = TRUE, start.field = "start", end.field = "end", seqnames.field="chrom")
     annotatedPeaks <- annotatePeakInBatch(peaksRD, AnnotationData = gtf, output='nearestStart', multiple=FALSE, FeatureLocForDistance='TSS')
-    ## why was this column ordering chosen? I would expect: chrom, start, end, strand, score", width....
-    annotatedPeaks = merge(myPeaks, annotatedPeaks,by.x = c('V6','V4','V5','V2','V3','V1'), 
-                           by.y = c('V6','V4','V5','start','end','seqnames'), all.x = TRUE)
+    annotatedPeaks <- as.data.frame(annotatedPeaks)
+    annotatedPeaks <- annotatedPeaks %>% rename("feature_start" = "start_position" , "feature_end" = "end_position")
     writexl::write_xlsx(annotatedPeaks, peakAnnFile)
   }
 }
 
 ##' @description write HTML report
-makeRmdReportWrapper <- function(outFolder, sampleNames, rmdFile, reportTitle, baseUrl){
-  plotsPath <- paste0(outFolder,"/04_reporting/deeptools_heatmaps/")
-  filesToPlot <- dir(path=plotsPath, pattern=".pdf$", recursive=TRUE)
-  peaksPath <- paste0(outFolder,"/04_reporting/igv/")
-  annotatedPeaks <- dir(path=peaksPath, pattern=".xlsx$")
-  sequencePeaks <- dir(path=peaksPath, pattern="_peaks.fa$")
+makeRmdReportWrapper <- function(htmlPath, rmdFile, reportTitle, baseUrlPeaks, sampleNames){
   cd = getwd()
-  setwdNew(paste0(outFolder,"/04_reporting/"))
-  makeRmdReport(filesToPlot=file.path("./deeptools_heatmaps", filesToPlot),
-                annotatedPeaks=file.path("./igv", annotatedPeaks),
-                sequencePeaks=file.path("./igv", sequencePeaks),
-                baseUrl = paste0(baseUrl,"/04_reporting/igv/", sep="/"),
+  setwdNew(htmlPath)
+  makeRmdReport(baseUrlPeaks = baseUrlPeaks,
                 sampleNames = sampleNames,
                 rmdFile=rmdFile,
                 reportTitle=reportTitle, selfContained = TRUE)
