@@ -112,7 +112,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
       stopifnot(length(fastqFiles) == 2)
       sapply(fastqFiles, function(fqFile){
         cmd = paste0('wget -t 2 ', 'ftp://', fqFile)
-        
+        ezSystem(cmd)
       })
     } else {
       paired = FALSE
