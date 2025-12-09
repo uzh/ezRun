@@ -5,12 +5,25 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-ezMethodDiffAnalysisPeak <- function(input = NA, output = NA, param = NA){
+ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA){
     grouping <- input$getColumn(param$grouping)
     stopifnot(param$sampleGroup != param$refGroup)
+    grouping <- grouping[grouping %in% c(param$refGroup, param$sampleGroup)]
+    commonCols <- c("Geneid", "Chr", "Start", "End", "Strand", "Length")
 
     countFiles <- input$getFullPathsList("Count")
-    featureCounts <- loadCountFiles(countFiles, param, grouping)
+    featureCounts <- loadCountFiles(countFiles, grouping, commonCols)
+
+    dds <- generateDESeqDS(featureCounts, commonCols, grouping)
+    outDir <- file.path(basename(output$getColumn('Result')), 'diffpeak_analysis')
+    cd = getwd()
+    setwdNew(outDir)
+    makeRmdReport(
+      output = output, param = param, dds=dds, selfContained = TRUE,
+      rmdFile = "DiffPeakAnalysis.Rmd", htmlFile = "DifferentialPeakAnalysisReport.html",
+      reportTitle = 'Differential Peak Analysis', use.qs2 = TRUE
+    )
+    setwd(cd)
 }
 
 
@@ -30,8 +43,8 @@ EzAppDiffPeakAnalysis <-
     )
 
 ##' @description generate file with all counts for sampleGroup and refGroup
-loadCountFiles <- function(countFiles, param, grouping){
-  countFilesSubset <- countFiles[names(grouping)[grouping %in% c(param$refGroup, param$sampleGroup)]]
+loadCountFiles <- function(countFiles, grouping, commonCols){
+  countFilesSubset <- countFiles[names(grouping)]
 
   loadAllTables <- imap(countFilesSubset, function(file_i, listName) {
     group <- grouping[[listName]]
@@ -41,6 +54,32 @@ loadCountFiles <- function(countFiles, param, grouping){
       rename(!!new_col := matchCounts)
   })
 
-  reduce(loadAllTables, full_join, by = c("Geneid", "Chr", "Start", "End", "Strand", "Length"))
+  reduce(loadAllTables, full_join, by = commonCols)
 }
 
+##' @description generate DESeqDataSet from the counts table
+generateDESeqDS <- function(featureCounts, commonCols, grouping){
+  library(DESeq2)
+  countCols <- setdiff(colnames(featureCounts), commonCols)
+
+  countData <- featureCounts %>%
+    select(all_of(countCols)) %>%
+    as.data.frame()
+  countData <- round(countData)
+
+  colData <- ezFrame(
+    sample = countCols,
+    group  = sub("_REP.*", "", countCols),
+    replicate = sub(".*_REP", "", countCols),
+    row.names = countCols
+  )
+
+  dds <- DESeqDataSetFromMatrix(
+    countData = countData,
+    colData   = colData,
+    design    = ~ group
+  )
+  rowData(dds) <- featureCounts[, commonCols]
+  dds$Condition <- dds$group
+  dds
+}
