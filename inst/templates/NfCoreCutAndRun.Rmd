@@ -16,20 +16,57 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = TRUE, message = TRUE, knitr.table.format = "html")
+library(ezRun)
+library(kableExtra)
 ```
 
 ```{r input, include=FALSE}
-filesToPlot <- readRDS("filesToPlot.rds") 
+baseUrl <- readRDS("baseUrlPeaks.rds")
+sampleNames <- readRDS("sampleNames.rds")
 ```
 
-## Plots
+## Plots {.tabset}
+
+### Genes
 
 Here, we use a heatmap to visualize ...
 
-```{r heatmaps, results = "asis", echo=FALSE, out.width="100%", message=FALSE}
+```{r heatmaps_gene, results = "asis", echo=FALSE, out.width="100%", message=FALSE}
+filesToPlot <- dir(path="./deeptools_heatmaps/gene/", pattern=".pdf$", recursive=TRUE, full.names = TRUE)
 cat('<div style="display: flex; flex-wrap: wrap;">')
 for (pdf in filesToPlot){
     cat(sprintf('<div style="margin: 10px;"><embed src="%s" width="400px" height="500px"></div>', pdf))
 }
 cat('</div>')
 ```
+
+### Peaks
+
+Here, we use a heatmap to visualize ...
+
+```{r heatmaps_peaks, results = "asis", echo=FALSE, out.width="100%", message=FALSE}
+filesToPlot <- dir(path="./deeptools_heatmaps/peaks/", pattern=".pdf$", recursive=TRUE, full.names = TRUE)
+cat('<div style="display: flex; flex-wrap: wrap;">')
+for (pdf in filesToPlot){
+    cat(sprintf('<div style="margin: 10px;"><embed src="%s" width="400px" height="500px"></div>', pdf))
+}
+cat('</div>')
+```
+
+## Peaks annotation and sequences
+
+```{r peaks_links, results = "asis", echo=FALSE, out.width="100%", message=FALSE}
+
+annotatedPeaks <- dir(path="./igv/", pattern=".xlsx$")
+sequencePeaks <- dir(path="./igv/", pattern="_peaks.fa$")
+annotatedLinks <- sapply(sampleNames, function(x) annotatedPeaks[which(grepl(x, annotatedPeaks))])
+annotatedLinks <- lapply(annotatedLinks, function(x) if(identical(x, character(0))) "None" else paste0("<a href=", baseUrl, x, ">", x, "</a>"))
+
+sequenceLinks <- sapply(sampleNames, function(x) sequencePeaks[which(grepl(x, sequencePeaks))])
+sequenceLinks <- lapply(sequenceLinks, function(x) if(identical(x, character(0))) "None" else paste0("<a href=", baseUrl, x, ">", x, "</a>"))
+
+
+peaks <- ezFrame("Sample Name" = sampleNames, "Annotated Peaks" = as.character(annotatedLinks), "Sequence Peaks" = as.character(sequenceLinks))
+knitr::kable(peaks, format = "html", escape = FALSE) |> kable_styling("striped", full_width = F, position = "left")
+```
+
