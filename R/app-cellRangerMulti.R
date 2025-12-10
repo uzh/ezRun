@@ -325,8 +325,10 @@ buildMultiConfigFile <- function(input, param, dirList) {
     if(!("fixedRNA" %in% libraryTypes)){
       # Load multiplex barcode set and subset
       multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", param$MultiplexBarcodeSet), show_col_types = FALSE)
+      # Handle pipe-separated IDs for double-hashing (e.g., "B0301|B0304")
+      all_barcode_ids <- unique(unlist(strsplit(sampleMultiplexMapping$cmo_ids, "\\|")))
       multiplexBarcodeSet <- multiplexBarcodeSet %>%
-        filter(id %in% sampleMultiplexMapping$cmo_ids)
+        filter(id %in% all_barcode_ids)
       data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
       
       if (param$MultiplexingType == "antibody") {

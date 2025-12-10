@@ -155,8 +155,8 @@ ezMethodSeuratVisiumHD <- function(input=NA, output=NA, param=NA,
     dataDir <- input$getFullPaths("SpaceRangerDir")
     scData <- Load10X_Spatial(data.dir = dataDir, bin.size = "polygons")
   } else {
-    # Binned outputs: use standard approach with specific bin directory
-    dataDir <- file.path(input$getFullPaths("SpaceRangerDir"), param$binSize)
+    # Binned outputs: use ResultDir (sample root) since binned_outputs is a sibling of spatial/
+    dataDir <- file.path(input$getFullPaths("ResultDir"), param$binSize)
     scData <- Load10X_Spatial(data.dir = dataDir)
   }
   
