@@ -15,7 +15,7 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA){
     featureCounts <- loadCountFiles(countFiles, grouping, commonCols)
 
     dds <- generateDESeqDS(featureCounts, commonCols, grouping)
-    outDir <- file.path(basename(output$getColumn('Result')), 'diffpeak_analysis')
+    outDir <- file.path(basename(output$getColumn('ResultFolder')), 'diffpeak_analysis')
     cd = getwd()
     setwdNew(outDir)
     makeRmdReport(
