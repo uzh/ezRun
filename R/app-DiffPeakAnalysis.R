@@ -15,12 +15,12 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA){
     featureCounts <- loadCountFiles(countFiles, grouping, commonCols)
 
     dds <- generateDESeqDS(featureCounts, commonCols, grouping)
-    outDir <- file.path(basename(output$getColumn('ResultFolder')), 'diffpeak_analysis')
+    outDir <- file.path(basename(output$getColumn('ResultFolder')), paste0(param$sampleGroup, '--over--', param$refGroup))
     cd = getwd()
     setwdNew(outDir)
     makeRmdReport(
       output = output, param = param, dds=dds, selfContained = TRUE,
-      rmdFile = "DiffPeakAnalysis.Rmd", htmlFile = "DifferentialPeakAnalysisReport.html",
+      rmdFile = "DiffPeakAnalysis.Rmd", htmlFile = "00index.html",
       reportTitle = 'Differential Peak Analysis', use.qs2 = TRUE
     )
     setwd(cd)
