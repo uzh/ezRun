@@ -44,6 +44,7 @@ library(sf)
 library(Matrix)
 library(SpotSweeper)
 library(SpatialExperiment)
+library(spacexr) #labelling
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
@@ -2195,6 +2196,133 @@ if (!is.null(enrichRout)){
 ezKable(enrichrTable1, escape=FALSE, format="html", format.args=list())
 
 ```
+
+
+## Labelling
+
+```{r func labelling}
+# Function to prepare RCTD reference from Seurat object
+prepare_rctd_reference <- function(seurat_ref, 
+                                   cell_type_col = "author_cell_type") {
+  # Clean cell type names (replace special characters with underscores)
+  seurat_ref$cell_type_clean <- gsub("[^[:alnum:]_]", "_", seurat_ref[[cell_type_col, drop = TRUE]])
+
+  # Get counts matrix
+  counts <- GetAssayData(seurat_ref, assay = "Spatial", slot = "counts")
+
+  # Get cell types
+  cell_types <- factor(seurat_ref$cell_type_clean)
+  names(cell_types) <- colnames(seurat_ref)
+
+  # Create Reference object
+  reference <- Reference(counts, cell_types, n_max_cells = 2000)
+
+  return(reference)
+}
+
+# Function to prepare RCTD query from Xenium Seurat object
+prepare_rctd_query <- function(visium_obj) {
+  # Get counts and coordinates
+  counts <- GetAssayData(visium_obj, assay = "Spatial", slot = "counts")
+
+  # Get spatial coordinates
+  coords <- GetTissueCoordinates(visium_obj, which = "centroids")
+  coords <- as.data.frame(coords[, c("x", "y")])
+  rownames(coords) <- colnames(counts)
+
+  # Create SpatialRNA object
+  query <- SpatialRNA(coords, counts, nUMI = colSums(counts))
+
+  return(query)
+}
+
+# Function to run RCTD and annotate Seurat object
+run_rctd_annotation <- function(visium_obj, 
+                                reference, 
+                                sample_name, 
+                                output_dir) {
+  
+  cat("\n=== Running RCTD for", sample_name, "===\n")
+
+  # Prepare query
+  query <- prepare_rctd_query(visium_obj)
+
+  # Create RCTD object
+  rctd_obj <- create.RCTD(
+    spatialRNA = query,
+    reference = reference,
+    max_cores = 16, #param$rctd_max_cores
+    UMI_min = 20 #param$rctd_umi_min
+  )
+
+  # Run RCTD in doublet mode
+  cat("Running RCTD deconvolution...\n")
+  rctd_obj <- run.RCTD(rctd_obj, 
+                       doublet_mode = "doublet") #param$rctd_doublet_mode
+
+  # Normalize weights
+  norm_weights <- normalize_weights(rctd_obj@results$weights)
+
+  # Get top cell type for each cell
+  top_cell_type <- apply(norm_weights, 1, function(x) {
+    if (all(is.na(x)) || sum(x, na.rm = TRUE) == 0) {
+      return("unassigned")
+    }
+    names(which.max(x))
+  })
+
+  # Add annotations to Seurat object
+  # Ensure proper alignment by matching cell names
+  cell_names <- colnames(visium_obj)
+
+  # Create vectors aligned to Seurat object cells
+  predicted_celltypes <- rep("unassigned", length(cell_names))
+  names(predicted_celltypes) <- cell_names
+
+  # Match RCTD results to Seurat cells
+  matching_cells <- intersect(cell_names, names(top_cell_type))
+  predicted_celltypes[matching_cells] <- top_cell_type[matching_cells]
+
+  # Similarly for spot class
+  spot_classes <- rep("reject", length(cell_names))
+  names(spot_classes) <- cell_names
+  if (!is.null(rctd_obj@results$results_df$spot_class)) {
+    spot_class_vec <- rctd_obj@results$results_df$spot_class
+    matching_cells_spot <- intersect(cell_names, names(spot_class_vec))
+    spot_classes[matching_cells_spot] <- spot_class_vec[matching_cells_spot]
+  }
+
+  # Assign to Seurat object
+  visium_obj$predicted.celltype <- predicted_celltypes
+  visium_obj$rctd_spot_class <- spot_classes
+
+  # Add normalized weights as metadata
+  for (ct in colnames(norm_weights)) {
+    meta_col_name <- paste0("rctd_weight_", ct)
+    weight_vec <- rep(0, length(cell_names))
+    names(weight_vec) <- cell_names
+    matching_cells_weight <- intersect(cell_names, rownames(norm_weights))
+    weight_vec[matching_cells_weight] <- norm_weights[matching_cells_weight, ct]
+    visium_obj[[meta_col_name]] <- weight_vec
+  }
+
+  # Save RCTD results
+  rctd_file <- file.path(output_dir, paste0("rctd_results_", sample_name, ".rds"))
+  saveRDS(rctd_obj, rctd_file)
+  cat("RCTD results saved to:", rctd_file, "\n")
+
+  # Print summary
+  cat("\nAnnotation summary:\n")
+  print(table(visium_obj$predicted.celltype))
+
+  cat("\nSpot classification:\n")
+  print(table(visium_obj$rctd_spot_class))
+
+  return(visium_obj)
+}
+
+```
+
 
 ## Links
 
