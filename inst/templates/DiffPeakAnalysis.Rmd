@@ -15,7 +15,7 @@ editor_options:
 # {.tabset}
 `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-## Differential Peak Analysis
+## Differential Peak Analysis {.tabset}
 
 DESeq2 differential peak analysis performed across all possible pairwise comparisons. Peak counts were normalized using a variance-stabilizing transformation (VST) to mitigate the dependency of the variance on the mean expression level.
 
@@ -77,7 +77,7 @@ getResults <- function(dds, groupPair){
     as_tibble() ### |>
     ### left_join(peakAnno, by = "PeakID")
   
-  compname <- paste0(contrast[2], "_vs_" ,contrast[3])
+  compname <- paste0(contrast[2], "--vs--" ,contrast[3])
   
   res <- list()
   res[[compname]][['dds']] <- ml_dds
@@ -88,7 +88,7 @@ getResults <- function(dds, groupPair){
 
 ```{r utils}
 groupFormatter <- function(groupName){
-  str_replace(groupName, '_vs_', ' vs ')
+  str_replace(groupName, '--vs--', ' vs ')
 }
 ```
 
@@ -230,23 +230,48 @@ plot_heatmap <- function(res, groupName){
 }
 ```
 
-```{r display_results, results='asis', fig.width=15, fig.height=10}
+```{r prepare_results, include="false"}
 compMat <- getComparisonMatrix(dds)
 res <- list()
 curres <- getResults(dds=dds, groupPair=compMat[,1])
 groupName <- names(curres)
 res[groupName] <- curres
-
 pander::pandoc.p('')
 pander::pandoc.header(groupFormatter(groupName), level = 3)
 pander::pandoc.p('')
+```
 
+### PCA plot
+
+```{r display_pca, results='asis', fig.width=15, fig.height=10}
 p1 <- plot_pca(curres, groupName)
-p2 <- plot_volcano(curres, groupName)
-p3 <- plot_ma(curres, groupName)
-p4 <- plot_heatmap(curres, groupName)
-print((p1 + p2) / (p3 + p4))
+print(p1)
+```
 
+### DEG
+
+```{r display_deg, results='asis', fig.width=15, fig.height=10}
+p2 <- plot_volcano(curres, groupName)
+print(p2)
+```
+
+### MA Plot
+
+```{r display_ma, results='asis', fig.width=15, fig.height=10}
+p3 <- plot_ma(curres, groupName)
+print(p3)
+```
+
+### Heatmap
+
+```{r display_heatmap, results='asis', fig.width=15, fig.height=10}
+p4 <- plot_heatmap(curres, groupName)
+print(p4)
+```
+
+### Result table
+
+```{r display_table, results='asis', fig.width=15, fig.height=10}
 peak_tib <- make_peak_table(curres, groupName) |>
   filter(candidate) |>
   arrange(padj) |>
@@ -254,8 +279,6 @@ peak_tib <- make_peak_table(curres, groupName) |>
   head(1000)
 print(htmltools::tagList(ezInteractiveTableRmd(peak_tib, digits = 3)))
 # |> DT::formatSignif(c("baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"), digits=3)
-
-
 ## NBB: this dummy table triggers/forces rendering, otherwise no table will be displayed ¯\_(ツ)_/¯
 ezInteractiveTableRmd(data.frame())
 ```
