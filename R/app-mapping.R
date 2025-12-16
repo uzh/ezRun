@@ -380,7 +380,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   
   if(ezIsSpecified(param$barcodePattern) && param$barcodePattern!=''){ #Deduplicated based on UMI
       deDupBamFile <- sub('.bam', '_dedup.bam', basename(bamFile))
-      cmd <- paste0('umi_tools dedup --stdin=',basename(bamFile),' --stdout=', deDupBamFile,' --log=',basename(bamFile),'.log', ' --output-stats=',basename(bamFile),'.stats')
+      cmd <- paste0('umi_tools dedup --paired --stdin=',basename(bamFile),' --stdout=', deDupBamFile,' --log=',basename(bamFile),'.log', ' --output-stats=',basename(bamFile),'.stats')
       ezSystem(cmd)
       ezSystem(paste('mv', deDupBamFile, basename(bamFile)))
       ezSystem(paste('samtools index', basename(bamFile)))
