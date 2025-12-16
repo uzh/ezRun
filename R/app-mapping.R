@@ -302,8 +302,19 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       cmd <- paste0('umi_tools extract --stdin=',trimmedInput$getColumn("Read2"), ' --read2-in=',trimmedInput$getColumn("Read1"), 
                     ' --stdout=',markedFile_R2,' --read2-out=',markedFile_R1,' --bc-pattern=', param$barcodePattern)
       ezSystem(cmd)
+      
+      ###Run Fastp to trim the first 6 bases of markedFile_R2
+      ## paste command
+      cmd <- str_c("fastp -i", markedFile_R2, "-o", trimmedInput$getColumn("Read2"),
+          # general options
+          "--thread", param$cores,
+          # global trimming
+          paste("--trim_front1 6 --disable_quality_filtering --disable_length_filtering"),
+          "--compression", param$fastpCompression,
+          sep = " ")
+      ezSystem(cmd)
+      
       ezSystem(paste('mv', markedFile_R1, trimmedInput$getColumn("Read1")))
-      ezSystem(paste('mv', markedFile_R2, trimmedInput$getColumn("Read2")))
   }
   
   if (!str_detect(param$cmdOptions, "outSAMattributes")) {
