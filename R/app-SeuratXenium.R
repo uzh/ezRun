@@ -370,6 +370,10 @@ EzAppSeuratXenium <- setRefClass("EzAppSeuratXenium",
                                    Description = "BANKSY niche clustering resolution"),
         rctdReference = ezFrame(Type = "charVector", DefaultValue = rctd_refs[1],
                                 Description = "RCTD Reference to use"),
+        rctdFile = ezFrame(Type = "character", DefaultValue = "",
+                           Description = "Manual override: Full path to custom RCTD reference .rds file"),
+        rctdUMImin = ezFrame(Type = "numeric", DefaultValue = 100,
+                             Description = "Minimum UMI count for RCTD annotation"),
         computeSC = ezFrame(Type = "logical", DefaultValue = TRUE,
                             Description = "Compute Seurat Analysis")
       )
