@@ -1,0 +1,1374 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+output:
+  html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
+    includes:
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options:
+  chunk_output_type: inline
+---
+
+# {.tabset}
+
+## QC {.tabset}
+
+```{r setup, include=FALSE}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(ezRun)
+library(qs2)
+library(DT)
+library(pals)
+library(scales)
+library(stringr)
+library(kableExtra)
+library(readxl)
+library(viridis)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      knitr.table.format = "html")
+```
+
+```{r load_data}
+# Load pre-computed data
+scData <- qs_read("scData.qs2")
+param <- qs_read("param.qs2")
+
+# Load markers
+posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
+if (file.exists("posMarkersBanksy.xlsx")) {
+  posMarkersBanksy <- readxl::read_xlsx("posMarkersBanksy.xlsx")
+} else {
+  posMarkersBanksy <- data.frame()
+}
+
+# Process markers
+if (nrow(posMarkers) > 0) {
+  posMarkers$gene <- as.factor(posMarkers$gene)
+  clusterSet <- posMarkers$cluster |> as.character() |> as.integer() |>
+    unique() |> sort(na.last = TRUE)
+  if (any(is.na(clusterSet))) {
+    posMarkers$cluster <- as.factor(posMarkers$cluster)
+  } else {
+    posMarkers$cluster <- factor(posMarkers$cluster, levels = clusterSet)
+  }
+  posMarkers$p_val_adj[posMarkers$p_val_adj == 0] <-
+    min(posMarkers$p_val_adj[posMarkers$p_val_adj > 0])
+}
+
+# Get assay column names
+nCountCol <- grep("^nCount_Xenium", colnames(scData@meta.data), value = TRUE) |>
+  head(1)
+nFeatureCol <- grep("^nFeature_Xenium", colnames(scData@meta.data), value = TRUE) |>
+  head(1)
+
+# Polychrome palette
+cluster_colors <- unname(pals::polychrome())
+```
+
+### Overview
+
+**Sample:** `r paste(unique(scData$Sample), collapse = ", ")`
+
+**Total Cells:** `r format(ncol(scData), big.mark = ",")`
+
+**Total Genes:** `r nrow(scData)`
+
+**Assays:** `r paste(Assays(scData), collapse = ", ")`
+
+### Spatial QC {.tabset}
+
+Spatial distribution of key quality control metrics across the tissue.
+
+#### Transcript Counts
+
+```{r spatial_qc_counts, fig.width=14, fig.height=6}
+p1 <- ImageFeaturePlot(scData, features = nCountCol, max.cutoff = "q95", size = 1) +
+  ggtitle("Transcript Counts - Spatial") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+p2 <- FeaturePlot(scData, features = nCountCol, reduction = "umap",
+                  max.cutoff = "q95", raster = FALSE) +
+  coord_fixed() +
+  ggtitle("Transcript Counts - UMAP") +
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+(p1 + p2) + plot_layout(widths = c(1.2, 1))
+```
+
+#### Genes Detected
+
+```{r spatial_qc_features, fig.width=14, fig.height=6}
+p1 <- ImageFeaturePlot(scData, features = nFeatureCol, max.cutoff = "q95", size = 1) +
+  ggtitle("Genes Detected - Spatial") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+p2 <- FeaturePlot(scData, features = nFeatureCol, reduction = "umap",
+                  max.cutoff = "q95", raster = FALSE) +
+  coord_fixed() +
+  ggtitle("Genes Detected - UMAP") +
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+(p1 + p2) + plot_layout(widths = c(1.2, 1))
+```
+
+#### Blank Codeword Counts
+
+```{r spatial_qc_blank, fig.width=14, fig.height=6}
+if ("nCount_BlankCodeword" %in% colnames(scData@meta.data)) {
+  p1 <- ImageFeaturePlot(scData, features = "nCount_BlankCodeword",
+                         max.cutoff = "q95", size = 1) +
+    ggtitle("Blank Codeword - Spatial") +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+  p2 <- FeaturePlot(scData, features = "nCount_BlankCodeword", reduction = "umap",
+                    max.cutoff = "q95", raster = FALSE) +
+    coord_fixed() +
+    ggtitle("Blank Codeword - UMAP") +
+    theme_void() +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+  print((p1 + p2) + plot_layout(widths = c(1.2, 1)))
+} else {
+  cat("Blank codeword information not available in metadata.")
+}
+```
+
+#### Control Codeword Counts
+
+```{r spatial_qc_control_codeword, fig.width=14, fig.height=6}
+if ("nCount_ControlCodeword" %in% colnames(scData@meta.data)) {
+  p1 <- ImageFeaturePlot(scData, features = "nCount_ControlCodeword",
+                         max.cutoff = "q95", size = 1) +
+    ggtitle("Control Codeword - Spatial") +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+  p2 <- FeaturePlot(scData, features = "nCount_ControlCodeword", reduction = "umap",
+                    max.cutoff = "q95", raster = FALSE) +
+    coord_fixed() +
+    ggtitle("Control Codeword - UMAP") +
+    theme_void() +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+  print((p1 + p2) + plot_layout(widths = c(1.2, 1)))
+} else {
+  cat("Control codeword information not available in metadata.")
+}
+```
+
+#### Control Probe Counts
+
+```{r spatial_qc_control_probe, fig.width=14, fig.height=6}
+if ("nCount_ControlProbe" %in% colnames(scData@meta.data)) {
+  p1 <- ImageFeaturePlot(scData, features = "nCount_ControlProbe",
+                         max.cutoff = "q95", size = 1) +
+    ggtitle("Control Probe - Spatial") +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+  p2 <- FeaturePlot(scData, features = "nCount_ControlProbe", reduction = "umap",
+                    max.cutoff = "q95", raster = FALSE) +
+    coord_fixed() +
+    ggtitle("Control Probe - UMAP") +
+    theme_void() +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+  print((p1 + p2) + plot_layout(widths = c(1.2, 1)))
+} else {
+  cat("Control probe information not available in metadata.")
+}
+```
+
+### QC Histograms {.tabset}
+
+Distribution of transcript counts and genes detected across all cells.
+
+#### Transcript Distribution
+
+```{r hist_transcripts, fig.width=10, fig.height=5}
+ggplot(scData@meta.data, aes_string(x = nCountCol)) +
+  geom_histogram(bins = 50, fill = "steelblue", color = "white", alpha = 0.8) +
+  scale_x_log10(labels = label_number()) +
+  theme_minimal(base_size = 12) +
+  labs(title = "Distribution of Transcript Counts per Cell",
+       x = "Transcript Counts (log10 scale)", y = "Number of Cells") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+#### Gene Distribution
+
+```{r hist_genes, fig.width=10, fig.height=5}
+ggplot(scData@meta.data, aes_string(x = nFeatureCol)) +
+  geom_histogram(bins = 50, fill = "steelblue", color = "white", alpha = 0.8) +
+  scale_x_log10(labels = label_number()) +
+  theme_minimal(base_size = 12) +
+  labs(title = "Distribution of Genes Detected per Cell",
+       x = "Genes Detected (log10 scale)", y = "Number of Cells") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+### Cell Morphology {.tabset}
+
+Cell and nucleus area distributions (if available from segmentation).
+
+#### Cell Area
+
+```{r cell_area, fig.width=14, fig.height=6}
+# Check for cell area column
+cell_area_col <- grep("cell_area|CellArea", colnames(scData@meta.data),
+                      value = TRUE, ignore.case = TRUE) |> head(1)
+
+if (length(cell_area_col) > 0 && cell_area_col != "") {
+  # Reference cell sizes (area = π * (diameter/2)²)
+  # Lymphocyte: ~8μm diameter → ~50 μm²
+  # Monocyte: ~15μm diameter → ~177 μm²
+  # Macrophage: ~25μm diameter → ~491 μm²
+  # Large cell (neuron/giant): ~40μm diameter → ~1257 μm²
+  ref_sizes <- data.frame(
+    cell_type = c("Lymphocyte\n(~8μm)", "Monocyte\n(~15μm)",
+                  "Macrophage\n(~25μm)", "Large cell\n(~40μm)"),
+    area = c(50, 177, 491, 1257)
+  )
+
+  p1 <- ggplot(scData@meta.data, aes_string(x = cell_area_col)) +
+    geom_histogram(bins = 50, fill = "#9b59b6", color = "white", alpha = 0.8) +
+    geom_vline(data = ref_sizes, aes(xintercept = area),
+               linetype = "dashed", color = "red", alpha = 0.7) +
+    geom_text(data = ref_sizes, aes(x = area, y = Inf, label = cell_type),
+              vjust = 1.5, hjust = -0.1, size = 2.5, color = "red", angle = 0) +
+    theme_minimal(base_size = 12) +
+    labs(title = "Cell Area Distribution",
+         subtitle = "Red lines: typical cell type sizes",
+         x = expression(paste("Cell Area (", mu, m^2, ")")),
+         y = "Number of Cells") +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+  p2 <- ImageFeaturePlot(scData, features = cell_area_col, max.cutoff = "q95") +
+    ggtitle("Cell Area - Spatial") +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+  print(p1 + p2)
+} else {
+  cat("Cell area information not available in metadata.")
+}
+```
+
+#### Nucleus Area
+
+```{r nucleus_area, fig.width=10, fig.height=5}
+# Check for nucleus area column
+nucleus_area_col <- grep("nucleus_area|NucleusArea", colnames(scData@meta.data),
+                         value = TRUE, ignore.case = TRUE) |> head(1)
+
+if (length(nucleus_area_col) > 0 && nucleus_area_col != "") {
+  p1 <- ggplot(scData@meta.data, aes_string(x = nucleus_area_col)) +
+    geom_histogram(bins = 50, fill = "#e74c3c", color = "white", alpha = 0.8) +
+    theme_minimal(base_size = 12) +
+    labs(title = "Nucleus Area Distribution",
+         x = expression(paste("Nucleus Area (", mu, m^2, ")")),
+         y = "Number of Cells") +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+  p2 <- ImageFeaturePlot(scData, features = nucleus_area_col, max.cutoff = "q95") +
+    ggtitle("Nucleus Area Spatial") +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+  print(p1 + p2)
+} else {
+  cat("Nucleus area information not available in metadata.")
+}
+```
+
+#### Segmentation Method
+
+```{r segmentation_method, fig.width=10, fig.height=8}
+# Check for segmentation_method column (available in newer Xenium outputs)
+seg_col <- grep("segmentation_method", colnames(scData@meta.data),
+                value = TRUE, ignore.case = TRUE) |> head(1)
+
+if (length(seg_col) > 0 && seg_col != "") {
+  # Xenium segmentation colors matching 10x conventions:
+  # boundary stain = light red, interior = dark yellow/orange, nuclei = dark blue
+  seg_vals <- unique(scData@meta.data[[seg_col]])
+
+  # Build color map based on segmentation type patterns
+  color_map <- sapply(seg_vals, function(v) {
+    if (grepl("boundary", v, ignore.case = TRUE)) return("#FF9999")  # light red
+    if (grepl("interior", v, ignore.case = TRUE)) return("#DAA520")  # dark yellow/goldenrod
+    if (grepl("nucle", v, ignore.case = TRUE)) return("#000080")     # dark blue/navy
+    return("grey50")  # fallback for unknown types
+  })
+  names(color_map) <- seg_vals
+
+  ImageDimPlot(scData, fov = names(scData@images)[1], group.by = seg_col,
+               cols = color_map, size = 1) +
+    ggtitle("Segmentation Method") +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+    labs(fill = "Method")
+} else {
+  cat("Segmentation method information not available in metadata.")
+}
+```
+
+### Dimensionality reduction
+
+<details>
+  <summary>PCA and UMAP methodology</summary>
+
+```{r dimred_table}
+dimred_tbl <- tibble(
+  topic = character(),
+  summary = character()
+) |>
+  add_row(
+    topic = "Goal",
+    summary = "Reduce dimensions by compressing information from many genes into fewer components."
+  ) |>
+  add_row(
+    topic = "Benefits",
+    summary = "Computational efficiency, noise reduction, and visualization."
+  ) |>
+  add_row(
+    topic = "Method",
+    summary = "PCA for linear reduction, UMAP for non-linear visualization."
+  )
+
+ezKable(dimred_tbl)
+```
+</details>
+
+```{r pca_variance, fig.width=10, fig.height=5}
+if ("pca" %in% names(scData@reductions)) {
+  stdev <- scData[["pca"]]@stdev
+  n_use <- min(30, length(stdev))
+
+  var_pct <- (stdev^2) / sum(stdev^2) * 100
+  cum_pct <- cumsum(var_pct)
+
+  df <- data.frame(
+    PC = seq_along(stdev),
+    perc = var_pct,
+    cum = cum_pct,
+    used = seq_along(stdev) <= n_use
+  )
+
+  ggplot(df, aes(x = PC)) +
+    geom_col(aes(y = perc, fill = used), width = 0.7, show.legend = FALSE) +
+    scale_fill_manual(values = c(`TRUE` = "grey20", `FALSE` = "grey75")) +
+    geom_line(aes(y = cum / max(cum) * max(perc), group = 1),
+              linewidth = 0.5, color = "orange") +
+    geom_point(aes(y = cum / max(cum) * max(perc)), size = 1, color = "orange") +
+    geom_vline(xintercept = n_use, linetype = "dashed", color = "grey40") +
+    scale_y_continuous(
+      name = "Variance explained (%)",
+      sec.axis = sec_axis(~ . / max(df$perc) * 100, name = "Cumulative variance (%)")
+    ) +
+    labs(title = "PCA variance explained",
+         subtitle = paste0("PCs used: ", n_use, " | Cumulative: ",
+                           sprintf("%.2f%%", df$cum[n_use])),
+         x = NULL) +
+    theme_minimal(base_size = 9) +
+    theme(
+      text = element_text(face = "bold"),
+      axis.title.y.left = element_text(color = "grey20"),
+      axis.title.y.right = element_text(color = "orange"),
+      plot.title = element_text(hjust = 0.5),
+      panel.grid.minor = element_blank()
+    )
+}
+```
+
+## Clusters {.tabset}
+
+### Spatial + UMAP
+
+```{r clustering, fig.width=14, fig.height=7}
+n_clusters <- nlevels(Idents(scData))
+show_leg <- n_clusters <= 20
+
+Idents(scData) <- "seurat_clusters"
+
+# Spatial plot first
+p1 <- ImageDimPlot(scData, fov = names(scData@images)[1], group.by = "ident",
+                   axes = TRUE, cols = cluster_colors) +
+  ggtitle("Spatial Clusters") +
+  labs(fill = "Clusters") +
+  guides(fill = if (show_leg) guide_legend(title = "Clusters") else "none")
+
+# UMAP second with coord_fixed
+p2 <- DimPlot(scData, reduction = "umap", label = FALSE, pt.size = 0.5,
+              cols = cluster_colors) +
+  coord_fixed() +
+  labs(color = "Clusters") +
+  theme_void() +
+  guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
+  ggtitle("UMAP") +
+  theme(legend.position = "none")
+
+p2 <- Seurat::LabelClusters(
+  plot = p2,
+  id = "ident",
+  fontface = "bold",
+  box = TRUE,
+  repel = TRUE,
+  color = "white",
+  size = 4
+)
+
+print((p1 + p2) + plot_layout(nrow = 1, widths = c(1.2, 1), guides = if (show_leg) "collect" else "keep"))
+```
+
+`r paste("Resolution:", ifelse(!is.null(param$Cluster_resolution), param$Cluster_resolution, 0.5))`
+
+<details>
+  <summary>Clustering methodology</summary>
+
+```{r cluster_method}
+cluster_tbl <- tibble(
+  Step = character(),
+  Details = character()
+) |>
+  add_row(
+    Step = "Build KNN graph",
+    Details = "Each node = cell. Connect each cell to its k nearest neighbors in PCA space."
+  ) |>
+  add_row(
+    Step = "Community detection",
+    Details = "Apply Leiden/Louvain algorithm to find groups more connected internally."
+  ) |>
+  add_row(
+    Step = "Visualization",
+    Details = "Plot clusters on UMAP and in spatial context."
+  )
+
+ezKable(cluster_tbl)
+```
+</details>
+
+::: {.row}
+::: {.col-md-8}
+
+```{r cells_per_cluster, fig.width=10, fig.height=5}
+cellIdents <- scData@meta.data[, c("seurat_clusters", "Sample")]
+
+ggplot(cellIdents, aes(x = seurat_clusters, fill = Sample)) +
+  geom_bar(fill = "#93AECA") +
+  labs(title = "Cells per cluster",
+       x = NULL, y = "Cells") +
+  theme_minimal() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  theme(legend.position = "top",
+        legend.justification = "left",
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+:::
+::: {.col-md-4}
+
+```{r cells_table}
+df <- cellsProportion(scData, groupVar1 = "seurat_clusters", groupVar2 = "Sample")
+df <- df |> as.data.frame(check.names = FALSE, stringsAsFactors = FALSE) |>
+  dplyr::rename("Cluster" = "seurat_clusters")
+
+is_pct_col <- grepl("_fraction$", colnames(df))
+colnames(df) <- colnames(df) |> str_replace_all("_fraction$", " (%)")
+is_count_col <- !is_pct_col & colnames(df) != "Cluster"
+colnames(df)[is_count_col] <- colnames(df)[is_count_col] |> paste("(n)")
+
+ezInteractiveTableRmd(df, rowNames = FALSE, title = "Cells per cluster",
+                      filter = "none") |>
+  DT::formatPercentage(columns = is_pct_col, digits = 2)
+```
+
+:::
+:::
+
+### Cluster assessment
+
+<details>
+  <summary>Technical vs. biological clustering drivers</summary>
+
+```{r driver_qc}
+driver_qc_tbl <- tibble(
+  Item = character(),
+  Details = character()
+) |>
+  add_row(
+    Item = "Purpose",
+    Details = "Check whether clusters are driven by technical artifacts."
+  ) |>
+  add_row(
+    Item = "Potential confounders",
+    Details = "Library size (UMIs), genes detected."
+  ) |>
+  add_row(
+    Item = "Diagnostics",
+    Details = "Per-cluster box/violin plots for UMIs and genes."
+  )
+
+ezKable(driver_qc_tbl)
+```
+</details>
+
+```{r cluster_assessment, fig.height=10, fig.width=12}
+plot1 <- VlnPlot(scData, nCountCol, group.by = "seurat_clusters",
+                 pt.size = 0, raster = TRUE) +
+  ggtitle("Number of UMIs vs cluster") +
+  ylab(nCountCol) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none", axis.title.x = element_blank()) +
+  scale_y_log10(breaks = log_breaks(base = 10), labels = label_number())
+
+plot2 <- VlnPlot(scData, nFeatureCol, group.by = "seurat_clusters",
+                 pt.size = 0, raster = TRUE) +
+  ggtitle("Number of genes vs cluster") +
+  ylab(nFeatureCol) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none", axis.title.x = element_blank()) +
+  scale_y_log10(breaks = log_breaks(base = 10), labels = label_number())
+
+plot1 + plot2 + plot_layout(nrow = 2, ncol = 1)
+```
+
+### Cluster markers
+
+<details>
+  <summary>Positive marker detection</summary>
+
+```{r marker_method}
+marker_tbl <- tibble(
+  Step = character(),
+  Details = character()
+) |>
+  add_row(
+    Step = "Goal",
+    Details = "Identify genes significantly higher in a given cluster vs. all other cells."
+  ) |>
+  add_row(
+    Step = "Test",
+    Details = "Wilcoxon Rank Sum test (non-parametric, robust)."
+  ) |>
+  add_row(
+    Step = "Effect size filter",
+    Details = "Average log-fold change >= 0.25."
+  ) |>
+  add_row(
+    Step = "Significance",
+    Details = "Adjusted p-value < 0.05."
+  )
+
+ezKable(marker_tbl)
+```
+</details>
+
+```{r markers_table}
+if (nrow(posMarkers) > 0) {
+  ezInteractiveTableRmd(posMarkers, digits = 3, rowNames = FALSE)
+} else {
+  cat("No significant markers found.")
+}
+```
+
+### Marker plots
+
+```{r dotplot_setup}
+if (nrow(posMarkers) > 0) {
+  top5 <- posMarkers |>
+    group_by(cluster) |>
+    slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
+
+  genesToPlot <- unique(as.character(top5$gene))
+  # Seurat converts underscores to dashes in feature names
+  genesToPlot <- gsub("_", "-", genesToPlot)
+  genesToPlot <- intersect(genesToPlot, rownames(scData))
+}
+```
+
+#### DotPlot
+
+Visualization of the top 5 markers in each cluster.
+
+```{r dotplot, fig.width=15, fig.height=20, eval=nrow(posMarkers) > 0}
+DotPlot(scData, features = rev(genesToPlot)) +
+  coord_flip() +
+  scale_y_discrete(limits = as.character(sort(as.integer(levels(Idents(scData)))))) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+### EnrichR
+
+<details>
+  <summary>Cell type scoring (Enrichr)</summary>
+
+```{r enrichr_method}
+enrichr_tbl <- tibble(
+  Item = character(),
+  Details = character()
+) |>
+  add_row(
+    Item = "Goal",
+    Details = "Score clusters by cell-type/pathway activity via gene set enrichment."
+  ) |>
+  add_row(
+    Item = "Method",
+    Details = "Use Enrichr to perform over-representation analysis on marker genes."
+  )
+
+ezKable(enrichr_tbl)
+```
+</details>
+
+```{r enrichr_links, results='asis', eval=nrow(posMarkers) > 0}
+markersPerClusterTable <- c()
+for (eachCluster in levels(posMarkers$cluster)) {
+  markersPerCluster <- dplyr::filter(posMarkers, cluster == eachCluster) |>
+    dplyr::arrange(desc(avg_log2FC))
+  markersPerCluster <- head(markersPerCluster, min(nrow(markersPerCluster), 500))
+  markersPerClusterTable <- rbind(markersPerClusterTable, markersPerCluster)
+}
+
+genesPerCluster <- split(markersPerClusterTable$gene, markersPerClusterTable$cluster)
+
+jsCall <- paste0('enrich({list: "',
+                 sapply(genesPerCluster, paste, collapse = "\\n"),
+                 '", popup: true});')
+
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='",
+                       jsCall, "'>Open</a>")
+
+enrichrTable <- tibble(
+  Cluster = names(genesPerCluster),
+  "N posMarkers" = lengths(genesPerCluster),
+  "Enrichr link" = enrichrCalls
+)
+
+ezKable(enrichrTable, escape = FALSE, format = "html", format.args = list())
+```
+
+## Niches {.tabset}
+
+```{r check_banksy}
+has_banksy <- "banksy_cluster" %in% colnames(scData@meta.data)
+has_niche_genes <- FALSE  # Will be updated in niche_dotplot_setup if there are genes
+```
+
+### Spatial + UMAP
+
+```{r banksy_spatial, fig.width=14, fig.height=7, eval=has_banksy}
+Idents(scData) <- "banksy_cluster"
+
+n_clusters_banksy <- nlevels(Idents(scData))
+show_leg_banksy <- n_clusters_banksy <= 20
+
+# Spatial plot first
+p1 <- ImageDimPlot(scData, fov = names(scData@images)[1], group.by = "banksy_cluster",
+                   axes = TRUE, cols = cluster_colors) +
+  ggtitle("Spatial Niches") +
+  labs(fill = "Niches") +
+  guides(fill = if (show_leg_banksy) guide_legend(title = "Niches") else "none")
+
+# UMAP second with coord_fixed
+p2 <- DimPlot(scData, reduction = "umap", label = FALSE, pt.size = 0.5,
+              cols = cluster_colors) +
+  coord_fixed() +
+  labs(color = "Niches") +
+  theme_void() +
+  ggtitle("UMAP") +
+  theme(legend.position = "none")
+
+p2 <- Seurat::LabelClusters(
+  plot = p2,
+  id = "ident",
+  fontface = "bold",
+  box = TRUE,
+  repel = TRUE,
+  color = "white",
+  size = 4
+)
+
+print((p1 + p2) + plot_layout(nrow = 1, widths = c(1.2, 1), guides = if (show_leg_banksy) "collect" else "keep"))
+```
+
+`r if(has_banksy) paste("Lambda:", ifelse(!is.null(param$lambda), param$lambda, 0.8))`
+
+`r if(has_banksy) paste("Resolution:", ifelse(!is.null(param$Niche_resolution), param$Niche_resolution, 0.5))`
+
+<details>
+  <summary>BANKSY niche methodology</summary>
+
+```{r banksy_method, eval=has_banksy}
+banksy_tbl <- tibble(
+  Concept = character(),
+  Definition = character()
+) |>
+  add_row(
+    Concept = "Niche (BANKSY cluster)",
+    Definition = "Community of spatially adjacent cells with neighborhood-smoothed expression."
+  ) |>
+  add_row(
+    Concept = "k_geom",
+    Definition = "Local neighborhood size. Larger values yield larger domains."
+  ) |>
+  add_row(
+    Concept = "lambda",
+    Definition = "How strongly neighbors affect each cell's expression (0-1)."
+  )
+
+ezKable(banksy_tbl)
+```
+</details>
+
+```{r no_banksy, eval=!has_banksy}
+cat("BANKSY analysis was not performed or failed.")
+```
+
+::: {.row}
+::: {.col-md-8}
+
+```{r cells_per_niche, fig.width=10, fig.height=5, eval=has_banksy}
+nicheIdents <- scData@meta.data[, c("banksy_cluster", "Sample")]
+
+ggplot(nicheIdents, aes(x = banksy_cluster, fill = Sample)) +
+  geom_bar(fill = "#93AECA") +
+  labs(title = "Cells per niche",
+       x = NULL, y = "Cells") +
+  theme_minimal() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  theme(legend.position = "top",
+        legend.justification = "left",
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+:::
+::: {.col-md-4}
+
+```{r niche_table, eval=has_banksy}
+df_niche <- cellsProportion(scData, groupVar1 = "banksy_cluster", groupVar2 = "Sample")
+df_niche <- df_niche |> as.data.frame(check.names = FALSE, stringsAsFactors = FALSE) |>
+  dplyr::rename("Niche" = "banksy_cluster")
+
+is_pct_col_niche <- grepl("_fraction$", colnames(df_niche))
+colnames(df_niche) <- colnames(df_niche) |> str_replace_all("_fraction$", " (%)")
+is_count_col_niche <- !is_pct_col_niche & colnames(df_niche) != "Niche"
+colnames(df_niche)[is_count_col_niche] <- colnames(df_niche)[is_count_col_niche] |> paste("(n)")
+
+ezInteractiveTableRmd(df_niche, rowNames = FALSE, title = "Cells per niche",
+                      filter = "none") |>
+  DT::formatPercentage(columns = is_pct_col_niche, digits = 2)
+```
+
+:::
+:::
+
+### Niches assessment
+
+```{r niche_assessment, fig.height=10, fig.width=12, eval=has_banksy}
+plot1 <- VlnPlot(scData, nCountCol, group.by = "banksy_cluster",
+                 pt.size = 0, raster = TRUE) +
+  ggtitle("Number of UMIs vs niche") +
+  ylab(nCountCol) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none", axis.title.x = element_blank()) +
+  scale_y_log10(breaks = log_breaks(base = 10), labels = label_number())
+
+plot2 <- VlnPlot(scData, nFeatureCol, group.by = "banksy_cluster",
+                 pt.size = 0, raster = TRUE) +
+  ggtitle("Number of genes vs niche") +
+  ylab(nFeatureCol) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none", axis.title.x = element_blank()) +
+  scale_y_log10(breaks = log_breaks(base = 10), labels = label_number())
+
+plot1 + plot2 + plot_layout(nrow = 2, ncol = 1)
+```
+
+### Niches markers
+
+```{r niche_markers, eval=has_banksy && nrow(posMarkersBanksy) > 0}
+ezInteractiveTableRmd(posMarkersBanksy, digits = 3, rowNames = FALSE)
+```
+
+```{r no_niche_markers, eval=!has_banksy || nrow(posMarkersBanksy) == 0}
+cat("No BANKSY niche markers available.")
+```
+
+### Marker plots
+
+```{r niche_dotplot_setup, eval=has_banksy && nrow(posMarkersBanksy) > 0}
+top5_banksy <- posMarkersBanksy |>
+  group_by(cluster) |>
+  slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
+
+genesToPlot_banksy <- unique(as.character(top5_banksy$gene))
+# Seurat converts underscores to dashes in feature names
+genesToPlot_banksy <- gsub("_", "-", genesToPlot_banksy)
+genesToPlot_banksy <- intersect(genesToPlot_banksy, rownames(scData))
+
+# Flag for whether we have genes to plot
+has_niche_genes <- length(genesToPlot_banksy) > 0
+```
+
+```{r niche_dotplot, fig.width=15, fig.height=20, eval=has_banksy && nrow(posMarkersBanksy) > 0 && has_niche_genes}
+Idents(scData) <- "banksy_cluster"
+DotPlot(scData, features = rev(genesToPlot_banksy)) +
+  coord_flip() +
+  scale_y_discrete(limits = as.character(sort(as.integer(levels(Idents(scData)))))) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+```{r no_niche_genes, eval=has_banksy && nrow(posMarkersBanksy) > 0 && !has_niche_genes}
+cat("No matching genes found in the Seurat object for the niche marker dotplot.")
+```
+
+### EnrichR
+
+```{r enrichr_niches, results='asis', eval=has_banksy && nrow(posMarkersBanksy) > 0}
+# Get top markers per niche
+markersPerNicheTable <- posMarkersBanksy |>
+  dplyr::group_by(cluster) |>
+  dplyr::arrange(desc(avg_log2FC)) |>
+  dplyr::slice_head(n = 500) |>
+  dplyr::ungroup()
+
+genesPerNiche <- split(markersPerNicheTable$gene, markersPerNicheTable$cluster)
+
+jsCallNiche <- paste0('enrich({list: "',
+                      sapply(genesPerNiche, paste, collapse = "\\n"),
+                      '", popup: true});')
+
+enrichrCallsNiche <- paste0("<a href='javascript:void(0)' onClick='",
+                            jsCallNiche, "'>Open</a>")
+
+enrichrTableNiche <- tibble(
+  Niche = names(genesPerNiche),
+  "N posMarkers" = lengths(genesPerNiche),
+  "Enrichr link" = enrichrCallsNiche
+)
+
+ezKable(enrichrTableNiche, escape = FALSE, format = "html", format.args = list())
+```
+
+```{r no_enrichr_niches, eval=!has_banksy || nrow(posMarkersBanksy) == 0}
+cat("EnrichR analysis not available for niches (no BANKSY results or no markers).")
+```
+
+## Cell Type Annotation {.tabset}
+
+```{r check_annotation}
+# Check for RCTD annotation columns
+has_rctd <- "RCTD_Main" %in% colnames(scData@meta.data)
+has_spot_class <- "spot_class" %in% colnames(scData@meta.data)
+
+# Use RCTD_Main or predicted.celltype
+if (has_rctd) {
+  celltype_col <- "RCTD_Main"
+} else if ("predicted.celltype" %in% colnames(scData@meta.data)) {
+  celltype_col <- "predicted.celltype"
+} else {
+  celltype_col <- NULL
+}
+
+has_annotation <- !is.null(celltype_col)
+
+# Get RCTD reference information from param
+rctd_ref_name <- if (!is.null(param$rctdReference) && param$rctdReference != "" && param$rctdReference != "None") {
+  param$rctdReference
+} else {
+  NULL
+}
+
+rctd_ref_file <- if (!is.null(param$rctdFile) && param$rctdFile != "") {
+  param$rctdFile
+} else {
+  NULL
+}
+```
+
+```{r rctd_reference_info, eval=has_annotation && !is.null(rctd_ref_name), results='asis'}
+cat("**RCTD Reference:** ", rctd_ref_name, "\n\n", sep = "")
+if (!is.null(rctd_ref_file)) {
+  cat("**Reference File:** ", rctd_ref_file, "\n\n", sep = "")
+}
+# Show UMI_min threshold used
+umi_min_used <- ifelse(!is.null(param$rctdUMImin), param$rctdUMImin, 100)
+cat("**UMI_min Threshold:** ", umi_min_used, " (cells below this were not classified)\n\n", sep = "")
+cat("**Number of Cell Types:** ", length(unique(na.omit(scData@meta.data[[celltype_col]]))), "\n\n", sep = "")
+```
+
+### Cell Types
+
+```{r celltype_spatial, fig.width=14, fig.height=7, eval=has_annotation}
+# Spatial plot first
+p1 <- ImageDimPlot(scData, fov = names(scData@images)[1],
+                   group.by = celltype_col,
+                   axes = TRUE, cols = cluster_colors) +
+  ggtitle("Cell Types - Spatial") +
+  labs(fill = "Cell Type")
+
+# UMAP second with coord_fixed and bigger size
+p2 <- DimPlot(scData, group.by = celltype_col, cols = cluster_colors,
+              label = TRUE, repel = TRUE, pt.size = 0.8) +
+  coord_fixed() +
+  ggtitle("Cell Types - UMAP") +
+
+  theme_void() +
+  theme(legend.position = "none")
+
+(p1 + p2) + plot_layout(nrow = 1, widths = c(1.2, 1))
+```
+
+```{r no_annotation, eval=!has_annotation}
+cat("Cell type annotation was not performed. Select an RCTD reference to enable annotation.")
+```
+
+### Cell Type Proportions
+
+```{r celltype_barplot, fig.width=10, fig.height=8, eval=has_annotation}
+celltype_counts <- as.data.frame(table(scData@meta.data[[celltype_col]]))
+colnames(celltype_counts) <- c("CellType", "Count")
+# Sort by count descending - highest at top when using coord_flip
+celltype_counts <- celltype_counts[order(celltype_counts$Count, decreasing = FALSE), ]
+celltype_counts$CellType <- factor(celltype_counts$CellType,
+                                    levels = celltype_counts$CellType)
+
+n_types <- nrow(celltype_counts)
+colors_to_use <- cluster_colors[1:min(n_types, length(cluster_colors))]
+
+ggplot(celltype_counts, aes(x = CellType, y = Count, fill = CellType)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = colors_to_use) +
+  coord_flip() +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none",
+        axis.title.y = element_blank()) +
+  labs(title = "Cell Type Proportions", y = "Number of Cells") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)))
+```
+
+```{r celltype_table, eval=has_annotation}
+celltype_prop <- as.data.frame(table(scData@meta.data[[celltype_col]]))
+colnames(celltype_prop) <- c("CellType", "Count")
+celltype_prop <- celltype_prop[order(celltype_prop$Count, decreasing = TRUE), ]
+celltype_prop$Proportion <- celltype_prop$Count / sum(celltype_prop$Count)
+
+ezInteractiveTableRmd(celltype_prop, rowNames = FALSE,
+                      title = "Cell type proportions") |>
+  DT::formatPercentage(columns = "Proportion", digits = 2)
+```
+
+### Cell Type Markers
+
+```{r celltype_markers_compute, eval=has_annotation}
+# Compute markers for each cell type
+Idents(scData) <- celltype_col
+celltype_markers <- FindAllMarkers(scData, only.pos = TRUE,
+                                    min.pct = 0.25, logfc.threshold = 0.25,
+                                    verbose = FALSE)
+if (nrow(celltype_markers) > 0) {
+  celltype_markers$diff_pct <- abs(celltype_markers$pct.1 - celltype_markers$pct.2)
+}
+
+# Check for valid markers
+has_celltype_markers <- exists("celltype_markers") && nrow(celltype_markers) > 0
+```
+
+```{r celltype_markers_table, eval=has_annotation && has_celltype_markers}
+# Sort markers alphabetically by cluster (cell type)
+celltype_markers_sorted <- celltype_markers |>
+  dplyr::arrange(cluster, desc(avg_log2FC)) |>
+  dplyr::select(-diff_pct)
+
+ezInteractiveTableRmd(celltype_markers_sorted,
+                      rowNames = FALSE, title = "Cell type marker genes")
+```
+
+```{r no_celltype_markers, eval=has_annotation && !has_celltype_markers}
+cat("No significant cell type markers found.")
+```
+
+### Cell Type Marker Dotplot
+
+```{r celltype_dotplot_setup, eval=has_annotation && has_celltype_markers}
+top5_celltype <- celltype_markers |>
+  dplyr::group_by(cluster) |>
+  dplyr::arrange(desc(diff_pct)) |>
+  dplyr::slice_head(n = 5) |>
+  dplyr::ungroup() |>
+  # Sort by cluster (alphabetically) to match y-axis order in dotplot
+  dplyr::arrange(cluster, desc(diff_pct))
+
+genesToPlot_celltype <- unique(as.character(top5_celltype$gene))
+# Seurat converts underscores to dashes in feature names
+genesToPlot_celltype <- gsub("_", "-", genesToPlot_celltype)
+genesToPlot_celltype <- intersect(genesToPlot_celltype, rownames(scData))
+
+# Ensure unique gene names (in case of any edge cases)
+genesToPlot_celltype <- make.unique(genesToPlot_celltype)
+
+# Check if we have valid genes to plot
+has_genes_to_plot <- length(genesToPlot_celltype) > 0
+```
+
+```{r celltype_dotplot, fig.width=15, fig.height=12, eval=has_annotation && has_celltype_markers && has_genes_to_plot}
+# Create a cleaned cell type column to avoid row.names issues in DotPlot
+# Replace problematic characters (/, \, spaces) with underscores
+original_types <- as.character(scData@meta.data[[celltype_col]])
+cleaned_types <- gsub("[/\\\\]", "_", original_types)
+cleaned_types <- gsub("\\s+", "_", cleaned_types)
+cleaned_types <- make.names(cleaned_types)
+scData$celltype_clean <- factor(cleaned_types)
+
+# Set cleaned column as identity
+Idents(scData) <- "celltype_clean"
+
+tryCatch({
+  p <- DotPlot(scData, features = rev(genesToPlot_celltype), group.by = "celltype_clean") +
+    coord_flip() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+    labs(x = "Gene", y = "Cell Type")
+  print(p)
+}, error = function(e) {
+  # Fallback: try with fewer genes
+  tryCatch({
+    cat("Note: Using fewer markers due to plotting constraints.\n")
+    top_genes <- unique(head(genesToPlot_celltype, 20))
+    p <- DotPlot(scData, features = rev(top_genes), group.by = "celltype_clean") +
+      coord_flip() +
+      theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+      labs(x = "Gene", y = "Cell Type")
+    print(p)
+  }, error = function(e2) {
+    cat("Cell type marker dotplot could not be generated:", e2$message, "\n")
+    cat("This may be due to insufficient cells per cell type or gene expression issues.\n")
+  })
+})
+
+# Reset identity to original
+Idents(scData) <- celltype_col
+```
+
+```{r no_celltype_dotplot, eval=has_annotation && has_celltype_markers && !has_genes_to_plot}
+cat("No valid marker genes found for dotplot.")
+```
+
+### RCTD Classification {.tabset}
+
+<details>
+  <summary>RCTD classification definitions</summary>
+
+```{r rctd_class_definitions}
+rctd_def_tbl <- tibble::tibble(
+  Class = c("singlet", "doublet_certain", "doublet_uncertain", "reject"),
+  Definition = c(
+    "Cell confidently assigned to a single cell type. The best-fit cell type has a significantly higher likelihood than the second-best type.",
+    "Cell identified as containing two distinct cell types with high confidence. Both cell types have significant likelihood scores.",
+    "Cell potentially contains two cell types, but assignment confidence is lower. The second cell type likelihood is moderately elevated.",
+    "Cell could not be reliably classified. This occurs when: (1) no cell type fits well, (2) too few transcripts detected, or (3) the expression profile doesn't match any reference type."
+  ),
+  Color = c("#2ecc71 (green)", "#e74c3c (red)", "#f39c12 (orange)", "#95a5a6 (gray)")
+)
+
+ezKable(rctd_def_tbl)
+```
+
+**Note:** High proportions of singlets indicate good data quality and reference match. Doublets may indicate overlapping cells or spots spanning cell boundaries. Rejects warrant investigation - they may represent novel cell types not in the reference, dying cells, or technical artifacts.
+
+**Important:** Cells with NA classification were excluded by RCTD before analysis due to the `UMI_min` threshold (configurable, default: 100 UMIs). These are distinct from "reject" cells, which were processed but couldn't be confidently assigned.
+</details>
+
+#### Spatial Distribution
+
+```{r rctd_class_spatial, fig.width=10, fig.height=8, eval=has_spot_class}
+# Define RCTD class colors
+rctd_class_colors <- c("singlet" = "#2ecc71", "doublet_certain" = "#e74c3c",
+                       "doublet_uncertain" = "#f39c12", "reject" = "#95a5a6")
+
+ImageDimPlot(scData, fov = names(scData@images)[1], group.by = "spot_class",
+             axes = TRUE, cols = rctd_class_colors) +
+  ggtitle("RCTD Classification - Spatial") +
+  labs(fill = "RCTD Class")
+```
+
+```{r no_rctd_class, eval=!has_spot_class}
+cat("RCTD classification (spot_class) not available. Run RCTD annotation to generate.")
+```
+
+#### Class Proportions
+
+```{r rctd_class_barplot, fig.width=8, fig.height=5, eval=has_spot_class}
+rctd_class_colors <- c("singlet" = "#2ecc71", "doublet_certain" = "#e74c3c",
+                       "doublet_uncertain" = "#f39c12", "reject" = "#95a5a6")
+
+class_counts <- as.data.frame(table(scData$spot_class))
+colnames(class_counts) <- c("Class", "Count")
+class_counts <- class_counts[order(class_counts$Count, decreasing = TRUE), ]
+class_counts$Class <- factor(class_counts$Class, levels = class_counts$Class)
+class_counts$Proportion <- class_counts$Count / sum(class_counts$Count)
+
+ggplot(class_counts, aes(x = Class, y = Count, fill = Class)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = rctd_class_colors) +
+  geom_text(aes(label = paste0(round(Proportion * 100, 1), "%")),
+            vjust = -0.5, size = 4) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none") +
+  labs(title = "RCTD Classification Distribution",
+       x = "Classification", y = "Number of Cells") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))
+```
+
+```{r rctd_class_table, eval=has_spot_class}
+class_table <- as.data.frame(table(scData$spot_class))
+colnames(class_table) <- c("Class", "Count")
+class_table$Proportion <- class_table$Count / sum(class_table$Count)
+class_table <- class_table[order(class_table$Count, decreasing = TRUE), ]
+
+ezInteractiveTableRmd(class_table, rowNames = FALSE,
+                      title = "RCTD Classification Summary") |>
+  DT::formatPercentage(columns = "Proportion", digits = 2)
+```
+
+#### Unclassified Cells (NA)
+
+```{r rctd_na_analysis, eval=has_spot_class}
+# Check for NA values in spot_class and RCTD_Main
+na_spot_count <- sum(is.na(scData$spot_class))
+na_celltype_count <- sum(is.na(scData@meta.data[[celltype_col]]))
+
+if (na_spot_count > 0 || na_celltype_count > 0) {
+  cat("**Cells not classified by RCTD:** ", na_celltype_count, " of ", ncol(scData),
+      " (", round(na_celltype_count / ncol(scData) * 100, 1), "%)\n\n", sep = "")
+
+  # Analyze why cells weren't classified
+  na_cells <- colnames(scData)[is.na(scData@meta.data[[celltype_col]])]
+  classified_cells <- colnames(scData)[!is.na(scData@meta.data[[celltype_col]])]
+
+  if (length(na_cells) > 0 && length(classified_cells) > 0) {
+    # Compare QC metrics
+    na_counts <- median(scData$nCount_Xenium[na_cells])
+    valid_counts <- median(scData$nCount_Xenium[classified_cells])
+    na_features <- median(scData$nFeature_Xenium[na_cells])
+    valid_features <- median(scData$nFeature_Xenium[classified_cells])
+
+    comparison_df <- data.frame(
+      Metric = c("Median Transcripts", "Median Genes Detected"),
+      `NA Cells` = c(round(na_counts), round(na_features)),
+      `Classified Cells` = c(round(valid_counts), round(valid_features)),
+      check.names = FALSE
+    )
+
+    cat("**Comparison of classified vs unclassified cells:**\n\n")
+    ezKable(comparison_df)
+
+    umi_min_thresh <- ifelse(!is.null(param$rctdUMImin), param$rctdUMImin, 100)
+    cat("\n\n**Note:** RCTD excludes cells below the `UMI_min` threshold (", umi_min_thresh, " UMIs) ",
+        "as these have insufficient transcripts for reliable cell type assignment. ",
+        "Unclassified cells are retained in the dataset but shown as NA in cell type annotations.",
+        sep = "")
+  }
+} else {
+  cat("All cells were successfully classified by RCTD.")
+}
+```
+
+### Prediction Scores
+
+```{r prediction_scores_violin, fig.width=14, fig.height=6, eval=has_annotation}
+# Check for RCTD weight columns (max weight indicates confidence)
+weight_cols <- grep("^rctd\\.weight\\.", colnames(scData@meta.data), value = TRUE)
+
+if (length(weight_cols) > 0) {
+  # Calculate max weight per cell as prediction confidence
+  weight_matrix <- scData@meta.data[, weight_cols, drop = FALSE]
+  max_weights <- apply(weight_matrix, 1, max, na.rm = TRUE)
+  # Replace -Inf with NA (occurs when all weights are NA for a cell)
+  max_weights[is.infinite(max_weights)] <- NA
+  scData$rctd_max_weight <- max_weights
+
+  # Only plot if we have valid (non-NA) weights
+  valid_weights <- sum(!is.na(scData$rctd_max_weight))
+
+  if (valid_weights > 0) {
+    # Violin plot - full width
+    p1 <- VlnPlot(scData, features = "rctd_max_weight",
+                  group.by = celltype_col, pt.size = 0,
+                  cols = cluster_colors) +
+      ggtitle("RCTD Max Weight by Cell Type") +
+      ylab("Max Prediction Weight") +
+      theme_minimal(base_size = 12) +
+      theme(legend.position = "none",
+            axis.text.x = element_text(angle = 45, hjust = 1),
+            axis.title.x = element_blank())
+    print(p1)
+  } else {
+    cat("No valid RCTD prediction weights available for violin plot.")
+  }
+
+} else {
+  # Fallback to prediction.score.max if available
+  score_cols <- grep("prediction.score", colnames(scData@meta.data), value = TRUE)
+
+  if (length(score_cols) > 0 && "prediction.score.max" %in% score_cols) {
+    p1 <- VlnPlot(scData, features = "prediction.score.max",
+                  group.by = celltype_col, pt.size = 0,
+                  cols = cluster_colors) +
+      ggtitle("Prediction Score by Cell Type") +
+      theme_minimal(base_size = 12) +
+      theme(legend.position = "none",
+            axis.text.x = element_text(angle = 45, hjust = 1))
+    print(p1)
+  } else {
+    cat("Prediction scores/weights not available in metadata.")
+  }
+}
+```
+
+```{r prediction_scores_spatial, fig.width=14, fig.height=6, eval=has_annotation}
+# Check for RCTD weight columns again (variables from previous chunk may not persist)
+weight_cols_sp <- grep("^rctd\\.weight\\.", colnames(scData@meta.data), value = TRUE)
+
+# Spatial plot of prediction confidence
+if (length(weight_cols_sp) > 0 && "rctd_max_weight" %in% colnames(scData@meta.data)) {
+  valid_weights_sp <- sum(!is.na(scData$rctd_max_weight))
+
+  if (valid_weights_sp > 0) {
+    tryCatch({
+      # Replace NA with 0 for plotting (viridis scales don't handle NA well)
+      scData$rctd_max_weight_plot <- scData$rctd_max_weight
+      scData$rctd_max_weight_plot[is.na(scData$rctd_max_weight_plot)] <- 0
+
+      # Spatial plot
+      p1 <- ImageFeaturePlot(scData, features = "rctd_max_weight_plot",
+                             max.cutoff = "q95") +
+        scale_fill_gradientn(colors = viridis::plasma(100),
+                             limits = c(0, 1),
+                             name = "Max Weight") +
+        ggtitle("Prediction Confidence - Spatial") +
+        theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+      # UMAP companion
+      p2 <- FeaturePlot(scData, features = "rctd_max_weight_plot",
+                        reduction = "umap", max.cutoff = "q95", raster = FALSE) +
+        scale_color_gradientn(colors = viridis::plasma(100),
+                              limits = c(0, 1),
+                              name = "Max Weight") +
+        coord_fixed() +
+        ggtitle("Prediction Confidence - UMAP") +
+        theme_void() +
+        theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+      print((p1 + p2) + plot_layout(widths = c(1.2, 1)))
+
+      # Note about NA values
+      na_count <- sum(is.na(scData$rctd_max_weight))
+      if (na_count > 0) {
+        cat("\nNote:", na_count, "cells without RCTD weights shown as 0 (dark color).\n")
+      }
+    }, error = function(e) {
+      cat("Spatial prediction confidence plot not available:", e$message, "\n")
+    })
+  } else {
+    cat("No valid RCTD prediction weights available for spatial plot.")
+  }
+} else {
+  cat("RCTD prediction weights not found in metadata.")
+}
+```
+
+```{r prediction_scores_summary, eval=has_annotation}
+# Summary statistics
+if ("rctd_max_weight" %in% colnames(scData@meta.data)) {
+  valid_count <- sum(!is.na(scData$rctd_max_weight))
+  if (valid_count > 0) {
+    cat("Cells with valid prediction weights:", valid_count,
+        "of", ncol(scData), "total cells\n")
+    cat("Mean max weight:", round(mean(scData$rctd_max_weight, na.rm = TRUE), 3), "\n")
+    cat("Median max weight:", round(median(scData$rctd_max_weight, na.rm = TRUE), 3), "\n")
+  }
+}
+```
+
+## Links
+
+### Interactive Vitessce Explorer
+
+The link below will take you to an interactive Vitessce viewer with linked spatial, UMAP,
+and gene expression views. You can explore cell types, clusters, and marker genes interactively.
+
+[Vitessce Explorer](`r {relative_path <- sub(".*/srv/gstore/projects/", "", getwd()); paste0("https://fgcz-shiny.uzh.ch/app/exploreVitessceXenium/?data=", relative_path, "/scData.qs2")}`){target="_blank"}
+
+### Data files
+
+##### Positive markers of each cluster
+
+[posMarkers](posMarkers.xlsx)
+
+##### Positive markers of each BANKSY niche
+
+[posMarkersBanksy](posMarkersBanksy.xlsx)
+
+##### The final Seurat Object is [here](scData.qs2)
+
+### Xenium Explorer Import Files
+
+Download these CSV files to import annotations into Xenium Explorer:
+
+```{r xenium_explorer_links, results='asis'}
+# Check which files exist and create links
+cat("- [clusters_for_explorer.csv](clusters_for_explorer.csv) - Seurat clusters\n")
+
+if (file.exists("niches_for_explorer.csv")) {
+  cat("- [niches_for_explorer.csv](niches_for_explorer.csv) - BANKSY spatial niches\n")
+}
+
+if (file.exists("celltypes_for_explorer.csv")) {
+  cat("- [celltypes_for_explorer.csv](celltypes_for_explorer.csv) - RCTD cell type annotations\n")
+}
+```
+
+<details>
+  <summary>How to import into Xenium Explorer</summary>
+
+1. Download the CSV file(s) above
+2. Open your Xenium dataset in Xenium Explorer
+3. Go to: **File → Import → Cell Categories**
+4. Select the downloaded CSV file
+5. Cell annotations will appear as a new grouping option in the dropdown menu
+
+**Tip:** You can import multiple CSV files to compare different annotation methods!
+</details>
+
+## Parameters
+
+### Parameters used
+
+```{r parameters}
+param_list <- list(
+  "Min Counts" = ifelse(!is.null(param$minCounts), param$minCounts, 10),
+  "Min Features" = ifelse(!is.null(param$minFeatures), param$minFeatures, 5),
+  "Clustering Resolution" = ifelse(!is.null(param$Cluster_resolution), param$Cluster_resolution, 0.5),
+  "BANKSY Lambda" = ifelse(!is.null(param$lambda), param$lambda, 0.8),
+  "Niche Resolution" = ifelse(!is.null(param$Niche_resolution),
+                               param$Niche_resolution, 0.5)
+)
+
+ezListAsKable(param_list, col.names = c("Parameter", "Value"),
+              caption = "Parameters used")
+```
+
+## Session Information
+
+```{r session_info}
+format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+ezSessionInfo()
+```
