@@ -136,9 +136,10 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
           
           if (!is.null(ref_obj)) {
             # Prepare Query (SpatialRNA object)
-            # spacexr requires specific format. 
+            # spacexr requires specific format.
             # We extract counts from Seurat.
-            counts <- GetAssayData(sdata, assay = "Xenium", slot = "counts")
+            # Use layer instead of slot for Seurat v5 compatibility
+            counts <- GetAssayData(sdata, assay = "Xenium", layer = "counts")
             coords <- GetTissueCoordinates(sdata)
             
             # Ensure coords match counts columns
