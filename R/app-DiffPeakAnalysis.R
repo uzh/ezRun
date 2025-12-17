@@ -15,11 +15,14 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA){
     featureCounts <- loadCountFiles(countFiles, grouping, commonCols)
 
     dds <- generateDESeqDS(featureCounts, commonCols, grouping)
+    # Possible values for tool: chipseeker, chippeakanno, homer
+    # TOBE: extract this information from params.
+    peakAnno <- generateAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, fastaFile = param$ezRef@refFastaFile, peakFile = countFiles[[1]], tool = "chipseeker")
     outDir <- file.path(basename(output$getColumn('ResultFolder')), paste0(param$sampleGroup, '--over--', param$refGroup))
     cd = getwd()
     setwdNew(outDir)
     makeRmdReport(
-      output = output, param = param, dds=dds, selfContained = TRUE,
+      output = output, param = param, peakAnno = peakAnno, dds=dds, selfContained = TRUE,
       rmdFile = "DiffPeakAnalysis.Rmd", htmlFile = "00index.html",
       reportTitle = 'Differential Peak Analysis', use.qs2 = TRUE
     )
@@ -80,6 +83,78 @@ generateDESeqDS <- function(featureCounts, commonCols, grouping){
     design    = ~ group
   )
   rowData(dds) <- featureCounts[, commonCols]
+  rownames(dds) <- featureCounts$Geneid
   dds$Condition <- dds$group
   dds
+}
+
+
+##' @description generate peaks annotation file using the method specified with tool
+generateAnnotatedPeaks <- function(gtfFile, peakFile, fastaFile, tool){
+  switch (as.character(tool),
+          chippeakanno = {
+            library(ChIPpeakAnno)
+            library(GenomicRanges)
+            library(rtracklayer)
+            gtf <- rtracklayer::import(gtfFile)
+            if(grepl('gtf$',gtfFile)){
+              names_gtf = make.unique(gtf$'gene_id')
+            } else {
+              names_gtf = make.unique(gtf$'ID')
+            }
+            names(gtf) = names_gtf
+            myPeaks = ezRead.table(peakFile)
+            peaksRD = makeGRangesFromDataFrame(myPeaks, keep.extra.columns = TRUE, start.field = "Start", end.field = "End", seqnames.field="Chr")
+            annotChIPpeak <- annotatePeakInBatch(peaksRD, AnnotationData = gtf, output='nearestStart', multiple=FALSE, FeatureLocForDistance='TSS')
+            annotChIPpeak <- as.data.frame(annotChIPpeak)
+            annotChIPpeak <- annotChIPpeak %>% rename("feature_start" = "start_position" , "feature_end" = "end_position")
+            annotChIPpeak <- annotChIPpeak %>% rename("peakId" = "peak", "geneName" = "feature")
+            return(annotChIPpeak)
+          },
+          chipseeker = {
+            require(ChIPseeker)
+            library(GenomicRanges)
+            library(rtracklayer)
+            myTxDB <- txdbmaker::makeTxDbFromGFF(file=gtfFile, format='gtf')
+            gtf <- rtracklayer::import(gtfFile)
+            if(grepl('gtf$',gtfFile)){
+              names_gtf = make.unique(gtf$'gene_id')
+            } else {
+              names_gtf = make.unique(gtf$'ID')
+            }
+            names(gtf) = names_gtf
+            myPeaks = ezRead.table(peakFile)
+            myPeaks$peakId = rownames(myPeaks)
+            peaksRD = makeGRangesFromDataFrame(myPeaks, keep.extra.columns = TRUE, start.field = "Start", end.field = "End", seqnames.field="Chr")
+            annotChIPseeker <- annotatePeak(peaksRD, TxDb=myTxDB, tssRegion=c(-1000, 1000), verbose=FALSE)
+            annotChIPseeker <- data.frame(annotChIPseeker@anno)
+            keepColChIPSeeker <- c("seqnames", "peakId", "annotation", "geneId", "transcriptId", "distanceToTSS", "geneChr", "geneStart", "geneEnd", "geneLength", "geneStrand")
+            annotChIPseeker <- annotChIPseeker[,keepColChIPSeeker]
+            annotChIPseeker <- annotChIPseeker %>% rename("geneName" = "geneId")
+            return(annotChIPseeker)
+          },
+          homer = {
+            myPeaks <- ezRead.table(countFiles[[1]])
+            bedFileCols <- c("Chr", "Start", "End")
+            bedFile <- myPeaks[,bedFileCols]
+            bedFile$Names <- rownames(myPeaks)
+            bedFile$Score <- 0
+            bedFile$Strand <- myPeaks[["Strand"]]
+            bedFileName <- "peaks.bed"
+            write.table(bedFile, bedFileName, row.names = FALSE, col.names = FALSE, sep = "\t", quote = FALSE)
+            cmd = paste(
+              "annotatePeaks.pl",
+              bedFileName,
+              param$ezRef@refFastaFile,
+              "-gtf", gtfFile,
+              "-cpu 4",
+              "> annotatedPeaks.txt"
+            )
+            system(cmd)
+            annotHomer <- ezRead.table('annotatedPeaks.txt', row.names = NULL)
+            colnames(annotHomer)[1] <- 'peakId'
+            annotHomer <- annotHomer %>% rename("geneName" = "Gene Name")
+            return(annotHomer)
+          }
+  )
 }

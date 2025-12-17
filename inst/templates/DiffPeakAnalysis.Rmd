@@ -15,7 +15,7 @@ editor_options:
 # {.tabset}
 `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-## Differential Peak Analysis
+## Differential Peak Analysis {.tabset}
 
 DESeq2 differential peak analysis performed across all possible pairwise comparisons. Peak counts were normalized using a variance-stabilizing transformation (VST) to mitigate the dependency of the variance on the mean expression level.
 
@@ -47,9 +47,8 @@ library(kableExtra)
 ```
 
 ```{r load_data}
-# setwdNew('/scratch/test-nfcore/o35568_NfCoreAtacSeq_2025-06-18--13-21-07/peakRes/')
 dds <- qs2::qs_read('dds.qs2')
-### peakAnno <- qs2::qs_read('peakAnno.qs2')
+peakAnno <- qs2::qs_read('peakAnno.qs2')
 ```
 
 ```{r get_results}
@@ -57,36 +56,26 @@ getComparisonMatrix <- function(dds){
   conditions <- dds$Condition |> levels()
 
   compMat <- combn(conditions, 2)
-  compMat <- cbind(compMat, rbind(compMat[2,], compMat[1,])) ## full comparison
   colnames(compMat) <- paste0("pair", 1:ncol(compMat))
   rownames(compMat) <- c("group1", "group2")
 
-  ## set the order of comparisons -> reversed comparisons are adjacent
-  n <- ncol(compMat)/2
-  pairsOrder <- as.vector(rbind(paste0("pair", 1:n), paste0("pair", (n+1):(n*2))))
-  compMat <- compMat[, pairsOrder]
-  
   return(compMat)
 }
 
-#getResults <- function(dds, peakAnno, groupPair){  
-getResults <- function(dds, groupPair){  
-  ml_subset <- dds[, dds$Condition %in% groupPair]
-  ml_subset$Condition <- droplevels(ml_subset$Condition)
+getResults <- function(dds, peakAnno, groupPair){
+  ml_dds <- DESeq(dds)
   
-  ml_dds <- DESeq(ml_subset)
-  
-  ## alph. order: colData(ml_subset)$Condition |> levels()
+  ## alph. group: colData(ml_subset)$Condition |> levels()
   contrast <- c('group', unname(groupPair))
   ml_raw <- results(ml_dds, contrast = contrast)
   
   ml_res <-ml_raw |>
     as.data.frame() |>
-    rownames_to_column("PeakID") |>
-    as_tibble() ### |>
-    ### left_join(peakAnno, by = "PeakID")
+    rownames_to_column("peakId") |>
+    as_tibble() |>
+    left_join(peakAnno, by = "peakId")
   
-  compname <- paste0(contrast[2], "_vs_" ,contrast[3])
+  compname <- paste0(contrast[2], "--vs--" ,contrast[3])
   
   res <- list()
   res[[compname]][['dds']] <- ml_dds
@@ -97,7 +86,7 @@ getResults <- function(dds, groupPair){
 
 ```{r utils}
 groupFormatter <- function(groupName){
-  str_replace(groupName, '_vs_', ' vs ')
+  str_replace(groupName, '--vs--', ' vs ')
 }
 ```
 
@@ -121,8 +110,8 @@ plot_volcano <- function(res, groupName){
     filter(candidate) |> 
     group_by(direction) |> 
     slice_min(padj, n = 10) |> 
-    ungroup() ### |>
-    ### filter(!is.na(`Gene Name`))
+    ungroup() |>
+    filter(!is.na(`geneName`))
   
   ggplot(ml_res, aes(x = log2FoldChange, y = -log10(padj))) +
     ## no legend ...
@@ -143,7 +132,7 @@ plot_volcano <- function(res, groupName){
     ) +
     geom_vline(xintercept = c(-1, 1), linetype = "dashed", color = "black") +
     geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "black") +
-    ### geom_label_repel(data = top_genes, aes(label = `Gene Name`), color = "black", fill = "white", min.segment.length = 0, max.overlaps = Inf) + 
+    geom_label_repel(data = top_genes, aes(label = `geneName`), color = "black", fill = "white", min.segment.length = 0, max.overlaps = Inf) +
                      # label.padding = unit(0.2, "lines"), label.r = unit(0.1, "lines"), box.padding = 0.3, point.padding = 0.3 
     labs(x = expression(Log[2]~fold~change), y = expression(-Log[10]~Pvalue), title = paste('DEG -', groupFormatter(groupName))) +
     theme_bw() + theme(plot.title = element_text(hjust = 0.5))
@@ -198,7 +187,7 @@ plot_heatmap <- function(res, groupName){
   
   vsd <- vst(ml_dds, blind=FALSE)
   top_peaks <- order(ml_res$padj, na.last=TRUE)[1:1000]
-  mat <- assay(vsd)[top_peaks, ]
+  mat <-assay(vsd)[ml_res[top_peaks,][['peakId']],]
   rownames(mat) <- rownames(ml_res)[top_peaks]
   
   # Create annotation data frame
@@ -239,34 +228,53 @@ plot_heatmap <- function(res, groupName){
 }
 ```
 
-```{r display_results, results='asis', fig.width=15, fig.height=10}
+```{r prepare_results, include="false"}
 compMat <- getComparisonMatrix(dds)
-res <- list()
-for(i in 1:ncol(compMat)){
-  ### curres <- getResults(dds=dds, peakAnno=peakAnno, groupPair=compMat[,i])
-  curres <- getResults(dds=dds, groupPair=compMat[,i])
-  groupName <- names(curres)
-  res[groupName] <- curres
-  
-  pander::pandoc.p('')
-  pander::pandoc.header(groupFormatter(groupName), level = 3)
-  pander::pandoc.p('')
+curres <- getResults(dds=dds, peakAnno, groupPair=compMat[,1])
+groupName <- names(curres)
+pander::pandoc.p('')
+pander::pandoc.header(groupFormatter(groupName), level = 3)
+pander::pandoc.p('')
+```
 
-  p1 <- plot_pca(curres, groupName)
-  p2 <- plot_volcano(curres, groupName)
-  p3 <- plot_ma(curres, groupName)
-  p4 <- plot_heatmap(curres, groupName)
-  print((p1 + p2) / (p3 + p4))
+### PCA plot
 
-  peak_tib <- make_peak_table(curres, groupName) |>
-    filter(candidate) |>
-    arrange(padj) |>
-    #distinct(`Gene Name`, .keep_all = TRUE) |>
-    head(1000)
-  print(htmltools::tagList(ezInteractiveTableRmd(peak_tib, digits = 3)))
-  # |> DT::formatSignif(c("baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"), digits=3)
-}
+```{r display_pca, results='asis', fig.width=15, fig.height=10}
+p1 <- plot_pca(curres, groupName)
+print(p1)
+```
 
+### DEG
+
+```{r display_deg, results='asis', fig.width=15, fig.height=10}
+p2 <- plot_volcano(curres, groupName)
+print(p2)
+```
+
+### MA Plot
+
+```{r display_ma, results='asis', fig.width=15, fig.height=10}
+p3 <- plot_ma(curres, groupName)
+print(p3)
+```
+
+### Heatmap
+
+```{r display_heatmap, results='asis', fig.width=15, fig.height=10}
+p4 <- plot_heatmap(curres, groupName)
+print(p4)
+```
+
+### Result table
+
+```{r display_table, results='asis', fig.width=15, fig.height=10}
+peak_tib <- make_peak_table(curres, groupName) |>
+  filter(candidate) |>
+  arrange(padj) |>
+  distinct(`geneName`, .keep_all = TRUE) |>
+  head(1000)
+print(htmltools::tagList(ezInteractiveTableRmd(peak_tib, digits = 3)))
+# |> DT::formatSignif(c("baseMean", "log2FoldChange", "lfcSE", "stat", "pvalue", "padj"), digits=3)
 ## NBB: this dummy table triggers/forces rendering, otherwise no table will be displayed ¯\_(ツ)_/¯
 ezInteractiveTableRmd(data.frame())
 ```
