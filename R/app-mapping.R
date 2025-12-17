@@ -309,7 +309,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
           # general options
           "--thread", param$cores,
           # global trimming
-          paste("--trim_front1 6 --disable_quality_filtering --disable_length_filtering"),
+          paste("--trim_front1 6 --disable_quality_filtering --disable_length_filtering --disable_adapter_trimming"),
           "--compression", param$fastpCompression,
           sep = " ")
       ezSystem(cmd)
