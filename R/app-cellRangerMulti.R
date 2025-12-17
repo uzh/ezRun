@@ -252,8 +252,11 @@ buildMultiConfigFile <- function(input, param, dirList) {
     # add chemistry since it can result in an error otherwise (CellRanger 7.2)
     # TODO: Review down the line if this is necessary. Best case, we can remove
     # it to let CellRanger automatically choose the chemistry
-    chemistry <- ifelse(hasMult, "MFRP", "SFRP")
-    fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
+    # UPDATE 2025-12-16: Commented out to enable Flex v2 support (Cell Ranger 10.0+)
+    # Hardcoding MFRP forces Flex v1, preventing Flex v2 (A-A01 barcodes) from working.
+    # Cell Ranger 10.0 auto-detection correctly handles both v1 and v2.
+    # chemistry <- ifelse(hasMult, "MFRP", "SFRP")
+    # fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
     fileContents <- append(fileContents, c(""))
   }
   if (any(c("VDJ-T", "VDJ-B") %in% libraryTypes)) {
