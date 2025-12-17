@@ -90,34 +90,20 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
       sdata <- FindClusters(sdata, resolution = res, verbose = FALSE)
       
       # 7. RCTD Annotation
-      if (!is.null(param$rctdReference) && param$rctdReference != "" && param$rctdReference != "None") {
-        # Extract folder name (strip species annotation)
-        ref_folder <- sub(" \\([^)]+\\)$", "", param$rctdReference)
-        ref_dir <- file.path("/srv/GT/databases/RCTD_References", ref_folder)
+      # Check for manual override first (rctdFile takes precedence)
+      ref_path <- NULL
+      if (!is.null(param$rctdFile) && param$rctdFile != "") {
+        # Use manual override path directly
+        ref_path <- param$rctdFile
+        ezWrite(paste("Using manual RCTD reference:", ref_path), "log.txt", append = TRUE)
+      } else if (!is.null(param$rctdReference) && param$rctdReference != "" && param$rctdReference != "None") {
+        # Parse dropdown selection: "folder/file.rds (species tissue)" → "folder/file.rds"
+        ref_relative <- sub(" \\([^)]+\\)$", "", param$rctdReference)
+        ref_path <- file.path("/srv/GT/databases/RCTD_References", ref_relative)
+        ezWrite(paste("Using RCTD reference from dropdown:", ref_path), "log.txt", append = TRUE)
+      }
 
-        # Find reference file
-        if (dir.exists(ref_dir)) {
-          available_files <- list.files(ref_dir, pattern = "\\.rds$", full.names = FALSE)
-          ezWrite(paste("Available RCTD files in", ref_folder, ":",
-                        paste(available_files, collapse = ", ")), "log.txt", append = TRUE)
-
-          # Use specified file or first available
-          if (!is.null(param$rctdFile) && param$rctdFile != "" &&
-              param$rctdFile %in% available_files) {
-            ref_path <- file.path(ref_dir, param$rctdFile)
-          } else if (length(available_files) > 0) {
-            ref_path <- file.path(ref_dir, available_files[1])
-            ezWrite(paste("Using default file:", available_files[1]), "log.txt", append = TRUE)
-          } else {
-            ref_path <- NULL
-            ezWrite("No .rds files found in reference folder", "log.txt", append = TRUE)
-          }
-        } else {
-          ref_path <- NULL
-          ezWrite(paste("Reference folder not found:", ref_dir), "log.txt", append = TRUE)
-        }
-
-        if (!is.null(ref_path) && file.exists(ref_path)) {
+      if (!is.null(ref_path) && file.exists(ref_path)) {
           ezWrite(paste("Running RCTD with reference:", ref_path), "log.txt", append=TRUE)
           
           # Load Reference
@@ -210,8 +196,7 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
             }
           }
         }
-      }
-      
+
       seurat_objects[[sampleName]] <- sdata
       
     }, error = function(e) {
