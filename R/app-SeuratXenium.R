@@ -218,8 +218,12 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   # FGCZ apps typically produce one report.
   
   # Let's merge if > 1 sample
+  # Get clustering resolution (use param or default, since 'res' from loop may not exist)
+  cluster_res <- ifelse(is.null(param$Cluster_resolution), 0.5, param$Cluster_resolution)
+
   if (length(seurat_objects) > 1) {
-    scData <- merge(seurat_objects[[1]], y = seurat_objects[-1], add.cell.ids = names(seurat_objects))
+    # Note: cells are already renamed with sample prefix in the loop, don't add again
+    scData <- merge(seurat_objects[[1]], y = seurat_objects[-1])
     # Re-process merged object
     scData <- JoinLayers(scData)
     scData <- NormalizeData(scData, scale.factor = median(scData$nCount_Xenium))
@@ -228,7 +232,7 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
     scData <- RunPCA(scData)
     scData <- RunUMAP(scData, dims = 1:30)
     scData <- FindNeighbors(scData, dims = 1:30)
-    scData <- FindClusters(scData, resolution = res)
+    scData <- FindClusters(scData, resolution = cluster_res)
   } else {
     scData <- seurat_objects[[1]]
   }
@@ -251,7 +255,7 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
     niche_res <- ifelse(is.null(param$Niche_resolution), 0.5, param$Niche_resolution)
 
     scData <- RunBanksy(scData, lambda = lambda, assay = "Xenium",
-                        slot = "data", features = "variable", k_geom = 30,
+                        layer = "data", features = "variable", k_geom = 30,
                         verbose = FALSE)
     DefaultAssay(scData) <- "BANKSY"
     scData <- RunPCA(scData, assay = "BANKSY", reduction.name = "pca.banksy",
