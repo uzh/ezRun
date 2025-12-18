@@ -64,6 +64,7 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
       # Rename cells to avoid conflicts if merging later (though here we might analyze per sample or merge)
       sdata <- RenameCells(sdata, add.cell.id = sampleName)
       sdata$orig.ident <- sampleName
+      sdata$Sample <- sampleName  # For Rmd compatibility
       
       # 2. QC
       # Basic QC: Filter based on counts and features
