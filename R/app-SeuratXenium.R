@@ -125,13 +125,8 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
             # spacexr requires specific format.
             # We extract counts from Seurat.
             # Use layer instead of slot for Seurat v5 compatibility
-            ezWrite("DEBUG: Getting counts from Seurat...", "log.txt", append = TRUE)
             counts <- GetAssayData(sdata, assay = "Xenium", layer = "counts")
-            ezWrite(paste("DEBUG: counts class:", class(counts)[1], "dim:", paste(dim(counts), collapse="x")), "log.txt", append = TRUE)
-
-            ezWrite("DEBUG: Getting coordinates...", "log.txt", append = TRUE)
             coords <- GetTissueCoordinates(sdata)
-            ezWrite(paste("DEBUG: coords class:", class(coords), "dim:", paste(dim(coords), collapse="x"), "cols:", paste(colnames(coords), collapse=",")), "log.txt", append = TRUE)
 
             # Ensure coords match counts columns
             # Seurat v5 GetTissueCoordinates returns a dataframe with x, y (and maybe cell names as rownames)
@@ -152,24 +147,16 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
                }
                coords <- coords[, c("x", "y")]
             }
-            ezWrite(paste("DEBUG: coords after processing, dim:", paste(dim(coords), collapse="x")), "log.txt", append = TRUE)
 
             # Match cells
             common_cells <- intersect(colnames(counts), rownames(coords))
-            ezWrite(paste("DEBUG: common_cells:", length(common_cells)), "log.txt", append = TRUE)
-
             counts <- counts[, common_cells]
             coords <- coords[common_cells, ]
-            ezWrite(paste("DEBUG: after subsetting - counts dim:", paste(dim(counts), collapse="x"), "coords dim:", paste(dim(coords), collapse="x")), "log.txt", append = TRUE)
 
             # Create SpatialRNA object
-            ezWrite("DEBUG: Computing nUMI with colSums...", "log.txt", append = TRUE)
-            nUMI <- colSums(counts)
-            ezWrite(paste("DEBUG: nUMI length:", length(nUMI), "range:", min(nUMI), "-", max(nUMI)), "log.txt", append = TRUE)
-
-            ezWrite("DEBUG: Creating SpatialRNA object...", "log.txt", append = TRUE)
+            # Use Matrix::colSums explicitly - base::colSums fails on sparse matrices
+            nUMI <- Matrix::colSums(counts)
             query.puck <- SpatialRNA(coords, counts, nUMI)
-            ezWrite("DEBUG: SpatialRNA created successfully", "log.txt", append = TRUE)
             
             # Run RCTD
             # doublet_mode = 'doublet' is standard for RCTD, but 'full' is also option.
