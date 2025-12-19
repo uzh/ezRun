@@ -164,7 +164,9 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
       coords <- coords[common_cells, , drop = FALSE]
 
       # Create SpatialRNA object
-      query.puck <- SpatialRNA(coords, counts, colSums(counts))
+      # IMPORTANT: Use Matrix::colSums explicitly because base::colSums fails on sparse matrices
+      # when Matrix package is imported but not attached to search path
+      query.puck <- SpatialRNA(coords, counts, Matrix::colSums(counts))
 
       # Run RCTD
       umi_min <- ifelse(is.null(param$rctdUMImin), 100, as.numeric(param$rctdUMImin))
