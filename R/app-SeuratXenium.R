@@ -108,6 +108,10 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
     if (!is.null(ref_obj)) {
       # Prepare Query (SpatialRNA object)
       counts <- GetAssayData(sdata, assay = "Xenium", layer = "counts")
+      # Ensure counts is a proper sparse matrix (required for RCTD)
+      if (!inherits(counts, "dgCMatrix")) {
+        counts <- as(counts, "dgCMatrix")
+      }
       coords <- GetTissueCoordinates(sdata)
 
       # Ensure coords match counts columns
@@ -126,8 +130,8 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
 
       # Match cells
       common_cells <- intersect(colnames(counts), rownames(coords))
-      counts <- counts[, common_cells]
-      coords <- coords[common_cells, ]
+      counts <- counts[, common_cells, drop = FALSE]
+      coords <- coords[common_cells, , drop = FALSE]
 
       # Create SpatialRNA object
       query.puck <- SpatialRNA(coords, counts, colSums(counts))
