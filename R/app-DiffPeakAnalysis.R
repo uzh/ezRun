@@ -17,7 +17,7 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA){
     dds <- generateDESeqDS(featureCounts, commonCols, grouping)
     # Possible values for tool: chipseeker, chippeakanno, homer
     # TOBE: extract this information from params.
-    peakAnno <- generateAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, fastaFile = param$ezRef@refFastaFile, peakFile = countFiles[[1]], tool = "chipseeker")
+    peakAnno <- generateAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, fastaFile = param$ezRef@refFastaFile, peakFile = countFiles[[1]], tool = param$annotationMethod)
     outDir <- file.path(basename(output$getColumn('ResultFolder')), paste0(param$sampleGroup, '--over--', param$refGroup))
     cd = getwd()
     setwdNew(outDir)
@@ -41,6 +41,7 @@ EzAppDiffPeakAnalysis <-
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodDiffPeakAnalysis
         name <<- "EzAppDiffPeakAnalysis"
+        appDefaults <<- rbind(annotationMethod=ezFrame(Type="character", DefaultValue="chippeakanno", Description="peak annotation method"))  
       }
       )
     )
