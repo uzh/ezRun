@@ -15,9 +15,7 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA){
     featureCounts <- loadCountFiles(countFiles, grouping, commonCols)
 
     dds <- generateDESeqDS(featureCounts, commonCols, grouping)
-    # Possible values for tool: chipseeker, chippeakanno, homer
-    # TOBE: extract this information from params.
-    peakAnno <- generateAnnotatedPeaks(gtfFile = param$ezRef@refFeatureFile, fastaFile = param$ezRef@refFastaFile, peakFile = countFiles[[1]], tool = param$annotationMethod)
+    peakAnno <- annotateConsensusPeaks(gtfFile = param$ezRef@refFeatureFile, fastaFile = param$ezRef@refFastaFile, peakFile = countFiles[[1]], tool = param$annotationMethod)
     outDir <- file.path(basename(output$getColumn('ResultFolder')), paste0(param$sampleGroup, '--over--', param$refGroup))
     cd = getwd()
     setwdNew(outDir)
@@ -91,7 +89,7 @@ generateDESeqDS <- function(featureCounts, commonCols, grouping){
 
 
 ##' @description generate peaks annotation file using the method specified with tool
-generateAnnotatedPeaks <- function(gtfFile, peakFile, fastaFile, tool){
+annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool){
   switch (as.character(tool),
           chippeakanno = {
             library(ChIPpeakAnno)
