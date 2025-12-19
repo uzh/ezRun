@@ -16,7 +16,7 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA){
 
     dds <- generateDESeqDS(featureCounts, commonCols, grouping)
     peakAnno <- annotateConsensusPeaks(gtfFile = param$ezRef@refFeatureFile, fastaFile = param$ezRef@refFastaFile, peakFile = countFiles[[1]], tool = param$annotationMethod)
-    outDir <- file.path(basename(output$getColumn('ResultFolder')), paste0(param$sampleGroup, '--over--', param$refGroup))
+    outDir <- file.path(basename(output$getColumn('ResultFolder')))
     cd = getwd()
     setwdNew(outDir)
     makeRmdReport(
@@ -56,7 +56,7 @@ loadCountFiles <- function(countFiles, grouping, commonCols){
       rename(!!new_col := matchCounts)
   })
 
-  reduce(loadAllTables, full_join, by = commonCols)
+  purrr::reduce(loadAllTables, full_join, by = commonCols)
 }
 
 ##' @description generate DESeqDataSet from the counts table
