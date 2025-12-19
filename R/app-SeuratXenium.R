@@ -265,7 +265,8 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
 
   # Generate Vitessce-optimized Zarr for fast visualization
   # This enables <5 second load times in exploreVitessceXenium
-  if (isTRUE(param$generateVitessceZarr) || is.null(param$generateVitessceZarr)) {
+  # Disabled by default until fully tested
+  if (isTRUE(param$generateVitessceZarr) && !is.null(param$generateVitessceZarr)) {
     ezWrite("Generating Vitessce Zarr for fast visualization...", con = "log.txt", append = TRUE)
 
     tryCatch({
