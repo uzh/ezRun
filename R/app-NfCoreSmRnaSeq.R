@@ -33,8 +33,7 @@ ezMethodNfCoreSmRnaSeq <- function(input = NA, output = NA, param = NA) {
   )
   ezSystem(cmd)
   ezSystem(paste('mv', configFile, outFolder))
-  writePerSampleCountSmRnaFiles(nfSampleInfo, countDir=paste0(outFolder, "/mirna_quant/mirtop/"))
-
+  writePerSampleSmRnaCountFiles(nfSampleInfo, countDir=paste0(outFolder, "/mirna_quant/mirtop/"))
 
   return("Success")
 }

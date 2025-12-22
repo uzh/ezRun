@@ -232,8 +232,19 @@ buildMultiConfigFile <- function(input, param, dirList) {
     annotation <- ezRead.table(file.path(refDir, 'star', 'geneInfo.tab'), row.names = NULL, skip = 1, header = FALSE)
     intersectionGeneIDs <- intersect(annotation$V1, probeInfo$gene_id)
     probeInfo <- probeInfo[probeInfo$gene_id %in% intersectionGeneIDs, ]
-    intersectionGeneNames <- intersect(annotation$V2, probeInfo$gene_name)
-    probeInfo <- probeInfo[probeInfo$gene_name %in% intersectionGeneNames, ]
+    if(length(probeInfo$gene_name) == 0){
+        probeInfo_gene_name <- limma::strsplit2(probeInfo$probe_id,'\\|')[,2]
+    } else {
+        probeInfo_gene_name <- probeInfo$gene_name
+    }
+    intersectionGeneNames <- intersect(annotation$V2, probeInfo_gene_name)
+    probeInfo <- probeInfo[probeInfo_gene_name %in% intersectionGeneNames, ]
+    probeInfo_gene_name <- probeInfo_gene_name[probeInfo_gene_name %in% intersectionGeneNames]
+    myID_probes <- paste0(probeInfo_gene_name,'--', probeInfo$gene_id)
+    annotationIDs <- paste0(annotation$V2,'--', annotation$V1)
+    
+    probeInfo <- probeInfo[which(myID_probes %in% annotationIDs),]
+    
     writeLines(headerSection, outputFile)
     ezWrite.table(probeInfo, outputFile, sep = ',', row.names = FALSE, append = TRUE)
     fileContents <- append(fileContents, sprintf("probe-set,%s", file.path(getwd(), outputFile)))
@@ -241,8 +252,11 @@ buildMultiConfigFile <- function(input, param, dirList) {
     # add chemistry since it can result in an error otherwise (CellRanger 7.2)
     # TODO: Review down the line if this is necessary. Best case, we can remove
     # it to let CellRanger automatically choose the chemistry
-    chemistry <- ifelse(hasMult, "MFRP", "SFRP")
-    fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
+    # UPDATE 2025-12-16: Commented out to enable Flex v2 support (Cell Ranger 10.0+)
+    # Hardcoding MFRP forces Flex v1, preventing Flex v2 (A-A01 barcodes) from working.
+    # Cell Ranger 10.0 auto-detection correctly handles both v1 and v2.
+    # chemistry <- ifelse(hasMult, "MFRP", "SFRP")
+    # fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
     fileContents <- append(fileContents, c(""))
   }
   if (any(c("VDJ-T", "VDJ-B") %in% libraryTypes)) {
@@ -314,8 +328,10 @@ buildMultiConfigFile <- function(input, param, dirList) {
     if(!("fixedRNA" %in% libraryTypes)){
       # Load multiplex barcode set and subset
       multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", param$MultiplexBarcodeSet), show_col_types = FALSE)
+      # Handle pipe-separated IDs for double-hashing (e.g., "B0301|B0304")
+      all_barcode_ids <- unique(unlist(strsplit(sampleMultiplexMapping$cmo_ids, "\\|")))
       multiplexBarcodeSet <- multiplexBarcodeSet %>%
-        filter(id %in% sampleMultiplexMapping$cmo_ids)
+        filter(id %in% all_barcode_ids)
       data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
       
       if (param$MultiplexingType == "antibody") {
