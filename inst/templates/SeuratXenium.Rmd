@@ -267,6 +267,14 @@ nucleus_area_col <- grep("nucleus_area|NucleusArea", colnames(scData@meta.data),
                          value = TRUE, ignore.case = TRUE) |> head(1)
 
 if (length(nucleus_area_col) > 0 && nucleus_area_col != "") {
+  # Handle NAs in nucleus_area (cells without detected nuclei)
+  # ImageFeaturePlot fails completely if NAs are present
+  na_count <- sum(is.na(scData@meta.data[[nucleus_area_col]]))
+  if (na_count > 0) {
+    scData@meta.data[[nucleus_area_col]][is.na(scData@meta.data[[nucleus_area_col]])] <- 0
+    cat(paste0("Note: ", na_count, " cells had NA nucleus_area (no nucleus detected), set to 0.\n"))
+  }
+
   p1 <- ggplot(scData@meta.data, aes_string(x = nucleus_area_col)) +
     geom_histogram(bins = 50, fill = "#e74c3c", color = "white", alpha = 0.8) +
     theme_minimal(base_size = 12) +
@@ -276,7 +284,6 @@ if (length(nucleus_area_col) > 0 && nucleus_area_col != "") {
     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
   p2 <- ImageFeaturePlot(scData, features = nucleus_area_col, max.cutoff = "q95", size = 0.5) +
-    scale_fill_gradientn(colors = viridis::inferno(100), na.value = "grey50") +
     ggtitle("Nucleus Area - Spatial") +
     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
@@ -913,14 +920,21 @@ n_celltypes <- length(celltypes_unique)
 celltype_colors <- setNames(cluster_colors[1:min(n_celltypes, length(cluster_colors))],
                             celltypes_unique)
 
-# Spatial plot first - use consistent colors
+# Create truncated labels for legend (max 35 chars to prevent cutoff)
+truncate_label <- function(x, max_chars = 35) {
+  ifelse(nchar(x) > max_chars, paste0(substr(x, 1, max_chars - 3), "..."), x)
+}
+celltype_labels <- setNames(truncate_label(celltypes_unique), celltypes_unique)
+
+# Spatial plot first - use consistent colors with truncated legend labels
 p1 <- ImageDimPlot(scData, fov = names(scData@images)[1],
                    group.by = celltype_col,
                    axes = TRUE, size = 0.5, cols = celltype_colors) +
+  scale_fill_manual(values = celltype_colors, labels = celltype_labels) +
   ggtitle("Cell Types - Spatial") +
   labs(fill = "Cell Type") +
   theme(legend.position = "bottom",
-        legend.text = element_text(size = 8)) +
+        legend.text = element_text(size = 7)) +
   guides(fill = guide_legend(ncol = 4, override.aes = list(size = 3)))
 
 # UMAP second with coord_fixed - use same colors
@@ -950,20 +964,31 @@ if (!exists("celltype_colors")) {
                               celltypes_unique)
 }
 
+# Truncate long cell type names for display (reuse function if available)
+if (!exists("truncate_label")) {
+  truncate_label <- function(x, max_chars = 35) {
+    ifelse(nchar(x) > max_chars, paste0(substr(x, 1, max_chars - 3), "..."), x)
+  }
+}
+
 celltype_counts <- as.data.frame(table(scData@meta.data[[celltype_col]]))
 colnames(celltype_counts) <- c("CellType", "Count")
 # Sort by count descending - highest at top when using coord_flip
 celltype_counts <- celltype_counts[order(celltype_counts$Count, decreasing = FALSE), ]
+# Create truncated labels for y-axis
+celltype_counts$CellType_display <- truncate_label(as.character(celltype_counts$CellType))
 celltype_counts$CellType <- factor(celltype_counts$CellType,
                                     levels = celltype_counts$CellType)
 
 ggplot(celltype_counts, aes(x = CellType, y = Count, fill = CellType)) +
   geom_bar(stat = "identity") +
   scale_fill_manual(values = celltype_colors) +
+  scale_x_discrete(labels = setNames(celltype_counts$CellType_display, celltype_counts$CellType)) +
   coord_flip() +
   theme_minimal(base_size = 12) +
   theme(legend.position = "none",
-        axis.title.y = element_blank()) +
+        axis.title.y = element_blank(),
+        axis.text.y = element_text(size = 9)) +
   labs(title = "Cell Type Proportions", y = "Number of Cells") +
   scale_y_continuous(expand = expansion(mult = c(0, 0.05)))
 ```
@@ -1225,16 +1250,25 @@ if (length(weight_cols) > 0) {
   valid_weights <- sum(!is.na(scData$rctd_max_weight))
 
   if (valid_weights > 0) {
+    # Truncate long cell type names for x-axis (reuse function if available)
+    if (!exists("truncate_label")) {
+      truncate_label <- function(x, max_chars = 35) {
+        ifelse(nchar(x) > max_chars, paste0(substr(x, 1, max_chars - 3), "..."), x)
+      }
+    }
+    x_labels <- setNames(truncate_label(celltypes_unique), celltypes_unique)
+
     # Violin plot - full width with median bar
     p1 <- VlnPlot(scData, features = "rctd_max_weight",
                   group.by = celltype_col, pt.size = 0, cols = celltype_colors) +
+      scale_x_discrete(labels = x_labels) +
       stat_summary(fun = median, geom = "crossbar", width = 0.5,
                    color = "white", linewidth = 0.8) +
       ggtitle("RCTD Max Weight by Cell Type") +
       ylab("Max Prediction Weight") +
       theme_minimal(base_size = 12) +
       theme(legend.position = "none",
-            axis.text.x = element_text(angle = 45, hjust = 1),
+            axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
             axis.title.x = element_blank())
     print(p1)
   } else {
@@ -1246,14 +1280,23 @@ if (length(weight_cols) > 0) {
   score_cols <- grep("prediction.score", colnames(scData@meta.data), value = TRUE)
 
   if (length(score_cols) > 0 && "prediction.score.max" %in% score_cols) {
+    # Truncate long cell type names for x-axis
+    if (!exists("truncate_label")) {
+      truncate_label <- function(x, max_chars = 35) {
+        ifelse(nchar(x) > max_chars, paste0(substr(x, 1, max_chars - 3), "..."), x)
+      }
+    }
+    x_labels <- setNames(truncate_label(celltypes_unique), celltypes_unique)
+
     p1 <- VlnPlot(scData, features = "prediction.score.max",
                   group.by = celltype_col, pt.size = 0, cols = celltype_colors) +
+      scale_x_discrete(labels = x_labels) +
       stat_summary(fun = median, geom = "crossbar", width = 0.5,
                    color = "white", linewidth = 0.8) +
       ggtitle("Prediction Score by Cell Type") +
       theme_minimal(base_size = 12) +
       theme(legend.position = "none",
-            axis.text.x = element_text(angle = 45, hjust = 1))
+            axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
     print(p1)
   } else {
     cat("Prediction scores/weights not available in metadata.")
