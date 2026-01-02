@@ -276,8 +276,8 @@ if (length(nucleus_area_col) > 0 && nucleus_area_col != "") {
     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
   p2 <- ImageFeaturePlot(scData, features = nucleus_area_col, max.cutoff = "q95", size = 0.5) +
-    scale_fill_viridis_c(option = "inferno", na.value = "grey50") +
-    ggtitle("Nucleus Area Spatial") +
+    scale_fill_gradientn(colors = viridis::inferno(100), na.value = "grey50") +
+    ggtitle("Nucleus Area - Spatial") +
     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
   print(p1 + p2)
@@ -1016,11 +1016,16 @@ top5_celltype <- celltype_markers |>
   dplyr::group_by(cluster) |>
   dplyr::arrange(desc(diff_pct)) |>
   dplyr::slice_head(n = 5) |>
-  dplyr::ungroup() |>
-  # Sort by cluster (alphabetically) to match y-axis order in dotplot
-  dplyr::arrange(cluster, desc(diff_pct))
+  dplyr::ungroup()
 
-genesToPlot_celltype <- unique(as.character(top5_celltype$gene))
+# Build gene list ordered by alphabetically sorted cell types
+sorted_clusters <- sort(unique(as.character(top5_celltype$cluster)))
+genesToPlot_celltype <- character()
+for (ct in sorted_clusters) {
+  ct_genes <- top5_celltype$gene[top5_celltype$cluster == ct]
+  genesToPlot_celltype <- c(genesToPlot_celltype, setdiff(ct_genes, genesToPlot_celltype))
+}
+genesToPlot_celltype <- as.character(genesToPlot_celltype)
 # Seurat converts underscores to dashes in feature names
 genesToPlot_celltype <- gsub("_", "-", genesToPlot_celltype)
 genesToPlot_celltype <- intersect(genesToPlot_celltype, rownames(scData))
@@ -1197,6 +1202,14 @@ if (na_spot_count > 0 || na_celltype_count > 0) {
 ### Prediction Scores
 
 ```{r prediction_scores_violin, fig.width=14, fig.height=10, eval=has_annotation}
+# Recreate celltype_colors if not available from earlier chunk
+if (!exists("celltype_colors")) {
+  celltypes_unique <- sort(unique(na.omit(scData@meta.data[[celltype_col]])))
+  n_celltypes <- length(celltypes_unique)
+  celltype_colors <- setNames(cluster_colors[1:min(n_celltypes, length(cluster_colors))],
+                              celltypes_unique)
+}
+
 # Check for RCTD weight columns (max weight indicates confidence)
 weight_cols <- grep("^rctd\\.weight\\.", colnames(scData@meta.data), value = TRUE)
 
@@ -1214,7 +1227,7 @@ if (length(weight_cols) > 0) {
   if (valid_weights > 0) {
     # Violin plot - full width with median bar
     p1 <- VlnPlot(scData, features = "rctd_max_weight",
-                  group.by = celltype_col, pt.size = 0) +
+                  group.by = celltype_col, pt.size = 0, cols = celltype_colors) +
       stat_summary(fun = median, geom = "crossbar", width = 0.5,
                    color = "white", linewidth = 0.8) +
       ggtitle("RCTD Max Weight by Cell Type") +
@@ -1234,7 +1247,7 @@ if (length(weight_cols) > 0) {
 
   if (length(score_cols) > 0 && "prediction.score.max" %in% score_cols) {
     p1 <- VlnPlot(scData, features = "prediction.score.max",
-                  group.by = celltype_col, pt.size = 0) +
+                  group.by = celltype_col, pt.size = 0, cols = celltype_colors) +
       stat_summary(fun = median, geom = "crossbar", width = 0.5,
                    color = "white", linewidth = 0.8) +
       ggtitle("Prediction Score by Cell Type") +
