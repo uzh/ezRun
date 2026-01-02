@@ -88,7 +88,7 @@ Spatial distribution of key quality control metrics across the tissue.
 #### Transcript Counts
 
 ```{r spatial_qc_counts, fig.width=14, fig.height=6}
-p1 <- ImageFeaturePlot(scData, features = nCountCol, max.cutoff = "q95", size = 1) +
+p1 <- ImageFeaturePlot(scData, features = nCountCol, max.cutoff = "q95", size = 0.5) +
   ggtitle("Transcript Counts - Spatial") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
@@ -105,7 +105,7 @@ p2 <- FeaturePlot(scData, features = nCountCol, reduction = "umap",
 #### Genes Detected
 
 ```{r spatial_qc_features, fig.width=14, fig.height=6}
-p1 <- ImageFeaturePlot(scData, features = nFeatureCol, max.cutoff = "q95", size = 1) +
+p1 <- ImageFeaturePlot(scData, features = nFeatureCol, max.cutoff = "q95", size = 0.5) +
   ggtitle("Genes Detected - Spatial") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
@@ -124,7 +124,7 @@ p2 <- FeaturePlot(scData, features = nFeatureCol, reduction = "umap",
 ```{r spatial_qc_blank, fig.width=14, fig.height=6}
 if ("nCount_BlankCodeword" %in% colnames(scData@meta.data)) {
   p1 <- ImageFeaturePlot(scData, features = "nCount_BlankCodeword",
-                         max.cutoff = "q95", size = 1) +
+                         max.cutoff = "q95", size = 0.5) +
     ggtitle("Blank Codeword - Spatial") +
     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
@@ -146,7 +146,7 @@ if ("nCount_BlankCodeword" %in% colnames(scData@meta.data)) {
 ```{r spatial_qc_control_codeword, fig.width=14, fig.height=6}
 if ("nCount_ControlCodeword" %in% colnames(scData@meta.data)) {
   p1 <- ImageFeaturePlot(scData, features = "nCount_ControlCodeword",
-                         max.cutoff = "q95", size = 1) +
+                         max.cutoff = "q95", size = 0.5) +
     ggtitle("Control Codeword - Spatial") +
     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
@@ -168,7 +168,7 @@ if ("nCount_ControlCodeword" %in% colnames(scData@meta.data)) {
 ```{r spatial_qc_control_probe, fig.width=14, fig.height=6}
 if ("nCount_ControlProbe" %in% colnames(scData@meta.data)) {
   p1 <- ImageFeaturePlot(scData, features = "nCount_ControlProbe",
-                         max.cutoff = "q95", size = 1) +
+                         max.cutoff = "q95", size = 0.5) +
     ggtitle("Control Probe - Spatial") +
     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
@@ -249,7 +249,7 @@ if (length(cell_area_col) > 0 && cell_area_col != "") {
          y = "Number of Cells") +
     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
-  p2 <- ImageFeaturePlot(scData, features = cell_area_col, max.cutoff = "q95", size = 1) +
+  p2 <- ImageFeaturePlot(scData, features = cell_area_col, max.cutoff = "q95", size = 0.5) +
     ggtitle("Cell Area - Spatial") +
     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
@@ -275,7 +275,8 @@ if (length(nucleus_area_col) > 0 && nucleus_area_col != "") {
          y = "Number of Cells") +
     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
-  p2 <- ImageFeaturePlot(scData, features = nucleus_area_col, max.cutoff = "q95", size = 1) +
+  p2 <- ImageFeaturePlot(scData, features = nucleus_area_col, max.cutoff = "q95", size = 0.5) +
+    scale_fill_viridis_c(option = "inferno", na.value = "grey50") +
     ggtitle("Nucleus Area Spatial") +
     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 
@@ -307,7 +308,7 @@ if (length(seg_col) > 0 && seg_col != "") {
   names(color_map) <- seg_vals
 
   ImageDimPlot(scData, fov = names(scData@images)[1], group.by = seg_col,
-               cols = color_map, size = 1) +
+               cols = color_map, size = 0.5) +
     ggtitle("Segmentation Method") +
     theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
     labs(fill = "Method")
@@ -394,16 +395,15 @@ show_leg <- n_clusters <= 20
 
 Idents(scData) <- "seurat_clusters"
 
-# Spatial plot first
+# Spatial plot first - use Seurat default colors for consistency with VlnPlot
 p1 <- ImageDimPlot(scData, fov = names(scData@images)[1], group.by = "ident",
-                   axes = TRUE, cols = cluster_colors, size = 1) +
+                   axes = TRUE, size = 0.5) +
   ggtitle("Spatial Clusters") +
   labs(fill = "Clusters") +
   guides(fill = if (show_leg) guide_legend(title = "Clusters") else "none")
 
-# UMAP second with coord_fixed
-p2 <- DimPlot(scData, reduction = "umap", label = FALSE, pt.size = 0.5,
-              cols = cluster_colors) +
+# UMAP second with coord_fixed - use Seurat default colors for consistency
+p2 <- DimPlot(scData, reduction = "umap", label = FALSE, pt.size = 0.5) +
   coord_fixed() +
   labs(color = "Clusters") +
   theme_void() +
@@ -668,16 +668,15 @@ Idents(scData) <- "banksy_cluster"
 n_clusters_banksy <- nlevels(Idents(scData))
 show_leg_banksy <- n_clusters_banksy <= 20
 
-# Spatial plot first
+# Spatial plot first - use Seurat default colors for consistency
 p1 <- ImageDimPlot(scData, fov = names(scData@images)[1], group.by = "banksy_cluster",
-                   axes = TRUE, cols = cluster_colors, size = 1) +
+                   axes = TRUE, size = 0.5) +
   ggtitle("Spatial Niches") +
   labs(fill = "Niches") +
   guides(fill = if (show_leg_banksy) guide_legend(title = "Niches") else "none")
 
-# UMAP second with coord_fixed
-p2 <- DimPlot(scData, reduction = "umap", label = FALSE, pt.size = 0.5,
-              cols = cluster_colors) +
+# UMAP second with coord_fixed - use Seurat default colors for consistency
+p2 <- DimPlot(scData, reduction = "umap", label = FALSE, pt.size = 0.5) +
   coord_fixed() +
   labs(color = "Niches") +
   theme_void() +
@@ -907,21 +906,23 @@ cat("**Number of Cell Types:** ", length(unique(na.omit(scData@meta.data[[cellty
 
 ### Cell Types
 
-```{r celltype_spatial, fig.width=14, fig.height=7, eval=has_annotation}
-# Create named color vector for consistent coloring across plots
-celltypes <- sort(unique(na.omit(scData@meta.data[[celltype_col]])))
-celltype_colors <- setNames(cluster_colors[seq_along(celltypes)], celltypes)
+```{r celltype_spatial, fig.width=18, fig.height=10, eval=has_annotation}
+# Count cell types for legend handling
+n_celltypes <- length(unique(na.omit(scData@meta.data[[celltype_col]])))
 
-# Spatial plot first
+# Spatial plot first - use Seurat default colors
 p1 <- ImageDimPlot(scData, fov = names(scData@images)[1],
                    group.by = celltype_col,
-                   axes = TRUE, cols = celltype_colors, size = 1) +
+                   axes = TRUE, size = 0.5) +
   ggtitle("Cell Types - Spatial") +
-  labs(fill = "Cell Type")
+  labs(fill = "Cell Type") +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 8)) +
+  guides(fill = guide_legend(ncol = 4, override.aes = list(size = 3)))
 
-# UMAP second with coord_fixed and bigger size
-p2 <- DimPlot(scData, group.by = celltype_col, cols = celltype_colors,
-              label = TRUE, repel = TRUE, pt.size = 0.8) +
+# UMAP second with coord_fixed
+p2 <- DimPlot(scData, group.by = celltype_col,
+              label = TRUE, repel = TRUE, pt.size = 0.5, label.size = 3) +
   coord_fixed() +
   ggtitle("Cell Types - UMAP") +
   theme_void() +
@@ -944,10 +945,12 @@ celltype_counts <- celltype_counts[order(celltype_counts$Count, decreasing = FAL
 celltype_counts$CellType <- factor(celltype_counts$CellType,
                                     levels = celltype_counts$CellType)
 
-# Use same named color vector as spatial/UMAP plots for consistency
+n_types <- nrow(celltype_counts)
+colors_to_use <- cluster_colors[1:min(n_types, length(cluster_colors))]
+
 ggplot(celltype_counts, aes(x = CellType, y = Count, fill = CellType)) +
   geom_bar(stat = "identity") +
-  scale_fill_manual(values = celltype_colors) +
+  scale_fill_manual(values = colors_to_use) +
   coord_flip() +
   theme_minimal(base_size = 12) +
   theme(legend.position = "none",
@@ -1000,42 +1003,27 @@ cat("No significant cell type markers found.")
 ### Cell Type Marker Dotplot
 
 ```{r celltype_dotplot_setup, eval=has_annotation && has_celltype_markers}
-# Create cleaned cell type names that match the DotPlot x-axis order
-# This must match the transformation applied in celltype_dotplot chunk
-celltype_markers_ordered <- celltype_markers |>
-  dplyr::mutate(
-    cluster_clean = make.names(gsub("\\s+", "_", gsub("[/\\\\]", "_", as.character(cluster))))
-  )
-
-# Get top 5 markers per cell type, ordered by diff_pct
-top5_celltype <- celltype_markers_ordered |>
+top5_celltype <- celltype_markers |>
   dplyr::group_by(cluster) |>
   dplyr::arrange(desc(diff_pct)) |>
   dplyr::slice_head(n = 5) |>
-  dplyr::ungroup()
+  dplyr::ungroup() |>
+  # Sort by cluster (alphabetically) to match y-axis order in dotplot
+  dplyr::arrange(cluster, desc(diff_pct))
 
-# For genes appearing in multiple clusters, keep only the assignment with highest diff_pct
-# This ensures each gene is assigned to its most representative cluster
-top5_unique <- top5_celltype |>
-  dplyr::group_by(gene) |>
-  dplyr::slice_max(diff_pct, n = 1, with_ties = FALSE) |>
-  dplyr::ungroup()
-
-# Sort by CLEANED cluster names (alphabetically) to match DotPlot x-axis order
-# Then by diff_pct within each cluster for consistent gene ordering
-top5_unique <- top5_unique |>
-  dplyr::arrange(cluster_clean, desc(diff_pct))
-
-genesToPlot_celltype <- as.character(top5_unique$gene)
+genesToPlot_celltype <- unique(as.character(top5_celltype$gene))
 # Seurat converts underscores to dashes in feature names
 genesToPlot_celltype <- gsub("_", "-", genesToPlot_celltype)
 genesToPlot_celltype <- intersect(genesToPlot_celltype, rownames(scData))
+
+# Ensure unique gene names (in case of any edge cases)
+genesToPlot_celltype <- make.unique(genesToPlot_celltype)
 
 # Check if we have valid genes to plot
 has_genes_to_plot <- length(genesToPlot_celltype) > 0
 ```
 
-```{r celltype_dotplot, fig.width=15, fig.height=12, eval=has_annotation && has_celltype_markers && has_genes_to_plot}
+```{r celltype_dotplot, fig.width=15, fig.height=20, eval=has_annotation && has_celltype_markers && has_genes_to_plot}
 # Create a cleaned cell type column to avoid row.names issues in DotPlot
 # Replace problematic characters (/, \, spaces) with underscores
 original_types <- as.character(scData@meta.data[[celltype_col]])
@@ -1048,9 +1036,6 @@ scData$celltype_clean <- factor(cleaned_types)
 Idents(scData) <- "celltype_clean"
 
 tryCatch({
-  # Genes are ordered by cleaned cluster name to create diagonal pattern
-  # With coord_flip: genes on y-axis (bottom-to-top), cell types on x-axis (left-to-right)
-  # Reverse gene order so Astro genes appear at top, matching x-axis left-to-right order
   p <- DotPlot(scData, features = rev(genesToPlot_celltype), group.by = "celltype_clean") +
     coord_flip() +
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
@@ -1060,7 +1045,7 @@ tryCatch({
   # Fallback: try with fewer genes
   tryCatch({
     cat("Note: Using fewer markers due to plotting constraints.\n")
-    top_genes <- head(genesToPlot_celltype, 20)
+    top_genes <- unique(head(genesToPlot_celltype, 20))
     p <- DotPlot(scData, features = rev(top_genes), group.by = "celltype_clean") +
       coord_flip() +
       theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
@@ -1113,7 +1098,7 @@ rctd_class_colors <- c("singlet" = "#2ecc71", "doublet_certain" = "#e74c3c",
                        "doublet_uncertain" = "#f39c12", "reject" = "#95a5a6")
 
 ImageDimPlot(scData, fov = names(scData@images)[1], group.by = "spot_class",
-             axes = TRUE, cols = rctd_class_colors, size = 1) +
+             axes = TRUE, cols = rctd_class_colors, size = 0.5) +
   ggtitle("RCTD Classification - Spatial") +
   labs(fill = "RCTD Class")
 ```
@@ -1202,7 +1187,7 @@ if (na_spot_count > 0 || na_celltype_count > 0) {
 
 ### Prediction Scores
 
-```{r prediction_scores_violin, fig.width=14, fig.height=6, eval=has_annotation}
+```{r prediction_scores_violin, fig.width=14, fig.height=10, eval=has_annotation}
 # Check for RCTD weight columns (max weight indicates confidence)
 weight_cols <- grep("^rctd\\.weight\\.", colnames(scData@meta.data), value = TRUE)
 
@@ -1218,10 +1203,11 @@ if (length(weight_cols) > 0) {
   valid_weights <- sum(!is.na(scData$rctd_max_weight))
 
   if (valid_weights > 0) {
-    # Violin plot - full width
+    # Violin plot - full width with median bar
     p1 <- VlnPlot(scData, features = "rctd_max_weight",
-                  group.by = celltype_col, pt.size = 0,
-                  cols = cluster_colors) +
+                  group.by = celltype_col, pt.size = 0) +
+      stat_summary(fun = median, geom = "crossbar", width = 0.5,
+                   color = "white", linewidth = 0.8) +
       ggtitle("RCTD Max Weight by Cell Type") +
       ylab("Max Prediction Weight") +
       theme_minimal(base_size = 12) +
@@ -1239,8 +1225,9 @@ if (length(weight_cols) > 0) {
 
   if (length(score_cols) > 0 && "prediction.score.max" %in% score_cols) {
     p1 <- VlnPlot(scData, features = "prediction.score.max",
-                  group.by = celltype_col, pt.size = 0,
-                  cols = cluster_colors) +
+                  group.by = celltype_col, pt.size = 0) +
+      stat_summary(fun = median, geom = "crossbar", width = 0.5,
+                   color = "white", linewidth = 0.8) +
       ggtitle("Prediction Score by Cell Type") +
       theme_minimal(base_size = 12) +
       theme(legend.position = "none",
@@ -1268,7 +1255,7 @@ if (length(weight_cols_sp) > 0 && "rctd_max_weight" %in% colnames(scData@meta.da
 
       # Spatial plot
       p1 <- ImageFeaturePlot(scData, features = "rctd_max_weight_plot",
-                             max.cutoff = "q95", size = 1) +
+                             max.cutoff = "q95", size = 0.5) +
         scale_fill_gradientn(colors = viridis::plasma(100),
                              limits = c(0, 1),
                              name = "Max Weight") +

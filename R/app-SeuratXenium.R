@@ -32,16 +32,7 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   }
 
   # 1. Load Xenium Data
-  sdata <- tryCatch({
-    LoadXenium(data.dir = xeniumPath, fov = "fov")
-  }, error = function(e) {
-    stop(paste("Error loading Xenium data from", xeniumPath, ":", e$message,
-               "\nCheck that cells.zarr.zip, cell_feature_matrix/, exist."))
-  })
-
-  if (is.null(sdata) || ncol(sdata) == 0) {
-    stop(paste("LoadXenium returned empty object for path:", xeniumPath))
-  }
+  sdata <- LoadXenium(data.dir = xeniumPath, fov = "fov")
 
   # Load additional cell metadata not loaded by Seurat (cell_area, nucleus_area)
   cells_file <- file.path(xeniumPath, "cells.csv.gz")
@@ -71,41 +62,20 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   cells_after <- ncol(sdata)
   ezWrite(paste("Cells after QC:", cells_after, "/", cells_before), "log.txt", append = TRUE)
 
-  # Check if all cells were filtered out
-  if (cells_after == 0) {
-    stop(paste0("ERROR: All cells filtered out by QC thresholds (minCounts=", min_counts,
-                ", minFeatures=", min_features, "). Lower thresholds or check input data quality."))
-  }
-  if (cells_after < 50) {
-    warning(paste0("Only ", cells_after, " cells remain after QC. Results may be unreliable."))
-  }
-
   # 3. Normalization (Xenium-specific with median counts as scale factor)
-  scale_factor <- median(sdata$nCount_Xenium)
-  if (is.na(scale_factor) || scale_factor <= 0) {
-    warning("Invalid median count (", scale_factor, "), using default scale.factor=10000")
-    scale_factor <- 10000
-  }
-  sdata <- NormalizeData(sdata, scale.factor = scale_factor)
+  sdata <- NormalizeData(sdata, scale.factor = median(sdata$nCount_Xenium))
 
   # 4. Feature Selection & Scaling
-  max_features <- min(2000, nrow(sdata))
-  sdata <- FindVariableFeatures(sdata, selection.method = "vst", nfeatures = max_features)
+  sdata <- FindVariableFeatures(sdata, selection.method = "vst", nfeatures = 2000)
   sdata <- ScaleData(sdata)
 
   # 5. Dimension Reduction
   sdata <- RunPCA(sdata, verbose = FALSE)
-  # Use only available PCs (may be fewer than 30 for small datasets)
-  npcs_available <- ncol(Embeddings(sdata, "pca"))
-  dims_to_use <- min(30, npcs_available)
-  if (dims_to_use < 10) {
-    warning(paste0("Only ", dims_to_use, " PCs available. UMAP may be unreliable."))
-  }
-  sdata <- RunUMAP(sdata, dims = 1:dims_to_use, verbose = FALSE)
+  sdata <- RunUMAP(sdata, dims = 1:30, verbose = FALSE)
 
   # 6. Clustering
   res <- ifelse(is.null(param$Cluster_resolution), 0.5, as.numeric(param$Cluster_resolution))
-  sdata <- FindNeighbors(sdata, dims = 1:dims_to_use, verbose = FALSE)
+  sdata <- FindNeighbors(sdata, dims = 1:30, verbose = FALSE)
   sdata <- FindClusters(sdata, resolution = res, verbose = FALSE)
 
   # 7. RCTD Annotation
@@ -138,10 +108,6 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
     if (!is.null(ref_obj)) {
       # Prepare Query (SpatialRNA object)
       counts <- GetAssayData(sdata, assay = "Xenium", layer = "counts")
-      # Ensure counts is a proper sparse matrix (required for RCTD)
-      if (!inherits(counts, "dgCMatrix")) {
-        counts <- as(counts, "dgCMatrix")
-      }
       coords <- GetTissueCoordinates(sdata)
 
       # Ensure coords match counts columns
@@ -160,13 +126,11 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
 
       # Match cells
       common_cells <- intersect(colnames(counts), rownames(coords))
-      counts <- counts[, common_cells, drop = FALSE]
-      coords <- coords[common_cells, , drop = FALSE]
+      counts <- counts[, common_cells]
+      coords <- coords[common_cells, ]
 
       # Create SpatialRNA object
-      # IMPORTANT: Use Matrix::colSums explicitly because base::colSums fails on sparse matrices
-      # when Matrix package is imported but not attached to search path
-      query.puck <- SpatialRNA(coords, counts, Matrix::colSums(counts))
+      query.puck <- SpatialRNA(coords, counts, colSums(counts))
 
       # Run RCTD
       umi_min <- ifelse(is.null(param$rctdUMImin), 100, as.numeric(param$rctdUMImin))
@@ -175,39 +139,31 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
 
       # Extract results
       results <- myRCTD@results
+      norm_weights <- normalize_weights(results$weights)
 
-      # Validate RCTD results before processing
-      if (is.null(results$weights) || nrow(results$weights) == 0) {
-        warning("RCTD produced no cell type weights. Skipping annotation.")
-      } else {
-        norm_weights <- normalize_weights(results$weights)
+      # Add to Seurat metadata - Primary cell type assignment
+      max_type <- colnames(norm_weights)[max.col(norm_weights, ties.method = "first")]
+      names(max_type) <- rownames(norm_weights)
+      sdata <- AddMetaData(sdata, metadata = max_type, col.name = "RCTD_Main")
 
-        # Add to Seurat metadata - Primary cell type assignment
-        if (ncol(norm_weights) > 0 && nrow(norm_weights) > 0) {
-          max_type <- colnames(norm_weights)[max.col(norm_weights, ties.method = "first")]
-          names(max_type) <- rownames(norm_weights)
-          sdata <- AddMetaData(sdata, metadata = max_type, col.name = "RCTD_Main")
-
-          # Add normalized weights as metadata columns
-          weight_df <- as.data.frame(norm_weights)
-          colnames(weight_df) <- paste0("rctd.weight.", colnames(weight_df))
-          common_cells <- intersect(colnames(sdata), rownames(weight_df))
-          if (length(common_cells) > 0) {
-            for (wt_col in colnames(weight_df)) {
-              wt_vals <- weight_df[common_cells, wt_col]
-              names(wt_vals) <- common_cells
-              sdata <- AddMetaData(sdata, metadata = wt_vals, col.name = wt_col)
-            }
-          }
-
-          # Add doublet/singlet classification
-          if (!is.null(results$results_df)) {
-            sdata <- AddMetaData(sdata, metadata = results$results_df)
-          }
+      # Add normalized weights as metadata columns
+      weight_df <- as.data.frame(norm_weights)
+      colnames(weight_df) <- paste0("rctd.weight.", colnames(weight_df))
+      common_cells <- intersect(colnames(sdata), rownames(weight_df))
+      if (length(common_cells) > 0) {
+        for (wt_col in colnames(weight_df)) {
+          wt_vals <- weight_df[common_cells, wt_col]
+          names(wt_vals) <- common_cells
+          sdata <- AddMetaData(sdata, metadata = wt_vals, col.name = wt_col)
         }
-
-        ezWrite("RCTD annotation completed", "log.txt", append = TRUE)
       }
+
+      # Add doublet/singlet classification
+      if (!is.null(results$results_df)) {
+        sdata <- AddMetaData(sdata, metadata = results$results_df)
+      }
+
+      ezWrite("RCTD annotation completed", "log.txt", append = TRUE)
     }
   } else if (!is.null(ref_path)) {
     ezWrite(paste("RCTD reference not found:", ref_path), "log.txt", append = TRUE)
@@ -219,21 +175,8 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   # Pre-compute cluster markers
   ezWrite("Computing cluster markers...", "log.txt", append = TRUE)
   Idents(scData) <- "seurat_clusters"
-  n_clusters <- length(levels(Idents(scData)))
-
-  if (n_clusters < 2) {
-    warning(paste("Only", n_clusters, "cluster found. Cannot compute differential markers."))
-    posMarkers <- data.frame()
-  } else {
-    posMarkers <- tryCatch({
-      FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
-                     logfc.threshold = 0.25, verbose = FALSE)
-    }, error = function(e) {
-      warning("FindAllMarkers failed: ", e$message, ". Returning empty marker table.")
-      data.frame()
-    })
-  }
-
+  posMarkers <- FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
+                                logfc.threshold = 0.25, verbose = FALSE)
   if (nrow(posMarkers) > 0) {
     posMarkers$diff_pct <- abs(posMarkers$pct.1 - posMarkers$pct.2)
     posMarkers <- posMarkers[order(posMarkers$diff_pct, decreasing = TRUE), ]
@@ -247,32 +190,20 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
     niche_res <- ifelse(is.null(param$Niche_resolution), 0.5, as.numeric(param$Niche_resolution))
 
     scData <- RunBanksy(scData, lambda = lambda, assay = "Xenium",
-                        slot = "data", features = "variable", k_geom = 30,
+                        layer = "data", features = "variable", k_geom = 30,
                         verbose = FALSE)
     DefaultAssay(scData) <- "BANKSY"
-
-    # Use BANKSY assay features for PCA, not all features
-    banksy_features <- rownames(scData[["BANKSY"]])
-    npcs_banksy <- min(30, length(banksy_features) - 1)
     scData <- RunPCA(scData, assay = "BANKSY", reduction.name = "pca.banksy",
-                     features = banksy_features, npcs = npcs_banksy, verbose = FALSE)
-    scData <- FindNeighbors(scData, reduction = "pca.banksy", dims = 1:min(12, npcs_banksy),
+                     features = rownames(scData), npcs = 30, verbose = FALSE)
+    scData <- FindNeighbors(scData, reduction = "pca.banksy", dims = 1:12,
                             verbose = FALSE)
     scData <- FindClusters(scData, cluster.name = "banksy_cluster",
                            resolution = niche_res, verbose = FALSE)
 
     # Niche markers
     Idents(scData) <- "banksy_cluster"
-    n_niches <- length(levels(Idents(scData)))
-
-    if (n_niches < 2) {
-      warning(paste("Only", n_niches, "BANKSY niche found. Cannot compute differential markers."))
-      posMarkersBanksy <- data.frame()
-    } else {
-      posMarkersBanksy <- FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
-                                          logfc.threshold = 0.25, verbose = FALSE)
-    }
-
+    posMarkersBanksy <- FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
+                                        logfc.threshold = 0.25, verbose = FALSE)
     if (nrow(posMarkersBanksy) > 0) {
       posMarkersBanksy$diff_pct <- abs(posMarkersBanksy$pct.1 - posMarkersBanksy$pct.2)
       posMarkersBanksy <- posMarkersBanksy[order(posMarkersBanksy$diff_pct,
