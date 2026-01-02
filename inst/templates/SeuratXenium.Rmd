@@ -907,21 +907,24 @@ cat("**Number of Cell Types:** ", length(unique(na.omit(scData@meta.data[[cellty
 ### Cell Types
 
 ```{r celltype_spatial, fig.width=18, fig.height=10, eval=has_annotation}
-# Count cell types for legend handling
-n_celltypes <- length(unique(na.omit(scData@meta.data[[celltype_col]])))
+# Get unique cell types and create consistent color mapping
+celltypes_unique <- sort(unique(na.omit(scData@meta.data[[celltype_col]])))
+n_celltypes <- length(celltypes_unique)
+celltype_colors <- setNames(cluster_colors[1:min(n_celltypes, length(cluster_colors))],
+                            celltypes_unique)
 
-# Spatial plot first - use Seurat default colors
+# Spatial plot first - use consistent colors
 p1 <- ImageDimPlot(scData, fov = names(scData@images)[1],
                    group.by = celltype_col,
-                   axes = TRUE, size = 0.5) +
+                   axes = TRUE, size = 0.5, cols = celltype_colors) +
   ggtitle("Cell Types - Spatial") +
   labs(fill = "Cell Type") +
   theme(legend.position = "bottom",
         legend.text = element_text(size = 8)) +
   guides(fill = guide_legend(ncol = 4, override.aes = list(size = 3)))
 
-# UMAP second with coord_fixed
-p2 <- DimPlot(scData, group.by = celltype_col,
+# UMAP second with coord_fixed - use same colors
+p2 <- DimPlot(scData, group.by = celltype_col, cols = celltype_colors,
               label = TRUE, repel = TRUE, pt.size = 0.5, label.size = 3) +
   coord_fixed() +
   ggtitle("Cell Types - UMAP") +
@@ -938,6 +941,15 @@ cat("Cell type annotation was not performed. Select an RCTD reference to enable 
 ### Cell Type Proportions
 
 ```{r celltype_barplot, fig.width=10, fig.height=8, eval=has_annotation}
+# Reuse the celltype_colors mapping from the spatial plot chunk
+# If not available, recreate it
+if (!exists("celltype_colors")) {
+  celltypes_unique <- sort(unique(na.omit(scData@meta.data[[celltype_col]])))
+  n_celltypes <- length(celltypes_unique)
+  celltype_colors <- setNames(cluster_colors[1:min(n_celltypes, length(cluster_colors))],
+                              celltypes_unique)
+}
+
 celltype_counts <- as.data.frame(table(scData@meta.data[[celltype_col]]))
 colnames(celltype_counts) <- c("CellType", "Count")
 # Sort by count descending - highest at top when using coord_flip
@@ -945,12 +957,9 @@ celltype_counts <- celltype_counts[order(celltype_counts$Count, decreasing = FAL
 celltype_counts$CellType <- factor(celltype_counts$CellType,
                                     levels = celltype_counts$CellType)
 
-n_types <- nrow(celltype_counts)
-colors_to_use <- cluster_colors[1:min(n_types, length(cluster_colors))]
-
 ggplot(celltype_counts, aes(x = CellType, y = Count, fill = CellType)) +
   geom_bar(stat = "identity") +
-  scale_fill_manual(values = colors_to_use) +
+  scale_fill_manual(values = celltype_colors) +
   coord_flip() +
   theme_minimal(base_size = 12) +
   theme(legend.position = "none",
