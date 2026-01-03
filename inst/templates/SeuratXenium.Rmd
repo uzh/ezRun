@@ -924,8 +924,19 @@ cat("**Number of Cell Types:** ", length(unique(na.omit(scData@meta.data[[cellty
 # Get unique cell types and create consistent color mapping
 celltypes_unique <- sort(unique(na.omit(scData@meta.data[[celltype_col]])))
 n_celltypes <- length(celltypes_unique)
-celltype_colors <- setNames(cluster_colors[1:min(n_celltypes, length(cluster_colors))],
-                            celltypes_unique)
+# Extend color palette with Set1, Set2, Set3 if more cell types than polychrome colors
+extended_colors <- c(
+  cluster_colors,
+  RColorBrewer::brewer.pal(9, "Set1"),
+  RColorBrewer::brewer.pal(8, "Set2"),
+  RColorBrewer::brewer.pal(12, "Set3")
+)
+extended_colors <- unique(extended_colors)
+# Recycle colors if we still need more (supports 100+ cell types)
+if (n_celltypes > length(extended_colors)) {
+  extended_colors <- rep(extended_colors, length.out = n_celltypes)
+}
+celltype_colors <- setNames(extended_colors[1:n_celltypes], celltypes_unique)
 
 # Create truncated labels for legend (max 35 chars to prevent cutoff)
 truncate_label <- function(x, max_chars = 35) {
@@ -967,8 +978,17 @@ cat("Cell type annotation was not performed. Select an RCTD reference to enable 
 if (!exists("celltype_colors")) {
   celltypes_unique <- sort(unique(na.omit(scData@meta.data[[celltype_col]])))
   n_celltypes <- length(celltypes_unique)
-  celltype_colors <- setNames(cluster_colors[1:min(n_celltypes, length(cluster_colors))],
-                              celltypes_unique)
+  extended_colors <- c(
+    cluster_colors,
+    RColorBrewer::brewer.pal(9, "Set1"),
+    RColorBrewer::brewer.pal(8, "Set2"),
+    RColorBrewer::brewer.pal(12, "Set3")
+  )
+  extended_colors <- unique(extended_colors)
+  if (n_celltypes > length(extended_colors)) {
+    extended_colors <- rep(extended_colors, length.out = n_celltypes)
+  }
+  celltype_colors <- setNames(extended_colors[1:n_celltypes], celltypes_unique)
 }
 
 # Truncate long cell type names for display (reuse function if available)
@@ -1238,8 +1258,17 @@ if (na_spot_count > 0 || na_celltype_count > 0) {
 if (!exists("celltype_colors")) {
   celltypes_unique <- sort(unique(na.omit(scData@meta.data[[celltype_col]])))
   n_celltypes <- length(celltypes_unique)
-  celltype_colors <- setNames(cluster_colors[1:min(n_celltypes, length(cluster_colors))],
-                              celltypes_unique)
+  extended_colors <- c(
+    cluster_colors,
+    RColorBrewer::brewer.pal(9, "Set1"),
+    RColorBrewer::brewer.pal(8, "Set2"),
+    RColorBrewer::brewer.pal(12, "Set3")
+  )
+  extended_colors <- unique(extended_colors)
+  if (n_celltypes > length(extended_colors)) {
+    extended_colors <- rep(extended_colors, length.out = n_celltypes)
+  }
+  celltype_colors <- setNames(extended_colors[1:n_celltypes], celltypes_unique)
 }
 
 # Check for RCTD weight columns (max weight indicates confidence)
