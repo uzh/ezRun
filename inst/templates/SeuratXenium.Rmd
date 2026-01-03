@@ -407,14 +407,14 @@ p1 <- ImageDimPlot(scData, fov = names(scData@images)[1], group.by = "ident",
                    axes = TRUE, size = 0.5) +
   ggtitle("Spatial Clusters") +
   labs(fill = "Clusters") +
-  guides(fill = if (show_leg) guide_legend(title = "Clusters") else "none")
+  guides(fill = if (show_leg) guide_legend(title = "Clusters", override.aes = list(size = 3)) else "none")
 
 # UMAP second with coord_fixed - use Seurat default colors for consistency
 p2 <- DimPlot(scData, reduction = "umap", label = FALSE, pt.size = 0.5) +
   coord_fixed() +
   labs(color = "Clusters") +
   theme_void() +
-  guides(color = if (show_leg) guide_legend(title = "Clusters") else "none") +
+  guides(color = if (show_leg) guide_legend(title = "Clusters", override.aes = list(size = 3)) else "none") +
   ggtitle("UMAP") +
   theme(legend.position = "none")
 
@@ -590,7 +590,8 @@ if (nrow(posMarkers) > 0) {
 if (nrow(posMarkers) > 0) {
   top5 <- posMarkers |>
     group_by(cluster) |>
-    slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
+    arrange(desc(diff_pct), desc(avg_log2FC), .by_group = TRUE) |>
+    slice_head(n = 5)
 
   genesToPlot <- unique(as.character(top5$gene))
   # Seurat converts underscores to dashes in feature names
@@ -680,7 +681,7 @@ p1 <- ImageDimPlot(scData, fov = names(scData@images)[1], group.by = "banksy_clu
                    axes = TRUE, size = 0.5) +
   ggtitle("Spatial Niches") +
   labs(fill = "Niches") +
-  guides(fill = if (show_leg_banksy) guide_legend(title = "Niches") else "none")
+  guides(fill = if (show_leg_banksy) guide_legend(title = "Niches", override.aes = list(size = 3)) else "none")
 
 # UMAP second with coord_fixed - use Seurat default colors for consistency
 p2 <- DimPlot(scData, reduction = "umap", label = FALSE, pt.size = 0.5) +
@@ -813,12 +814,17 @@ cat("No BANKSY niche markers available.")
 ```{r niche_dotplot_setup, eval=has_banksy && nrow(posMarkersBanksy) > 0}
 top5_banksy <- posMarkersBanksy |>
   group_by(cluster) |>
-  slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
+  arrange(desc(diff_pct), desc(avg_log2FC), .by_group = TRUE) |>
+  slice_head(n = 5)
 
 genesToPlot_banksy <- unique(as.character(top5_banksy$gene))
+# BANKSY adds .m0/.m1 suffix to gene names - strip it for matching to Xenium assay
+genesToPlot_banksy <- gsub("\\.m[0-9]+$", "", genesToPlot_banksy)
 # Seurat converts underscores to dashes in feature names
 genesToPlot_banksy <- gsub("_", "-", genesToPlot_banksy)
-genesToPlot_banksy <- intersect(genesToPlot_banksy, rownames(scData))
+# Match against Xenium assay genes
+genesToPlot_banksy <- intersect(genesToPlot_banksy, rownames(scData[["Xenium"]]))
+genesToPlot_banksy <- unique(genesToPlot_banksy)
 
 # Flag for whether we have genes to plot
 has_niche_genes <- length(genesToPlot_banksy) > 0
@@ -826,7 +832,8 @@ has_niche_genes <- length(genesToPlot_banksy) > 0
 
 ```{r niche_dotplot, fig.width=15, fig.height=20, eval=has_banksy && nrow(posMarkersBanksy) > 0 && has_niche_genes}
 Idents(scData) <- "banksy_cluster"
-DotPlot(scData, features = rev(genesToPlot_banksy)) +
+# Use Xenium assay for actual gene expression values
+DotPlot(scData, features = rev(genesToPlot_banksy), assay = "Xenium") +
   coord_flip() +
   scale_y_discrete(limits = as.character(sort(as.integer(levels(Idents(scData)))))) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
@@ -1183,7 +1190,7 @@ ezInteractiveTableRmd(class_table, rowNames = FALSE,
 
 #### Unclassified Cells (NA)
 
-```{r rctd_na_analysis, eval=has_spot_class}
+```{r rctd_na_analysis, results='asis', eval=has_spot_class}
 # Check for NA values in spot_class and RCTD_Main
 na_spot_count <- sum(is.na(scData$spot_class))
 na_celltype_count <- sum(is.na(scData@meta.data[[celltype_col]]))

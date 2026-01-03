@@ -260,11 +260,18 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
 
       # Match cells
       common_cells <- intersect(colnames(counts), rownames(coords))
-      counts <- counts[, common_cells]
-      coords <- coords[common_cells, ]
+      if (length(common_cells) == 0) {
+        warning("No common cells between counts and coordinates. Skipping RCTD.")
+        ref_obj <- NULL
+      } else {
+        counts <- counts[, common_cells, drop = FALSE]
+        coords <- coords[common_cells, , drop = FALSE]
 
-      # Create SpatialRNA object
-      query.puck <- SpatialRNA(coords, counts, colSums(counts))
+        # Ensure counts is a matrix (not sparse)
+        counts <- as.matrix(counts)
+
+        # Create SpatialRNA object
+        query.puck <- SpatialRNA(coords, counts, colSums(counts))
 
       # Run RCTD
       umi_min <- ifelse(is.null(param$rctdUMImin), 100, as.numeric(param$rctdUMImin))
@@ -298,6 +305,7 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
       }
 
       ezWrite("RCTD annotation completed", "log.txt", append = TRUE)
+      }
     }
   } else if (!is.null(ref_path)) {
     ezWrite(paste("RCTD reference not found:", ref_path), "log.txt", append = TRUE)
