@@ -226,15 +226,35 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   if (!is.null(ref_path) && file.exists(ref_path)) {
     ezWrite(paste("Running RCTD with reference:", ref_path), "log.txt", append = TRUE)
 
-    # Load Reference
-    ref_obj <- readRDS(ref_path)
+    # Load Reference (handle .rds, .qs, .qs2 formats)
+    if (grepl("\\.qs2?$", ref_path)) {
+      ref_obj <- qs2::qs_read(ref_path, nthreads = param$cores)
+    } else {
+      ref_obj <- readRDS(ref_path)
+    }
 
     # Check if it is a spacexr Reference object
     if (!inherits(ref_obj, "Reference")) {
       if (is.list(ref_obj) && "reference" %in% names(ref_obj)) {
         ref_obj <- ref_obj$reference
+      } else if (inherits(ref_obj, "Seurat")) {
+        # Convert Seurat object to RCTD Reference
+        ezWrite("Converting Seurat object to RCTD Reference...", "log.txt", append = TRUE)
+        ref_counts <- Seurat::GetAssayData(ref_obj, layer = "counts")
+        # Try common cell type annotation columns
+        celltype_col <- intersect(c("author_cell_type", "cell_type", "celltype", "CellType"),
+                                  colnames(ref_obj@meta.data))[1]
+        if (is.na(celltype_col)) {
+          warning("No cell type column found in Seurat reference. Skipping RCTD.")
+          ref_obj <- NULL
+        } else {
+          ref_celltypes <- ref_obj@meta.data[[celltype_col]]
+          names(ref_celltypes) <- colnames(ref_obj)
+          ref_obj <- spacexr::Reference(ref_counts, ref_celltypes)
+          ezWrite(paste("Created RCTD Reference with", length(unique(ref_celltypes)), "cell types"), "log.txt", append = TRUE)
+        }
       } else {
-        warning("Loaded object is not a valid RCTD Reference. Skipping RCTD.")
+        warning("Loaded object is not a valid RCTD Reference or Seurat object. Skipping RCTD.")
         ref_obj <- NULL
       }
     }
