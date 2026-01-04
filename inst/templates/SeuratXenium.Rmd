@@ -1412,7 +1412,7 @@ if ("rctd_max_weight" %in% colnames(scData@meta.data)) {
 The link below will take you to an interactive Vitessce viewer with linked spatial, UMAP,
 and gene expression views. You can explore cell types, clusters, and marker genes interactively.
 
-[Vitessce Explorer](`r {relative_path <- sub(".*/srv/gstore/projects/", "", getwd()); paste0("https://fgcz-shiny.uzh.ch/app/exploreVitessceXenium/?data=", relative_path, "/scData.qs2")}`){target="_blank"}
+[Vitessce Explorer](`r {sample_name <- unique(scData$Sample)[1]; relative_path <- file.path(param$resultDir, sample_name); paste0("https://fgcz-shiny.uzh.ch/app/exploreVitessceXenium/?data=", relative_path, "/scData.qs2")}`){target="_blank"}
 
 ### Data files
 
