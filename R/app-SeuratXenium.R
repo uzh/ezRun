@@ -294,7 +294,7 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
         query.puck <- SpatialRNA(coords, counts, colSums(counts))
 
       # Run RCTD
-      umi_min <- ifelse(is.null(param$rctdUMImin), 100, as.numeric(param$rctdUMImin))
+      umi_min <- ifelse(is.null(param$rctdUMImin), 20, as.numeric(param$rctdUMImin))
       myRCTD <- create.RCTD(query.puck, ref_obj, max_cores = param$cores, UMI_min = umi_min)
       myRCTD <- run.RCTD(myRCTD, doublet_mode = 'doublet')
 
@@ -497,7 +497,7 @@ EzAppSeuratXenium <- setRefClass("EzAppSeuratXenium",
                                 Description = "RCTD Reference to use"),
         rctdFile = ezFrame(Type = "character", DefaultValue = "",
                            Description = "Manual override: Full path to custom RCTD reference .rds file"),
-        rctdUMImin = ezFrame(Type = "numeric", DefaultValue = 100,
+        rctdUMImin = ezFrame(Type = "numeric", DefaultValue = 20,
                              Description = "Minimum UMI count for RCTD annotation"),
         computeSC = ezFrame(Type = "logical", DefaultValue = TRUE,
                             Description = "Compute Seurat Analysis")
