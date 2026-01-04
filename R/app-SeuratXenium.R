@@ -227,8 +227,11 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
     ezWrite(paste("Running RCTD with reference:", ref_path), "log.txt", append = TRUE)
 
     # Load Reference (handle .rds, .qs, .qs2 formats)
-    if (grepl("\\.qs2?$", ref_path)) {
+    # Note: .qs files use old qs package (qs::qread), .qs2 files use new qs2 package (qs2::qs_read)
+    if (grepl("\\.qs2$", ref_path)) {
       ref_obj <- qs2::qs_read(ref_path, nthreads = param$cores)
+    } else if (grepl("\\.qs$", ref_path)) {
+      ref_obj <- qs::qread(ref_path, nthreads = param$cores)
     } else {
       ref_obj <- readRDS(ref_path)
     }
