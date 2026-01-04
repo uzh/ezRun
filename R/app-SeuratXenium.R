@@ -253,8 +253,10 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
         } else {
           ref_celltypes <- ref_obj@meta.data[[celltype_col]]
           names(ref_celltypes) <- colnames(ref_obj)
+          # RCTD requires cell_types to be a factor
+          ref_celltypes <- as.factor(ref_celltypes)
           ref_obj <- spacexr::Reference(ref_counts, ref_celltypes)
-          ezWrite(paste("Created RCTD Reference with", length(unique(ref_celltypes)), "cell types"), "log.txt", append = TRUE)
+          ezWrite(paste("Created RCTD Reference with", length(levels(ref_celltypes)), "cell types"), "log.txt", append = TRUE)
         }
       } else {
         warning("Loaded object is not a valid RCTD Reference or Seurat object. Skipping RCTD.")
