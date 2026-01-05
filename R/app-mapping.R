@@ -394,7 +394,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       cmd <- paste0('umi_tools dedup --paired --stdin=',basename(bamFile),' --stdout=', deDupBamFile,' --log=',basename(bamFile),'.log', ' --output-stats=',basename(bamFile),'.stats')
       ezSystem(cmd)
       ezSystem(paste('mv', deDupBamFile, basename(bamFile)))
-      ezSystem(paste('samtools index', basename(bamFile)))
+      ezSortIndexBam(basename(bamFile), ram=sortRam, cores = nSortThreads)
       tryCatch({local_CondaEnv("gi_py3.11.5", pathToMiniConda = "/usr/local/ngseq/miniforge3")}, warning = function(warning_condition) {cat('warning')}, 
                error = function(error_condition) {cat('error')})
   }
