@@ -299,7 +299,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       ##Extract UMI from R2
       markedFile_R1 <- sub('R1', 'markedUMI_R1', trimmedInput$getColumn("Read1"))
       markedFile_R2 <- sub('R2', 'markedUMI_R2', trimmedInput$getColumn("Read2"))
-      cmd <- paste0('umi_tools extract --stdin=',trimmedInput$getColumn("Read2"), ' --read2-in=',trimmedInput$getColumn("Read1"), 
+      cmd <- paste0('umi_tools extract --temp-dir=. --verbose=0 --stdin=',trimmedInput$getColumn("Read2"), ' --read2-in=',trimmedInput$getColumn("Read1"), 
                     ' --stdout=',markedFile_R2,' --read2-out=',markedFile_R1,' --bc-pattern=', param$barcodePattern)
       ezSystem(cmd)
       
