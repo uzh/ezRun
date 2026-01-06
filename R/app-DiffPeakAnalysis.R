@@ -15,7 +15,8 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA){
     featureCounts <- loadCountFiles(countFiles, grouping, commonCols)
 
     dds <- generateDESeqDS(featureCounts, commonCols, grouping)
-    peakAnno <- annotateConsensusPeaks(gtfFile = param$ezRef@refFeatureFile, fastaFile = param$ezRef@refFastaFile, peakFile = countFiles[[1]], tool = param$annotationMethod)
+    peakAnno <- annotateConsensusPeaks(gtfFile = param$ezRef@refFeatureFile, fastaFile = param$ezRef@refFastaFile, 
+                                       peakFile = countFiles[[1]], tool = param$annotationMethod, cores = param$cores)
     outDir <- file.path(basename(output$getColumn('ResultFolder')))
     cd = getwd()
     setwdNew(outDir)
@@ -89,7 +90,7 @@ generateDESeqDS <- function(featureCounts, commonCols, grouping){
 
 
 ##' @description generate peaks annotation file using the method specified with tool
-annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool){
+annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool, cores){
   switch (as.character(tool),
           chippeakanno = {
             require(ChIPpeakAnno)
@@ -137,7 +138,7 @@ annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool){
             return(annotChIPseeker)
           },
           homer = {
-            myPeaks <- ezRead.table(countFiles[[1]])
+            myPeaks <- ezRead.table(peakFile)
             bedFileCols <- c("Chr", "Start", "End")
             bedFile <- myPeaks[,bedFileCols]
             bedFile$Names <- rownames(myPeaks)
@@ -148,9 +149,9 @@ annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool){
             cmd = paste(
               "annotatePeaks.pl",
               bedFileName,
-              param$ezRef@refFastaFile,
+              fastaFile,
               "-gtf", gtfFile,
-              "-cpu 4",
+              "-cpu", cores,
               "> annotatedPeaks.txt"
             )
             system(cmd)
