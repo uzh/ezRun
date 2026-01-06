@@ -16,7 +16,7 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA){
 
     dds <- generateDESeqDS(featureCounts, commonCols, grouping)
     peakAnno <- annotateConsensusPeaks(gtfFile = param$ezRef@refFeatureFile, fastaFile = param$ezRef@refFastaFile, peakFile = countFiles[[1]], tool = param$annotationMethod)
-    outDir <- file.path(basename(output$getColumn('ResultFolder')), paste0(param$sampleGroup, '--over--', param$refGroup))
+    outDir <- file.path(basename(output$getColumn('ResultFolder')))
     cd = getwd()
     setwdNew(outDir)
     makeRmdReport(
@@ -56,7 +56,7 @@ loadCountFiles <- function(countFiles, grouping, commonCols){
       rename(!!new_col := matchCounts)
   })
 
-  reduce(loadAllTables, full_join, by = commonCols)
+  purrr::reduce(loadAllTables, full_join, by = commonCols)
 }
 
 ##' @description generate DESeqDataSet from the counts table
@@ -92,10 +92,21 @@ generateDESeqDS <- function(featureCounts, commonCols, grouping){
 annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool){
   switch (as.character(tool),
           chippeakanno = {
-            library(ChIPpeakAnno)
-            library(GenomicRanges)
-            library(rtracklayer)
+            require(ChIPpeakAnno)
+            require(GenomicRanges)
+            require(rtracklayer)
             gtf <- rtracklayer::import(gtfFile)
+            if('gene' %in% unique(gtf$type)){
+              idx = gtf$type == 'gene'
+            } else if('transcript' %in% unique(gtf$type)) {
+              idx = gtf$type == 'transcript'
+            } else if('start_codon' %in% unique(gtf$type)){
+              idx = gtf$type =='start_codon'
+            } else {
+              message('gtf is incompatabible. Peak annotation skipped!')
+              return(NULL)
+            }
+            gtf = gtf[idx]
             if(grepl('gtf$',gtfFile)){
               names_gtf = make.unique(gtf$'gene_id')
             } else {
@@ -112,16 +123,9 @@ annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool){
           },
           chipseeker = {
             require(ChIPseeker)
-            library(GenomicRanges)
-            library(rtracklayer)
+            require(GenomicRanges)
+            require(rtracklayer)
             myTxDB <- txdbmaker::makeTxDbFromGFF(file=gtfFile, format='gtf')
-            gtf <- rtracklayer::import(gtfFile)
-            if(grepl('gtf$',gtfFile)){
-              names_gtf = make.unique(gtf$'gene_id')
-            } else {
-              names_gtf = make.unique(gtf$'ID')
-            }
-            names(gtf) = names_gtf
             myPeaks = ezRead.table(peakFile)
             myPeaks$peakId = rownames(myPeaks)
             peaksRD = makeGRangesFromDataFrame(myPeaks, keep.extra.columns = TRUE, start.field = "Start", end.field = "End", seqnames.field="Chr")
