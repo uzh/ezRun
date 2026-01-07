@@ -12,7 +12,7 @@ ezMethodCombinePeaks <- function(input = NA,
     library(rtracklayer)
     library(dplyr)
     library(Rsubread)
-    
+    param$paired <- as.logical(input$meta$paired[1])
     outFolder = output$getColumn("PeakCountResult") |> basename()
     setwdNew(outFolder)
     samples <- input$getNames()
@@ -76,12 +76,12 @@ ezMethodCombinePeaks <- function(input = NA,
     
     #Count peaks per sample via Rsubread
     regions_SAF <- data.frame(
-        GeneID = collapsed_df$ID,
+        GeneID = collapsed_df$name,
         Chr = collapsed_df$seqnames,
         Start = collapsed_df$start,
         End = collapsed_df$end,
         Strand = collapsed_df$strand,
-        ID = collapsed_df$ID,
+        ID = collapsed_df$name,
         stringsAsFactors = F
     )
     
@@ -95,10 +95,10 @@ ezMethodCombinePeaks <- function(input = NA,
             isGTFAnnotationFile = FALSE,
             useMetaFeatures = FALSE,
             allowMultiOverlap = TRUE,
-            isPairedEnd = TRUE,
+            isPairedEnd = param$paired,
             requireBothEndsMapped = FALSE,
             checkFragLength = FALSE,
-            nthreads = 8,
+            nthreads = param$cores,
             strandSpecific = 0,
             minMQS = 10,
             readExtension5 = 0,
@@ -111,7 +111,7 @@ ezMethodCombinePeaks <- function(input = NA,
             countMultiMappingReads = TRUE,
             fraction = FALSE,
             primaryOnly = TRUE,
-            countChimericFragments = TRUE,
+            countChimericFragments = FALSE,
             chrAliases = NULL,
             reportReads = NULL,
             reportReadsPath = NULL
