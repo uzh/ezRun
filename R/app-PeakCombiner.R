@@ -159,7 +159,7 @@ ezMethodCombinePeaks <- function(input = NA,
     htmlFileName <- paste0(outFolder, "/igv_session.html")
     bwFiles   <- input$getColumn("BigWigFile")
     ##TODO: bed peakFile
-    jsonFile <- writeIgvSessionFile(param, outFolder, jsonFileName = jsonFileName, bigwigFiles = bwFiles,
+    jsonFile <- writeIgvSessionFile(param, output, jsonFileName = jsonFileName, bigwigFiles = bwFiles,
                                     baseUrl = file.path(PROJECT_BASE_URL))
     writeNfCoreIgvHtml(param, jsonFile, title = "MultiSample Coverage Tracks", htmlTemplate = "templates/igvNfCoreTemplate.html", htmlFileName = basename(htmlFileName))
     
@@ -168,7 +168,8 @@ ezMethodCombinePeaks <- function(input = NA,
 
 
 ##' @description write IGV session in json format
-writeIgvSessionFile <- function(param, outFolder, jsonFileName, bigwigFiles, baseUrl){
+writeIgvSessionFile <- function(param, output, jsonFileName, bigwigFiles, baseUrl){
+    outFolder = output$getColumn("PeakCountResult")
     refBuildName = param$ezRef@refBuildName
     refUrlBase = file.path(REF_HOST, param$ezRef@refBuild)
     fastaUrl = sub("Annotation.*", "Sequence/WholeGenomeFasta/genome.fa", refUrlBase)
