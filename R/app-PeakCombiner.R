@@ -145,8 +145,61 @@ ezMethodCombinePeaks <- function(input = NA,
         peakFraction = countStats[, 1] / countStats[, 2]
     )
     ezWrite.table(countStats, file = 'peakCountStats.txt', row.names = FALSE)
+    
+    jsonFileName <- paste0(outFolder, "/igv_session.json")
+    htmlFileName <- paste0(outFolder, "/igv_session.html")
+    bwFiles   <- input$getColumn("BigWigFile")
+    ##TODO: bed peakFile
+    jsonFile <- writeIgvSessionFile(param, outFolder, jsonFileName = jsonFileName, bigwigFiles = bwFiles,
+                                    baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("PeakCountResult")))
+    writeNfCoreIgvHtml(param, jsonFile, title = "MultiSample Coverage Tracks", htmlTemplate = "templates/igvNfCoreTemplate.html", htmlFileName = basename(htmlFileName))
+    
     return('success')
 }
+
+
+##' @description write IGV session in json format
+writeIgvSessionFile <- function(param, outFolder, jsonFileName, bigwigFiles, baseUrl){
+    refBuildName = param$ezRef@refBuildName
+    refUrlBase = file.path(REF_HOST, param$ezRef@refBuild)
+    fastaUrl = sub("Annotation.*", "Sequence/WholeGenomeFasta/genome.fa", refUrlBase)
+    faiUrl = paste0(fastaUrl, ".fai")
+    
+    trackNames <- basename(bigwigFiles) |> str_replace("\\..*", "")
+    tracks <- list()
+    tracks[[1]] <- list(type=	"sequence")
+    for (i in 1:length(bigwigFiles)){
+        tracks[[i+1]] <- list(id = trackNames[[i]],
+                              url = paste0(baseUrl,bigwigFiles[[i]]),
+                              format =	"bigWig",
+                              name	= trackNames[[i]])
+        
+    }
+    tracks[[i+2]] <- list(
+        id = "genes",
+        url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/transcripts.only.gtf'),
+        format =	"gtf",
+        type = "annotation",
+        name = "genes")
+    
+    tracks[[i+3]] <- list(
+        id = "exons",
+        url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/genes.bed'),
+        format =	"bed",
+        type = "annotation",
+        name = "exons")
+    jsonLines <- list( version =	"3.5.3",
+                       showSampleNames = FALSE,
+                       reference = list(id = refBuildName , fastaUrl = fastaUrl, indexURL = faiUrl),
+                       tracks = tracks
+    )
+    jsonFile <- rjson::toJSON(jsonLines, indent=5, method="C")
+    write(jsonFile, basename(jsonFileName))
+    return(jsonFile)
+}
+
+
+
 
 #' @template app-template
 EzAppPeakCombiner <-
