@@ -151,7 +151,7 @@ ezMethodCombinePeaks <- function(input = NA,
     bwFiles   <- input$getColumn("BigWigFile")
     ##TODO: bed peakFile
     jsonFile <- writeIgvSessionFile(param, outFolder, jsonFileName = jsonFileName, bigwigFiles = bwFiles,
-                                    baseUrl = file.path(PROJECT_BASE_URL, output$getColumn("PeakCountResult")))
+                                    baseUrl = file.path(PROJECT_BASE_URL))
     writeNfCoreIgvHtml(param, jsonFile, title = "MultiSample Coverage Tracks", htmlTemplate = "templates/igvNfCoreTemplate.html", htmlFileName = basename(htmlFileName))
     
     return('success')
