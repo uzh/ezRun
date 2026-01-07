@@ -29,14 +29,17 @@ ezMethodCombinePeaks <- function(input = NA,
     filtered <- all_peaks_combined[support >= param$minSamples]
     filtered <- sortSeqlevels(filtered)
     filtered <- sort(filtered)
+    
+    # extract sample name from original peak name
     filtered$sample <- sub("_peak_.*$", "", filtered$name)
+    
+    # collapse overlapping peaks and keep revmap
     collapsed <- GenomicRanges::reduce(filtered, with.revmap = TRUE)
     idx <- mcols(collapsed)$revmap
     
+    # annotate collapsed peaks
     collapsed$collapsed_samples <- sapply(idx, function(i)
-        paste(sort(unique(
-            filtered$sample[i]
-        )), collapse = ","))
+        paste(sort(unique(filtered$sample[i])), collapse = ","))
     
     collapsed$n_samples <- sapply(idx, function(i)
         length(unique(filtered$sample[i])))
@@ -47,13 +50,19 @@ ezMethodCombinePeaks <- function(input = NA,
     collapsed$mean_fold_enrichment <- sapply(idx, function(i)
         mean(filtered$fold_enrichment[i], na.rm = TRUE))
     
+    # optionally remove extra chromosomes
     if (param$skipExtraChr) {
         collapsed <- collapsed[nchar(as.character(seqnames(collapsed))) <= 5]
     }
-    outBed     <- "combined_filtered_peaks.bed"
+    
+    #ADD PEAK NAMES (shown in IGV)
+    collapsed$name <- paste0("peak_", seq_along(collapsed))
+    
+    # export to BED
+    outBed <- "combined_filtered_peaks.bed"
     export(collapsed, outBed, format = "BED")
+    
     collapsed_df <- data.frame(collapsed)
-    collapsed_df$ID <- paste0("peak_", seq_len(nrow(collapsed_df)))
     collapsed_df$revmap <- NULL
     ezWrite.table(collapsed_df,
                   file = sub("\\.bed$", ".txt", outBed),
@@ -170,19 +179,25 @@ writeIgvSessionFile <- function(param, outFolder, jsonFileName, bigwigFiles, bas
     tracks[[1]] <- list(type=	"sequence")
     for (i in 1:length(bigwigFiles)){
         tracks[[i+1]] <- list(id = trackNames[[i]],
-                              url = paste0(baseUrl,bigwigFiles[[i]]),
+                              url = paste(baseUrl,bigwigFiles[[i]],sep = "/"),
                               format =	"bigWig",
                               name	= trackNames[[i]])
         
     }
     tracks[[i+2]] <- list(
+        id = "peaks",
+        url = file.path(baseUrl, outFolder,'combined_filtered_peaks.bed'),
+        format =	"bed",
+        type = "annotation",
+        name = "consensusPeaks")
+    tracks[[i+3]] <- list(
         id = "genes",
         url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/transcripts.only.gtf'),
         format =	"gtf",
         type = "annotation",
         name = "genes")
     
-    tracks[[i+3]] <- list(
+    tracks[[i+4]] <- list(
         id = "exons",
         url = file.path(REF_HOST, param$ezRef@refBuild,'Genes/genes.bed'),
         format =	"bed",
