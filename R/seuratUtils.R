@@ -583,7 +583,7 @@ fix_microscopy_image <- function(obj,
                       eps = 0.02, 
                       margin = 0.01) {
   
-  arr <- as.array(obj@images[[img_name]]@image)
+  arr <- obj@images[[img_name]]@image
   
   # Normalize if stored as 8/16-bit (no-op if already 0..1)
   mx <- suppressWarnings(max(arr, na.rm = TRUE)); if (!is.finite(mx) || mx == 0) mx <- 1
@@ -597,7 +597,7 @@ fix_microscopy_image <- function(obj,
       for (k in 1:3) RGB[,,k] <- RGB[,,k]*A + (1 - A)
       arr <- RGB
     }
-    if (dim(arr[3] > 4)){
+    if (dim(arr)[3] > 4){
       ## simply take the first 3
       arr <- arr[,,1:3, drop = FALSE]
     }
@@ -621,4 +621,46 @@ fix_microscopy_image <- function(obj,
   message(sprintf("Channel order decided by means on tissue: R=%.3f, B=%.3f -> %s",
                   mR, mB, chosen))
   obj
+}
+
+
+
+ezSpatialFeaturePlot <- function(obj,
+                                 feature,
+                                 title = feature,
+                                 label = feature,
+                                 pt.size.factor = 2,
+                                 plot_segmentations  = TRUE,
+                                 min.cutoff = "q01",
+                                 max.cutoff = "q99",
+                                 legend.pos = "right",
+                                 palette = "turbo",
+                                 font_size = 10, ## that's the default fontsize from plotColData
+                                 ...) {
+  
+  SpatialFeaturePlot(
+    object              = obj,
+    features            = feature,
+    images              = Images(obj),  
+    plot_segmentations  = plot_segmentations,
+    pt.size.factor      = pt.size.factor,
+    min.cutoff          = min.cutoff,
+    max.cutoff          = max.cutoff,
+    ...
+  ) +
+    labs(title = title, fill = label) +
+    scale_fill_viridis_c(option = palette, na.value = "grey95") +
+    theme(legend.position = legend.pos) +
+    cowplot::theme_cowplot(font_size = font_size)
+  # theme_void() +
+  # theme(
+  #   legend.position   = legend.pos,
+  #   plot.title        = element_text(size = title_size, 
+  #                                    face = "bold", 
+  #                                    margin = margin(b = 6)),
+  #   legend.title      = element_text(size = 8),
+  #   legend.text       = element_text(size = 8),
+  #   legend.key.height = unit(10, "pt"),
+  #   legend.key.width  = unit(6, "pt")
+  # )
 }

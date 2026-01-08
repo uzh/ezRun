@@ -181,6 +181,9 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
   
   
   scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM, ribosomalGenes = featInfo[rownames(scData), "isRibosomal"])
+  ## make image name unique
+  stopifnot(length(names(scData@images)) == 1)
+  names(scData@images) <- paste0(input$getNames(),'_S1')
   scData_unfiltered <- scData
   
   scData <- subset(scData, cells=which(scData_unfiltered$useCell)) # %>% head(n=1000))
@@ -244,7 +247,45 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
   posMarkers <- posMarkers[posMarkers$p_val_adj < param$pvalue_allMarkers,]
   rownames(posMarkers) <- NULL
   writexl::write_xlsx(posMarkers, path="posMarkers.xlsx")
+
+
+  tryCatch({
+    lambda <- ifelse(is.null(param$lambda), 0.8, as.numeric(param$lambda))
+    niche_res <- ifelse(is.null(param$Niche_resolution), 0.5, as.numeric(param$Niche_resolution))
+    
+    myDefAssay <- DefaultAssay(scData)
+    myIdents <- Idents(scData)
+    scData <- RunBanksy(scData, lambda = lambda, assay = myDefAssay,
+                           layer = "data", features = "variable", k_geom = 30,
+                           verbose = FALSE)
+    DefaultAssay(scData) <- "BANKSY"
+    scData <- RunPCA(scData, assay = "BANKSY", reduction.name = "pca.banksy",
+                     features = rownames(scData), npcs = 30, verbose = FALSE)
+    scData <- FindNeighbors(scData, reduction = "pca.banksy", dims = 1:12,
+                            verbose = FALSE)
+    scData <- FindClusters(scData, cluster.name = "banksy_cluster",
+                           resolution = niche_res, verbose = FALSE)
+    
+    # Niche markers
+    Idents(scData) <- "banksy_cluster"
+    posMarkersBanksy <- FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
+                                       logfc.threshold = 0.25, verbose = FALSE)
+    if (nrow(posMarkersBanksy) > 0) {
+      posMarkersBanksy$diff_pct <- abs(posMarkersBanksy$pct.1 - posMarkersBanksy$pct.2)
+      posMarkersBanksy <- posMarkersBanksy[order(posMarkersBanksy$diff_pct,
+                                                 decreasing = TRUE), ]
+    }
+    writexl::write_xlsx(posMarkersBanksy, "posMarkersBanksy.xlsx")
+    
+    # Reset default assay
+    DefaultAssay(scData) <- myDefAssay
+    Idents(scData) <- myIdents
+  }, error = function(e) {
+    #writexl::write_xlsx(data.frame(), "posMarkersBanksy.xlsx")
+  })
   
+  
+    
   
   ## generate template for manual cluster annotation -----
   ## we only deal with one sample
@@ -259,15 +300,13 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
   writexl::write_xlsx(clusterInfos, path=clusterInfoFile)
   
   #Save some results in external files
-  bulkSignalPerCluster <- AggregateExpression(scData, group.by = 'ident', assays=myAssay)[[1]]
-  bulkSignalPerCluster <- data.frame(GeneSymbol = rownames(scData), Count = bulkSignalPerCluster)
+  # bulkSignalPerCluster <- AggregateExpression(scData, group.by = 'ident', assays=myAssay)[[1]]
+  # bulkSignalPerCluster <- data.frame(GeneSymbol = rownames(scData), Count = bulkSignalPerCluster)
   bulkSignalPerSample <- AggregateExpression(scData, group.by = 'Sample', assays=myAssay)[[1]]
   bulkSignalPerSample <-  data.frame(GeneSymbol = rownames(scData), Count = bulkSignalPerSample)
+  writexl::write_xlsx(bulkSignalPerSample, path="bulkSignalPerSample.xlsx")
   
   
-  ## make image name unique
-  stopifnot(length(names(scData@images)) == 1)
-  names(scData@images) <- paste0(input$getNames(),'_S1')
   
   makeRmdReport(param=param, output=output, input=input, scData=scData, scData_unfiltered=scData_unfiltered,
                 rmdFile = "VisiumHDSeurat.Rmd", reportTitle = paste0(param$name, ": ",  input$getNames()), use.qs2 = TRUE)
