@@ -15,8 +15,9 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA){
     featureCounts <- loadCountFiles(countFiles, grouping, commonCols)
 
     dds <- generateDESeqDS(featureCounts, commonCols, grouping)
-    peakAnno <- annotateConsensusPeaks(gtfFile = param$ezRef@refFeatureFile, fastaFile = param$ezRef@refFastaFile, peakFile = countFiles[[1]], tool = param$annotationMethod)
-    outDir <- file.path(basename(output$getColumn('ResultFolder')), paste0(param$sampleGroup, '--over--', param$refGroup))
+    peakAnno <- annotateConsensusPeaks(gtfFile = param$ezRef@refFeatureFile, fastaFile = param$ezRef@refFastaFile, 
+                                       peakFile = countFiles[[1]], tool = param$annotationMethod, cores = param$cores)
+    outDir <- file.path(basename(output$getColumn('ResultFolder')))
     cd = getwd()
     setwdNew(outDir)
     makeRmdReport(
@@ -56,7 +57,7 @@ loadCountFiles <- function(countFiles, grouping, commonCols){
       rename(!!new_col := matchCounts)
   })
 
-  reduce(loadAllTables, full_join, by = commonCols)
+  purrr::reduce(loadAllTables, full_join, by = commonCols)
 }
 
 ##' @description generate DESeqDataSet from the counts table
@@ -89,13 +90,24 @@ generateDESeqDS <- function(featureCounts, commonCols, grouping){
 
 
 ##' @description generate peaks annotation file using the method specified with tool
-annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool){
+annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool, cores){
   switch (as.character(tool),
           chippeakanno = {
-            library(ChIPpeakAnno)
-            library(GenomicRanges)
-            library(rtracklayer)
+            require(ChIPpeakAnno)
+            require(GenomicRanges)
+            require(rtracklayer)
             gtf <- rtracklayer::import(gtfFile)
+            if('gene' %in% unique(gtf$type)){
+              idx = gtf$type == 'gene'
+            } else if('transcript' %in% unique(gtf$type)) {
+              idx = gtf$type == 'transcript'
+            } else if('start_codon' %in% unique(gtf$type)){
+              idx = gtf$type =='start_codon'
+            } else {
+              message('gtf is incompatabible. Peak annotation skipped!')
+              return(NULL)
+            }
+            gtf = gtf[idx]
             if(grepl('gtf$',gtfFile)){
               names_gtf = make.unique(gtf$'gene_id')
             } else {
@@ -112,16 +124,9 @@ annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool){
           },
           chipseeker = {
             require(ChIPseeker)
-            library(GenomicRanges)
-            library(rtracklayer)
+            require(GenomicRanges)
+            require(rtracklayer)
             myTxDB <- txdbmaker::makeTxDbFromGFF(file=gtfFile, format='gtf')
-            gtf <- rtracklayer::import(gtfFile)
-            if(grepl('gtf$',gtfFile)){
-              names_gtf = make.unique(gtf$'gene_id')
-            } else {
-              names_gtf = make.unique(gtf$'ID')
-            }
-            names(gtf) = names_gtf
             myPeaks = ezRead.table(peakFile)
             myPeaks$peakId = rownames(myPeaks)
             peaksRD = makeGRangesFromDataFrame(myPeaks, keep.extra.columns = TRUE, start.field = "Start", end.field = "End", seqnames.field="Chr")
@@ -133,7 +138,7 @@ annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool){
             return(annotChIPseeker)
           },
           homer = {
-            myPeaks <- ezRead.table(countFiles[[1]])
+            myPeaks <- ezRead.table(peakFile)
             bedFileCols <- c("Chr", "Start", "End")
             bedFile <- myPeaks[,bedFileCols]
             bedFile$Names <- rownames(myPeaks)
@@ -144,9 +149,9 @@ annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool){
             cmd = paste(
               "annotatePeaks.pl",
               bedFileName,
-              param$ezRef@refFastaFile,
+              fastaFile,
               "-gtf", gtfFile,
-              "-cpu 4",
+              "-cpu", cores,
               "> annotatedPeaks.txt"
             )
             system(cmd)

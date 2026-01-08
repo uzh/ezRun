@@ -4,6 +4,140 @@
 # It follows FGCZ best practices and recommendations.
 # Runs in SAMPLE mode - one job per sample.
 
+#' Patched RunBanksy function for Seurat v5 compatibility
+#' Uses 'layer' instead of deprecated 'slot' argument (SeuratObject >= 5.0.0)
+#' Issue: https://github.com/satijalab/seurat/issues/10250
+RunBanksy_v5 <- function(
+    object, lambda, assay = "RNA", layer = "data", use_agf = FALSE,
+    dimx = NULL, dimy = NULL, dimz = NULL, ndim = 2, features = "variable",
+    group = NULL, split.scale = TRUE, k_geom = 15, n = 2, sigma = 1.5,
+    alpha = 0.05, k_spatial = 10, spatial_mode = "kNN_median",
+    assay_name = "BANKSY", M = NULL, chunk_size = NULL,
+    parallel = FALSE, num_cores = NULL, verbose = TRUE) {
+
+  if (lambda < 0 || lambda > 1) stop("Lambda must be between 0 and 1")
+
+  # Get data using 'layer' instead of deprecated 'slot'
+  if (verbose) message("Fetching data from layer ", layer, " from assay ", assay)
+  data_own <- Seurat::GetAssayData(object = object, assay = assay, layer = layer)
+
+  if (features[1] != "all") {
+    if (verbose) message("Subsetting by features")
+    if (features[1] == "variable") {
+      feat <- Seurat::VariableFeatures(object)
+      if (length(feat) == 0) {
+        warning("No variable features found. Running FindVariableFeatures")
+        object <- Seurat::FindVariableFeatures(object)
+        feat <- Seurat::VariableFeatures(object)
+      }
+    } else {
+      feat <- features[which(rownames(object) %in% features)]
+      if (length(feat) == 0) stop("None of the specified features found")
+    }
+    data_own <- data_own[feat, , drop = FALSE]
+  }
+  data_own <- as.matrix(x = data_own)
+
+  # Get locations
+  if (!is.null(dimx) & !is.null(dimy)) {
+    locs <- data.frame(sdimx = unlist(object[[dimx]]), sdimy = unlist(object[[dimy]]))
+    rownames(locs) <- colnames(object)
+    if (!is.null(dimz)) locs$sdimz <- object[[dimz]]
+    obj_samples <- colnames(data_own)
+    locs_samples <- rownames(locs)
+    if (any(is.na(match(obj_samples, locs_samples)))) {
+      na_id <- which(is.na(match(obj_samples, locs_samples)))
+      warning("No centroids found for samples: ", paste(obj_samples[na_id], collapse = ", "))
+      data_own <- data_own[, -na_id, drop = FALSE]
+    }
+    locs <- locs[match(obj_samples, locs_samples), , drop = FALSE]
+  } else {
+    coords <- Seurat::GetTissueCoordinates(object)
+    if ("cell" %in% colnames(coords)) rownames(coords) <- coords$cell
+    locs <- coords[, seq_len(ndim), drop = FALSE]
+  }
+
+  dim_names <- paste0("sdim", c("x", "y", "z"))
+  colnames(locs) <- dim_names[seq_len(ncol(locs))]
+
+  if (!is.null(group)) {
+    if (verbose) message("Staggering locations by ", group)
+    locs[, 1] <- locs[, 1] + abs(min(locs[, 1]))
+    max_x <- max(locs[, 1]) * 2
+    n_groups <- length(unique(unlist(object[[group]])))
+    shift <- seq(from = 0, length.out = n_groups, by = max_x)
+    shift_order <- match(unique(unlist(object[[group]])), names(table(object[[group]])))
+    locs[, 1] <- locs[, 1] + rep(shift, table(object[[group]])[shift_order])
+    object <- Seurat::AddMetaData(object, metadata = locs, col.name = paste0("staggered_", colnames(locs)))
+  }
+
+  # Match cells
+  common_cells <- intersect(colnames(data_own), rownames(locs))
+  if (length(common_cells) == 0) stop("No common cells between expression data and coordinates")
+  if (length(common_cells) < ncol(data_own)) {
+    if (verbose) message("Subsetting to ", length(common_cells), " common cells")
+    data_own <- data_own[, common_cells, drop = FALSE]
+    locs <- locs[common_cells, , drop = FALSE]
+  }
+
+  # Compute BANKSY
+  knn_list <- lapply(k_geom, function(kg) {
+    Banksy:::computeNeighbors(locs, spatial_mode = spatial_mode, k_geom = kg,
+                              n = n, sigma = sigma, alpha = alpha, k_spatial = k_spatial, verbose = verbose)
+  })
+
+  M_seq <- seq(0, max(Banksy:::getM(use_agf, M)))
+  center <- rep(TRUE, length(M_seq))
+  center[1] <- FALSE
+
+  har <- Map(function(knn_df, M_val, cen) {
+    x <- Banksy:::computeHarmonics(gcm = data_own, knn_df = knn_df, M = M_val, center = cen,
+                                   verbose = verbose, chunk_size = chunk_size, parallel = parallel, num_cores = num_cores)
+    rownames(x) <- paste0(rownames(x), ".m", M_val)
+    x
+  }, knn_list, M_seq, center)
+
+  lambdas <- Banksy:::getLambdas(lambda, n_harmonics = length(har))
+  if (verbose) message("Creating Banksy matrix")
+  data_banksy <- c(list(data_own), har)
+
+  if (verbose) message("Scaling BANKSY matrix. Do not call ScaleData on assay ", assay_name)
+  fast_scaler <- function(mat, obj, grp, split.scl, verb) {
+    if (!is.null(grp) && split.scl) {
+      groups <- unique(unlist(obj[[grp]]))
+      scaled_list <- lapply(groups, function(g) {
+        idx <- which(unlist(obj[[grp]]) == g)
+        idx <- idx[idx %in% seq_len(ncol(mat))]
+        if (length(idx) > 0) t(scale(t(mat[, idx, drop = FALSE]))) else NULL
+      })
+      scaled_list <- scaled_list[!sapply(scaled_list, is.null)]
+      if (length(scaled_list) > 0) do.call(cbind, scaled_list)[, colnames(mat)] else t(scale(t(mat)))
+    } else {
+      t(scale(t(mat)))
+    }
+  }
+
+  data_scaled <- lapply(data_banksy, fast_scaler, object, group, split.scale, verbose)
+  data_banksy <- Map(function(lam, mat) lam * mat, lambdas, data_banksy)
+  data_scaled <- Map(function(lam, mat) lam * mat, lambdas, data_scaled)
+  data_banksy <- do.call(rbind, data_banksy)
+  data_scaled <- do.call(rbind, data_scaled)
+
+  # Create BANKSY assay
+  if (grepl(pattern = "counts", x = layer)) {
+    banksy_assay <- Seurat::CreateAssayObject(counts = data_banksy)
+  } else {
+    banksy_assay <- Seurat::CreateAssayObject(data = data_banksy)
+  }
+
+  if (verbose) message("Setting default assay to ", assay_name)
+  object[[assay_name]] <- banksy_assay
+  Seurat::DefaultAssay(object) <- assay_name
+  object <- Seurat::SetAssayData(object, layer = "scale.data", new.data = data_scaled, assay = assay_name)
+  if (verbose) message("BANKSY assay created successfully")
+  return(object)
+}
+
 ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile = "00index.html") {
   ezLoadPackage("Seurat")
   ezLoadPackage("spacexr")
@@ -32,16 +166,7 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   }
 
   # 1. Load Xenium Data
-  sdata <- tryCatch({
-    LoadXenium(data.dir = xeniumPath, fov = "fov")
-  }, error = function(e) {
-    stop(paste("Error loading Xenium data from", xeniumPath, ":", e$message,
-               "\nCheck that cells.zarr.zip, cell_feature_matrix/, exist."))
-  })
-
-  if (is.null(sdata) || ncol(sdata) == 0) {
-    stop(paste("LoadXenium returned empty object for path:", xeniumPath))
-  }
+  sdata <- LoadXenium(data.dir = xeniumPath, fov = "fov")
 
   # Load additional cell metadata not loaded by Seurat (cell_area, nucleus_area)
   cells_file <- file.path(xeniumPath, "cells.csv.gz")
@@ -71,41 +196,20 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   cells_after <- ncol(sdata)
   ezWrite(paste("Cells after QC:", cells_after, "/", cells_before), "log.txt", append = TRUE)
 
-  # Check if all cells were filtered out
-  if (cells_after == 0) {
-    stop(paste0("ERROR: All cells filtered out by QC thresholds (minCounts=", min_counts,
-                ", minFeatures=", min_features, "). Lower thresholds or check input data quality."))
-  }
-  if (cells_after < 50) {
-    warning(paste0("Only ", cells_after, " cells remain after QC. Results may be unreliable."))
-  }
-
   # 3. Normalization (Xenium-specific with median counts as scale factor)
-  scale_factor <- median(sdata$nCount_Xenium)
-  if (is.na(scale_factor) || scale_factor <= 0) {
-    warning("Invalid median count (", scale_factor, "), using default scale.factor=10000")
-    scale_factor <- 10000
-  }
-  sdata <- NormalizeData(sdata, scale.factor = scale_factor)
+  sdata <- NormalizeData(sdata, scale.factor = median(sdata$nCount_Xenium))
 
   # 4. Feature Selection & Scaling
-  max_features <- min(2000, nrow(sdata))
-  sdata <- FindVariableFeatures(sdata, selection.method = "vst", nfeatures = max_features)
+  sdata <- FindVariableFeatures(sdata, selection.method = "vst", nfeatures = 2000)
   sdata <- ScaleData(sdata)
 
   # 5. Dimension Reduction
   sdata <- RunPCA(sdata, verbose = FALSE)
-  # Use only available PCs (may be fewer than 30 for small datasets)
-  npcs_available <- ncol(Embeddings(sdata, "pca"))
-  dims_to_use <- min(30, npcs_available)
-  if (dims_to_use < 10) {
-    warning(paste0("Only ", dims_to_use, " PCs available. UMAP may be unreliable."))
-  }
-  sdata <- RunUMAP(sdata, dims = 1:dims_to_use, verbose = FALSE)
+  sdata <- RunUMAP(sdata, dims = 1:30, verbose = FALSE)
 
   # 6. Clustering
   res <- ifelse(is.null(param$Cluster_resolution), 0.5, as.numeric(param$Cluster_resolution))
-  sdata <- FindNeighbors(sdata, dims = 1:dims_to_use, verbose = FALSE)
+  sdata <- FindNeighbors(sdata, dims = 1:30, verbose = FALSE)
   sdata <- FindClusters(sdata, resolution = res, verbose = FALSE)
 
   # 7. RCTD Annotation
@@ -122,15 +226,40 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   if (!is.null(ref_path) && file.exists(ref_path)) {
     ezWrite(paste("Running RCTD with reference:", ref_path), "log.txt", append = TRUE)
 
-    # Load Reference
-    ref_obj <- readRDS(ref_path)
+    # Load Reference (handle .rds, .qs, .qs2 formats)
+    # Note: .qs files use old qs package (qs::qread), .qs2 files use new qs2 package (qs2::qs_read)
+    if (grepl("\\.qs2$", ref_path)) {
+      ref_obj <- qs2::qs_read(ref_path, nthreads = param$cores)
+    } else if (grepl("\\.qs$", ref_path)) {
+      ref_obj <- qs::qread(ref_path, nthreads = param$cores)
+    } else {
+      ref_obj <- readRDS(ref_path)
+    }
 
     # Check if it is a spacexr Reference object
     if (!inherits(ref_obj, "Reference")) {
       if (is.list(ref_obj) && "reference" %in% names(ref_obj)) {
         ref_obj <- ref_obj$reference
+      } else if (inherits(ref_obj, "Seurat")) {
+        # Convert Seurat object to RCTD Reference
+        ezWrite("Converting Seurat object to RCTD Reference...", "log.txt", append = TRUE)
+        ref_counts <- Seurat::GetAssayData(ref_obj, layer = "counts")
+        # Try common cell type annotation columns
+        celltype_col <- intersect(c("author_cell_type", "cell_type", "celltype", "CellType"),
+                                  colnames(ref_obj@meta.data))[1]
+        if (is.na(celltype_col)) {
+          warning("No cell type column found in Seurat reference. Skipping RCTD.")
+          ref_obj <- NULL
+        } else {
+          ref_celltypes <- ref_obj@meta.data[[celltype_col]]
+          names(ref_celltypes) <- colnames(ref_obj)
+          # RCTD requires cell_types to be a factor
+          ref_celltypes <- as.factor(ref_celltypes)
+          ref_obj <- spacexr::Reference(ref_counts, ref_celltypes)
+          ezWrite(paste("Created RCTD Reference with", length(levels(ref_celltypes)), "cell types"), "log.txt", append = TRUE)
+        }
       } else {
-        warning("Loaded object is not a valid RCTD Reference. Skipping RCTD.")
+        warning("Loaded object is not a valid RCTD Reference or Seurat object. Skipping RCTD.")
         ref_obj <- NULL
       }
     }
@@ -138,10 +267,6 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
     if (!is.null(ref_obj)) {
       # Prepare Query (SpatialRNA object)
       counts <- GetAssayData(sdata, assay = "Xenium", layer = "counts")
-      # Ensure counts is a proper sparse matrix (required for RCTD)
-      if (!inherits(counts, "dgCMatrix")) {
-        counts <- as(counts, "dgCMatrix")
-      }
       coords <- GetTissueCoordinates(sdata)
 
       # Ensure coords match counts columns
@@ -160,53 +285,51 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
 
       # Match cells
       common_cells <- intersect(colnames(counts), rownames(coords))
-      counts <- counts[, common_cells, drop = FALSE]
-      coords <- coords[common_cells, , drop = FALSE]
+      if (length(common_cells) == 0) {
+        warning("No common cells between counts and coordinates. Skipping RCTD.")
+        ref_obj <- NULL
+      } else {
+        counts <- counts[, common_cells, drop = FALSE]
+        coords <- coords[common_cells, , drop = FALSE]
 
-      # Create SpatialRNA object
-      # IMPORTANT: Use Matrix::colSums explicitly because base::colSums fails on sparse matrices
-      # when Matrix package is imported but not attached to search path
-      query.puck <- SpatialRNA(coords, counts, Matrix::colSums(counts))
+        # Ensure counts is a matrix (not sparse)
+        counts <- as.matrix(counts)
+
+        # Create SpatialRNA object
+        query.puck <- SpatialRNA(coords, counts, colSums(counts))
 
       # Run RCTD
-      umi_min <- ifelse(is.null(param$rctdUMImin), 100, as.numeric(param$rctdUMImin))
+      umi_min <- ifelse(is.null(param$rctdUMImin), 20, as.numeric(param$rctdUMImin))
       myRCTD <- create.RCTD(query.puck, ref_obj, max_cores = param$cores, UMI_min = umi_min)
       myRCTD <- run.RCTD(myRCTD, doublet_mode = 'doublet')
 
       # Extract results
       results <- myRCTD@results
+      norm_weights <- normalize_weights(results$weights)
 
-      # Validate RCTD results before processing
-      if (is.null(results$weights) || nrow(results$weights) == 0) {
-        warning("RCTD produced no cell type weights. Skipping annotation.")
-      } else {
-        norm_weights <- normalize_weights(results$weights)
+      # Add to Seurat metadata - Primary cell type assignment
+      max_type <- colnames(norm_weights)[max.col(norm_weights, ties.method = "first")]
+      names(max_type) <- rownames(norm_weights)
+      sdata <- AddMetaData(sdata, metadata = max_type, col.name = "RCTD_Main")
 
-        # Add to Seurat metadata - Primary cell type assignment
-        if (ncol(norm_weights) > 0 && nrow(norm_weights) > 0) {
-          max_type <- colnames(norm_weights)[max.col(norm_weights, ties.method = "first")]
-          names(max_type) <- rownames(norm_weights)
-          sdata <- AddMetaData(sdata, metadata = max_type, col.name = "RCTD_Main")
-
-          # Add normalized weights as metadata columns
-          weight_df <- as.data.frame(norm_weights)
-          colnames(weight_df) <- paste0("rctd.weight.", colnames(weight_df))
-          common_cells <- intersect(colnames(sdata), rownames(weight_df))
-          if (length(common_cells) > 0) {
-            for (wt_col in colnames(weight_df)) {
-              wt_vals <- weight_df[common_cells, wt_col]
-              names(wt_vals) <- common_cells
-              sdata <- AddMetaData(sdata, metadata = wt_vals, col.name = wt_col)
-            }
-          }
-
-          # Add doublet/singlet classification
-          if (!is.null(results$results_df)) {
-            sdata <- AddMetaData(sdata, metadata = results$results_df)
-          }
+      # Add normalized weights as metadata columns
+      weight_df <- as.data.frame(norm_weights)
+      colnames(weight_df) <- paste0("rctd.weight.", colnames(weight_df))
+      common_cells <- intersect(colnames(sdata), rownames(weight_df))
+      if (length(common_cells) > 0) {
+        for (wt_col in colnames(weight_df)) {
+          wt_vals <- weight_df[common_cells, wt_col]
+          names(wt_vals) <- common_cells
+          sdata <- AddMetaData(sdata, metadata = wt_vals, col.name = wt_col)
         }
+      }
 
-        ezWrite("RCTD annotation completed", "log.txt", append = TRUE)
+      # Add doublet/singlet classification
+      if (!is.null(results$results_df)) {
+        sdata <- AddMetaData(sdata, metadata = results$results_df)
+      }
+
+      ezWrite("RCTD annotation completed", "log.txt", append = TRUE)
       }
     }
   } else if (!is.null(ref_path)) {
@@ -219,21 +342,8 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   # Pre-compute cluster markers
   ezWrite("Computing cluster markers...", "log.txt", append = TRUE)
   Idents(scData) <- "seurat_clusters"
-  n_clusters <- length(levels(Idents(scData)))
-
-  if (n_clusters < 2) {
-    warning(paste("Only", n_clusters, "cluster found. Cannot compute differential markers."))
-    posMarkers <- data.frame()
-  } else {
-    posMarkers <- tryCatch({
-      FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
-                     logfc.threshold = 0.25, verbose = FALSE)
-    }, error = function(e) {
-      warning("FindAllMarkers failed: ", e$message, ". Returning empty marker table.")
-      data.frame()
-    })
-  }
-
+  posMarkers <- FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
+                                logfc.threshold = 0.25, verbose = FALSE)
   if (nrow(posMarkers) > 0) {
     posMarkers$diff_pct <- abs(posMarkers$pct.1 - posMarkers$pct.2)
     posMarkers <- posMarkers[order(posMarkers$diff_pct, decreasing = TRUE), ]
@@ -246,33 +356,23 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
     lambda <- ifelse(is.null(param$lambda), 0.8, as.numeric(param$lambda))
     niche_res <- ifelse(is.null(param$Niche_resolution), 0.5, as.numeric(param$Niche_resolution))
 
-    scData <- RunBanksy(scData, lambda = lambda, assay = "Xenium",
-                        slot = "data", features = "variable", k_geom = 30,
-                        verbose = FALSE)
+    # Use embedded RunBanksy_v5 for Seurat v5 compatibility
+    # SeuratWrappers::RunBanksy uses deprecated 'slot' argument that fails with SeuratObject >= 5.0
+    scData <- RunBanksy_v5(scData, lambda = lambda, assay = "Xenium",
+                           layer = "data", features = "variable", k_geom = 30,
+                           verbose = FALSE)
     DefaultAssay(scData) <- "BANKSY"
-
-    # Use BANKSY assay features for PCA, not all features
-    banksy_features <- rownames(scData[["BANKSY"]])
-    npcs_banksy <- min(30, length(banksy_features) - 1)
     scData <- RunPCA(scData, assay = "BANKSY", reduction.name = "pca.banksy",
-                     features = banksy_features, npcs = npcs_banksy, verbose = FALSE)
-    scData <- FindNeighbors(scData, reduction = "pca.banksy", dims = 1:min(12, npcs_banksy),
+                     features = rownames(scData), npcs = 30, verbose = FALSE)
+    scData <- FindNeighbors(scData, reduction = "pca.banksy", dims = 1:12,
                             verbose = FALSE)
     scData <- FindClusters(scData, cluster.name = "banksy_cluster",
                            resolution = niche_res, verbose = FALSE)
 
     # Niche markers
     Idents(scData) <- "banksy_cluster"
-    n_niches <- length(levels(Idents(scData)))
-
-    if (n_niches < 2) {
-      warning(paste("Only", n_niches, "BANKSY niche found. Cannot compute differential markers."))
-      posMarkersBanksy <- data.frame()
-    } else {
-      posMarkersBanksy <- FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
-                                          logfc.threshold = 0.25, verbose = FALSE)
-    }
-
+    posMarkersBanksy <- FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
+                                        logfc.threshold = 0.25, verbose = FALSE)
     if (nrow(posMarkersBanksy) > 0) {
       posMarkersBanksy$diff_pct <- abs(posMarkersBanksy$pct.1 - posMarkersBanksy$pct.2)
       posMarkersBanksy <- posMarkersBanksy[order(posMarkersBanksy$diff_pct,
@@ -402,7 +502,7 @@ EzAppSeuratXenium <- setRefClass("EzAppSeuratXenium",
                                 Description = "RCTD Reference to use"),
         rctdFile = ezFrame(Type = "character", DefaultValue = "",
                            Description = "Manual override: Full path to custom RCTD reference .rds file"),
-        rctdUMImin = ezFrame(Type = "numeric", DefaultValue = 100,
+        rctdUMImin = ezFrame(Type = "numeric", DefaultValue = 20,
                              Description = "Minimum UMI count for RCTD annotation"),
         computeSC = ezFrame(Type = "logical", DefaultValue = TRUE,
                             Description = "Compute Seurat Analysis")
