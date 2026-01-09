@@ -255,17 +255,8 @@ ezMethodScSeurat <- function(input = NA, output = NA, param = NA,
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl( "(?i)^MT-", featInfo$gene_name)
   featInfo$isRiboprot = grepl(  "(?i)^RPS|^RPL", featInfo$gene_name)
-  geneAnnoFile <- sub("byTranscript", "byGene", param$ezRef@refAnnotationFile)
-  if (file.exists(geneAnnoFile)){
-    geneAnno <- ezRead.table(geneAnnoFile)
-    if (any(geneAnno$type == "rRNA")){
-      featInfo$isRibosomal <- geneAnno[featInfo$gene_id, "type"] == "rRNA"
-      if(any(is.na(featInfo[, "isRibosomal"]))){
-        featInfo[, "isRibosomal"][which(is.na(featInfo[, "isRibosomal"]))] <- FALSE
-      }
-    }
-  }
-  
+  featInfo$isRibosomal <- getRibosomalFlag(featInfo$gene_id, annoFile=param$ezRef@refAnnotationFile)
+
   ## if we have feature barcodes we keep only the expression matrix
   if (is.list(cts)){
     cts <- cts$`Gene Expression`
@@ -528,21 +519,15 @@ addCellQcToSeurat <- function(scData, param=NULL, BPPARAM=NULL, ribosomalGenes=N
   library(scater)
   
   # Cells filtering
+  ## TODO: extract mito / riboprot and ribosomal genes from assay annotation
   scData <- PercentageFeatureSet(scData, "(?i)^MT-", col.name = "percent_mito")
   scData <- PercentageFeatureSet(scData, "(?i)^RPS|^RPL", col.name = "percent_riboprot")
   if (!is.null(ribosomalGenes)){
     scData <- PercentageFeatureSet(scData, features=ribosomalGenes, col.name = "percent_ribosomal")
   }
-  if(grepl("Spatial", param$appName)) {
-    assay <- "Spatial"
-    att_nCounts <- "nCount_Spatial"
-    att_nGenes <- "nFeature_Spatial"
-  } else {
-    att_nCounts <- "nCount_RNA"
-    att_nGenes <- "nFeature_RNA"
-    assay <- "RNA"
-  }
-  
+  att_nCounts <- paste0("nCount_", DefaultAssay(scData))
+  att_nGenes <- paste0("nFeature_", DefaultAssay(scData))
+
   if (!ezIsSpecified(param$nreads)) {
     scData$qc.lib <- isOutlier(scData@meta.data[,att_nCounts], log = TRUE, nmads = param$nmad, type = "lower")
   } else {
@@ -554,27 +539,34 @@ addCellQcToSeurat <- function(scData, param=NULL, BPPARAM=NULL, ribosomalGenes=N
     scData$qc.nexprs <- scData@meta.data[,att_nGenes] < param$ngenes
   }
   if (!ezIsSpecified(param$perc_mito)) {
-    scData$qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, type = "higher")
+    scData$qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], 
+                                subset=!is.na(scData@meta.data[,"percent_mito"]), 
+                                nmads = param$nmad, type = "higher")
   } else {
     scData$qc.mito <- scData@meta.data[,"percent_mito"] > param$perc_mito
   }
   if (!ezIsSpecified(param$perc_riboprot )) {
-    scData$qc.riboprot <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher")
+    scData$qc.riboprot <- isOutlier(scData@meta.data[,"percent_riboprot"],
+                                    subset=!is.na(scData@meta.data[,"percent_riboprot"]),
+                                    nmads = param$nmad, type = "higher")
   } else {
     scData$qc.riboprot <- scData@meta.data[,"percent_riboprot"] > as.numeric(param$perc_riboprot)
   }
   
   scData$useCell <- !(scData$qc.lib | scData$qc.nexprs | scData$qc.mito | scData$qc.riboprot)
+  #TODO: consider also ribosomal????
   
-  set.seed(38)
-  doubletsInfo <- scDblFinder(GetAssayData(scData, layer="counts")[ , scData$useCell], returnType = "table", clusters=TRUE, BPPARAM = BPPARAM)
-  scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
-  scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
-  scData$qc.doublet <- scData$doubletClass %in% "doublet"
-  if (ezIsSpecified(param$keepDoublets) && param$keepDoublets) {
-    futile.logger::flog.info("Keeping doublets...")
-  } else {
-    scData$useCell <- scData$useCell & scData$doubletClass %in% "singlet"
+  if (DefaultAssay(scData) == "RNA"){
+    set.seed(38)
+    doubletsInfo <- scDblFinder(GetAssayData(scData, layer="counts")[ , scData$useCell], returnType = "table", clusters=TRUE, BPPARAM = BPPARAM)
+    scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
+    scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
+    scData$qc.doublet <- scData$doubletClass %in% "doublet"
+    if (ezIsSpecified(param$keepDoublets) && param$keepDoublets) {
+      futile.logger::flog.info("Keeping doublets...")
+    } else {
+      scData$useCell <- scData$useCell & scData$doubletClass %in% "singlet"
+    }
   }
   return(scData)
 }
@@ -649,4 +641,21 @@ computePathwayActivityAnalysis <- function(cells, species){
                                      minsize = 5)
   
   return(activities)
+}
+
+
+
+getRibosomalFlag <- function(gene_id, annoFile){
+  geneAnnoFile <- sub("byTranscript", "byGene", annoFile)
+  if (file.exists(geneAnnoFile)){
+    geneAnno <- ezRead.table(geneAnnoFile)
+    if (any(geneAnno$type == "rRNA")){
+      isRibosomal <- geneAnno[gene_id, "type"] %in% "rRNA"
+      if (any(isRibosomal)){
+        return(isRibosomal)
+      } else {
+        return(NULL)
+      }
+    }
+  }
 }
