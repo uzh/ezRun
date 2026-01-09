@@ -1463,6 +1463,11 @@ ezKable(enrichrTable, escape=FALSE, format="html", format.args=list())
 
 ## Niches {.tabset}
 
+```{r check_banksy}
+has_banksy <- "banksy_cluster" %in% colnames(scData@meta.data)
+has_niche_genes <- FALSE  # Will be updated in niche_dotplot_setup if there are genes
+```
+
 
 ### Spatial clustering 
 
@@ -1508,10 +1513,12 @@ ezKable(banksy_niches)
 
 </details>
 
-`r paste("Resolution:", param$Niche_resolution)`
+`r if(has_banksy) paste("Lambda:", ifelse(!is.null(param$lambda), param$lambda, 0.8))`
+
+`r if(has_banksy) paste("Resolution:", ifelse(!is.null(param$Niche_resolution), param$Niche_resolution, 0.5))`
 
 
-```{r banksy plot spatial, fig.width=12, fig.height=6}
+```{r banksy plot spatial, fig.width=12, fig.height=6, eval=has_banksy}
 Idents(scData) <- "banksy_cluster"
 
 n_clusters_banksy <- nlevels(Idents(scData))
@@ -1570,7 +1577,7 @@ p_spatialNiches <- SpatialDimPlot(scData,
 ::: {.row}
 ::: {.col-md-9}
 
-```{r number of cells in each cluster banksy, fig.width=18, fig.height=10}
+```{r number of cells in each cluster banksy, fig.width=18, fig.height=10, eval=has_banksy}
 # if(!('Batch' %in% colnames(scData@meta.data))){
 #     scData@meta.data$Batch <- scData@meta.data$Sample
 # }
@@ -1602,7 +1609,7 @@ ggplot(cellIdents_perSample, aes(x = banksy_cluster,
 :::
 
 ::: {.col-md-3}
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval=has_banksy}
 
 df <- cellsProportion(scData, groupVar1 = "banksy_cluster", groupVar2 = "Sample") 
 df <- df |> as.data.frame(check.names = FALSE, stringsAsFactors = FALSE) |>
@@ -1628,7 +1635,7 @@ ezInteractiveTableRmd(df, rowNames = FALSE, title="number of bins/cells", filter
 ### Niches assessment
 
 
-```{r uninteresting variation banksy, fig.height=16, fig.width=18}
+```{r uninteresting variation banksy, fig.height=16, fig.width=18, eval=has_banksy}
 plot1 <- VlnPlot(scData,
                  nCountCol,
                  group.by = "banksy_cluster",
@@ -1775,7 +1782,7 @@ ezKable(marker_desc)
 
 
 
-```{r pos markers banksy}
+```{r pos markers banksy, eval=has_banksy && nrow(posMarkersBanksy) > 0}
 
 ezInteractiveTableRmd(posMarkersBanksy, digits=3, rowNames=FALSE)
 
@@ -1784,7 +1791,7 @@ ezInteractiveTableRmd(posMarkersBanksy, digits=3, rowNames=FALSE)
 
 ### Marker plots
 
-```{r marker plot setup banksy}
+```{r marker plot setup banksy, eval=has_banksy && nrow(posMarkersBanksy) > 0}
 top5 <- posMarkersBanksy %>%
   group_by(cluster) %>%
   slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
@@ -1798,7 +1805,7 @@ genesToPlot <- intersect(genesToPlot, rownames(scData))
 Visualization of the top 5 markers in each cluster. If a gene is a top marker for multiple clusters it is shown only once.
 
 
-```{r dotplot banksy, fig.width  = 20, fig.height = 30}
+```{r dotplot banksy, fig.width  = 20, fig.height = 30, eval=has_banksy && nrow(posMarkersBanksy) > 0 && has_niche_genes}
 
 DotPlot(scData, features=rev(genesToPlot)) + 
   coord_flip() +
@@ -1810,7 +1817,7 @@ DotPlot(scData, features=rev(genesToPlot)) +
 ```
 
 ### EnrichR
-```{r query online enrichR version banksy, echo=FALSE, results='asis'}
+```{r query online enrichR version banksy, echo=FALSE, results='asis', eval=has_banksy && nrow(posMarkersBanksy) > 0}
 markersPerClusterTable <- c()
 
 eachCluster <- 0
@@ -1847,7 +1854,7 @@ enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='",
 ```
 
 
-```{r enrichr markers banksy, echo=FALSE, results='asis'}
+```{r enrichr markers banksy, echo=FALSE, results='asis', eval=has_banksy && nrow(posMarkersBanksy) > 0}
 enrichrTable1 <- tibble(Cluster=names(genesPerCluster),
                          # "# of posMarkers"=lengths(genesPerCluster),
                          "N posMarkers"=lengths(genesPerCluster),
