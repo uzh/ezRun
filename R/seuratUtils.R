@@ -564,9 +564,103 @@ Seurat_to_SPE <- function(seurat_obj, coords){
 }
 
 Seurat_to_SPIATSPE <- function(seurat_obj){
+  ## requires SPIAT package
   spE <- format_image_to_spe(format = "general", 
                              intensity_matrix = as.matrix(GetAssayData(seurat_obj)),
                              phenotypes = as.character(Idents(seurat_obj)), 
                              coord_x = seurat_obj@images$image$centroids@coords[,1],coord_y = seurat_obj@images$image$centroids@coords[,2])
   return(spE)
+}
+
+
+
+## does the following
+## if the image has 4 channels assume, the 4th channel is alpha and blend in
+## if the image has more than 4 channels take only the first 3
+## if the blue channel is brighter than the red channel swap these two channels
+fix_microscopy_image <- function(obj, 
+                      img_name = Images(obj)[1],
+                      eps = 0.02, 
+                      margin = 0.01) {
+  
+  arr <- obj@images[[img_name]]@image
+  
+  # Normalize if stored as 8/16-bit (no-op if already 0..1)
+  mx <- suppressWarnings(max(arr, na.rm = TRUE)); if (!is.finite(mx) || mx == 0) mx <- 1
+  if (mx > 1) arr <- arr / mx
+  
+  
+  if (length(dim(arr)) == 3){
+    if (dim(arr)[3] == 4) {
+      # if 4 channels assume RGBA, do composite over white and drop alpha
+      A <- arr[,,4]; RGB <- arr[,,1:3]
+      for (k in 1:3) RGB[,,k] <- RGB[,,k]*A + (1 - A)
+      arr <- RGB
+    }
+    if (dim(arr)[3] > 4){
+      ## simply take the first 3
+      arr <- arr[,,1:3, drop = FALSE]
+    }
+  }
+  
+  # mask out near-black background; keep pixels with any channel > eps
+  mask <- apply(arr > eps, c(1,2), any)
+  if (!any(mask)) mask <- matrix(TRUE, nrow = dim(arr)[1], ncol = dim(arr)[2])
+  
+  mR <- mean(arr[,,1][mask], na.rm = TRUE)
+  mB <- mean(arr[,,3][mask], na.rm = TRUE)
+  
+  if (is.finite(mR) && is.finite(mB) && (mB > mR + margin)) {
+    arr <- arr[,,c(3,2,1), drop = FALSE]
+    chosen <- "BGR->RGB (swapped)"
+  } else {
+    chosen <- "RGB (kept as-is)"
+  }
+  
+  obj@images[[img_name]]@image <- arr
+  message(sprintf("Channel order decided by means on tissue: R=%.3f, B=%.3f -> %s",
+                  mR, mB, chosen))
+  obj
+}
+
+
+
+ezSpatialFeaturePlot <- function(obj,
+                                 feature,
+                                 title = feature,
+                                 label = feature,
+                                 pt.size.factor = 2,
+                                 plot_segmentations  = TRUE,
+                                 min.cutoff = "q01",
+                                 max.cutoff = "q99",
+                                 legend.pos = "right",
+                                 palette = "turbo",
+                                 font_size = 10, ## that's the default fontsize from plotColData
+                                 ...) {
+  
+  SpatialFeaturePlot(
+    object              = obj,
+    features            = feature,
+    images              = Images(obj),  
+    plot_segmentations  = plot_segmentations,
+    pt.size.factor      = pt.size.factor,
+    min.cutoff          = min.cutoff,
+    max.cutoff          = max.cutoff,
+    ...
+  ) +
+    labs(title = title, fill = label) +
+    scale_fill_viridis_c(option = palette, na.value = "grey95") +
+    theme(legend.position = legend.pos) +
+    cowplot::theme_cowplot(font_size = font_size)
+  # theme_void() +
+  # theme(
+  #   legend.position   = legend.pos,
+  #   plot.title        = element_text(size = title_size, 
+  #                                    face = "bold", 
+  #                                    margin = margin(b = 6)),
+  #   legend.title      = element_text(size = 8),
+  #   legend.text       = element_text(size = 8),
+  #   legend.key.height = unit(10, "pt"),
+  #   legend.key.width  = unit(6, "pt")
+  # )
 }
