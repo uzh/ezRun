@@ -938,7 +938,7 @@ if (has_rctd_niche) {
 has_annotation_niche <- !is.null(celltype_col_niche)
 ```
 
-```{r niche_celltype_heatmap, fig.width=12, fig.height=10, eval=has_banksy && has_annotation_niche}
+```{r niche_celltype_heatmap, fig.width=14, fig.height=12, eval=has_banksy && has_annotation_niche}
 # Calculate proportion of each cell type within each niche (row-normalized)
 niche_celltype_df <- scData@meta.data |>
   dplyr::filter(!is.na(banksy_cluster), !is.na(.data[[celltype_col_niche]])) |>
@@ -967,7 +967,7 @@ if (!exists("truncate_label")) {
     ifelse(nchar(x) > max_chars, paste0(substr(x, 1, max_chars - 3), "..."), x)
   }
 }
-colnames(prop_matrix_ct) <- truncate_label(colnames(prop_matrix_ct), max_chars = 30)
+colnames(prop_matrix_ct) <- truncate_label(colnames(prop_matrix_ct), max_chars = 40)
 
 # Heatmap showing cell type composition per niche
 pheatmap::pheatmap(
@@ -980,6 +980,8 @@ pheatmap::pheatmap(
   angle_col = 45,
   fontsize_row = 10,
   fontsize_col = 8,
+  cellheight = 20,
+  cellwidth = 12,
   display_numbers = FALSE,
   border_color = "grey90"
 )
