@@ -179,14 +179,14 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
     scData$Batch <- scData$Sample
   }
   
-  
+  param$nreads <- param$numis ## needed by qc script
   scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM, ribosomalGenes = featInfo[rownames(scData), "isRibosomal"])
   ## make image name unique
   stopifnot(length(names(scData@images)) == 1)
   names(scData@images) <- paste0(input$getNames(),'_S1')
   scData_unfiltered <- scData
   
-  scData <- subset(scData, cells=which(scData_unfiltered$useCell)) # %>% head(n=1000))
+  scData <- subset(scData_unfiltered, cells=which(scData_unfiltered$useCell)) # %>% head(n=1000))
   
   scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM, assay = DefaultAssay(scData))
   
