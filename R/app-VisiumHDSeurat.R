@@ -154,11 +154,15 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
     # Segmented outputs: use parent directory and bin.size = "polygons"
     dataDir <- input$getFullPaths("SpaceRangerDir")
     scData <- Load10X_Spatial(data.dir = dataDir, image.name = "tissue_hires_image.png", bin.size = "polygons", use.names=FALSE)
+    sf <- scData@images[[1]]@scale.factors
+    scData@images[[1]]@scale.factors$lowres <- sf$hires
     matrixPath <- file.path(dataDir, param$binSize, "filtered_feature_cell_matrix")
   } else {
     # Binned outputs: use standard approach with specific bin directory
     dataDir <- file.path(input$getFullPaths("SpaceRangerDir"), param$binSize)
     scData <- Load10X_Spatial(data.dir = dataDir, image.name = "tissue_hires_image.png", use.names=FALSE)
+    sf <- scData@images[[1]]@scale.factors
+    scData@images[[1]]@scale.factors$lowres <- sf$hires
     matrixPath <- file.path(dataDir, "filtered_feature_bc_matrix")
   }
   
