@@ -162,7 +162,6 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
     matrixPath <- file.path(dataDir, "filtered_feature_bc_matrix")
   }
   
-  
   featInfo <- ezRead.table(paste0(matrixPath, "/features.tsv.gz"),
                            header = FALSE, row.names = NULL)
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
@@ -183,16 +182,16 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
   scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM, ribosomalGenes = featInfo[rownames(scData), "isRibosomal"])
   ## make image name unique
   stopifnot(length(names(scData@images)) == 1)
-  names(scData@images) <- paste0(input$getNames(),'_S1')
+  names(scData@images) <- make.names(paste0(input$getNames(),'_S1'))
   scData_unfiltered <- scData
-  
   scData <- subset(scData_unfiltered, cells=which(scData_unfiltered$useCell)) # %>% head(n=1000))
-  
-  scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM, assay = DefaultAssay(scData))
-  
+
   scData <- NormalizeData(scData)
   scData <- FindVariableFeatures(scData)
   scData <- ScaleData(scData)
+  
+  scData <- addCellCycleToSeurat(scData, param$refBuild, BPPARAM, assay = DefaultAssay(scData))
+  
   if(nrow(scData@meta.data) < 50000){
     scData <- RunPCA(scData, npcs = 80)
     stopifnot(param$npcs <= 80)
