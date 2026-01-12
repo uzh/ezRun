@@ -410,7 +410,7 @@ p1 <- ImageDimPlot(scData, fov = names(scData@images)[1], group.by = "ident",
   guides(fill = if (show_leg) guide_legend(title = "Clusters", override.aes = list(size = 3)) else "none")
 
 # UMAP second with coord_fixed - use Seurat default colors for consistency
-p2 <- DimPlot(scData, reduction = "umap", label = FALSE, pt.size = 0.5) +
+p2 <- DimPlot(scData, reduction = "umap", label = FALSE, pt.size = 0.5, raster = FALSE) +
   coord_fixed() +
   labs(color = "Clusters") +
   theme_void() +
@@ -684,7 +684,7 @@ p1 <- ImageDimPlot(scData, fov = names(scData@images)[1], group.by = "banksy_clu
   guides(fill = if (show_leg_banksy) guide_legend(title = "Niches", override.aes = list(size = 3)) else "none")
 
 # UMAP second with coord_fixed - use Seurat default colors for consistency
-p2 <- DimPlot(scData, reduction = "umap", label = FALSE, pt.size = 0.5) +
+p2 <- DimPlot(scData, reduction = "umap", label = FALSE, pt.size = 0.5, raster = FALSE) +
   coord_fixed() +
   labs(color = "Niches") +
   theme_void() +
@@ -875,6 +875,122 @@ ezKable(enrichrTableNiche, escape = FALSE, format = "html", format.args = list()
 cat("EnrichR analysis not available for niches (no BANKSY results or no markers).")
 ```
 
+### Niche Composition {.tabset}
+
+#### Niche x Cluster
+
+```{r niche_cluster_heatmap, fig.width=10, fig.height=8, eval=has_banksy}
+# Calculate proportion of each cluster within each niche (row-normalized)
+niche_cluster_df <- scData@meta.data |>
+  dplyr::filter(!is.na(banksy_cluster), !is.na(seurat_clusters)) |>
+  dplyr::group_by(banksy_cluster, seurat_clusters) |>
+  dplyr::summarise(count = n(), .groups = "drop") |>
+  dplyr::group_by(banksy_cluster) |>
+  dplyr::mutate(proportion = count / sum(count)) |>
+  dplyr::ungroup()
+
+# Create proportion matrix
+prop_matrix <- niche_cluster_df |>
+  dplyr::select(banksy_cluster, seurat_clusters, proportion) |>
+  tidyr::pivot_wider(names_from = seurat_clusters, values_from = proportion, values_fill = 0) |>
+  tibble::column_to_rownames("banksy_cluster") |>
+  as.matrix()
+
+# Sort rows and columns numerically if possible
+tryCatch({
+  row_order <- order(as.numeric(rownames(prop_matrix)))
+  col_order <- order(as.numeric(colnames(prop_matrix)))
+  prop_matrix <- prop_matrix[row_order, col_order, drop = FALSE]
+}, error = function(e) NULL)
+
+# Heatmap showing cluster composition per niche
+pheatmap::pheatmap(
+  prop_matrix,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  scale = "none",
+  color = colorRampPalette(c("white", "#2166AC"))(100),
+  main = "Cluster Composition per Niche",
+  angle_col = 45,
+  fontsize_row = 10,
+  fontsize_col = 10,
+  display_numbers = FALSE,
+  border_color = "grey90"
+)
+```
+
+```{r no_niche_cluster_heatmap, eval=!has_banksy}
+cat("Niche x Cluster heatmap not available (no BANKSY results).")
+```
+
+#### Niche x Cell Type
+
+```{r niche_celltype_heatmap_check}
+# Check for cell type annotation (needed before the annotation section)
+has_rctd_niche <- "RCTD_Main" %in% colnames(scData@meta.data)
+if (has_rctd_niche) {
+  celltype_col_niche <- "RCTD_Main"
+} else if ("predicted.celltype" %in% colnames(scData@meta.data)) {
+  celltype_col_niche <- "predicted.celltype"
+} else {
+  celltype_col_niche <- NULL
+}
+has_annotation_niche <- !is.null(celltype_col_niche)
+```
+
+```{r niche_celltype_heatmap, fig.width=14, fig.height=12, eval=has_banksy && has_annotation_niche}
+# Calculate proportion of each cell type within each niche (row-normalized)
+niche_celltype_df <- scData@meta.data |>
+  dplyr::filter(!is.na(banksy_cluster), !is.na(.data[[celltype_col_niche]])) |>
+  dplyr::group_by(banksy_cluster, .data[[celltype_col_niche]]) |>
+  dplyr::summarise(count = n(), .groups = "drop") |>
+  dplyr::group_by(banksy_cluster) |>
+  dplyr::mutate(proportion = count / sum(count)) |>
+  dplyr::ungroup()
+
+# Create proportion matrix
+prop_matrix_ct <- niche_celltype_df |>
+  dplyr::select(banksy_cluster, all_of(celltype_col_niche), proportion) |>
+  tidyr::pivot_wider(names_from = all_of(celltype_col_niche), values_from = proportion, values_fill = 0) |>
+  tibble::column_to_rownames("banksy_cluster") |>
+  as.matrix()
+
+# Sort rows numerically if possible
+tryCatch({
+  row_order <- order(as.numeric(rownames(prop_matrix_ct)))
+  prop_matrix_ct <- prop_matrix_ct[row_order, , drop = FALSE]
+}, error = function(e) NULL)
+
+# Truncate long cell type names for display
+if (!exists("truncate_label")) {
+  truncate_label <- function(x, max_chars = 35) {
+    ifelse(nchar(x) > max_chars, paste0(substr(x, 1, max_chars - 3), "..."), x)
+  }
+}
+colnames(prop_matrix_ct) <- truncate_label(colnames(prop_matrix_ct), max_chars = 40)
+
+# Heatmap showing cell type composition per niche
+pheatmap::pheatmap(
+  prop_matrix_ct,
+  cluster_rows = FALSE,
+  cluster_cols = TRUE,
+  scale = "none",
+  color = colorRampPalette(c("white", "#B2182B"))(100),
+  main = "Cell Type Composition per Niche",
+  angle_col = 45,
+  fontsize_row = 10,
+  fontsize_col = 8,
+  cellheight = 20,
+  cellwidth = 12,
+  display_numbers = FALSE,
+  border_color = "grey90"
+)
+```
+
+```{r no_niche_celltype_heatmap, eval=!has_banksy || !has_annotation_niche}
+cat("Niche x Cell Type heatmap not available (no BANKSY results or no cell type annotation).")
+```
+
 ## Cell Type Annotation {.tabset}
 
 ```{r check_annotation}
@@ -957,7 +1073,7 @@ p1 <- ImageDimPlot(scData, fov = names(scData@images)[1],
 
 # UMAP second with coord_fixed - use same colors
 p2 <- DimPlot(scData, group.by = celltype_col, cols = celltype_colors,
-              label = TRUE, repel = TRUE, pt.size = 0.5, label.size = 3) +
+              label = TRUE, repel = TRUE, pt.size = 0.5, label.size = 3, raster = FALSE) +
   coord_fixed() +
   ggtitle("Cell Types - UMAP") +
   theme_void() +
@@ -1090,19 +1206,30 @@ has_genes_to_plot <- length(genesToPlot_celltype) > 0
 ```
 
 ```{r celltype_dotplot, fig.width=15, fig.height=20, eval=has_annotation && has_celltype_markers && has_genes_to_plot}
+# Filter out cells with NA cell types (e.g., RCTD rejects) to avoid "NA." category
+original_types <- as.character(scData@meta.data[[celltype_col]])
+cells_with_celltype <- which(!is.na(original_types))
+
+if (length(cells_with_celltype) < ncol(scData)) {
+  n_na <- ncol(scData) - length(cells_with_celltype)
+  cat("Note: Excluding", n_na, "cells with unassigned cell types from dotplot.\n\n")
+}
+
+# Subset to cells with valid cell types
+scData_subset <- subset(scData, cells = colnames(scData)[cells_with_celltype])
+
 # Create a cleaned cell type column to avoid row.names issues in DotPlot
 # Replace problematic characters (/, \, spaces) with underscores
-original_types <- as.character(scData@meta.data[[celltype_col]])
-cleaned_types <- gsub("[/\\\\]", "_", original_types)
+cleaned_types <- gsub("[/\\\\]", "_", original_types[cells_with_celltype])
 cleaned_types <- gsub("\\s+", "_", cleaned_types)
 cleaned_types <- make.names(cleaned_types)
-scData$celltype_clean <- factor(cleaned_types)
+scData_subset$celltype_clean <- factor(cleaned_types)
 
 # Set cleaned column as identity
-Idents(scData) <- "celltype_clean"
+Idents(scData_subset) <- "celltype_clean"
 
 tryCatch({
-  p <- DotPlot(scData, features = rev(genesToPlot_celltype), group.by = "celltype_clean") +
+  p <- DotPlot(scData_subset, features = rev(genesToPlot_celltype), group.by = "celltype_clean") +
     coord_flip() +
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
     labs(x = "Gene", y = "Cell Type")
@@ -1112,7 +1239,7 @@ tryCatch({
   tryCatch({
     cat("Note: Using fewer markers due to plotting constraints.\n")
     top_genes <- unique(head(genesToPlot_celltype, 20))
-    p <- DotPlot(scData, features = rev(top_genes), group.by = "celltype_clean") +
+    p <- DotPlot(scData_subset, features = rev(top_genes), group.by = "celltype_clean") +
       coord_flip() +
       theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
       labs(x = "Gene", y = "Cell Type")
@@ -1123,8 +1250,8 @@ tryCatch({
   })
 })
 
-# Reset identity to original
-Idents(scData) <- celltype_col
+# Clean up subset object to free memory
+rm(scData_subset)
 ```
 
 ```{r no_celltype_dotplot, eval=has_annotation && has_celltype_markers && !has_genes_to_plot}
