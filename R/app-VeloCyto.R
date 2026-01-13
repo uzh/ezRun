@@ -36,19 +36,37 @@ EzAppVeloCyto <-
 ##' @param cores number of CPU cores to use
 ##' @return Returns the path to the BAM file (either original or converted)
 convertCramToBamIfNeeded <- function(inputFile, outputBam, cores = 1) {
+  # Validate inputs
+  if (!file.exists(inputFile)) {
+    stop(paste("Input file does not exist:", inputFile))
+  }
+  if (!is.numeric(cores) || cores < 1) {
+    stop(paste("Invalid cores parameter:", cores))
+  }
+  
   # Check if the input file is a CRAM based on extension
   if (grepl("\\.cram$", inputFile, ignore.case = TRUE)) {
     ezWrite("Detected CRAM file, converting to BAM format...")
     
     # Convert CRAM to BAM using samtools view
     # Note: -b flag outputs BAM format, -o specifies output file
-    cmd <- paste("samtools view -b -@", cores, "-o", outputBam, inputFile)
+    cmd <- paste("samtools view -b -@", cores, "-o", shQuote(outputBam), shQuote(inputFile))
     ezSystem(cmd)
+    
+    # Verify the BAM file was created successfully
+    if (!file.exists(outputBam)) {
+      stop(paste("Failed to create BAM file:", outputBam))
+    }
     
     # Index the resulting BAM file
     ezWrite("Indexing BAM file...")
-    cmd <- paste("samtools index", outputBam)
+    cmd <- paste("samtools index", shQuote(outputBam))
     ezSystem(cmd)
+    
+    # Verify the index was created successfully
+    if (!file.exists(paste0(outputBam, ".bai"))) {
+      stop(paste("Failed to create BAM index for:", outputBam))
+    }
     
     ezWrite("CRAM to BAM conversion completed successfully")
     return(outputBam)
@@ -113,10 +131,12 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
       setwd(cramDir)
       outputBam <- sub("\\.cram$", ".bam", basename(cramFile))
       convertCramToBamIfNeeded(basename(cramFile), outputBam, param$cores)
-      # Remove the original CRAM file
-      file.remove(basename(cramFile))
-      if(file.exists(paste0(basename(cramFile), ".crai"))) {
-        file.remove(paste0(basename(cramFile), ".crai"))
+      # Remove the original CRAM file only if conversion was successful
+      if(file.exists(outputBam) && file.exists(paste0(outputBam, ".bai"))) {
+        file.remove(basename(cramFile))
+        if(file.exists(paste0(basename(cramFile), ".crai"))) {
+          file.remove(paste0(basename(cramFile), ".crai"))
+        }
       }
       setwd(cwd)
     }
