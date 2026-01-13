@@ -38,10 +38,10 @@ EzAppVeloCyto <-
 convertCramToBamIfNeeded <- function(inputFile, outputBam, cores = 1) {
   # Validate inputs
   if (!file.exists(inputFile)) {
-    stop(paste("Input file does not exist:", inputFile))
+    stop(paste0("Input file does not exist: ", inputFile))
   }
   if (!is.numeric(cores) || cores < 1) {
-    stop(paste("Invalid cores parameter:", cores))
+    stop(paste0("Invalid cores parameter: ", cores))
   }
   
   # Check if the input file is a CRAM based on extension
@@ -55,7 +55,7 @@ convertCramToBamIfNeeded <- function(inputFile, outputBam, cores = 1) {
     
     # Verify the BAM file was created successfully
     if (!file.exists(outputBam)) {
-      stop(paste("Failed to create BAM file:", outputBam))
+      stop(paste0("Failed to create BAM file: ", outputBam))
     }
     
     # Index the resulting BAM file
@@ -65,7 +65,7 @@ convertCramToBamIfNeeded <- function(inputFile, outputBam, cores = 1) {
     
     # Verify the index was created successfully
     if (!file.exists(paste0(outputBam, ".bai"))) {
-      stop(paste("Failed to create BAM index for:", outputBam))
+      stop(paste0("Failed to create BAM index for: ", outputBam))
     }
     
     ezWrite("CRAM to BAM conversion completed successfully")
@@ -133,10 +133,16 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
       convertCramToBamIfNeeded(basename(cramFile), outputBam, param$cores)
       # Remove the original CRAM file only if conversion was successful
       if(file.exists(outputBam) && file.exists(paste0(outputBam, ".bai"))) {
-        file.remove(basename(cramFile))
-        if(file.exists(paste0(basename(cramFile), ".crai"))) {
-          file.remove(paste0(basename(cramFile), ".crai"))
-        }
+        tryCatch({
+          file.remove(basename(cramFile))
+          ezWrite(paste0("Removed original CRAM file: ", basename(cramFile)))
+          if(file.exists(paste0(basename(cramFile), ".crai"))) {
+            file.remove(paste0(basename(cramFile), ".crai"))
+            ezWrite(paste0("Removed CRAM index file: ", basename(cramFile), ".crai"))
+          }
+        }, error = function(e) {
+          ezWrite(paste0("Warning: Failed to remove CRAM file(s): ", e$message))
+        })
       }
       setwd(cwd)
     }
@@ -164,7 +170,7 @@ runVelocytoBD <- function(input, output, param){
   ## Check if input is CRAM and convert to BAM if needed
   if (grepl("\\.cram$", gstoreBamFile, ignore.case = TRUE)) {
     ezWrite("Input file is CRAM, converting to BAM format...")
-    convertedBam <- "input_converted.bam"
+    convertedBam <- paste0("input_converted_", Sys.getpid(), ".bam")
     gstoreBamFile <- convertCramToBamIfNeeded(gstoreBamFile, convertedBam, param$cores)
   }
   
