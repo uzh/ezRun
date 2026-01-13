@@ -29,6 +29,35 @@ EzAppVeloCyto <-
               )
   )
 
+##' @title Convert CRAM to BAM if needed
+##' @description Checks if the input file is a CRAM file and converts it to BAM format
+##' @param inputFile path to the input file (can be BAM or CRAM)
+##' @param outputBam desired output BAM file path
+##' @param cores number of CPU cores to use
+##' @return Returns the path to the BAM file (either original or converted)
+convertCramToBamIfNeeded <- function(inputFile, outputBam, cores = 1) {
+  # Check if the input file is a CRAM based on extension
+  if (grepl("\\.cram$", inputFile, ignore.case = TRUE)) {
+    ezWrite("Detected CRAM file, converting to BAM format...")
+    
+    # Convert CRAM to BAM using samtools view
+    # Note: -b flag outputs BAM format, -o specifies output file
+    cmd <- paste("samtools view -b -@", cores, "-o", outputBam, inputFile)
+    ezSystem(cmd)
+    
+    # Index the resulting BAM file
+    ezWrite("Indexing BAM file...")
+    cmd <- paste("samtools index", outputBam)
+    ezSystem(cmd)
+    
+    ezWrite("CRAM to BAM conversion completed successfully")
+    return(outputBam)
+  } else {
+    # Input is already BAM, return as-is
+    return(inputFile)
+  }
+}
+
 
 ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
   
@@ -54,6 +83,17 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
   ezSystem(cmd)
   
   cwd <- getwd()
+  
+  # Check for CRAM files and convert to BAM if needed
+  sampleCram <- list.files('.', pattern = 'sample_alignments.cram$', recursive=TRUE)
+  if(length(sampleCram) == 1L) { #CellRanger Multi Output with CRAM
+    ezWrite("Found sample_alignments.cram, converting to BAM...")
+    cramDir <- dirname(sampleCram)
+    setwd(cramDir)
+    convertCramToBamIfNeeded('sample_alignments.cram', 'sample_alignments.bam', param$cores)
+    setwd(cwd)
+  }
+  
   sampleBam <- list.files('.', pattern = 'sample_alignments.bam$', recursive=TRUE)
   if(length(sampleBam) == 1L) { #CellRanger Multi Output
     setwd(dirname(sampleBam))
@@ -62,6 +102,24 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
     system('mv sample_filtered_feature_bc_matrix filtered_feature_bc_matrix')
     system(sprintf('mv * %s', file.path(cwd, sampleDir, "outs")))
     setwd(cwd)
+  }
+  
+  # Check for possorted_genome_bam.cram and convert if needed
+  possortedCram <- list.files('.', pattern = 'possorted_genome_bam.cram$', recursive=TRUE)
+  if(length(possortedCram) > 0) {
+    ezWrite("Found possorted_genome_bam.cram file(s), converting to BAM...")
+    for(cramFile in possortedCram) {
+      cramDir <- dirname(cramFile)
+      setwd(cramDir)
+      outputBam <- sub("\\.cram$", ".bam", basename(cramFile))
+      convertCramToBamIfNeeded(basename(cramFile), outputBam, param$cores)
+      # Remove the original CRAM file
+      file.remove(basename(cramFile))
+      if(file.exists(paste0(basename(cramFile), ".crai"))) {
+        file.remove(paste0(basename(cramFile), ".crai"))
+      }
+      setwd(cwd)
+    }
   }
 
   # Activate conda environment and run velocyto
@@ -82,6 +140,13 @@ runVelocytoBD <- function(input, output, param){
   
   ## convert the bam file
   gstoreBamFile <- input$getFullPaths("AlignmentFile")
+  
+  ## Check if input is CRAM and convert to BAM if needed
+  if (grepl("\\.cram$", gstoreBamFile, ignore.case = TRUE)) {
+    ezWrite("Input file is CRAM, converting to BAM format...")
+    convertedBam <- "input_converted.bam"
+    gstoreBamFile <- convertCramToBamIfNeeded(gstoreBamFile, convertedBam, param$cores)
+  }
   
   ## convert tags
   # samtools view -h /home/ubuntu/data/RNAVelo/Combined_Cartridge-1_Bioproduct_filtered_fixed3.bam \
