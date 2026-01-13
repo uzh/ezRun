@@ -115,9 +115,12 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
   if(length(sampleCram) == 1L) { #CellRanger Multi Output with CRAM
     ezWrite("Found sample_alignments.cram, converting to BAM...")
     cramDir <- dirname(sampleCram)
-    setwd(cramDir)
-    convertCramToBamIfNeeded('sample_alignments.cram', 'sample_alignments.bam', param$cores)
-    setwd(cwd)
+    tryCatch({
+      setwd(cramDir)
+      convertCramToBamIfNeeded('sample_alignments.cram', 'sample_alignments.bam', param$cores)
+    }, finally = {
+      setwd(cwd)
+    })
   }
   
   sampleBam <- list.files('.', pattern = 'sample_alignments.bam$', recursive=TRUE)
@@ -136,23 +139,26 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
     ezWrite("Found possorted_genome_bam.cram file(s), converting to BAM...")
     for(cramFile in possortedCram) {
       cramDir <- dirname(cramFile)
-      setwd(cramDir)
-      outputBam <- sub("\\.cram$", ".bam", basename(cramFile))
-      convertCramToBamIfNeeded(basename(cramFile), outputBam, param$cores)
-      # Remove the original CRAM file only if conversion was successful
-      if(file.exists(outputBam) && file.exists(paste0(outputBam, ".bai"))) {
-        tryCatch({
-          file.remove(basename(cramFile))
-          ezWrite(paste0("Removed original CRAM file: ", basename(cramFile)))
-          if(file.exists(paste0(basename(cramFile), ".crai"))) {
-            file.remove(paste0(basename(cramFile), ".crai"))
-            ezWrite(paste0("Removed CRAM index file: ", basename(cramFile), ".crai"))
-          }
-        }, error = function(e) {
-          ezWrite(paste0("Warning: Failed to remove CRAM file(s): ", e$message))
-        })
-      }
-      setwd(cwd)
+      tryCatch({
+        setwd(cramDir)
+        outputBam <- sub("\\.cram$", ".bam", basename(cramFile))
+        convertCramToBamIfNeeded(basename(cramFile), outputBam, param$cores)
+        # Remove the original CRAM file only if conversion was successful
+        if(file.exists(outputBam) && file.exists(paste0(outputBam, ".bai"))) {
+          tryCatch({
+            file.remove(basename(cramFile))
+            ezWrite(paste0("Removed original CRAM file: ", basename(cramFile)))
+            if(file.exists(paste0(basename(cramFile), ".crai"))) {
+              file.remove(paste0(basename(cramFile), ".crai"))
+              ezWrite(paste0("Removed CRAM index file: ", basename(cramFile), ".crai"))
+            }
+          }, error = function(e) {
+            ezWrite(paste0("Warning: Failed to remove CRAM file(s): ", e$message))
+          })
+        }
+      }, finally = {
+        setwd(cwd)
+      })
     }
   }
 
