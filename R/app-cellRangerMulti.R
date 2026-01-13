@@ -147,8 +147,9 @@ prepareFastqData <- function(input, param) {
     dirList <- c(dirList, list(featureName=dataInfo[["multiName"]],
                                featureDirs=dataInfo[["multiDirs"]]))
   }
-  #2.4 Multiplexing
-  if ("Multiplexing" %in% libraryTypes && !("fixedRNA" %in% libraryTypes) && param$MultiplexingType != "antibody") {
+  #2.4 Multiplexing (CMO only - OCM multiplexing info is embedded in GEX reads)
+  if ("Multiplexing" %in% libraryTypes && !("fixedRNA" %in% libraryTypes) &&
+      param$MultiplexingType != "antibody" && param$MultiplexingType != "ocm") {
     dataInfo <- getCellRangerMultiData(input, "MultiDataDir", sampleName)
     dirList <- c(dirList, list(multiplexName=dataInfo[["multiName"]],
                                multiplexDirs=dataInfo[["multiDirs"]]))
@@ -272,17 +273,23 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents, c(""))
   }
   if (hasMult) {
-    multiplexBarcodeFile <- tempfile(pattern = "multi_barcode_set", tmpdir = ".", fileext = ".csv")
-    multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
+    multiplexBarcodeFile <- NULL  # Initialize as NULL; only created for CMO/HTO
     if (param$MultiplexingType == "antibody") {
+      # HTO/Hashtag multiplexing - needs [feature] section
+      multiplexBarcodeFile <- tempfile(pattern = "multi_barcode_set", tmpdir = ".", fileext = ".csv")
+      multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
       fileContents <- append(fileContents, "[feature]")
       fileContents <- append(fileContents, sprintf("reference,%s", multiplexBarcodeFile))
-    } else if (!isFixed) {
-      fileContents <- append(fileContents, 
+      fileContents <- append(fileContents, c(""))
+    } else if (!isFixed && param$MultiplexingType != "ocm") {
+      # CMO/CellPlex multiplexing - needs cmo-set reference
+      multiplexBarcodeFile <- tempfile(pattern = "multi_barcode_set", tmpdir = ".", fileext = ".csv")
+      multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
+      fileContents <- append(fileContents,
                              sprintf("cmo-set,%s", multiplexBarcodeFile))
       fileContents <- append(fileContents, c(""))
     }
-    fileContents <- append(fileContents, c(""))
+    # OCM: No barcode reference file needed - chemistry handles it internally
   }
   
   # Fastq Files
@@ -303,7 +310,8 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents,
                            sprintf("%s,%s,%s", dirList$featureName, dirList$featureDirs, "Antibody Capture"))
   }  
-  if (hasMult && !isFixed) {
+  # Multiplexing library entry - skip for OCM (multiplexing info embedded in GEX reads)
+  if (hasMult && !isFixed && param$MultiplexingType != "ocm") {
     if (param$MultiplexingType == "antibody") {
       fileContents <- append(fileContents,
                              sprintf("%s,%s,%s", dirList$featureName, dirList$featureDirs, "Antibody Capture"))
@@ -326,21 +334,28 @@ buildMultiConfigFile <- function(input, param, dirList) {
     sampleMultiplexMapping <- read_csv(sampleMultiplexFile, show_col_types = FALSE)
     concatCols <- function(y) {return(paste(as.character(y), collapse=","))}
     if(!("fixedRNA" %in% libraryTypes)){
-      # Load multiplex barcode set and subset
-      multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", param$MultiplexBarcodeSet), show_col_types = FALSE)
-      # Handle pipe-separated IDs for double-hashing (e.g., "B0301|B0304")
-      all_barcode_ids <- unique(unlist(strsplit(sampleMultiplexMapping$cmo_ids, "\\|")))
-      multiplexBarcodeSet <- multiplexBarcodeSet %>%
-        filter(id %in% all_barcode_ids)
-      data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
-      
-      if (param$MultiplexingType == "antibody") {
-        fileContents <- append(fileContents, c("[samples]", "sample_id,hashtag_ids"))
+      if (param$MultiplexingType == "ocm") {
+        # OCM: No barcode reference file needed - use ocm_barcode_ids column directly
+        fileContents <- append(fileContents, c("[samples]", "sample_id,ocm_barcode_ids"))
+        fileContents <- append(fileContents,
+                               apply(sampleMultiplexMapping, 1, concatCols))
       } else {
-        fileContents <- append(fileContents, c("[samples]", "sample_id,cmo_ids"))
+        # CMO or HTO: Load and filter barcode reference file
+        multiplexBarcodeSet <- read_csv(file.path("/srv/GT/databases/10x/CMO_files", param$MultiplexBarcodeSet), show_col_types = FALSE)
+        # Handle pipe-separated IDs for double-hashing (e.g., "B0301|B0304")
+        all_barcode_ids <- unique(unlist(strsplit(sampleMultiplexMapping$cmo_ids, "\\|")))
+        multiplexBarcodeSet <- multiplexBarcodeSet %>%
+          filter(id %in% all_barcode_ids)
+        data.table::fwrite(multiplexBarcodeSet, file=multiplexBarcodeFile, sep=",")
+
+        if (param$MultiplexingType == "antibody") {
+          fileContents <- append(fileContents, c("[samples]", "sample_id,hashtag_ids"))
+        } else {
+          fileContents <- append(fileContents, c("[samples]", "sample_id,cmo_ids"))
+        }
+        fileContents <- append(fileContents,
+                               apply(sampleMultiplexMapping, 1, concatCols))
       }
-      fileContents <- append(fileContents, 
-                             apply(sampleMultiplexMapping, 1, concatCols))
     } else if("fixedRNA" %in% libraryTypes){
       sampleMultiplexMapping$description = sampleMultiplexMapping$sample_id
       fileContents <- append(fileContents, c("[samples]", "sample_id,probe_barcode_ids,description"))
