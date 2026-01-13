@@ -30,18 +30,26 @@ EzAppVeloCyto <-
   )
 
 ##' @title Convert CRAM to BAM if needed
-##' @description Checks if the input file is a CRAM file and converts it to BAM format
+##' @description Checks if the input file is a CRAM file and converts it to BAM format using samtools.
+##' Requires samtools to be available in the PATH.
 ##' @param inputFile path to the input file (can be BAM or CRAM)
 ##' @param outputBam desired output BAM file path
-##' @param cores number of CPU cores to use
+##' @param cores number of CPU cores to use (must be a positive integer)
 ##' @return Returns the path to the BAM file (either original or converted)
+##' @details This function will stop with an error if:
+##' \itemize{
+##'   \item The input file does not exist
+##'   \item The cores parameter is not a valid positive integer
+##'   \item The BAM conversion fails
+##'   \item The BAM indexing fails
+##' }
 convertCramToBamIfNeeded <- function(inputFile, outputBam, cores = 1) {
   # Validate inputs
   if (!file.exists(inputFile)) {
     stop(paste0("Input file does not exist: ", inputFile))
   }
-  if (!is.numeric(cores) || cores < 1) {
-    stop(paste0("Invalid cores parameter: ", cores))
+  if (!is.numeric(cores) || cores < 1 || cores != as.integer(cores)) {
+    stop(paste0("Invalid cores parameter (must be a positive integer): ", cores))
   }
   
   # Check if the input file is a CRAM based on extension
@@ -50,7 +58,7 @@ convertCramToBamIfNeeded <- function(inputFile, outputBam, cores = 1) {
     
     # Convert CRAM to BAM using samtools view
     # Note: -b flag outputs BAM format, -o specifies output file
-    cmd <- paste("samtools view -b -@", cores, "-o", shQuote(outputBam), shQuote(inputFile))
+    cmd <- paste("samtools view -b -@", as.integer(cores), "-o", shQuote(outputBam), shQuote(inputFile))
     ezSystem(cmd)
     
     # Verify the BAM file was created successfully
