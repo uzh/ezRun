@@ -789,40 +789,28 @@ if (identical(param$binSize, "segmented_outputs")) {
 
 if (identical(param$binSize, "segmented_outputs")) {
 
-  sfPolys <- scData@images[[imageName]]@boundaries$segmentation@sf.data
-  areasFR  <- st_area(sfPolys)   # FULL-RES px²
-  
-  lo <- scData@images[[imageName]]@scale.factors$hires
-  
-  areasLO <- areasFR * (lo^2)
-  
-  barcodes  <- sfPolys$barcodes
-
+  #scData@images[[imageName]]@boundaries$segmentation@sf.data |>
+  rings <- Seurat::GetTissueCoordinates(scData, which="segmentation", return.sf=TRUE) |>
+    group_by(cell) %>%
+    summarise(
+      ring = list(list(
+        cbind(x, y)#,
+      )),
+      .groups = "drop"
+    )
+  geom <- st_sfc(lapply(rings$ring, st_polygon))
+  poly_sf <- st_sf(cell = rings$cell, geometry = geom)
+  poly_sf$area <- as.numeric(st_area(poly_sf))
   scData <- AddMetaData(scData, 
-                        metadata = setNames(areasLO, barcodes),
-                        col.name = "areaPX2hires")
+                        metadata = setNames(poly_sf$area, poly_sf$cell),
+                        col.name = "areaHires")
+    
 
-  scSub <- subset(scData, cells = barcodes)
-  Idents(scSub) <- factor(rep(imageName, ncol(scSub)))
+  VlnPlot(scData, 
+          features = "areaHires", 
+          pt.size = 0) +
+    labs(y = "Area") + NoLegend()
 
-
-  VlnPlot(scSub, 
-          features = "areaPX2hires", 
-          pt.size = 0,
-          cols = "#93AECA") +
-  
-    labs(y = expression("cell area, " * px^2),  # "Area, px²"
-        subtitle = "HIRES pixel space")  +  
-  
-    theme_minimal(base_size = 12) +
-  
-    theme(legend.position = "top",
-          legend.justification = "left",
-          axis.title.x = element_blank(),
-          axis.text.x = element_blank(),
-          plot.title = element_blank()
-          )
-  
 } 
 
 ```
@@ -832,7 +820,7 @@ if (identical(param$binSize, "segmented_outputs")) {
 
 ```{r cell area stats}
 if (identical(param$binSize, "segmented_outputs")) {
-  qcArea <- summary(scSub$areaPX2hires) |>
+  qcArea <- summary(scData$areaHires) |>
     round() |> 
     as.list() |> 
     as.data.frame()
@@ -873,35 +861,34 @@ if (identical(param$binSize, "segmented_outputs")) {
 :::
 ::: {.col-md-6}
 
-##### Cell density
 
 
-```{r}
+```{r, eval=FALSE}
 
-if (identical(param$binSize, "segmented_outputs")) {
- 
-  sfp <- scData@images[[imageName]]@boundaries$segmentation@sf.data
-  lo  <- scData@images[[imageName]]@scale.factors$lowres
-
-  W <- ncol(scData@images[[imageName]]@image)/lo
-  H <- nrow(scData@images[[imageName]]@image)/lo
-  covered <- sum(st_area(sfp)) / (W * H)
-
-  ggplot(data.frame(sample=imageName, 
-                    covered=covered),
-         aes(sample, 
-             covered)) +
-  
-    geom_point(size = 3) + 
-  
-    theme_minimal(base_size = 12) +
-  
-    ylim(0,1) +
-  
-    labs(y="% covered area", 
-         x = "")
-  
-} 
+# if (identical(param$binSize, "segmented_outputs")) {
+#  
+#   sfp <- scData@images[[imageName]]@boundaries$segmentation@sf.data
+#   lo  <- scData@images[[imageName]]@scale.factors$lowres
+# 
+#   W <- ncol(scData@images[[imageName]]@image)/lo
+#   H <- nrow(scData@images[[imageName]]@image)/lo
+#   covered <- sum(st_area(sfp)) / (W * H)
+# 
+#   ggplot(data.frame(sample=imageName, 
+#                     covered=covered),
+#          aes(sample, 
+#              covered)) +
+#   
+#     geom_point(size = 3) + 
+#   
+#     theme_minimal(base_size = 12) +
+#   
+#     ylim(0,1) +
+#   
+#     labs(y="% covered area", 
+#          x = "")
+#   
+# } 
 
 ```
 :::
@@ -1697,7 +1684,7 @@ plot1 + plot2 + plot3 + plot_layout(nrow = 3, ncol = 1)
 <details>
   <summary>Positive marker detection for BANKSY niches</summary>
 
-```{r wilcoxon test banksy, eval=(param$DE.method=="wilcox"), results='asis'}
+```{r wilcoxon test banksy, eval=(param$DE.method=="wilcox"), results='asis', eval=has_banksy}
 marker_tbl <- tibble(
   Step = character(),
   Details = character()
