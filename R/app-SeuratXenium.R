@@ -217,24 +217,16 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   if (!is.null(param$rctdFile) && param$rctdFile != "") {
     ref_path <- param$rctdFile
     ezWrite(paste("Using manual RCTD reference:", ref_path), "log.txt", append = TRUE)
-  } else if (!is.null(param$rctdReference) && param$rctdReference != "" && param$rctdReference != "None") {
+  } else if (ezIsSpecified(param$rctdReference) && param$rctdReference != "None") {
     ref_relative <- sub(" \\([^)]+\\)$", "", param$rctdReference)
     ref_path <- file.path("/srv/GT/databases/RCTD_References", ref_relative)
     ezWrite(paste("Using RCTD reference from dropdown:", ref_path), "log.txt", append = TRUE)
   }
 
-  if (!is.null(ref_path) && file.exists(ref_path)) {
+  if (!is.null(ref_path)) {
+    stopifnot(file.exists(ref_path))
     ezWrite(paste("Running RCTD with reference:", ref_path), "log.txt", append = TRUE)
-
-    # Load Reference (handle .rds, .qs, .qs2 formats)
-    # Note: .qs files use old qs package (qs::qread), .qs2 files use new qs2 package (qs2::qs_read)
-    if (grepl("\\.qs2$", ref_path)) {
-      ref_obj <- qs2::qs_read(ref_path, nthreads = param$cores)
-    } else if (grepl("\\.qs$", ref_path)) {
-      ref_obj <- qs::qread(ref_path, nthreads = param$cores)
-    } else {
-      ref_obj <- readRDS(ref_path)
-    }
+    ref_obj <- ezLoadRobj(ref_path)
 
     # Check if it is a spacexr Reference object
     if (!inherits(ref_obj, "Reference")) {
@@ -292,11 +284,8 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
         counts <- counts[, common_cells, drop = FALSE]
         coords <- coords[common_cells, , drop = FALSE]
 
-        # Ensure counts is a matrix (not sparse)
-        counts <- as.matrix(counts)
-
-        # Create SpatialRNA object
-        query.puck <- SpatialRNA(coords, counts, colSums(counts))
+        # Create SpatialRNA object; 
+        query.puck <- SpatialRNA(coords, counts, colSums2(counts))
 
       # Run RCTD
       umi_min <- ifelse(is.null(param$rctdUMImin), 20, as.numeric(param$rctdUMImin))
@@ -427,10 +416,6 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
     ), "celltypes_for_explorer.csv", row.names = FALSE)
   }
 
-  # Save Results as qs2
-  qs2::qs_save(scData, "scData.qs2", nthreads = 8)
-  qs2::qs_save(param, "param.qs2")
-  qs2::qs_save(input, "input.qs2")
 
   # Generate Vitessce-optimized Zarr for fast visualization
   # This enables <5 second load times in exploreVitessceXenium
@@ -461,7 +446,8 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   }
 
   # Generate Report
-  makeRmdReport(rmdFile = "SeuratXenium.Rmd", reportTitle = paste0(sampleName, " - Xenium Analysis"))
+  makeRmdReport(param=param, scData=scData, input=input, use.qs=TRUE,
+                rmdFile = "SeuratXenium.Rmd", reportTitle = paste0(sampleName, " - Xenium Analysis"))
 
   return("Success")
 }
