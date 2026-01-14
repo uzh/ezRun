@@ -796,14 +796,14 @@ ezCbind <- function(...) {
 ##' makeRmdReport(param=param, output=output, scData=scData, rmdFile = "ScSeuratCombine.Rmd", reportTitle = "Seurat Report", use.qs2=TRUE) 
 ##' # Outputs the report as '00index.html' in addition to files 'param.qs2', 'output.qs2', 'scData.qs2'
 makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "", selfContained = TRUE,
-                          reportTitle = "SUSHI Report", use.qs2=FALSE) {
+                          reportTitle = "SUSHI Report", use.qs2=FALSE, nthreads=4) {
   require(qs2)
   
   varList <- list(...)
   for (nm in names(varList)) {
     if (!is.null(varList[[nm]])){
       if (use.qs2) {
-        qs_save(varList[[nm]], file = paste0(nm, ".qs2"))
+        qs_save(varList[[nm]], file = paste0(nm, ".qs2"), nthreads = nthreads)
       } else {
         saveRDS(varList[[nm]], file = paste0(nm, ".rds"))
       }
