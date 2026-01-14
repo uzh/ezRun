@@ -115,7 +115,7 @@ spe <- Seurat_to_SPE(scData_unfiltered, scData_unfiltered[[imageName]]@boundarie
 ```
 
 
-### Diagnostic plots
+### Cell filtering
 `r paste("Output:", param$binSize)`
 
 
@@ -458,7 +458,7 @@ ezKable(cellFilter)
 </details>
 
 
-#### Dimensionality reduction
+### Dimensionality reduction
 
 
 <details>
@@ -712,10 +712,12 @@ ezSpatialFeaturePlot(
 ```
 
 
-### Cropped mask
+### Zoom in mask
 
 
 ```{r, fig.width=25, fig.height=20}
+
+## TODO: use vitessce viewer instead
 
 ezSpatialFeaturePlot(
   scData,
@@ -809,7 +811,7 @@ if (identical(param$binSize, "segmented_outputs")) {
   VlnPlot(scData, 
           features = "areaHires", 
           pt.size = 0) +
-    labs(y = "Area") + NoLegend()
+    labs(y = "Area [um]") + NoLegend()
 
 } 
 

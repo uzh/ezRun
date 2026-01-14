@@ -153,7 +153,8 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
   if(grepl("segmented", param$binSize, ignore.case = TRUE)) {
     # Segmented outputs: use parent directory and bin.size = "polygons"
     dataDir <- input$getFullPaths("SpaceRangerDir")
-    scData <- Load10X_Spatial(data.dir = dataDir, image.name = "tissue_hires_image.png", bin.size = "polygons", use.names=FALSE)
+    scData <- Load10X_Spatial(data.dir = dataDir, image.name = "tissue_hires_image.png", 
+                              bin.size = "polygons", use.names=FALSE)
     sf <- scData@images[[1]]@scale.factors
     scData@images[[1]]@scale.factors$lowres <- sf$hires
     matrixPath <- file.path(dataDir, param$binSize, "filtered_feature_cell_matrix")
@@ -162,7 +163,7 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
     dataDir <- file.path(input$getFullPaths("SpaceRangerDir"), param$binSize)
     scData <- Load10X_Spatial(data.dir = dataDir, image.name = "tissue_hires_image.png", use.names=FALSE)
     sf <- scData@images[[1]]@scale.factors
-    scData@images[[1]]@scale.factors$lowres <- sf$hires
+    scData@images[[1]]@scale.factors$lowres <- sf$hires ## todo: needed??
     matrixPath <- file.path(dataDir, "filtered_feature_bc_matrix")
   }
   
@@ -178,15 +179,12 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
   myAssay <- DefaultAssay(scData)
   scData[[myAssay]] <- AddMetaData(object = scData[[myAssay]], metadata = featInfo[rownames(scData), ])
   scData@meta.data$Sample <- input$getNames()
-  if(!('Batch' %in% colnames(scData@meta.data))) {
-    scData$Batch <- scData$Sample
-  }
-  
+
   param$nreads <- param$numis ## needed by qc script
   scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM, ribosomalGenes = featInfo[rownames(scData), "isRibosomal"])
   ## make image name unique
   stopifnot(length(names(scData@images)) == 1)
-  names(scData@images) <- make.names(paste0(input$getNames(),'_S1'))
+  names(scData@images) <- make.names(input$getNames())
   scData_unfiltered <- scData
   scData <- subset(scData_unfiltered, cells=which(scData_unfiltered$useCell)) # %>% head(n=1000))
 
@@ -252,40 +250,41 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
   writexl::write_xlsx(posMarkers, path="posMarkers.xlsx")
 
 
-  tryCatch({
-    lambda <- ifelse(is.null(param$lambda), 0.8, as.numeric(param$lambda))
-    niche_res <- ifelse(is.null(param$Niche_resolution), 0.5, as.numeric(param$Niche_resolution))
-    
-    myDefAssay <- DefaultAssay(scData)
-    myIdents <- Idents(scData)
-    scData <- RunBanksy(scData, lambda = lambda, assay = myDefAssay,
-                           layer = "data", features = "variable", k_geom = 30,
-                           verbose = FALSE)
-    DefaultAssay(scData) <- "BANKSY"
-    scData <- RunPCA(scData, assay = "BANKSY", reduction.name = "pca.banksy",
-                     features = rownames(scData), npcs = 30, verbose = FALSE)
-    scData <- FindNeighbors(scData, reduction = "pca.banksy", dims = 1:12,
-                            verbose = FALSE)
-    scData <- FindClusters(scData, cluster.name = "banksy_cluster",
-                           resolution = niche_res, verbose = FALSE)
-    
-    # Niche markers
-    Idents(scData) <- "banksy_cluster"
-    posMarkersBanksy <- FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
-                                       logfc.threshold = 0.25, verbose = FALSE)
-    if (nrow(posMarkersBanksy) > 0) {
-      posMarkersBanksy$diff_pct <- abs(posMarkersBanksy$pct.1 - posMarkersBanksy$pct.2)
-      posMarkersBanksy <- posMarkersBanksy[order(posMarkersBanksy$diff_pct,
-                                                 decreasing = TRUE), ]
-    }
-    writexl::write_xlsx(posMarkersBanksy, "posMarkersBanksy.xlsx")
-    
-    # Reset default assay
-    DefaultAssay(scData) <- myDefAssay
-    Idents(scData) <- myIdents
-  }, error = function(e) {
-    #writexl::write_xlsx(data.frame(), "posMarkersBanksy.xlsx")
-  })
+  ## BANKSY
+  lambda <- ifelse(is.null(param$lambda), 0.8, as.numeric(param$lambda))
+  niche_res <- ifelse(is.null(param$Niche_resolution), 0.5, as.numeric(param$Niche_resolution))
+  
+  myDefAssay <- DefaultAssay(scData)
+  myIdents <- Idents(scData)
+  scData <- RunBanksy(scData, lambda = lambda, assay = myDefAssay,
+                      layer = "data", features = "variable", k_geom = 30,
+                      verbose = FALSE)
+  DefaultAssay(scData) <- "BANKSY"
+  scData <- RunPCA(scData, assay = "BANKSY", reduction.name = "pca.banksy",
+                   features = rownames(scData), npcs = 30, verbose = FALSE)
+  scData <- FindNeighbors(scData, reduction = "pca.banksy", dims = 1:12,
+                          verbose = FALSE)
+  scData <- FindClusters(scData, cluster.name = "banksy_cluster",
+                         resolution = niche_res, verbose = FALSE)
+  
+  # Niche markers
+  Idents(scData) <- "banksy_cluster"
+  posMarkersBanksy <- FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
+                                     logfc.threshold = 0.25, verbose = FALSE)
+  if (nrow(posMarkersBanksy) > 0) {
+    posMarkersBanksy$diff_pct <- abs(posMarkersBanksy$pct.1 - posMarkersBanksy$pct.2)
+    posMarkersBanksy <- posMarkersBanksy[order(posMarkersBanksy$diff_pct,
+                                               decreasing = TRUE), ]
+  }
+  writexl::write_xlsx(posMarkersBanksy, "posMarkersBanksy.xlsx")
+  
+  # Reset default assay
+  DefaultAssay(scData) <- myDefAssay
+  Idents(scData) <- myIdents
+# }, error = function(e) {
+#   message("banksy failed", e)
+#   #writexl::write_xlsx(data.frame(), "posMarkersBanksy.xlsx")
+# })
   
   
     
