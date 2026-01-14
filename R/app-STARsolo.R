@@ -145,7 +145,7 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs, soloFeatures){
   soloCBwhitelist = list(
     SC3Pv1 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/737K-april-2014_rc.txt'),
     SC3Pv2 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/737K-august-2016.txt'),
-    SC3Pv3 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/3M-february-2018.txt')
+    SC3Pv3 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/3M-february-2018_TRU.txt')
   )
   
   ## decide soloUMIlen
