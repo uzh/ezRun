@@ -250,14 +250,20 @@ buildMultiConfigFile <- function(input, param, dirList) {
     ezWrite.table(probeInfo, outputFile, sep = ',', row.names = FALSE, append = TRUE)
     fileContents <- append(fileContents, sprintf("probe-set,%s", file.path(getwd(), outputFile)))
     
-    # add chemistry since it can result in an error otherwise (CellRanger 7.2)
-    # TODO: Review down the line if this is necessary. Best case, we can remove
-    # it to let CellRanger automatically choose the chemistry
-    # UPDATE 2025-12-16: Commented out to enable Flex v2 support (Cell Ranger 10.0+)
-    # Hardcoding MFRP forces Flex v1, preventing Flex v2 (A-A01 barcodes) from working.
-    # Cell Ranger 10.0 auto-detection correctly handles both v1 and v2.
-    # chemistry <- ifelse(hasMult, "MFRP", "SFRP")
-    # fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
+    # Determine Chemistry for Flex v1/v2
+    # Priority 1: User specified chemistry in parameters (not "auto")
+    # Priority 2: Auto-detect based on probe set version (v2.x.x vs v1.x.x)
+    # Cell Ranger 10.0+ requires explicit chemistry for reliable Flex v2 detection
+    if (ezIsSpecified(param$chemistry) && param$chemistry != "auto") {
+      chemistry <- param$chemistry
+    } else if (grepl("v2\\.", param$probesetFile)) {
+      # Flex v2: Matches v2.0.0, v2.1.0, etc.
+      chemistry <- ifelse(hasMult, "Flex-v2-R1", "Flex-v2-singleplex")
+    } else {
+      # Flex v1: Default legacy behavior (MFRP/SFRP)
+      chemistry <- ifelse(hasMult, "MFRP", "SFRP")
+    }
+    fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
     fileContents <- append(fileContents, c(""))
   }
   if (any(c("VDJ-T", "VDJ-B") %in% libraryTypes)) {
