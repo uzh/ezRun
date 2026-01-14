@@ -55,18 +55,26 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
   
   cwd <- getwd()
   sampleBam <- list.files('.', pattern = 'sample_alignments.bam$', recursive=TRUE)
-  if(length(sampleBam) == 1L) { #CellRanger Multi Output
-    setwd(dirname(sampleBam))
-    system('mv sample_alignments.bam possorted_genome_bam.bam')
-    system('samtools index possorted_genome_bam.bam')
+  sampleCram <- list.files('.', pattern = 'sample_alignments.cram$', recursive=TRUE)
+  sampleAlignPath <- c(sampleBam, sampleCram)
+  
+  if(length(sampleAlignPath) == 1L) { #CellRanger Multi Output
+    sampleAlignFn <- basename(sampleAlignPath)
+    fileExt <- tools::file_ext(sampleAlignFn)
+    setwd(dirname(sampleAlignPath))
+    system(sprintf('mv %s possorted_genome_bam.%s', sampleAlignFn, fileExt))
+    system(sprintf('samtools index possorted_genome_bam.%s', fileExt))
     system('mv sample_filtered_feature_bc_matrix filtered_feature_bc_matrix')
     system(sprintf('mv * %s', file.path(cwd, sampleDir, "outs")))
     setwd(cwd)
   }
+  
+  convertCramToBam(file.path(sampleDir, 'outs', 'possorted_genome_bam.cram'),
+                   file.path(sampleDir, 'outs', 'possorted_genome_bam.bam'),
+                   cores = param$cores)
 
-  # Activate conda environment and run velocyto
-  conda_activate <- paste("source", "/usr/local/ngseq/miniforge3/etc/profile.d/conda.sh", "&&", "conda activate gi_velocyto", "&&")
-  cmd <- paste("bash -c \"", conda_activate, 'velocyto run10x', sampleDir, gtfFile, '-@', param$cores, "\"")
+  # Run velocyto
+  cmd <- paste('velocyto', 'run10x', sampleDir, gtfFile, '-@', param$cores)
   ezSystem(cmd)
   file.copy(file.path(sampleName, 'velocyto', paste0(sampleName,'.loom')), '.')
   ezSystem(paste('rm -Rf ', sampleName))
@@ -121,4 +129,53 @@ runVelocytoBD <- function(input, output, param){
                '--samtools-threads', param$cores, localBamFile, gtfFile)
   ezSystem(cmd)
   return('Success')
+}
+
+
+##' @title Convert CRAM to BAM if needed
+##' @description Checks if the input file is a CRAM file and converts it to BAM format using samtools.
+##' Requires samtools to be available in the PATH.
+##' @param inputFile path to the input file (can be BAM or CRAM)
+##' @param outputBam desired output BAM file path
+##' @param cores number of CPU cores to use (must be a positive integer)
+##' @return Returns the path to the BAM file (either original or converted)
+##' @details This function will stop with an error if:
+##' \itemize{
+##'   \item The input file does not exist
+##'   \item The cores parameter is not a valid positive integer
+##'   \item The BAM conversion fails
+##'   \item The BAM indexing fails
+##' }
+convertCramToBam <- function(inputFile, outputBam, cores = 1) {
+  
+  # Check if the input file is a CRAM based on extension
+  if (grepl("\\.cram$", inputFile, ignore.case = TRUE)) {
+    ezWrite("Detected CRAM file, converting to BAM format...")
+    
+    # Convert CRAM to BAM using samtools view
+    # Note: -b flag outputs BAM format, -o specifies output file
+    cmd <- paste("samtools view -b -@", as.integer(cores), "-o", shQuote(outputBam), shQuote(inputFile))
+    ezSystem(cmd)
+    
+    # Verify the BAM file was created successfully
+    if (!file.exists(outputBam)) {
+      stop(paste0("Failed to create BAM file: ", outputBam))
+    }
+    
+    # Index the resulting BAM file
+    ezWrite("Indexing BAM file...")
+    cmd <- paste("samtools index", shQuote(outputBam))
+    ezSystem(cmd)
+    
+    # Verify the index was created successfully
+    if (!file.exists(paste0(outputBam, ".bai"))) {
+      stop(paste0("Failed to create BAM index for: ", outputBam))
+    }
+    
+    ezWrite("CRAM to BAM conversion completed successfully")
+    return(outputBam)
+  } else {
+    # Input is already BAM, return as-is
+    return(inputFile)
+  }
 }
