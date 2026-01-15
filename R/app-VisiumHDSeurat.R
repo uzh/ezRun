@@ -182,7 +182,7 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
   scData[[myAssay]] <- AddMetaData(object = scData[[myAssay]], metadata = featInfo[rownames(scData), ])
   scData@meta.data$Sample <- input$getNames()
 
-  param$nreads <- param$numis ## needed by qc script
+  param$nreads <- as.numeric(param$numis) ## needed by qc script
   scData <- addCellQcToSeurat(scData, param=param, BPPARAM = BPPARAM, ribosomalGenes = featInfo[rownames(scData), "isRibosomal"])
   ## make image name unique
   stopifnot(length(names(scData@images)) == 1)
