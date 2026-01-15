@@ -1410,7 +1410,7 @@ ezKable(banksy_niches)
 
 `r if(has_banksy) paste("Lambda:", ifelse(!is.null(param$lambda), param$lambda, 0.8))`
 
-`r if(has_banksy) paste("Resolution:", ifelse(!is.null(param$Niche_resolution), param$Niche_resolution, 0.5))`
+`r if(has_banksy) paste("Resolution:", ifelse(!is.null(param$Niche_resolution), param$nicheResolution, 0.5))`
 
 
 ```{r banksy plot spatial, fig.width=12, fig.height=6, eval=has_banksy}
@@ -1808,7 +1808,7 @@ ezKable(enrichrTable1, escape=FALSE, format="html", format.args=list())
 ezListAsKable(param[c("binSize",
         "npcs",
         "clusterResolution",
-        "Niche_resolution",
+        "nicheResolution",
         "lambda",
         "DE.method",
         "nUMIs",
