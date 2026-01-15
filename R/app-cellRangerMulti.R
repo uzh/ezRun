@@ -258,7 +258,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
       chemistry <- param$chemistry
     } else if (grepl("v2\\.", param$probesetFile)) {
       # Flex v2: Matches v2.0.0, v2.1.0, etc.
-      chemistry <- ifelse(hasMult, "Flex-v2-R1", "Flex-v2-singleplex")
+      chemistry <- ifelse(hasMult, "Flex-v2-R2", "Flex-v2-singleplex")
     } else {
       # Flex v1: Default legacy behavior (MFRP/SFRP)
       chemistry <- ifelse(hasMult, "MFRP", "SFRP")
