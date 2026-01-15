@@ -49,8 +49,15 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
   message("===================")
   message("Number of input files: ", nSamples)
 
-  # Get input paths
-  seuratPaths <- input$getColumn("SeuratObject")
+  # Get input paths - handle both column names for compatibility
+  # with ScSeuratCombine (SeuratObject) and ScSeurat (SC Seurat) apps
+  seuratPaths <- if (input$hasColumn("SeuratObject")) {
+    input$getColumn("SeuratObject")
+  } else if (input$hasColumn("SC Seurat")) {
+    input$getColumn("SC Seurat")
+  } else {
+    stop("No Seurat object column found. Expected 'SeuratObject' or 'SC Seurat'")
+  }
 
   # Validate organism parameter
   if (!param$organism %in% c("human", "mouse")) {

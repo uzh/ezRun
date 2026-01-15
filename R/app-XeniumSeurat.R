@@ -1,4 +1,4 @@
-# App wrapper for Seurat Xenium Analysis
+# App wrapper for Xenium Seurat Analysis
 #
 # This app processes Xenium data using Seurat, performs QC, Clustering, and RCTD Annotation.
 # It follows FGCZ best practices and recommendations.
@@ -15,14 +15,18 @@ RunBanksy_v5 <- function(
     assay_name = "BANKSY", M = NULL, chunk_size = NULL,
     parallel = FALSE, num_cores = NULL, verbose = TRUE) {
 
-  if (lambda < 0 || lambda > 1) stop("Lambda must be between 0 and 1")
+  if (lambda < 0 || lambda > 1) {
+    stop("Lambda must be between 0 and 1")
+  }
 
   # Get data using 'layer' instead of deprecated 'slot'
   if (verbose) message("Fetching data from layer ", layer, " from assay ", assay)
   data_own <- Seurat::GetAssayData(object = object, assay = assay, layer = layer)
 
   if (features[1] != "all") {
-    if (verbose) message("Subsetting by features")
+    if (verbose) {
+      message("Subsetting by features")
+    }
     if (features[1] == "variable") {
       feat <- Seurat::VariableFeatures(object)
       if (length(feat) == 0) {
@@ -42,7 +46,9 @@ RunBanksy_v5 <- function(
   if (!is.null(dimx) & !is.null(dimy)) {
     locs <- data.frame(sdimx = unlist(object[[dimx]]), sdimy = unlist(object[[dimy]]))
     rownames(locs) <- colnames(object)
-    if (!is.null(dimz)) locs$sdimz <- object[[dimz]]
+    if (!is.null(dimz)) {
+      locs$sdimz <- object[[dimz]]
+    }
     obj_samples <- colnames(data_own)
     locs_samples <- rownames(locs)
     if (any(is.na(match(obj_samples, locs_samples)))) {
@@ -61,7 +67,9 @@ RunBanksy_v5 <- function(
   colnames(locs) <- dim_names[seq_len(ncol(locs))]
 
   if (!is.null(group)) {
-    if (verbose) message("Staggering locations by ", group)
+    if (verbose) {
+      message("Staggering locations by ", group)
+    }
     locs[, 1] <- locs[, 1] + abs(min(locs[, 1]))
     max_x <- max(locs[, 1]) * 2
     n_groups <- length(unique(unlist(object[[group]])))
@@ -138,7 +146,7 @@ RunBanksy_v5 <- function(
   return(object)
 }
 
-ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile = "00index.html") {
+ezMethodXeniumSeurat <- function(input = NA, output = NA, param = NA, htmlFile = "00index.html") {
   ezLoadPackage("Seurat")
   ezLoadPackage("spacexr")
   ezLoadPackage("ggplot2")
@@ -186,6 +194,10 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   sdata$orig.ident <- sampleName
   sdata$Sample <- sampleName
 
+  # Store unfiltered object for QC reporting
+  ezWrite("Saving unfiltered object for QC reporting...", "log.txt", append = TRUE)
+  qs2::qs_save(sdata, "scData.unfiltered.qs2", nthreads = 8)
+
   # 2. QC
   min_counts <- ifelse(is.null(param$minCounts), 10, as.numeric(param$minCounts))
   min_features <- ifelse(is.null(param$minFeatures), 5, as.numeric(param$minFeatures))
@@ -208,7 +220,7 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   sdata <- RunUMAP(sdata, dims = 1:30, verbose = FALSE)
 
   # 6. Clustering
-  res <- ifelse(is.null(param$Cluster_resolution), 0.5, as.numeric(param$Cluster_resolution))
+  res <- ifelse(is.null(param$clusterResolution), 0.5, as.numeric(param$clusterResolution))
   sdata <- FindNeighbors(sdata, dims = 1:30, verbose = FALSE)
   sdata <- FindClusters(sdata, resolution = res, verbose = FALSE)
 
@@ -284,7 +296,7 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
         counts <- counts[, common_cells, drop = FALSE]
         coords <- coords[common_cells, , drop = FALSE]
 
-        # Create SpatialRNA object; 
+        # Create SpatialRNA object;
         query.puck <- SpatialRNA(coords, counts, colSums2(counts))
 
       # Run RCTD
@@ -343,7 +355,7 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   ezWrite("Running BANKSY spatial analysis...", "log.txt", append = TRUE)
   tryCatch({
     lambda <- ifelse(is.null(param$lambda), 0.8, as.numeric(param$lambda))
-    niche_res <- ifelse(is.null(param$Niche_resolution), 0.5, as.numeric(param$Niche_resolution))
+    niche_res <- ifelse(is.null(param$nicheResolution), 0.5, as.numeric(param$nicheResolution))
 
     # Use embedded RunBanksy_v5 for Seurat v5 compatibility
     # SeuratWrappers::RunBanksy uses deprecated 'slot' argument that fails with SeuratObject >= 5.0
@@ -384,7 +396,7 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
   extract_cell_id <- function(cell_names) {
     sapply(cell_names, function(x) {
       parts <- strsplit(as.character(x), "-")[[1]]
-      last <- parts[length(parts)]
+      last <- tail(parts, 1)
       if (grepl("^[0-9]+$", last)) return(last)
       nums <- regmatches(x, regexpr("[0-9]+", x))
       if (length(nums) > 0) return(nums)
@@ -424,7 +436,11 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
     ezWrite("Generating Vitessce Zarr for fast visualization...", con = "log.txt", append = TRUE)
 
     tryCatch({
-      vitessce_script <- "/home/pgueguen/git/paul-scripts/Internal_Dev/SeuratXeniumApp/scripts/generate_vitessce_zarr.R"
+      # Try ezRun bundled script first, fall back to development location
+      vitessce_script <- system.file("R", "vitessce-utils.R", package = "ezRun")
+      if (!file.exists(vitessce_script) || vitessce_script == "") {
+        vitessce_script <- "/home/pgueguen/git/paul-scripts/Internal_Dev/SeuratXeniumApp/scripts/generate_vitessce_zarr.R"
+      }
 
       if (file.exists(vitessce_script)) {
         source(vitessce_script)
@@ -447,18 +463,18 @@ ezMethodSeuratXenium <- function(input = NA, output = NA, param = NA, htmlFile =
 
   # Generate Report
   makeRmdReport(param=param, scData=scData, input=input, use.qs=TRUE,
-                rmdFile = "SeuratXenium.Rmd", reportTitle = paste0(sampleName, " - Xenium Analysis"))
+                rmdFile = "XeniumSeurat.Rmd", reportTitle = paste0(sampleName, " - Xenium Analysis"))
 
   return("Success")
 }
 
-EzAppSeuratXenium <- setRefClass("EzAppSeuratXenium",
+EzAppXeniumSeurat <- setRefClass("EzAppXeniumSeurat",
   contains = "EzApp",
   methods = list(
     initialize = function() {
       "Initializes the application using its specific defaults."
-      runMethod <<- ezMethodSeuratXenium
-      name <<- "EzAppSeuratXenium"
+      runMethod <<- ezMethodXeniumSeurat
+      name <<- "EzAppXeniumSeurat"
 
       # Populate RCTD References
       rctd_refs <- tryCatch({
@@ -478,11 +494,11 @@ EzAppSeuratXenium <- setRefClass("EzAppSeuratXenium",
                             Description = "Minimum counts per cell"),
         minFeatures = ezFrame(Type = "numeric", DefaultValue = 5,
                               Description = "Minimum features per cell"),
-        Cluster_resolution = ezFrame(Type = "numeric", DefaultValue = 0.5,
+        clusterResolution = ezFrame(Type = "numeric", DefaultValue = 0.5,
                              Description = "Seurat clustering resolution"),
         lambda = ezFrame(Type = "numeric", DefaultValue = 0.8,
                          Description = "BANKSY spatial weighting (0-1)"),
-        Niche_resolution = ezFrame(Type = "numeric", DefaultValue = 0.5,
+        nicheResolution = ezFrame(Type = "numeric", DefaultValue = 0.5,
                                    Description = "BANKSY niche clustering resolution"),
         rctdReference = ezFrame(Type = "charVector", DefaultValue = rctd_refs[1],
                                 Description = "RCTD Reference to use"),
