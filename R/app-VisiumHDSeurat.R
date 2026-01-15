@@ -259,18 +259,15 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
   myDefAssay <- DefaultAssay(scData)
   myIdents <- Idents(scData)
   scData <- RunBanksy(scData, lambda = lambda, assay = myDefAssay,
-                      layer = "data", features = "variable", k_geom = 30,
+                      slot = "data", features = "variable", k_geom = 30,
                       verbose = FALSE)
-  DefaultAssay(scData) <- "BANKSY"
+  ## RunBanksy creates the new default assay"BANKSY"
   scData <- RunPCA(scData, assay = "BANKSY", reduction.name = "pca.banksy",
                    features = rownames(scData), npcs = 30, verbose = FALSE)
   scData <- FindNeighbors(scData, reduction = "pca.banksy", dims = 1:12,
                           verbose = FALSE)
   scData <- FindClusters(scData, cluster.name = "banksy_cluster",
                          resolution = niche_res, verbose = FALSE)
-  
-  # Niche markers
-  Idents(scData) <- "banksy_cluster"
   posMarkersBanksy <- FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
                                      logfc.threshold = 0.25, verbose = FALSE)
   if (nrow(posMarkersBanksy) > 0) {
