@@ -13,7 +13,7 @@ editor_options:
 
 # {.tabset}
 
-## QC {.tabset}
+Cell Filtering {.tabset}
 
 ```{r setup, include=FALSE}
 library(Seurat)
@@ -110,12 +110,11 @@ scData   <- fix_microscopy_image(scData,
 
 scData_unfiltered$discard <- !scData_unfiltered$useCell
 spe <- Seurat_to_SPE(scData_unfiltered, scData_unfiltered[[imageName]]@boundaries$centroids@coords)
-  
+
 
 ```
 
 
-### Cell filtering
 `r paste("Output:", param$binSize)`
 
 
@@ -124,27 +123,24 @@ spe <- Seurat_to_SPE(scData_unfiltered, scData_unfiltered[[imageName]]@boundarie
 
 ```{r, echo=F, message=F, warning=F}
 
-if (param$binSize %in% c("binned_outputs/square_016um",
-                         "binned_outputs/square_008um")) {
-  
-  qcFrame <- colData(spe) |> data.frame() |> select(starts_with("qc."))
-  qcFrame[is.na(qcFrame)] <- FALSE
-  ## select only columns that have at least one flag
-  useColumn <- apply(qcFrame, 2, any)
-  qcFrame <- qcFrame[ , useColumn, drop=FALSE]
-  
-  if (ncol(qcFrame) > 1) {
-    UpSetR::upset(
-      qcFrame + 0,## convert to from logical to integer
-      nsets = min(5, ncol(qcFrame)),
-      mainbar.y.label = "bins/cells"
-    )
-     grid.text("bins/cells removed",x = 0.65, y=0.95, gp=gpar(fontsize=20))
-    
-  }
+
+qcFrame <- colData(spe) |> data.frame() |> select(starts_with("qc."))
+qcFrame[is.na(qcFrame)] <- FALSE
+## select only columns that have at least one flag
+useColumn <- apply(qcFrame, 2, any)
+qcFrame <- qcFrame[ , useColumn, drop=FALSE]
+
+if (ncol(qcFrame) > 1) {
+  UpSetR::upset(
+    qcFrame + 0,## convert to from logical to integer
+    nsets = min(5, ncol(qcFrame)),
+    mainbar.y.label = "bins/cells"
+  ) |> print()
+  grid.text("bins/cells removed",x = 0.65, y=0.95, gp=gpar(fontsize=20))
   
 }
   
+
 ```
 :::
 
@@ -152,18 +148,16 @@ if (param$binSize %in% c("binned_outputs/square_016um",
 
 ```{r, echo=F, message=F, warning=F}
 
-if (param$binSize %in% c("binned_outputs/square_016um",
-                         "binned_outputs/square_008um")) {
-  
-  meta <- colData(spe)
-  
-  qcStats <- ezFrame(
-    "Number of bins/cells" = numeric(0), 
-    "Min Pass Value"       = numeric(0), 
-    "Max Pass Value"       = numeric(0), 
-    "Fraction"             = numeric(0)
-  )
-  
+
+meta <- colData(spe)
+
+qcStats <- ezFrame(
+  "Number of bins/cells" = numeric(0), 
+  "Min Pass Value"       = numeric(0), 
+  "Max Pass Value"       = numeric(0), 
+  "Fraction"             = numeric(0)
+)
+
 qcStats["Library Size", ] <- c(
   c(sum(meta$qc.lib),
     range(meta[[nCountCol]][meta$useCell])) %>% as.integer(),
@@ -182,15 +176,16 @@ qcStats["Mitochondrial Percent", ] <- c(
   round(sum(meta$qc.mito, na.rm=TRUE) / nrow(meta), 2)
 )
 
-qcStats["Ribosomal protein Percent", ] <- c(
-  c(sum(meta$qc.ribo, na.rm=TRUE),
-    range(meta$percent_riboprot[meta$useCell])) %>% as.integer(),
-  round(sum(meta$qc.ribo, na.rm=TRUE) / nrow(meta), 2)
-)
+if (!is.null(meta$qc.riboprot) ){
+  qcStats["Ribosomal protein Percent", ] <- c(
+    c(sum(meta$qc.riboprot, na.rm=TRUE),
+      range(meta$percent_riboprot[meta$useCell])) %>% as.integer(),
+    round(sum(meta$qc.riboprot, na.rm=TRUE) / nrow(meta), 2)
+  )
+}
 
 ezKable(qcStats)
   
-}
 
 ```
 
@@ -458,7 +453,7 @@ ezKable(cellFilter)
 </details>
 
 
-### Dimensionality reduction
+## Dimensionality reduction
 
 
 <details>
@@ -513,114 +508,6 @@ ezKable(dimred_tbl)
 
 ```
 </details>
-
-```{r pca calc,  echo=F, message=F, warning=F}
-
-# orig_assay <- DefaultAssay(scData)
-# 
-# scData <- NormalizeData(scData)
-# 
-# scData <- FindVariableFeatures(scData)
-# 
-# scData <- ScaleData(scData)
-# 
-# 
-# ncells <- ncol(scData)
-# 
-# if (ncells < 50000) {
-#   # (no sketch)
-#   scData <- RunPCA(scData, npcs = param$npcs)
-#   scData <- FindNeighbors(scData, dims = 1:param$npcs)
-#   scData <- FindClusters(scData, resolution = param$clusterResolution)
-#   scData <- RunUMAP(
-#     scData,
-#     reduction     = "pca",
-#     reduction.name = "umap",
-#     return.model  = TRUE,
-#     dims          = 1:param$npcs
-#   )
-#   
-# } else {
-#   #sketch workflow
-#   scData <- SketchData(
-#     object         = scData,
-#     ncells         = 50000,
-#     method         = "LeverageScore",
-#     sketched.assay = "sketch",
-#     features       = VariableFeatures(scData)
-#   )
-#   
-#   DefaultAssay(scData) <- "sketch"
-#   
-#   scData <- FindVariableFeatures(scData)
-#     
-#   scData <- ScaleData(scData)
-#   
-#   scData <- RunPCA(
-#         scData,
-#         assay          = "sketch",
-#         reduction.name = "pca.sketch",
-#         npcs           = param$npcs
-#       )
-#     
-#   scData <- FindNeighbors(
-#         scData,
-#         assay     = "sketch",
-#         reduction = "pca.sketch",
-#         dims      = 1:param$npcs,
-#         verbose   = FALSE
-#       ) 
-#   
-#   scData <- FindClusters(
-#         scData,
-#         resolution = param$clusterResolution,
-#         verbose    = FALSE
-#       ) 
-# 
-# 
-#   scData$seurat_cluster.sketched <- scData$seurat_clusters
-#   
-#   scData <- RunUMAP(
-#       scData,
-#       reduction      = "pca.sketch",
-#       reduction.name = "umap.sketch",
-#       return.model   = TRUE,
-#       dims           = 1:param$npcs
-#     )
-#   
-# 
-#   DefaultAssay(scData) <- orig_assay
-  
-#   sketch_levels <- sort(unique(scData$seurat_cluster.sketched[!is.na(scData$seurat_cluster.sketched)]))
-# 
-#   scData <- ProjectData(
-#     object            = scData,
-#     assay             = orig_assay,
-#     full.reduction    = "full.pca.sketch",
-#     sketched.assay    = "sketch",
-#     sketched.reduction = "pca.sketch",
-#     umap.model        = "umap.sketch",
-#     dims              = 1:param$npcs,
-#     refdata           = list(
-#       seurat_cluster.projected = "seurat_cluster.sketched"
-#     )
-#   )
-#   
-#   scData$seurat_cluster.projected <- factor(scData$seurat_cluster.projected, levels(scData$seurat_cluster.sketched))
-#     
-#     # switch to full dataset
-#     Idents(scData) <- "seurat_cluster.projected"
-#     scData$seurat_clusters <- Idents(scData)
-#     DefaultAssay(scData) <- orig_assay
-#   
-# }
-# 
-# if (!("Batch" %in% colnames(scData@meta.data))) {
-#   scData$Batch <- scData$Sample
-# }
-
-
-```
 
 
 ```{r, fig.width=10, echo=F, message=F, warning=F}
@@ -691,7 +578,7 @@ ggplot(df,
 
 
 
-### Segmentation mask
+## Segmentation mask
 
 `r {
   if (identical(param$binSize, "segmented_outputs")) {
@@ -703,10 +590,12 @@ ggplot(df,
 ```{r, fig.height=16, fig.width=20}
 
 ezSpatialFeaturePlot(
-  scData,
+  scData_unfiltered,
   nCountCol,
   label = "UMI counts",
-  stroke = 0.2
+  stroke = 0.2,
+  image.scale= "hires",
+  crop=TRUE
 )
 
 ```
@@ -719,16 +608,33 @@ ezSpatialFeaturePlot(
 
 ## TODO: use vitessce viewer instead
 
+coords <- GetTissueCoordinates(scData_unfiltered)
+xRange <- coords$x |> range()
+yRange <- coords$y |> range()
+xCenter <- mean(xRange)
+xDiff <- diff(xRange)
+yCenter <- mean(yRange)
+yDiff <- diff(yRange)
+
+use <- coords$x > xCenter - xDiff /20 & coords$x < xCenter + xDiff /20 &
+  coords$y > yCenter - yDiff /20 & coords$y < yCenter + yDiff /20
+table(use)
+
+center <- coords[ round(nrow(coords)/2) , c("x", "y")]
+xRange <- coords$x |> range() |> diff()
+croppedRange <- xRange * 0.1
+is_roi_cell <- coords$x > 
+
+
 ezSpatialFeaturePlot(
-  scData,
+  subset(scData_unfiltered, cells=which(use)),
   nCountCol,
   pt.size.factor = 5,
   label = "UMI counts",
   stroke = 0.2,
   crop = TRUE
-) +
-  coord_sf(xlim = c(100, 350), 
-           ylim = c(100, 350), expand = T)
+)
+
 
 ```
 
@@ -782,7 +688,7 @@ if (identical(param$binSize, "segmented_outputs")) {
 
 
 
-##### Cell size
+#### Cell size
 
 ::: {.row}
 ::: {.col-md-6}

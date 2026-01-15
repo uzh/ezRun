@@ -114,7 +114,7 @@ EzAppVisiumHDSeurat <-
                       DefaultValue = 0.8,
                       Description = "BANKSY lambda: spatial weighting parameter (0-1). Larger values (0.8) find spatial domains; smaller values (0.2) perform cell typing."
                     ),
-                    Niche_resolution = ezFrame(
+                    nicheResolution = ezFrame(
                       Type = "numeric",
                       DefaultValue = 0.5,
                       Description = "Value of the Niche resolution parameter for BANKSY clustering, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."
@@ -254,7 +254,7 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
 
   ## BANKSY
   lambda <- ifelse(is.null(param$lambda), 0.8, as.numeric(param$lambda))
-  niche_res <- ifelse(is.null(param$Niche_resolution), 0.5, as.numeric(param$Niche_resolution))
+  niche_res <- ifelse(is.null(param$nicheResolution), 0.5, as.numeric(param$nicheResolution))
   
   myDefAssay <- DefaultAssay(scData)
   myIdents <- Idents(scData)
