@@ -51,8 +51,15 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 
 ```{r}
 posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
+posMarkers$gene = as.factor(posMarkers$gene)
+posMarkers$cluster <- makeGroupingVariableSortedFactor(posMarkers$cluster)
+posMarkers$p_val_adj[posMarkers$p_val_adj==0] <- min(posMarkers$p_val_adj[posMarkers$p_val_adj>0])
 if (file.exists("posMarkersBanksy.xlsx")) {
   posMarkersBanksy <- readxl::read_xlsx("posMarkersBanksy.xlsx")
+  posMarkersBanksy$gene = as.factor(posMarkersBanksy$gene)
+  posMarkersBanksy$cluster <- makeGroupingVariableSortedFactor(posMarkersBanksy$cluster)
+  posMarkersBanksy$p_val_adj[posMarkersBanksy$p_val_adj==0] <-
+    min(posMarkersBanksy$p_val_adj[posMarkersBanksy$p_val_adj>0])
 } else {
   posMarkersBanksy <- data.frame()
 }
@@ -87,16 +94,6 @@ stopifnot(length(imageName) == 1)
 enrichRout <- NULL
 aziResults <- NULL
 
-# Process the posMarkers
-posMarkers$gene = as.factor(posMarkers$gene)
-# make sure the loaded cluster uses proper integer ordering if all levels are integer!
-clusterSet <- posMarkers$cluster %>% as.character() %>% as.integer() %>% unique() %>% sort(na.last=TRUE)
-if (any(is.na(clusterSet))){
-  posMarkers$cluster = as.factor(posMarkers$cluster, levels=sort(unique(posMarkers$cluster)))
-} else {
-  posMarkers$cluster = factor(posMarkers$cluster, levels=clusterSet)
-}
-posMarkers$p_val_adj[posMarkers$p_val_adj==0] <- min(posMarkers$p_val_adj[posMarkers$p_val_adj>0])
 
 scData   <- fix_microscopy_image(scData, 
                       imageName, 
@@ -618,12 +615,10 @@ yDiff <- diff(yRange)
 
 use <- coords$x > xCenter - xDiff /20 & coords$x < xCenter + xDiff /20 &
   coords$y > yCenter - yDiff /20 & coords$y < yCenter + yDiff /20
-table(use)
 
 center <- coords[ round(nrow(coords)/2) , c("x", "y")]
 xRange <- coords$x |> range() |> diff()
 croppedRange <- xRange * 0.1
-is_roi_cell <- coords$x > 
 
 
 ezSpatialFeaturePlot(
@@ -1410,7 +1405,7 @@ ezKable(banksy_niches)
 
 `r if(has_banksy) paste("Lambda:", ifelse(!is.null(param$lambda), param$lambda, 0.8))`
 
-`r if(has_banksy) paste("Resolution:", ifelse(!is.null(param$Niche_resolution), param$Niche_resolution, 0.5))`
+`r if(has_banksy) paste("Resolution:", ifelse(!is.null(param$Niche_resolution), param$nicheResolution, 0.5))`
 
 
 ```{r banksy plot spatial, fig.width=12, fig.height=6, eval=has_banksy}
@@ -1730,7 +1725,7 @@ for (eachCluster in levels(posMarkersBanksy$cluster)) {
                                   markersPerCluster)
 }
 
-genesPerCluster <- split(markersPerClusterTable$gene,
+genesPerCluster <- split(gsub("\\.m[0-9]+$", "", markersPerClusterTable$gene),
                          markersPerClusterTable$cluster)
 
 jsCall = paste0('enrich({list: "',
@@ -1808,7 +1803,7 @@ ezKable(enrichrTable1, escape=FALSE, format="html", format.args=list())
 ezListAsKable(param[c("binSize",
         "npcs",
         "clusterResolution",
-        "Niche_resolution",
+        "nicheResolution",
         "lambda",
         "DE.method",
         "nUMIs",

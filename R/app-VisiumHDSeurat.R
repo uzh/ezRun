@@ -243,7 +243,7 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
                             return.thresh = param$pvalue_allMarkers, logfc.threshold = param$logfc.threshold)
   ## Significant markers
   posMarkers <- posMarkers[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
-  posMarkers$cluster <- as.factor(posMarkers$cluster)
+  posMarkers$cluster <- makeGroupingVariableSortedFactor(posMarkers$cluster)
   diff_pct = abs(posMarkers$pct.1-posMarkers$pct.2)
   posMarkers$diff_pct <- diff_pct
   posMarkers <- posMarkers[order(posMarkers$diff_pct, decreasing = TRUE),] %>% mutate_if(is.numeric, round, digits=30)
@@ -270,6 +270,8 @@ ezMethodVisiumHDSeurat <- function(input=NA, output=NA, param=NA,
                          resolution = niche_res, verbose = FALSE)
   posMarkersBanksy <- FindAllMarkers(scData, only.pos = TRUE, min.pct = 0.25,
                                      logfc.threshold = 0.25, verbose = FALSE)
+  posMarkersBanksy <- posMarkersBanksy[ ,c("gene","cluster","pct.1", "pct.2", "avg_log2FC","p_val_adj")]
+  posMarkersBanksy$cluster <- makeGroupingVariableSortedFactor(posMarkersBanksy$cluster)
   if (nrow(posMarkersBanksy) > 0) {
     posMarkersBanksy$diff_pct <- abs(posMarkersBanksy$pct.1 - posMarkersBanksy$pct.2)
     posMarkersBanksy <- posMarkersBanksy[order(posMarkersBanksy$diff_pct,
