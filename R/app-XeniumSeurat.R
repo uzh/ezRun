@@ -302,8 +302,8 @@ ezMethodXeniumSeurat <- function(input = NA, output = NA, param = NA, htmlFile =
         counts <- counts[, common_cells, drop = FALSE]
         coords <- coords[common_cells, , drop = FALSE]
 
-        # Create SpatialRNA object;
-        query.puck <- SpatialRNA(coords, counts, colSums2(counts))
+        # Create SpatialRNA object
+        query.puck <- SpatialRNA(coords, counts, Matrix::colSums(counts))
 
       # Run RCTD
       umi_min <- ifelse(is.null(param$rctdUMImin), 20, as.numeric(param$rctdUMImin))
