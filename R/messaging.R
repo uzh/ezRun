@@ -126,3 +126,24 @@ logMessage = function(methodName, param, message){
               basename(getwd()), format(Sys.time(), "%Y-%m-%d %H:%M:%S\n"), sep="\t")
   cat(msg)
 }
+
+##' @title Wrapper for futile.logger
+##' @description Logs a message at a specified level using futile.logger.
+##' @param message the message to log.
+##' @param level the log level (trace, debug, info, warn, error, fatal).
+##' @template roxygen-template
+##' @examples
+##' ezLog("This is an info message")
+##' ezLog("This is a warning message", level="warn")
+ezLog = function(message, level="info"){
+  level = tolower(level)
+  switch(level,
+         trace = flog.trace(message),
+         debug = flog.debug(message),
+         info  = flog.info(message),
+         warn  = flog.warn(message),
+         error = flog.error(message),
+         fatal = flog.fatal(message),
+         stop("Invalid log level: ", level)
+  )
+}

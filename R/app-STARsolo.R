@@ -78,7 +78,7 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
       runDirs[i] <- paste0("run_", i)
       res <- untar(sampleDirs[i], exdir=runDirs[i], tar=system("which tar", intern=TRUE))
       if (res > 0) {
-        stop(sprintf("There was an error unpacking '%s' into '%s'. See warnings.", 
+        stop(sprintf("There was an error unpacking '%s' into '%s'. See warnings.",
                      sampleDirs[i], runDirs[i]))
       }
     }
@@ -142,15 +142,12 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs, soloFeatures){
   require('tools')
 
   ## decide which chemistry whitelist to take
-  soloCBwhitelist = list(
-    SC3Pv1 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/737K-april-2014_rc.txt'),
-    SC3Pv2 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/737K-august-2016.txt'),
-    SC3Pv3 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/3M-february-2018_TRU.txt')
-  )
+  barcodeInclusionListPath <- getBarcodeInclusionListPath(param)
+  stopifnot("Could not find barcode whitelist" = file.exists(barcodeInclusionListPath))
   
   ## decide soloUMIlen
   if(param[['soloUMIlen']]=='auto') {
-    if (param[['soloCBwhitelist']] == 'SC3Pv3') {
+    if (param[['soloCBwhitelist']] %in% c('SC3Pv3', 'SC3Pv4')) {
       soloUMIlen = '12'
     } else{
       soloUMIlen = '10'
@@ -194,7 +191,7 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs, soloFeatures){
     
     ## STARsolo parameters
     paste0('--soloType ', param[['soloType']]),
-    paste0('--soloCBwhitelist ', soloCBwhitelist[[param[['soloCBwhitelist']]]]),
+    paste0('--soloCBwhitelist ', barcodeInclusionListPath),
     paste0('--soloCBstart ', param[['soloCBstart']]),
     paste0('--soloCBlen ', param[['soloCBlen']]),
     paste0('--soloUMIstart ', param[['soloUMIstart']]),
@@ -216,6 +213,49 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs, soloFeatures){
   }
   
   return(cmd)
+}
+
+checkGzippedAndUnzip <- function(filePath) {
+  filePathGz <- paste0(filePath, ".gz")
+  if (file.exists(filePathGz)) {
+    # copy the file locally and unzip it
+    tempFilePath <- basename(filePath)
+    ezSystem(paste("gunzip -c", shQuote(filePathGz), ">", shQuote(tempFilePath)))
+    return(tempFilePath)
+  }
+  return("")
+}
+
+getBarcodeInclusionListPath <- function(param) {
+  soloCBwhitelist = list(
+    SC3Pv1 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/737K-april-2014_rc.txt'),
+    SC3Pv2 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/737K-august-2016.txt'),
+    SC3Pv3 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/3M-february-2018.txt'),
+    SC3Pv4 = paste0(Sys.getenv("CellRanger"), '/lib/python/cellranger/barcodes/3M-3pgex-may-2023_TRU.txt')
+  )
+  
+  soloWhiteListPath <- soloCBwhitelist[[param[['soloCBwhitelist']]]]
+  ezLog(sprintf("Trying %s", soloWhiteListPath))
+  if (file.exists(soloWhiteListPath)) {
+    return(soloWhiteListPath)
+  }
+  tempPath <- checkGzippedAndUnzip(soloWhiteListPath)
+  ezLog(sprintf("Trying %s", tempPath))
+  if (tempPath != "") {
+    return(tempPath)
+  }
+  # in some versions of CellRanger, the whitelist file has a different suffix
+  soloWhiteListPathVariation <- sprintf("%s_TRU.txt", file_path_sans_ext(soloWhiteListPath))
+  ezLog(sprintf("Trying %s", soloWhiteListPathVariation))
+  if (file.exists(soloWhiteListPathVariation)) {
+    return(soloWhiteListPathVariation)
+  }
+  tempPath <- checkGzippedAndUnzip(soloWhiteListPathVariation)
+  ezLog(sprintf("Trying %s", tempPath))
+  if (tempPath != "") {
+    return(tempPath)
+  }
+  return("")
 }
 
 # Write Velocyto outputs

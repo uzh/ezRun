@@ -194,17 +194,23 @@ ezMethodXeniumSeurat <- function(input = NA, output = NA, param = NA, htmlFile =
   sdata$orig.ident <- sampleName
   sdata$Sample <- sampleName
 
-  # Store unfiltered object for QC reporting
-  ezWrite("Saving unfiltered object for QC reporting...", "log.txt", append = TRUE)
-  qs2::qs_save(sdata, "scData.unfiltered.qs2", nthreads = 8)
-
-  # 2. QC
+  # 2. QC - compute thresholds and flags
   min_counts <- ifelse(is.null(param$minCounts), 10, as.numeric(param$minCounts))
   min_features <- ifelse(is.null(param$minFeatures), 5, as.numeric(param$minFeatures))
 
+  # Add QC flags (matching VisiumHD style for consistent reporting)
+  sdata$qc.lib <- sdata$nCount_Xenium < min_counts
+  sdata$qc.nexprs <- sdata$nFeature_Xenium < min_features
+  sdata$useCell <- !(sdata$qc.lib | sdata$qc.nexprs)
+  sdata$discard <- !sdata$useCell
+
+  # Store unfiltered object for QC reporting (with QC flags)
+  ezWrite("Saving unfiltered object for QC reporting...", "log.txt", append = TRUE)
+  qs2::qs_save(sdata, "scData.unfiltered.qs2", nthreads = 8)
+
   ezWrite(paste("Filtering cells: minCounts =", min_counts, ", minFeatures =", min_features), "log.txt", append = TRUE)
   cells_before <- ncol(sdata)
-  sdata <- subset(sdata, subset = nCount_Xenium > min_counts & nFeature_Xenium > min_features)
+  sdata <- subset(sdata, cells = which(sdata$useCell))
   cells_after <- ncol(sdata)
   ezWrite(paste("Cells after QC:", cells_after, "/", cells_before), "log.txt", append = TRUE)
 
@@ -296,8 +302,8 @@ ezMethodXeniumSeurat <- function(input = NA, output = NA, param = NA, htmlFile =
         counts <- counts[, common_cells, drop = FALSE]
         coords <- coords[common_cells, , drop = FALSE]
 
-        # Create SpatialRNA object;
-        query.puck <- SpatialRNA(coords, counts, colSums2(counts))
+        # Create SpatialRNA object
+        query.puck <- SpatialRNA(coords, counts, Matrix::colSums(counts))
 
       # Run RCTD
       umi_min <- ifelse(is.null(param$rctdUMImin), 20, as.numeric(param$rctdUMImin))

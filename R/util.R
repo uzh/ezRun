@@ -1012,3 +1012,20 @@ param$cores, param$ram, param$cores, param$ram
     writeLines(txt, file)
     return(file)
 }
+
+## if statistical results are loaded from xls variables are not factors
+## here we make a variable a factor with proper integer sorting if the levels are all integer
+## this is helpful for cluster numbers that are integers
+makeGroupingVariableSortedFactor <- function(vec){
+  if (is.factor(vec)){
+    return(vec)
+  }
+  sorted_int_levels <- vec |> as.character() |> as.integer() |> unique() |> sort(na.last=TRUE)
+  if (any(is.na(sorted_int_levels))){
+    ## use character sorting
+    return(as.factor(vec, levels=sort(unique(vec))))
+  } else {
+    return(factor(vec, levels=sorted_int_levels))
+  }
+}
+
