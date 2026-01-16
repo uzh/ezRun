@@ -143,9 +143,7 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs, soloFeatures){
 
   ## decide which chemistry whitelist to take
   barcodeInclusionListPath <- getBarcodeInclusionListPath(param)
-  stopifnot(paste("Could not find barcode whitelist for", 
-                  param[['soloCBwhitelist']]) = 
-              file.exists(barcodeInclusionListPath))
+  stopifnot("Could not find barcode whitelist" = file.exists(barcodeInclusionListPath))
   
   ## decide soloUMIlen
   if(param[['soloUMIlen']]=='auto') {
