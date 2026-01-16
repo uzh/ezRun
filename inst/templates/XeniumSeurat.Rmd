@@ -266,12 +266,12 @@ plot2 <- ImageFeaturePlot(
   labs(title = "Genes per cell", fill = "#genes") +
   scale_fill_viridis_c(option = "turbo", na.value = "grey95")
 
-plot3 <- ImageFeaturePlot(
-  scData_unfiltered, features = nFeatureCol,
-  alpha = c(0, 0), size = 0.5, axes = TRUE
+plot3 <- ImageDimPlot(
+  scData_unfiltered, group.by = "Sample",
+  size = 0.1, axes = TRUE, cols = "grey90"
 ) +
-  labs(title = "Raw image") +
-  guides(fill = "none")
+  labs(title = "Tissue overview") +
+  guides(color = "none")
 
 plot1 + plot2 + plot3
 ```
@@ -286,7 +286,7 @@ plot1 + plot2 + plot3
 
 **Total genes:** `r nrow(scData)`
 
-**Assays:** `r paste(Assays(scData), collapse = ", ")`
+**Assays:** `r base::paste(names(scData@assays), collapse = ", ")`
 
 ### Spatial QC {.tabset}
 
@@ -427,11 +427,15 @@ Cell and nucleus area distributions (if available from segmentation).
 #### Cell area
 
 ```{r cell_area, fig.width=14, fig.height=5}
-# Check for cell area column
+# Check for cell area column with valid numeric data
 cell_area_col <- grep("cell_area|CellArea", colnames(scData@meta.data),
                      value = TRUE, ignore.case = TRUE) |> head(1)
 
-if (length(cell_area_col) > 0 && cell_area_col != "") {
+has_valid_cell_area <- length(cell_area_col) > 0 && cell_area_col != "" &&
+  is.numeric(scData@meta.data[[cell_area_col]]) &&
+  sum(!is.na(scData@meta.data[[cell_area_col]])) > 0
+
+if (has_valid_cell_area) {
  # Reference cell sizes (area = pi * (diameter/2)^2)
  ref_sizes <- data.frame(
    cell_type = c("Lymphocyte\n(~8um)", "Monocyte\n(~15um)",
@@ -466,11 +470,14 @@ if (length(cell_area_col) > 0 && cell_area_col != "") {
 #### Nucleus area
 
 ```{r nucleus_area, fig.width=14, fig.height=5, results='asis'}
-# Check for nucleus area column
+# Check for nucleus area column with valid numeric data
 nucleus_area_col <- grep("nucleus_area|NucleusArea", colnames(scData@meta.data),
                         value = TRUE, ignore.case = TRUE) |> head(1)
 
-if (length(nucleus_area_col) > 0 && nucleus_area_col != "") {
+has_valid_nucleus_area <- length(nucleus_area_col) > 0 && nucleus_area_col != "" &&
+  is.numeric(scData@meta.data[[nucleus_area_col]])
+
+if (has_valid_nucleus_area) {
  # Handle NAs in nucleus_area (cells without detected nuclei)
  na_count <- sum(is.na(scData@meta.data[[nucleus_area_col]]))
  if (na_count > 0) {
@@ -504,7 +511,10 @@ if (length(nucleus_area_col) > 0 && nucleus_area_col != "") {
 seg_col <- grep("segmentation_method", colnames(scData@meta.data),
                value = TRUE, ignore.case = TRUE) |> head(1)
 
-if (length(seg_col) > 0 && seg_col != "") {
+has_valid_seg <- length(seg_col) > 0 && seg_col != "" &&
+  !all(is.na(scData@meta.data[[seg_col]]))
+
+if (has_valid_seg) {
  seg_vals <- unique(scData@meta.data[[seg_col]])
 
  # Build color map based on segmentation type patterns
@@ -789,10 +799,18 @@ if (nrow(posMarkers) > 0) {
 
 ```{r dotplot_setup}
 if (nrow(posMarkers) > 0) {
- top5 <- posMarkers |>
-   group_by(cluster) |>
-   arrange(desc(diff_pct), desc(avg_log2FC), .by_group = TRUE) |>
-   slice_head(n = 5)
+ # Sort by diff_pct if available, otherwise by avg_log2FC
+ if ("diff_pct" %in% colnames(posMarkers)) {
+   top5 <- posMarkers |>
+     group_by(cluster) |>
+     arrange(desc(diff_pct), desc(avg_log2FC), .by_group = TRUE) |>
+     slice_head(n = 5)
+ } else {
+   top5 <- posMarkers |>
+     group_by(cluster) |>
+     arrange(desc(avg_log2FC), .by_group = TRUE) |>
+     slice_head(n = 5)
+ }
 
  genesToPlot <- unique(as.character(top5$gene))
  genesToPlot <- gsub("_", "-", genesToPlot)

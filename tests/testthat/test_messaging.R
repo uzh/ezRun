@@ -21,3 +21,12 @@ test_that("Tests logMessage()", {
   start = logMessage("a method", param, "Starting")
   expect_null(start)
 })
+
+test_that("Tests ezLog()", {
+  expect_error(ezLog("info message"), NA)
+  expect_error(ezLog("debug message", level="debug"), NA)
+  expect_error(ezLog("warn message", level="warn"), NA)
+  expect_error(ezLog("error message", level="error"), NA)
+  # expect_error(ezLog("fatal message", level="fatal"), NA) # fatal might stop execution or behave differently
+  expect_error(ezLog("invalid level", level="invalid_level"), "Invalid log level: invalid_level")
+})

@@ -235,23 +235,23 @@ getBarcodeInclusionListPath <- function(param) {
   )
   
   soloWhiteListPath <- soloCBwhitelist[[param[['soloCBwhitelist']]]]
-  ezWrite(sprintf("Trying %s", soloWhiteListPath))
+  ezLog(sprintf("Trying %s", soloWhiteListPath))
   if (file.exists(soloWhiteListPath)) {
     return(soloWhiteListPath)
   }
   tempPath <- checkGzippedAndUnzip(soloWhiteListPath)
-  ezWrite(sprintf("Trying %s", tempPath))
+  ezLog(sprintf("Trying %s", tempPath))
   if (tempPath != "") {
     return(tempPath)
   }
   # in some versions of CellRanger, the whitelist file has a different suffix
   soloWhiteListPathVariation <- sprintf("%s_TRU.txt", file_path_sans_ext(soloWhiteListPath))
-  ezWrite(sprintf("Trying %s", soloWhiteListPathVariation))
+  ezLog(sprintf("Trying %s", soloWhiteListPathVariation))
   if (file.exists(soloWhiteListPathVariation)) {
     return(soloWhiteListPathVariation)
   }
   tempPath <- checkGzippedAndUnzip(soloWhiteListPathVariation)
-  ezWrite(sprintf("Trying %s", tempPath))
+  ezLog(sprintf("Trying %s", tempPath))
   if (tempPath != "") {
     return(tempPath)
   }
