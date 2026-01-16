@@ -46,6 +46,10 @@ library(kableExtra)
 library(readxl)
 library(viridis)
 library(UpSetR)
+library(scater)
+library(SingleCellExperiment)
+library(SpatialExperiment)
+library(grid)
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
                       knitr.table.format = "html")
@@ -96,175 +100,181 @@ nFeatureCol <- grep("^nFeature_Xenium", colnames(scData@meta.data), value = TRUE
 cluster_colors <- unname(pals::polychrome())
 ```
 
-### Filtering statistics
+```{r seurat_to_spe, eval=has_unfiltered}
+# Convert unfiltered Seurat to SPE for plotColData (matching VisiumHD)
+imageName <- names(scData_unfiltered@images)[1]
+coords <- scData_unfiltered@images[[imageName]]@boundaries$centroids@coords
+spe <- Seurat_to_SPE(scData_unfiltered, coords)
+```
 
-```{r filtering_stats, eval=has_unfiltered}
-cells_before <- ncol(scData_unfiltered)
-cells_after <- ncol(scData)
-cells_removed <- cells_before - cells_after
+### Cell filtering
 
-min_counts_used <- ifelse(!is.null(param$minCounts), param$minCounts, 10)
-min_features_used <- ifelse(!is.null(param$minFeatures), param$minFeatures, 5)
+::: {.row}
+::: {.col-md-6}
 
-filterStats <- list(
- "Total cells (before QC)" = format(cells_before, big.mark = ","),
- "Cells removed" = format(cells_removed, big.mark = ","),
- "Cells remaining" = format(cells_after, big.mark = ","),
- "Fraction retained" = paste0(round(cells_after / cells_before * 100, 1), "%"),
- "minCounts threshold" = min_counts_used,
- "minFeatures threshold" = min_features_used
+```{r upset_plot, echo=FALSE, message=FALSE, warning=FALSE, eval=has_unfiltered}
+qcFrame <- colData(spe) |> data.frame() |> dplyr::select(starts_with("qc."))
+qcFrame[is.na(qcFrame)] <- FALSE
+## select only columns that have at least one flag
+useColumn <- apply(qcFrame, 2, any)
+qcFrame <- qcFrame[ , useColumn, drop=FALSE]
+
+if (ncol(qcFrame) > 1) {
+  UpSetR::upset(
+    qcFrame + 0, ## convert from logical to integer
+    nsets = min(5, ncol(qcFrame)),
+    mainbar.y.label = "cells"
+  )
+  grid.text("cells removed", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
+}
+```
+:::
+
+::: {.col-md-6}
+
+```{r qc_stats_table, echo=FALSE, message=FALSE, warning=FALSE, eval=has_unfiltered}
+meta <- colData(spe)
+
+qcStats <- ezFrame(
+  "Number of cells" = numeric(0),
+  "Min Pass Value"  = numeric(0),
+  "Max Pass Value"  = numeric(0),
+  "Fraction"        = numeric(0)
 )
 
-ezListAsKable(filterStats, col.names = c("Metric", "Value"))
+qcStats["Library Size", ] <- c(
+  c(sum(meta$qc.lib),
+    range(meta[[nCountCol]][meta$useCell])) %>% as.integer(),
+  round(sum(meta$qc.lib) / nrow(meta), 2)
+)
+
+qcStats["Expressed genes", ] <- c(
+  c(sum(meta$qc.nexprs),
+    range(meta[[nFeatureCol]][meta$useCell])) %>% as.integer(),
+  round(sum(meta$qc.nexprs) / nrow(meta), 2)
+)
+
+ezKable(qcStats)
 ```
 
-```{r no_unfiltered, eval=!has_unfiltered}
-cat("Unfiltered object not available for comparison. Showing filtered data only.")
-```
+:::
 
-### QC distributions
+:::
 
-```{r qc_distributions_setup, eval=has_unfiltered}
-# Get assay column names for unfiltered
-nCountCol_unf <- grep("^nCount_Xenium", colnames(scData_unfiltered@meta.data), value = TRUE) |> head(1)
-nFeatureCol_unf <- grep("^nFeature_Xenium", colnames(scData_unfiltered@meta.data), value = TRUE) |> head(1)
 
-# Compute discard flag based on thresholds
-scData_unfiltered$qc_low_counts <- scData_unfiltered@meta.data[[nCountCol_unf]] < min_counts_used
-scData_unfiltered$qc_low_features <- scData_unfiltered@meta.data[[nFeatureCol_unf]] < min_features_used
-scData_unfiltered$discard <- scData_unfiltered$qc_low_counts | scData_unfiltered$qc_low_features
-
-# Colors for kept/removed (matching VisiumHD style)
-discard_colors <- c("FALSE" = "#3498db", "TRUE" = "#e74c3c")
-discard_labels <- c("FALSE" = "Kept", "TRUE" = "Removed")
-```
-
-```{r qc_violin_plots, fig.width=14, fig.height=4, eval=has_unfiltered}
-# Violin plots colored by discard status (like VisiumHD)
-meta_unf <- scData_unfiltered@meta.data
-meta_unf$discard_label <- factor(meta_unf$discard, levels = c(FALSE, TRUE), labels = c("Kept", "Removed"))
-
-# Transcript counts violin
-p1 <- ggplot(meta_unf, aes(x = discard_label, y = .data[[nCountCol_unf]], fill = discard_label)) +
-  geom_violin(alpha = 0.8, scale = "width") +
-  geom_boxplot(width = 0.1, fill = "white", outlier.size = 0.5) +
-  scale_y_log10(labels = label_number()) +
-  scale_fill_manual(values = c("Kept" = "#3498db", "Removed" = "#e74c3c")) +
-  geom_hline(yintercept = min_counts_used, linetype = "dashed", color = "#e74c3c", linewidth = 0.8) +
-  theme_minimal(base_size = 12) +
-  labs(title = "Transcript counts", y = "Counts (log10)", x = NULL) +
-  theme(legend.position = "none", plot.title = element_text(hjust = 0.5, face = "bold"))
-
-# Genes detected violin
-p2 <- ggplot(meta_unf, aes(x = discard_label, y = .data[[nFeatureCol_unf]], fill = discard_label)) +
-  geom_violin(alpha = 0.8, scale = "width") +
-  geom_boxplot(width = 0.1, fill = "white", outlier.size = 0.5) +
-  scale_y_log10(labels = label_number()) +
-  scale_fill_manual(values = c("Kept" = "#3498db", "Removed" = "#e74c3c")) +
-  geom_hline(yintercept = min_features_used, linetype = "dashed", color = "#e74c3c", linewidth = 0.8) +
-  theme_minimal(base_size = 12) +
-  labs(title = "Genes detected", y = "Genes (log10)", x = NULL) +
-  theme(legend.position = "none", plot.title = element_text(hjust = 0.5, face = "bold"))
-
-# Scatter plot
-p3 <- ggplot(meta_unf, aes(x = .data[[nCountCol_unf]], y = .data[[nFeatureCol_unf]], color = discard_label)) +
-  geom_point(alpha = 0.4, size = 0.8) +
-  scale_x_log10(labels = label_number()) +
-  scale_y_log10(labels = label_number()) +
-  scale_color_manual(values = c("Kept" = "#3498db", "Removed" = "#e74c3c")) +
-  geom_hline(yintercept = min_features_used, linetype = "dashed", color = "#e74c3c", linewidth = 0.8) +
-  geom_vline(xintercept = min_counts_used, linetype = "dashed", color = "#e74c3c", linewidth = 0.8) +
-  theme_minimal(base_size = 12) +
-  labs(title = "Counts vs genes", x = "Counts (log10)", y = "Genes (log10)", color = "Status") +
-  theme(legend.position = "right", plot.title = element_text(hjust = 0.5, face = "bold"))
-
-p1 + p2 + p3 + plot_layout(widths = c(1, 1, 1.5))
-```
-
-### Upset plot
-
-```{r upset_plot, fig.width=8, fig.height=5, eval=has_unfiltered}
-# Build QC criteria matrix for UpSet plot
-qc_cols <- c("qc_low_counts", "qc_low_features")
-qc_names <- c("Low counts", "Low features")
-
-qcMat <- scData_unfiltered@meta.data[, qc_cols, drop = FALSE]
-colnames(qcMat) <- qc_names
-
-# Create list of cells failing each criterion
-qcList <- lapply(seq_along(qc_names), function(i) {
-  rownames(qcMat)[qcMat[[qc_names[i]]]]
-})
-names(qcList) <- qc_names
-
-# Only show upset if there are cells to filter
-qcList <- qcList[lengths(qcList) > 0]
-
-if (length(qcList) >= 1 && sum(lengths(qcList)) > 0) {
-  UpSetR::upset(
-    fromList(qcList),
-    nsets = length(qcList),
-    order.by = "freq",
-    mainbar.y.label = "Cells removed",
-    sets.x.label = "Cells per filter",
-    text.scale = 1.3,
-    main.bar.color = "#e74c3c",
-    sets.bar.color = "#f39c12"
-  )
-} else {
-  cat("No cells were filtered out based on QC criteria.")
-}
-```
-
-### Spatial filtering
-
-```{r spatial_discard_plot, fig.width=14, fig.height=6, eval=has_unfiltered}
-# Spatial plot showing where removed cells are located
-# Need to get coordinates from the unfiltered object
-if ("fov" %in% names(scData_unfiltered@images)) {
-  # Plot discard status spatially
-  p_spatial <- ImageDimPlot(scData_unfiltered, group.by = "discard", size = 0.8,
-                            cols = c("FALSE" = "#3498db", "TRUE" = "#e74c3c")) +
-    ggtitle("Spatial distribution of filtered cells") +
-    labs(color = "Status") +
-    scale_color_manual(values = c("FALSE" = "#3498db", "TRUE" = "#e74c3c"),
-                       labels = c("Kept", "Removed")) +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-          legend.background = element_rect(fill = "white", color = NA))
-  print(p_spatial)
-} else {
-  # Fallback: use centroid coordinates if available
-  coords <- GetTissueCoordinates(scData_unfiltered)
-  if (!is.null(coords) && nrow(coords) > 0) {
-    coords$discard <- scData_unfiltered$discard[match(rownames(coords), colnames(scData_unfiltered))]
-    p_spatial <- ggplot(coords, aes(x = x, y = y, color = discard)) +
-      geom_point(size = 0.5, alpha = 0.6) +
-      scale_color_manual(values = c("FALSE" = "#3498db", "TRUE" = "#e74c3c"),
-                         labels = c("Kept", "Removed")) +
-      coord_fixed() +
-      theme_void() +
-      ggtitle("Spatial distribution of filtered cells") +
-      labs(color = "Status") +
-      theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-            legend.background = element_rect(fill = "white", color = NA))
-    print(p_spatial)
-  } else {
-    cat("Spatial coordinates not available for unfiltered object.")
-  }
-}
-```
 
 <details>
- <summary>Filtering rules</summary>
+  <summary>Metrics to identify cells of low quality</summary>
 
-**Cell filtering criteria:**
+```{r qc_metrics, echo=FALSE, message=FALSE, warning=FALSE}
+qcMetrics <- tibble(
+  metric = character(),
+  interpretation = character()
+) |>
+  add_row(
+    metric = "Library size – total sum of counts across all relevant features for each cell",
+    interpretation = "Small library sizes indicate low quality (RNA may have been lost during library preparation)"
+  ) |>
+  add_row(
+    metric = "Number of expressed genes with non-zero counts in each cell",
+    interpretation = "Very few expressed genes means poor capture of the transcript population"
+  )
 
-- **Minimum counts**: Cells with fewer than `r min_counts_used` transcripts are removed
-- **Minimum features**: Cells with fewer than `r min_features_used` genes detected are removed
+ezKable(qcMetrics)
+```
 
-These thresholds remove low-quality cells that may represent empty droplets, debris, or dying cells with degraded RNA.
+Evaluation
 
+```{r diagnostics_plots, echo=FALSE, message=FALSE, warning=FALSE}
+qcDiagnostics <- tibble(
+  check = character(),
+  interpretation = character()
+) |>
+  add_row(
+    check = "Independence of QC metrics",
+    interpretation = "QC metrics should reflect technical quality, not biological state (e.g., low library size should not correspond to specific cell types)."
+  ) |>
+  add_row(
+    check = "Distribution of values",
+    interpretation = "Ideally, metrics follow a normal distribution, supporting threshold-based outlier detection."
+  ) |>
+  add_row(
+    check = "Secondary modes",
+    interpretation = "A large secondary peak (another mode) suggests correlation with biology, risking loss of distinct cell types."
+  ) |>
+  add_row(
+    check = "Violin plots",
+    interpretation = "Show cells kept (`FALSE`) vs discarded (`TRUE`) after QC filtering, highlighting potential biases."
+  ) |>
+  add_row(
+    check = "Spatial plots",
+    interpretation = "Visualize QC metrics across the tissue to detect spatial patterns of low quality."
+  )
+
+ezKable(qcDiagnostics)
+```
 </details>
+
+
+
+
+```{r nCount_plots, fig.width=12, fig.height=4, eval=has_unfiltered}
+plot1 <- plotColData(
+  spe, x = "Sample",
+  y = nCountCol,
+  colour_by = "discard"
+) + scale_y_log10() +
+  labs(title = "Transcript counts", y = "Transcript counts per cell")
+
+plot2 <- ImageFeaturePlot(
+  scData_unfiltered, features = nCountCol,
+  max.cutoff = "q95", size = 0.5, axes = TRUE
+) +
+  labs(title = "Transcripts per cell", fill = "Transcript counts") +
+  scale_fill_viridis_c(option = "turbo", na.value = "grey95")
+
+plot3 <- plotColData(
+  spe,
+  x = nCountCol,
+  y = nFeatureCol,
+  colour_by = "discard"
+) +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(
+    title = "",
+    x = "Transcript counts",
+    y = "#genes"
+  )
+
+plot1 + plot2 + plot3
+```
+
+
+```{r nGenes_plots, fig.width=12, fig.height=4, eval=has_unfiltered}
+plot1 <- plotColData(
+  spe, x = "Sample",
+  y = nFeatureCol,
+  colour_by = "discard"
+) +
+  labs(title = "Genes", y = "#genes per cell")
+
+plot2 <- ImageFeaturePlot(
+  scData_unfiltered, features = nFeatureCol,
+  max.cutoff = "q95", size = 0.5, axes = TRUE
+) +
+  labs(title = "Genes per cell", fill = "#genes") +
+  scale_fill_viridis_c(option = "turbo", na.value = "grey95")
+
+plot3 <- ImageFeaturePlot(
+  scData_unfiltered, features = nFeatureCol,
+  alpha = c(0, 0), size = 0.5, axes = TRUE
+) +
+  labs(title = "Raw image") +
+  guides(fill = "none")
+
+plot1 + plot2 + plot3
+```
 
 ## QC {.tabset}
 
