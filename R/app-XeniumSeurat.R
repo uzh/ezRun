@@ -397,20 +397,10 @@ ezMethodXeniumSeurat <- function(input = NA, output = NA, param = NA, htmlFile =
   })
 
   # Export Xenium Explorer compatible CSV files
+  # Cell IDs in Seurat match original Xenium format (e.g., "aaaddlda-1")
   ezWrite("Exporting Xenium Explorer CSV files...", "log.txt", append = TRUE)
 
-  extract_cell_id <- function(cell_names) {
-    sapply(cell_names, function(x) {
-      parts <- strsplit(as.character(x), "-")[[1]]
-      last <- tail(parts, 1)
-      if (grepl("^[0-9]+$", last)) return(last)
-      nums <- regmatches(x, regexpr("[0-9]+", x))
-      if (length(nums) > 0) return(nums)
-      return(x)
-    }, USE.NAMES = FALSE)
-  }
-
-  cell_ids <- extract_cell_id(colnames(scData))
+  cell_ids <- colnames(scData)
 
   # Clusters for Xenium Explorer
   write.csv(data.frame(
