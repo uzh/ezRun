@@ -78,7 +78,7 @@ ezMethodSTARsolo = function(input=NA, output=NA, param=NA){
       runDirs[i] <- paste0("run_", i)
       res <- untar(sampleDirs[i], exdir=runDirs[i], tar=system("which tar", intern=TRUE))
       if (res > 0) {
-        stop(sprintf("There was an error unpacking '%s' into '%s'. See warnings.", 
+        stop(sprintf("There was an error unpacking '%s' into '%s'. See warnings.",
                      sampleDirs[i], runDirs[i]))
       }
     }
@@ -143,8 +143,9 @@ makeSTARsoloCmd = function(param, refDir, sampleName, sampleDirs, soloFeatures){
 
   ## decide which chemistry whitelist to take
   barcodeInclusionListPath <- getBarcodeInclusionListPath(param)
-  stopifnot(file.exists(barcodeInclusionListPath),
-            paste("Could not find barcode whitelist for", param[['soloCBwhitelist']]))
+  stopifnot(paste("Could not find barcode whitelist for", 
+                  param[['soloCBwhitelist']]) = 
+              file.exists(barcodeInclusionListPath))
   
   ## decide soloUMIlen
   if(param[['soloUMIlen']]=='auto') {
@@ -236,19 +237,23 @@ getBarcodeInclusionListPath <- function(param) {
   )
   
   soloWhiteListPath <- soloCBwhitelist[[param[['soloCBwhitelist']]]]
+  ezWrite(sprintf("Trying %s", soloWhiteListPath))
   if (file.exists(soloWhiteListPath)) {
     return(soloWhiteListPath)
   }
   tempPath <- checkGzippedAndUnzip(soloWhiteListPath)
+  ezWrite(sprintf("Trying %s", tempPath))
   if (tempPath != "") {
     return(tempPath)
   }
   # in some versions of CellRanger, the whitelist file has a different suffix
   soloWhiteListPathVariation <- sprintf("%s_TRU.txt", file_path_sans_ext(soloWhiteListPath))
+  ezWrite(sprintf("Trying %s", soloWhiteListPathVariation))
   if (file.exists(soloWhiteListPathVariation)) {
     return(soloWhiteListPathVariation)
   }
   tempPath <- checkGzippedAndUnzip(soloWhiteListPathVariation)
+  ezWrite(sprintf("Trying %s", tempPath))
   if (tempPath != "") {
     return(tempPath)
   }
