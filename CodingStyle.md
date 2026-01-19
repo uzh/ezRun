@@ -28,9 +28,8 @@ Formatting:
 * the use of row names as IDs for matrices and data.frames is encouraged
 * never access columns/rows by hard-coded indices, be aware that column or row ordering may change, use column or row names if possible
 * never user `for (i in 1:length(x))`, if the length of `x` is zero, this fails, always use `for (i in seq_along(x))`
+* For logging purposes, use `ezLog` whenever possible. Other functions which can be used to write to stdout and stderr, like `cat`, `print`, `ezWrite`, or `message`, should only be used when it is necessary to parse the logs after the fact.
 
 ## Functions
 
 * Named functions should never rely on a variable of the parent environment. Only exception should be anonymous functions.
-* For logging purposes, use `ezLog` whenever possible`. Use `cat`, `print`, or `message` only when it is necessary to write information to stdout to be parsed later.
-
