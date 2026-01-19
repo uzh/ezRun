@@ -32,3 +32,5 @@ Formatting:
 ## Functions
 
 * Named functions should never rely on a variable of the parent environment. Only exception should be anonymous functions.
+* For logging purposes, use `ezLog` whenever possible`. Use `cat`, `print`, or `message` only when it is necessary to write information to stdout to be parsed later.
+
