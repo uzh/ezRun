@@ -394,9 +394,8 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       cmd <- paste0('umi_tools dedup --temp-dir=. --verbose=0 --paired --no-sort-output --stdin=',basename(bamFile),' --stdout=', deDupBamFile,' --log=',basename(bamFile),'.log', ' --output-stats=',basename(bamFile),'.stats')
       ezSystem(cmd)
       ezSortIndexBam(deDupBamFile, basename(bamFile), ram=sortRam, cores = nSortThreads)
-      tryCatch({local_CondaEnv("gi_py3.11.5", pathToMiniConda = "/usr/local/ngseq/miniforge3")}, warning = function(warning_condition) {cat('warning')}, 
-               error = function(error_condition) {cat('error')})
-  }
+        tryCatch({local_CondaEnv("gi_py3.11.5", pathToMiniConda = "/usr/local/ngseq/miniforge3")}, warning = function(warning_condition) {ezLog('warning')},
+                 error = function(error_condition) {ezLog('error')})  }
   
   
   ## check the strandedness

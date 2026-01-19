@@ -605,7 +605,7 @@ delete_e = function(linesRead){
 ##' @param message <string>
 ##' @author (Rob Kitchen)
 printMessage = function(message=""){
-  cat(as.character(Sys.time()),":  ",paste(message,sep=""),"\n",sep="")
+  ezLog(message)
 }
 
 

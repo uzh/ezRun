@@ -15,8 +15,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     excludedSamples <- as.vector(gsub(' ', '', limma::strsplit2(param$excludedSamples, split = ',')))
     toExclude <- which(fastqInfo[['sample_accession']] %in% excludedSamples)
     if(length(toExclude) > 0){
-      cat('Samples excluded:')
-      print(fastqInfo[toExclude,'sample_accession'])
+      ezLog(paste('Samples excluded:', paste(fastqInfo[toExclude,'sample_accession'], collapse=", ")))
       fastqInfo <- fastqInfo[-c(toExclude),]
     }
   }
@@ -25,8 +24,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
     includedSamples <- as.vector(gsub(' ', '', limma::strsplit2(param$includedSamples, split = ',')))
     toInclude <- which(fastqInfo[['sample_accession']] %in% includedSamples)
     if(length(toInclude) > 0){
-      cat('Samples included:')
-      print(fastqInfo[toInclude,'sample_accession'])
+      ezLog(paste('Samples included:', paste(fastqInfo[toInclude,'sample_accession'], collapse=", ")))
       fastqInfo <- fastqInfo[c(toInclude),]
     }
   }
@@ -35,8 +33,7 @@ ezMethodGetEnaData <- function(input=NA, output=NA, param=NA){
   toRemove <- which(fastqInfo[['fastq_ftp']] == '')
   
   if(length(toRemove) > 0){
-    cat('Samples removed because of missing raw data:')
-    print(fastqInfo[toRemove,])
+    ezLog(paste('Samples removed because of missing raw data:', paste(capture.output(print(fastqInfo[toRemove,])), collapse="\n")))
     fastqInfo <- fastqInfo[-c(toRemove),]
   }
   

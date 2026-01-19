@@ -9,7 +9,7 @@ ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"],
                           types=NULL){
   
   if (!ezIsSpecified(featureFile)){
-    ezWrite("no features specified in param")
+    ezLog("no features specified in param")
     return(NULL)
   }
   

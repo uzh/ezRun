@@ -126,13 +126,12 @@ cleanupCarOutFolder <- function(outFolder, keepBams=TRUE){
     bamPath <- paste0(outFolder,"/02_alignment/")
     bamsToDelete <- dir(path=bamPath, pattern="*.bam(.bai)?$", recursive=TRUE)
     file.remove(file.path(bamPath, bamsToDelete))
-    cat("Deleted bam and bam.bai files form bwa directory.\n")
+    ezLog("Deleted bam and bam.bai files form bwa directory.")
   }
   genomePath <- paste0(outFolder,"/04_reporting/igv/")
   filesToDelete <- dir(path=genomePath, pattern="genome.fa(.fai)?$")
   file.remove(file.path(genomePath, filesToDelete))
-  cat("Deleted genome.fa and genome.fai files from 04_reporting/igv/ directory.\n")
-}
+      ezLog("Deleted genome.fa and genome.fai files from 04_reporting/igv/ directory.")}
 
 ##' @description write IGV session in json format
 writeCutAndRunIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, baseUrl){

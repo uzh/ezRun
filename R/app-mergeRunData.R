@@ -52,9 +52,9 @@ ezMethodMergeRunData <- function(input=NA, output=NA, param=NA){
   uniqSet2 = setdiff(dataset2[[matchCol]], dataset1[[matchCol]])
   outputRunName = paste(gsub('-','',Sys.Date()),'.X-',sep='')
   
-  cat("#Files to merge:", length(intersectNames),"\n")
-  cat("#Files only in ", param[['FirstDataSet']], ':', length(uniqSet1), "\n")
-  cat("#Files only in ", basename(inputDir2), ':', length(uniqSet2), "\n")
+  ezLog(paste("#Files to merge:", length(intersectNames)))
+  ezLog(paste("#Files only in ", param[['FirstDataSet']], ':', length(uniqSet1)))
+  ezLog(paste("#Files only in ", basename(inputDir2), ':', length(uniqSet2)))
   
   for (i in seq_along(intersectNames)){
     file1 = file.path(param[['dataRoot']], dataset1[dataset1[[matchCol]] == intersectNames[i],'Read1 [File]'])

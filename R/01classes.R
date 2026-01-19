@@ -351,7 +351,8 @@ EzApp <-
                     }
                     options(cores=param$cores)
                     param$appName = name
-                    logMessage(name, param, "Starting")
+                    msg = paste("Starting", name, param$name, param$projectId, basename(getwd()), sep="\t")
+                    ezLog(msg)
                     param = ezParam(param, appDefaults=appDefaults)
                     cleanForFreeDiskSpace(param)
                     #waitForFreeDiskSpace(param)
@@ -378,7 +379,8 @@ EzApp <-
                                       DATASET=param$name)
                   subject=paste(appName, resultName, 'done.', sep=' ')
                   .self$exitMail(text, subject, param)
-                  logMessage(appName, param, "Finished")
+                  msg = paste("Finished", appName, param$name, param$projectId, basename(getwd()), sep="\t")
+                  ezLog(msg)
                 },
                 outputLinks = function(output, param)
                 {
@@ -445,7 +447,7 @@ waitForFreeDiskSpace = function(param){
     ezMail(to=recipient,
            subject=paste("Alert: not enough disk space ", Sys.info()["nodename"], "-", getwd()),
            text="Please free up space! Job is on hold for 2 hours and will be terminated afterwards if the issue persists.")
-    cat('Wait for free disk space') 
+    ezLog('Wait for free disk space') 
     i = 0
     while(getGigabyteFree(".") < param$scratch & i < 60){
       Sys.sleep( 120)

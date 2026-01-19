@@ -465,7 +465,7 @@ abundPlot <- function(rank,physeqFullObject,xAesLogic,numTopRanks,group) {
 subsetTaxMod <- function (physeq, x) 
 {
   if (is.null(tax_table(physeq))) {
-    cat("Nothing subset. No taxonomyTable in physeq.\n")
+    ezLog("Nothing subset. No taxonomyTable in physeq.")
     return(physeq)
   } else {
     oldMA <- as(tax_table(physeq), "matrix")

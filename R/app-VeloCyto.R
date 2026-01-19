@@ -150,7 +150,7 @@ convertCramToBam <- function(inputFile, outputBam, cores = 1) {
   
   # Check if the input file is a CRAM based on extension
   if (grepl("\\.cram$", inputFile, ignore.case = TRUE)) {
-    ezWrite("Detected CRAM file, converting to BAM format...")
+    ezLog("Detected CRAM file, converting to BAM format...")
     
     # Convert CRAM to BAM using samtools view
     # Note: -b flag outputs BAM format, -o specifies output file
@@ -163,7 +163,7 @@ convertCramToBam <- function(inputFile, outputBam, cores = 1) {
     }
     
     # Index the resulting BAM file
-    ezWrite("Indexing BAM file...")
+    ezLog("Indexing BAM file...")
     cmd <- paste("samtools index", shQuote(outputBam))
     ezSystem(cmd)
     
@@ -172,7 +172,7 @@ convertCramToBam <- function(inputFile, outputBam, cores = 1) {
       stop(paste0("Failed to create BAM index for: ", outputBam))
     }
     
-    ezWrite("CRAM to BAM conversion completed successfully")
+    ezLog("CRAM to BAM conversion completed successfully")
     return(outputBam)
   } else {
     # Input is already BAM, return as-is

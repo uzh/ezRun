@@ -209,12 +209,11 @@ cleanupAtacOutFolder <- function(outFolder, dirsToRemove, keepBams=TRUE){
     bamPath <- paste0(outFolder,"/bwa/")
     bamsToDelete <- dir(path=bamPath, pattern="*.bam(.bai)?$", recursive=TRUE)
     file.remove(file.path(bamPath, bamsToDelete))
-    cat("Deleted .bam and .bam.bai files from the bwa directory.\n")
+    ezLog("Deleted .bam and .bam.bai files from the bwa directory.")
   }
   absolutePaths <- paste(outFolder, dirsToRemove, sep="/")
   unlink(absolutePaths, recursive=TRUE)
-  cat(paste0("Deleted subdirectory: ",dirsToRemove, "\n"))
-}
+        ezLog(paste0("Deleted subdirectory: ",dirsToRemove))}
 
 ##' @description write IGV session in json format
 writeAtacIgvSession <- function(param, outFolder, jsonFileName, bigwigRelPath, baseUrl){

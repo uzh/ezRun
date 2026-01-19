@@ -110,22 +110,7 @@ ezValidMail = function(addressString){
   return()
 }
 
-##' @title Logs time and base directory together with a parameter
-##' @description Logs a time with an additional context provided in \code{message} and the base directory. Also displays a defined method name and the parameters name and Id.
-##' @param methodName the name of the method to display.
-##' @param param the parameter to display.
-##' @param message a character to start the expression and provide context information.
-##' @return Returns a message about \code{param} with a context.
-##' @template roxygen-template
-##' @examples 
-##' param = ezParam()
-##' logMessage("a method", param, "Starting")
-##' logMessage("a method", param, "Finished")
-logMessage = function(methodName, param, message){
-  msg = paste(message, methodName, param$name, param$projectId, 
-              basename(getwd()), format(Sys.time(), "%Y-%m-%d %H:%M:%S\n"), sep="\t")
-  cat(msg)
-}
+
 
 ##' @title Wrapper for futile.logger
 ##' @description Logs a message at a specified level using futile.logger.

@@ -17,10 +17,7 @@ test_that("Tests ezJobStart() and ezWriteElapsed()", {
   expect_is(elapsed$start, "proc_time")
 })
 
-test_that("Tests logMessage()", {
-  start = logMessage("a method", param, "Starting")
-  expect_null(start)
-})
+
 
 test_that("Tests ezLog()", {
   expect_error(ezLog("info message"), NA)

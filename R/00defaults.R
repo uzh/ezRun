@@ -118,7 +118,7 @@ parseOptions = function(optString){
       } else {
         value = as.numeric(pv[2])
       }
-      cat("found parameter in name: ", name, " = ", value, "\n")
+      ezLog(paste("found parameter in name: ", name, " = ", value))
       param[[name]] = value
     } else {
       stop("invalid syntax in option string: ", p)

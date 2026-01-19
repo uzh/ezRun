@@ -242,9 +242,9 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   tmp_download_ref <- paste0(cache_dir, "/", basename(ref_dataset_id))
   response <- httr::GET(ref_dataset_id, write_disk(tmp_download_ref, overwrite = TRUE), timeout(timeout_sec))
   if (http_status(response)$category == "Success") {
-    cat("Download completed successfully.\n")
+    ezLog("Download completed successfully.")
   } else {
-    cat("Download failed. Status code:", http_status(response)$status, "\n")
+    ezLog(paste("Download failed. Status code:", http_status(response)$status))
     stop("Failed to download reference dataset")
   }
   

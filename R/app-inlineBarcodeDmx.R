@@ -58,7 +58,7 @@ ezMethodInlineBarcodeDmx <- function(input = NA, output = NA, param = NA) {
             }
         }
         processedReads = processedReads + dataChunks
-        print(paste0(processedReads/10^6, 'M reads processed \n'))
+        ezLog(paste0(processedReads/10^6, 'M reads processed'))
         if (length(currentReads) == 0)
             break
         
@@ -72,9 +72,9 @@ ezMethodInlineBarcodeDmx <- function(input = NA, output = NA, param = NA) {
     resultFiles <- file.path(param[['resultDir']], param[['name']], resultFiles)
     
     for (i in 1:nrow(dataset)){
-        cat('Count Reads for ',dataset$Name[i], '...')
+        ezLog(paste('Count Reads for ',dataset$Name[i], '...'))
         myCount <- system(paste('zcat', dataset$Read1[i], '|wc -l'), intern = TRUE)
-        cat(' done \n')
+        ezLog(paste('Count Reads for ',dataset$Name[i], ' done'))
         dataset$ReadCount[i] <- as.numeric(myCount)/4
     }
     dataset$Read1 <- resultFiles
