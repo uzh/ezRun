@@ -353,7 +353,7 @@ getSpatialSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM){
         assignInNamespace("DietSeurat", MyDietSeurat, ns = "Seurat")
         rna_assay <- CreateAssay5Object(counts = GetAssayData(scData, assay = 'Spatial', layer = 'counts'))
         scData[["RNA"]] <- scData[["Spatial"]] #rna_assay
-        
+        scData <- JoinLayers(scData)  # Required for Azimuth compatibility with Seurat v5
         scDataAzi <- RunAzimuth(scData, param$Azimuth, assay="RNA") ## TODO support ADT
         
         ##Rename annotation levels if neccessary:
