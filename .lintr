@@ -1,0 +1,11 @@
+linters: linters_with_defaults(
+  indentation_linter(indent = 2L,
+                     hanging_indent_style = "tidy"),
+  commented_code_linter = NULL
+)
+exclusions: list(
+  "inst/",
+  "script/",
+  "tests/",
+  "vignettes/""
+)
