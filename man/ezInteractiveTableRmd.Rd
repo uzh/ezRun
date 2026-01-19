@@ -6,12 +6,12 @@
 \usage{
 ezInteractiveTableRmd(
   values,
+  filter = "top",
   digits = NULL,
+  columnsToRound = sapply(values, typeof) == "double",
   colNames = colnames(values),
   rowNames = rownames(values),
-  title = "",
-  format = NULL,
-  envir = parent.frame()
+  title = ""
 )
 }
 \arguments{
@@ -22,10 +22,6 @@ ezInteractiveTableRmd(
 \item{colNames}{a character vector specifying the column names of the interactive table.}
 
 \item{title}{a character representing the title of the interactive table.}
-
-\item{format}{formatting options passed as an expression. The table argument in formatting functions must be named \code{interactiveTable}.}
-
-\item{envir}{the environment to evaluate \code{format} in.}
 }
 \description{
 Generates an interactive table embeded in rmarkdown document.
@@ -36,8 +32,6 @@ ezInteractiveTableRmd(table)
 }
 \seealso{
 \code{\link[DT]{datatable}}
-
-\code{\link[DT]{saveWidget}}
 }
 \author{
 Rehrauer, Hubert

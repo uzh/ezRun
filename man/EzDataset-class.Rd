@@ -35,6 +35,8 @@ Use this to create an object of the class EzDataset that contains the necessary 
 
 \item{\code{getNames()}}{Gets the row names.}
 
+\item{\code{hasColumn(name)}}{Checks if there's a column \code{name} in the dataset.}
+
 \item{\code{setColumn(name, values)}}{Sets the column selected with \code{name} to \code{values}. If \code{values} is \code{NULL} the column gets removed}
 
 \item{\code{subset(samples)}}{Subsets the meta field keeping \code{samples} and generates a new EzDataset}
