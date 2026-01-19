@@ -23,7 +23,7 @@
 ## custorm the standardize gene function
 ## We want to solve the problem that can't standatize gene name of data matrix if we only have counts matrix
 ## And in this case, the output will have the counts matrix which is as same as the data matrix.
-StandardizeGeneSymbols_customer = function(obj, assay=NULL, slots=c("counts","data"),
+StandardizeGeneSymbols_customer = function(obj, assay=NULL, layers=c("counts","data"),
                                            EnsemblGeneTable=NULL, EnsemblGeneFile=NULL){
   
   if (is.null(assay)) {
@@ -39,7 +39,7 @@ StandardizeGeneSymbols_customer = function(obj, assay=NULL, slots=c("counts","da
   
   #Translate Ensembl IDs if necessary
   
-  genes.in <- rownames(GetAssayData(obj, assay = assay, slot=slots[1]))
+  genes.in <- rownames(GetAssayData(obj, assay = assay, layer=layers[1]))
   ngenes <- length(genes.in)
   
   ens.count <- length(intersect(genes.in, EnsemblGeneTable[["Gene stable ID"]]))
@@ -124,24 +124,24 @@ StandardizeGeneSymbols_customer = function(obj, assay=NULL, slots=c("counts","da
   
   ###### 4. Subset matrix for allowed genes, and translate names
   matrix <- list()
-  for (s in slots) {
-    if (length(rownames(GetAssayData(obj, assay = assay, slot = s))) == 0) {
-      next  
+  for (s in layers) {
+    if (length(rownames(GetAssayData(obj, assay = assay, layer = s))) == 0) {
+      next
     }
-    matrix[[s]] <- GetAssayData(obj, assay = assay, slot=s)
+    matrix[[s]] <- GetAssayData(obj, assay = assay, layer=s)
     rows.select <- rownames(matrix[[s]])[rownames(matrix[[s]]) %in% names(genesAllowList)]
     matrix[[s]] <- matrix[[s]][rows.select, ]
     rownames(matrix[[s]]) <- unname(genesAllowList[rows.select])
   }
-  for (s in slots) {
+  for (s in layers) {
     if (s =="counts" || s =="data") {
       obj <- suppressWarnings(RenameAssays(obj, assay.name=assay, new.assay.name="tmp"))
       obj[[assay]] <- CreateAssayObject(counts=matrix[[s]], assay=assay)
       DefaultAssay(obj) <- assay
       obj[["tmp"]] <- NULL
-    } 
+    }
     else {
-      obj <- SetAssayData(obj, assay = assay, new.data=matrix[[s]], slot=s)
+      obj <- SetAssayData(obj, assay = assay, new.data=matrix[[s]], layer=s)
     }
   }
   
@@ -181,9 +181,9 @@ cellxgene_annotation <- function(scData, param) {
   
   ### StandardizeGeneSymbols
   if( species == "Homo_sapiens" ){
-    scData <- StandardizeGeneSymbols_customer(scData, slots = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
+    scData <- StandardizeGeneSymbols_customer(scData, layers = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
   }else if(species == "Mus_musculus"){
-    scData <- StandardizeGeneSymbols_customer(scData, slots = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Mm)
+    scData <- StandardizeGeneSymbols_customer(scData, layers = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Mm)
   }else{
     stop("We only support mouse and human dataset for using cellxgene annotation")
   }
@@ -274,19 +274,19 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   if( species == "Homo_sapiens" ){
     if ("counts" %in%  names(curated_seurat_object@assays$RNA@data) && nrow(curated_seurat_object@assays$RNA@counts) > 0) {
       # If counts exit
-      curated_seurat_object <- StandardizeGeneSymbols_customer(curated_seurat_object, slots = c("counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
+      curated_seurat_object <- StandardizeGeneSymbols_customer(curated_seurat_object, layers = c("counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
     } else {
       # If there is no counts matix
-      curated_seurat_object <- StandardizeGeneSymbols_customer(curated_seurat_object, slots = c("data"), EnsemblGeneTable = EnsemblGeneTable.Hs)
+      curated_seurat_object <- StandardizeGeneSymbols_customer(curated_seurat_object, layers = c("data"), EnsemblGeneTable = EnsemblGeneTable.Hs)
     }
     
   }else if(species == "Mus_musculus"){
     if ("counts" %in%  names(curated_seurat_object@assays$RNA@data) && nrow(curated_seurat_object@assays$RNA@counts) > 0) {
       # If counts exit
-      curated_seurat_object <- StandardizeGeneSymbols_customer(curated_seurat_object, slots = c("counts"), EnsemblGeneTable = EnsemblGeneTable.Mm)
+      curated_seurat_object <- StandardizeGeneSymbols_customer(curated_seurat_object, layers = c("counts"), EnsemblGeneTable = EnsemblGeneTable.Mm)
     } else {
       # If there is no counts matix
-      curated_seurat_object <- StandardizeGeneSymbols_customer(curated_seurat_object, slots = c("data"), EnsemblGeneTable = EnsemblGeneTable.Mm)
+      curated_seurat_object <- StandardizeGeneSymbols_customer(curated_seurat_object, layers = c("data"), EnsemblGeneTable = EnsemblGeneTable.Mm)
     }
     
   }else{
