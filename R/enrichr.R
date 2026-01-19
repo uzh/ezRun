@@ -94,13 +94,13 @@ runEnrichr <- function(genes, minScore = 12, maxAdjP = 0.01, minOverlapGenes = 3
 ##' @author Roman Briskine
 enrichrAddList <- function(genes) {
   require(httr, quietly = T, warn.conflicts = WARN_CONFLICTS)
-
+  
   reqUrl <- paste(ENRICHR_BASE_URL, "addList", sep = "/")
-
+  
   if (is.null(genes) || length(genes) < 1) {
     stop("The gene list should contain at least one gene")
   }
-
+  
   geneStr <- paste(genes, collapse = "\n")
   resp <- POST(reqUrl, body = list(list = geneStr))
   if (http_error(resp)) {
@@ -108,11 +108,11 @@ enrichrAddList <- function(genes) {
     return(NULL)
   }
   respParsed <- jsonlite::fromJSON(httr::content(resp, as = "text"))
-
+  
   if (is.null(respParsed$userListId) || is.null(respParsed$shortId)) {
     stop("Enrichr server returned an invalid response: userListId or shortId is missing")
   }
-
+  
   return(respParsed)
 }
 
@@ -152,21 +152,21 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
   # While httr is easier to deal with, it does not support asynchrous requests. Neither does Rcurl.
   # So, we have to resort to the use of the curl package.
   require(curl, quietly = T, warn.conflicts = WARN_CONFLICTS)
-
+  
   reqUrl <- paste(ENRICHR_BASE_URL, "enrich", sep = "/")
-
+  
   # The functions below are internal helper functions to make the code clear. There is no reason to
   # expose them.
-
+  
   # Concatenates gene list into a string. Otherwise, the unlist function would expand them. Note
   # that the recursive flag will not help you in this case.
   concatGenes <- function(lst, sep = ";") {
-      lapply(lst, function(x) {
-        x[[10]] = length(x[[6]])
-        x[[6]] <- paste(x[[6]], collapse = sep);
-        x})
+    lapply(lst, function(x) {
+      x[[10]] = length(x[[6]])
+      x[[6]] <- paste(x[[6]], collapse = sep);
+      x})
   }
-
+  
   # The jsonlite parser returns all values as character() and you cannot call as.numeric on a subset
   # of columns.
   respToNumeric <- function(x, idx = c(3,4,5,7,8,9)) {
@@ -175,7 +175,7 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
     }
     x
   }
-
+  
   # Parses the response
   parseResp <- function(resp) {
     respParsed <- jsonlite::fromJSON( rawToChar(resp$content) )
@@ -201,11 +201,11 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
     names(ds) <- fieldNames
     ds
   }
-
+  
   success <<- list()
   failure <<- list()
   tryId <- 0
-
+  
   while ((tryId == 0 || (length(failure) > 0) && tryId < retryN + 1)) {
     tryId <- tryId + 1
     message(sprintf("Try: %d; failures: %d", tryId, length(failure)))
@@ -217,32 +217,32 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
       qryString <- mkCurlQryString(userListId = userListId, backgroundType = libName)
       
       curl_fetch_multi(
-          paste(reqUrl, qryString, sep="?"),
-          # failonerror=T will cause curl to fail for any response status >= 400
-          handle = new_handle(failonerror = T),
-          pool = pool,
-          done = function(x) {
-            # libName may be bound after the loop is done rather than immediately. In that case, all
-            # results will be saved under the same libName. To avoid that, we have to extract the
-            # libName here.
-            #saveRDS(x, file=paste0("enrichr-done-", ezTime(), "-debug.rds"))
-            libName <- sub('^.+backgroundType=([^&]+).*$', '\\1', x$url)
-            success[[libName]] <<- tryCatch(
-              parseResp(x),
-              error = function(e) {
-                saveRDS(e, file=paste0("enrichr-error-", ezTime(), "-debug.rds"))
-                #failure[[libName]] <<- paste("Response parsing failure with", e)
-                NULL}
-            )
-          }
-          # The code below did not work, the try-catch above prevented from the fail. and the variable failure was apparently not set
-          # # In case of a failure, curl returns only the error message that does not contain the URL,
-          # # so we have no way to determine which request failed. So, we'll just append the message to
-          # # the end of the list.
-          # fail = function(x) {
-          #   saveRDS(x, file=paste0("enrichr-fail-", ezTime(), "-debug.rds"))
-          #   k <- length(failure) + 1; failure[[k]] <<- x }
-        )
+        paste(reqUrl, qryString, sep="?"),
+        # failonerror=T will cause curl to fail for any response status >= 400
+        handle = new_handle(failonerror = T),
+        pool = pool,
+        done = function(x) {
+          # libName may be bound after the loop is done rather than immediately. In that case, all
+          # results will be saved under the same libName. To avoid that, we have to extract the
+          # libName here.
+          #saveRDS(x, file=paste0("enrichr-done-", ezTime(), "-debug.rds"))
+          libName <- sub('^.+backgroundType=([^&]+).*$', '\\1', x$url)
+          success[[libName]] <<- tryCatch(
+            parseResp(x),
+            error = function(e) {
+              saveRDS(e, file=paste0("enrichr-error-", ezTime(), "-debug.rds"))
+              #failure[[libName]] <<- paste("Response parsing failure with", e)
+              NULL}
+          )
+        }
+        # The code below did not work, the try-catch above prevented from the fail. and the variable failure was apparently not set
+        # # In case of a failure, curl returns only the error message that does not contain the URL,
+        # # so we have no way to determine which request failed. So, we'll just append the message to
+        # # the end of the list.
+        # fail = function(x) {
+        #   saveRDS(x, file=paste0("enrichr-fail-", ezTime(), "-debug.rds"))
+        #   k <- length(failure) + 1; failure[[k]] <<- x }
+      )
     }
     multi_run(pool = pool, timeout=300)
   }

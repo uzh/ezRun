@@ -37,12 +37,12 @@ EzResult <-
                     stopifnot(length(paramNew) == 0 && length(rawDataNew) == 0 && length(resultNew) == 0)
                     stopifnot(file.exists(file))
                     if (grepl("RData$", file)){
-                    load(file = file) ## loads
-                    param <<- param
-                    rawData <<- rawData
-                    result <<- result
-                    se <<- se
-                    sceset <<- sceset
+                      load(file = file) ## loads
+                      param <<- param
+                      rawData <<- rawData
+                      result <<- result
+                      se <<- se
+                      sceset <<- sceset
                     }
                     if (grepl("rds$", file)){
                       se <<- readRDS(file)
@@ -68,7 +68,7 @@ makeSummarizedExperiment = function(param, rawData, result){
       assayList$countsNorm = result$xNorm
     }
   }
-
+  
   SummarizedExperiment(assays=assayList,
                        rowData=rawData$seqAnno,
                        colData=ezDesignFromDataset(rawData$dataset, param),

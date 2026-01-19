@@ -24,7 +24,7 @@
 ##' colnames(m1) = letters[6:9]
 ##' ezPresentFlags(m1, param=list(useSigThresh=TRUE, sigThresh=10))
 ezPresentFlags = function(x, presentFlag=NULL, param=NULL, isLog=FALSE){
-
+  
   isPresent = ezMatrix(TRUE, rows=rownames(x), cols=colnames(x))
   if (param$useSigThresh){
     if (isLog) {

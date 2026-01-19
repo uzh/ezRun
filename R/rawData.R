@@ -26,12 +26,12 @@ getRpkm <- function(rawData){
   #   require(scater)
   #   rpkm <- calculateFPKM(rawData, effective_length=rowData(rawData)$featWidth)
   # }else{
-    # for bulk, but also valid for single cell
+  # for bulk, but also valid for single cell
   # scater implementation fails when no counts from one cell
-    libSize <- Matrix::colSums(assays(rawData)$counts)
-    rpkm <- sweep(assays(rawData)$counts * 1e9, MARGIN=1,
-                  STATS=rowData(rawData)$featWidth, FUN="/")
-    rpkm <- sweep(rpkm, MARGIN=2, STATS=libSize, FUN="/")
+  libSize <- Matrix::colSums(assays(rawData)$counts)
+  rpkm <- sweep(assays(rawData)$counts * 1e9, MARGIN=1,
+                STATS=rowData(rawData)$featWidth, FUN="/")
+  rpkm <- sweep(rpkm, MARGIN=2, STATS=libSize, FUN="/")
   # }
   return(rpkm)
 }
@@ -72,10 +72,10 @@ getCpm <- function(rawData){
   #   ans <- calculateCPM(rawData, exprs_values = "counts",
   #                       use_size_factors = TRUE)
   # }else{
-    # for bulk, but also valid for single cell
-    ans <- sweep(assays(rawData)$counts*1e6, MARGIN=2, 
-                 STATS=Matrix::colSums(assays(rawData)$counts),
-                 FUN="/")
+  # for bulk, but also valid for single cell
+  ans <- sweep(assays(rawData)$counts*1e6, MARGIN=2, 
+               STATS=Matrix::colSums(assays(rawData)$counts),
+               FUN="/")
   # }
   return(ans)
 }
@@ -100,8 +100,8 @@ aggregateCountsByGene <- function(rawData){
   
   newRawCounts <- SimpleList()
   for (nm in setdiff(names(assays(rawData)), "presentFlag")){
-      newRawCounts[[nm]] = as.matrix(averageRows(assays(rawData)[[nm]], genes, 
-                                       func=sum))[rownames(seqAnnoNew), ]
+    newRawCounts[[nm]] = as.matrix(averageRows(assays(rawData)[[nm]], genes, 
+                                               func=sum))[rownames(seqAnnoNew), ]
   }
   if (param$useSigThresh){
     newRawCounts[["presentFlag"]] = newRawCounts[["counts"]] > param$sigThresh
@@ -112,7 +112,7 @@ aggregateCountsByGene <- function(rawData){
   ## Get rid of signal matrix in case it exists
   ## signal will not be valid after the aggregation
   newRawCounts[["signal"]] <- NULL
-    
+  
   newRawData <- SummarizedExperiment(
     assays=newRawCounts,
     rowData=seqAnnoNew, colData=colData(rawData),
@@ -140,21 +140,21 @@ aggregateCountsByGene <- function(rawData){
 ##' keep = "YFR014C"
 ##' rd2 = selectFeatures(rawData, keep)
 selectFeatures = function(rawData, keep){
-    
-    if (!is.null(rawData$signal)){
-        stopifnot(keep %in% rownames(rawData$signal))
-        idx = match(keep, rownames(rawData$signal))
-    } else {
-        stopifnot(keep %in% rownames(rawData$counts))
-        idx = match(keep, rownames(rawData$counts))
+  
+  if (!is.null(rawData$signal)){
+    stopifnot(keep %in% rownames(rawData$signal))
+    idx = match(keep, rownames(rawData$signal))
+  } else {
+    stopifnot(keep %in% rownames(rawData$counts))
+    idx = match(keep, rownames(rawData$counts))
+  }
+  for (nm in names(rawData)){
+    if (is.matrix(rawData[[nm]]) || is.data.frame(rawData[[nm]])){
+      if (all(keep %in% rownames(rawData[[nm]]))){
+        rawData[[nm]] = rawData[[nm]][idx, , drop=FALSE]      
+      }
     }
-    for (nm in names(rawData)){
-        if (is.matrix(rawData[[nm]]) || is.data.frame(rawData[[nm]])){
-            if (all(keep %in% rownames(rawData[[nm]]))){
-                rawData[[nm]] = rawData[[nm]][idx, , drop=FALSE]      
-            }
-        }
-    }
-    return(rawData)
+  }
+  return(rawData)
 }
 

@@ -11,21 +11,21 @@
 ##' @description Create and save SGSea database 
 ##' @param  a gtf file
 ##' @return a makeTxDbFromGFF database object
- 
+
 makeSGSeqtxdbObject <- function(refBuil,refFeat,txdbDatabase) {
-txdbGtfOrigin <- file.path("/srv/GT/reference",refBuil,"Genes",refFeat)
-organism <- unlist(strsplit(refBuil,"/"))[1]
-organismForDB <- gsub("_"," ",organism)
-dataSource <- unlist(strsplit(refBuil,"/"))[2]
-build <- unlist(strsplit(refBuil,"/"))[3]
-genomeIndexFile <- file.path("/srv/GT/reference",organism,dataSource,build,
-                             "Sequence","WholeGenomeFasta","genome.fa.fai")
-genomeIndex <- read.delim(genomeIndexFile, stringsAsFactors = F, header = F)
-chrInfo <- data.frame(chrom=genomeIndex$V1,length=genomeIndex$V2)
-txDbObject <- makeTxDbFromGFF(txdbGtfOrigin,format = "gtf", organism = organismForDB,
-                              dataSource = dataSource, chrominfo = chrInfo)
-saveDb(txDbObject, file=txdbDatabase)
-return(txDbObject)
+  txdbGtfOrigin <- file.path("/srv/GT/reference",refBuil,"Genes",refFeat)
+  organism <- unlist(strsplit(refBuil,"/"))[1]
+  organismForDB <- gsub("_"," ",organism)
+  dataSource <- unlist(strsplit(refBuil,"/"))[2]
+  build <- unlist(strsplit(refBuil,"/"))[3]
+  genomeIndexFile <- file.path("/srv/GT/reference",organism,dataSource,build,
+                               "Sequence","WholeGenomeFasta","genome.fa.fai")
+  genomeIndex <- read.delim(genomeIndexFile, stringsAsFactors = F, header = F)
+  chrInfo <- data.frame(chrom=genomeIndex$V1,length=genomeIndex$V2)
+  txDbObject <- makeTxDbFromGFF(txdbGtfOrigin,format = "gtf", organism = organismForDB,
+                                dataSource = dataSource, chrominfo = chrInfo)
+  saveDb(txDbObject, file=txdbDatabase)
+  return(txDbObject)
 }
 
 

@@ -58,10 +58,10 @@ phyloSeqTaxaFromFile  <- function(taxaFile){
 ##' @return Returns a Phyloseq Taxa object.
 phyloSeqSample <- function(sampleFileName){
   sampleFile <- sampleFileName
-#colToKeep <- grep("Factor",colnames(sampleFile))
-#colnames(sampleFile) <- sub('\\s\\[Factor\\]',"",colnames(sampleFile))
-sampleObject <- sample_data(sampleFile)
-return(sampleObject)
+  #colToKeep <- grep("Factor",colnames(sampleFile))
+  #colnames(sampleFile) <- sub('\\s\\[Factor\\]',"",colnames(sampleFile))
+  sampleObject <- sample_data(sampleFile)
+  return(sampleObject)
 }
 
 ###################################################################
@@ -78,10 +78,10 @@ return(sampleObject)
 ##' @return Returns a  filtered Phyloseq  object.
 phyloSeqPreprocess <- function(phyloseqObj,rawCount,sampleFraction){
   ### First remove taxa not seen at least rowCount times in at least sampleFraction of the samples
-filteredTaxa <- filter_taxa(phyloseqObj, function(x) sum(x > rawCount) > (sampleFraction*length(x)), TRUE)
+  filteredTaxa <- filter_taxa(phyloseqObj, function(x) sum(x > rawCount) > (sampleFraction*length(x)), TRUE)
   ### then remove samples which have zero observations
-samplesToKeep <- which(apply(otu_table(filteredTaxa),1,sum)>0)
-filteredTaxaAndSamples <- prune_samples(names(samplesToKeep),filteredTaxa)
+  samplesToKeep <- which(apply(otu_table(filteredTaxa),1,sum)>0)
+  filteredTaxaAndSamples <- prune_samples(names(samplesToKeep),filteredTaxa)
   return(filteredTaxaAndSamples)
 }
 
@@ -156,17 +156,17 @@ phyloSeqToDeseq2_tableAndPlots <- function(phyloseqObj,rank,group,sampleGroup,re
     finalVersionPie <- NULL
   } else {
     isAllNaMsg <- NULL
-  OTUsToPlot[[rank]]  <- as.factor(OTUsToPlot[[rank]])
-  tableTaxa <- data.frame(table(droplevels(OTUsToPlot[,rank])))
-  colnames(tableTaxa)[1] <- rank
-  pct <- round(tableTaxa$Freq/sum(tableTaxa$Freq)*100,2)
-  pct = paste0(pct,"%")
-  titleText = paste("Distribution of differentially abundant taxa at rank", rank,".")
-  bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=tableTaxa[[rank]])) + 
-    geom_bar(position = position_stack(),width = 1, stat = "identity") 
-  pieVersion <- bp + coord_polar("y", start=0)
-  finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
-    theme(plot.title=element_text(size=10,hjust=0.5)) + labs(fill=rank)
+    OTUsToPlot[[rank]]  <- as.factor(OTUsToPlot[[rank]])
+    tableTaxa <- data.frame(table(droplevels(OTUsToPlot[,rank])))
+    colnames(tableTaxa)[1] <- rank
+    pct <- round(tableTaxa$Freq/sum(tableTaxa$Freq)*100,2)
+    pct = paste0(pct,"%")
+    titleText = paste("Distribution of differentially abundant taxa at rank", rank,".")
+    bp <- ggplot(tableTaxa, aes(x="", y=Freq, fill=tableTaxa[[rank]])) + 
+      geom_bar(position = position_stack(),width = 1, stat = "identity") 
+    pieVersion <- bp + coord_polar("y", start=0)
+    finalVersionPie <- pieVersion +  labs(title=titleText, y="") + 
+      theme(plot.title=element_text(size=10,hjust=0.5)) + labs(fill=rank)
   }
   return(list(logPlot=plotLogFoldVsTaxon,vPlot=volcanoPlot,pieChart=finalVersionPie,tableToReport=tableToReport,
               fullTable=addTaxa,isAllNaMsg=isAllNaMsg,isAllNa=isAllNa))
@@ -230,7 +230,7 @@ phyloSeqCommunityComp <- function(physeq){
                            stringsAsFactors = FALSE)
   joinedData$Freq <- as.numeric(joinedData$Freq)
   fractions <- lapply(unique(joinedData$Genus), 
-                             function(x) cbind(x,sum(joinedData[joinedData$Genus == x,]$Freq)/sum(joinedData$Freq)*100))
+                      function(x) cbind(x,sum(joinedData[joinedData$Genus == x,]$Freq)/sum(joinedData$Freq)*100))
   fractions <- data.frame(matrix(unlist(fractions), byrow = TRUE, ncol = 2), stringsAsFactors = FALSE)
   colnames(fractions) <- c("Genus","Freq")
   fractions$Freq <- round(as.numeric(fractions$Freq),2)
@@ -269,7 +269,7 @@ pcaForPhyloseqPlot <- function(phySeqObject,type,group){
   } else {
     stop("type must be either samples or taxa")
   }
-
+  
   mds = plotMDS(log2(input+10), plot=FALSE, ndim=2)
   ggg <- data.frame(comp1 = mds$cmdscale.out[,1] ,comp2 = mds$cmdscale.out[,2], group = groups)
   
@@ -315,36 +315,36 @@ heatmapForPhylotseqPlotPheatmap <- function(phyloseqOtuObj,areThereMultVar,isGro
   input <- dd
   plot_heatmap_Pheatmap <- function() {
     if (isGroupThere){
-  gr1 <- colnames(sample_data(phyloseqOtuObj))[1]
-  gr2 <- colnames(sample_data(phyloseqOtuObj))[2]
-  fact1 <- as.factor(sample_data(phyloseqOtuObj)@.Data[[1]])
-  fact2 <- as.factor(sample_data(phyloseqOtuObj)@.Data[[2]])
-  nColsGr1 <- nlevels(fact1)
-  nColsGr2 <- nlevels(as.factor(sample_data(phyloseqOtuObj)@.Data[[2]]))
-  pal1 <- colorRampPalette(brewer.pal(11, "Blues"))(nColsGr1)
-  names(pal1) <- levels(fact1)
-  pal2 <- colorRampPalette(brewer.pal(11, "RdYlGn"))(nColsGr2)
-  names(pal2) <- levels(fact2)
-  mat_colors <- list(pal1,pal2)
-  names(mat_colors) <- c(gr1,gr2)
-  mat_col_temp <- data.frame(sample_data(phyloseqOtuObj))
-  mat_col <- data.frame(lapply(mat_col_temp,as.factor), row.names = rownames(mat_col_temp))
-  if (!areThereMultVar){
-    mat_colors <- mat_colors[gr1]
-    mat_col <- data.frame(sample_data(phyloseqOtuObj)[,gr1])
-  }
-  ## heatmap
-  pheatmap(input,show_rownames = TRUE,
-           show_colnames     = TRUE,
-           annotation_col    = mat_col,
-           annotation_colors = mat_colors,
-           cluster_rows = TRUE,  scale="row", method = "average", fontsize = 5)
+      gr1 <- colnames(sample_data(phyloseqOtuObj))[1]
+      gr2 <- colnames(sample_data(phyloseqOtuObj))[2]
+      fact1 <- as.factor(sample_data(phyloseqOtuObj)@.Data[[1]])
+      fact2 <- as.factor(sample_data(phyloseqOtuObj)@.Data[[2]])
+      nColsGr1 <- nlevels(fact1)
+      nColsGr2 <- nlevels(as.factor(sample_data(phyloseqOtuObj)@.Data[[2]]))
+      pal1 <- colorRampPalette(brewer.pal(11, "Blues"))(nColsGr1)
+      names(pal1) <- levels(fact1)
+      pal2 <- colorRampPalette(brewer.pal(11, "RdYlGn"))(nColsGr2)
+      names(pal2) <- levels(fact2)
+      mat_colors <- list(pal1,pal2)
+      names(mat_colors) <- c(gr1,gr2)
+      mat_col_temp <- data.frame(sample_data(phyloseqOtuObj))
+      mat_col <- data.frame(lapply(mat_col_temp,as.factor), row.names = rownames(mat_col_temp))
+      if (!areThereMultVar){
+        mat_colors <- mat_colors[gr1]
+        mat_col <- data.frame(sample_data(phyloseqOtuObj)[,gr1])
+      }
+      ## heatmap
+      pheatmap(input,show_rownames = TRUE,
+               show_colnames     = TRUE,
+               annotation_col    = mat_col,
+               annotation_colors = mat_colors,
+               cluster_rows = TRUE,  scale="row", method = "average", fontsize = 5)
     } else {
-
+      
       pheatmap(input,show_rownames = TRUE,
                show_colnames     = TRUE,
                cluster_rows = TRUE,  scale="row", method = "average")
-   }
+    }
   }
 }  
 
@@ -371,14 +371,14 @@ rarefactionPlot <- function(adundDF, type){
   fortifiedObjPoint <- fortifiedObj[which(fortifiedObj$method=="observed"),]
   fortifiedObjLine <- fortifiedObj[which(fortifiedObj$method!="observed"),]
   fortifiedObjLine$method <- factor(fortifiedObjLine$method, 
-                           c("interpolated", "extrapolated"),
-                           c("int", "ext"))
+                                    c("interpolated", "extrapolated"),
+                                    c("int", "ext"))
   saturationPlot <- ggplot(fortifiedObj, aes(x=x, y=y, colour=site)) + 
     geom_point(aes(shape=site), size=4, data=fortifiedObjPoint) + 
     scale_shape_manual(values=rep(seq(1,23),3)) +
     geom_line(aes(linetype=method), lwd=1, data=fortifiedObjLine) +  
     guides(shape = guide_legend(nrow = 6), linetype= guide_legend(nrow = 2))
-
+  
   saturationPlot <- saturationPlot + labs(x="Number of OTUs", 
                                           y=yLabel, 
                                           shape="Samples", colour="Samples",
@@ -400,33 +400,33 @@ rarefactionPlot <- function(adundDF, type){
 ##' @return A ggplot
 plotBarMod <- function(xx, x, fill = NULL, title = NULL, facet_grid = NULL,group) 
 {
- mdf = psmelt(xx)
- if (x=="S"){
-   xAxisVar ="Sample"
- mdf$relFract <- 0
- for (sample in unique(mdf$Sample)){
-   tot <- sum(mdf[mdf$Sample == sample,]$Abundance)
- mdf[mdf$Sample == sample,]$relFract <- mdf[mdf$Sample == sample,]$Abundance/tot
- }
- }else if (x=="G") { 
-   xAxisVar = group
-   mdf$relFract <- 0
- for (g in levels(mdf[[group]])){
-   tot <- sum(mdf[mdf[[group]] == g,]$Abundance)
-   mdf[mdf[[group]] == g,]$relFract <-  mdf[mdf[[group]] == g,]$Abundance/tot
- }
- }
- p = ggplot(mdf, aes(x=mdf[[xAxisVar]],y=relFract, fill = mdf[[fill]]))
- p = p + geom_bar(stat = "identity", position = "stack") + xlab(xAxisVar) +
-   ylab("relative fraction") + labs(fill = fill) + guides(fill = guide_legend(nrow = 12))
-   p = p + theme(axis.text.x = element_text(angle = -90, hjust = 0))
- if (!is.null(facet_grid)) {
-     p <- p + facet_grid(facet_grid)
-   }
-   if (!is.null(title)) {
-      p <- p + ggtitle(title)
-}
-return(p)
+  mdf = psmelt(xx)
+  if (x=="S"){
+    xAxisVar ="Sample"
+    mdf$relFract <- 0
+    for (sample in unique(mdf$Sample)){
+      tot <- sum(mdf[mdf$Sample == sample,]$Abundance)
+      mdf[mdf$Sample == sample,]$relFract <- mdf[mdf$Sample == sample,]$Abundance/tot
+    }
+  }else if (x=="G") { 
+    xAxisVar = group
+    mdf$relFract <- 0
+    for (g in levels(mdf[[group]])){
+      tot <- sum(mdf[mdf[[group]] == g,]$Abundance)
+      mdf[mdf[[group]] == g,]$relFract <-  mdf[mdf[[group]] == g,]$Abundance/tot
+    }
+  }
+  p = ggplot(mdf, aes(x=mdf[[xAxisVar]],y=relFract, fill = mdf[[fill]]))
+  p = p + geom_bar(stat = "identity", position = "stack") + xlab(xAxisVar) +
+    ylab("relative fraction") + labs(fill = fill) + guides(fill = guide_legend(nrow = 12))
+  p = p + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+  if (!is.null(facet_grid)) {
+    p <- p + facet_grid(facet_grid)
+  }
+  if (!is.null(title)) {
+    p <- p + ggtitle(title)
+  }
+  return(p)
 }
 
 ###################################################################
@@ -445,11 +445,11 @@ abundPlot <- function(rank,physeqFullObject,xAesLogic,numTopRanks,group) {
   if (naRmoved$toStop == TRUE) {
     return(list(abPlot=NULL,stop=TRUE))
   }else{
-  naRmovedTrimmed <- subsetRankTopN(naRmoved$pObj, rank,numTopRanks)
-  p <- plotBarMod(naRmovedTrimmed,x=xAesLogic, fill=rank,group=group)  
-  p <- p+  theme(legend.key.size = unit(0.3, "cm"),legend.key.width = unit(0.3,"cm"))
-  return(list(abPlot=p,stop=FALSE))
-}
+    naRmovedTrimmed <- subsetRankTopN(naRmoved$pObj, rank,numTopRanks)
+    p <- plotBarMod(naRmovedTrimmed,x=xAesLogic, fill=rank,group=group)  
+    p <- p+  theme(legend.key.size = unit(0.3, "cm"),legend.key.width = unit(0.3,"cm"))
+    return(list(abPlot=p,stop=FALSE))
+  }
 }
 ###################################################################
 # Functional Genomics Center Zurich
@@ -474,15 +474,15 @@ subsetTaxMod <- function (physeq, x)
     if(nrow(newDF) == 0){
       return(list(pObj=physeq,toStop=TRUE))
     } else{
-    colnames(newDF) <- attr(physeq@tax_table@.Data, "dimnames")[[2]]
-    newMA <- as(newDF, "matrix")
-    if (inherits(physeq, "taxonomyTable")) {
-      return(tax_table(newMA))
-    } else {
-      tax_table(physeq) <- tax_table(newMA)
-      return(list(pObj=physeq,toStop=FALSE))
+      colnames(newDF) <- attr(physeq@tax_table@.Data, "dimnames")[[2]]
+      newMA <- as(newDF, "matrix")
+      if (inherits(physeq, "taxonomyTable")) {
+        return(tax_table(newMA))
+      } else {
+        tax_table(physeq) <- tax_table(newMA)
+        return(list(pObj=physeq,toStop=FALSE))
+      }
     }
-  }
   }
 }
 
@@ -500,23 +500,23 @@ subsetTaxMod <- function (physeq, x)
 ordPlot <- function(rank,fullObject,type,areThereMultVar,numTopRanks,isGroupThere) {
   if (type=="taxa"){
     if (all(is.na(tax_table(fullObject)[,rank]))){
-    naRmovedTrimmedOrd <- ordinate(fullObject, "NMDS", "bray")
-    p1 = plot_ordination(fullObject, naRmovedTrimmedOrd, type = "taxa")    
+      naRmovedTrimmedOrd <- ordinate(fullObject, "NMDS", "bray")
+      p1 = plot_ordination(fullObject, naRmovedTrimmedOrd, type = "taxa")    
     }else{
-    naRmovedTrimmed <- subsetRankTopN(fullObject, rank,numTopRanks)
-    naRmovedTrimmedOrd <- ordinate(naRmovedTrimmed, "NMDS", "bray")
-    p1 = plot_ordination(naRmovedTrimmed, naRmovedTrimmedOrd, type = "taxa", color=rank)
+      naRmovedTrimmed <- subsetRankTopN(fullObject, rank,numTopRanks)
+      naRmovedTrimmedOrd <- ordinate(naRmovedTrimmed, "NMDS", "bray")
+      p1 = plot_ordination(naRmovedTrimmed, naRmovedTrimmedOrd, type = "taxa", color=rank)
     }
   }else if (type=="samples") {
     GP.ord <- ordinate(fullObject, "NMDS", "bray")
     if (isGroupThere) {
       gr1 <- colnames(sample_data(fullObject))[1]
-     if (areThereMultVar){
-     gr2 <- colnames(sample_data(fullObject))[2]
-     p1 = plot_ordination(fullObject, GP.ord, type="samples", color=gr1,shape=gr2)
-     }else{
-     p1 = plot_ordination(fullObject, GP.ord, type="samples", color=gr1) + geom_point(size=6)
-     }
+      if (areThereMultVar){
+        gr2 <- colnames(sample_data(fullObject))[2]
+        p1 = plot_ordination(fullObject, GP.ord, type="samples", color=gr1,shape=gr2)
+      }else{
+        p1 = plot_ordination(fullObject, GP.ord, type="samples", color=gr1) + geom_point(size=6)
+      }
     }  else {
       p1 = plot_ordination(fullObject, GP.ord, type="samples") + geom_point(size=6)
     }
@@ -538,10 +538,10 @@ ordPlot <- function(rank,fullObject,type,areThereMultVar,numTopRanks,isGroupTher
 ##' @param  physeqFullObject (phyloseq object),x (rank)
 ##' @return A subsetted phyloseq object
 subsetRankTopN <- function(physeqFullObject,rank,N){
-phylAsum = tapply(taxa_sums(physeqFullObject), tax_table(physeqFullObject)[, rank], sum, na.rm=TRUE)
-topN = names(sort(phylAsum, TRUE))[1:N]
-physeqFullObjectTrimmed = prune_taxa((tax_table(physeqFullObject)[, rank] %in% topN), physeqFullObject)
-return(physeqFullObjectTrimmed)
+  phylAsum = tapply(taxa_sums(physeqFullObject), tax_table(physeqFullObject)[, rank], sum, na.rm=TRUE)
+  topN = names(sort(phylAsum, TRUE))[1:N]
+  physeqFullObjectTrimmed = prune_taxa((tax_table(physeqFullObject)[, rank] %in% topN), physeqFullObject)
+  return(physeqFullObjectTrimmed)
 }
 
 ###################################################################
@@ -556,8 +556,8 @@ return(physeqFullObjectTrimmed)
 ##' @param  physeqFullObject (phyloseq object)
 ##' @return A ggplot
 groupModRichPlot <- function(physeq, x, color = NULL, shape = NULL, 
-          title = NULL, scales = "free_y", nrow = 1, shsi = NULL, 
-          measures = c("Shannon"), sortby = NULL) 
+                             title = NULL, scales = "free_y", nrow = 1, shsi = NULL, 
+                             measures = c("Shannon"), sortby = NULL) 
 {
   erDF = estimate_richness(physeq, split = TRUE, measures = measures)
   measures = colnames(erDF)
@@ -613,16 +613,16 @@ add_centered_title <- function(p, text){
 ##' @param  a data.frame
 ##' @return A ggplot
 chimeraSummaryPlot <- function(chimeraDF){
-bp <- ggplot(chimeraDF, aes(x=Type,Freq, fill=Type)) 
-facetSampleBar <- bp  + geom_bar(stat = "identity",  position = 'dodge') 
-finalVersionChimeraPlot  <- facetSampleBar +   
-  theme(axis.title.x=element_blank(), axis.text.x=element_blank()) 
-finalVersionChimeraPlot <- finalVersionChimeraPlot +
-  geom_text(aes(y = Freq + 500, label = paste0(pct, '%')),
-            position = position_dodge(width = .9),size = 3)
-finalVersionChimeraPlot <- finalVersionChimeraPlot + facet_wrap(vars(sample))
-finalVersionChimeraPlot <- finalVersionChimeraPlot + ylab("Count")
-return(finalVersionChimeraPlot)
+  bp <- ggplot(chimeraDF, aes(x=Type,Freq, fill=Type)) 
+  facetSampleBar <- bp  + geom_bar(stat = "identity",  position = 'dodge') 
+  finalVersionChimeraPlot  <- facetSampleBar +   
+    theme(axis.title.x=element_blank(), axis.text.x=element_blank()) 
+  finalVersionChimeraPlot <- finalVersionChimeraPlot +
+    geom_text(aes(y = Freq + 500, label = paste0(pct, '%')),
+              position = position_dodge(width = .9),size = 3)
+  finalVersionChimeraPlot <- finalVersionChimeraPlot + facet_wrap(vars(sample))
+  finalVersionChimeraPlot <- finalVersionChimeraPlot + ylab("Count")
+  return(finalVersionChimeraPlot)
 }
 
 ###################################################################

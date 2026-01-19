@@ -2,15 +2,15 @@
 
 
 ezCorrectBias = function(counts, gc, width,
-                       gcCore = c(0.45, 0.50),
-                       widthCore = c(10, 10.5),
-                       widthOffset = 200,
-                       minCount = 3,
-                       minGenesInBin = 20,
-                       logWidthBreaks = c(9.5, 10.5, 11.5),
-                       gcBreaks = c(0.4, 0.43, 0.46, 0.49, 0.53, 0.57, 0.61, 0.64, 0.67),
-                       quantileValue = 0.5,
-                       minPresFraction=0.5){
+                         gcCore = c(0.45, 0.50),
+                         widthCore = c(10, 10.5),
+                         widthOffset = 200,
+                         minCount = 3,
+                         minGenesInBin = 20,
+                         logWidthBreaks = c(9.5, 10.5, 11.5),
+                         gcBreaks = c(0.4, 0.43, 0.46, 0.49, 0.53, 0.57, 0.61, 0.64, 0.67),
+                         quantileValue = 0.5,
+                         minPresFraction=0.5){
   
   nGenes = nrow(counts)
   nSamples = ncol(counts)
@@ -29,7 +29,7 @@ ezCorrectBias = function(counts, gc, width,
   dds = DESeqDataSetFromMatrix(countData=round(counts), colData=data.frame(names=colnames(counts)), ~ names)
   dds = estimateSizeFactors(dds, controlGenes=useForNorm)
   scalingFactors = 1/dds@colData$sizeFactor
-
+  
   logCountNorm = log(sweep(counts, 2, scalingFactors, FUN="*"))
   
   medLogCount = apply(logCountNorm, 1, median)

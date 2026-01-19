@@ -151,9 +151,9 @@ StandardizeGeneSymbols_customer = function(obj, assay=NULL, slots=c("counts","da
 
 cellxgene_annotation <- function(scData, param) {
   
-
+  
   if (!ezIsSpecified(param$cellxgeneUrl) || !ezIsSpecified(param$cellxgeneLabel
-)){
+  )){
     return(NULL)
   }
   # run cellxgene_annotation
@@ -171,7 +171,7 @@ cellxgene_annotation <- function(scData, param) {
   library(harmony)
   library(schard)
   #library(glmGamPoi)
-
+  
   cache_dir = "/srv/GT/databases/scRefData/CellxGene"
   # cache_dir = "/scratch/yang/tmp"
   cell_label_author = param$cellxgeneLabel
@@ -196,7 +196,7 @@ cellxgene_annotation <- function(scData, param) {
     scData.anchors <- FindTransferAnchors(reference = scRef, query = scData, dims = 1:30,
                                           reference.reduction = "pca", normalization.method = "LogNormalize" )
   }
-
+  
   
   if (!cell_label_author %in% colnames(scRef@meta.data)) {
     stop("The specified column name for cell labels does not exist in the reference object's metadata.")
@@ -211,8 +211,8 @@ cellxgene_annotation <- function(scData, param) {
   
 }
 
-  
-  
+
+
 getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author, species){
   print("start cellxgene")
   lockFile <- paste0(cache_dir, "/", gsub("\\.rds$", "", basename(ref_dataset_id)), "__", cell_label_author, ".lock")
@@ -252,24 +252,24 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   file_extension <- tolower(tools::file_ext(ref_dataset_id))
   
   curated_seurat_object <- switch(file_extension,
-    "rds" = {
-      message("Loading RDS format Seurat object...")
-      readRDS(tmp_download_ref)
-    },
-    "h5ad" = {
-      message("Loading H5AD format and converting to Seurat object...")
-      if (!requireNamespace("schard", quietly = TRUE)) {
-        stop("Package 'schard' is needed for h5ad format. Please install it first.")
-      }
-      schard::h5ad2seurat(tmp_download_ref)
-    },
-    stop(paste("Unsupported file format:", file_extension, 
-               ". Only .rds and .h5ad formats are supported."))
+                                  "rds" = {
+                                    message("Loading RDS format Seurat object...")
+                                    readRDS(tmp_download_ref)
+                                  },
+                                  "h5ad" = {
+                                    message("Loading H5AD format and converting to Seurat object...")
+                                    if (!requireNamespace("schard", quietly = TRUE)) {
+                                      stop("Package 'schard' is needed for h5ad format. Please install it first.")
+                                    }
+                                    schard::h5ad2seurat(tmp_download_ref)
+                                  },
+                                  stop(paste("Unsupported file format:", file_extension, 
+                                             ". Only .rds and .h5ad formats are supported."))
   )
   
   file.remove(tmp_download_ref)
   
-
+  
   ### Standardize the ref dataset gene symbols with STACAS
   if( species == "Homo_sapiens" ){
     if ("counts" %in%  names(curated_seurat_object@assays$RNA@data) && nrow(curated_seurat_object@assays$RNA@counts) > 0) {
@@ -296,7 +296,7 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   
   ## Downsample reference dataset
   ### split the object by donor_id
-
+  
   curated_seurat_object.list <- SplitObject(curated_seurat_object, split.by = "donor_id")
   
   
@@ -444,9 +444,9 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
     scRef <- RunUMAP(scRef, reduction = "pca", dims = 1:30)
     qs::qsave(scRef,cached_curated_ref_data)
   }
-
+  
   return(scRef)
   
-
+  
 }
 

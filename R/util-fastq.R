@@ -1,6 +1,3 @@
-
-
-
 ## if the outFile is not specified, the inFile will be overwritten
 trimFastq <- function(inFile, outFile=NULL, length=NULL){
   stopifnot(!is.null(length))

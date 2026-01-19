@@ -109,7 +109,7 @@ EzDataset <-
                   idx = match(name, colNames)
                   if (any(is.na(idx))){
                     stop("Column not found in dataset: ", paste(name[is.na(idx)], collapse=" "),
-                       "\nAvailable columns: ", paste(colNames, collapse=" "))
+                         "\nAvailable columns: ", paste(colNames, collapse=" "))
                     meta[[name]] <<- NA
                     colNames <<- sub(" \\[.*", "", base::names(meta))
                     idx = match(sub(" \\[.*", "", name), colNames)

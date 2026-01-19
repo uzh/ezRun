@@ -185,7 +185,7 @@ plotCellRangerCoverage = function(gRanges, bamFiles, txdb, regionTag=c("E", "N",
 #'                          height=20, width=20)
 #'}
 ## sometimes, minimap2, the secondary Alignments in bam files do not have a seq field, and then Gviz crashes while trying to visualize those
-  plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL, ylim=c(0, 40), sizes=NULL, isSecondaryAlignment = NA,
+plotLocusCoverageProfile = function(gRanges, bamFiles, gtfFile=NULL, ylim=c(0, 40), sizes=NULL, isSecondaryAlignment = NA,
                                     height=10, width=20,  plotType = c("coverage", "sashimi")){
   require(Gviz)
   require(GenomicFeatures)
@@ -383,7 +383,7 @@ getTranscriptCoverage = function(chrom, gff, reads, strandMode="both"){
   transcriptCov <- lapply(transcriptCov, unlist, use.names=FALSE)
   # 169.468 seconds
   #if(length(transcriptCov) == 0L){
-    ## This can happen when gff on chrom has 0 ranges.
+  ## This can happen when gff on chrom has 0 ranges.
   #  return(list())
   #}else{
   #  transcriptCov <- RleList(transcriptCov)
@@ -419,7 +419,7 @@ getRangesCoverage = function(ranges, reads, strandMode="both"){
     #  rangeCov = mapply(function(chr, s, e){covChrom[[chr]][s:e]},
     #                    as.character(seqnames(ranges)), start(ranges), end(ranges))
     #} else {
-      # although this can be done in the same way above. But [[chrom]] first can speed up.
+    # although this can be done in the same way above. But [[chrom]] first can speed up.
     #  covChrom = coverage(reads)[[chrom]]
     #  rangeCov = mapply(function(s,e){covChrom[s:e]}, start(ranges), end(ranges))
     #}

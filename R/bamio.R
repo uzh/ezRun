@@ -34,7 +34,7 @@ ezSortIndexBam <- function(inBam, bam, ram = 2, removeBam = TRUE, cores = 2,
   method <- match.arg(method)
   maxMem <- str_c(floor(ram * 0.7 / cores * 1000), "M")
   ## use only 70% --> 30% safety margin before crash
-
+  
   if (method == "samtools") {
     cmd <- str_c(
       method, "sort", "-l 9", "-m", maxMem, "-@", cores, inBam,
@@ -94,14 +94,14 @@ ezScanBam <- function(bamFile, seqname = NULL, start = NULL, end = NULL, strand 
   ## initialize the parameters for scanBam
   require(Rsamtools)
   param <- ScanBamParam(what = what, tag = tag)
-
+  
   ### build and set the flag filter
   isMinusStrand <- switch(strand, "-" = TRUE, "+" = FALSE, NA)
   bamFlag(param) <- scanBamFlag(
     isMinusStrand = isMinusStrand, isFirstMateRead = isFirstMateRead, isSecondMateRead = isSecondMateRead,
     isUnmappedQuery = isUnmappedQuery, isProperPair = isProperPair, isSecondaryAlignment = isSecondaryAlignment, isDuplicate = isDuplicate
   )
-
+  
   ### limit the returned reads by chromosome and start/end if these are provided
   if (!is.null(seqname)) {
     seqLengths <- ezBamSeqLengths(bamFile)
@@ -131,7 +131,7 @@ ezScanBam <- function(bamFile, seqname = NULL, start = NULL, end = NULL, strand 
 ##' bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 ##' ezBam2bigwig(bamFile, bigwigPrefix="bg", param=ezParam(), paired=TRUE)
 ezBam2bigwig <- function(bamFile, bigwigPrefix, param = NULL, paired = NULL) {
-
+  
   ## from bam to wig
   require(Rsamtools)
   sh <- scanBamHeader(bamFile)
@@ -143,21 +143,21 @@ ezBam2bigwig <- function(bamFile, bigwigPrefix, param = NULL, paired = NULL) {
   strand_rule <- NULL
   if (paired) {
     strand_rule <- switch(param$strandMode,
-      both = "",
-      sense = "--strand='1++,1--,2+-,2-+'",
-      antisense = "--strand='1+-,1-+,2++,2--'"
+                          both = "",
+                          sense = "--strand='1++,1--,2+-,2-+'",
+                          antisense = "--strand='1+-,1-+,2++,2--'"
     )
   } else {
     strand_rule <- switch(param$strandMode,
-      both = "",
-      sense = "--strand='++,--'",
-      antisense = "--strand='+-,-+'"
+                          both = "",
+                          sense = "--strand='++,--'",
+                          antisense = "--strand='+-,-+'"
     )
   }
   # bam2wig.py is in RSeQC module
   cmd <- paste("bam2wig.py", "-i", bamFile, "-s", chromSizeFile, "-o", outputWig, strand_rule)
   ezSystem(cmd)
-
+  
   ## from wig to bigwig
   wigFiles <- list.files(path = ".", pattern = paste0(outputWig, ".*\\.wig$"))
   bigwigFiles <- gsub(outputWig, bigwigPrefix, wigFiles)
@@ -166,7 +166,7 @@ ezBam2bigwig <- function(bamFile, bigwigPrefix, param = NULL, paired = NULL) {
     cmd <- paste("wigToBigWig", wigFiles[i], chromSizeFile, bigwigFiles[i])
     try(ezSystem(cmd))
   }
-
+  
   file.remove(wigFiles)
   file.remove(chromSizeFile)
 }
@@ -213,7 +213,7 @@ ezReadGappedAlignments <- function(bamFile, seqname = NULL, start = NULL, end = 
     tag <- union(tag, c("NH", "IH"))
   }
   param <- ScanBamParam(what = what, tag = tag, tagFilter = tagFilter)
-
+  
   ### build and set the flag filter
   isMinusStrand <- switch(strand, "-" = TRUE, "+" = FALSE, NA)
   bamFlag(param) <- scanBamFlag(
@@ -224,7 +224,7 @@ ezReadGappedAlignments <- function(bamFile, seqname = NULL, start = NULL, end = 
     isProperPair = isProperPair,
     isSecondaryAlignment = isSecondaryAlignment
   )
-
+  
   ### limit the returned reads by chromosome and start/end if these are provided
   if (!is.null(seqname)) {
     seqLengths <- ezBamSeqLengths(bamFile[1])
@@ -235,7 +235,7 @@ ezReadGappedAlignments <- function(bamFile, seqname = NULL, start = NULL, end = 
     if (is.null(end)) end <- seqLengths[seqname]
     bamWhich(param) <- GRanges(seqnames = seqname, ranges = IRanges(start = start, end = end))
   }
-
+  
   if (length(bamFile) > 1) {
     ga <- Reduce(c, lapply(bamFile, readGAlignments, use.names = use.names, param = param))
   } else {
@@ -291,11 +291,11 @@ ezReadPairedAlignments <- function(bamFile, seqname = NULL, start = NULL, end = 
   require(GenomicAlignments)
   .loadPairedSingleChrom <- function(chrom) {
     return(ezReadPairedAlignments(bamFile,
-      seqname = chrom, start = start, end = end, strand = strand,
-      tag = tag, keepUnpaired = keepUnpaired, minMapQuality = minMapQuality, keepMultiHits = keepMultiHits
+                                  seqname = chrom, start = start, end = end, strand = strand,
+                                  tag = tag, keepUnpaired = keepUnpaired, minMapQuality = minMapQuality, keepMultiHits = keepMultiHits
     ))
   }
-
+  
   if (is.null(seqname)) {
     ## if we load the entire genome we run it multi-threaded and combine then the different
     ## GappedAlignment objects
@@ -313,20 +313,20 @@ ezReadPairedAlignments <- function(bamFile, seqname = NULL, start = NULL, end = 
     ezWriteElapsed(job, "chromosomes merged")
     return(ga)
   }
-
+  
   seqLengths <- ezBamSeqLengths(bamFile)
   gaAll <- GAlignments(seqnames = Rle(factor(levels = names(seqLengths))), seqlengths = seqLengths)
   if (strand %in% c("+", "*")) {
     gaLeft <- ezReadGappedAlignments(bamFile,
-      seqname = seqname, start = start, end = end, strand = "+",
-      isFirstMateRead = TRUE, isSecondMateRead = FALSE, isProperPair = TRUE, what = c("mpos"), tag = tag,
-      minMapQuality = minMapQuality, keepMultiHits = keepMultiHits
+                                     seqname = seqname, start = start, end = end, strand = "+",
+                                     isFirstMateRead = TRUE, isSecondMateRead = FALSE, isProperPair = TRUE, what = c("mpos"), tag = tag,
+                                     minMapQuality = minMapQuality, keepMultiHits = keepMultiHits
     )
     # ezWriteElapsed(job, "loaded paired gaLeft for positive strand")
     gaRight <- ezReadGappedAlignments(bamFile,
-      seqname = seqname, start = start, end = end, strand = "-",
-      isFirstMateRead = FALSE, isSecondMateRead = TRUE, isProperPair = TRUE, what = c("mpos"), tag = tag,
-      minMapQuality = minMapQuality, keepMultiHits = keepMultiHits
+                                      seqname = seqname, start = start, end = end, strand = "-",
+                                      isFirstMateRead = FALSE, isSecondMateRead = TRUE, isProperPair = TRUE, what = c("mpos"), tag = tag,
+                                      minMapQuality = minMapQuality, keepMultiHits = keepMultiHits
     )
     # ezWriteElapsed(job, "loaded paired gaRight for positive strand")
     ## strand of gaRight will be wrong but we will never use it!!
@@ -339,15 +339,15 @@ ezReadPairedAlignments <- function(bamFile, seqname = NULL, start = NULL, end = 
   }
   if (strand %in% c("-", "*")) {
     gaLeft <- ezReadGappedAlignments(bamFile,
-      seqname = seqname, start = start, end = end, strand = "+",
-      isFirstMateRead = FALSE, isSecondMateRead = TRUE, isProperPair = TRUE, what = c("mpos"), tag = tag,
-      minMapQuality = minMapQuality, keepMultiHits = keepMultiHits
+                                     seqname = seqname, start = start, end = end, strand = "+",
+                                     isFirstMateRead = FALSE, isSecondMateRead = TRUE, isProperPair = TRUE, what = c("mpos"), tag = tag,
+                                     minMapQuality = minMapQuality, keepMultiHits = keepMultiHits
     )
     # ezWriteElapsed(job, "loaded paired gaLeft for negative strand")
     gaRight <- ezReadGappedAlignments(bamFile,
-      seqname = seqname, start = start, end = end, strand = "-",
-      isFirstMateRead = TRUE, isSecondMateRead = FALSE, isProperPair = TRUE, what = c("mpos"), tag = tag,
-      minMapQuality = minMapQuality, keepMultiHits = keepMultiHits
+                                      seqname = seqname, start = start, end = end, strand = "-",
+                                      isFirstMateRead = TRUE, isSecondMateRead = FALSE, isProperPair = TRUE, what = c("mpos"), tag = tag,
+                                      minMapQuality = minMapQuality, keepMultiHits = keepMultiHits
     )
     # ezWriteElapsed(job, "loaded paired gaRight for negative strand")
     gaNegative <- .ezMergeLeftRightAlignments(gaLeft, gaRight)
@@ -376,11 +376,11 @@ ezReadPairedAlignments <- function(bamFile, seqname = NULL, start = NULL, end = 
       isSecondMateRead <- TRUE
     }
     gaSingle <- ezReadGappedAlignments(bamFile,
-      seqname = seqname, start = start, end = end, strand = strand,
-      isProperPair = FALSE,
-      isFirstMateRead = isFirstMateRead, isSecondMateRead = isSecondMateRead,
-      what = c("flag"), tag = tag,
-      minMapQuality = minMapQuality, keepMultiHits = keepMultiHits
+                                       seqname = seqname, start = start, end = end, strand = strand,
+                                       isProperPair = FALSE,
+                                       isFirstMateRead = isFirstMateRead, isSecondMateRead = isSecondMateRead,
+                                       what = c("flag"), tag = tag,
+                                       minMapQuality = minMapQuality, keepMultiHits = keepMultiHits
     )
     isAlsoPaired <- names(gaSingle) %in% names(gaAll)
     if (any(isAlsoPaired)) {
@@ -426,8 +426,8 @@ ezReadPairedAlignments <- function(bamFile, seqname = NULL, start = NULL, end = 
   }
   values(gaRight)$mpos <- NULL
   values(gaLeft)$mpos <- NULL
-
-
+  
+  
   dist <- start(gaRight) - end(gaLeft) - 1
   ## some useful index
   # gaRight is totally to the right of gaLeft
@@ -436,7 +436,7 @@ ezReadPairedAlignments <- function(bamFile, seqname = NULL, start = NULL, end = 
   hasOverhang <- end(gaRight) > end(gaLeft)
   ## check if there are insertions or deletions
   hasIndel <- ezGrepl("D|I", cigar(gaRight))
-
+  
   ## situation one: gap or zero distance between gaLeft and gaRight
   if (any(hasGap)) {
     gapString <- sub("^0N$", "", paste0(format(dist[hasGap], scientific = FALSE, trim = TRUE), fillGap))
@@ -448,7 +448,7 @@ ezReadPairedAlignments <- function(bamFile, seqname = NULL, start = NULL, end = 
     values(gaGap) <- values(gaLeft)[hasGap, , drop = FALSE]
     gaAll <- c(gaGap, gaAll)
   }
-
+  
   ## situation two: overlap and overhang no indel problems
   useNarrow <- !hasGap & hasOverhang & !hasIndel
   if (any(useNarrow)) {
@@ -470,7 +470,7 @@ ezReadPairedAlignments <- function(bamFile, seqname = NULL, start = NULL, end = 
     ## Current: uses only the left as a workaround!!!!
     gaAll <- c(gaLeft[useNarrowIndel], gaAll)
   }
-
+  
   ## situation three: overlap but no overhang --> use left reads
   useLeft <- !hasGap & !hasOverhang
   if (any(useLeft)) {
@@ -497,7 +497,7 @@ ezReadPairedAlignments <- function(bamFile, seqname = NULL, start = NULL, end = 
 getBamMultiMatching <- function(param, bamFile, nReads = NULL) {
   require(data.table)
   require(Rsamtools)
-
+  
   # This data.table based implementation is the fastest and most elegant!
   # test file: /srv/gstore/projects/p2438/STAR_18564_2017-06-12--13-46-30/26EV_d3_A.bam
   ## Shell based is ugly and slow. Writing temps to disks. 1534.172 seconds
@@ -505,7 +505,7 @@ getBamMultiMatching <- function(param, bamFile, nReads = NULL) {
   ## plyr::count is slow: 1770.432 seconds + reading qname
   ## rle(sort()) is slow: 1781.552 seconds + reading qname
   ## data.table: 4.036 seconds + reading qname
-
+  
   #  job = ezJobStart(paste("bam multimatch", basename(bamFile)))
   paramBam <- ScanBamParam(what = "qname")
   bamFlag(paramBam) <- scanBamFlag(isUnmappedQuery = FALSE)
@@ -546,14 +546,14 @@ getBamMultiMatching <- function(param, bamFile, nReads = NULL) {
   ## trim the leading spaces first and then cut the first field, faster
   ## set the temp directory to be the current one, because /tmp may be too small
   # cmd = paste("samtools", "view", flagOption, bamFile, "| cut -f1 | sort --temporary-directory=. | uniq -c | sed -e \"s/^[ \t]*//\" | cut -f1 -d\" \" |sort | uniq -c >", countFile)
-
+  
   # ezSystem(cmd)
   # temp = read.table(countFile)
   # tempOrdered = temp[order(temp[,2]), ]
   # result = tempOrdered[ ,1]
   # names(result) = tempOrdered[, 2]
   # file.remove(countFile)
-
+  
   if (!is.null(nReads)) {
     nReads <- as.integer(nReads)
     if (!is.na(nReads)) {

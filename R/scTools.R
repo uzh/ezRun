@@ -5,9 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
-
-
 addCellCycleToSCE <- function(sce, refBuild, BPPARAM){
   counts <- counts(sce)
   rownames(counts) <- rowData(sce)$ID
@@ -40,13 +37,13 @@ addCellCycleToSeurat <- function(scData, refBuild, BPPARAM, assay = "RNA"){
 
 getCellCycle <- function(counts, refBuild, BPPARAM){
   require(scran)
-
+  
   species <- sub("\\/.*", "", refBuild)
   trainDataFile <- switch(species,
-                      Homo_sapiens=system.file("exdata","human_cycle_markers.rds", 
-                                               package = "scran"),
-                      Mus_musculus=system.file("exdata","mouse_cycle_markers.rds", 
-                                               package = "scran"))
+                          Homo_sapiens=system.file("exdata","human_cycle_markers.rds", 
+                                                   package = "scran"),
+                          Mus_musculus=system.file("exdata","mouse_cycle_markers.rds", 
+                                                   package = "scran"))
   if (is.null(trainDataFile) || !file.exists(trainDataFile)){
     return(NULL)
   } else {
@@ -64,15 +61,15 @@ getPerplexity <- function(n){
 }
 
 SingleCorPlot <- function(
-  data,
-  col.by = NULL,
-  cols = NULL,
-  pt.size = NULL,
-  smooth = FALSE,
-  rows.highlight = NULL,
-  legend.title = NULL,
-  na.value = 'grey50',
-  span = NULL
+    data,
+    col.by = NULL,
+    cols = NULL,
+    pt.size = NULL,
+    smooth = FALSE,
+    rows.highlight = NULL,
+    legend.title = NULL,
+    na.value = 'grey50',
+    span = NULL
 ) {
   pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
   orig.names <- colnames(x = data)
@@ -214,8 +211,8 @@ VariableFeaturePlot_mod <- function(sce, cols = c('black', 'red'), pt.size = 1, 
 }
 
 RidgePlot.sce <- function(sce, feature, yaxis) {
-   data= data.frame(feature = logcounts(sce)[feature,], yaxis = as.character(colData(sce)[,yaxis]), row.names = colnames(sce))
-   ggplot(data, aes(x = feature, y = yaxis, fill = yaxis)) +
+  data= data.frame(feature = logcounts(sce)[feature,], yaxis = as.character(colData(sce)[,yaxis]), row.names = colnames(sce))
+  ggplot(data, aes(x = feature, y = yaxis, fill = yaxis)) +
     labs(x = "Expression level", y = yaxis, title = feature, fill = NULL) +
     geom_density_ridges() +
     theme_ridges() + 
@@ -225,7 +222,7 @@ RidgePlot.sce <- function(sce, feature, yaxis) {
 
 cellsProportion <- function(object, groupVar1, groupVar2) {
   if(is(object, "SingleCellExperiment"))
-     cellCounts <- table(colData(object)[,groupVar1], colData(object)[,groupVar2])
+    cellCounts <- table(colData(object)[,groupVar1], colData(object)[,groupVar2])
   else  #it is a Seurat object then
     cellCounts <- table(object@meta.data[,groupVar1], object@meta.data[,groupVar2])
   
@@ -247,7 +244,7 @@ getSpecies <- function(refBuild) {
   }else if(startsWith(refBuild, "Mus_musculus")){
     species <- "Mouse"
   } else {
-  species <- "other"
+    species <- "other"
   }
   return(species)
 }
@@ -256,15 +253,15 @@ geneMeansCluster <- function(object) {
   if(is(object, "SingleCellExperiment")) {
     tr_cnts <- expm1(logcounts(object))
     group=object$ident
- } else {
+  } else {
     tr_cnts <- expm1(GetAssayData(object, layer="data", assay = "SCT"))
     group=Idents(object)
- }
+  }
   geneMeans <- rowsum(DelayedArray::t(tr_cnts), group=group)
   geneMeans <- sweep(geneMeans, 1, STATS=table(group)[rownames(geneMeans)], FUN="/")
   geneMeans <- log1p(t(geneMeans))
   colnames(geneMeans) <- paste("cluster", colnames(geneMeans), sep="_")
-return(geneMeans)
+  return(geneMeans)
 }
 
 cellsLabelsWithAUC <- function(counts, species, tissue, minGsSize = 3, BPPARAM=NULL) {
@@ -277,7 +274,7 @@ cellsLabelsWithAUC <- function(counts, species, tissue, minGsSize = 3, BPPARAM=N
   }
   cells_rankings <- AUCell_buildRankings(counts, plotStats=FALSE, BPPARAM=BPPARAM, splitByBlocks=TRUE)
   cells_AUC <- AUCell_calcAUC(geneSets, cells_rankings, verbose = FALSE, 
-                   nCores = ifelse(is.null(BPPARAM), 1, BPPARAM$workers))
+                              nCores = ifelse(is.null(BPPARAM), 1, BPPARAM$workers))
   return(cells_AUC)
 }
 
@@ -364,43 +361,43 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
   }
   
   if (is.na(param$nreads)){
-      if(assay == 'Spatial') {
-          qc.lib <- scData@meta.data[,'nCount_Spatial_SpotSweeper_outliers'] 
-      } else {
-          qc.lib <- isOutlier(scData@meta.data[,att_nCounts], log = TRUE, nmads = param$nmad, type = "lower")
-      }
+    if(assay == 'Spatial') {
+      qc.lib <- scData@meta.data[,'nCount_Spatial_SpotSweeper_outliers'] 
+    } else {
+      qc.lib <- isOutlier(scData@meta.data[,att_nCounts], log = TRUE, nmads = param$nmad, type = "lower")
+    }
   } else {
-      qc.lib <- scData@meta.data[,att_nCounts] < param$nreads
+    qc.lib <- scData@meta.data[,att_nCounts] < param$nreads
   }
   
   if (is.na(param$ngenes)){
-      if(assay == 'Spatial') {
-          qc.nexprs <- scData@meta.data[,'nFeature_Spatial_SpotSweeper_outliers'] 
-       } else {
-          qc.nexprs <- isOutlier(scData@meta.data[,att_nGenes], nmads = param$nmad, log = TRUE, type = "lower")
-      }
+    if(assay == 'Spatial') {
+      qc.nexprs <- scData@meta.data[,'nFeature_Spatial_SpotSweeper_outliers'] 
+    } else {
+      qc.nexprs <- isOutlier(scData@meta.data[,att_nGenes], nmads = param$nmad, log = TRUE, type = "lower")
+    }
   } else {
-      qc.nexprs <- scData@meta.data[,att_nGenes] < param$ngenes
+    qc.nexprs <- scData@meta.data[,att_nGenes] < param$ngenes
   }
   
   if (is.na(param$perc_mito)){
-      if(assay == 'Spatial') {
-          qc.mito <- scData@meta.data[,"percent_mito_SpotSweeper_outliers"]
-      } else  {
-          qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, log = TRUE, type = "lower")
-      }
+    if(assay == 'Spatial') {
+      qc.mito <- scData@meta.data[,"percent_mito_SpotSweeper_outliers"]
+    } else  {
+      qc.mito <- isOutlier(scData@meta.data[,"percent_mito"], nmads = param$nmad, log = TRUE, type = "lower")
+    }
   } else {
-      qc.mito <- scData@meta.data[,"percent_mito"] > param$perc_mito
+    qc.mito <- scData@meta.data[,"percent_mito"] > param$perc_mito
   }
   
   if (is.na(param$perc_ribo )) {
-      if(assay == 'Spatial'){
-          qc.ribo <- rep(FALSE, nrow(scData@meta.data))
-      } else {
-          qc.ribo <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher")
-      }
+    if(assay == 'Spatial'){
+      qc.ribo <- rep(FALSE, nrow(scData@meta.data))
+    } else {
+      qc.ribo <- isOutlier(scData@meta.data[,"percent_riboprot"], nmads = param$nmad, type = "higher")
+    }
   } else {
-      qc.ribo <- scData@meta.data[,"percent_riboprot"] > param$perc_ribo
+    qc.ribo <- scData@meta.data[,"percent_riboprot"] > param$perc_ribo
   }
   
   discard <- qc.lib | qc.nexprs | qc.mito | qc.ribo

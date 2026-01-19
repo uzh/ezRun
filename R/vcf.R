@@ -48,7 +48,7 @@ ezFilterVcf = function(vcfFile, vcfFiltFile, discardMultiAllelic=TRUE,
   }
   altCount = apply(genotype$AD, 2, function(x){
     sapply(x, function(y){if (length(y) == 0) return(NA); return(max(y))})
-    })
+  })
   hasHighAltCount = apply(altCount > param$vcfFilt.minAltCount, 1, any)
   vcf = vcf[which(hasHighAltCount), ]
   genotype = geno(vcf)

@@ -129,12 +129,12 @@ interleaveMatricesByColumn <- function(x, y, suffixes = c("[Signal]", "[Present]
 ##' x = ezNorm(runif(100))
 ezNorm <- function(x, method = "none", presentFlag = NULL) {
   switch(method,
-    "none" = x,
-    "quantile" = ezQuantileNorm(x),
-    "logMean" = ezLogmeanNorm(x, presentFlag = presentFlag),
-    "median" = ezMedianNorm(x, presentFlag = presentFlag),
-    "vsn" = ezVsnNorm(x),
-    stop("Unsupported normalization method: ", method)
+         "none" = x,
+         "quantile" = ezQuantileNorm(x),
+         "logMean" = ezLogmeanNorm(x, presentFlag = presentFlag),
+         "median" = ezMedianNorm(x, presentFlag = presentFlag),
+         "vsn" = ezVsnNorm(x),
+         stop("Unsupported normalization method: ", method)
   )
 }
 
@@ -374,8 +374,8 @@ ezMedianScalingFactor <- function(x, use = NULL, target = NULL, presentFlag = NU
 ##' m4 = ezLogmeanNorm(m1,use=c(TRUE,FALSE))
 ezLogmeanNorm <- function(x, use = NULL, target = NULL, presentFlag = NULL) {
   sf <- ezLogmeanScalingFactor(x,
-    use = use, target = target,
-    presentFlag = presentFlag
+                               use = use, target = target,
+                               presentFlag = presentFlag
   )
   return(ezScaleColumns(x, sf))
 }
@@ -426,8 +426,8 @@ ezGeomean <- function(x, ...) {
 ##' m3 = averageColumns(m1,c(4,2,3,1))
 ##' m4 = averageColumns(m1,c(1,1,2,2))
 averageAcrossColumns <- function(x, by = NULL, func = function(x) {
-                             mean(x, na.rm = TRUE)
-                           }) {
+  mean(x, na.rm = TRUE)
+}) {
   cols <- sort(unique(by))
   result <- ezMatrix(NA, rows = rownames(x), cols = cols)
   for (c in cols) {
@@ -523,8 +523,8 @@ ezMclapply <- function(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE, m
     return(lapply(x, FUN, ...))
   }
   result <- mclapply(x, FUN, ...,
-    mc.preschedule = mc.preschedule, mc.set.seed = mc.set.seed,
-    mc.silent = mc.silent, mc.cores = mc.cores
+                     mc.preschedule = mc.preschedule, mc.set.seed = mc.set.seed,
+                     mc.silent = mc.silent, mc.cores = mc.cores
   )
   gc()
   isError <- sapply(result, function(x) {
@@ -559,19 +559,19 @@ ezMclapply <- function(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE, m
 ##' ezDuplicated(v1,"all")
 ezDuplicated <- function(x, mode = "keepFirst") {
   switch(mode,
-    "keepFirst" = duplicated(x),
-    "keepLast" = rev(duplicated(rev(x))),
-    "random" = {
-      n <- length(x)
-      idx <- sample(1:n, n, replace = FALSE)
-      isDup <- rep(FALSE, n)
-      isDup[idx] <- duplicated(x[idx])
-      return(isDup)
-    },
-    "all" = {
-      dups <- unique(x[duplicated(x)])
-      return(x %in% dups)
-    }
+         "keepFirst" = duplicated(x),
+         "keepLast" = rev(duplicated(rev(x))),
+         "random" = {
+           n <- length(x)
+           idx <- sample(1:n, n, replace = FALSE)
+           isDup <- rep(FALSE, n)
+           isDup[idx] <- duplicated(x[idx])
+           return(isDup)
+         },
+         "all" = {
+           dups <- unique(x[duplicated(x)])
+           return(x %in% dups)
+         }
   )
 }
 
@@ -602,9 +602,9 @@ ezMultiplicated <- function(x, n = 2, mode = "keepFirst") {
     return(x %in% unique(x[ezMultiplicated(x, n = n, mode = "keepFirst")]))
   }
   idx <- switch(mode,
-    keepFirst = 1:length(x),
-    random = sample(1:length(x), length(x), replace = FALSE),
-    keepLast = length(x):1
+                keepFirst = 1:length(x),
+                random = sample(1:length(x), length(x), replace = FALSE),
+                keepLast = length(x):1
   )
   x <- x[idx]
   isMulti <- ezReplicateNumber(x) >= n
@@ -698,9 +698,9 @@ ezSplitLongText <- function(text, nSplit = 180) {
 isValidEnvironments <- function(tool) {
   tool <- tolower(tool)
   ans <- switch(tool,
-    "conda" = Sys.which("conda") != "",
-    "ataqv" = Sys.which("ataqv") != "",
-    stop("unsupported tool: ", tool)
+                "conda" = Sys.which("conda") != "",
+                "ataqv" = Sys.which("ataqv") != "",
+                stop("unsupported tool: ", tool)
   )
   return(ans)
 }
@@ -709,13 +709,13 @@ setEnvironments <- function(tool, envir = parent.frame()) {
   tool <- tolower(tool)
   if (!isTRUE(isValidEnvironments(tool))) {
     cmd <- switch(tool,
-      "conda" = expression({
-        Sys.setenv("PATH" = paste("/usr/local/ngseq/miniforge3/bin", Sys.getenv("PATH"), sep = ":"))
-      }),
-      "ataqv" = expression({
-        Sys.setenv("PATH" = paste("/usr/local/ngseq/packages/Tools/ataqv/1.0.0/bin", Sys.getenv("PATH"), sep = ":"))
-      }),
-      stop("unsupported tool: ", tool)
+                  "conda" = expression({
+                    Sys.setenv("PATH" = paste("/usr/local/ngseq/miniforge3/bin", Sys.getenv("PATH"), sep = ":"))
+                  }),
+                  "ataqv" = expression({
+                    Sys.setenv("PATH" = paste("/usr/local/ngseq/packages/Tools/ataqv/1.0.0/bin", Sys.getenv("PATH"), sep = ":"))
+                  }),
+                  stop("unsupported tool: ", tool)
     )
     eval(cmd, envir = envir)
   }
@@ -736,8 +736,8 @@ prepareJavaTools <- function(tool = c("picard", "gatk", "snpeff")) {
     }
   } else if (Sys.getenv(tool_jar[tool]) != "") {
     return(str_c("java -Xms1g -Xmx10g -Djava.io.tmpdir=.  -jar",
-      Sys.getenv(tool_jar[tool]),
-      sep = " "
+                 Sys.getenv(tool_jar[tool]),
+                 sep = " "
     ))
   } else {
     stop("Cannot find proper ", tool, " installed!")
@@ -833,7 +833,7 @@ subsampleCountMatrix <- function(counts, targetCount, seed){
   ## inspired by subSeq package where you can provide the proportion as input
   if (!missing(seed)) {
     s = readBin(digest::digest(c(seed, targetCount), 
-                       raw = TRUE), "integer")
+                               raw = TRUE), "integer")
     set.seed(s)
   }
   
@@ -910,9 +910,9 @@ ezUpdateMissingParam <- function(list1, with_list) {
 
 
 ezLoadPackage <- function(packageName){
-    suppressPackageStartupMessages({
-        library(packageName, character.only = TRUE)
-    })
+  suppressPackageStartupMessages({
+    library(packageName, character.only = TRUE)
+  })
 }
 
 ##' @title Load R objects from various serialized formats
@@ -972,32 +972,32 @@ ezLoadRobj <- function(filePath, nthreads=1L) {
 }
 
 setNFTmpDir <- function(){
-    if(!dir.exists("/scratch/tmp"))
-        dir.create("/scratch/tmp")
-    Sys.setenv(NXF_TEMP = "/scratch/tmp")
-    Sys.setenv(NXF_TMPDIR = "/scratch/tmp")
-    Sys.setenv(TMPDIR="/scratch/tmp")
+  if(!dir.exists("/scratch/tmp"))
+    dir.create("/scratch/tmp")
+  Sys.setenv(NXF_TEMP = "/scratch/tmp")
+  Sys.setenv(NXF_TMPDIR = "/scratch/tmp")
+  Sys.setenv(TMPDIR="/scratch/tmp")
 }
 
 setNFCacheDir <- function(cacheDir = '/misc/fgcz01/nextflow_apptainer_cache'){
-    Sys.setenv(NXF_APPTAINER_CACHEDIR = cacheDir)
+  Sys.setenv(NXF_APPTAINER_CACHEDIR = cacheDir)
 }
 
 setNFHomeDir <- function(homeDir = '/misc/fgcz01/nextflow_home_dir'){
-    Sys.setenv(NXF_HOME = homeDir)
+  Sys.setenv(NXF_HOME = homeDir)
 }
 
 prepNFCoreEnv <- function(cacheDir = '/misc/fgcz01/nextflow_apptainer_cache', homeDir = '/misc/fgcz01/nextflow_home_dir'){
-    setNFTmpDir()
-    setNFCacheDir(cacheDir)
-    setNFHomeDir(homeDir)
+  setNFTmpDir()
+  setNFCacheDir(cacheDir)
+  setNFHomeDir(homeDir)
 }
 
 
 
 writeNextflowLimits <- function(param, file = "maxResources.config") {
-    txt <- sprintf(
-        'process {
+  txt <- sprintf(
+    'process {
   resourceLimits = [
     cpus: %d,
     memory: %d.GB
@@ -1008,9 +1008,9 @@ executor {
   memory = "%d GB"
 }', 
 param$cores, param$ram, param$cores, param$ram
-    )
-    writeLines(txt, file)
-    return(file)
+  )
+  writeLines(txt, file)
+  return(file)
 }
 
 ## if statistical results are loaded from xls variables are not factors

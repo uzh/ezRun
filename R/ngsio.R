@@ -68,15 +68,15 @@ loadCountDataset <- function(input, param){
     counts <- ezCorrectBias(counts, gc=seqAnnoDFFeature$gc,
                             width=seqAnnoDFFeature$featWidth)$correctedCounts
   }
-
+  
   if (ezIsSpecified(param$runRUV) && as.logical(param$runRUV)){
     library(RUVSeq)
     differences <- makeGroups(param$grouping)
     ruvCorr = RUVs(counts, cIdx=rownames(counts), k=as.integer(param$kRUVFactors), scIdx=differences, epsilon=10)
     counts <- ruvCorr$normalizedCounts
   }
-
-    
+  
+  
   seqAnno <- makeGRangesFromDataFrame(seqAnnoDFFeature, keep.extra.columns=TRUE)
   
   if (param$useSigThresh){
@@ -94,7 +94,7 @@ loadCountDataset <- function(input, param){
     metadata=list(isLog=FALSE, featureLevel=param$featureLevel,
                   type="Counts", countName=columnName,
                   param=param)
-    )
+  )
   
   if (ezIsSpecified(param$transcriptTypes)){
     use = seqAnno$type %in% param$transcriptTypes
@@ -139,14 +139,14 @@ loadSCCountDataset <- function(input, param){
   require(DropletUtils)
   require(tools)
   require(Matrix)
-
+  
   if(length(input$getNames()) > 1L){
     ## Recursively load and combine sce
     sce <- SingleCellExperiment::cbind(loadSCCountDataset(input$subset(input$getNames()[1]), param),
                                        loadSCCountDataset(input$subset(input$getNames()[-1]), param))
     return(sce)
   }
-
+  
   if(any(grepl("___", input$getNames()))){
     stop("___ is not allowed in sample name.")
   }
@@ -227,21 +227,21 @@ loadSCCountDataset <- function(input, param){
 }
 
 load10xData <- function(input, param){
-library(DropletUtils)
- countMatrixFn <- list.files(path=input$getFullPaths("CountMatrix"),
-                            pattern="\\.mtx(\\.gz)*$", recursive=TRUE, 
-                            full.names=TRUE)
-sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
-metadata(sce)$param <- param
-## unique cell names when merging two samples
-colnames(sce) <- paste(input$getNames(), colnames(sce), sep="___")
-library(scuttle)
-rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$ID,
-                                      names=rowData(sce)$Symbol)
-colData(sce)$Batch <- input$getNames()
-colData(sce)$Sample_name <- input$getNames()
-try(colData(sce)$Condition <- input$getColumn("Condition"), silent = TRUE)
-return(sce)
+  library(DropletUtils)
+  countMatrixFn <- list.files(path=input$getFullPaths("CountMatrix"),
+                              pattern="\\.mtx(\\.gz)*$", recursive=TRUE, 
+                              full.names=TRUE)
+  sce <- read10xCounts(dirname(countMatrixFn), col.names=TRUE)
+  metadata(sce)$param <- param
+  ## unique cell names when merging two samples
+  colnames(sce) <- paste(input$getNames(), colnames(sce), sep="___")
+  library(scuttle)
+  rownames(sce) <- uniquifyFeatureNames(ID=rowData(sce)$ID,
+                                        names=rowData(sce)$Symbol)
+  colData(sce)$Batch <- input$getNames()
+  colData(sce)$Sample_name <- input$getNames()
+  try(colData(sce)$Condition <- input$getColumn("Condition"), silent = TRUE)
+  return(sce)
 }
 
 load10xSC_seurat <- function(input, param){
@@ -286,15 +286,15 @@ load10xSpatialData <- function(input, param){
   data_raw <- read10xRaw(file.path(input$getFullPaths("ResultDir"), "raw_feature_bc_matrix"))
   
   if(file.exists(file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_positions.csv"))){
-      tissueFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_positions.csv")
+    tissueFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_positions.csv")
   } else { #old format
-      tissueFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_positions_list.csv")
+    tissueFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_positions_list.csv")
   }
   
   if(file.exists(file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_hires_image.png"))){
-      imageFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_hires_image.png")
+    imageFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_hires_image.png")
   } else { #missing hires image
-      imageFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_lowres_image.png")
+    imageFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "tissue_lowres_image.png")
   }
   scaleFile <- file.path(input$getFullPaths("ResultDir"),"spatial", "scalefactors_json.json")
   
@@ -303,35 +303,35 @@ load10xSpatialData <- function(input, param){
   missingBarcodes <- setdiff(data_slide_info$slide$barcode, colnames(data_raw))
   
   if(length(missingBarcodes) > 0)
-      data_slide_info$slide <- data_slide_info$slide[!(data_slide_info$slide$barcode %in% missingBarcodes),]
+    data_slide_info$slide <- data_slide_info$slide[!(data_slide_info$slide$barcode %in% missingBarcodes),]
   
   data_obj <- createSlide(count_mat = data_raw, slide_info = data_slide_info)
   scDataRaw <- convertToSpatialSeurat(data_obj, image_dir = file.path(input$getFullPaths("ResultDir"),"spatial"), filter_matrix = FALSE)
   
   if(param$spotClean){
-      # Decontaminate raw data
-      decont_obj <- spotclean(data_obj)
-      scData <- convertToSpatialSeurat(decont_obj, image_dir = file.path(input$getFullPaths("ResultDir"),"spatial"), filter_matrix = TRUE)
-      param$imageEnlargementFactor <- 1
+    # Decontaminate raw data
+    decont_obj <- spotclean(data_obj)
+    scData <- convertToSpatialSeurat(decont_obj, image_dir = file.path(input$getFullPaths("ResultDir"),"spatial"), filter_matrix = TRUE)
+    param$imageEnlargementFactor <- 1
   } else {
-      img = Read10X_Image(file.path(input$getFullPaths("ResultDir"),"spatial"), image.name = "tissue_hires_image.png")
-      param$imageEnlargementFactor <- img@scale.factors$hires/img@scale.factors$lowres
-      img@scale.factors$lowres <- img@scale.factors$hires # it is better to set the scale factors this way.
-      
-      
-      if(file.exists(file.path(input$getFullPaths("ResultDir"), "filtered_feature_bc_matrix.h5"))){
-        scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), image = img)
-      } else {
-          require(scCustomize)
-          Create_10X_H5(
-              file.path(input$getFullPaths("ResultDir"),'filtered_feature_bc_matrix'),
-              source_type = "10X",
-              '.',
-              'filtered_feature_bc_matrix.h5'
-          )
-          system('mv filtered_feature_bc_matrix.h5* filtered_feature_bc_matrix.h5')
-          scData <- Load10X_Spatial('.', image = img)
-      }
+    img = Read10X_Image(file.path(input$getFullPaths("ResultDir"),"spatial"), image.name = "tissue_hires_image.png")
+    param$imageEnlargementFactor <- img@scale.factors$hires/img@scale.factors$lowres
+    img@scale.factors$lowres <- img@scale.factors$hires # it is better to set the scale factors this way.
+    
+    
+    if(file.exists(file.path(input$getFullPaths("ResultDir"), "filtered_feature_bc_matrix.h5"))){
+      scData <- Load10X_Spatial(input$getFullPaths("ResultDir"), image = img)
+    } else {
+      require(scCustomize)
+      Create_10X_H5(
+        file.path(input$getFullPaths("ResultDir"),'filtered_feature_bc_matrix'),
+        source_type = "10X",
+        '.',
+        'filtered_feature_bc_matrix.h5'
+      )
+      system('mv filtered_feature_bc_matrix.h5* filtered_feature_bc_matrix.h5')
+      scData <- Load10X_Spatial('.', image = img)
+    }
   }
   
   ## unique cell names when merging two samples
@@ -348,16 +348,16 @@ load10xSpatialData <- function(input, param){
 }
 
 convertToSpatialSeurat <- function (slide_obj, image_dir, slice = "slice1", filter_matrix = TRUE) {
-    object <- CreateSeuratObject(assay(slide_obj), assay = "Spatial")
-    image <- Read10X_Image(image.dir = image_dir, filter.matrix = filter_matrix)
-    ts_coord <- GetTissueCoordinates(image)
-    if (nrow(ts_coord) < ncol(object)) {
-        object <- object[, rownames(ts_coord)]
-    }
-    image <- image[Cells(x = object)]
-    DefaultAssay(object = image) <- "Spatial"
-    object[[slice]] <- image
-    return(object)
+  object <- CreateSeuratObject(assay(slide_obj), assay = "Spatial")
+  image <- Read10X_Image(image.dir = image_dir, filter.matrix = filter_matrix)
+  ts_coord <- GetTissueCoordinates(image)
+  if (nrow(ts_coord) < ncol(object)) {
+    object <- object[, rownames(ts_coord)]
+  }
+  image <- image[Cells(x = object)]
+  DefaultAssay(object = image) <- "Spatial"
+  object[[slice]] <- image
+  return(object)
 }
 
 
@@ -440,7 +440,7 @@ readNcProResult = function (ncproDir) {
 ##' fqFiltered = filterFastqByBam(fqFiles, bamFile, doGzip = FALSE)
 filterFastqByBam = function(fqFiles, bamFile, fqOutFiles=NULL, doGzip=TRUE, keepUnmapped=TRUE, isProperPair=NA){
   param = ScanBamParam(what=c("qname"),
-                     flag=scanBamFlag(isUnmappedQuery=!keepUnmapped, isProperPair=isProperPair))
+                       flag=scanBamFlag(isUnmappedQuery=!keepUnmapped, isProperPair=isProperPair))
   bamReads = unique(scanBam(bamFile, param=param)[[1]]$qname)
   gc()
   fqFiltered = removeReadsFromFastq(fqFiles, bamReads, fqOutFiles=fqOutFiles, doGzip=doGzip)
@@ -479,7 +479,7 @@ writeSCMM <- function(x, file){
   
   write_lines(rownames(x), path=sub("\\.mtx$", ".rowNames", file))
   write_lines(colnames(x), path=sub("\\.mtx$", ".colNames", file))
-
+  
   writeMM(Matrix(x), file=file)
   
   invisible(file)

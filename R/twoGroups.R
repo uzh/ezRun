@@ -61,9 +61,9 @@ twoGroupCountComparison <- function(rawData) {
     param$deTest <- NULL
     metadata(rawData)$param <- param
   }
-
+  
   metadata(rawData)$method <- param$testMethod
-
+  
   if (ezIsSpecified(param$grouping2)) {
     if (param$testMethod %in% c("glm", "limma", "deseq2")) {
       metadata(rawData)$method <- paste(
@@ -74,50 +74,50 @@ twoGroupCountComparison <- function(rawData) {
       return(list(error = paste("Second factor only supported for the test methods glm, sam and deseq2")))
     }
   }
-
+  
   isSample <- param$grouping == param$sampleGroup
   isRef <- param$grouping == param$refGroup
   ## compute which probes are present
   isPresent <- ezPresentFlags(x,
-    presentFlag = presentFlag, param = param,
-    isLog = FALSE
+                              presentFlag = presentFlag, param = param,
+                              isLog = FALSE
   )
   useProbe <- logical(nrow(x))
   useProbe[rowMeans(isPresent[, isRef, drop = FALSE]) >= 0.5] <- TRUE
   useProbe[rowMeans(isPresent[, isSample, drop = FALSE]) >= 0.5] <- TRUE
   rowData(rawData)$isPresentProbe <- useProbe
   assays(rawData)$isPresent <- isPresent
-
+  
   res <- switch(param$testMethod,
-    deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup,
-      param$grouping,
-      grouping2 = param$grouping2,
-      isPresent = useProbe,
-      cooksCutoff = ezIsSpecified(param$cooksCutoff) && param$cooksCutoff
-    ),
-    exactTest = runEdger(round(x), param$sampleGroup, param$refGroup,
-      param$grouping, param$normMethod,
-      priorCount = param$backgroundExpression
-    ),
-    glm = runGlm(round(x),
-                 sampleGroup = param$sampleGroup,
-                 refGroup = param$refGroup,
-                 grouping = param$grouping,
-                 sampleGroupBaseline=param$sampleGroupBaseline,
-                 refGroupBaseline=param$refGroupBaseline,
-                 normMethod = param$normMethod,
-                 grouping2 = param$grouping2,
-                 priorCount = param$backgroundExpression,
-                 deTest = param$deTest,
-                 robust = ezIsSpecified(param$robust) && param$robust
-    ),
-    limma = runLimma(x, param$sampleGroup, param$refGroup,
-      param$grouping,
-      grouping2 = param$grouping2,
-      priorCount = param$priorCount,
-      modelMethod = param$modelMethod
-    ),
-    stop("unsupported testMethod: ", param$testMethod)
+                deseq2 = runDeseq2(round(x), param$sampleGroup, param$refGroup,
+                                   param$grouping,
+                                   grouping2 = param$grouping2,
+                                   isPresent = useProbe,
+                                   cooksCutoff = ezIsSpecified(param$cooksCutoff) && param$cooksCutoff
+                ),
+                exactTest = runEdger(round(x), param$sampleGroup, param$refGroup,
+                                     param$grouping, param$normMethod,
+                                     priorCount = param$backgroundExpression
+                ),
+                glm = runGlm(round(x),
+                             sampleGroup = param$sampleGroup,
+                             refGroup = param$refGroup,
+                             grouping = param$grouping,
+                             sampleGroupBaseline=param$sampleGroupBaseline,
+                             refGroupBaseline=param$refGroupBaseline,
+                             normMethod = param$normMethod,
+                             grouping2 = param$grouping2,
+                             priorCount = param$backgroundExpression,
+                             deTest = param$deTest,
+                             robust = ezIsSpecified(param$robust) && param$robust
+                ),
+                limma = runLimma(x, param$sampleGroup, param$refGroup,
+                                 param$grouping,
+                                 grouping2 = param$grouping2,
+                                 priorCount = param$priorCount,
+                                 modelMethod = param$modelMethod
+                ),
+                stop("unsupported testMethod: ", param$testMethod)
   )
   pValue <- res$pval
   pValue[is.na(pValue)] <- 1
@@ -132,7 +132,7 @@ twoGroupCountComparison <- function(rawData) {
   rowData(rawData)$usedInTest <- useProbe
   metadata(rawData)$nativeResult <- res
   assays(rawData)$xNorm <- ezScaleColumns(x, colData(rawData)$sf)
-
+  
   ezWriteElapsed(job, status = "done")
   metadata(rawData)$summary <- c(
     "Name" = param$name,
@@ -140,10 +140,10 @@ twoGroupCountComparison <- function(rawData) {
     "Feature Level" = metadata(rawData)$featureLevel,
     "Normalization" = param$normMethod
   )
-
+  
   seqAnno <- data.frame(rowData(rawData),
                         row.names = rownames(rawData), check.names = FALSE)
-                        
+  
   if (doGo(param, seqAnno)) {
     metadata(rawData)$enrichInput <- compileEnrichmentInput(param, rawData)
     metadata(rawData)$enrichResult <- ezEnricher(metadata(rawData)$enrichInput, param)
@@ -168,7 +168,7 @@ runDeseq2 <- function(x, sampleGroup, refGroup, grouping, grouping2 = NULL,
   )
   dds <- estimateSizeFactors(dds, controlGenes = isPresent)
   sf <- 1 / dds@colData$sizeFactor
-
+  
   ## remove the samples that do not participate in the comparison
   isSample <- grouping == sampleGroup
   isRef <- grouping == refGroup
@@ -193,7 +193,7 @@ runDeseq2 <- function(x, sampleGroup, refGroup, grouping, grouping2 = NULL,
   } else {
     colData <- data.frame(
       grouping = as.factor(grouping), row.names = colnames(x)
-      )
+    )
     colData$grouping <- factor(x = colData$grouping, 
                                levels = c(refGroup, sampleGroup))
     dds <- DESeqDataSetFromMatrix(
@@ -204,8 +204,8 @@ runDeseq2 <- function(x, sampleGroup, refGroup, grouping, grouping2 = NULL,
   dds <- estimateSizeFactors(dds, controlGenes = isPresent)
   dds <- DESeq(dds, quiet = FALSE, minReplicatesForReplace = Inf)
   res <- results(dds,
-    contrast = c("grouping", sampleGroup, refGroup),
-    cooksCutoff = cooksCutoff
+                 contrast = c("grouping", sampleGroup, refGroup),
+                 cooksCutoff = cooksCutoff
   )
   res <- as.list(res)
   res$sf <- sf
@@ -228,7 +228,7 @@ runEdger <- function(x, sampleGroup, refGroup, grouping, normMethod,
     cds$common.dispersion <- 0.1
   }
   et <- exactTest(cds, pair = c(refGroup, sampleGroup), prior.count = priorCount)
-
+  
   res <- list()
   res$id <- rownames(et$table)
   res$log2FoldChange <- et$table$logFC
@@ -241,7 +241,7 @@ runEdger <- function(x, sampleGroup, refGroup, grouping, normMethod,
   #                          apply(cds$counts[ , grouping == refGroup, drop=FALSE], 1, mean)))
   #   colnames(res$groupMeans) = c(sampleGroup, refGroup)
   #   rownames(res$groupMeans) = res$id
-
+  
   return(res)
 }
 
@@ -263,7 +263,7 @@ runGlm <- function(x, sampleGroup, refGroup, grouping,
   cds <- calcNormFactors(cds, method = normMethod)
   sf <- 1 / (cds$samples$norm.factors * cds$samples$lib.size)
   sf <- sf / ezGeomean(sf)
-
+  
   ## run analysis and especially dispersion estimates only on subset of the data
   indices2Keep <- grouping %in% c(refGroup, refGroupBaseline, sampleGroup, sampleGroupBaseline)
   grouping <- grouping[indices2Keep]
@@ -274,7 +274,7 @@ runGlm <- function(x, sampleGroup, refGroup, grouping,
   groupFactor <- factor(grouping,
                         levels = c(refGroup, sampleGroup,
                                    refGroupBaseline, sampleGroupBaseline)
-                        )
+  )
   if (ezIsSpecified(grouping2)) {
     grouping2 <- grouping2[indices2Keep]
     design <- model.matrix(~ 0 + groupFactor + grouping2)
@@ -292,7 +292,7 @@ runGlm <- function(x, sampleGroup, refGroup, grouping,
   } else {
     cds$common.dispersion <- 0.1
   }
-
+  
   if (deTest == "QL") {
     message("Using quasi-likelihood (QL) F-test!")
     fitGlm <- glmQLFit(cds, design, prior.count = priorCount, robust = robust)
@@ -325,15 +325,15 @@ runLimma <- function(x, sampleGroup, refGroup, grouping, grouping2 = NULL,
                      priorCount = 3, modelMethod = c("limma-trend", "voom")) {
   require(limma)
   require(edgeR)
-
+  
   modelMethod <- match.arg(modelMethod)
-
+  
   cds <- DGEList(counts = x)
   cds <- calcNormFactors(cds)
-
+  
   sf <- 1 / (cds$samples$norm.factors * cds$samples$lib.size)
   sf <- sf / ezGeomean(sf)
-
+  
   ## run analysis and especially dispersion estimates only on subset of the data
   isSample <- grouping == sampleGroup
   isRef <- grouping == refGroup
@@ -341,14 +341,14 @@ runLimma <- function(x, sampleGroup, refGroup, grouping, grouping2 = NULL,
   if (ezIsSpecified(grouping2)) {
     grouping2 <- grouping2[isSample | isRef]
   }
-
+  
   x2 <- x[, isSample | isRef]
   cds <- DGEList(counts = x2, group = grouping)
   cds <- calcNormFactors(cds)
-
+  
   groupFactor <- factor(grouping, levels = c(refGroup, sampleGroup))
   design <- model.matrix(~groupFactor)
-
+  
   if (modelMethod == "limma-trend") {
     logCPM <- cpm(cds, log = TRUE, prior.count = priorCount)
     if (ezIsSpecified(grouping2)) {

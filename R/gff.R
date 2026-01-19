@@ -19,8 +19,8 @@ ezLoadFeatures = function(param=NULL, featureFile=param$ezRef["refFeatureFile"],
                      ignore.case=TRUE), ]
   if (getSuffix(featureFile) == "gtf" ){
     gff$transcript_id = ezGffAttributeField(gff$attributes, 
-                                             field="transcript_id", 
-                                             attrsep="; *", valuesep=" ")
+                                            field="transcript_id", 
+                                            attrsep="; *", valuesep=" ")
     stopifnot(!is.na(gff$transcript_id[gff$type == "exon"]))
     gff$gene_id = 	ezGffAttributeField(gff$attributes, field="gene_id", attrsep=";", valuesep=" ")
     use = is.na(gff$gene_id) & gff$type == "exon"
@@ -59,18 +59,18 @@ ezGffAttributeField = function (x, field, attrsep = ";", valuesep="=") {
   #                          sep=valuesep)
   #                 )
   x <- str_extract(paste0(x, attrsep), paste(field, paste0('"{0,1}[^"',attrsep, ']+"{0,1}', attrsep),
-                            sep=valuesep)
-                   )
+                                             sep=valuesep)
+  )
   
   x <- sub(paste(field, "\"{0,1}", sep=valuesep), "", x)
   x <- sub(paste0("\"{0,1}", attrsep, "$"), "", x)
   # This implementation is 2 times faster than the old implementation below.
   # Old: 30.419 seconds; New: 6.353 seconds
   
-#  x[ !ezGrepl(paste0(field, valuesep), x)] = NA
-#  x = sub(paste0(".*", field, valuesep), "", x)
-#  x = sub(paste0(attrsep, ".*"), "", x)
-#  x = sub("^\"", "", sub("\"$", "", x))
+  #  x[ !ezGrepl(paste0(field, valuesep), x)] = NA
+  #  x = sub(paste0(".*", field, valuesep), "", x)
+  #  x = sub(paste0(attrsep, ".*"), "", x)
+  #  x = sub("^\"", "", sub("\"$", "", x))
   return(x)
 }
 
@@ -94,7 +94,7 @@ extendGtfThreePrime <- function(gtf, extensionWidth, seqLengths){
   useType <- gtf$gene_biotype %in% c("protein_coding") ##, "lncRNA") we only extend the UTR of protein_coding
   gtfUse <- gtf[useType]
   #table(gtfUse$type)
-
+  
   chrIdx <- split(1:length(gtfUse), paste(as.vector(seqnames(gtfUse)), as.vector(strand(gtfUse))))
   
   nm <- "1 -" # names(chrIdx)[1]
@@ -152,7 +152,7 @@ extendGtfThreePrime <- function(gtf, extensionWidth, seqLengths){
       itvl <- findInterval(start(gtfChrom)[toExtend], trEnds)
       newStart <- (start(gtfChrom)[toExtend] - extensionWidth) %>%
         pmax(trEnds[itvl] + 1) %>% pmin(start(gtfChrom)[toExtend])
-
+      
       stopifnot(!is.na(newStart))
       message("# extensions truncated: ", sum( (start(gtfChrom)[toExtend] - newStart) < extensionWidth), " / ", length(newStart), "\n")
       
@@ -690,7 +690,7 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
   
   if(ezIsSpecified(transcriptTypes)){
     seqAnno <- ezFeatureAnnotation(refAnnotationFile,
-                                  dataFeatureType="isoform")
+                                   dataFeatureType="isoform")
     txUse <- rownames(seqAnno)[seqAnno$type %in% transcriptTypes]
     exonsByTx <- exonsByTx[names(exonsByTx) %in% txUse]
   }
@@ -704,7 +704,7 @@ trimTxGtf <- function(param=NULL, inGTF, outGTF, fastaFile, refAnnotationFile,
   
   for(i in 1:length(fix)){
     exonsByTxTrimmed <- endoapply(exonsByTx, trimGRanges, width=width,
-                           start=ifelse(fix[i]=="start", TRUE, FALSE))
+                                  start=ifelse(fix[i]=="start", TRUE, FALSE))
     gtf <- unlist(exonsByTxTrimmed)
     export(gtf, outGTF[i])
   }

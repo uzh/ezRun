@@ -41,7 +41,7 @@ find_python <- function() {
     Sys.which("python3"),
     Sys.which("python")
   )
-
+  
   for (path in candidates) {
     if (file.exists(path)) {
       # Verify it has anndata, zarr, and scipy (all required)
@@ -54,7 +54,7 @@ find_python <- function() {
       }
     }
   }
-
+  
   stop("Could not find Python with anndata installed. Tried: ",
        paste(candidates, collapse = ", "))
 }
@@ -66,13 +66,13 @@ get_vitessce_python_script <- function() {
   if (nzchar(ezrun_path) && file.exists(ezrun_path)) {
     return(ezrun_path)
   }
-
+  
   # Second check: Development location (paul-scripts)
   dev_path <- "/home/pgueguen/git/paul-scripts/Internal_Dev/SeuratXeniumApp/scripts/seurat_to_vitessce_zarr.py"
   if (file.exists(dev_path)) {
     return(dev_path)
   }
-
+  
   # Third check: Same directory as this script (when sourced)
   if (sys.nframe() > 0) {
     frame_files <- sapply(seq_len(sys.nframe()), function(i) sys.frame(i)$ofile)
@@ -85,7 +85,7 @@ get_vitessce_python_script <- function() {
       }
     }
   }
-
+  
   # Fourth check: Command line script location
   args <- commandArgs(trailingOnly = FALSE)
   file_arg <- grep("--file=", args, value = TRUE)
@@ -96,7 +96,7 @@ get_vitessce_python_script <- function() {
       return(candidate)
     }
   }
-
+  
   stop("Could not find seurat_to_vitessce_zarr.py. ",
        "Ensure ezRun is installed or the script is in the expected location.")
 }
@@ -111,17 +111,17 @@ seurat_to_h5ad <- function(seurat_obj, h5ad_path, nthreads = 8) {
   library(anndataR)
   library(Matrix)
   library(Seurat)
-
+  
   # Get counts matrix - handle Seurat v5
   assay_name <- DefaultAssay(seurat_obj)
   assay_obj <- seurat_obj@assays[[assay_name]]
-
+  
   message("  Extracting expression matrix from assay: ", assay_name)
-
+  
   if (inherits(assay_obj, "Assay5")) {
     layer_names <- names(assay_obj@layers)
     count_layers <- grep("^counts", layer_names, value = TRUE)
-
+    
     if (length(count_layers) > 1) {
       message("  Joining ", length(count_layers), " counts layers...")
       seurat_obj <- JoinLayers(seurat_obj, assay = assay_name)
@@ -129,32 +129,32 @@ seurat_to_h5ad <- function(seurat_obj, h5ad_path, nthreads = 8) {
   }
   # Use layer parameter (slot is defunct in SeuratObject 5.0.0+)
   expr_matrix <- GetAssayData(seurat_obj, assay = assay_name, layer = "counts")
-
+  
   message("  Matrix dimensions: ", nrow(expr_matrix), " genes x ", ncol(expr_matrix), " cells")
-
+  
   # Transpose for AnnData (cells x genes)
   message("  Transposing to cells x genes format...")
   expr_matrix_t <- Matrix::t(expr_matrix)
-
+  
   # Get metadata
   obs_df <- seurat_obj@meta.data
   message("  Metadata columns: ", ncol(obs_df))
-
+  
   # Get embeddings
   obsm_list <- list()
-
+  
   # UMAP
   if ("umap" %in% names(seurat_obj@reductions)) {
     obsm_list[["X_umap"]] <- Embeddings(seurat_obj, "umap")
     message("  Added UMAP embeddings")
   }
-
+  
   # PCA
   if ("pca" %in% names(seurat_obj@reductions)) {
     obsm_list[["X_pca"]] <- Embeddings(seurat_obj, "pca")[, 1:min(50, ncol(Embeddings(seurat_obj, "pca")))]
     message("  Added PCA embeddings (first 50 PCs)")
   }
-
+  
   # Spatial coordinates from FOV/Xenium images
   if (length(seurat_obj@images) > 0) {
     tryCatch({
@@ -165,7 +165,7 @@ seurat_to_h5ad <- function(seurat_obj, h5ad_path, nthreads = 8) {
       message("  Warning: Could not extract spatial coordinates: ", e$message)
     })
   }
-
+  
   # Create AnnData
   message("  Creating AnnData object...")
   adata <- AnnData(
@@ -173,12 +173,12 @@ seurat_to_h5ad <- function(seurat_obj, h5ad_path, nthreads = 8) {
     obs = obs_df,
     obsm = if (length(obsm_list) > 0) obsm_list else NULL
   )
-
+  
   # Write to h5ad
   message("  Writing h5ad: ", h5ad_path)
   # Use mode = "w" to allow overwriting existing files
   write_h5ad(adata, h5ad_path, mode = "w")
-
+  
   return(h5ad_path)
 }
 
@@ -191,11 +191,11 @@ load_seurat_object <- function(seurat_path, nthreads = 8) {
   if (!file.exists(seurat_path)) {
     stop("Seurat file not found: ", seurat_path)
   }
-
+  
   message("Loading Seurat object: ", seurat_path)
-
+  
   fileExtension <- tolower(tools::file_ext(seurat_path))
-
+  
   if (fileExtension == "qs2") {
     library(qs2)
     obj <- qs_read(seurat_path, nthreads = nthreads)
@@ -207,7 +207,7 @@ load_seurat_object <- function(seurat_path, nthreads = 8) {
   } else {
     stop("Unsupported file format: ", fileExtension)
   }
-
+  
   message("  Loaded: ", ncol(obj), " cells, ", nrow(obj), " features")
   return(obj)
 }
@@ -227,28 +227,28 @@ load_seurat_object <- function(seurat_path, nthreads = 8) {
 #' @return List with zarr_path and metadata_path
 #' @export
 generate_vitessce_zarr <- function(seurat_path,
-                                    output_dir,
-                                    seurat_obj = NULL,
-                                    nthreads = 8,
-                                    cleanup_h5ad = TRUE) {
-
+                                   output_dir,
+                                   seurat_obj = NULL,
+                                   nthreads = 8,
+                                   cleanup_h5ad = TRUE) {
+  
   message("=" %x% 60)
   message("Generating Vitessce-optimized Zarr")
   message("=" %x% 60)
   message("Input: ", seurat_path)
   message("Output: ", output_dir)
-
+  
   # Find Python with anndata
   python_cmd <- find_python()
   message("Using Python: ", python_cmd)
-
+  
   # Find Python optimization script
   python_script <- get_vitessce_python_script()
   message("Using Python script: ", python_script)
-
+  
   # Create output directory
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
-
+  
   # Step 1: Load Seurat object if not provided
   if (is.null(seurat_obj)) {
     message("\nStep 1/3: Loading Seurat object...")
@@ -257,16 +257,16 @@ generate_vitessce_zarr <- function(seurat_path,
     message("\nStep 1/3: Using provided Seurat object")
     message("  ", ncol(seurat_obj), " cells, ", nrow(seurat_obj), " features")
   }
-
+  
   # Step 2: Convert to h5ad
   message("\nStep 2/3: Converting to h5ad...")
   h5ad_path <- file.path(output_dir, "temp_conversion.h5ad")
   seurat_to_h5ad(seurat_obj, h5ad_path, nthreads = nthreads)
-
+  
   # Free memory before Python conversion
   rm(seurat_obj)
   gc(verbose = FALSE)
-
+  
   # Step 3: Call Python for optimized Zarr
   message("\nStep 3/3: Creating optimized Zarr...")
   cmd <- sprintf("%s %s %s %s",
@@ -274,34 +274,34 @@ generate_vitessce_zarr <- function(seurat_path,
                  shQuote(python_script),
                  shQuote(h5ad_path),
                  shQuote(output_dir))
-
+  
   result <- system(cmd, intern = TRUE)
   cat(paste(result, collapse = "\n"), "\n")
-
+  
   # Check for Python script success
   zarr_path <- file.path(output_dir, "vitessce", "data.zarr")
   metadata_path <- file.path(output_dir, "vitessce", "metadata.json")
-
+  
   if (!dir.exists(zarr_path)) {
     stop("Zarr creation failed - directory not found: ", zarr_path)
   }
-
+  
   if (!file.exists(metadata_path)) {
     stop("Metadata file not created: ", metadata_path)
   }
-
+  
   # Cleanup intermediate h5ad
   if (cleanup_h5ad && file.exists(h5ad_path)) {
     unlink(h5ad_path)
     message("Cleaned up intermediate h5ad file")
   }
-
+  
   message("\n", "=" %x% 60)
   message("Vitessce Zarr generation complete!")
   message("  Zarr: ", zarr_path)
   message("  Metadata: ", metadata_path)
   message("=" %x% 60)
-
+  
   return(list(
     zarr_path = zarr_path,
     metadata_path = metadata_path
@@ -316,12 +316,12 @@ if (!interactive() && length(commandArgs(trailingOnly = TRUE)) >= 2) {
   args <- commandArgs(trailingOnly = TRUE)
   seurat_path <- args[1]
   output_dir <- args[2]
-
+  
   message("Running from command line")
   message("  Seurat: ", seurat_path)
   message("  Output: ", output_dir)
-
+  
   result <- generate_vitessce_zarr(seurat_path, output_dir)
-
+  
   message("\nSuccess! Zarr at: ", result$zarr_path)
 }

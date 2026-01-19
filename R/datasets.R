@@ -24,7 +24,7 @@
 ##' ds = makeMinimalSingleEndReadDataset(fqDir, species)
 ##' ds2 = makeMinimalPairedEndReadDataset(fqDir, species)
 makeMinimalSingleEndReadDataset = function(fqDir, species="", adapter1="GATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
-                                       strandMode="both", readCount=NULL, dataRoot=DEFAULT_DATA_ROOT){
+                                           strandMode="both", readCount=NULL, dataRoot=DEFAULT_DATA_ROOT){
   if (!grepl("/$", dataRoot)){
     dataRoot = paste0(dataRoot, "/")
   }
@@ -47,8 +47,8 @@ makeMinimalSingleEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
 
 ##' @describeIn makeMinimalSingleEndReadDataset Does the same for paired end reads.
 makeMinimalPairedEndReadDataset = function(fqDir, species="", adapter1="GATCGGAAGAGCACACGTCTGAACTCCAGTCAC", adapter2="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT",
-                                       strandMode="both", readCount=NULL, readTypeSuffix=c("_R1.fastq.gz", "_R2.fastq.gz"),
-                                       dataRoot=DEFAULT_DATA_ROOT){
+                                           strandMode="both", readCount=NULL, readTypeSuffix=c("_R1.fastq.gz", "_R2.fastq.gz"),
+                                           dataRoot=DEFAULT_DATA_ROOT){
   if (!grepl("/$", dataRoot)){
     dataRoot = paste0(dataRoot, "/")
   }

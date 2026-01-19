@@ -6,15 +6,15 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn = NULL, fastqI2Fn = NULL)
   require(ShortRead)
   tempSamFn <- str_c(Sys.getpid(), "temp.sam", sep = "-")
   tempBamFn <- str_c(Sys.getpid(), "temp", sep = "-")
-
+  
   ## SQ header; required by asBam
   seqlengths <- fasta.seqlengths(refFn)
   seqlengthsHeader <- str_c("@SQ\tSN:", names(seqlengths), "\tLN:", seqlengths)
-
+  
   ## Add headers
   cat("@HD\tVN:1.5\tSO:unknown", file = tempSamFn, sep = "\n", append = FALSE)
   cat(seqlengthsHeader, file = tempSamFn, sep = "\n", append = TRUE)
-
+  
   ## parse the fastq files
   f <- FastqStreamer(fastqFn, 1e6)
   on.exit(close(f), add = TRUE)
@@ -27,8 +27,8 @@ fastq2bam <- function(fastqFn, refFn, bamFn, fastqI1Fn = NULL, fastqI2Fn = NULL)
   }
   while (length(fq <- yield(f))) {
     samText <- str_c(id(fq), "4", "*", "0", "0", "*", "*", "0", "0",
-      sread(fq), quality(quality(fq)),
-      sep = "\t"
+                     sread(fq), quality(quality(fq)),
+                     sep = "\t"
     )
     if (!is.null(fastqI1Fn)) {
       fq1 <- yield(f1)
@@ -73,11 +73,11 @@ fastqs2bam <- function(fastqFns, fastq2Fns = NULL, readGroupNames = NULL,
   } else {
     stopifnot(length(fastqFns) == length(readGroupNames))
   }
-
+  
   emptyFastqs <- countReadsInFastq(fastqFns) == 0L
   ## tempty fastq files fail in the picard tool of FastqToSam and MergeSamFiles
   ## Convert and merge the non-empty fastqs first and alter the header of merged bam file
-
+  
   cmd <- str_c(
     prepareJavaTools("picard"), "FastqToSam",
     str_c("F1=", fastqFns),
@@ -96,22 +96,22 @@ fastqs2bam <- function(fastqFns, fastq2Fns = NULL, readGroupNames = NULL,
     "SEQUENCING_CENTER=FGCZ",
     sep = " "
   )
-
+  
   ezMclapply(cmd[!emptyFastqs], ezSystem,
-    mc.preschedule = FALSE,
-    mc.cores = mc.cores
+             mc.preschedule = FALSE,
+             mc.cores = mc.cores
   )
-
+  
   ## picard tools merge
   cmd <- str_c(
     prepareJavaTools("picard"), "MergeSamFiles",
     str_c("I=", str_c(sampleBasenames, ".bam")[!emptyFastqs], collapse = " "),
     str_c("O=", bamFn), "USE_THREADING=true", "SORT_ORDER=queryname",
     sep = " "
-    )
+  )
   ezSystem(cmd)
   file.remove(str_c(sampleBasenames, ".bam"))
-
+  
   if (any(emptyFastqs)) {
     tempHeaderFn <- tempfile(
       pattern = "nonEmpty", tmpdir = getwd(),
@@ -119,20 +119,20 @@ fastqs2bam <- function(fastqFns, fastq2Fns = NULL, readGroupNames = NULL,
     )
     cmd <- str_c("samtools view -H", bamFn, ">", tempHeaderFn, sep = " ")
     ezSystem(cmd)
-
+    
     extraHeaders <- str_c("@RG",
-      str_c("ID:", readGroupNames[emptyFastqs]),
-      str_c("SM:", readGroupNames[emptyFastqs]),
-      str_c("LB:", readGroupNames[emptyFastqs]),
-      str_c("PL:", platform),
-      "CN:FGCZ",
-      str_c("DT:", format(Sys.time(), "%Y-%m-%dT%H:%M:%S+00:00")),
-      sep = "\t"
+                          str_c("ID:", readGroupNames[emptyFastqs]),
+                          str_c("SM:", readGroupNames[emptyFastqs]),
+                          str_c("LB:", readGroupNames[emptyFastqs]),
+                          str_c("PL:", platform),
+                          "CN:FGCZ",
+                          str_c("DT:", format(Sys.time(), "%Y-%m-%dT%H:%M:%S+00:00")),
+                          sep = "\t"
     )
     con <- file(tempHeaderFn, open = "a")
     writeLines(extraHeaders, con = con)
     close(con)
-
+    
     bamReheaderFn <- tempfile(
       pattern = "reheader", tmpdir = getwd(),
       fileext = ".bam"
@@ -140,11 +140,11 @@ fastqs2bam <- function(fastqFns, fastq2Fns = NULL, readGroupNames = NULL,
     cmd <- str_c("samtools reheader", tempHeaderFn, bamFn, ">", bamReheaderFn,
                  sep = " ")
     ezSystem(cmd)
-
+    
     file.remove(bamFn)
     file.rename(from = bamReheaderFn, to = bamFn)
   }
-
+  
   invisible(bamFn)
 }
 
@@ -214,7 +214,7 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG = TRUE, OUTPUT_DIR = ".",
     }
   }
   output$dataRoot <- NULL
-
+  
   if (all(file.exists(output$getColumn("Read1")))) {
     return(output)
   }
@@ -254,7 +254,7 @@ bam2fastq <- function(bamFn, OUTPUT_PER_RG = TRUE, OUTPUT_DIR = ".",
     OUTPUT_PER_RG = FALSE, paired = param$paired,
     fastqFns = output$getColumn("Read1")
   )
-
+  
   output$setColumn(
     "Read Count",
     countReadsInFastq(output$getColumn("Read1"))
@@ -303,17 +303,17 @@ ezMethodSubsampleFastq <- function(input = NA, output = NA, param = NA, n = 1e6)
   output$setColumn("Read Count", ifelse(input$getColumn("Read Count") < n, 
                                         input$getColumn("Read Count"), 
                                         n))
-
+  
   dataset <- input$meta
   samples <- rownames(dataset)
   parallel::mclapply(samples, function(sm, input, output, param, n) {
     subsampleFastqFile(input$getFullPaths("Read1")[sm],
-                      output$getColumn("Read1")[sm],
-                      nReads=n)
+                       output$getColumn("Read1")[sm],
+                       nReads=n)
     if (param$paired) {
       subsampleFastqFile(input$getFullPaths("Read2")[sm],
-                        output$getColumn("Read2")[sm],
-                        nReads=n)
+                         output$getColumn("Read2")[sm],
+                         nReads=n)
     }
   }, input = input, output = output, param = param, n, mc.cores = param$cores)
   return(output)

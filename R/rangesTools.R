@@ -161,6 +161,6 @@ consensusPeaks <- function(x){
   grPairs <- Pairs(first=gr1, second=gr2, hits=hits)
   intersectedGR <- pintersect(first(grPairs), second(grPairs))
   toKeep <- width(intersectedGR) / width(first(grPairs)) > 0.5 |
-              width(intersectedGR) / width(second(grPairs)) > 0.5
+    width(intersectedGR) / width(second(grPairs)) > 0.5
   return(first(grPairs)[toKeep])
 }

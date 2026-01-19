@@ -16,7 +16,7 @@ writeIgvHtml = function(param,
   gtfUrl = file.path(refUrlBase, "Genes/transcripts.only.gtf")
   bedUrl = file.path(refUrlBase, "Genes/genes.bed")
   refBuildName = param$ezRef@refBuildName
-
+  
   htmlLines = readLines(system.file("templates/igvTemplate.html", package="ezRun", mustWork = TRUE))
   htmlLines = gsub("FASTA_URL", fastaUrl, htmlLines)
   htmlLines = gsub("FAI_URL", faiUrl, htmlLines)

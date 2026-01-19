@@ -39,9 +39,9 @@ strandName = function(x){
 ##' flipStrand(strandValues)
 fixStrand = function(strandValues, strandMode="sense"){
   return(switch(strandMode,
-         sense=return(strandValues),
-         antisense=flipStrand(strandValues),
-         both=Rle(factor("*", levels=c("+", "-", "*")), length(strandValues))))
+                sense=return(strandValues),
+                antisense=flipStrand(strandValues),
+                both=Rle(factor("*", levels=c("+", "-", "*")), length(strandValues))))
 }
 
 ##' @describeIn fixStrand This function performs the flipping of the strand values.
@@ -69,10 +69,10 @@ flipStrand = function(strandValues){
 ##' getTuxedoLibraryType("sense")
 getTuxedoLibraryType = function(strandMode){
   return(switch(strandMode,
-         "both"="fr-unstranded",
-         "sense"="fr-secondstrand",
-         "antisense"="fr-firststrand",
-         stop(paste("bad strandMode: ", strandMode))))
+                "both"="fr-unstranded",
+                "sense"="fr-secondstrand",
+                "antisense"="fr-firststrand",
+                stop(paste("bad strandMode: ", strandMode))))
 }
 
 ##' @title Is \code{x} a valid cigar?

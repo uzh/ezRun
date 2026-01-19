@@ -93,7 +93,7 @@ ezMdsGG2 <- function(signal, design, ndim=2, main="MDS plot", addLabels=TRUE){
   if(ncol(design) > 1L){
     p <- ggplot(toPlot, aes(`Leading logFC dim1`, `Leading logFC dim2`)) +
       geom_point(aes(colour=colnames(design)[1],
-                            shape =colnames(design)[2]),
+                     shape =colnames(design)[2]),
                  size = 3) + 
       ggtitle(main) + theme_half_open() + background_grid()
     if(isTRUE(addLabels)){
@@ -120,7 +120,7 @@ ezMdsPlotly <- function(logSignal, design, ndim=c(3,2), main, condColors=NULL){
                        design,
                        stringsAsFactors = FALSE)
   mdsOut <- mds$eigen.vectors[,1:ndim]
-
+  
   if(ndim == 3){
     colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2", 
                           "Leading logFC dim3")
@@ -141,12 +141,12 @@ ezMdsPlotly <- function(logSignal, design, ndim=c(3,2), main, condColors=NULL){
     toPlot <- cbind(toPlot, mdsOut)
     if(ncol(design) > 1L){
       p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`,
-              color = formula(paste0("~", factorToPlot)),
-              symbol=formula(paste0("~", colnames(design)[2])),
-              colors = condColors,
-              type='scatter',
-              mode='markers+text',
-              text=~samples, textposition = "top right")
+                   color = formula(paste0("~", factorToPlot)),
+                   symbol=formula(paste0("~", colnames(design)[2])),
+                   colors = condColors,
+                   type='scatter',
+                   mode='markers+text',
+                   text=~samples, textposition = "top right")
     }else{
       p <- plot_ly(toPlot, x=~`Leading logFC dim1`, y=~`Leading logFC dim2`,
                    color=formula(paste0("~", factorToPlot)),
@@ -183,13 +183,13 @@ fragLengthReadMidDensityPlot = function(fl, file=NULL, xlim=c(-500, 500), bw=5){
   lines(dens2, col="lightblue")
   lines(dens2$x-fl$fragSizeMean + fl$readSizeMean, dens2$y, col="blue")
   legend("bottomright", c("Forward Reads", "Reverse Reads", "Shifted Reverse Reads"),
-                          col=c("black", "lightblue", "blue"), pch=20)
+         col=c("black", "lightblue", "blue"), pch=20)
 }
 
 
 ## REFAC, but function is currently unused.
 cumHistPlot = function(cts, png, colors, main="all transcripts"){
-
+  
   if (!is.null(png)){
     png(filename=png, width=640, height=640)
     on.exit(dev.off())

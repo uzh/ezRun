@@ -140,7 +140,7 @@ ezKable <- function(df, format.args = list(big.mark = ","), ...){
 
 ezListAsKable <- function(my_list, ...){
   ezFrame(Value=my_list |> unlist(recursive = FALSE)) |> rownames_to_column("Name") |>
-  ezKable(...)
+    ezKable(...)
 }
 
 
@@ -181,14 +181,14 @@ ezInteractiveTableRmd = function(values, filter="top",
                                 caption=caption, colnames=colNames, rownames=rowNames,
                                 options=list(buttons = c('excel'), dom = "Bfrtip",
                                              pageLength=25, autoWidth=TRUE)
-                                )
+  )
   if (!is.null(digits)){
     if (is.logical(columnsToRound)){
       ## this is needed for cases where the row names are printed; they shift the column index by 1
       columnsToRound <- colnames(values)[columnsToRound]
     }
     interactiveTable <- interactiveTable |>
-        DT::formatSignif(columnsToRound, digits = 3)
+      DT::formatSignif(columnsToRound, digits = 3)
   }
   return(interactiveTable)
 }

@@ -37,7 +37,7 @@ goClusterTableRmd = function(param, clusterResult, seqAnno){
         next
       linkTable[i, onto] = paste0("Cluster-", onto, "-", i, ".html")
       ezInteractiveTableRmd(goFrame, digits=3,
-                         title=paste("GO categories of cluster", i, "and ontology", onto)) |>
+                            title=paste("GO categories of cluster", i, "and ontology", onto)) |>
         DT::saveWidget(linkTable[i, onto])
       linkTable[i, onto] = ezLink(linkTable[i, onto], target="_blank")
       goFrame$Term = substr(goFrame$Term, 1, 30)
@@ -48,7 +48,7 @@ goClusterTableRmd = function(param, clusterResult, seqAnno){
                             function(x){rbind(as.matrix(x), 
                                               ezMatrix("", rows=seq_len(maxNrow-nrow(x)), 
                                                        cols=seq_len(ncol(x))))}
-                            )
+    )
     ktableCluster <- do.call(cbind, ktableCluster)
     if(nrow(ktableCluster) == 0L){
       ## for later grouping in cluster kables, we need empty cells.
@@ -111,11 +111,11 @@ goUpDownTables = function(param, goResult){
         next
       linkTable[onto, sub] = paste0("Cluster-", onto, "-", sub, ".html")
       ezInteractiveTableRmd(goFrame, digits=3,
-                         title=paste(sub("enrich", "", sub), 
-                                     "enriched GO categories of ontology", onto)) |>
+                            title=paste(sub("enrich", "", sub), 
+                                        "enriched GO categories of ontology", onto)) |>
         DT::saveWidget(linkTable[onto, sub])
       linkTable[onto, sub] = ezLink(linkTable[onto, sub], 
-                                            target = "_blank")
+                                    target = "_blank")
     }
   }
   for(sub in names(ktables)){
@@ -125,7 +125,7 @@ goUpDownTables = function(param, goResult){
                              function(x){rbind(as.matrix(x),
                                                ezMatrix("", rows=seq_len(maxNrow-nrow(x)),
                                                         cols=seq_len(ncol(x))))}
-                             )
+    )
     ktables[[sub]] <- do.call(cbind, ktables[[sub]])
   }
   return(list(ktables=ktables, txtFiles=txtFiles, linkTable=linkTable))

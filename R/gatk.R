@@ -23,30 +23,30 @@
   
   cmd = paste0("java -Xmx8g -Djava.io.tmpdir=. -jar ", Sys.getenv("Picard_jar"), 
                " AddOrReplaceReadGroups ",
-              " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", inputBam,
-              " O=", "tmp.bam", ' SORT_ORDER=coordinate',
-              " RGID=RGID_", input$Name, " RGPL=illumina RGSM=RGSM_", input$Name, " RGLB=RGLB_", input$Name, " RGPU=RGPU_", input$Name,
-              " VERBOSITY=WARNING",
-              " > addreplace.out")
+               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", inputBam,
+               " O=", "tmp.bam", ' SORT_ORDER=coordinate',
+               " RGID=RGID_", input$Name, " RGPL=illumina RGSM=RGSM_", input$Name, " RGLB=RGLB_", input$Name, " RGPU=RGPU_", input$Name,
+               " VERBOSITY=WARNING",
+               " > addreplace.out")
   ezSystem(cmd)
   ezSystem(paste("samtools", "index", "tmp.bam"))
   cmd = paste0("java -Xmx8g -Djava.io.tmpdir=. -jar ", Sys.getenv("Picard_jar"), 
                " ReorderSam ",
-              " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "tmp.bam",
-              " O=", "ordered.bam",
-              " REFERENCE=" , ref,
-              " VERBOSITY=WARNING",
-              " > reorder.out")
+               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "tmp.bam",
+               " O=", "ordered.bam",
+               " REFERENCE=" , ref,
+               " VERBOSITY=WARNING",
+               " > reorder.out")
   ezSystem(cmd)
   cmd = paste0("java -Xmx8g -Djava.io.tmpdir=. -jar ", Sys.getenv("Picard_jar"), 
                " MarkDuplicates",
-              " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "ordered.bam",
-              " O=", localBam,
-              " REMOVE_DUPLICATES=true",
-              " ASSUME_SORTED=true",
-              " METRICS_FILE=" ,"dupmetrics.txt",
-              " VERBOSITY=WARNING",
-              " >markdup.out")
+               " TMP_DIR=. MAX_RECORDS_IN_RAM=2000000", " I=", "ordered.bam",
+               " O=", localBam,
+               " REMOVE_DUPLICATES=true",
+               " ASSUME_SORTED=true",
+               " METRICS_FILE=" ,"dupmetrics.txt",
+               " VERBOSITY=WARNING",
+               " >markdup.out")
   ezSystem(cmd)
   ezSystem(paste("samtools", "index", localBam))
   

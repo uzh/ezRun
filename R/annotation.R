@@ -163,7 +163,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
   ## The numeric columns should not have NAs
   stopifnot(!featAnno %>% dplyr::select(start, end, gc, featWidth) %>% 
               is.na() %>% any())
-
+  
   ## Group the biotype into more general groups
   stopifnot(all(featAnno %>% pull(biotypes) %in% listBiotypes("all")))
   isProteinCoding <- featAnno %>% pull(biotypes) %in% listBiotypes("protein_coding")
@@ -237,7 +237,7 @@ makeFeatAnnoEnsembl <- function(featureFile,
   }
   mapping <- mapping %>%
     mutate(ensembl_transcript_id=str_replace(ensembl_transcript_id, "\\.\\d+$", ""))
-    
+  
   if(!all(featAnno$transcript_id %in% mapping$ensembl_transcript_id)){
     warning("Some transcript ids don't exist in biomart file!") #Normal for GENCODE
   }
@@ -339,7 +339,7 @@ aggregateFeatAnno <- function(featAnno){
                        featWidth=signif(mean(featWidth), digits = 4))
     featAnnoGene <- left_join(featAnnoGene, featAnnoGeneNumeric)
   }
-
+  
   ## Aggregate the GO columns which reuqire more processing
   if(all(goColumns %in% colnames(featAnno))){
     featAnnoGeneGO <- featAnno %>% dplyr::select(gene_id, goColumns) %>%
@@ -425,7 +425,7 @@ getBlacklistedRegions <- function(refBuild=c("hg38", "hg19", "mm10", "mm9",
   }
   return(bedGR)
 }
- 
+
 ### -----------------------------------------------------------------
 ### Functions for control sequences
 ###

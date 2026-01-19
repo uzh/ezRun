@@ -12,20 +12,20 @@
 ##' @return Returns a data.frame.
 
 createSummaryTable <- function(summary){
-numUniqReads <- nrow(summary)
-#rawDataSummaryTableTitle <- paste("Number of unique sequences =",numUniqReads , sep = " ")
-part2 <- vector()
-part1 <- apply(subset(summary,select=start:polymer),2,function(x)quantile(x, probs = c(0, 0.025,0.25, 0.5, 0.75, 0.975,1)))
-k=1
-part2[k] = 1
-for (i in c(2.5,25,50,75,97.5,100)) {
-  k=k+1
-  part2[k] <- nrow(summary)*i/100
-}
-part2 <- data.frame(numSeqs=part2)
-rawDataSummaryTable <- round(cbind(part1,data.frame(part2)), digits = 0)
-rownames(rawDataSummaryTable) <- c("Mininmun","2.5%-tile","25%-tile","Median","75%-tile","97.5%-tile","Maximum")
-return(rawDataSummaryTable)
+  numUniqReads <- nrow(summary)
+  #rawDataSummaryTableTitle <- paste("Number of unique sequences =",numUniqReads , sep = " ")
+  part2 <- vector()
+  part1 <- apply(subset(summary,select=start:polymer),2,function(x)quantile(x, probs = c(0, 0.025,0.25, 0.5, 0.75, 0.975,1)))
+  k=1
+  part2[k] = 1
+  for (i in c(2.5,25,50,75,97.5,100)) {
+    k=k+1
+    part2[k] <- nrow(summary)*i/100
+  }
+  part2 <- data.frame(numSeqs=part2)
+  rawDataSummaryTable <- round(cbind(part1,data.frame(part2)), digits = 0)
+  rownames(rawDataSummaryTable) <- c("Mininmun","2.5%-tile","25%-tile","Median","75%-tile","97.5%-tile","Maximum")
+  return(rawDataSummaryTable)
 }
 
 ###################################################################
@@ -41,23 +41,23 @@ return(rawDataSummaryTable)
 ##' @param  taxaFileName, mothur taxonomy file.
 ##' @return Returns the .groups and .fasta files
 mixedDatasetToMothur <- function(sushiInputDataset, param){
-for (i in (1:nrow(sushiInputDataset))) {
-filePathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read1 [File]`[i])
-techID <- sushiInputDataset$`Technology [Factor]`[i]
-groupID <- rownames(sushiInputDataset)[i]
-fastqFile <- readFastq(filePathInDatset)
-x=data.frame(fastqFile@id)
-readID <- data.frame(apply(x,1,function(y) unlist(strsplit(y," "))[[1]]))
-groupFile <- data.frame(apply(readID,1,function(y) gsub(":","_",y)))
-groupFile$group <- groupID
-if (techID == "Illumina"){
-write.table(groupFile, 'Illumina.groups', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
-writeFasta(fastqFile,'Illumina.fasta', mode = 'a')
-}else{
-  write.table(groupFile, 'PacBio.groups', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
-  writeFasta(fastqFile,'PacBio.fasta', mode = 'a')
-}
-}
+  for (i in (1:nrow(sushiInputDataset))) {
+    filePathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read1 [File]`[i])
+    techID <- sushiInputDataset$`Technology [Factor]`[i]
+    groupID <- rownames(sushiInputDataset)[i]
+    fastqFile <- readFastq(filePathInDatset)
+    x=data.frame(fastqFile@id)
+    readID <- data.frame(apply(x,1,function(y) unlist(strsplit(y," "))[[1]]))
+    groupFile <- data.frame(apply(readID,1,function(y) gsub(":","_",y)))
+    groupFile$group <- groupID
+    if (techID == "Illumina"){
+      write.table(groupFile, 'Illumina.groups', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
+      writeFasta(fastqFile,'Illumina.fasta', mode = 'a')
+    }else{
+      write.table(groupFile, 'PacBio.groups', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
+      writeFasta(fastqFile,'PacBio.fasta', mode = 'a')
+    }
+  }
 }
 
 IlluminaDatasetToMothur <- function(sushiInputDataset, param){
@@ -69,8 +69,8 @@ IlluminaDatasetToMothur <- function(sushiInputDataset, param){
     readID <- data.frame(apply(x,1,function(y) unlist(strsplit(y," "))[[1]]))
     groupFile <- data.frame(apply(readID,1,function(y) gsub(":","_",y)))
     groupFile$group <- groupID
-      write.table(groupFile, 'Illumina.groups', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
-      writeFasta(fastqFile,'Illumina.fasta', mode = 'a')
+    write.table(groupFile, 'Illumina.groups', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
+    writeFasta(fastqFile,'Illumina.fasta', mode = 'a')
   }
 }
 
@@ -79,14 +79,14 @@ prepareFilesLocallyForMothur <- function(sushiInputDataset, param){
     nameInDataset <- rownames(sushiInputDataset)[i]
     file1PathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read1 [File]`[i])
     file2PathInDatset <- paste0(param$dataRoot,"/",sushiInputDataset$`Read2 [File]`[i])
-#   initialTable <- cbind(nameInDataset,file1PathInDatset,file2PathInDatset)
-#    write.table(initialTable, 'Illumina.files', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
+    #   initialTable <- cbind(nameInDataset,file1PathInDatset,file2PathInDatset)
+    #    write.table(initialTable, 'Illumina.files', row.names = FALSE, quote = FALSE, col.names = FALSE, append = TRUE, sep = "\t")
     k=0
     for (file in c(file1PathInDatset,file2PathInDatset)){
       k=k+1
       cpCmd <- paste0("gunzip -c ", file, "  > ", nameInDataset,".R",k,".fastq")
-    ezSystem(cpCmd)
-  }
+      ezSystem(cpCmd)
+    }
   }
 }
 
@@ -106,9 +106,9 @@ prepareFilesLocallyForMothur <- function(sushiInputDataset, param){
 ##' 
 
 chimeraSummaryPlot <- function(x){
-    nameRawFile <- basename(x)
-    plotLables <- gsub(".chimPlot.txt","",nameRawFile)
-    chimeraFile <- read.delim(nameRawFile, header = F)
+  nameRawFile <- basename(x)
+  plotLables <- gsub(".chimPlot.txt","",nameRawFile)
+  chimeraFile <- read.delim(nameRawFile, header = F)
   BL <-  table(chimeraFile$V18)["?"]
   chim <- table(chimeraFile$V18)["Y"]
   noChim <- table(chimeraFile$V18)["N"]
@@ -154,7 +154,7 @@ createSummaryTableForKableExtra <- function(x) {
   ktables <- do.call(rbind, rawSummaryTable)
   return(list(mergedTable = ktables, aboveHeader = multiTableHeader))
 }
- 
+
 
 ###################################################################
 # Functional Genomics Center Zurich

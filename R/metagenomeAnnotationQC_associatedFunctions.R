@@ -14,16 +14,16 @@
 
 ### get input files
 prodigalFileReport <- function(x,meth){
-prodigalGffImport <- import.gff(x)
-prodigalSummaryDF <- data.frame(mcols(prodigalGffImport), stringsAsFactors = F)
-prodigalSummaryDF$gc_cont <- as.numeric(prodigalSummaryDF$gc_cont)
-prodigalSummaryDF$conf <- as.numeric(prodigalSummaryDF$conf)
-prodigalSummaryDF$method <- meth
-subsetDataToPartial00DF <- prodigalSummaryDF[prodigalSummaryDF$partial =="00" 
-                                           & (prodigalSummaryDF$start_type == "ATG"|
-                                                prodigalSummaryDF$start_type == "GTG"),]
-subsetDataToPartial00DF$method <- meth
-return(list(fullSumm=prodigalSummaryDF,subsetDataToPartial00=subsetDataToPartial00DF))
+  prodigalGffImport <- import.gff(x)
+  prodigalSummaryDF <- data.frame(mcols(prodigalGffImport), stringsAsFactors = F)
+  prodigalSummaryDF$gc_cont <- as.numeric(prodigalSummaryDF$gc_cont)
+  prodigalSummaryDF$conf <- as.numeric(prodigalSummaryDF$conf)
+  prodigalSummaryDF$method <- meth
+  subsetDataToPartial00DF <- prodigalSummaryDF[prodigalSummaryDF$partial =="00" 
+                                               & (prodigalSummaryDF$start_type == "ATG"|
+                                                    prodigalSummaryDF$start_type == "GTG"),]
+  subsetDataToPartial00DF$method <- meth
+  return(list(fullSumm=prodigalSummaryDF,subsetDataToPartial00=subsetDataToPartial00DF))
 }
 
 
@@ -57,27 +57,27 @@ extractTopN <- function(DF,column,N){
 }
 
 interproscanFileReport <- function(x,meth,N){
-IPSGffImport <- import.gff(x)
-description <- mcols(IPSGffImport)$signature_desc
-description[sapply(description,function(x) length(x)==0)] <- "NA"
-description <- sapply(description,function(x)x[1])
-ontology <- mcols(IPSGffImport)$Ontology_term
-ontology[sapply(ontology,function(x) length(x)==0)] <- "NA" 
-ontology <- sapply(ontology,function(x)x[1])
-IPSGffSummaryDF <- data.frame(score = as.numeric(mcols(IPSGffImport)$score),
-                              description = description, 
-                              GOterm = ontology,
-                              type = mcols(IPSGffImport)$type,
-                              stringsAsFactors = F)
-IPSGffSummaryDF <- IPSGffSummaryDF[IPSGffSummaryDF$type == "protein_match",
-                                   c("score","description","GOterm")]
-IPSGffSummaryDF_topN_GO <- extractTopN(IPSGffSummaryDF,"GOterm",N)
-IPSGffSummaryDF_topN_desc <- extractTopN(IPSGffSummaryDF,"description",N)
-full_GO <- extractTopN(IPSGffSummaryDF,"GOterm",nrow(IPSGffSummaryDF))
-full_descrip <- extractTopN(IPSGffSummaryDF,"description",nrow(IPSGffSummaryDF))
-IPSGffSummaryDF$method <- meth
-IPSGffSummaryDF_topN_GO$method <- meth
-IPSGffSummaryDF_topN_desc$method <- meth
+  IPSGffImport <- import.gff(x)
+  description <- mcols(IPSGffImport)$signature_desc
+  description[sapply(description,function(x) length(x)==0)] <- "NA"
+  description <- sapply(description,function(x)x[1])
+  ontology <- mcols(IPSGffImport)$Ontology_term
+  ontology[sapply(ontology,function(x) length(x)==0)] <- "NA" 
+  ontology <- sapply(ontology,function(x)x[1])
+  IPSGffSummaryDF <- data.frame(score = as.numeric(mcols(IPSGffImport)$score),
+                                description = description, 
+                                GOterm = ontology,
+                                type = mcols(IPSGffImport)$type,
+                                stringsAsFactors = F)
+  IPSGffSummaryDF <- IPSGffSummaryDF[IPSGffSummaryDF$type == "protein_match",
+                                     c("score","description","GOterm")]
+  IPSGffSummaryDF_topN_GO <- extractTopN(IPSGffSummaryDF,"GOterm",N)
+  IPSGffSummaryDF_topN_desc <- extractTopN(IPSGffSummaryDF,"description",N)
+  full_GO <- extractTopN(IPSGffSummaryDF,"GOterm",nrow(IPSGffSummaryDF))
+  full_descrip <- extractTopN(IPSGffSummaryDF,"description",nrow(IPSGffSummaryDF))
+  IPSGffSummaryDF$method <- meth
+  IPSGffSummaryDF_topN_GO$method <- meth
+  IPSGffSummaryDF_topN_desc$method <- meth
   return(list(summDF=IPSGffSummaryDF,
               topN_GO=IPSGffSummaryDF_topN_GO,
               topN_desc=IPSGffSummaryDF_topN_desc,
@@ -100,10 +100,10 @@ IPSGffSummaryDF_topN_desc$method <- meth
 ##' @return Returns ggplots
 
 summaryScorePlot <- function(x){
-p <-  ggplot(x,aes(x=score,fill=method)) + geom_histogram(binwidth=10) +  
-  facet_grid(rows = vars(start_type), cols = vars(partial)) + 
-  labs(title="Summary of the gene prediction scores")
-return(p)
+  p <-  ggplot(x,aes(x=score,fill=method)) + geom_histogram(binwidth=10) +  
+    facet_grid(rows = vars(start_type), cols = vars(partial)) + 
+    labs(title="Summary of the gene prediction scores")
+  return(p)
 }
 
 summaryConfPlot <- function(x){
@@ -111,7 +111,7 @@ summaryConfPlot <- function(x){
     facet_grid(rows = vars(start_type), cols = vars(partial),labeller = label_both)+ 
     labs(title="Summary of the gene prediction confidence")
   return(p)
-  }
+}
 
 summaryGcContPlot <- function(x){
   p <- ggplot(x,aes(x=gc_cont,fill=method)) + geom_histogram(binwidth=0.001) +  
@@ -132,7 +132,7 @@ summaryRBSMotifPlot <- function(x){
   p<- ggplot(x,aes(x=rbs_motif,fill=method)) + 
     geom_bar(position = "dodge") +  facet_grid(rows = vars(start_type), cols = vars(partial), labeller = label_both) + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  labs(title="RBS-motif distribution")
+    labs(title="RBS-motif distribution")
   return(p)
 } 
 
@@ -168,21 +168,21 @@ summaryGOPlot <- function(x,numberOfTopNCategories){
   }else if ( nEntries >31){
     yLabelSize = 3
   }
-GOdesc <- sapply(DFforSummProtGO$GOterm,
-                 function(x)Term(GOTERM)[names(Term(GOTERM))%in%x], USE.NAMES = F)
-DFforSummProtGO$GOterm <- paste(DFforSummProtGO$GOterm,GOdesc)
-## expand palette colour to numberOfTopNCategories
-getPalette = colorRampPalette(brewer.pal(9, "Set1"))
-expandedPalette <- getPalette(numberOfTopNCategories)
-basicPlot <- ggplot(DFforSummProtGO,aes(x=reorder(GOterm, -abundance),y=abundance, fill = method)) 
-withThemes <- basicPlot + geom_bar(stat = "Identity", position = "dodge") +
-  theme(axis.title = element_blank(),axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.text.y= element_text(size =yLabelSize),
-        legend.position = "right",legend.text = element_text(size =10)) 
-p <- withThemes  +scale_color_manual(expandedPalette) +
-  labs(title="Most represented GO terms") +
-  guides(fill=guide_legend(ncol=1, byrow=F,title.position = "top"))+
-  aes(stringr::str_wrap(GOterm,30)) + ylab(NULL) + coord_flip()
+  GOdesc <- sapply(DFforSummProtGO$GOterm,
+                   function(x)Term(GOTERM)[names(Term(GOTERM))%in%x], USE.NAMES = F)
+  DFforSummProtGO$GOterm <- paste(DFforSummProtGO$GOterm,GOdesc)
+  ## expand palette colour to numberOfTopNCategories
+  getPalette = colorRampPalette(brewer.pal(9, "Set1"))
+  expandedPalette <- getPalette(numberOfTopNCategories)
+  basicPlot <- ggplot(DFforSummProtGO,aes(x=reorder(GOterm, -abundance),y=abundance, fill = method)) 
+  withThemes <- basicPlot + geom_bar(stat = "Identity", position = "dodge") +
+    theme(axis.title = element_blank(),axis.text.x = element_text(angle = 90, hjust = 1),
+          axis.text.y= element_text(size =yLabelSize),
+          legend.position = "right",legend.text = element_text(size =10)) 
+  p <- withThemes  +scale_color_manual(expandedPalette) +
+    labs(title="Most represented GO terms") +
+    guides(fill=guide_legend(ncol=1, byrow=F,title.position = "top"))+
+    aes(stringr::str_wrap(GOterm,30)) + ylab(NULL) + coord_flip()
   return(p)
 }
 ### topNcateg plots: protein family
@@ -209,7 +209,7 @@ summaryFamilyPlot <- function(x,numberOfTopNCategories){
     guides(fill=guide_legend(ncol=1, byrow=F,title.position = "top"))+
     aes(stringr::str_wrap(description,30)) + ylab(NULL) + coord_flip()
   
-return(p)
+  return(p)
 }
 
 
@@ -237,17 +237,17 @@ summaryMetagenomeBins <- function(krakenFile,binFiles){
     data.frame(contigID=names(y), 
                binID=unlist(strsplit(basename(x),"\\."))[2],
                stringsAsFactors = F)
-               })
+  })
   binIDmap <- do.call("rbind",binIDmapList)
   taxonSummary <- lapply(krakenLabels$orgName,
-                                 function(x){
-                                   y <- unlist(strsplit(x,";"))
-                                   y <- c(y[1:2],tail(y,7))
-                                   taxLevel <- min(length(y),length(taxRanks))
-                                   orgTemp <- gsub("\\[","",y[length(y)])
-                                   org <- gsub("\\]","",orgTemp)
-                                   return(list(rank=taxRanks[taxLevel], organism=org))}
-                                 )
+                         function(x){
+                           y <- unlist(strsplit(x,";"))
+                           y <- c(y[1:2],tail(y,7))
+                           taxLevel <- min(length(y),length(taxRanks))
+                           orgTemp <- gsub("\\[","",y[length(y)])
+                           org <- gsub("\\]","",orgTemp)
+                           return(list(rank=taxRanks[taxLevel], organism=org))}
+  )
   taxonSummaryDF <- ldply(taxonSummary,unlist)
   krakenLabels$coverage <- sapply(krakenLabels$contigID, function(x){
     round(as.numeric(unlist(strsplit(x,"cov_"))[2]),2)
@@ -277,7 +277,7 @@ summaryMetagenomeBins <- function(krakenFile,binFiles){
 ##' @description Merged summary bin files for plots
 ##' @param  a list of summary bin files generated from the summaryMetagenomeBins fun
 ##' @return Returns a data frame
-  
+
 mergeSummaryBinFiles <- function(binFile){
   binDF <- read.delim(binFile, stringsAsFactors = F)
   binDF$sample <- as.factor(gsub(".binSummaryFile.txt","",binFile))
@@ -338,25 +338,25 @@ summaryHeatmap <- function(mergedBinAbundTable,isGroupThere,
       cellwidth = max(1,25-(nrow(dataset)))
     } else {
       mergedBinAbundTableTopN <- head(mergedBinAbundTableNoSdV,
-                                            numberOfTopNCategories)
+                                      numberOfTopNCategories)
       mergedBinAbundTableTopNTran <- data.frame(t(mergedBinAbundTableTopN))
       rowsToKeep <- which(apply(mergedBinAbundTableTopNTran,1,sd) >0)
       mergedBinAbundTableTopNTran <- mergedBinAbundTableTopNTran[rowsToKeep,]
-    mergedBinAbundTableTopNToPlot <- mergedBinAbundTableTopNTran
-    cellwidth = max(1,25-(numberOfTopNCategories))
+      mergedBinAbundTableTopNToPlot <- mergedBinAbundTableTopNTran
+      cellwidth = max(1,25-(numberOfTopNCategories))
     }
-
+    
     if (isGroupThere){
       gr <- list()
       nCols <- list()
       pal <- list()
-         colsToKeep <- grep("Factor",colnames(dataset), value = T)
+      colsToKeep <- grep("Factor",colnames(dataset), value = T)
       for (col in colsToKeep){
-       factVar <- as.factor(dataset[[col]])
-      gr[[col]] <- gsub(" \\[Factor\\]","",col)
-      nCols[[col]] <- nlevels(factVar)
-      pal[[col]] <- colorRampPalette(brewer.pal(11, "Blues"))(nCols[[col]])
-      names(pal[[col]]) <- levels(factVar)
+        factVar <- as.factor(dataset[[col]])
+        gr[[col]] <- gsub(" \\[Factor\\]","",col)
+        nCols[[col]] <- nlevels(factVar)
+        pal[[col]] <- colorRampPalette(brewer.pal(11, "Blues"))(nCols[[col]])
+        names(pal[[col]]) <- levels(factVar)
       }
       mat_colors <- pal
       names(mat_colors) <- gr
@@ -375,7 +375,7 @@ summaryHeatmap <- function(mergedBinAbundTable,isGroupThere,
                fontsize = fontsize,
                cellheight = fontsize)
     } else {
-     pheatmap(mergedBinAbundTableTopNToPlot,show_rownames = FALSE,
+      pheatmap(mergedBinAbundTableTopNToPlot,show_rownames = FALSE,
                show_colnames     = TRUE,
                cluster_rows = TRUE,  
                scale="row",

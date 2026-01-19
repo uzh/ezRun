@@ -52,7 +52,7 @@ scranIntegration <- function(sceList, method=c("None", "MNN")){
                   "UMAP"=runUMAP(sce, use_dimred="PCA"),
                   "DiffusionMap"=runDiffusionMap(sce, use_dimred="PCA"),
                   stop("The available visusalisation methods: TSNE, UMAP, DiffusionMap.")
-                  )
+    )
   }else if(method == "MNN"){
     set.seed(1000)
     ## k, d may need some optimisation
@@ -69,12 +69,12 @@ scranIntegration <- function(sceList, method=c("None", "MNN")){
             length(chosen))
     set.seed(1000)
     sce <- switch(metadata(sce)$param$visMethod,
-                      "TSNE"=runTSNE(sce, use_dimred="corrected",
-                                     perplexity=getPerplexity(ncol(sce))),
-                      "UMAP"=runUMAP(sce, use_dimred="corrected"),
-                      "DiffusionMap"=runDiffusionMap(sce, use_dimred="corrected"),
+                  "TSNE"=runTSNE(sce, use_dimred="corrected",
+                                 perplexity=getPerplexity(ncol(sce))),
+                  "UMAP"=runUMAP(sce, use_dimred="corrected"),
+                  "DiffusionMap"=runDiffusionMap(sce, use_dimred="corrected"),
                   stop("The available visusalisation methods: TSNE, UMAP, DiffusionMap.")
-                  )
+    )
   }
   return(sce)
 }
@@ -99,14 +99,14 @@ scranPreprocessing <- function(sce, param) {
 }
 
 scranClustering<- function(sce, param) {
-   # Clustering with different k values
+  # Clustering with different k values
   resolution_values = seq(from =10, to = 50, by=5)
   clustering_res = factor(clusterCells(sce, use.dimred="PCA", 
-                                             BLUSPARAM=SNNGraphParam(k=5, type="jaccard", cluster.fun="louvain")))
+                                       BLUSPARAM=SNNGraphParam(k=5, type="jaccard", cluster.fun="louvain")))
   for (k in resolution_values) {
-     clustering <- factor(clusterCells(sce, use.dimred="PCA", 
-                             BLUSPARAM=SNNGraphParam(k=k, type="jaccard", cluster.fun="louvain")))
-     clustering_res = cbind.data.frame(clustering_res, clustering)
+    clustering <- factor(clusterCells(sce, use.dimred="PCA", 
+                                      BLUSPARAM=SNNGraphParam(k=k, type="jaccard", cluster.fun="louvain")))
+    clustering_res = cbind.data.frame(clustering_res, clustering)
   }
   colnames(clustering_res) = paste0("k.", seq(from =5, to = 50, by=5))
   colData(sce) = cbind(colData(sce), clustering_res)
@@ -122,15 +122,15 @@ scranPosMarkers <- function(sce) {
   markers_any <- findMarkers(sce, sce$ident, pval.type="any", direction="up", lfc=1)
   markersList <- list()
   for(cluster in names(markers_any)){
-     markersPerCluster <- data.frame(gene_name = rownames(markers_any[[cluster]]), markers_any[[cluster]], row.names = NULL)
-     markersPerCluster <- markersPerCluster[markersPerCluster$FDR<0.05, ]
-     markersList[[cluster]] <- markersPerCluster
+    markersPerCluster <- data.frame(gene_name = rownames(markers_any[[cluster]]), markers_any[[cluster]], row.names = NULL)
+    markersPerCluster <- markersPerCluster[markersPerCluster$FDR<0.05, ]
+    markersList[[cluster]] <- markersPerCluster
   }
   markers_any <- bind_rows(markersList, .id="cluster") %>% mutate_if(is.numeric, round, digits=3)
   markers_any
 }
-  
-  
+
+
 scranDiffGenes <- function(sce, param) {
   #Creating pseudo-bulk samples
   summed <- aggregateAcrossCells(sce, id=colData(sce)[,c("ident", "Sample_name")])
@@ -143,10 +143,10 @@ scranDiffGenes <- function(sce, param) {
   if(param$DE.regress == "Batch") {
     design <-  model.matrix(~factor(Batch)+factor(Condition), data=colData(summed.filt))
     formula <- ~factor(Batch)+factor(Condition)
- } else {
+  } else {
     design <-  model.matrix(~factor(Condition), data=colData(summed.filt))
     formula <- ~factor(Condition)
- }
+  }
   rownames(design) <- summed.filt$Sample_name
   #DE analysis
   de.results <- pseudoBulkDGE(summed.filt, 
@@ -155,7 +155,7 @@ scranDiffGenes <- function(sce, param) {
                               coef=ncol(design),
                               condition=summed.filt$Condition
   )
-
+  
   is.de <- decideTestsPerLabel(de.results, threshold=0.05)
   summarizeTestsPerLabel(is.de)
   

@@ -579,9 +579,9 @@ Seurat_to_SPIATSPE <- function(seurat_obj){
 ## if the image has more than 4 channels take only the first 3
 ## if the blue channel is brighter than the red channel swap these two channels
 fix_microscopy_image <- function(obj, 
-                      img_name = Images(obj)[1],
-                      eps = 0.02, 
-                      margin = 0.01) {
+                                 img_name = Images(obj)[1],
+                                 eps = 0.02, 
+                                 margin = 0.01) {
   
   arr <- obj@images[[img_name]]@image
   

@@ -13,31 +13,31 @@
 ##' @return Returns a DADA2 seqtab object.
 
 DADA2CreateSeqTab <- function(sampleNames,maxLen=0,file1PathInDataset,database,seqTech,maxExpErr){
-    fnFs <- file1PathInDataset
-    filtFs <- paste0(sampleNames,".filt.R1.fastq.gz")
-    names(filtFs) <- sampleNames
-    out <- filterAndTrim(fnFs, filtFs, truncLen=maxLen,
-                         maxN=0, maxEE=maxExpErr, truncQ=2, rm.phix=TRUE,
-                         compress=TRUE, multithread=TRUE)
-    if (seqTech == "pacbio") {
+  fnFs <- file1PathInDataset
+  filtFs <- paste0(sampleNames,".filt.R1.fastq.gz")
+  names(filtFs) <- sampleNames
+  out <- filterAndTrim(fnFs, filtFs, truncLen=maxLen,
+                       maxN=0, maxEE=maxExpErr, truncQ=2, rm.phix=TRUE,
+                       compress=TRUE, multithread=TRUE)
+  if (seqTech == "pacbio") {
     errF <-  learnErrors(filtFs, BAND_SIZE=32, multithread=TRUE, 
                          errorEstimationFunction=dada2:::PacBioErrfun)
-    } else {
+  } else {
     errF <- learnErrors(filtFs, multithread=TRUE)
-    }
-    derepFs <- derepFastq(filtFs, verbose=FALSE)
-    if (seqTech == "454" | seqTech == "ionTorrent"){
-      dadaFs <- dada(derepFs, err=errF, multithread=TRUE,
-                     HOMOPOLYMER_GAP_PENALTY=-1, BAND_SIZE=32)
-    }else if (seqTech == "pacbio") {
-      dadaFs <- dada(derepFs, err=errF, multithread=TRUE, BAND_SIZE=32)
-    }else {
-      dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
-    }
-    seqtab <- makeSequenceTable(dadaFs)
-    fullTableOfOTUsNoChim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
-    taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=FALSE)
-    rownames(fullTableOfOTUsNoChim) <- sampleNames
+  }
+  derepFs <- derepFastq(filtFs, verbose=FALSE)
+  if (seqTech == "454" | seqTech == "ionTorrent"){
+    dadaFs <- dada(derepFs, err=errF, multithread=TRUE,
+                   HOMOPOLYMER_GAP_PENALTY=-1, BAND_SIZE=32)
+  }else if (seqTech == "pacbio") {
+    dadaFs <- dada(derepFs, err=errF, multithread=TRUE, BAND_SIZE=32)
+  }else {
+    dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
+  }
+  seqtab <- makeSequenceTable(dadaFs)
+  fullTableOfOTUsNoChim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
+  taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=FALSE)
+  rownames(fullTableOfOTUsNoChim) <- sampleNames
   return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,
               taxaObj=taxa,outFilt=out,dadaObj=dadaFs))
 }
@@ -59,7 +59,7 @@ DADA2CreateSeqTab <- function(sampleNames,maxLen=0,file1PathInDataset,database,s
 DADA2mergeSeqTabs <- function(listOfSeqTabsFiles, database){
   listOfSeqTabs <- lapply(listOfSeqTabsFiles,readRDS)
   fullTableOfOTUs <- mergeSequenceTables(tables=listOfSeqTabs)
-fullTableOfOTUsNoChim <- removeBimeraDenovo(fullTableOfOTUs, method="consensus", multithread=TRUE)
-taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=TRUE)
-return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,taxaObj=taxa))
+  fullTableOfOTUsNoChim <- removeBimeraDenovo(fullTableOfOTUs, method="consensus", multithread=TRUE)
+  taxa <- assignTaxonomy(fullTableOfOTUsNoChim,database, multithread=TRUE)
+  return(list(fullTableOfOTUsNoChimObj=fullTableOfOTUsNoChim,taxaObj=taxa))
 }

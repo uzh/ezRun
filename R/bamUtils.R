@@ -13,7 +13,7 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
   require(GenomicAlignments)
   require(Rsamtools)
   require(rtracklayer)
-
+  
   ## if output is not an EzDataset, set it!
   if (!is(output, "EzDataset")) {
     output <- input$copy()
@@ -27,46 +27,46 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
     ))
     output$dataRoot <- NULL
   }
-
+  
   bamFile <- input$getFullPaths("BAM")
-
+  
   ## For now, we only have paired-end ATAC-seq
   stopifnot(param$paired)
-
+  
   ## remove the duplicates in bam
   noDupBam <- tempfile(pattern = "nodup_", tmpdir = ".", fileext = ".bam")
   message("Remove duplicates...")
   if(param$removeDuplicates){
-         dupBam(inBam = bamFile, outBam = noDupBam, operation = "remove", ram = param$ram)
+    dupBam(inBam = bamFile, outBam = noDupBam, operation = "remove", ram = param$ram)
   } else{
-        outBam = noDupBam
-        file.copy(from=bamFile, to=outBam, overwrite=TRUE)
-        Rsamtools::indexBam(outBam)
-    }
+    outBam = noDupBam
+    file.copy(from=bamFile, to=outBam, overwrite=TRUE)
+    Rsamtools::indexBam(outBam)
+  }
   noDupNoMTNOLowBam <- basename(output$getColumn("BAM"))
   filteroutBam(
     inBam = noDupBam, outBam = noDupNoMTNOLowBam,
     cores = param$cores, chrs = c("M", "MT", "chrM", "chrMT"), mapQ = 10
   )
   file.remove(c(noDupBam, paste0(noDupBam, ".bai")))
-
+  
   if (param$shiftATAC) {
-     cmd <-  paste('alignmentSieve --bam', noDupNoMTNOLowBam,
-      '--outFile', paste0(noDupNoMTNOLowBam, '_shifted'),
-      '--ATACshift','-p', param$cores,
-      '--smartLabels',
-      '--filterMetrics shift.log')
-      ezSystem(cmd)
-      cmd <- paste('mv', paste0(noDupNoMTNOLowBam, '_shifted'), noDupNoMTNOLowBam)
-      ezSystem(cmd)
-      file.remove(c(paste0(noDupNoMTNOLowBam, ".bai")))
-      sortBam(noDupNoMTNOLowBam, paste0(noDupNoMTNOLowBam, '_sorted'), maxMemory=1024*param$ram)
-      cmd <- paste('mv', paste0(noDupNoMTNOLowBam, '_sorted.bam'), noDupNoMTNOLowBam)
-      ezSystem(cmd)
-      indexBam(noDupNoMTNOLowBam)
+    cmd <-  paste('alignmentSieve --bam', noDupNoMTNOLowBam,
+                  '--outFile', paste0(noDupNoMTNOLowBam, '_shifted'),
+                  '--ATACshift','-p', param$cores,
+                  '--smartLabels',
+                  '--filterMetrics shift.log')
+    ezSystem(cmd)
+    cmd <- paste('mv', paste0(noDupNoMTNOLowBam, '_shifted'), noDupNoMTNOLowBam)
+    ezSystem(cmd)
+    file.remove(c(paste0(noDupNoMTNOLowBam, ".bai")))
+    sortBam(noDupNoMTNOLowBam, paste0(noDupNoMTNOLowBam, '_sorted'), maxMemory=1024*param$ram)
+    cmd <- paste('mv', paste0(noDupNoMTNOLowBam, '_sorted.bam'), noDupNoMTNOLowBam)
+    ezSystem(cmd)
+    indexBam(noDupNoMTNOLowBam)
   }
   
-    if(FALSE){
+  if(FALSE){
     require(ATACseqQC)
     what <- c("qname", "flag", "mapq", "isize", "seq", "qual", "mrnm")
     tags <- c("AS", "XN", "XM", "XO", "XG", "NM", "MD", "YS", "YT")
@@ -83,10 +83,10 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
     ## shiftAlignments
     message("Shifting 5' start...")
     firstReads <- ATACseqQC:::shiftReads(first(reads),
-      positive = 4L, negative = 5L
+                                         positive = 4L, negative = 5L
     )
     lastReads <- ATACseqQC:::shiftReads(last(reads),
-      positive = 4L, negative = 5L
+                                        positive = 4L, negative = 5L
     )
     rm(reads)
     message("Exporting bam file...")
@@ -98,7 +98,7 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
     rm(lastReads)
     gc()
   }
-
+  
   return(output)
 }
 
@@ -109,15 +109,15 @@ dupBam <- function(inBam, outBam, operation = c("mark", "remove"), ram = 20, dup
   metricsFile <- sub('.bam$','_metrics.txt', outBam)
   cmd <- paste(javaCall, " -jar ", Sys.getenv("Picard_jar"), 
                "MarkDuplicates",
-                paste0("I=", inBam),
-                paste0("O=", outBam),
-                paste0("M=", metricsFile),
-                paste0("OPTICAL_DUPLICATE_PIXEL_DISTANCE=", dupDistance),
-                paste0(
-                "REMOVE_DUPLICATES=",
-                if_else(operation == "mark", "false", "true")
-                ),
-    "> /dev/null 2>&1"
+               paste0("I=", inBam),
+               paste0("O=", outBam),
+               paste0("M=", metricsFile),
+               paste0("OPTICAL_DUPLICATE_PIXEL_DISTANCE=", dupDistance),
+               paste0(
+                 "REMOVE_DUPLICATES=",
+                 if_else(operation == "mark", "false", "true")
+               ),
+               "> /dev/null 2>&1"
   )
   ezSystem(cmd)
   Rsamtools::indexBam(outBam)
@@ -128,22 +128,22 @@ dupBam <- function(inBam, outBam, operation = c("mark", "remove"), ram = 20, dup
 filteroutBam <- function(inBam, outBam, cores = ezThreads(), chrs = NULL, mapQ = NULL) {
   require(Rsamtools)
   cmd <- paste("samtools view -b", "-@", cores, "-o", outBam)
-
+  
   if (!is.null(mapQ)) {
     cmd <- paste(cmd, "-q", mapQ)
   }
-
+  
   cmd <- paste(cmd, inBam)
-
+  
   if (!is.null(chrs)) {
     allChrs <- ezBamSeqNames(inBam)
     keepChrs <- setdiff(allChrs, chrs)
     cmd <- paste(cmd, paste(keepChrs, collapse = " "))
   }
   ezSystem(cmd)
-
+  
   indexBam(outBam)
-
+  
   invisible(outBam)
 }
 
@@ -155,7 +155,7 @@ bam2bw <- function(file,
                    method = c("deepTools", "Bioconductor"),
                    cores = ezThreads()) {
   method <- match.arg(method)
-
+  
   if (method == "Bioconductor") {
     ## Better compatability; single-base resolutio;
     ## Slower; higher RAM consumption
@@ -186,24 +186,24 @@ splitBamByRG <- function(inBam, mc.cores = ezThreads()) {
   # readGroupNames <- sub("ID:", "", sapply(readGroupNames, "[", 1))
   cwd <- getwd()
   inBam <- normalizePath(inBam)
-
+  
   # This is more general approach for uBam and mapped Bam.
   tempDIR <- file.path(cwd, paste("samtools-split", Sys.getpid(), sep = "-"))
   setwdNew(tempDIR)
-
+  
   cmd <- paste("samtools split -@", mc.cores, "-f %!", inBam)
   ezSystem(cmd)
-
+  
   setwd(cwd)
-
+  
   readGroupNames <- list.files(path = tempDIR)
   bamFns <- paste0(readGroupNames, ".bam")
   file.rename(from = file.path(tempDIR, readGroupNames), to = bamFns)
   names(bamFns) <- readGroupNames
-
+  
   # Clearning
   unlink(tempDIR, recursive = TRUE)
-
+  
   return(bamFns)
 }
 
@@ -240,17 +240,17 @@ posSpecErrorBam <- function(bamGA, genomeFn) {
   require(Hmisc)
   require(BSgenome)
   require(Rsamtools)
-
+  
   nMaxReads <- 100000
-
+  
   what <- c("qname", "seq")
   stopifnot(all(what %in% colnames(mcols(bamGA))))
-
+  
   hasGap <- grepl("I|D|N", cigar(bamGA))
   readLength <- qwidth(bamGA)
   genomeFnIndixe <- FaFile(genomeFn)
   genomeLengths <- seqlengths(genomeFnIndixe)
-
+  
   isOutOfRange <- start(bamGA) + readLength - 1 > genomeLengths[as.character(seqnames(bamGA))] |
     start(bamGA) < readLength
   # this is very conservative; needed because there might be clipped bases in the beginning
@@ -265,7 +265,7 @@ posSpecErrorBam <- function(bamGA, genomeFn) {
     )
     print(badAlignments)
   }
-
+  
   indexKeep <- which(!hasGap & !isOutOfRange)
   # indexKeep <- which(!hasGap)
   if (length(indexKeep) > nMaxReads) {
@@ -281,7 +281,7 @@ posSpecErrorBam <- function(bamGA, genomeFn) {
   }
   bamGA <- bamGA[indexKeep]
   bamGR <- granges(bamGA) ## used to record the actual mapped coordinates of seq
-
+  
   ## adjust the start POS according to H and/or S
   tempCigar <- str_extract(cigar(bamGA), "^(\\d+H)?(\\d+S)?\\d+M")
   ## get the number of H at the beginning
@@ -289,7 +289,7 @@ posSpecErrorBam <- function(bamGA, genomeFn) {
   stopifnot(!any(lengths(noOfH) > 1))
   noOfH[lengths(noOfH) == 0] <- 0
   noOfH <- as.integer(noOfH)
-
+  
   ## get the number of S at the beginning
   noOfS <- explodeCigarOpLengths(tempCigar, ops = "S")
   stopifnot(!any(lengths(noOfS) > 1))
@@ -297,7 +297,7 @@ posSpecErrorBam <- function(bamGA, genomeFn) {
   noOfS <- as.integer(noOfS)
   nBeginClipped <- noOfH + noOfS
   start(bamGR) <- start(bamGR) - nBeginClipped
-
+  
   ## add - to the begin and end of SEQ for revComplement
   Xbegin <- makeNstr("-", noOfH)
   tempCigar <- str_extract(cigar(bamGA), "\\d+[^HS](\\d+S)?(\\d+H)?$")
@@ -305,7 +305,7 @@ posSpecErrorBam <- function(bamGA, genomeFn) {
   stopifnot(!any(lengths(noOfH) > 1))
   noOfH[lengths(noOfH) == 0] <- 0
   noOfH <- as.integer(noOfH)
-
+  
   Xend <- makeNstr("-", noOfH)
   noOfS <- explodeCigarOpLengths(tempCigar, ops = "S")
   stopifnot(!any(lengths(noOfS) > 1))
@@ -314,13 +314,13 @@ posSpecErrorBam <- function(bamGA, genomeFn) {
   nEndClipped <- noOfH + noOfS
   mcols(bamGR)$seq <- DNAStringSet(paste0(Xbegin, mcols(bamGA)$seq, Xend))
   end(bamGR) <- end(bamGR) + nEndClipped
-
+  
   indexNeg <- as.logical(strand(bamGA) == "-")
   mcols(bamGR)$seq[indexNeg] <- reverseComplement(mcols(bamGR)$seq[indexNeg])
-
+  
   seqChar <- strsplit(as.character(mcols(bamGR)$seq), "")
   readLength <- lengths(seqChar)
-
+  
   maxLength <- quantile(readLength, 0.95)
   if (maxLength < max(readLength)) {
     readLength[readLength > maxLength] <- maxLength
@@ -329,12 +329,12 @@ posSpecErrorBam <- function(bamGA, genomeFn) {
     }, seqChar, readLength)
     bamGR <- resize(bamGR, width = readLength, fix = "start")
   }
-
+  
   # referenceChar <- genome[bamGR]
   referenceChar <- getSeq(genomeFnIndixe, bamGR)
   stopifnot(all(width(referenceChar) == width(bamGR))) # check the position change is wright
   referenceChar <- strsplit(as.character(referenceChar), "")
-
+  
   # assuming we have unique read length and set it to the maximal read length here.
   nEndTrimmed <- maxLength - readLength
   trimmedMatrix <- mapply(function(readLength, nEndTrimmed) {
@@ -354,9 +354,9 @@ posSpecErrorBam <- function(bamGA, genomeFn) {
   nBeginClipped, nNormal, nEndClipped,
   SIMPLIFY = FALSE
   )
-
+  
   matchMatrix <- mapply("==", referenceChar, seqChar, SIMPLIFY = FALSE)
-
+  
   clippedMatrixNoTrim[indexNeg] <- lapply(clippedMatrixNoTrim[indexNeg], rev)
   clippedMatrix <- mapply(function(clippedMatrixNoTrim, nEndTrimmed) {
     c(clippedMatrixNoTrim, rep(FALSE, nEndTrimmed))
@@ -364,7 +364,7 @@ posSpecErrorBam <- function(bamGA, genomeFn) {
   clippedMatrixNoTrim, nEndTrimmed,
   SIMPLIFY = FALSE
   )
-
+  
   matchMatrix <- sapply(matchMatrix, function(x) {
     x[1:maxLength]
   })
@@ -387,10 +387,10 @@ posSpecErrorBam <- function(bamGA, genomeFn) {
 calmdBam <- function(bamFns, mdBamFns = sub("\\.bam$", "_md.bam", bamFns),
                      genomeFn, mc.cores = 4L) {
   stopifnot(length(bamFns) == length(mdBamFns))
-
+  
   cmdsCalmd <- paste("samtools calmd -b -e", bamFns, genomeFn, ">", mdBamFns)
   cmdsIndex <- paste("samtools index", mdBamFns)
-
+  
   indicesExist <- file.exists(mdBamFns)
   if (any(indicesExist)) {
     warning(
@@ -409,7 +409,7 @@ calmdBam <- function(bamFns, mdBamFns = sub("\\.bam$", "_md.bam", bamFns),
 posSpecErrorMDBam <- function(bamGA) {
   hasIndel <- grepl("I|D", cigar(bamGA))
   bamGA <- bamGA[!hasIndel]
-
+  
   seqs <- mcols(bamGA)$seq
   negStrand <- strand(bamGA) == "-"
   seqs[negStrand] <- reverseComplement(seqs[negStrand])

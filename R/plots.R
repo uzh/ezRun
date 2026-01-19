@@ -63,13 +63,13 @@ brewPalette = function(n, alpha=1){
 ##' getSamplePch(cond)
 ##' getSampleLty(cond)
 getSampleColors = function(conds, colorNames=names(conds)){
-
-	condSet = unique(conds)
-	conColors = brewPalette(length(condSet))
-	sampleColors = conColors[match(conds, condSet)]
-	names(sampleColors) = colorNames
-	return(sampleColors)
-	
+  
+  condSet = unique(conds)
+  conColors = brewPalette(length(condSet))
+  sampleColors = conColors[match(conds, condSet)]
+  names(sampleColors) = colorNames
+  return(sampleColors)
+  
 }
 
 getCondsColors <- function(conds){
@@ -107,19 +107,19 @@ getSampleLty = function(conds, ltyNames=names(conds), maxLineTypes=5){
 ##' @examples
 ##' rbs = getBlueRedScale()
 getBlueRedScale <- function(n=256, whiteLevel=0.9){
-
+  
   # from blue to red going by white
   cs <- character(n)
   n1 <- ceiling(n/2)
   cs[1:n1] <- rgb(seq(from=0, to=whiteLevel, length.out=n1),
                   seq(from=0, to=whiteLevel, length.out=n1),
                   seq(from=1, to=whiteLevel, length.out=n1)
-                 )
+  )
   n2 <- n - n1
   cs[(n1+1):n] <- rev(rgb(seq(from=1, to=whiteLevel, length.out=n2),
                           seq(from=0, to=whiteLevel*(n2-1)/(n1-1), length.out=n2),
-                         seq(from=0, to=whiteLevel*(n2-1)/(n1-1), length.out=n2)
-                      ))
+                          seq(from=0, to=whiteLevel*(n2-1)/(n1-1), length.out=n2)
+  ))
   cs
 }
 
@@ -135,19 +135,19 @@ getBlueRedScale <- function(n=256, whiteLevel=0.9){
 ##' @examples
 ##' ezColorLegend()
 ezColorLegend = function(colorRange=c(-3,3), colors=getBlueRedScale(), vertical=TRUE,
-															at=seq(from=colorRange[1], to=colorRange[2], by=by.label),
-															labels = as.character(at), by.label=0.5){
-	pos = (at - colorRange[1])/(colorRange[2]- colorRange[1])
-	#n = (colorRange[2] - colorRange[1])*2 + 1
-	if (vertical){
-	  par(mar=c(2,2,2,4))
-	  image(t(as.matrix((1:length(colors)))), axes=FALSE, frame.plot=TRUE, col=colors)
-	  axis(4, at=pos, las=2, labels=labels)
-	} else {
-	  par(mar=c(4,2,2,2))
-	  image(as.matrix((1:length(colors))), axes=FALSE, frame.plot=TRUE, col=colors)
-	  axis(1, at=pos, las=1, labels=labels)
-	}
+                         at=seq(from=colorRange[1], to=colorRange[2], by=by.label),
+                         labels = as.character(at), by.label=0.5){
+  pos = (at - colorRange[1])/(colorRange[2]- colorRange[1])
+  #n = (colorRange[2] - colorRange[1])*2 + 1
+  if (vertical){
+    par(mar=c(2,2,2,4))
+    image(t(as.matrix((1:length(colors)))), axes=FALSE, frame.plot=TRUE, col=colors)
+    axis(4, at=pos, las=2, labels=labels)
+  } else {
+    par(mar=c(4,2,2,2))
+    image(as.matrix((1:length(colors))), axes=FALSE, frame.plot=TRUE, col=colors)
+    axis(1, at=pos, las=1, labels=labels)
+  }
 }
 
 ##' @title Plots a color scale with ggplot2
@@ -183,7 +183,7 @@ ezColorLegendGG2 = function(colorRange=c(-3,3), colors=getBlueRedScale(),
             axis.title=element_blank(), axis.ticks.x=element_blank(),
             axis.text.y=element_text(size=14),
             axis.text.x=element_blank(), legend.position="none"
-            )
+      )
   }else{
     df <- data.frame(x=seq(from=colorRange[1], to=colorRange[2], 
                            length.out=length(colors)),
@@ -199,15 +199,15 @@ ezColorLegendGG2 = function(colorRange=c(-3,3), colors=getBlueRedScale(),
             axis.title=element_blank(), axis.ticks.y=element_blank(),
             axis.text.x=element_text(size=14),
             axis.text.y=element_blank(), legend.position="none"
-            )
+      )
   }
   return(p)
 }
 
 
 ezShowCol <- function(colours, colorLabels=paste0(names(colours), "\n", colours), 
-                       borders = NULL, cex_label = 1, 
-                       ncol = NULL) 
+                      borders = NULL, cex_label = 1, 
+                      ncol = NULL) 
 {
   n <- length(colours)
   ncol <- ncol %||% ceiling(sqrt(length(colours)))
@@ -248,7 +248,7 @@ ezLegend = function(legend="", fill=NULL, title="Legend"){
 
 ## still used?
 .makeTailEffectPlots = function(param, signal, seqAnno, colors=NULL, ylim=c(-2,5)){
-
+  
   isControl = seqAnno$IsControl
   logSignal = log2(signal[!isControl, ])
   samples = colnames(logSignal)
@@ -257,7 +257,7 @@ ezLegend = function(legend="", fill=NULL, title="Legend"){
   xlim = range(logSignal, na.rm=TRUE)
   tails = c("A", "C", "G", "T")
   tailColors = getSampleColors(tails, colorNames=tails)
-
+  
   pngNames = character()
   for(sampleName in samples){
     valueByTail = .getByTail(logSignal[ , sampleName], NULL, sequence, gene)
@@ -335,7 +335,7 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
   toPlot$types <- factor(toPlot$types,
                          levels=c("Absent", "Present", colnames(types)))
   typesColours <- set_names(c("grey", "black", colors), 
-                           c("Absent", "Present", colnames(types))
+                            c("Absent", "Present", colnames(types))
   )
   if(mode == "plotly"){
     if(is.null(toPlot$names)){
@@ -360,7 +360,7 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
                  });
                  }
                  ")
-                 }
+    }
     l <- list(font = list(size = 20))
     ftitle <- list(size=20)
     ftick <- list(size=20)
@@ -398,13 +398,13 @@ ezVolcano <- function(log2Ratio, pValue, yType=c("p-value", "FDR"),
     if(!is.null(labelGenes)){
       stopifnot(!is.null(toPlot$names))
       p <- p + geom_text_repel(data=dplyr::filter(toPlot, names%in% labelGenes),
-                                aes(label=names), fontface = 'bold.italic',
-                                #box.padding = 0.35, 
-                                #point.padding = 0.5, #size=7,
-                                segment.color = 'grey50'
-                                #segment.size=1, 
-                                #arrow = arrow(length = unit(0.01, 'npc'))
-                               )
+                               aes(label=names), fontface = 'bold.italic',
+                               #box.padding = 0.35, 
+                               #point.padding = 0.5, #size=7,
+                               segment.color = 'grey50'
+                               #segment.size=1, 
+                               #arrow = arrow(length = unit(0.01, 'npc'))
+      )
     }
   }
   
@@ -435,7 +435,7 @@ ezSmoothScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6,
   if (ncol(y) == 2 & is.null(x)){
     par(cex.main=cex.main, cex=cex)
     smoothScatter(log2(y[ ,1]), log2(y[ ,2]), xlim=log2(lim), ylim=log2(lim),
-                   xlab=ylab[1], ylab=ylab[2], col=colors, ...)
+                  xlab=ylab[1], ylab=ylab[2], col=colors, ...)
     abline(0, 1, col="blue")
     return()
   }
@@ -583,8 +583,8 @@ ezScatter <- function(x=NULL, y, xlab=NULL, ylab=NULL, nPlotsPerRow=6, shrink=FA
 
 ##' @describeIn ezScatter Does the XY scatter plot.
 ezXYScatter = function(xVec, yVec, absentColor="gray", shrink=FALSE, frame=TRUE, axes=TRUE,
-                              xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim, isPresent=NULL,
-                              types=NULL, pch=16, colors=brewPalette(ncol(types), alpha = 1), legendPos="bottomright", ...){
+                       xlim=range(xVec, yVec, na.rm=TRUE), ylim=xlim, isPresent=NULL,
+                       types=NULL, pch=16, colors=brewPalette(ncol(types), alpha = 1), legendPos="bottomright", ...){
   par(pty="s")
   if (shrink){
     xVec = shrinkToRange(xVec, xlim)
@@ -652,8 +652,8 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
   toPlot$types <- factor(toPlot$types,
                          levels=c("Absent", "Present", colnames(types)))
   typesColours <- set_names(c("grey", "black", colors), 
-                           c("Absent", "Present", colnames(types))
-                           )
+                            c("Absent", "Present", colnames(types))
+  )
   if(mode == "plotly"){
     if(is.null(names)){
       ## Without names, we use default hover text
@@ -677,7 +677,7 @@ ezXYScatter.2 = function(xVec, yVec, absentColor="gray", shrink=FALSE,
                  });
                  }
                  ")
-                 }
+    }
     p_abline_log <- function(x, a, b){
       y <- 10^(a * log10(x) + log10(b))
       return(y)
@@ -784,31 +784,31 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
   axisLabels <- c()
   
   if (nItems > 2){
-   for( i in 1:nItems){
-     for(j in 1:nItems){
-       if (is.null(dim(isPresent))){
-         isPres = isPresent ## this covers also the case where isPresent == NULL
-       } else {
-         isPres = isPresent[ ,i] | isPresent[ ,j]
-       }
-       
-       p <- ezXYScatter.2(x[ ,i], x[, j], xlim=lim, ylim=lim, shrink=shrink,
-                          isPresent=isPres, types=types, colors=colors, mode="ggplot2", ...) + 
-         theme_axis_only() +
-         coord_fixed(xlim = c(1e0, NA), ylim = c(1e0, NA), expand = TRUE) +
-         theme(panel.border = element_rect(colour = "black", fill=NA, linewidth=1),
-               aspect.ratio = 1)
-       
-       if (i == 1){
-         axisLabels <- c(axisLabels, xylab[j])
-       }
-       if (j == nItems){
-         axisLabels <- c(axisLabels, xylab[i])
-       }
-
-       ps <- c(ps, list(p))
-     }
-   }
+    for( i in 1:nItems){
+      for(j in 1:nItems){
+        if (is.null(dim(isPresent))){
+          isPres = isPresent ## this covers also the case where isPresent == NULL
+        } else {
+          isPres = isPresent[ ,i] | isPresent[ ,j]
+        }
+        
+        p <- ezXYScatter.2(x[ ,i], x[, j], xlim=lim, ylim=lim, shrink=shrink,
+                           isPresent=isPres, types=types, colors=colors, mode="ggplot2", ...) + 
+          theme_axis_only() +
+          coord_fixed(xlim = c(1e0, NA), ylim = c(1e0, NA), expand = TRUE) +
+          theme(panel.border = element_rect(colour = "black", fill=NA, linewidth=1),
+                aspect.ratio = 1)
+        
+        if (i == 1){
+          axisLabels <- c(axisLabels, xylab[j])
+        }
+        if (j == nItems){
+          axisLabels <- c(axisLabels, xylab[i])
+        }
+        
+        ps <- c(ps, list(p))
+      }
+    }
   } else {
     if (is.null(dim(isPresent))){
       isPres = isPresent   ## this covers also the case where isPresent == NULL
@@ -846,8 +846,8 @@ ezAllPairScatter = function(x, main="", shrink=FALSE, xylab=NULL,
 ##' @examples
 ##' ezCorrelationPlot(z=matrix(1:100,10))
 ezCorrelationPlot = function(z, cond=NULL, condOrder=NULL, main="Correlation", 
-                              labels=NULL, condLabels=NULL, plotLabels=nrow(z) < 100,
-                              colors=NULL){
+                             labels=NULL, condLabels=NULL, plotLabels=nrow(z) < 100,
+                             colors=NULL){
   
   par(mar=c(5.1, 4.1, 4.1, 3.1))
   colorScale <- gray((1:256)/256)
@@ -1024,11 +1024,11 @@ createDendogramReport <- function(x, annot, genes = row.names(x), multipalette =
   # Description
   # Wrapper function for plotDendroAndColors -> plot(dendro)
   
-#   require("WGCNA", quietly = T)
-#   require("plyr", quietly = T)
-#   require("pvclust", quietly = T)
-#   require("RColorBrewer", quietly = T)
-#   require("wesanderson", quietly = T)
+  #   require("WGCNA", quietly = T)
+  #   require("plyr", quietly = T)
+  #   require("pvclust", quietly = T)
+  #   require("RColorBrewer", quietly = T)
+  #   require("wesanderson", quietly = T)
   ## NOTEP: except wesanderson and WGCNA, these packages seem not to be used currently. If only rarely or in one spot, package::function() should be used.
   ## require() only works, after putting the packe into imports() in the NAMESPACE
   
@@ -1084,9 +1084,9 @@ createDendogramReport <- function(x, annot, genes = row.names(x), multipalette =
     parMar0 <- par()$mar
     layout(matrix(c(1:4), 2, 2), heights = c(1 - colorHeight, colorHeight), widths = c(1 - 0.25, 0.25))
     WGCNA::plotDendroAndColors(hc, colAnnot,
-                        autoColorHeight = F,
-                        marAll = c(1, 5, 3, 0),
-                        setLayout = FALSE, ...)
+                               autoColorHeight = F,
+                               marAll = c(1, 5, 3, 0),
+                               setLayout = FALSE, ...)
     par(mar = c(0.1, 0.1, 0.1, 0.1))
     plot(1, type="n", axes=FALSE, xlab="", ylab="")
     lNames = gsub ("\\.", " ", names(unlist(colList)))
@@ -1260,42 +1260,42 @@ gg_color_hue <- function(n) {
 ## Minimal theme where only axis labels are shown, nothing else.
 theme_axis_only <- function (font_size = 6, font_family = "", rel_small = 12/14) 
 {
-    theme(line = element_blank(), rect = element_blank(), 
-          text = element_text(family = font_family, face = "plain", 
-                              color = "black", size = font_size, lineheight = 0.9, 
-                              hjust = 0.5, vjust = 0.5, angle = 0, margin = margin(), 
-                              debug = FALSE), 
-          axis.line = element_blank(),
-          axis.line.x = NULL, axis.line.y = NULL, 
-          axis.text = element_blank(),
-          axis.text.x = NULL, axis.text.x.top = NULL, axis.text.y = NULL,
-          axis.text.y.right = NULL,
-          axis.ticks = element_blank(), 
-          axis.ticks.length = unit(0, "pt"), 
-          legend.background = element_blank(), 
-          legend.spacing = unit(font_size, "pt"), legend.spacing.x = NULL, 
-          legend.spacing.y = NULL, legend.margin = margin(0, 
-                                                          0, 0, 0), legend.key = element_blank(), legend.key.size = unit(1.1 * 
-                                                                                                                           font_size, "pt"), legend.key.height = NULL, legend.key.width = NULL, 
-          legend.text = element_text(size = rel(rel_small)), 
-          legend.text.align = NULL, legend.title = element_text(hjust = 0), 
-          legend.title.align = NULL, legend.position = "none", 
-          legend.direction = NULL, legend.justification = "center", 
-          legend.box = NULL, legend.box.margin = margin(0, 
-                                                        0, 0, 0), legend.box.background = element_blank(), 
-          legend.box.spacing = unit(font_size, "pt"), panel.background = element_blank(), 
-          panel.border = element_blank(), panel.grid = element_blank(), 
-          panel.grid.major = NULL, panel.grid.minor = NULL, 
-          panel.spacing = unit(font_size/2, "pt"), panel.spacing.x = NULL, 
-          panel.spacing.y = NULL, panel.ontop = FALSE, strip.background = element_blank(), 
-          strip.text = element_blank(), strip.text.x = NULL, 
-          strip.text.y = NULL, strip.placement = "inside", 
-          strip.placement.x = NULL, strip.placement.y = NULL, 
-          strip.switch.pad.grid = unit(0, "cm"), strip.switch.pad.wrap = unit(0, 
-                                                                              "cm"), plot.background = element_blank(), plot.title = element_blank(), 
-          plot.subtitle = element_blank(), plot.caption = element_blank(), 
-          plot.tag = element_text(face = "bold", hjust = 0, 
-                                  vjust = 0.7), plot.tag.position = c(0, 1), plot.margin = margin(0, 
-                                                                                                  0, 0, 0), complete = TRUE)
+  theme(line = element_blank(), rect = element_blank(), 
+        text = element_text(family = font_family, face = "plain", 
+                            color = "black", size = font_size, lineheight = 0.9, 
+                            hjust = 0.5, vjust = 0.5, angle = 0, margin = margin(), 
+                            debug = FALSE), 
+        axis.line = element_blank(),
+        axis.line.x = NULL, axis.line.y = NULL, 
+        axis.text = element_blank(),
+        axis.text.x = NULL, axis.text.x.top = NULL, axis.text.y = NULL,
+        axis.text.y.right = NULL,
+        axis.ticks = element_blank(), 
+        axis.ticks.length = unit(0, "pt"), 
+        legend.background = element_blank(), 
+        legend.spacing = unit(font_size, "pt"), legend.spacing.x = NULL, 
+        legend.spacing.y = NULL, legend.margin = margin(0, 
+                                                        0, 0, 0), legend.key = element_blank(), legend.key.size = unit(1.1 * 
+                                                                                                                         font_size, "pt"), legend.key.height = NULL, legend.key.width = NULL, 
+        legend.text = element_text(size = rel(rel_small)), 
+        legend.text.align = NULL, legend.title = element_text(hjust = 0), 
+        legend.title.align = NULL, legend.position = "none", 
+        legend.direction = NULL, legend.justification = "center", 
+        legend.box = NULL, legend.box.margin = margin(0, 
+                                                      0, 0, 0), legend.box.background = element_blank(), 
+        legend.box.spacing = unit(font_size, "pt"), panel.background = element_blank(), 
+        panel.border = element_blank(), panel.grid = element_blank(), 
+        panel.grid.major = NULL, panel.grid.minor = NULL, 
+        panel.spacing = unit(font_size/2, "pt"), panel.spacing.x = NULL, 
+        panel.spacing.y = NULL, panel.ontop = FALSE, strip.background = element_blank(), 
+        strip.text = element_blank(), strip.text.x = NULL, 
+        strip.text.y = NULL, strip.placement = "inside", 
+        strip.placement.x = NULL, strip.placement.y = NULL, 
+        strip.switch.pad.grid = unit(0, "cm"), strip.switch.pad.wrap = unit(0, 
+                                                                            "cm"), plot.background = element_blank(), plot.title = element_blank(), 
+        plot.subtitle = element_blank(), plot.caption = element_blank(), 
+        plot.tag = element_text(face = "bold", hjust = 0, 
+                                vjust = 0.7), plot.tag.position = c(0, 1), plot.margin = margin(0, 
+                                                                                                0, 0, 0), complete = TRUE)
 }
 

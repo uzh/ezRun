@@ -25,14 +25,14 @@ convertDiamondAnnotationToAbund <- function(annFile){
   fullListDF <- data.frame(ldply(listToTurnIntoMapDF))
   names(fullListDF) <- c("function","organism")
   fullListDF[["function"]] <- gsub("MULTISPECIES:_","",fullListDF[["function"]])
-    ### get the function and organism abundance
+  ### get the function and organism abundance
   funcAbundDF <- data.frame(table(fullListDF[["function"]]), 
                             stringsAsFactors = F,
                             row.names = names(table(fullListDF[["function"]])))
   funcAbundDF <- subset(funcAbundDF,select=-c(Var1))
   orgAbundDF <- data.frame(table(fullListDF[["organism"]]), 
-                            stringsAsFactors = F,
-                            row.names = names(table(fullListDF[["organism"]])))
+                           stringsAsFactors = F,
+                           row.names = names(table(fullListDF[["organism"]])))
   orgAbundDF <- subset(orgAbundDF,select=-c(Var1))  
   names(funcAbundDF) <- gsub(".RefSeq.annotated.txt","",basename(annFile))
   names(orgAbundDF) <- gsub(".RefSeq.annotated.txt","",basename(annFile))
@@ -56,16 +56,16 @@ convertDiamondAnnotationToAbund <- function(annFile){
 ##' @return Returns a data.frame.
 
 listOfAbundMerge <- function(listOfAbund,names){
-mergedDF <- Reduce(function(x, y) {
-  z <- merge(x, y, all=TRUE,by=0)
-  rownames(z) <- z$Row.names
-  z <- subset(z, select=-c(Row.names))
-  return(z)},
-  listOfAbund)
-names(mergedDF) <- names
-mergedDF[is.na(mergedDF)] = 0
-mergedDF <- mergedDF[apply(mergedDF,1,sd)>0,]
-return(mergedDF)
+  mergedDF <- Reduce(function(x, y) {
+    z <- merge(x, y, all=TRUE,by=0)
+    rownames(z) <- z$Row.names
+    z <- subset(z, select=-c(Row.names))
+    return(z)},
+    listOfAbund)
+  names(mergedDF) <- names
+  mergedDF[is.na(mergedDF)] = 0
+  mergedDF <- mergedDF[apply(mergedDF,1,sd)>0,]
+  return(mergedDF)
 }
 
 ###################################################################
@@ -81,8 +81,8 @@ return(mergedDF)
 ##' @param  a count and a design matrix
 ##' @return Returns a list of tables and plots.
 metagMetatrDifferentialAnalysis_tableAndPlots <- function(countMatrix,designMatrix,
-                                            group,sampleGroup,refGroup,
-                                            mode="expression",DB=NULL,N=30){
+                                                          group,sampleGroup,refGroup,
+                                                          mode="expression",DB=NULL,N=30){
   colnames(designMatrix) <- gsub(" \\[Factor\\]","",colnames(designMatrix))
   design <- model.matrix(~0+designMatrix[[group]])
   colnames(design) <- gsub("designMatrix\\[\\[group\\]\\]","",colnames(design))
@@ -96,34 +96,34 @@ metagMetatrDifferentialAnalysis_tableAndPlots <- function(countMatrix,designMatr
     resDF <- data.frame(results(resObj))
     addTaxa <- resDF[order(resDF$padj),]
     addTaxa <- addTaxa[!is.na(addTaxa$padj),]
-  colsToKeep <- c("log2FoldChange","padj")
-  addTaxa <- addTaxa[,colsToKeep]
-  ## select top 20 to report in the table
-
-  tableToReport <- addTaxa[1:20,]
-  
-  ## mark significance
-  addTaxa$Significance <- "Significant"
-  addTaxa[addTaxa$padj > 0.05,]$Significance <- "nonSignificant"
-  addTaxa$Significance <- as.factor(addTaxa$Significance)
-  addTaxa$Significance <- factor(addTaxa$Significance, 
-                                 levels = rev(levels(addTaxa$Significance)))
-
-  ### volcano plot
-  title <- "Volcano plot (padj threshold  = 0.05)"
-  volcanoPlot <- ggplot(addTaxa, aes(y=-log10(padj), x=log2FoldChange)) +
-    geom_point(aes(color=Significance),size=3) 
-  volcanoPlot <- volcanoPlot + labs(title=title) + 
-    theme(plot.title=element_text(size=10,hjust=0.5))
-  volcanoPlot <- volcanoPlot + geom_hline(yintercept=1.3, color="blue") + 
-    labs(color="Significance")
-  return(list(vPlot=volcanoPlot,tableToReport=tableToReport))
+    colsToKeep <- c("log2FoldChange","padj")
+    addTaxa <- addTaxa[,colsToKeep]
+    ## select top 20 to report in the table
+    
+    tableToReport <- addTaxa[1:20,]
+    
+    ## mark significance
+    addTaxa$Significance <- "Significant"
+    addTaxa[addTaxa$padj > 0.05,]$Significance <- "nonSignificant"
+    addTaxa$Significance <- as.factor(addTaxa$Significance)
+    addTaxa$Significance <- factor(addTaxa$Significance, 
+                                   levels = rev(levels(addTaxa$Significance)))
+    
+    ### volcano plot
+    title <- "Volcano plot (padj threshold  = 0.05)"
+    volcanoPlot <- ggplot(addTaxa, aes(y=-log10(padj), x=log2FoldChange)) +
+      geom_point(aes(color=Significance),size=3) 
+    volcanoPlot <- volcanoPlot + labs(title=title) + 
+      theme(plot.title=element_text(size=10,hjust=0.5))
+    volcanoPlot <- volcanoPlot + geom_hline(yintercept=1.3, color="blue") + 
+      labs(color="Significance")
+    return(list(vPlot=volcanoPlot,tableToReport=tableToReport))
   } else {
     ### p-value
     toGetValue <- function(x,y) {
-        result  = round(t.test(x,y)$p.value, 3)
-          return(result)
-        }
+      result  = round(t.test(x,y)$p.value, 3)
+      return(result)
+    }
     filteredMatrixLog <- log10(filteredMatrix+0.001)
     samplesGroup1 <- rownames(designMatrix[designMatrix[[group]]  == sampleGroup,])
     samplesGroup2 <- rownames(designMatrix[designMatrix[[group]]  == refGroup,])
@@ -174,19 +174,19 @@ filterCountsForDiffExpr <- function(DF, desMat, groupName, group1, group2){
 ##' @param  a list of annotated org/func abundance table
 ##' @return Returns a data.frame
 orgFuncHeatmapPrep <- function(listOfAnnotatedAbundTable,diffTableFunc){
-selectMap <- listOfAnnotatedAbundTable[["funcOrgMap"]]
-topDiff <- grep("hypothetical_protein",rownames(diffTableFunc$tableToReport)[1:20],
-                invert = T, value = T)
-ff <- selectMap[selectMap[["function"]]%in%topDiff,]
-ff1 <- lapply(unique(ff[["organism"]]), function(x){
-                     pp <- data.frame(table(ff[ff$organism == x,"function"]))
-                     rownames(pp) <- pp$Var1
-                     pp <- subset(pp, select=-c(Var1))
-                     names(pp) = x
-                     return(pp)
-                                })
-finalDFforTopFuncAbundPlot <- listOfAbundMerge(ff1,unique(ff[["organism"]]))
-return(finalDFforTopFuncAbundPlot) 
+  selectMap <- listOfAnnotatedAbundTable[["funcOrgMap"]]
+  topDiff <- grep("hypothetical_protein",rownames(diffTableFunc$tableToReport)[1:20],
+                  invert = T, value = T)
+  ff <- selectMap[selectMap[["function"]]%in%topDiff,]
+  ff1 <- lapply(unique(ff[["organism"]]), function(x){
+    pp <- data.frame(table(ff[ff$organism == x,"function"]))
+    rownames(pp) <- pp$Var1
+    pp <- subset(pp, select=-c(Var1))
+    names(pp) = x
+    return(pp)
+  })
+  finalDFforTopFuncAbundPlot <- listOfAbundMerge(ff1,unique(ff[["organism"]]))
+  return(finalDFforTopFuncAbundPlot) 
 }
 
 ###################################################################

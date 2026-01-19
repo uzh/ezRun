@@ -258,7 +258,7 @@ twoGroupsGOSE = function(param, se, method="Wallenius"){
   job = ezJobStart("twoGroupsGO")
   require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
   require("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-
+  
   ontologies = c("BP", "MF", "CC")
   #goResults = list()
   #for (onto in ontologies){
@@ -669,17 +669,17 @@ clusterPheatmap <- function(x, design, param,
   }else{
     colDendro <- FALSE
   }
-
+  
   ann_colors <- c(condColors, 
                   list(Clusters=set_names(clusterColors, levels(clusters))))
   
   p <- pheatmap(x, color=colors, clustering_method=method,
-           breaks=seq(from=lim[1], to=lim[2], length.out=257),
-           scale="none", cluster_rows=clusterInfo$tree_row,
-           cluster_cols=colDendro,
-           show_rownames=isShowRowNames,
-           annotation_col = design, annotation_row=annotation_row,
-           annotation_colors = ann_colors, silent=TRUE, ...)
+                breaks=seq(from=lim[1], to=lim[2], length.out=257),
+                scale="none", cluster_rows=clusterInfo$tree_row,
+                cluster_cols=colDendro,
+                show_rownames=isShowRowNames,
+                annotation_col = design, annotation_row=annotation_row,
+                annotation_colors = ann_colors, silent=TRUE, ...)
   
   ans <- list(nClusters=nClusters, clusterNumbers=clusters,
               clusterColors=clusterColors, hcl=clusterInfo$tree_row,

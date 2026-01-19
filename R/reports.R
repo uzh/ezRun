@@ -86,9 +86,9 @@ ezFlexTable <- function(x, border = 1, valign = "top", talign = "left", header.c
   bodyPars <- parProperties(text.align = talign)
   headerCells <- cellProperties(border.width = border, padding = 2)
   FlexTable(x,
-    body.cell.props = bodyCells, body.par.props = bodyPars,
-    header.cell.props = headerCells,
-    header.columns = header.columns, ...
+            body.cell.props = bodyCells, body.par.props = bodyPars,
+            header.cell.props = headerCells,
+            header.columns = header.columns, ...
   )
 }
 
@@ -98,9 +98,9 @@ ezGrid <- function(x, header.columns = FALSE, valign = "top", ...) {
     x <- ezFrame(x)
   }
   FlexTable(x,
-    body.cell.props = cellProperties(border.width = 0, vertical.align = valign),
-    header.cell.props = cellProperties(border.width = 0),
-    header.columns = header.columns, ...
+            body.cell.props = cellProperties(border.width = 0, vertical.align = valign),
+            header.cell.props = cellProperties(border.width = 0),
+            header.columns = header.columns, ...
   )
 }
 
@@ -135,8 +135,8 @@ makeCountResultSummary <- function(param, se) {
   if (ezIsSpecified(param$sampleGroupBaseline) && 
       ezIsSpecified(param$refGroupBaseline)) {
     settings["Baseline correction:"] <- str_c(param$sampleGroupBaseline, "and",
-      param$refGroupBaseline,
-      sep = " "
+                                              param$refGroupBaseline,
+                                              sep = " "
     )
   }
   settings["Comparison:"] <- param$comparison
@@ -187,7 +187,7 @@ getSignificantCountsTableSE <- function(se, pThresh = 1 / 10^(1:5), genes = NULL
     }
     if (sigTable[i, "#significants"] > 0) {
       sigTable[i, "FDR"] <- signif(max(rowData(se)$fdr[isSig], na.rm = TRUE),
-        digits = 4
+                                   digits = 4
       )
     }
   }
@@ -198,7 +198,7 @@ getSignificantCountsTableSE <- function(se, pThresh = 1 / 10^(1:5), genes = NULL
 getSignificantFoldChangeCountsTable <- function(result, pThresh = 1 / 10^(1:5),
                                                 fcThresh = c(1, 1.5, 2, 3, 4, 8, 10),
                                                 genes = NULL) {
-
+  
   ## counts the significant entries
   ## if genes is given counts the number of different genes that are significant
   if (!is.null(result$log2Ratio)) {
@@ -207,7 +207,7 @@ getSignificantFoldChangeCountsTable <- function(result, pThresh = 1 / 10^(1:5),
     stopifnot(!is.null(result$log2Effect))
     fc <- 2^abs(result$log2Effect)
   }
-
+  
   sigFcTable <- ezMatrix(NA, rows = paste("p <", pThresh), cols = paste("fc >=", fcThresh))
   for (i in 1:length(pThresh)) {
     for (j in 1:length(fcThresh)) {
@@ -225,7 +225,7 @@ getSignificantFoldChangeCountsTable <- function(result, pThresh = 1 / 10^(1:5),
 getSignificantFoldChangeCountsTableSE <- function(se, pThresh = 1 / 10^(1:5),
                                                   fcThresh = c(1, 1.5, 2, 3, 4, 8, 10),
                                                   genes = NULL) {
-
+  
   ## counts the significant entries
   ## if genes is given counts the number of different genes that are significant
   if (!is.null(rowData(se)$log2Ratio)) {
@@ -234,7 +234,7 @@ getSignificantFoldChangeCountsTableSE <- function(se, pThresh = 1 / 10^(1:5),
     stopifnot(!is.null(rowData(se)$log2Effect))
     fc <- 2^abs(rowData(se)$log2Effect)
   }
-
+  
   sigFcTable <- ezMatrix(NA, rows = paste("p <", pThresh), cols = paste("fc >=", fcThresh))
   for (i in 1:length(pThresh)) {
     for (j in 1:length(fcThresh)) {
@@ -383,8 +383,8 @@ makeResultFile <- function(param, se, useInOutput = TRUE,
   library(tidyselect)
   se <- se[useInOutput, ]
   y <- data.frame(rowData(se),
-    row.names = rownames(se),
-    stringsAsFactors = FALSE, check.names = FALSE
+                  row.names = rownames(se),
+                  stringsAsFactors = FALSE, check.names = FALSE
   ) %>% as_tibble()
   y <- bind_cols(y, as_tibble(granges(rowRanges(se))))
   y <- y %>%
@@ -396,7 +396,7 @@ makeResultFile <- function(param, se, useInOutput = TRUE,
   if (has_name(y, "gfold")) {
     y <- y %>% rename("gfold (log2 Change)" = gfold)
   }
-
+  
   if ("xNorm" %in% names(assays(se))) {
     yy <- assays(se)$xNorm %>% as_tibble()
     yyy <- tibble(rowMeans(log2(1+yy)))
@@ -404,20 +404,20 @@ makeResultFile <- function(param, se, useInOutput = TRUE,
     yy <- rename_with(yy, ~ str_c(.x, "[normalized count]", sep = " "))
     y <- bind_cols(y, yyy, yy)
   }
-
+  
   yy <- getRpkm(se) %>% as_tibble()
   yy <- rename_with(yy, ~ str_c(.x, "[FPKM]", sep = " "))
   y <- bind_cols(y, yy)
-
+  
   if (has_name(y, "featWidth")) {
     y <- y %>% mutate(featWidth = as.integer(featWidth))
   }
   y <- arrange(y, fdr, pValue)
   write_xlsx(y, path = file)
-
+  
   ans <- list()
   ans$resultFile <- file
-
+  
   ## Interactive gene tables
   useInInteractiveTable <- c(
     "gene_name", "type", "description", "featWidth", "gc",
@@ -425,14 +425,14 @@ makeResultFile <- function(param, se, useInOutput = TRUE,
   )
   useInInteractiveTable <- intersect(useInInteractiveTable, colnames(y))
   tableLink <- str_replace(file, "\\.xlsx$", "-viewTopSignificantGenes.html")
-
+  
   tableDT <- ezInteractiveTableRmd(dplyr::select(y, all_of(useInInteractiveTable)) %>%
-    head(param$maxTableRows),
-  digits = 3,
-  title = str_c("Showing the", param$maxTableRows,
-    "most significant genes",
-    sep = " "
-  )
+                                     head(param$maxTableRows),
+                                   digits = 3,
+                                   title = str_c("Showing the", param$maxTableRows,
+                                                 "most significant genes",
+                                                 sep = " "
+                                   )
   )
   DT::saveWidget(tableDT, tableLink)
   ans$resultHtml <- tableLink
@@ -448,20 +448,20 @@ makeWebgestaltFiles <- function(param, resultFile) {
   comparison <- basename(resultFile) %>%
     str_replace("^result--", "") %>%
     str_replace("\\.xlsx$", "")
-
+  
   write_tsv(result %>% filter(isPresent) %>% dplyr::select(1),
-    str_c("ORA_BG_Webgestalt_", comparison, ".txt"),
-    col_names = FALSE
+            str_c("ORA_BG_Webgestalt_", comparison, ".txt"),
+            col_names = FALSE
   )
   write_tsv(result %>% dplyr::select(1, `log2 Ratio`),
-    str_c("GSEA_Input_log2FC_Webgestalt_", comparison, ".rnk"),
-    col_names = FALSE
+            str_c("GSEA_Input_log2FC_Webgestalt_", comparison, ".rnk"),
+            col_names = FALSE
   )
   write_tsv(result %>% filter(isPresent) %>%
-    mutate(GSEA_pVal = sign(`log2 Ratio`) * -log10(pValue)) %>%
-    dplyr::select(1, GSEA_pVal),
-  str_c("GSEA_Input_pVal_Webgestalt_", comparison, ".rnk"),
-  col_names = FALSE
+              mutate(GSEA_pVal = sign(`log2 Ratio`) * -log10(pValue)) %>%
+              dplyr::select(1, GSEA_pVal),
+            str_c("GSEA_Input_pVal_Webgestalt_", comparison, ".rnk"),
+            col_names = FALSE
   )
   write_tsv(result %>% filter(
     isPresent, pValue < param[["pValueHighlightThresh"]],
