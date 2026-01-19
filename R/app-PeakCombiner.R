@@ -218,6 +218,8 @@ writeIgvSessionFile <- function(param, output, jsonFileName, bigwigFiles, baseUr
 
 
 #' @template app-template
+#' @templateVar method ezMethodCombinePeaks(input=NA, output=NA, param=NA)
+#' @description Use this reference class to run the Peak Combiner application.
 EzAppPeakCombiner <-
     setRefClass(
         "EzAppPeakCombiner",
