@@ -220,7 +220,7 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
 
     if (!is.null(scevanResult)) {
       resultsList[[sampleName]] <- scevanResult
-      message("  ✓ Sample ", sampleName, " completed successfully")
+      message("  [v] Sample ", sampleName, " completed successfully")
     } else {
       failedSamples <- c(failedSamples, sampleName)
     }
@@ -287,7 +287,7 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
     })
 
     if (!is.null(multiSampleResults)) {
-      message("✓ Multi-sample comparison completed")
+      message("[v] Multi-sample comparison completed")
     }
   }
 
@@ -298,17 +298,17 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
 
   # Save SCEVAN results
   qs2::qs_save(resultsList, "scevan_results_list.qs2", nthreads = param$cores)
-  message("✓ Saved SCEVAN results list")
+  message("[v] Saved SCEVAN results list")
 
   if (!is.null(multiSampleResults)) {
     qs2::qs_save(multiSampleResults, "scevan_multi_sample_results.qs2",
                  nthreads = param$cores)
-    message("✓ Saved multi-sample comparison results")
+    message("[v] Saved multi-sample comparison results")
   }
 
   # Save Seurat object for report
   qs2::qs_save(seuratObj, "seurat_object.qs2", nthreads = param$cores)
-  message("✓ Saved Seurat object")
+  message("[v] Saved Seurat object")
 
   # Save parameters for Rmd
   paramForRmd <- param
@@ -318,7 +318,7 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
   paramForRmd$nSuccessful <- nSuccessful
   paramForRmd$failedSamples <- failedSamples
   write_rds(paramForRmd, 'param.rds')
-  message("✓ Saved parameters")
+  message("[v] Saved parameters")
 
   # ============================================================================
   # 11. GENERATE HTML REPORT
@@ -335,7 +335,7 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
   # ============================================================================
   # 12. RETURN SUCCESS
   # ============================================================================
-  message("\n✓ SCEVAN analysis completed successfully!\n")
+  message("\n[v] SCEVAN analysis completed successfully!\n")
   return("Success")
 }
 

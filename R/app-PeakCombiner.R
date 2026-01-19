@@ -69,7 +69,7 @@ ezMethodCombinePeaks <- function(input = NA,
                   row.names = FALSE)
     message("Wrote ",
             length(collapsed),
-            " peaks (in ≥",
+            " peaks (in >=",
             param$minSamples,
             " samples) to ",
             outBed)
