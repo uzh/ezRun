@@ -14,8 +14,8 @@ if (!exists("EZ_GLOBAL_VARIABLES")){
                                       package="ezRun", mustWork = TRUE)
 }
 if (file.exists(EZ_GLOBAL_VARIABLES)){
-  ezLog(paste("loading EZ_GLOBAL_VARIABLES  from: ", EZ_GLOBAL_VARIABLES))
+  ezWrite(paste("loading EZ_GLOBAL_VARIABLES  from: ", EZ_GLOBAL_VARIABLES))
   source(EZ_GLOBAL_VARIABLES, local = TRUE)
 } else {
-  ezLog(paste("EZ_GLOBAL_VARIABLES file defined but does not exist: ", EZ_GLOBAL_VARIABLES))    
+  ezWrite(paste("EZ_GLOBAL_VARIABLES file defined but does not exist: ", EZ_GLOBAL_VARIABLES))    
 }
