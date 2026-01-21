@@ -13,7 +13,7 @@ editor_options:
 
 # {.tabset}
 
-Cell Filtering {.tabset}
+## Cell Filtering {.tabset}
 
 ```{r setup, include=FALSE}
 library(Seurat)
@@ -1695,7 +1695,7 @@ genesToPlot <- intersect(genesToPlot, rownames(scData))
 Visualization of the top 5 markers in each cluster. If a gene is a top marker for multiple clusters it is shown only once.
 
 
-```{r dotplot banksy, fig.width  = 20, fig.height = 30, eval=has_banksy && nrow(posMarkersBanksy) > 0 && has_niche_genes}
+```{r dotplot banksy, fig.width  = 20, fig.height = 30, eval=has_banksy && length(genesToPlot) > 0}
 
 DotPlot(scData, features=rev(genesToPlot)) + 
   coord_flip() +
