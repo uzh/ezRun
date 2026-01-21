@@ -60,7 +60,8 @@ tryCatch({
 Idents(scData) <- scData@meta.data[[param$grouping]]
 scData <- subset(scData, idents=c(param$sampleGroup, param$refGroup))
 #values need to be re-scaled after subsetting for plotting purposes
-scData <- ScaleData(scData)
+# Scale all features to ensure conserved markers are available for DoHeatmap
+scData <- ScaleData(scData, features = rownames(scData))
 Idents(scData) <- scData@meta.data[[param$CellIdentity]]
 clusterNames <- sort(unique(Idents(scData)))
 var_heigth <- 1
@@ -144,8 +145,8 @@ cat("\n")
 tryCatch({
   DoHeatmap(scData, features=top5$gene)
 }, error = function(e) {
-  if (grepl("No requested features found in the scale.data slot", e$message)) {
-    message("Note: Could not generate heatmap because the requested features were not found in the scale.data slot.")
+  if (grepl("No requested features found in the scale.data (slot|layer)", e$message)) {
+    message("Note: Could not generate heatmap because the requested features were not found in the scale.data layer.")
   } else {
     # Re-throw any other errors
     stop(e)
