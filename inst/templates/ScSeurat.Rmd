@@ -582,7 +582,7 @@ p2 <- Seurat::LabelClusters(
 <br/>
 
 ::: {.row}
-::: {.col-md-9}
+::: {.col-md-6}
 
 ```{r number of cells in each cluster}
 cellIdents_perSample <- data.frame(ident = Idents(scData), Sample=scData$Sample)
@@ -615,8 +615,8 @@ ggplot(cellIdents_perSample, aes(x = seurat_clusters,
 
 :::
 
-::: {.row}
-::: {.col-md-3}
+
+::: {.col-md-6}
 
 ```{r cells/cluster}
 
@@ -660,6 +660,7 @@ datatable(
 
 # kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
+:::
 :::
 
 ### Clustering
