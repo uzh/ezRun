@@ -5,8 +5,12 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-ezMethodVcfStats <- function(input = NA, output = NA, param = NA,
-                           htmlFile = "00index.html") {
+ezMethodVcfStats <- function(
+  input = NA,
+  output = NA,
+  param = NA,
+  htmlFile = "00index.html"
+) {
   # #setwdNew(basename(output$getColumn("Report")))
   dataset <- input$meta
   ans4Report <- list() # a list of results for rmarkdown report
@@ -32,7 +36,12 @@ ezMethodVcfStats <- function(input = NA, output = NA, param = NA,
   tstv <- file.path(output_dir, "vcf_stats.samples-tstv")
 
   # run vcf-stats
-  cmd <- paste("vcf-stats", file.path("/srv/gstore/projects", input$getColumn("Filtered VCF")), "-p", prefix)
+  cmd <- paste(
+    "vcf-stats",
+    file.path("/srv/gstore/projects", input$getColumn("Filtered VCF")),
+    "-p",
+    prefix
+  )
   result <- ezSystem(cmd)
   gc()
 
@@ -40,19 +49,24 @@ ezMethodVcfStats <- function(input = NA, output = NA, param = NA,
   styleFiles <- file.path(
     system.file("templates", package = "ezRun"),
     c(
-      "fgcz.css", "VcfStats.Rmd",
-      "fgcz_header.html", "banner.png"
+      "fgcz.css",
+      "VcfStats.Rmd",
+      "fgcz_header.html",
+      "banner.png"
     )
   )
   file.copy(from = styleFiles, to = ".", overwrite = TRUE)
 
   ### generate the main reports
   rmarkdown::render(
-    input = "VcfStats.Rmd", envir = new.env(),
-    output_dir = ".", output_file = htmlFile, quiet = TRUE
+    input = "VcfStats.Rmd",
+    envir = new.env(),
+    output_dir = ".",
+    output_file = htmlFile,
+    quiet = TRUE
   )
 
-  html_files <- c("00index.html",  "banner.png",  "fgcz.css",  "fgcz_header.html")
+  html_files <- c("00index.html", "banner.png", "fgcz.css", "fgcz_header.html")
   file.copy(from = html_files, to = "vcf_stats")
   cmd <- "mv rmarkdownLib vcf_stats"
   ezSystem(cmd)
@@ -75,15 +89,21 @@ ezMethodVcfStats <- function(input = NA, output = NA, param = NA,
 ##'   {Creates and returns the images used by \code{plotQualityMatrixAsHeatmap()}.}
 ##' }
 EzAppVcfStats <-
-  setRefClass("EzAppVcfStats",
+  setRefClass(
+    "EzAppVcfStats",
     contains = "EzApp",
     methods = list(
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodVcfStats
         name <<- "EzAppVcfStats"
-        appDefaults <<- rbind(perLibrary = ezFrame(Type = "logical", DefaultValue = TRUE, Description = "VcfStats brabra"))
+        appDefaults <<- rbind(
+          perLibrary = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "VcfStats brabra"
+          )
+        )
       }
     )
   )
-

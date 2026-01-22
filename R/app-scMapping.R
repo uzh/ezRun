@@ -7,7 +7,8 @@
 
 ### EzAppSingleCellSTAR
 EzAppSingleCellSTAR <-
-  setRefClass("EzAppSingleCellSTAR",
+  setRefClass(
+    "EzAppSingleCellSTAR",
     contains = "EzApp",
     methods = list(
       initialize = function() {
@@ -50,7 +51,8 @@ ezMethodSingleCellSTAR <- function(input = NA, output = NA, param = NA) {
   if (isSingleBam) {
     ## Read 1 is uBam
     fastqInput <- ezMethodBam2Fastq(
-      input = input, param = param,
+      input = input,
+      param = param,
       OUTPUT_PER_RG = TRUE
     )
   } else {
@@ -67,7 +69,10 @@ ezMethodSingleCellSTAR <- function(input = NA, output = NA, param = NA) {
   preprocessLogFns <- str_c(trimmedInput$getNames(), "_preprocessing.log")
   preprocessLogs <- map(preprocessLogFns, read_lines) %>% unlist()
   file.remove(preprocessLogFns)
-  write_lines(preprocessLogs, file = str_c(input$getNames(), "_preprocessing.log"))
+  write_lines(
+    preprocessLogs,
+    file = str_c(input$getNames(), "_preprocessing.log")
+  )
 
   # Clean converted fastqs
   if (isSingleBam) {
@@ -79,14 +84,17 @@ ezMethodSingleCellSTAR <- function(input = NA, output = NA, param = NA) {
 
   ## fastq to bam
   trimmedBamFn <- tempfile(
-    pattern = "trimmedBam", tmpdir = getwd(), fileext = ".bam"
+    pattern = "trimmedBam",
+    tmpdir = getwd(),
+    fileext = ".bam"
   )
   if (param$paired) {
     fastqs2bam(
       fastqFns = trimmedInput$getFullPaths("Read1"),
       fastq2Fns = trimmedInput$getFullPaths("Read2"),
       readGroupNames = trimmedInput$getNames(),
-      bamFn = trimmedBamFn, mc.cores = param$cores
+      bamFn = trimmedBamFn,
+      mc.cores = param$cores
     )
     file.remove(c(
       trimmedInput$getFullPaths("Read1"),
@@ -96,7 +104,8 @@ ezMethodSingleCellSTAR <- function(input = NA, output = NA, param = NA) {
     fastqs2bam(
       fastqFns = trimmedInput$getFullPaths("Read1"),
       readGroupNames = trimmedInput$getNames(),
-      bamFn = trimmedBamFn, mc.cores = param$cores
+      bamFn = trimmedBamFn,
+      mc.cores = param$cores
     )
     file.remove(trimmedInput$getFullPaths("Read1"))
   }
@@ -107,7 +116,8 @@ ezMethodSingleCellSTAR <- function(input = NA, output = NA, param = NA) {
   inputTrimmed$setColumn("Read1", trimmedBamFn)
   inputTrimmed$dataRoot <- NULL
   alignerInput <- ezMethodBam2Fastq(
-    input = inputTrimmed, param = param,
+    input = inputTrimmed,
+    param = param,
     OUTPUT_PER_RG = FALSE
   )
 
@@ -124,23 +134,33 @@ ezMethodSingleCellSTAR <- function(input = NA, output = NA, param = NA) {
   if (ezIsSpecified(param$controlSeqs)) {
     ## control sequences
     controlSeqsLocalFn <- tempfile(
-      pattern = "controlSeqs", tmpdir = getwd(), fileext = ".fa"
+      pattern = "controlSeqs",
+      tmpdir = getwd(),
+      fileext = ".fa"
     )
-    writeXStringSet(getControlSeqs(param$controlSeqs), filepath = controlSeqsLocalFn)
+    writeXStringSet(
+      getControlSeqs(param$controlSeqs),
+      filepath = controlSeqsLocalFn
+    )
     defer(file.remove(controlSeqsLocalFn))
 
     genomeLocalFn <- tempfile(
-      pattern = "genome", tmpdir = getwd(), fileext = ".fa"
+      pattern = "genome",
+      tmpdir = getwd(),
+      fileext = ".fa"
     )
     file.copy(from = genomeFn, to = genomeLocalFn)
-    writeXStringSet(getControlSeqs(param$controlSeqs),
+    writeXStringSet(
+      getControlSeqs(param$controlSeqs),
       filepath = genomeLocalFn,
       append = TRUE
     )
     dictFile <- sub(".fa$", ".dict", genomeLocalFn)
     cmd <- str_c(
-      prepareJavaTools("picard"), "CreateSequenceDictionary",
-      str_c("R=", genomeLocalFn), str_c("O=", dictFile),
+      prepareJavaTools("picard"),
+      "CreateSequenceDictionary",
+      str_c("R=", genomeLocalFn),
+      str_c("O=", dictFile),
       sep = " "
     )
     ezSystem(cmd)
@@ -150,14 +170,25 @@ ezMethodSingleCellSTAR <- function(input = NA, output = NA, param = NA) {
   }
 
   cmd <- str_c(
-    "STAR", " --genomeDir", refDir, "--sjdbOverhang 150",
-    "--readFilesIn", alignerInput$getColumn("Read1"),
+    "STAR",
+    " --genomeDir",
+    refDir,
+    "--sjdbOverhang 150",
+    "--readFilesIn",
+    alignerInput$getColumn("Read1"),
     ifelse(param$paired, alignerInput$getColumn("Read2"), ""),
-    "--twopassMode", if_else(param$twopassMode, "Basic", "None"),
-    ifelse(ezIsSpecified(param$controlSeqs),
-            str_c("--genomeFastaFiles", controlSeqsLocalFn, sep = " "), ""),
-    "--runThreadN", param$cores, param$cmdOptions,
-    "--outStd BAM_Unsorted --outSAMtype BAM Unsorted", ">  Aligned.out.bam",
+    "--twopassMode",
+    if_else(param$twopassMode, "Basic", "None"),
+    ifelse(
+      ezIsSpecified(param$controlSeqs),
+      str_c("--genomeFastaFiles", controlSeqsLocalFn, sep = " "),
+      ""
+    ),
+    "--runThreadN",
+    param$cores,
+    param$cmdOptions,
+    "--outStd BAM_Unsorted --outSAMtype BAM Unsorted",
+    ">  Aligned.out.bam",
     sep = " "
   )
   ezSystem(cmd)
@@ -186,28 +217,55 @@ ezMethodSingleCellSTAR <- function(input = NA, output = NA, param = NA) {
   file.rename("Log.final.out", to = basename(output$getColumn("STARLog")))
 
   if (!is.null(param$markDuplicates) && param$markDuplicates) {
-    ezSortIndexBam("Aligned.out.bam", "sorted.bam",
-      ram = param$ram, removeBam = TRUE, cores = nSortThreads
+    ezSortIndexBam(
+      "Aligned.out.bam",
+      "sorted.bam",
+      ram = param$ram,
+      removeBam = TRUE,
+      cores = nSortThreads
     )
-    dupBam(inBam = "sorted.bam", outBam = basename(bamFile), operation = "mark", ram = param$ram)
+    dupBam(
+      inBam = "sorted.bam",
+      outBam = basename(bamFile),
+      operation = "mark",
+      ram = param$ram
+    )
     file.remove(c("sorted.bam", "sorted.bam.bai"))
   } else {
-    ezSortIndexBam("Aligned.out.bam", basename(bamFile),
-      ram = param$ram, removeBam = TRUE, cores = nSortThreads
+    ezSortIndexBam(
+      "Aligned.out.bam",
+      basename(bamFile),
+      ram = param$ram,
+      removeBam = TRUE,
+      cores = nSortThreads
     )
   }
 
   if (param$getJunctions) {
-    file.rename(from = "SJ.out.tab", to = basename(output$getColumn("Junctions")))
-    file.rename(from = "Chimeric.out.junction", to = basename(output$getColumn("Chimerics")))
+    file.rename(
+      from = "SJ.out.tab",
+      to = basename(output$getColumn("Junctions"))
+    )
+    file.rename(
+      from = "Chimeric.out.junction",
+      to = basename(output$getColumn("Chimerics"))
+    )
   } else {
-    defer(file.remove(c("SJ.out.tab", "Chimeric.out.junction", "Chimeric.out.sam")))
+    defer(file.remove(c(
+      "SJ.out.tab",
+      "Chimeric.out.junction",
+      "Chimeric.out.sam"
+    )))
   }
 
   ## check the strandedness
   ezSystem(str_c(
-    "infer_experiment.py", "-r", getReferenceFeaturesBed(param),
-    "-i", basename(bamFile), "-s 1000000",
+    "infer_experiment.py",
+    "-r",
+    getReferenceFeaturesBed(param),
+    "-i",
+    basename(bamFile),
+    "-s 1000000",
     sep = " "
   ))
 

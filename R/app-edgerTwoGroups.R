@@ -5,7 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
 ezMethodEdger <- function(input = NA, output = NA, param = NA) {
   require(withr)
   cwd <- getwd()
@@ -21,7 +20,7 @@ ezMethodEdger <- function(input = NA, output = NA, param = NA) {
     param$grouping2Name <- param$grouping2
     param$grouping2 <- input$getColumn(param$grouping2)
     groupNum <- as.numeric(param$grouping2)
-    if (all(!is.na(groupNum))){
+    if (all(!is.na(groupNum))) {
       param$grouping2 <- setNames(groupNum, names(param$grouping2))
     }
   }
@@ -39,10 +38,13 @@ ezMethodEdger <- function(input = NA, output = NA, param = NA) {
   }
 
   makeRmdReport(
-    output = output, param = param, deResult = deResult,
-    rmdFile = "twoGroups.Rmd", reportTitle = param$comparison
+    output = output,
+    param = param,
+    deResult = deResult,
+    rmdFile = "twoGroups.Rmd",
+    reportTitle = param$comparison
   )
-  rmStatus <- file.remove(list.files(pattern="enrichr-.*rds"))
+  rmStatus <- file.remove(list.files(pattern = "enrichr-.*rds"))
   return("Success")
 }
 
@@ -50,7 +52,8 @@ ezMethodEdger <- function(input = NA, output = NA, param = NA) {
 ##' @templateVar method ezMethodEdger(input=NA, output=NA, param=NA, htmlFile="00index.html")
 ##' @description Use this reference class to run a differential expression analysis with the application edgeR on two groups.
 EzAppEdger <-
-  setRefClass("EzAppEdger",
+  setRefClass(
+    "EzAppEdger",
     contains = "EzApp",
     methods = list(
       initialize = function() {
@@ -59,35 +62,43 @@ EzAppEdger <-
         name <<- "EzAppEdger"
         appDefaults <<- rbind(
           testMethod = ezFrame(
-            Type = "character", DefaultValue = "glm",
+            Type = "character",
+            DefaultValue = "glm",
             Description = "which test method in edgeR to use: glm or exactTest"
           ),
           normMethod = ezFrame(
-            Type = "character", DefaultValue = "TMM",
+            Type = "character",
+            DefaultValue = "TMM",
             Description = "edgeR's norm method: TMM, upperquartile, RLE, or none"
           ),
           useRefGroupAsBaseline = ezFrame(
-            Type = "logical", DefaultValue = FALSE,
+            Type = "logical",
+            DefaultValue = FALSE,
             Description = "should the log-ratios be centered at the reference samples"
           ),
           onlyCompGroupsHeatmap = ezFrame(
-            Type = "logical", DefaultValue = FALSE,
+            Type = "logical",
+            DefaultValue = FALSE,
             Description = "Only show the samples from comparison groups in heatmap"
           ),
           priorCount = ezFrame(
-            Type = "numeric", DefaultValue = 10,
+            Type = "numeric",
+            DefaultValue = 10,
             Description = "prior count to be added to shrink the log-fold-changes"
           ),
           deTest = ezFrame(
-            Type = "character", DefaultValue = "QL",
+            Type = "character",
+            DefaultValue = "QL",
             Description = "edgeR's differential expression test method: QL or LR"
           ),
           runGfold = ezFrame(
-            Type = "logical", DefaultValue = FALSE,
+            Type = "logical",
+            DefaultValue = FALSE,
             Description = "should gfold run"
           ),
           doPrecomputeEnrichr = ezFrame(
-            Type = "logical", DefaultValue = FALSE,
+            Type = "logical",
+            DefaultValue = FALSE,
             Description = "should enrichr be precomputed"
           )
         )

@@ -5,9 +5,12 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
-doEnrichr = function(param){
-  grepl("^Homo_|^Rattus_|^Sus_|^Canis_|^Mus_|^Felis_|^Equus_|^Bos_|^Ovis_|^Oryctolagus_|^Neovison_|^Vulpes_", getOrganism(param$ezRef)) & param$featureLevel == "gene"
+doEnrichr = function(param) {
+  grepl(
+    "^Homo_|^Rattus_|^Sus_|^Canis_|^Mus_|^Felis_|^Equus_|^Bos_|^Ovis_|^Oryctolagus_|^Neovison_|^Vulpes_",
+    getOrganism(param$ezRef)
+  ) &
+    param$featureLevel == "gene"
 }
 
 ##' @title Run Enrichr
@@ -60,25 +63,41 @@ doEnrichr = function(param){
 ##' resFilt <- filterEnrichrResults(res$success, maxPAdj = 0.01, maxZ = -3, minCombinedScore = 12, minOverlapGenes = 3)
 ##' }
 ##' @author Roman Briskine
-runEnrichr <- function(genes, minScore = 12, maxAdjP = 0.01, minOverlapGenes = 3, softFilter = F, 
-                       maxResult = NA, connectionN = 10) {
+runEnrichr <- function(
+  genes,
+  minScore = 12,
+  maxAdjP = 0.01,
+  minOverlapGenes = 3,
+  softFilter = F,
+  maxResult = NA,
+  connectionN = 10
+) {
   geneListResp <- enrichrAddList(genes)
-  if (is.null(geneListResp)){
+  if (is.null(geneListResp)) {
     return(list())
   }
   res <- enrichrEnrich(geneListResp$userListId, connectionN = connectionN)
   failureN <- length(res$failure)
   if (failureN > 0) {
-    message("There were ", failureN, " failures while running Enrichr. First is displayed below.")
+    message(
+      "There were ",
+      failureN,
+      " failures while running Enrichr. First is displayed below."
+    )
     message(res$failure[[1]])
   }
   resFilt <- list()
   if (length(res$success) > 0) {
     res$success = res$success[sapply(res$success, is.data.frame)]
     if (length(res$success) > 0) {
-      resFilt <- filterEnrichrResults(res$success, minCombinedScore = minScore, maxPAdj = maxAdjP, 
-                                      minOverlapGenes = minOverlapGenes, softFilter = softFilter,
-                                      maxResult = maxResult)
+      resFilt <- filterEnrichrResults(
+        res$success,
+        minCombinedScore = minScore,
+        maxPAdj = maxAdjP,
+        minOverlapGenes = minOverlapGenes,
+        softFilter = softFilter,
+        maxResult = maxResult
+      )
     }
   }
   resFilt
@@ -94,13 +113,13 @@ runEnrichr <- function(genes, minScore = 12, maxAdjP = 0.01, minOverlapGenes = 3
 ##' @author Roman Briskine
 enrichrAddList <- function(genes) {
   require(httr, quietly = T, warn.conflicts = WARN_CONFLICTS)
-  
+
   reqUrl <- paste(ENRICHR_BASE_URL, "addList", sep = "/")
-  
+
   if (is.null(genes) || length(genes) < 1) {
     stop("The gene list should contain at least one gene")
   }
-  
+
   geneStr <- paste(genes, collapse = "\n")
   resp <- POST(reqUrl, body = list(list = geneStr))
   if (http_error(resp)) {
@@ -108,11 +127,13 @@ enrichrAddList <- function(genes) {
     return(NULL)
   }
   respParsed <- jsonlite::fromJSON(httr::content(resp, as = "text"))
-  
+
   if (is.null(respParsed$userListId) || is.null(respParsed$shortId)) {
-    stop("Enrichr server returned an invalid response: userListId or shortId is missing")
+    stop(
+      "Enrichr server returned an invalid response: userListId or shortId is missing"
+    )
   }
-  
+
   return(respParsed)
 }
 
@@ -148,47 +169,66 @@ mkCurlQryString <- function(...) {
 ##' library names.
 ##' @seealso \code{\link{runEnrichr}, \link{enrichrAddList}, \link{getEnrichrLibNames}}
 ##' @author Roman Briskine
-enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectionN = 10, retryN = 3) {
+enrichrEnrich <- function(
+  userListId,
+  libNames = getEnrichrLibNames(),
+  connectionN = 10,
+  retryN = 3
+) {
   # While httr is easier to deal with, it does not support asynchrous requests. Neither does Rcurl.
   # So, we have to resort to the use of the curl package.
   require(curl, quietly = T, warn.conflicts = WARN_CONFLICTS)
-  
+
   reqUrl <- paste(ENRICHR_BASE_URL, "enrich", sep = "/")
-  
+
   # The functions below are internal helper functions to make the code clear. There is no reason to
   # expose them.
-  
+
   # Concatenates gene list into a string. Otherwise, the unlist function would expand them. Note
   # that the recursive flag will not help you in this case.
   concatGenes <- function(lst, sep = ";") {
     lapply(lst, function(x) {
       x[[10]] = length(x[[6]])
-      x[[6]] <- paste(x[[6]], collapse = sep);
-      x})
+      x[[6]] <- paste(x[[6]], collapse = sep)
+      x
+    })
   }
-  
+
   # The jsonlite parser returns all values as character() and you cannot call as.numeric on a subset
   # of columns.
-  respToNumeric <- function(x, idx = c(3,4,5,7,8,9)) {
+  respToNumeric <- function(x, idx = c(3, 4, 5, 7, 8, 9)) {
     for (i in idx) {
-      x[,i] <- as.numeric(x[,i])
+      x[, i] <- as.numeric(x[, i])
     }
     x
   }
-  
+
   # Parses the response
   parseResp <- function(resp) {
-    respParsed <- jsonlite::fromJSON( rawToChar(resp$content) )
+    respParsed <- jsonlite::fromJSON(rawToChar(resp$content))
     if ("expired" %in% names(respParsed) && respParsed$expired == T) {
       stop("The server response indicates that the gene set has expired")
     }
-    if (length(respParsed) == 0){
-      saveRDS(respParsed, file=paste0("enrichr-error-response", ezTime(), "-debug.rds"))
+    if (length(respParsed) == 0) {
+      saveRDS(
+        respParsed,
+        file = paste0("enrichr-error-response", ezTime(), "-debug.rds")
+      )
       stop("the length of the parsed response is zero")
     }
     respParsed <- respParsed[[1]]
-    fieldNames <- c("Rank", "Term", "p_value", "z_score", "Combined.Score", "Overlapping.Genes",
-                    "Adjusted.p_value", "Old.p_value", "Old.Adjusted.p_value", "nOverlapping.Genes")
+    fieldNames <- c(
+      "Rank",
+      "Term",
+      "p_value",
+      "z_score",
+      "Combined.Score",
+      "Overlapping.Genes",
+      "Adjusted.p_value",
+      "Old.p_value",
+      "Old.Adjusted.p_value",
+      "nOverlapping.Genes"
+    )
     if (length(respParsed) > 0) {
       ds <- as.data.frame(
         do.call("rbind", lapply(concatGenes(respParsed), unlist)),
@@ -201,23 +241,30 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
     names(ds) <- fieldNames
     ds
   }
-  
+
   success <<- list()
   failure <<- list()
   tryId <- 0
-  
+
   while ((tryId == 0 || (length(failure) > 0) && tryId < retryN + 1)) {
     tryId <- tryId + 1
     message(sprintf("Try: %d; failures: %d", tryId, length(failure)))
     failure <<- list()
     libNamesToQuery <- setdiff(libNames, names(success))
     # All connections are to the same host, so both parameters should have the same value
-    pool <- new_pool(total_con = connectionN, host_con = connectionN, multiplex = T)
+    pool <- new_pool(
+      total_con = connectionN,
+      host_con = connectionN,
+      multiplex = T
+    )
     for (libName in libNamesToQuery) {
-      qryString <- mkCurlQryString(userListId = userListId, backgroundType = libName)
-      
+      qryString <- mkCurlQryString(
+        userListId = userListId,
+        backgroundType = libName
+      )
+
       curl_fetch_multi(
-        paste(reqUrl, qryString, sep="?"),
+        paste(reqUrl, qryString, sep = "?"),
         # failonerror=T will cause curl to fail for any response status >= 400
         handle = new_handle(failonerror = T),
         pool = pool,
@@ -230,9 +277,13 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
           success[[libName]] <<- tryCatch(
             parseResp(x),
             error = function(e) {
-              saveRDS(e, file=paste0("enrichr-error-", ezTime(), "-debug.rds"))
+              saveRDS(
+                e,
+                file = paste0("enrichr-error-", ezTime(), "-debug.rds")
+              )
               #failure[[libName]] <<- paste("Response parsing failure with", e)
-              NULL}
+              NULL
+            }
           )
         }
         # The code below did not work, the try-catch above prevented from the fail. and the variable failure was apparently not set
@@ -244,7 +295,7 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
         #   k <- length(failure) + 1; failure[[k]] <<- x }
       )
     }
-    multi_run(pool = pool, timeout=300)
+    multi_run(pool = pool, timeout = 300)
   }
   ezSystem("rm -f enrich-*-debug.rds")
   list(success = success, failure = failure)
@@ -268,8 +319,16 @@ enrichrEnrich <- function(userListId, libNames = getEnrichrLibNames(), connectio
 ##' that satisfies the criteria.
 ##' @seealso \code{\link{runEnrichr}, \link{enrichrEnrich}}
 ##' @author Roman Briskine
-filterEnrichrResults <- function(resList, maxP = 1, maxPAdj = 1, maxZ = 0, minCombinedScore = 0, 
-                                 minOverlapGenes=3, softFilter = F, maxResult = NA) {
+filterEnrichrResults <- function(
+  resList,
+  maxP = 1,
+  maxPAdj = 1,
+  maxZ = 0,
+  minCombinedScore = 0,
+  minOverlapGenes = 3,
+  softFilter = F,
+  maxResult = NA
+) {
   resF <- lapply(resList, function(x) {
     mask <- x$p_value <= maxP &
       x$Adjusted.p_value <= maxPAdj &
@@ -277,12 +336,18 @@ filterEnrichrResults <- function(resList, maxP = 1, maxPAdj = 1, maxZ = 0, minCo
       x$Combined.Score >= minCombinedScore &
       x$nOverlapping.Genes >= minOverlapGenes
     maskIdx = which(mask)
-    if (!is.na(maxResult) && length(maskIdx) > maxResult){
+    if (!is.na(maxResult) && length(maskIdx) > maxResult) {
       maskIdx = maskIdx[1:maxResult]
     }
     x[maskIdx, ]
   })
-  listMask <- sapply(resF, function(x) { nrow(x) > 0 }, simplify = T)
+  listMask <- sapply(
+    resF,
+    function(x) {
+      nrow(x) > 0
+    },
+    simplify = T
+  )
   if (softFilter) {
     resList[listMask]
   } else {
@@ -299,8 +364,12 @@ filterEnrichrResults <- function(resList, maxP = 1, maxPAdj = 1, maxZ = 0, minCo
 ##' @seealso \code{\link{runEnrichr}}
 ##' @author Roman Briskine
 getEnrichrLibNames <- function() {
-  file <- system.file(file.path("extdata", "enrichr_libnames.txt"), package = "ezRun", mustWork = T)
-  scan(file, character(), quiet = T, comment.char="#")
+  file <- system.file(
+    file.path("extdata", "enrichr_libnames.txt"),
+    package = "ezRun",
+    mustWork = T
+  )
+  scan(file, character(), quiet = T, comment.char = "#")
 }
 
 
@@ -319,8 +388,12 @@ parseEnrichrLibNames <- function(file) {
   require(XML, quietly = T, warn.conflicts = WARN_CONFLICTS)
   mainPage <- htmlParse(file)
   tblNode <- getNodeSet(mainPage, "//table[@id='stats']")
-  tbl <- readHTMLTable(tblNode[[1]], as.data.table = T, stringsAsFactors=F)
-  fileOut <- system.file(file.path("extdata", "enrichr_libnames.txt"), package = "ezRun", mustWork = T)
+  tbl <- readHTMLTable(tblNode[[1]], as.data.table = T, stringsAsFactors = F)
+  fileOut <- system.file(
+    file.path("extdata", "enrichr_libnames.txt"),
+    package = "ezRun",
+    mustWork = T
+  )
   write(tbl[, 1], file = fileOut, ncolumns = 1)
   invisible(tbl[, 1])
 }

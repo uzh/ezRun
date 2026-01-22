@@ -12,14 +12,32 @@ ezMethodPbmm2 <- function(input = NA, output = NA, param = NA) {
   defOpt <- paste("--sort -m 2000M -J", param$cores)
   inputFileType = param$ReadOpt
   readGroupOpt <- paste0(
-    "'@RG\tID:", sampleName, "\tSM:", sampleName,
-    "\tLB:RGLB_", sampleName,
-    "\tPL:pacbio", "\tPU:RGPU_", sampleName, "'"
+    "'@RG\tID:",
+    sampleName,
+    "\tSM:",
+    sampleName,
+    "\tLB:RGLB_",
+    sampleName,
+    "\tPL:pacbio",
+    "\tPU:RGPU_",
+    sampleName,
+    "'"
   )
   cmd <- paste(
-    "/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 align", param$cmdOptions, defOpt, "--preset", inputFileType, "--rg", readGroupOpt, paste0(ref, ".", inputFileType, ".mmi"), Input,basename(bamFile), "2>", paste0(sampleName, "_pbmm2.log"))
+    "/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 align",
+    param$cmdOptions,
+    defOpt,
+    "--preset",
+    inputFileType,
+    "--rg",
+    readGroupOpt,
+    paste0(ref, ".", inputFileType, ".mmi"),
+    Input,
+    basename(bamFile),
+    "2>",
+    paste0(sampleName, "_pbmm2.log")
+  )
   ezSystem(cmd)
-
 
   #cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbindex", basename(bamFile))
   #ezSystem(cmd)
@@ -30,7 +48,7 @@ ezMethodPbmm2 <- function(input = NA, output = NA, param = NA) {
       writeIgvHtml(param, output)
     }
   }
-  
+
   return("Success")
 }
 
@@ -43,7 +61,8 @@ ezMethodPbmm2 <- function(input = NA, output = NA, param = NA) {
 ##'   \item{ezRef@@refFastaFile}{ a character specifying the file path to the fasta file.}
 ##' }
 getPbmm2Reference <- function(param) {
-  refBase <- ifelse(param$ezRef["refIndex"] == "",
+  refBase <- ifelse(
+    param$ezRef["refIndex"] == "",
     file.path(param$ezRef["refBuildDir"], "Sequence/Pbmm2Index/genome"),
     param$ezRef["refIndex"]
   )
@@ -58,13 +77,29 @@ getPbmm2Reference <- function(param) {
 
     fastaFile <- param$ezRef["refFastaFile"]
     ezSystem(paste("ln -s", fastaFile, "."))
-    cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset HIFI", basename(fastaFile), paste0(basename(refBase), ".HIFI.mmi"))
+    cmd <- paste(
+      "/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset HIFI",
+      basename(fastaFile),
+      paste0(basename(refBase), ".HIFI.mmi")
+    )
     ezSystem(cmd)
-    cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset SUBREAD", basename(fastaFile), paste0(basename(refBase),".SUBREAD.mmi"))
+    cmd <- paste(
+      "/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset SUBREAD",
+      basename(fastaFile),
+      paste0(basename(refBase), ".SUBREAD.mmi")
+    )
     ezSystem(cmd)
-    cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset ISOSEQ", basename(fastaFile), paste0(basename(refBase),".ISOSEQ.mmi"))
+    cmd <- paste(
+      "/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset ISOSEQ",
+      basename(fastaFile),
+      paste0(basename(refBase), ".ISOSEQ.mmi")
+    )
     ezSystem(cmd)
-    cmd <- paste("/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset UNROLLED", basename(fastaFile), paste0(basename(refBase),".UNROLLED.mmi"))
+    cmd <- paste(
+      "/srv/GT/software/SMRTtools/SMRT_Link_v10/smrtcmds/bin/pbmm2 index --preset UNROLLED",
+      basename(fastaFile),
+      paste0(basename(refBase), ".UNROLLED.mmi")
+    )
     ezSystem(cmd)
     # ezWriteElapsed(job, "done")
     setwd(wd)
@@ -78,7 +113,11 @@ getPbmm2Reference <- function(param) {
     i <- i + 1
   }
   if (file.exists(lockFile)) {
-    stop(paste("reference building still in progress after", INDEX_BUILD_TIMEOUT, "min"))
+    stop(paste(
+      "reference building still in progress after",
+      INDEX_BUILD_TIMEOUT,
+      "min"
+    ))
   }
   ## there is no lock file
   refFiles <- list.files(dirname(refBase), basename(refBase))
@@ -94,7 +133,8 @@ getPbmm2Reference <- function(param) {
 ##' @description Use this reference class to run
 ##' @seealso \code{\link{getPbmm2Reference}}
 EzAppPbmm2 <-
-  setRefClass("EzAppPbmm2",
+  setRefClass(
+    "EzAppPbmm2",
     contains = "EzApp",
     methods = list(
       initialize = function() {
@@ -102,9 +142,12 @@ EzAppPbmm2 <-
         runMethod <<- ezMethodPbmm2
         name <<- "EzAppPbmm2"
         appDefaults <<- rbind(
-        ReadOpt = ezFrame(Type="character",  DefaultValue="HIFI",  Description="input read types: SUBREAD, CCS, HIFI, ISOSEQ, UNROLLED. Default is HIFI")
-	)
+          ReadOpt = ezFrame(
+            Type = "character",
+            DefaultValue = "HIFI",
+            Description = "input read types: SUBREAD, CCS, HIFI, ISOSEQ, UNROLLED. Default is HIFI"
+          )
+        )
       }
     )
   )
-

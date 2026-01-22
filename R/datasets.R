@@ -5,7 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
 ## code for handling dataset data.frames
 ##' @title Makes a minimal single end dataset
 ##' @description Makes a minimal single end dataset by combining the arguments to a data.frame.
@@ -23,21 +22,31 @@
 ##' species = "Example"
 ##' ds = makeMinimalSingleEndReadDataset(fqDir, species)
 ##' ds2 = makeMinimalPairedEndReadDataset(fqDir, species)
-makeMinimalSingleEndReadDataset = function(fqDir, species="", adapter1="GATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
-                                           strandMode="both", readCount=NULL, dataRoot=DEFAULT_DATA_ROOT){
-  if (!grepl("/$", dataRoot)){
+makeMinimalSingleEndReadDataset = function(
+  fqDir,
+  species = "",
+  adapter1 = "GATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
+  strandMode = "both",
+  readCount = NULL,
+  dataRoot = DEFAULT_DATA_ROOT
+) {
+  if (!grepl("/$", dataRoot)) {
     dataRoot = paste0(dataRoot, "/")
   }
-  gzFiles = list.files(fqDir, ".gz$", full.names=TRUE)
+  gzFiles = list.files(fqDir, ".gz$", full.names = TRUE)
   samples = sub(".*-", "", sub(".fastq.gz", "", basename(gzFiles)))
   stopifnot(!duplicated(samples))
-  ds = data.frame("Read1 [File]"=sub(dataRoot, "", gzFiles),
-                  row.names=samples, stringsAsFactors=FALSE, check.names=FALSE)
+  ds = data.frame(
+    "Read1 [File]" = sub(dataRoot, "", gzFiles),
+    row.names = samples,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
   ds$Species = species
   ds$Adapter1 = adapter1
   ds$strandMode = strandMode
-  if (is.null(readCount)){
-    ds$"Read Count"=countReadsInFastq(gzFiles)
+  if (is.null(readCount)) {
+    ds$"Read Count" = countReadsInFastq(gzFiles)
   } else {
     ds$"Read Count" = readCount
   }
@@ -46,15 +55,27 @@ makeMinimalSingleEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
 }
 
 ##' @describeIn makeMinimalSingleEndReadDataset Does the same for paired end reads.
-makeMinimalPairedEndReadDataset = function(fqDir, species="", adapter1="GATCGGAAGAGCACACGTCTGAACTCCAGTCAC", adapter2="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT",
-                                           strandMode="both", readCount=NULL, readTypeSuffix=c("_R1.fastq.gz", "_R2.fastq.gz"),
-                                           dataRoot=DEFAULT_DATA_ROOT){
-  if (!grepl("/$", dataRoot)){
+makeMinimalPairedEndReadDataset = function(
+  fqDir,
+  species = "",
+  adapter1 = "GATCGGAAGAGCACACGTCTGAACTCCAGTCAC",
+  adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT",
+  strandMode = "both",
+  readCount = NULL,
+  readTypeSuffix = c("_R1.fastq.gz", "_R2.fastq.gz"),
+  dataRoot = DEFAULT_DATA_ROOT
+) {
+  if (!grepl("/$", dataRoot)) {
     dataRoot = paste0(dataRoot, "/")
   }
-  gzFiles = list.files(fqDir, readTypeSuffix[1], full.names=TRUE)
+  gzFiles = list.files(fqDir, readTypeSuffix[1], full.names = TRUE)
   samples = sub(readTypeSuffix[1], "", basename(gzFiles))
-  ds = data.frame("Read1 [File]"=sub(dataRoot, "", gzFiles), row.names=samples, stringsAsFactors=FALSE, check.names=FALSE)
+  ds = data.frame(
+    "Read1 [File]" = sub(dataRoot, "", gzFiles),
+    row.names = samples,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
   r2Files = sub(readTypeSuffix[1], readTypeSuffix[2], gzFiles)
   stopifnot(file.exists(r2Files))
   ds$"Read2 [File]" = sub(dataRoot, "", r2Files)
@@ -62,8 +83,8 @@ makeMinimalPairedEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
   ds$Adapter2 = adapter2
   ds$strandMode = strandMode
   ds$Species = species
-  if (is.null(readCount)){
-    ds$"Read Count"=countReadsInFastq(gzFiles)
+  if (is.null(readCount)) {
+    ds$"Read Count" = countReadsInFastq(gzFiles)
   } else {
     ds$"Read Count" = readCount
   }
@@ -72,7 +93,7 @@ makeMinimalPairedEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
 }
 
 ##' @title Gets the design from the dataset
-##' @description Gets the design from the dataset or parameters, if specified. 
+##' @description Gets the design from the dataset or parameters, if specified.
 ##' @template dataset-template
 ##' @param param a list of parameters to specify the factors directly using \code{param$factors}.
 ##' @template roxygen-template
@@ -84,20 +105,21 @@ makeMinimalPairedEndReadDataset = function(fqDir, species="", adapter1="GATCGGAA
 ##' cond = ezConditionsFromDesign(design)
 ##' addReplicate(apply(design, 1, paste, collapse="_"))
 ##' addReplicate(cond)
-ezDesignFromDataset = function(dataset, param=NULL){
-  if (!ezIsSpecified(param$factors)){
-    design = dataset[ , grepl("Factor", colnames(dataset)), drop=FALSE]
-    if (ncol(design) == 0){
+ezDesignFromDataset = function(dataset, param = NULL) {
+  if (!ezIsSpecified(param$factors)) {
+    design = dataset[, grepl("Factor", colnames(dataset)), drop = FALSE]
+    if (ncol(design) == 0) {
       design$Condition = rownames(design)
     }
-  }
-  else {
+  } else {
     factorNames = unlist(strsplit(param$factors, split = ","))
-    design = dataset[ , paste(factorNames, "[Factor]"), drop=FALSE]
+    design = dataset[, paste(factorNames, "[Factor]"), drop = FALSE]
   }
-  factorLevelCount = apply(design, 2, function(x){length(unique(x))})
-  design = design[ ,factorLevelCount > 1, drop = FALSE]
-  if (ncol(design) == 0){
+  factorLevelCount = apply(design, 2, function(x) {
+    length(unique(x))
+  })
+  design = design[, factorLevelCount > 1, drop = FALSE]
+  if (ncol(design) == 0) {
     design$Condition = rownames(design)
   }
   colnames(design) = sub(" \\[.*", "", colnames(design))
@@ -105,14 +127,22 @@ ezDesignFromDataset = function(dataset, param=NULL){
 }
 
 
-ezColorsFromDesign = function(design){
+ezColorsFromDesign = function(design) {
   ## see http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#a-colorblind-friendly-palette
   colorFrame = design[NULL] ## make a data frame with rows but without columns
-  cbbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7") ## without black
-  for (nm in names(design)){
+  cbbPalette <- c(
+    "#E69F00",
+    "#56B4E9",
+    "#009E73",
+    "#F0E442",
+    "#0072B2",
+    "#D55E00",
+    "#CC79A7"
+  ) ## without black
+  for (nm in names(design)) {
     conds = design[[nm]]
     n = length(unique(conds))
-    if (n > length(cbbPalette)){
+    if (n > length(cbbPalette)) {
       condColors = rainbow(n)
     } else {
       condColors = cbbPalette[1:n]
@@ -123,14 +153,22 @@ ezColorsFromDesign = function(design){
   return(colorFrame)
 }
 
-ezColorMapFromDesign = function(design){
+ezColorMapFromDesign = function(design) {
   ## see http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#a-colorblind-friendly-palette
   colorMap = list()
-  cbbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7") ## without black
-  for (nm in names(design)){
+  cbbPalette <- c(
+    "#E69F00",
+    "#56B4E9",
+    "#009E73",
+    "#F0E442",
+    "#0072B2",
+    "#D55E00",
+    "#CC79A7"
+  ) ## without black
+  for (nm in names(design)) {
     conds = design[[nm]]
     n = length(unique(conds))
-    if (n > length(cbbPalette)){
+    if (n > length(cbbPalette)) {
       condColors = rainbow(n)
     } else {
       condColors = cbbPalette[1:n]
@@ -142,89 +180,117 @@ ezColorMapFromDesign = function(design){
 }
 
 
-
 ##' @describeIn ezDesignFromDataset Gets the conditions from the design. Use \code{maxFactors} to limit the amount of factors.
-ezConditionsFromDesign = function(design, maxFactors=2){
-  apply(design[ , 1:min(ncol(design), maxFactors), drop=FALSE], 1, 
-        function(x){paste(x, collapse="_")})
+ezConditionsFromDesign = function(design, maxFactors = 2) {
+  apply(
+    design[, 1:min(ncol(design), maxFactors), drop = FALSE],
+    1,
+    function(x) {
+      paste(x, collapse = "_")
+    }
+  )
 }
 
 ##' @describeIn ezDesignFromDataset A wrapper to get the conditions directly from the dataset.
-ezConditionsFromDataset = function(dataset, param=NULL, maxFactors=2){
-  ezConditionsFromDesign(ezDesignFromDataset(dataset, param), maxFactors=maxFactors)
+ezConditionsFromDataset = function(dataset, param = NULL, maxFactors = 2) {
+  ezConditionsFromDesign(
+    ezDesignFromDataset(dataset, param),
+    maxFactors = maxFactors
+  )
 }
 
 ##' @describeIn ezDesignFromDataset add a replicate id to make values unique
-addReplicate = function(x, sep="_", repLabels=1:length(x)){
+addReplicate = function(x, sep = "_", repLabels = 1:length(x)) {
   repId = ezReplicateNumber(x)
-  paste(x, repLabels[repId], sep=sep)
+  paste(x, repLabels[repId], sep = sep)
 }
 
 ### -----------------------------------------------------------------
 ### Combine fastqs from multiple sequencing runs
 ###
-ezCombineReadDatasets = function(..., dataRoot="/srv/gstore/projects",
-                                 newDsDir=NULL){
+ezCombineReadDatasets = function(
+  ...,
+  dataRoot = "/srv/gstore/projects",
+  newDsDir = NULL
+) {
   stopifnot(!is.null(newDsDir))
   dir.create(newDsDir, recursive = TRUE)
-  
+
   ds <- bind_rows(...)
   dsNew <- NULL
   isPaired <- "Read2 [File]" %in% colnames(ds)
   uniqNames <- names(which(table(ds$Name) == 1L))
   dupNames <- unique(ds$Name[duplicated(ds$Name)])
-  
+
   ## uniqNames: copy to the destination
-  if(length(uniqNames) > 0L){
+  if (length(uniqNames) > 0L) {
     message("Copying files without merging.")
     dsUniq <- filter(ds, Name %in% uniqNames)
-    dsUniqNew <- mutate(dsUniq,
-                        `Read1 [File]`=file.path(newDsDir,
-                                                 basename(`Read1 [File]`)))
-    file.copy(from=file.path(dataRoot, dsUniq$`Read1 [File]`),
-              to=dsUniqNew$`Read1 [File]`)
-    if(isPaired){
-      dsUniqNew <- mutate(dsUniqNew, 
-                          `Read2 [File]`=file.path(newDsDir, 
-                                                   basename(`Read2 [File]`)))
-      file.copy(from=file.path(dataRoot, dsUniq$`Read2 [File]`),
-                to=dsUniqNew$`Read2 [File]`)
+    dsUniqNew <- mutate(
+      dsUniq,
+      `Read1 [File]` = file.path(newDsDir, basename(`Read1 [File]`))
+    )
+    file.copy(
+      from = file.path(dataRoot, dsUniq$`Read1 [File]`),
+      to = dsUniqNew$`Read1 [File]`
+    )
+    if (isPaired) {
+      dsUniqNew <- mutate(
+        dsUniqNew,
+        `Read2 [File]` = file.path(newDsDir, basename(`Read2 [File]`))
+      )
+      file.copy(
+        from = file.path(dataRoot, dsUniq$`Read2 [File]`),
+        to = dsUniqNew$`Read2 [File]`
+      )
     }
     dsNew <- dsUniqNew
   }
-  
+
   ## dupNames: merge to the destination
-  if(length(dupNames) > 0L){
+  if (length(dupNames) > 0L) {
     message("Merging files.")
     dsDupList <- list()
     dupName <- dupNames[1]
-    for(dupName in dupNames){
+    for (dupName in dupNames) {
       dsDup <- filter(ds, Name == dupName)
       dsDupNew <- head(dsDup, 1) %>%
-        mutate(`Read1 [File]`=file.path(newDsDir, paste0("combined-", dupName, "_R1.fastq.gz")))
+        mutate(
+          `Read1 [File]` = file.path(
+            newDsDir,
+            paste0("combined-", dupName, "_R1.fastq.gz")
+          )
+        )
       dsDupNew$`Read Count` <- sum(dsDup$`Read Count`)
-      cmd <- paste("gunzip -c", 
-                   paste(file.path(dataRoot, dsDup$`Read1 [File]`), 
-                         collapse=" "),
-                   "| pigz -p8 --best >",
-                   dsDupNew$`Read1 [File]`)
+      cmd <- paste(
+        "gunzip -c",
+        paste(file.path(dataRoot, dsDup$`Read1 [File]`), collapse = " "),
+        "| pigz -p8 --best >",
+        dsDupNew$`Read1 [File]`
+      )
       ezSystem(cmd)
-      if(isPaired){
-        dsDupNew <- mutate(dsDupNew,
-                           `Read2 [File]`=file.path(newDsDir, paste0("combined-", dupName, "_R2.fastq.gz")))
-        cmd <- paste("gunzip -c", 
-                     paste(file.path(dataRoot, dsDup$`Read2 [File]`), 
-                           collapse=" "),
-                     "| pigz -p8 --best >",
-                     dsDupNew$`Read2 [File]`)
+      if (isPaired) {
+        dsDupNew <- mutate(
+          dsDupNew,
+          `Read2 [File]` = file.path(
+            newDsDir,
+            paste0("combined-", dupName, "_R2.fastq.gz")
+          )
+        )
+        cmd <- paste(
+          "gunzip -c",
+          paste(file.path(dataRoot, dsDup$`Read2 [File]`), collapse = " "),
+          "| pigz -p8 --best >",
+          dsDupNew$`Read2 [File]`
+        )
         ezSystem(cmd)
       }
       dsDupList[[dupName]] <- dsDupNew
     }
     dsDupNew <- bind_rows(dsDupList)
-    if(!is.null(dsNew)){
+    if (!is.null(dsNew)) {
       dsNew <- bind_rows(dsNew, dsDupNew)
-    }else{
+    } else {
       dsNew <- dsDupNew
     }
   }

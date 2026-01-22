@@ -5,19 +5,25 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
-writeIgvHtml = function(param, 
-                        output){
+writeIgvHtml = function(param, output) {
   refUrlBase = file.path(REF_HOST, param$ezRef@refBuild)
-  fastaUrl = sub("Annotation.*", "Sequence/WholeGenomeFasta/genome.fa", refUrlBase)
+  fastaUrl = sub(
+    "Annotation.*",
+    "Sequence/WholeGenomeFasta/genome.fa",
+    refUrlBase
+  )
   faiUrl = paste0(fastaUrl, ".fai")
   bamUrl = file.path(PROJECT_BASE_URL, output$getColumn("BAM"))
   baiUrl = file.path(PROJECT_BASE_URL, output$getColumn("BAI"))
   gtfUrl = file.path(refUrlBase, "Genes/transcripts.only.gtf")
   bedUrl = file.path(refUrlBase, "Genes/genes.bed")
   refBuildName = param$ezRef@refBuildName
-  
-  htmlLines = readLines(system.file("templates/igvTemplate.html", package="ezRun", mustWork = TRUE))
+
+  htmlLines = readLines(system.file(
+    "templates/igvTemplate.html",
+    package = "ezRun",
+    mustWork = TRUE
+  ))
   htmlLines = gsub("FASTA_URL", fastaUrl, htmlLines)
   htmlLines = gsub("FAI_URL", faiUrl, htmlLines)
   htmlLines = gsub("BAM_URL", bamUrl, htmlLines)
@@ -26,15 +32,17 @@ writeIgvHtml = function(param,
   htmlLines = gsub("BED_URL", bedUrl, htmlLines)
   htmlLines = gsub("REF_BUILD_NAME", refBuildName, htmlLines)
   htmlLines = gsub("SAMPLE_NAME", output$getNames(), htmlLines)
-  writeLines(htmlLines, con=basename(output$getColumn("IGV")))  
+  writeLines(htmlLines, con = basename(output$getColumn("IGV")))
 }
 
 
 ##' @describeIn writeIgvSession Gets the IGV genome if specified or otherwise tries to get the build name from the parameters.
-getIgvGenome = function(param){
-  ifelse(ezIsSpecified(param$igvGenome),
-         param$igvGenome,
-         param$ezRef["refBuildName"])
+getIgvGenome = function(param) {
+  ifelse(
+    ezIsSpecified(param$igvGenome),
+    param$igvGenome,
+    param$ezRef["refBuildName"]
+  )
 }
 
 
@@ -43,24 +51,28 @@ getIgvGenome = function(param){
 ## it will fail if the directory is moved
 ##' @title Writes a .jnlp file
 ##' @description Writes a .jnlp file and adds the \code{projectId} and the \code{sessionUrl} to the template.
-##' @param jnlpFile the connection to write the IGV. 
+##' @param jnlpFile the connection to write the IGV.
 ##' @param projectId a character representing the project ID.
 ##' @param sessionUrl a character representing the URL of the session.
 ##' @template roxygen-template
 ##' @return Returns lines written to the specified connection.
-writeIgvJnlp = function(jnlpFile, projectId, sessionUrl){
+writeIgvJnlp = function(jnlpFile, projectId, sessionUrl) {
   jnlpLines = readLines(ezIgvTemplateFile())
   jnlpLines = sub("PROJECT_ID", projectId, jnlpLines)
   jnlpLines = sub("IGV_SESSION", sessionUrl, jnlpLines)
-  writeLines(jnlpLines, con=jnlpFile)  
+  writeLines(jnlpLines, con = jnlpFile)
 }
 
 ##' @describeIn writeIgvJnlp Gets the IGV template file.
-ezIgvTemplateFile = function(){
-  if (IGV_TEMPLATE_FILE == ""){
-    return(system.file("extdata/igvTemplate.jnlp", package="ezRun", mustWork = TRUE))
+ezIgvTemplateFile = function() {
+  if (IGV_TEMPLATE_FILE == "") {
+    return(system.file(
+      "extdata/igvTemplate.jnlp",
+      package = "ezRun",
+      mustWork = TRUE
+    ))
   } else {
-    if (file.exists(IGV_TEMPLATE_FILE)){
+    if (file.exists(IGV_TEMPLATE_FILE)) {
       return(IGV_TEMPLATE_FILE)
     } else {
       stop("file does not exist: ", IGV_TEMPLATE_FILE)
@@ -86,67 +98,174 @@ ezIgvTemplateFile = function(){
 ##' param = ezParam()
 ##' genome = getIgvGenome(param)
 ##' writeIgvSession(genome, param$ezRef["refBuild"])
-writeIgvSession = function(genome, refBuild, file="igvSession.xml", bamUrls=NULL, vcfUrls=NULL,  locus="All"){
-  
-  require("XML", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  
-  session=newXMLNode("Session", attrs =c(genome=genome, locus=locus, version="4"))
-  resources=newXMLNode("Resources", parent=session)
-  for (du in c(bamUrls, vcfUrls)){
-    resources = addChildren(resources, newXMLNode("Resource", attrs=c(path=du)))
+writeIgvSession = function(
+  genome,
+  refBuild,
+  file = "igvSession.xml",
+  bamUrls = NULL,
+  vcfUrls = NULL,
+  locus = "All"
+) {
+  require("XML", warn.conflicts = WARN_CONFLICTS, quietly = !WARN_CONFLICTS)
+
+  session = newXMLNode(
+    "Session",
+    attrs = c(genome = genome, locus = locus, version = "4")
+  )
+  resources = newXMLNode("Resources", parent = session)
+  for (du in c(bamUrls, vcfUrls)) {
+    resources = addChildren(
+      resources,
+      newXMLNode("Resource", attrs = c(path = du))
+    )
   }
-  gtfFile=paste(REF_HOST, refBuild, "Genes", "genes.sorted.gtf", sep="/")
-  resources = addChildren(resources, newXMLNode("Resource", attrs=c(path=gtfFile)))
-  
-  dataPanel = newXMLNode("Panel",attrs=c(name="DataPanel"), parent=session)
-  for (du in bamUrls){
-    track = newXMLNode("Track", attrs=c(altColor="0,0,178", autoscale="false", color="175,175,175",
-                                        colorScale="ContinuousColorScale;0.0;156.0;255,255,255;175,175,175",
-                                        displayMode="COLLAPSED", featureVisibilityWindow="-1" , fontSize="10",
-                                        id=paste0(du, "_coverage"), name=paste(basename(du), "Coverage"),
-                                        showDataRange="true", visible="true"))
-    newXMLNode("DataRange",attrs=c(baseline="0.0", drawBaseline="true", flipAxis="false", maximum="1000.0" ,
-                                   minimum="0.0", type="LOG"), parent=track)
+  gtfFile = paste(REF_HOST, refBuild, "Genes", "genes.sorted.gtf", sep = "/")
+  resources = addChildren(
+    resources,
+    newXMLNode("Resource", attrs = c(path = gtfFile))
+  )
+
+  dataPanel = newXMLNode(
+    "Panel",
+    attrs = c(name = "DataPanel"),
+    parent = session
+  )
+  for (du in bamUrls) {
+    track = newXMLNode(
+      "Track",
+      attrs = c(
+        altColor = "0,0,178",
+        autoscale = "false",
+        color = "175,175,175",
+        colorScale = "ContinuousColorScale;0.0;156.0;255,255,255;175,175,175",
+        displayMode = "COLLAPSED",
+        featureVisibilityWindow = "-1",
+        fontSize = "10",
+        id = paste0(du, "_coverage"),
+        name = paste(basename(du), "Coverage"),
+        showDataRange = "true",
+        visible = "true"
+      )
+    )
+    newXMLNode(
+      "DataRange",
+      attrs = c(
+        baseline = "0.0",
+        drawBaseline = "true",
+        flipAxis = "false",
+        maximum = "1000.0",
+        minimum = "0.0",
+        type = "LOG"
+      ),
+      parent = track
+    )
     dataPanel = addChildren(dataPanel, track)
-    track = newXMLNode("Track", attrs=c(altColor="0,0,178", color="0,0,178", colorOption="READ_STRAND",
-                                        displayMode="EXPANDED", featureVisibilityWindow="100000", fontSize="10",
-                                        id=du, name=basename(du), showDataRange="true", sortByTag="", visible="true"))
+    track = newXMLNode(
+      "Track",
+      attrs = c(
+        altColor = "0,0,178",
+        color = "0,0,178",
+        colorOption = "READ_STRAND",
+        displayMode = "EXPANDED",
+        featureVisibilityWindow = "100000",
+        fontSize = "10",
+        id = du,
+        name = basename(du),
+        showDataRange = "true",
+        sortByTag = "",
+        visible = "true"
+      )
+    )
     dataPanel = addChildren(dataPanel, track)
   }
   ## VCF template
   #   <Panel height="915" name="Panel1417429920553" width="1681">
-  #     <Track SQUISHED_ROW_HEIGHT="8" altColor="0,0,178" autoScale="false" clazz="org.broad.igv.track.FeatureTrack" color="0,0,178" colorMode="GENOTYPE" 
+  #     <Track SQUISHED_ROW_HEIGHT="8" altColor="0,0,178" autoScale="false" clazz="org.broad.igv.track.FeatureTrack" color="0,0,178" colorMode="GENOTYPE"
   #                 displayMode="EXPANDED" featureVisibilityWindow="100000000" fontSize="10" id="/Users/hubert/tmp/vcfFilt/all-20141117-haplo-filt.vcf.gz" name="all-20141117-haplo-filt.vcf.gz"
   #                 renderer="BASIC_FEATURE" sortable="false" visible="true" windowFunction="count"/>
   #     </Panel>
-  for (du in vcfUrls){
-    track = newXMLNode("Track", attrs=c(SQUISHED_ROW_HEIGHT="8", altColor="0,0,178", autoscale="false", color="0,0,178",
-                                        clazz="org.broad.igv.track.FeatureTrack",
-                                        colorMode="GENOTYPE",
-                                        displayMode="COLLAPSED", featureVisibilityWindow="100000" , fontSize="10" , height="60",
-                                        id=du, name=basename(du),
-                                        renderer="BASIC_FEATURE", sortable="false", visible="true", windowFunction="count"))
-    dataPanel = addChildren(dataPanel, track)  
+  for (du in vcfUrls) {
+    track = newXMLNode(
+      "Track",
+      attrs = c(
+        SQUISHED_ROW_HEIGHT = "8",
+        altColor = "0,0,178",
+        autoscale = "false",
+        color = "0,0,178",
+        clazz = "org.broad.igv.track.FeatureTrack",
+        colorMode = "GENOTYPE",
+        displayMode = "COLLAPSED",
+        featureVisibilityWindow = "100000",
+        fontSize = "10",
+        height = "60",
+        id = du,
+        name = basename(du),
+        renderer = "BASIC_FEATURE",
+        sortable = "false",
+        visible = "true",
+        windowFunction = "count"
+      )
+    )
+    dataPanel = addChildren(dataPanel, track)
   }
-  
-  
-  featurePanel = newXMLNode("Panel",attrs=c(name="FeaturePanel"), parent=session)
-  track = newXMLNode("Track", attrs=c(altColor="0,0,178", autoscale="false", color="0,0,178",
-                                      colorScale="ContinuousColorScale;0.0;190.0;255,255,255;0,0,178",
-                                      displayMode="COLLAPSED", featureVisibilityWindow="-1" , fontSize="10",
-                                      id=gtfFile, name="Gene structure",
-                                      showDataRange="true", visible="true"))
+
+  featurePanel = newXMLNode(
+    "Panel",
+    attrs = c(name = "FeaturePanel"),
+    parent = session
+  )
+  track = newXMLNode(
+    "Track",
+    attrs = c(
+      altColor = "0,0,178",
+      autoscale = "false",
+      color = "0,0,178",
+      colorScale = "ContinuousColorScale;0.0;190.0;255,255,255;0,0,178",
+      displayMode = "COLLAPSED",
+      featureVisibilityWindow = "-1",
+      fontSize = "10",
+      id = gtfFile,
+      name = "Gene structure",
+      showDataRange = "true",
+      visible = "true"
+    )
+  )
   featurePanel = addChildren(featurePanel, track)
-  newXMLNode("PanelLayout", attrs=c(dividerFractions="0.7"), parent=session)  
-  saveXML(session, file=file, prefix='<?xml version="1.0"? >', encoding="UTF-8", standalone="no")
-  return(file)  
+  newXMLNode(
+    "PanelLayout",
+    attrs = c(dividerFractions = "0.7"),
+    parent = session
+  )
+  saveXML(
+    session,
+    file = file,
+    prefix = '<?xml version="1.0"? >',
+    encoding = "UTF-8",
+    standalone = "no"
+  )
+  return(file)
 }
 ##' @describeIn writeIgvSession Writes an IGV session link.
-writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", label="Open Integrative Genomics Viewer", baseUrl=PROJECT_BASE_URL){
-  urls = paste(baseUrl, bamFiles, sep="/")
-  writeIgvSession(genome, refBuild, bamUrls=urls, locus=locus)
+writeIgvSessionLink = function(
+  genome,
+  refBuild,
+  bamFiles,
+  html,
+  locus = "All",
+  label = "Open Integrative Genomics Viewer",
+  baseUrl = PROJECT_BASE_URL
+) {
+  urls = paste(baseUrl, bamFiles, sep = "/")
+  writeIgvSession(genome, refBuild, bamUrls = urls, locus = locus)
   #ezWrite("<p><a onClick='startIgv(\"", locus, "\")'>", label, "</a></p>", con=html)
-  ezWrite('<p><script>startIgvFromJnlp("', label, '", "', locus, '"); </script></p>', con=html)
+  ezWrite(
+    '<p><script>startIgvFromJnlp("',
+    label,
+    '", "',
+    locus,
+    '"); </script></p>',
+    con = html
+  )
   return()
 }
 
@@ -161,13 +280,14 @@ writeIgvSessionLink = function(genome, refBuild, bamFiles, html, locus="All", la
 ##' @return Returns a character containing a link in .html format.
 ##' @examples
 ##' getIgvLocusLink(17,31,465)
-getIgvLocusLink = function(chrom, start, end){
-  
+getIgvLocusLink = function(chrom, start, end) {
   locus = paste0(chrom, ":", start, "-", end)
-  link = paste0("http://data.broadinstitute.org/igv/projects/current/launch.php?locus=", locus)
+  link = paste0(
+    "http://data.broadinstitute.org/igv/projects/current/launch.php?locus=",
+    locus
+  )
   return(paste0("<a href=", link, ">", locus, "</a>"))
 }
-
 
 #http://data.broadinstitute.org/igv/projects/current/launch.php?locus=chr16:36762879-36778737
 #http://data.broadinstitute.org/igv/projects/current/launch.php?sessionURL=/Users/hubert/work/IGV/igvLaunch-mm9.xml&locus=chr16:36762879-36778737

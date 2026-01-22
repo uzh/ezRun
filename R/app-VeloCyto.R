@@ -10,55 +10,69 @@
 ##' @description Use this reference class to run velocyto on CellRanger outputs
 ##' @author Lennart Opitz
 EzAppVeloCyto <-
-  setRefClass("EzAppVeloCyto",
-              contains = "EzApp",
-              methods = list(
-                initialize = function()
-                {
-                  "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodVeloCyto
-                  name <<- "EzAppVeloCyto"
-                  appDefaults <<- rbind(
-                    outputDir = ezFrame(
-                      Type = "character",
-                      DefaultValue = ".",
-                      Description = "Output directory"
-                    )
-                  )
-                }
-              )
+  setRefClass(
+    "EzAppVeloCyto",
+    contains = "EzApp",
+    methods = list(
+      initialize = function() {
+        "Initializes the application using its specific defaults."
+        runMethod <<- ezMethodVeloCyto
+        name <<- "EzAppVeloCyto"
+        appDefaults <<- rbind(
+          outputDir = ezFrame(
+            Type = "character",
+            DefaultValue = ".",
+            Description = "Output directory"
+          )
+        )
+      }
+    )
   )
 
 
-ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
-  
-  if (("SCDataOrigin" %in% input$colNames) && 
-      input$getColumn("SCDataOrigin") == 'BDRhapsody'){
-    result <- runVelocytoBD(input, output, param) 
+ezMethodVeloCyto <- function(input = NA, output = NA, param = NA) {
+  if (
+    ("SCDataOrigin" %in% input$colNames) &&
+      input$getColumn("SCDataOrigin") == 'BDRhapsody'
+  ) {
+    result <- runVelocytoBD(input, output, param)
     return(result)
   }
-  
+
   ###########
   ## assuming 10X
   gtfFile <- param$ezRef["refFeatureFile"]
   sampleName <- input$getNames()
-  
+
   ##Copy data to scratch
-  cellRangerPath <- file.path(input$dataRoot,input$getColumn("ResultDir"))
-  cmd <- paste('cp -R',  cellRangerPath, '.')
+  cellRangerPath <- file.path(input$dataRoot, input$getColumn("ResultDir"))
+  cmd <- paste('cp -R', cellRangerPath, '.')
   ezSystem(cmd)
-  
+
   sampleDir <- basename(cellRangerPath)
   ## restore the original outs directory
-  cmd <- paste('rsync -av --remove-source-files', paste0(sampleDir,'/*'), paste0(sampleDir,'/outs'))
+  cmd <- paste(
+    'rsync -av --remove-source-files',
+    paste0(sampleDir, '/*'),
+    paste0(sampleDir, '/outs')
+  )
   ezSystem(cmd)
-  
+
   cwd <- getwd()
-  sampleBam <- list.files('.', pattern = 'sample_alignments.bam$', recursive=TRUE)
-  sampleCram <- list.files('.', pattern = 'sample_alignments.cram$', recursive=TRUE)
+  sampleBam <- list.files(
+    '.',
+    pattern = 'sample_alignments.bam$',
+    recursive = TRUE
+  )
+  sampleCram <- list.files(
+    '.',
+    pattern = 'sample_alignments.cram$',
+    recursive = TRUE
+  )
   sampleAlignPath <- c(sampleBam, sampleCram)
-  
-  if(length(sampleAlignPath) == 1L) { #CellRanger Multi Output
+
+  if (length(sampleAlignPath) == 1L) {
+    #CellRanger Multi Output
     sampleAlignFn <- basename(sampleAlignPath)
     fileExt <- tools::file_ext(sampleAlignFn)
     setwd(dirname(sampleAlignPath))
@@ -68,42 +82,45 @@ ezMethodVeloCyto <- function(input=NA, output=NA, param=NA){
     system(sprintf('mv * %s', file.path(cwd, sampleDir, "outs")))
     setwd(cwd)
   }
-  
-  convertCramToBam(file.path(sampleDir, 'outs', 'possorted_genome_bam.cram'),
-                   file.path(sampleDir, 'outs', 'possorted_genome_bam.bam'),
-                   cores = param$cores)
+
+  convertCramToBam(
+    file.path(sampleDir, 'outs', 'possorted_genome_bam.cram'),
+    file.path(sampleDir, 'outs', 'possorted_genome_bam.bam'),
+    cores = param$cores
+  )
 
   # Run velocyto
   cmd <- paste('velocyto', 'run10x', sampleDir, gtfFile, '-@', param$cores)
   ezSystem(cmd)
-  file.copy(file.path(sampleName, 'velocyto', paste0(sampleName,'.loom')), '.')
+  file.copy(file.path(sampleName, 'velocyto', paste0(sampleName, '.loom')), '.')
   ezSystem(paste('rm -Rf ', sampleName))
   return('Success')
 }
 
 
-
-runVelocytoBD <- function(input, output, param){
-  
+runVelocytoBD <- function(input, output, param) {
   gtfFile <- param$ezRef["refFeatureFile"]
   sampleName <- input$getNames()
-  
+
   ## convert the bam file
   gstoreBamFile <- input$getFullPaths("AlignmentFile")
-  
+
   ## convert tags
   # samtools view -h /home/ubuntu/data/RNAVelo/Combined_Cartridge-1_Bioproduct_filtered_fixed3.bam \
   # | sed 's/MA:Z:/UB:Z:/' \
   # | samtools view -Sb -@6 -o /home/ubuntu/data/RNAVelo/Combined_Cartridge-1_Bioproduct_final.bam
-  # 
+  #
   localBamFile <- "bd.bam"
-  cmd <- paste("samtools view -h", gstoreBamFile, 
-               "| grep -v XF:Z:__intergenic", ## ignore all reads that don't align to genes
-               "| grep -v  XF:Z:SampleTag",  ## ignore sample tag reads
-               "| sed s/MA:Z:/UB:Z:/ ", 
-               "| samtools view --tag UB -b -o", localBamFile)
+  cmd <- paste(
+    "samtools view -h",
+    gstoreBamFile,
+    "| grep -v XF:Z:__intergenic", ## ignore all reads that don't align to genes
+    "| grep -v  XF:Z:SampleTag", ## ignore sample tag reads
+    "| sed s/MA:Z:/UB:Z:/ ",
+    "| samtools view --tag UB -b -o",
+    localBamFile
+  )
   ezSystem(cmd)
-  
 
   # Activate conda environment and run velocyto
   # velocyto run \
@@ -114,19 +131,33 @@ runVelocytoBD <- function(input, output, param){
   # --samtools-memory 12000 \
   # /home/ubuntu/data/RNAVelo/Combined_Cartridge-1_Bioproduct_final.bam \
   # /home/ubuntu/data/RNAVelo/annotation.gtf
-  # 
+  #
   barcodesFile <- "barcodes.tsv"
-  ezSystem(paste("zcat", file.path(input$getFullPaths("CountMatrix"), "barcodes.tsv.gz"), ">", barcodesFile))
-  cmd <- paste(". /usr/local/ngseq/miniforge3/etc/profile.d/conda.sh",
-               "&& conda activate gi_velocyto",
-               "&& velocyto run",
-               "-b", barcodesFile, 
-               "-e", input$getNames(),
-               "-o", ".",
-               # optional the msk file "-m"
-               "--samtools-memory", floor(param$ram * 0.7 / param$cores * 1000),
-               
-               '--samtools-threads', param$cores, localBamFile, gtfFile)
+  ezSystem(paste(
+    "zcat",
+    file.path(input$getFullPaths("CountMatrix"), "barcodes.tsv.gz"),
+    ">",
+    barcodesFile
+  ))
+  cmd <- paste(
+    ". /usr/local/ngseq/miniforge3/etc/profile.d/conda.sh",
+    "&& conda activate gi_velocyto",
+    "&& velocyto run",
+    "-b",
+    barcodesFile,
+    "-e",
+    input$getNames(),
+    "-o",
+    ".",
+    # optional the msk file "-m"
+    "--samtools-memory",
+    floor(param$ram * 0.7 / param$cores * 1000),
+
+    '--samtools-threads',
+    param$cores,
+    localBamFile,
+    gtfFile
+  )
   ezSystem(cmd)
   return('Success')
 }
@@ -147,31 +178,36 @@ runVelocytoBD <- function(input, output, param){
 ##'   \item The BAM indexing fails
 ##' }
 convertCramToBam <- function(inputFile, outputBam, cores = 1) {
-  
   # Check if the input file is a CRAM based on extension
   if (grepl("\\.cram$", inputFile, ignore.case = TRUE)) {
     ezLog("Detected CRAM file, converting to BAM format...")
-    
+
     # Convert CRAM to BAM using samtools view
     # Note: -b flag outputs BAM format, -o specifies output file
-    cmd <- paste("samtools view -b -@", as.integer(cores), "-o", shQuote(outputBam), shQuote(inputFile))
+    cmd <- paste(
+      "samtools view -b -@",
+      as.integer(cores),
+      "-o",
+      shQuote(outputBam),
+      shQuote(inputFile)
+    )
     ezSystem(cmd)
-    
+
     # Verify the BAM file was created successfully
     if (!file.exists(outputBam)) {
       stop(paste0("Failed to create BAM file: ", outputBam))
     }
-    
+
     # Index the resulting BAM file
     ezLog("Indexing BAM file...")
     cmd <- paste("samtools index", shQuote(outputBam))
     ezSystem(cmd)
-    
+
     # Verify the index was created successfully
     if (!file.exists(paste0(outputBam, ".bai"))) {
       stop(paste0("Failed to create BAM index for: ", outputBam))
     }
-    
+
     ezLog("CRAM to BAM conversion completed successfully")
     return(outputBam)
   } else {

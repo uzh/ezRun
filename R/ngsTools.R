@@ -5,21 +5,20 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
 ##' @title Gets a strand value
 ##' @description Gets a strand value of plus or minus from an integer.
 ##' @param x an integer to select the strand value: 1 equals plus and 2 equals minus.
 ##' @template roxygen-template
 ##' @return Returns a named character "+" or "-".
-##' @examples 
+##' @examples
 ##' strandValue(1)
-strandValue = function(x){
-  c(plus="+", minus="-")[x]
+strandValue = function(x) {
+  c(plus = "+", minus = "-")[x]
 }
 
 ##' @describeIn strandValue Does the same, but returns the character as "plus" or "minus".
-strandName = function(x){
-  c("+"="plus", "-"="minus")[x]
+strandName = function(x) {
+  c("+" = "plus", "-" = "minus")[x]
 }
 
 ##' @title Fixes the strand information
@@ -37,18 +36,26 @@ strandName = function(x){
 ##' strandValues = c("+","+","-","*")
 ##' fixStrand(strandValues, "sense")
 ##' flipStrand(strandValues)
-fixStrand = function(strandValues, strandMode="sense"){
-  return(switch(strandMode,
-                sense=return(strandValues),
-                antisense=flipStrand(strandValues),
-                both=Rle(factor("*", levels=c("+", "-", "*")), length(strandValues))))
+fixStrand = function(strandValues, strandMode = "sense") {
+  return(switch(
+    strandMode,
+    sense = return(strandValues),
+    antisense = flipStrand(strandValues),
+    both = Rle(factor("*", levels = c("+", "-", "*")), length(strandValues))
+  ))
 }
 
 ##' @describeIn fixStrand This function performs the flipping of the strand values.
-flipStrand = function(strandValues){
-  strandMap = c("+"="-", "-"="+", "*"="*")
-  if (class(strandValues) == "Rle"){
-    return(Rle(factor(as.character(strandMap[runValue(strandValues)]), levels=c("+", "-", "*")), runLength(strandValues)))
+flipStrand = function(strandValues) {
+  strandMap = c("+" = "-", "-" = "+", "*" = "*")
+  if (class(strandValues) == "Rle") {
+    return(Rle(
+      factor(
+        as.character(strandMap[runValue(strandValues)]),
+        levels = c("+", "-", "*")
+      ),
+      runLength(strandValues)
+    ))
   } else {
     return(strandMap[match(strandValues, names(strandMap))])
   }
@@ -65,14 +72,16 @@ flipStrand = function(strandValues){
 ##' }
 ##' @template roxygen-template
 ##' @return Returns a character.
-##' @examples 
+##' @examples
 ##' getTuxedoLibraryType("sense")
-getTuxedoLibraryType = function(strandMode){
-  return(switch(strandMode,
-                "both"="fr-unstranded",
-                "sense"="fr-secondstrand",
-                "antisense"="fr-firststrand",
-                stop(paste("bad strandMode: ", strandMode))))
+getTuxedoLibraryType = function(strandMode) {
+  return(switch(
+    strandMode,
+    "both" = "fr-unstranded",
+    "sense" = "fr-secondstrand",
+    "antisense" = "fr-firststrand",
+    stop(paste("bad strandMode: ", strandMode))
+  ))
 }
 
 ##' @title Is \code{x} a valid cigar?
@@ -83,8 +92,10 @@ getTuxedoLibraryType = function(strandMode){
 ##' @seealso \code{\link[GenomicAlignments]{cigarWidthAlongReferenceSpace}}
 ##' @examples
 ##' isValidCigar("3M5G")
-isValidCigar = function(x){
-  sapply(x, function(y){!inherits(try(cigarWidthAlongReferenceSpace(y), silent=TRUE), "try-error")})
+isValidCigar = function(x) {
+  sapply(x, function(y) {
+    !inherits(try(cigarWidthAlongReferenceSpace(y), silent = TRUE), "try-error")
+  })
 }
 
 ##' @title Shifts zeros
@@ -93,12 +104,16 @@ isValidCigar = function(x){
 ##' @param minSignal a numeric or integer specifying the minimal signal amount.
 ##' @template roxygen-template
 ##' @return Returns the modified count values.
-##' @examples 
+##' @examples
 ##' shiftZeros(1:10, 5)
-shiftZeros = function(counts, minSignal, seed=42){
+shiftZeros = function(counts, minSignal, seed = 42) {
   set.seed(seed)
   isLow = counts < minSignal
   isLow[is.na(isLow)] = TRUE
-  counts[isLow] = runif(sum(isLow), min=0.25 * minSignal, max=0.75 * minSignal)
+  counts[isLow] = runif(
+    sum(isLow),
+    min = 0.25 * minSignal,
+    max = 0.75 * minSignal
+  )
   return(counts)
 }

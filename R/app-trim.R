@@ -19,22 +19,27 @@
 
 ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
   require(withr)
-    
-  if (nrow(input$meta) == 1L && grepl(',',input$meta$Read1)) {
-    files <- file.path(param$dataRoot, limma::strsplit2(input$meta$Read1,','))
+
+  if (nrow(input$meta) == 1L && grepl(',', input$meta$Read1)) {
+    files <- file.path(param$dataRoot, limma::strsplit2(input$meta$Read1, ','))
     system("touch input_R1.fastq.gz")
     sapply(files, function(x) system(paste("cat", x, " >> input_R1.fastq.gz")))
     input$setColumn("Read1", file.path(getwd(), "input_R1.fastq.gz"))
-    
-    if(grepl(',',input$meta$Read2) & param$paired){
-      files <- file.path(param$dataRoot, limma::strsplit2(input$meta$Read2,','))
+
+    if (grepl(',', input$meta$Read2) & param$paired) {
+      files <- file.path(
+        param$dataRoot,
+        limma::strsplit2(input$meta$Read2, ',')
+      )
       system("touch input_R2.fastq.gz")
-      sapply(files, function(x) system(paste("cat", x, " >> input_R2.fastq.gz")))
+      sapply(files, function(x) {
+        system(paste("cat", x, " >> input_R2.fastq.gz"))
+      })
       input$setColumn("Read2", file.path(getwd(), "input_R2.fastq.gz"))
     }
-    input <- EzDataset$new(meta=input$meta,dataRoot='')
+    input <- EzDataset$new(meta = input$meta, dataRoot = '')
   }
-    
+
   if (any(str_detect(input$getFullPaths("Read1"), "bam$"))) {
     stop("cannot process unmapped bam as input")
   }
@@ -46,11 +51,29 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
   ## if output is not an EzDataset, set it! (when ezMethodFastpTrim is used inside another app)
   if (!is(output, "EzDataset")) {
     output <- input$copy()
-    output$setColumn("Read1", file.path(getwd(), str_c(input$getNames(), "-trimmed_R1.fastq",
-                                                       if_else(param$gzipTrimmed, ".gz", ""))))
+    output$setColumn(
+      "Read1",
+      file.path(
+        getwd(),
+        str_c(
+          input$getNames(),
+          "-trimmed_R1.fastq",
+          if_else(param$gzipTrimmed, ".gz", "")
+        )
+      )
+    )
     if (param$paired) {
-      output$setColumn("Read2", file.path(getwd(), str_c(input$getNames(), "-trimmed_R2.fastq",
-                                                         if_else(param$gzipTrimmed, ".gz", ""))))
+      output$setColumn(
+        "Read2",
+        file.path(
+          getwd(),
+          str_c(
+            input$getNames(),
+            "-trimmed_R2.fastq",
+            if_else(param$gzipTrimmed, ".gz", "")
+          )
+        )
+      )
     } else {
       if ("Read2" %in% input$colNames) {
         output$setColumn("Read2", NULL)
@@ -75,50 +98,63 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
   }
 
   if (param$subsampleReads > 1 || param$nReads > 0) {
-    if (param$subsampleReads > 1 && param$nReads > 0){
+    if (param$subsampleReads > 1 && param$nReads > 0) {
       stop("can not have subsampleReads and nReads")
     }
     totalReads <- as.numeric(input$getColumn("Read Count"))
     if (param$nReads > 0) {
       nReads <- min(param$nReads, totalReads)
     }
-    if (param$subsampleReads > 1){
+    if (param$subsampleReads > 1) {
       nReads <- as.integer(1 / param$subsampleReads * totalReads)
     }
-    input <- ezMethodSubsampleFastq(input, param=param, n=nReads) 
+    input <- ezMethodSubsampleFastq(input, param = param, n = nReads)
   }
 
   ## fastp
   r1TmpFile <- "trimmed_R1.fastq.gz"
-  
+
   if (param$paired) {
     r2TmpFile <- "trimmed_R2.fastq.gz"
     readsInOut <- str_c(
-      "--in1", input$getFullPaths("Read1"),
-      "--in2", input$getFullPaths("Read2"),
-      "--out1", r1TmpFile,
-      "--out2", r2TmpFile,
+      "--in1",
+      input$getFullPaths("Read1"),
+      "--in2",
+      input$getFullPaths("Read2"),
+      "--out1",
+      r1TmpFile,
+      "--out2",
+      r2TmpFile,
       sep = " "
     )
   } else {
     readsInOut <- str_c(
-      "--in1", input$getFullPaths("Read1"),
-      "--out1", r1TmpFile,
+      "--in1",
+      input$getFullPaths("Read1"),
+      "--out1",
+      r1TmpFile,
       sep = " "
     )
   }
   ## adapter trimming options
   if (ezIsSpecified(param[["trimAdapter"]]) && param[["trimAdapter"]]) {
-    if (!is.null(input$meta$Adapter1) && !is.na(input$meta$Adapter1) &&
-        input$meta$Adapter1 != "") {
+    if (
+      !is.null(input$meta$Adapter1) &&
+        !is.na(input$meta$Adapter1) &&
+        input$meta$Adapter1 != ""
+    ) {
       adapter1 <- DNAStringSet(input$meta$Adapter1)
       names(adapter1) <- "GivenAdapter1"
     } else {
       adapter1 <- DNAStringSet()
     }
     # read2 (if paired)
-    if (param$paired && !is.null(input$meta$Adapter2) && !is.na(input$meta$Adapter2) &&
-        input$meta$Adapter2 != "") {
+    if (
+      param$paired &&
+        !is.null(input$meta$Adapter2) &&
+        !is.na(input$meta$Adapter2) &&
+        input$meta$Adapter2 != ""
+    ) {
       adapter2 <- DNAStringSet(input$meta$Adapter2)
       names(adapter2) <- "GivenAdapter2"
     } else {
@@ -126,7 +162,9 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
     }
     adaptFile <- "adapters.fa"
     adapters <- c(adapter1, adapter2)
-    if (!is.null(param$onlyAdapterFromDataset) && param$onlyAdapterFromDataset) {
+    if (
+      !is.null(param$onlyAdapterFromDataset) && param$onlyAdapterFromDataset
+    ) {
       # take only adapter from dataset and ignore the ones from TRIMMOMATIC_ADAPTERS
       writeXStringSet(adapters, adaptFile)
     } else {
@@ -147,54 +185,84 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
     "fastp",
     readsInOut,
     # general options
-    "--thread", param$cores,
+    "--thread",
+    param$cores,
     # global trimming
-    if (ezIsSpecified(param$trim_front1)){
+    if (ezIsSpecified(param$trim_front1)) {
       paste("--trim_front1", param$trim_front1)
     },
-    if (ezIsSpecified(param$trim_tail1)){
+    if (ezIsSpecified(param$trim_tail1)) {
       paste("--trim_tail1", param$trim_tail1)
     },
-    if (ezIsSpecified(param$barcodePattern) && param$barcodePattern!='' && param$paired){
-        paste("--trim_front2 0")
+    if (
+      ezIsSpecified(param$barcodePattern) &&
+        param$barcodePattern != '' &&
+        param$paired
+    ) {
+      paste("--trim_front2 0")
     },
     # quality-based trimming per read
-    if_else(param$cut_front,
-            str_c("--cut_front", "--cut_front_window_size", param$cut_front_window_size,
-                  "--cut_front_mean_quality", param$cut_front_mean_quality, sep = " "),
-            ""), # like Trimmomatic's LEADING
-    if_else(param$cut_right,
-            str_c("--cut_right", "--cut_right_window_size", param$cut_right_window_size,
-                  "--cut_right_mean_quality", param$cut_right_mean_quality, sep = " "),
-            ""), # like Trimmomatic's SLIDINGWINDOW
-    if_else(param$cut_tail,
-            str_c("--cut_tail", "--cut_tail_window_size", param$cut_tail_window_size,
-                  "--cut_tail_mean_quality", param$cut_tail_mean_quality, sep = " "),
-            ""), # like Trimmomatic's TRAILING
-    if (ezIsSpecified(param$average_qual)){
+    if_else(
+      param$cut_front,
+      str_c(
+        "--cut_front",
+        "--cut_front_window_size",
+        param$cut_front_window_size,
+        "--cut_front_mean_quality",
+        param$cut_front_mean_quality,
+        sep = " "
+      ),
+      ""
+    ), # like Trimmomatic's LEADING
+    if_else(
+      param$cut_right,
+      str_c(
+        "--cut_right",
+        "--cut_right_window_size",
+        param$cut_right_window_size,
+        "--cut_right_mean_quality",
+        param$cut_right_mean_quality,
+        sep = " "
+      ),
+      ""
+    ), # like Trimmomatic's SLIDINGWINDOW
+    if_else(
+      param$cut_tail,
+      str_c(
+        "--cut_tail",
+        "--cut_tail_window_size",
+        param$cut_tail_window_size,
+        "--cut_tail_mean_quality",
+        param$cut_tail_mean_quality,
+        sep = " "
+      ),
+      ""
+    ), # like Trimmomatic's TRAILING
+    if (ezIsSpecified(param$average_qual)) {
       paste("--average_qual", param$average_qual)
     } else {
-     "--disable_quality_filtering" 
+      "--disable_quality_filtering"
     },
     # adapter trimming
     trimAdapt,
     # read length trimming
-    if (ezIsSpecified(param$max_len1)){
+    if (ezIsSpecified(param$max_len1)) {
       paste("--max_len1", param$max_len1)
     },
-    if (ezIsSpecified(param$max_len2)){
+    if (ezIsSpecified(param$max_len2)) {
       paste("--max_len2", param$max_len2)
     },
     # polyX
-    if (ezIsSpecified(param$poly_x_min_len)){
+    if (ezIsSpecified(param$poly_x_min_len)) {
       paste("--trim_poly_x", "--poly_x_min_len", param$poly_x_min_len)
     },
     # read length filtering
-    if (ezIsSpecified(param$length_required)){
+    if (ezIsSpecified(param$length_required)) {
       paste("--length_required", param$length_required)
     },
     # compression output
-    "--compression", param$fastpCompression,
+    "--compression",
+    param$fastpCompression,
     sep = " "
   )
 
@@ -217,10 +285,22 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
       file.rename(from = r2TmpFile, to = basename(output$getColumn("Read2")))
     }
   } else {
-    ezSystem(str_c("zcat", r1TmpFile, ">", basename(output$getColumn("Read1")), sep = " "))
+    ezSystem(str_c(
+      "zcat",
+      r1TmpFile,
+      ">",
+      basename(output$getColumn("Read1")),
+      sep = " "
+    ))
     file.remove(r1TmpFile)
     if (param$paired) {
-      ezSystem(str_c("zcat", r2TmpFile, ">", basename(output$getColumn("Read2")), sep = " "))
+      ezSystem(str_c(
+        "zcat",
+        r2TmpFile,
+        ">",
+        basename(output$getColumn("Read2")),
+        sep = " "
+      ))
       file.remove(r2TmpFile)
     }
   }
@@ -232,15 +312,21 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
 ##' @description fast read pre-processing.
 ##' @author Miquel Anglada Girotto
 EzAppFastp <-
-  setRefClass("EzAppFastp",
+  setRefClass(
+    "EzAppFastp",
     contains = "EzApp",
     methods = list(
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodFastpTrim
         name <<- "EzAppFastp"
-        appDefaults <<- rbind(gzipTrimmed = ezFrame(Type = "logical", DefaultValue = TRUE, Description = "whether to return gzipped reads"))
+        appDefaults <<- rbind(
+          gzipTrimmed = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "whether to return gzipped reads"
+          )
+        )
       }
     )
   )
-

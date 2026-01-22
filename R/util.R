@@ -5,7 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
 ##' @title Gets the last value of an object
 ##' @description Gets the last value of an object.
 ##' @param x a vector, object or a list.
@@ -100,7 +99,11 @@ shrinkToRange <- function(x, theRange) {
 ##' rownames(m1) = c("a","b")
 ##' colnames(m2) = as.character(1:5)
 ##' interleaveMatricesByColumn(m1,m2)
-interleaveMatricesByColumn <- function(x, y, suffixes = c("[Signal]", "[Present]")) {
+interleaveMatricesByColumn <- function(
+  x,
+  y,
+  suffixes = c("[Signal]", "[Present]")
+) {
   if (any(colnames(x) != colnames(y))) {
     stop("incompatible matrices\n", colnames(x), "\n", colnames(y))
   }
@@ -128,13 +131,14 @@ interleaveMatricesByColumn <- function(x, y, suffixes = c("[Signal]", "[Present]
 ##' @examples
 ##' x = ezNorm(runif(100))
 ezNorm <- function(x, method = "none", presentFlag = NULL) {
-  switch(method,
-         "none" = x,
-         "quantile" = ezQuantileNorm(x),
-         "logMean" = ezLogmeanNorm(x, presentFlag = presentFlag),
-         "median" = ezMedianNorm(x, presentFlag = presentFlag),
-         "vsn" = ezVsnNorm(x),
-         stop("Unsupported normalization method: ", method)
+  switch(
+    method,
+    "none" = x,
+    "quantile" = ezQuantileNorm(x),
+    "logMean" = ezLogmeanNorm(x, presentFlag = presentFlag),
+    "median" = ezMedianNorm(x, presentFlag = presentFlag),
+    "vsn" = ezVsnNorm(x),
+    stop("Unsupported normalization method: ", method)
   )
 }
 
@@ -148,7 +152,7 @@ ezNorm <- function(x, method = "none", presentFlag = NULL) {
 ##' m1 = matrix(1:20,4)
 ##' m2 = ezQuantileNorm(m1)
 ezQuantileNorm <- function(x) {
-  norm <- limma::normalizeQuantiles(x, ties=TRUE) #preprocessCore::normalize.quantiles(x)
+  norm <- limma::normalizeQuantiles(x, ties = TRUE) #preprocessCore::normalize.quantiles(x)
   colnames(norm) <- colnames(x)
   rownames(norm) <- rownames(x)
   norm
@@ -262,9 +266,21 @@ ezSplit <- function(x, split, ...) {
   lengths <- sapply(splitList, length)
   idx <- which(lengths != lengths[1])
   if (length(idx) > 0) {
-    stop(paste("Row ", idx[1], " length ", lengths[idx[1]], " but expected was ", lengths[1]))
+    stop(paste(
+      "Row ",
+      idx[1],
+      " length ",
+      lengths[idx[1]],
+      " but expected was ",
+      lengths[1]
+    ))
   }
-  result <- matrix(unlist(splitList), nrow = length(splitList), ncol = lengths[1], byrow = TRUE)
+  result <- matrix(
+    unlist(splitList),
+    nrow = length(splitList),
+    ncol = lengths[1],
+    byrow = TRUE
+  )
   rownames(result) <- x
   result
 }
@@ -309,7 +325,12 @@ ezMatrix <- function(x, rows = NULL, cols = NULL, dim = NULL) {
   if (is.null(rows) && is.null(cols)) {
     return(ezMatrix(x, rows = 1:dim[1], cols = 1:dim[2]))
   }
-  matrix(x, nrow = length(rows), ncol = length(cols), dimnames = list(rows, cols))
+  matrix(
+    x,
+    nrow = length(rows),
+    ncol = length(cols),
+    dimnames = list(rows, cols)
+  )
 }
 
 ##' @title Scales columns of a matrix
@@ -339,12 +360,22 @@ ezScaleColumns <- function(x, scaling) {
 ##' m3 = ezMedianNorm(m1, target=10)
 ##' m4 = ezMedianNorm(m1, use=c(TRUE, FALSE))
 ezMedianNorm <- function(x, use = NULL, target = NULL, presentFlag = NULL) {
-  sf <- ezMedianScalingFactor(x, use = use, target = target, presentFlag = presentFlag)
+  sf <- ezMedianScalingFactor(
+    x,
+    use = use,
+    target = target,
+    presentFlag = presentFlag
+  )
   return(ezScaleColumns(x, sf))
 }
 
 ##' @describeIn ezMedianNorm Calculates the scaling factor for the main function.
-ezMedianScalingFactor <- function(x, use = NULL, target = NULL, presentFlag = NULL) {
+ezMedianScalingFactor <- function(
+  x,
+  use = NULL,
+  target = NULL,
+  presentFlag = NULL
+) {
   if (is.null(use)) {
     use <- rep(TRUE, nrow(x))
   }
@@ -373,15 +404,22 @@ ezMedianScalingFactor <- function(x, use = NULL, target = NULL, presentFlag = NU
 ##' m3 = ezLogmeanNorm(m1,target=10)
 ##' m4 = ezLogmeanNorm(m1,use=c(TRUE,FALSE))
 ezLogmeanNorm <- function(x, use = NULL, target = NULL, presentFlag = NULL) {
-  sf <- ezLogmeanScalingFactor(x,
-                               use = use, target = target,
-                               presentFlag = presentFlag
+  sf <- ezLogmeanScalingFactor(
+    x,
+    use = use,
+    target = target,
+    presentFlag = presentFlag
   )
   return(ezScaleColumns(x, sf))
 }
 
 ##' @describeIn ezLogmeanNorm Calculates the scaling factor for the main function.
-ezLogmeanScalingFactor <- function(x, use = NULL, target = NULL, presentFlag = NULL) {
+ezLogmeanScalingFactor <- function(
+  x,
+  use = NULL,
+  target = NULL,
+  presentFlag = NULL
+) {
   x.log <- log(x)
   if (is.null(use)) {
     use <- rep(TRUE, nrow(x))
@@ -425,9 +463,13 @@ ezGeomean <- function(x, ...) {
 ##' m2 = averageColumns(m1,1)
 ##' m3 = averageColumns(m1,c(4,2,3,1))
 ##' m4 = averageColumns(m1,c(1,1,2,2))
-averageAcrossColumns <- function(x, by = NULL, func = function(x) {
-  mean(x, na.rm = TRUE)
-}) {
+averageAcrossColumns <- function(
+  x,
+  by = NULL,
+  func = function(x) {
+    mean(x, na.rm = TRUE)
+  }
+) {
   cols <- sort(unique(by))
   result <- ezMatrix(NA, rows = rownames(x), cols = cols)
   for (c in cols) {
@@ -437,14 +479,14 @@ averageAcrossColumns <- function(x, by = NULL, func = function(x) {
 }
 
 
-ezColGroupMeans <- function(x, group){
+ezColGroupMeans <- function(x, group) {
   groupSizes <- table(group)
-  xSum <- x %>% t %>% rowsum(group=group)
-  return(t(sweep(xSum, 1, groupSizes, FUN="/")))
+  xSum <- x %>% t %>% rowsum(group = group)
+  return(t(sweep(xSum, 1, groupSizes, FUN = "/")))
 }
 
-ezColGroupSums <- function(x, group){
-  xSum <- x %>% t %>% rowsum(group=group)
+ezColGroupSums <- function(x, group) {
+  xSum <- x %>% t %>% rowsum(group = group)
   return(t(xSum))
 }
 
@@ -516,15 +558,28 @@ makeMultiMapping <- function(xList) {
 ##' @examples
 ##' l1 = list(a=1:3, b=c(2,5), c=4:8)
 ##' ezMclapply(l1,sum)
-ezMclapply <- function(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE, mc.silent = FALSE, mc.cores = min(length(x), ezThreads())) {
+ezMclapply <- function(
+  x,
+  FUN,
+  ...,
+  mc.preschedule = TRUE,
+  mc.set.seed = TRUE,
+  mc.silent = FALSE,
+  mc.cores = min(length(x), ezThreads())
+) {
   require(parallel)
   mc.cores <- min(mc.cores, length(x))
   if (mc.cores == 1) {
     return(lapply(x, FUN, ...))
   }
-  result <- mclapply(x, FUN, ...,
-                     mc.preschedule = mc.preschedule, mc.set.seed = mc.set.seed,
-                     mc.silent = mc.silent, mc.cores = mc.cores
+  result <- mclapply(
+    x,
+    FUN,
+    ...,
+    mc.preschedule = mc.preschedule,
+    mc.set.seed = mc.set.seed,
+    mc.silent = mc.silent,
+    mc.cores = mc.cores
   )
   gc()
   isError <- sapply(result, function(x) {
@@ -558,20 +613,21 @@ ezMclapply <- function(x, FUN, ..., mc.preschedule = TRUE, mc.set.seed = TRUE, m
 ##' ezDuplicated(v1)
 ##' ezDuplicated(v1,"all")
 ezDuplicated <- function(x, mode = "keepFirst") {
-  switch(mode,
-         "keepFirst" = duplicated(x),
-         "keepLast" = rev(duplicated(rev(x))),
-         "random" = {
-           n <- length(x)
-           idx <- sample(1:n, n, replace = FALSE)
-           isDup <- rep(FALSE, n)
-           isDup[idx] <- duplicated(x[idx])
-           return(isDup)
-         },
-         "all" = {
-           dups <- unique(x[duplicated(x)])
-           return(x %in% dups)
-         }
+  switch(
+    mode,
+    "keepFirst" = duplicated(x),
+    "keepLast" = rev(duplicated(rev(x))),
+    "random" = {
+      n <- length(x)
+      idx <- sample(1:n, n, replace = FALSE)
+      isDup <- rep(FALSE, n)
+      isDup[idx] <- duplicated(x[idx])
+      return(isDup)
+    },
+    "all" = {
+      dups <- unique(x[duplicated(x)])
+      return(x %in% dups)
+    }
   )
 }
 
@@ -601,10 +657,11 @@ ezMultiplicated <- function(x, n = 2, mode = "keepFirst") {
   if (mode == "all") {
     return(x %in% unique(x[ezMultiplicated(x, n = n, mode = "keepFirst")]))
   }
-  idx <- switch(mode,
-                keepFirst = 1:length(x),
-                random = sample(1:length(x), length(x), replace = FALSE),
-                keepLast = length(x):1
+  idx <- switch(
+    mode,
+    keepFirst = 1:length(x),
+    random = sample(1:length(x), length(x), replace = FALSE),
+    keepLast = length(x):1
   )
   x <- x[idx]
   isMulti <- ezReplicateNumber(x) >= n
@@ -620,9 +677,12 @@ ezMultiplicated <- function(x, n = 2, mode = "keepFirst") {
 ##' x = c("a", "c", "a", "b", "c")
 ##' ezReplicateNumber(x)
 ezReplicateNumber <- function(x) {
-  idx <- unsplit(tapply(x, x, function(y) {
-    1:length(y)
-  }), x)
+  idx <- unsplit(
+    tapply(x, x, function(y) {
+      1:length(y)
+    }),
+    x
+  )
 }
 
 ##' @title Collapses a vector in a single character
@@ -638,7 +698,13 @@ ezReplicateNumber <- function(x) {
 ##' l1 = list(a=c(1,"",6),c=c("rsrg","yjrt",NA,6))
 ##' ezCollapse(l1,sep="_")
 ##' ezCollapse(l1,na.rm=T,empty.rm=T,uniqueOnly=T)
-ezCollapse <- function(x, sep = "; ", na.rm = FALSE, empty.rm = FALSE, uniqueOnly = FALSE) {
+ezCollapse <- function(
+  x,
+  sep = "; ",
+  na.rm = FALSE,
+  empty.rm = FALSE,
+  uniqueOnly = FALSE
+) {
   if (length(x) == 0) {
     return("")
   }
@@ -697,10 +763,11 @@ ezSplitLongText <- function(text, nSplit = 180) {
 
 isValidEnvironments <- function(tool) {
   tool <- tolower(tool)
-  ans <- switch(tool,
-                "conda" = Sys.which("conda") != "",
-                "ataqv" = Sys.which("ataqv") != "",
-                stop("unsupported tool: ", tool)
+  ans <- switch(
+    tool,
+    "conda" = Sys.which("conda") != "",
+    "ataqv" = Sys.which("ataqv") != "",
+    stop("unsupported tool: ", tool)
   )
   return(ans)
 }
@@ -708,14 +775,27 @@ isValidEnvironments <- function(tool) {
 setEnvironments <- function(tool, envir = parent.frame()) {
   tool <- tolower(tool)
   if (!isTRUE(isValidEnvironments(tool))) {
-    cmd <- switch(tool,
-                  "conda" = expression({
-                    Sys.setenv("PATH" = paste("/usr/local/ngseq/miniforge3/bin", Sys.getenv("PATH"), sep = ":"))
-                  }),
-                  "ataqv" = expression({
-                    Sys.setenv("PATH" = paste("/usr/local/ngseq/packages/Tools/ataqv/1.0.0/bin", Sys.getenv("PATH"), sep = ":"))
-                  }),
-                  stop("unsupported tool: ", tool)
+    cmd <- switch(
+      tool,
+      "conda" = expression({
+        Sys.setenv(
+          "PATH" = paste(
+            "/usr/local/ngseq/miniforge3/bin",
+            Sys.getenv("PATH"),
+            sep = ":"
+          )
+        )
+      }),
+      "ataqv" = expression({
+        Sys.setenv(
+          "PATH" = paste(
+            "/usr/local/ngseq/packages/Tools/ataqv/1.0.0/bin",
+            Sys.getenv("PATH"),
+            sep = ":"
+          )
+        )
+      }),
+      stop("unsupported tool: ", tool)
     )
     eval(cmd, envir = envir)
   }
@@ -735,9 +815,10 @@ prepareJavaTools <- function(tool = c("picard", "gatk", "snpeff")) {
       return(str_c(tool, "-Xms1g -Xmx10g -Djava.io.tmpdir=.", sep = " "))
     }
   } else if (Sys.getenv(tool_jar[tool]) != "") {
-    return(str_c("java -Xms1g -Xmx10g -Djava.io.tmpdir=.  -jar",
-                 Sys.getenv(tool_jar[tool]),
-                 sep = " "
+    return(str_c(
+      "java -Xms1g -Xmx10g -Djava.io.tmpdir=.  -jar",
+      Sys.getenv(tool_jar[tool]),
+      sep = " "
     ))
   } else {
     stop("Cannot find proper ", tool, " installed!")
@@ -788,20 +869,27 @@ ezCbind <- function(...) {
 ##' @param ... any number of R object
 ##' @param htmlFile The name of the output html
 ##' @param rmdFile The name of the Rmd template
-##' @param selfContained If FALSE, will copy over the css and other aesthetic assets 
+##' @param selfContained If FALSE, will copy over the css and other aesthetic assets
 ##' @param reportTitle Title to use the header of the html
-##' @param use.qs2 If TRUE, use qs2 rather than rds 
+##' @param use.qs2 If TRUE, use qs2 rather than rds
 ##' @template roxygen-template
 ##' @examples
-##' makeRmdReport(param=param, output=output, scData=scData, rmdFile = "ScSeuratCombine.Rmd", reportTitle = "Seurat Report", use.qs2=TRUE) 
+##' makeRmdReport(param=param, output=output, scData=scData, rmdFile = "ScSeuratCombine.Rmd", reportTitle = "Seurat Report", use.qs2=TRUE)
 ##' # Outputs the report as '00index.html' in addition to files 'param.qs2', 'output.qs2', 'scData.qs2'
-makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "", selfContained = TRUE,
-                          reportTitle = "SUSHI Report", use.qs2=FALSE, nthreads=4) {
+makeRmdReport <- function(
+  ...,
+  htmlFile = "00index.html",
+  rmdFile = "",
+  selfContained = TRUE,
+  reportTitle = "SUSHI Report",
+  use.qs2 = FALSE,
+  nthreads = 4
+) {
   require(qs2)
-  
+
   varList <- list(...)
   for (nm in names(varList)) {
-    if (!is.null(varList[[nm]])){
+    if (!is.null(varList[[nm]])) {
       if (use.qs2) {
         qs_save(varList[[nm]], file = paste0(nm, ".qs2"), nthreads = nthreads)
       } else {
@@ -809,42 +897,48 @@ makeRmdReport <- function(..., htmlFile = "00index.html", rmdFile = "", selfCont
       }
     }
   }
-  file.copy(file.path(system.file("templates", package = "ezRun", mustWork = TRUE), rmdFile),
-            ".", overwrite = TRUE)
-  if (!selfContained){
+  file.copy(
+    file.path(
+      system.file("templates", package = "ezRun", mustWork = TRUE),
+      rmdFile
+    ),
+    ".",
+    overwrite = TRUE
+  )
+  if (!selfContained) {
     ## Copy the style files and templates
     styleFiles <- file.path(
       system.file("templates", package = "ezRun"),
-      c("fgcz.css",
-        "fgcz_header.html", "banner.png"
-      )
+      c("fgcz.css", "fgcz_header.html", "banner.png")
     )
     file.copy(from = styleFiles, to = ".", overwrite = TRUE)
   }
   force(reportTitle) ## avoid lazy-evaluation and make sure the reportTitle gets evaluated so that it is available in the render function
   rmarkdown::render(
-    input = rmdFile, envir = new.env(),
-    output_dir = ".", output_file = htmlFile, quiet = TRUE
+    input = rmdFile,
+    envir = new.env(),
+    output_dir = ".",
+    output_file = htmlFile,
+    quiet = TRUE
   )
 }
 
 
-subsampleCountMatrix <- function(counts, targetCount, seed){
+subsampleCountMatrix <- function(counts, targetCount, seed) {
   ## inspired by subSeq package where you can provide the proportion as input
   if (!missing(seed)) {
-    s = readBin(digest::digest(c(seed, targetCount), 
-                               raw = TRUE), "integer")
+    s = readBin(digest::digest(c(seed, targetCount), raw = TRUE), "integer")
     set.seed(s)
   }
-  
+
   n = nrow(counts)
   proportion <- targetCount / colSums(counts)
   idx <- which(proportion < 1)
-  for (i in idx){
-    counts[ , i] <- rbinom(n, counts[ ,i], proportion[i])
+  for (i in idx) {
+    counts[, i] <- rbinom(n, counts[, i], proportion[i])
     ### TODO the rbinom approach does not yield exactly the targetCount
     ### exact targetCount can be sampled with the code below (slower)
-    # xSub <- rownames(counts) %>% rep(times = counts[ ,i]) %>% 
+    # xSub <- rownames(counts) %>% rep(times = counts[ ,i]) %>%
     #   sample( size = targetCount, replace = TRUE) %>%
     #   table
     # counts[ ,i] <- 0
@@ -854,16 +948,24 @@ subsampleCountMatrix <- function(counts, targetCount, seed){
 }
 
 
-tarExtract = function(tarArchives, prependUnique=FALSE){
-  fastqDirs = sapply(1:length(tarArchives), function(tar_i){
+tarExtract = function(tarArchives, prependUnique = FALSE) {
+  fastqDirs = sapply(1:length(tarArchives), function(tar_i) {
     tarArchive <- tarArchives[tar_i]
     targetDir = basename(dirname(tarArchive))
     if (prependUnique) {
       targetDir <- file.path(sprintf("run%s", tar_i), targetDir)
     }
-    res <- untar(tarArchive, exdir = targetDir, tar=system("which tar", intern=TRUE))
+    res <- untar(
+      tarArchive,
+      exdir = targetDir,
+      tar = system("which tar", intern = TRUE)
+    )
     if (res > 0) {
-      stop(sprintf("There was an error unpacking '%s' into '%s'. See warnings.", scTar, targetDir))
+      stop(sprintf(
+        "There was an error unpacking '%s' into '%s'. See warnings.",
+        scTar,
+        targetDir
+      ))
     }
     return(targetDir)
   })
@@ -871,19 +973,26 @@ tarExtract = function(tarArchives, prependUnique=FALSE){
 }
 
 
-tar2Fastq <- function(tarArchives, prefix="run"){
-  fastqDirs = sapply(1:length(tarArchives), function(i){
+tar2Fastq <- function(tarArchives, prefix = "run") {
+  fastqDirs = sapply(1:length(tarArchives), function(i) {
     tarArchive <- tarArchives[i]
     targetDir = paste0(prefix, i, "--", basename(dirname(tarArchive)))
-    res <- untar(tarArchive, exdir = targetDir, tar=system("which tar", intern=TRUE))
+    res <- untar(
+      tarArchive,
+      exdir = targetDir,
+      tar = system("which tar", intern = TRUE)
+    )
     if (res > 0) {
-      stop(sprintf("There was an error unpacking '%s' into '%s'. See warnings.", scTar, targetDir))
+      stop(sprintf(
+        "There was an error unpacking '%s' into '%s'. See warnings.",
+        scTar,
+        targetDir
+      ))
     }
     return(targetDir)
   })
   return(fastqDirs)
 }
-
 
 
 ##' @title Updates one list with another list.
@@ -899,9 +1008,11 @@ tar2Fastq <- function(tarArchives, prefix="run"){
 ezUpdateMissingParam <- function(list1, with_list) {
   filled <- list1
   for (i in setdiff(names(with_list), "ezRef")) {
-    if (((i %in% names(list1)) && 
-         (all(is.na(list1[[i]])) || all(is.null(list1[[i]])))) ||
-        !(i %in% names(list1))) {
+    if (
+      ((i %in% names(list1)) &&
+        (all(is.na(list1[[i]])) || all(is.null(list1[[i]])))) ||
+        !(i %in% names(list1))
+    ) {
       filled[[i]] <- with_list[[i]]
     }
   }
@@ -909,7 +1020,7 @@ ezUpdateMissingParam <- function(list1, with_list) {
 }
 
 
-ezLoadPackage <- function(packageName){
+ezLoadPackage <- function(packageName) {
   suppressPackageStartupMessages({
     library(packageName, character.only = TRUE)
   })
@@ -944,55 +1055,69 @@ ezLoadPackage <- function(packageName){
 ##' # Load an rds file
 ##' my_object <- ezLoadRobj("path/to/data.rds")
 ##' }
-ezLoadRobj <- function(filePath, nthreads=1L) {
+ezLoadRobj <- function(filePath, nthreads = 1L) {
   qsAvailable <- require(qs, quietly = TRUE)
   qs2Available <- require(qs2, quietly = TRUE)
-  
+
   # Extract file extension
   fileExt <- tolower(tools::file_ext(filePath))
-  
+
   # Check if file exists
   stopifnot("File does not exist" = file.exists(filePath))
-  
+
   # Load based on file extension
   switch(
     fileExt,
-    qs2={
-      stopifnot("Package 'qs2' is required to load .qs2 files. Please install it with: install.packages('qs2')" = qs2Available)
+    qs2 = {
+      stopifnot(
+        "Package 'qs2' is required to load .qs2 files. Please install it with: install.packages('qs2')" = qs2Available
+      )
       return(qs2::qs_read(filePath))
-    }, qs={
-      stopifnot("Package 'qs' is required to load .qs files. Please install it with: install.packages('qs')" = qsAvailable)
+    },
+    qs = {
+      stopifnot(
+        "Package 'qs' is required to load .qs files. Please install it with: install.packages('qs')" = qsAvailable
+      )
       return(qs::qread(filePath))
-    }, rds={
+    },
+    rds = {
       return(readRDS(filePath))
-    }, {
-      stop("Unsupported file extension: ", fileExt, ". Supported extensions are: qs2, qs, rds")
+    },
+    {
+      stop(
+        "Unsupported file extension: ",
+        fileExt,
+        ". Supported extensions are: qs2, qs, rds"
+      )
     }
   )
 }
 
-setNFTmpDir <- function(){
-  if(!dir.exists("/scratch/tmp"))
+setNFTmpDir <- function() {
+  if (!dir.exists("/scratch/tmp")) {
     dir.create("/scratch/tmp")
+  }
   Sys.setenv(NXF_TEMP = "/scratch/tmp")
   Sys.setenv(NXF_TMPDIR = "/scratch/tmp")
-  Sys.setenv(TMPDIR="/scratch/tmp")
+  Sys.setenv(TMPDIR = "/scratch/tmp")
 }
 
-setNFCacheDir <- function(cacheDir = '/misc/fgcz01/nextflow_apptainer_cache'){
+setNFCacheDir <- function(cacheDir = '/misc/fgcz01/nextflow_apptainer_cache') {
   Sys.setenv(NXF_APPTAINER_CACHEDIR = cacheDir)
 }
 
-setNFHomeDir <- function(homeDir = '/misc/fgcz01/nextflow_home_dir'){
+setNFHomeDir <- function(homeDir = '/misc/fgcz01/nextflow_home_dir') {
   Sys.setenv(NXF_HOME = homeDir)
 }
 
-prepNFCoreEnv <- function(cacheDir = '/misc/fgcz01/nextflow_apptainer_cache', homeDir = '/misc/fgcz01/nextflow_home_dir'){
+prepNFCoreEnv <- function(
+  cacheDir = '/misc/fgcz01/nextflow_apptainer_cache',
+  homeDir = '/misc/fgcz01/nextflow_home_dir'
+) {
   setNFTmpDir()
   setNFCacheDir(cacheDir)
   setNFHomeDir(homeDir)
 }
-
 
 
 writeNextflowLimits <- function(param, file = "maxResources.config") {
@@ -1006,8 +1131,11 @@ writeNextflowLimits <- function(param, file = "maxResources.config") {
 executor {
   cpus = %d
   memory = "%d GB"
-}', 
-param$cores, param$ram, param$cores, param$ram
+}',
+    param$cores,
+    param$ram,
+    param$cores,
+    param$ram
   )
   writeLines(txt, file)
   return(file)
@@ -1016,16 +1144,19 @@ param$cores, param$ram, param$cores, param$ram
 ## if statistical results are loaded from xls variables are not factors
 ## here we make a variable a factor with proper integer sorting if the levels are all integer
 ## this is helpful for cluster numbers that are integers
-makeGroupingVariableSortedFactor <- function(vec){
-  if (is.factor(vec)){
+makeGroupingVariableSortedFactor <- function(vec) {
+  if (is.factor(vec)) {
     return(vec)
   }
-  sorted_int_levels <- vec |> as.character() |> as.integer() |> unique() |> sort(na.last=TRUE)
-  if (any(is.na(sorted_int_levels))){
+  sorted_int_levels <- vec |>
+    as.character() |>
+    as.integer() |>
+    unique() |>
+    sort(na.last = TRUE)
+  if (any(is.na(sorted_int_levels))) {
     ## use character sorting
-    return(as.factor(vec, levels=sort(unique(vec))))
+    return(as.factor(vec, levels = sort(unique(vec))))
   } else {
-    return(factor(vec, levels=sorted_int_levels))
+    return(factor(vec, levels = sorted_int_levels))
   }
 }
-

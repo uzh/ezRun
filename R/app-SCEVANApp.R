@@ -23,8 +23,12 @@
 ##'   }
 ##' @param htmlFile the name of the HTML output file (default: "00index.html")
 ##' @return Returns "Success" if analysis completes successfully
-ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
-                              htmlFile = "00index.html") {
+ezMethodSCEVANApp <- function(
+  input = NA,
+  output = NA,
+  param = NA,
+  htmlFile = "00index.html"
+) {
   # ============================================================================
   # 1. LOAD REQUIRED PACKAGES
   # ============================================================================
@@ -56,7 +60,9 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
   } else if (input$hasColumn("SC Seurat")) {
     input$getColumn("SC Seurat")
   } else {
-    stop("No Seurat object column found. Expected 'SeuratObject' or 'SC Seurat'")
+    stop(
+      "No Seurat object column found. Expected 'SeuratObject' or 'SC Seurat'"
+    )
   }
 
   # Validate organism parameter
@@ -84,8 +90,13 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
     stop("Input file is not a Seurat object: ", class(seuratObj))
   }
 
-  message("Loaded Seurat object with ", ncol(seuratObj), " cells and ",
-          nrow(seuratObj), " genes")
+  message(
+    "Loaded Seurat object with ",
+    ncol(seuratObj),
+    " cells and ",
+    nrow(seuratObj),
+    " genes"
+  )
 
   # ============================================================================
   # 5. VALIDATE AND PARSE PARAMETERS
@@ -94,16 +105,22 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
 
   # Validate cellTypeColumn exists
   if (!param$cellTypeColumn %in% colnames(metadata)) {
-    stop("Cell type column '", param$cellTypeColumn,
-         "' not found in metadata. Available columns: ",
-         paste(colnames(metadata), collapse = ", "))
+    stop(
+      "Cell type column '",
+      param$cellTypeColumn,
+      "' not found in metadata. Available columns: ",
+      paste(colnames(metadata), collapse = ", ")
+    )
   }
 
   # Validate sampleColumn exists
   if (!param$sampleColumn %in% colnames(metadata)) {
-    stop("Sample column '", param$sampleColumn,
-         "' not found in metadata. Available columns: ",
-         paste(colnames(metadata), collapse = ", "))
+    stop(
+      "Sample column '",
+      param$sampleColumn,
+      "' not found in metadata. Available columns: ",
+      paste(colnames(metadata), collapse = ", ")
+    )
   }
 
   # Parse reference cell types (handle comma or newline separation)
@@ -114,29 +131,43 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
     .[. != ""]
 
   if (length(referenceCellTypes) == 0) {
-    stop("No reference cell types specified. Please provide at least one reference cell type.")
+    stop(
+      "No reference cell types specified. Please provide at least one reference cell type."
+    )
   }
 
   message("Reference cell types: ", paste(referenceCellTypes, collapse = ", "))
 
   # Identify normal cells
-  normCells <- rownames(metadata)[metadata[[param$cellTypeColumn]] %in% referenceCellTypes]
+  normCells <- rownames(metadata)[
+    metadata[[param$cellTypeColumn]] %in% referenceCellTypes
+  ]
 
   if (length(normCells) == 0) {
-    stop("No cells matched the reference cell types. ",
-         "Please check that cell type names match exactly. ",
-         "Available cell types: ",
-         paste(unique(metadata[[param$cellTypeColumn]]), collapse = ", "))
+    stop(
+      "No cells matched the reference cell types. ",
+      "Please check that cell type names match exactly. ",
+      "Available cell types: ",
+      paste(unique(metadata[[param$cellTypeColumn]]), collapse = ", ")
+    )
   }
 
   normPct <- 100 * length(normCells) / ncol(seuratObj)
-  message("Identified ", length(normCells), " normal cells (",
-          round(normPct, 2), "% of total)")
+  message(
+    "Identified ",
+    length(normCells),
+    " normal cells (",
+    round(normPct, 2),
+    "% of total)"
+  )
 
   if (normPct < 5) {
-    warning("Only ", round(normPct, 2),
-            "% of cells are reference cells. This may affect CNV calling quality. ",
-            "Consider adding more reference cell types.")
+    warning(
+      "Only ",
+      round(normPct, 2),
+      "% of cells are reference cells. This may affect CNV calling quality. ",
+      "Consider adding more reference cell types."
+    )
   }
 
   # ============================================================================
@@ -165,20 +196,26 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
     message("\n[", i, "/", nSamplesInData, "] Processing sample: ", sampleName)
 
     # Subset Seurat object for this sample
-    cellsToKeep <- colnames(seuratObj)[metadata[[param$sampleColumn]] == sampleName]
+    cellsToKeep <- colnames(seuratObj)[
+      metadata[[param$sampleColumn]] == sampleName
+    ]
     message("  Number of cells: ", length(cellsToKeep))
 
     seuratSub <- subset(seuratObj, cells = cellsToKeep)
 
     # Extract count matrix (handle Seurat v5 layers)
-    if (length(seuratSub@assays$RNA@layers) > 0 &&
-        "counts" %in% names(seuratSub@assays$RNA@layers)) {
+    if (
+      length(seuratSub@assays$RNA@layers) > 0 &&
+        "counts" %in% names(seuratSub@assays$RNA@layers)
+    ) {
       # Seurat v5 with layers
       countMtx <- as.matrix(seuratSub@assays$RNA@layers$counts)
       rownames(countMtx) <- rownames(seuratSub@assays$RNA)
       colnames(countMtx) <- colnames(seuratSub)
-    } else if (!is.null(seuratSub@assays$RNA@counts) &&
-               length(seuratSub@assays$RNA@counts) > 0) {
+    } else if (
+      !is.null(seuratSub@assays$RNA@counts) &&
+        length(seuratSub@assays$RNA@counts) > 0
+    ) {
       # Seurat v3/v4 with counts slot
       countMtx <- as.matrix(GetAssayData(seuratSub, slot = "counts"))
     } else {
@@ -192,31 +229,38 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
     message("  Normal cells in this sample: ", length(currentNormCells))
 
     if (length(currentNormCells) < 10) {
-      warning("  Only ", length(currentNormCells),
-              " normal cells in sample ", sampleName,
-              ". CNV calling may be unreliable. Skipping.")
+      warning(
+        "  Only ",
+        length(currentNormCells),
+        " normal cells in sample ",
+        sampleName,
+        ". CNV calling may be unreliable. Skipping."
+      )
       failedSamples <- c(failedSamples, sampleName)
       next
     }
 
     # Run SCEVAN pipelineCNA
     message("  Running pipelineCNA...")
-    scevanResult <- tryCatch({
-      pipelineCNA(
-        count_mtx = countMtx,
-        sample = sampleName,
-        norm_cell = currentNormCells,
-        par_cores = param$cores,
-        SUBCLONES = param$subclones,
-        beta_vega = param$betaVega,
-        ClonalCN = TRUE,
-        plotTree = FALSE,
-        organism = param$organism
-      )
-    }, error = function(e) {
-      warning("  SCEVAN failed for sample ", sampleName, ": ", e$message)
-      return(NULL)
-    })
+    scevanResult <- tryCatch(
+      {
+        pipelineCNA(
+          count_mtx = countMtx,
+          sample = sampleName,
+          norm_cell = currentNormCells,
+          par_cores = param$cores,
+          SUBCLONES = param$subclones,
+          beta_vega = param$betaVega,
+          ClonalCN = TRUE,
+          plotTree = FALSE,
+          organism = param$organism
+        )
+      },
+      error = function(e) {
+        warning("  SCEVAN failed for sample ", sampleName, ": ", e$message)
+        return(NULL)
+      }
+    )
 
     if (!is.null(scevanResult)) {
       resultsList[[sampleName]] <- scevanResult
@@ -235,7 +279,13 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
   message("\n=== SCEVAN Processing Summary ===")
   message("Successful: ", nSuccessful, "/", nSamplesInData)
   if (nFailed > 0) {
-    message("Failed: ", nFailed, " (", paste(failedSamples, collapse = ", "), ")")
+    message(
+      "Failed: ",
+      nFailed,
+      " (",
+      paste(failedSamples, collapse = ", "),
+      ")"
+    )
   }
 
   if (nSuccessful == 0) {
@@ -255,12 +305,16 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
     listNormCells <- list()
 
     for (sampleName in names(resultsList)) {
-      cellsToKeep <- colnames(seuratObj)[metadata[[param$sampleColumn]] == sampleName]
+      cellsToKeep <- colnames(seuratObj)[
+        metadata[[param$sampleColumn]] == sampleName
+      ]
       seuratSub <- subset(seuratObj, cells = cellsToKeep)
 
       # Extract count matrix
-      if (length(seuratSub@assays$RNA@layers) > 0 &&
-          "counts" %in% names(seuratSub@assays$RNA@layers)) {
+      if (
+        length(seuratSub@assays$RNA@layers) > 0 &&
+          "counts" %in% names(seuratSub@assays$RNA@layers)
+      ) {
         countMtx <- as.matrix(seuratSub@assays$RNA@layers$counts)
         rownames(countMtx) <- rownames(seuratSub@assays$RNA)
         colnames(countMtx) <- colnames(seuratSub)
@@ -273,18 +327,21 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
     }
 
     # Run multi-sample comparison
-    multiSampleResults <- tryCatch({
-      multiSampleComparisonClonalCN(
-        listCountMtx = listCountMtx,
-        listNormCells = listNormCells,
-        analysisName = param$name,
-        organism = param$organism,
-        par_cores = param$cores
-      )
-    }, error = function(e) {
-      warning("Multi-sample comparison failed: ", e$message)
-      return(NULL)
-    })
+    multiSampleResults <- tryCatch(
+      {
+        multiSampleComparisonClonalCN(
+          listCountMtx = listCountMtx,
+          listNormCells = listNormCells,
+          analysisName = param$name,
+          organism = param$organism,
+          par_cores = param$cores
+        )
+      },
+      error = function(e) {
+        warning("Multi-sample comparison failed: ", e$message)
+        return(NULL)
+      }
+    )
 
     if (!is.null(multiSampleResults)) {
       message("[v] Multi-sample comparison completed")
@@ -301,8 +358,11 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
   message("[v] Saved SCEVAN results list")
 
   if (!is.null(multiSampleResults)) {
-    qs2::qs_save(multiSampleResults, "scevan_multi_sample_results.qs2",
-                 nthreads = param$cores)
+    qs2::qs_save(
+      multiSampleResults,
+      "scevan_multi_sample_results.qs2",
+      nthreads = param$cores
+    )
     message("[v] Saved multi-sample comparison results")
   }
 
@@ -353,7 +413,8 @@ ezMethodSCEVANApp <- function(input = NA, output = NA, param = NA,
 ##'   \item{appDefaults}{Default parameters for the application.}
 ##' }
 EzAppSCEVANApp <-
-  setRefClass("EzAppSCEVANApp",
+  setRefClass(
+    "EzAppSCEVANApp",
     contains = "EzApp",
     methods = list(
       initialize = function() {

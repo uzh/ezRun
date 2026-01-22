@@ -5,14 +5,13 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
 ##' @title Modified version of Sys.time()
 ##' @description Displays the system time in a different format.
 ##' @return Returns the system time.
 ##' @template roxygen-template
-##' @examples 
+##' @examples
 ##' ezTime()
-ezTime = function(){
+ezTime = function() {
   format(Sys.time(), "%Y-%m-%d--%H-%M-%S")
 }
 
@@ -26,9 +25,9 @@ ezTime = function(){
 ##' con = file("example.txt", "w")
 ##' ezJobStart("a job", con=con)
 ##' close(con)
-ezJobStart = function(jobName, con=stderr()){
-  ezWrite(ezTime(), " ", jobName, " start", con=con)
-  job = list(name=jobName, start=proc.time())
+ezJobStart = function(jobName, con = stderr()) {
+  ezWrite(ezTime(), " ", jobName, " start", con = con)
+  job = list(name = jobName, start = proc.time())
   return(job)
 }
 
@@ -44,27 +43,39 @@ ezJobStart = function(jobName, con=stderr()){
 ##' job = ezJobStart("a job",con=con)
 ##' ezWriteElapsed(job,con=con)
 ##' close(con)
-ezWriteElapsed = function(job, status="done", con=stderr()){
-  ezWrite(ezTime(), " ", job$name, " ", status, ": ", getElapsed(job$start), con=con)
-  return(invisible(list(name=job$name, start=proc.time())))
+ezWriteElapsed = function(job, status = "done", con = stderr()) {
+  ezWrite(
+    ezTime(),
+    " ",
+    job$name,
+    " ",
+    status,
+    ": ",
+    getElapsed(job$start),
+    con = con
+  )
+  return(invisible(list(name = job$name, start = proc.time())))
 }
 
-##' @describeIn ezWriteElapsed Gets the elapsed time in minutes since a reference time. 
-getElapsed = function(x){
-  paste(signif((proc.time() - x)[ "elapsed"]/60, digits=4), "min")
+##' @describeIn ezWriteElapsed Gets the elapsed time in minutes since a reference time.
+getElapsed = function(x) {
+  paste(signif((proc.time() - x)["elapsed"] / 60, digits = 4), "min")
 }
 
 
-ezSessionInfo <- function(){
+ezSessionInfo <- function() {
   ezRunDetails = library(help = ezRun)
-  RemoteSha <- sub('.*\\s+','',ezRunDetails$info[[1]][grep('RemoteSha', ezRunDetails$info[[1]])])
+  RemoteSha <- sub(
+    '.*\\s+',
+    '',
+    ezRunDetails$info[[1]][grep('RemoteSha', ezRunDetails$info[[1]])]
+  )
   githubUrl <- file.path('https://github.com/uzh/ezRun/tree', RemoteSha)
   cat('ezRun tag:', RemoteSha, '\n')
   cat('ezRun github link:', githubUrl, '\n \n')
-  
+
   print(sessionInfo())
 }
-
 
 
 ##' @title Mails information, the nodename and working directory
@@ -73,17 +84,20 @@ ezSessionInfo <- function(){
 ##' @param subject the subject of the email.
 ##' @param to the recipient of the email.
 ##' @template roxygen-template
-##' @examples 
+##' @examples
 ##' \dontrun{
 ##' ezMail(to="example@@example.com")
 ##' }
-ezMail = function(text="done", subject="r-mail", to=""){
+ezMail = function(text = "done", subject = "r-mail", to = "") {
   stopifnot(to != "")
-  text = paste(c(text, 
-                 paste("Host:", Sys.info()["nodename"]),
-                 paste("Dir:", getwd())
-  ), collapse="\n")
-  res = system(paste("ssh fgcz-c-044 \" mail -s '", subject, "'", to, "\""), input=text)
+  text = paste(
+    c(text, paste("Host:", Sys.info()["nodename"]), paste("Dir:", getwd())),
+    collapse = "\n"
+  )
+  res = system(
+    paste("ssh fgcz-c-044 \" mail -s '", subject, "'", to, "\""),
+    input = text
+  )
   stopifnot(res == 0)
 }
 
@@ -92,24 +106,23 @@ ezMail = function(text="done", subject="r-mail", to=""){
 ##' @param addressString the character to check.
 ##' @return Returns TRUE if \code{addressString} contains an @@.
 ##' @template roxygen-template
-##' @examples 
+##' @examples
 ##' ezValidMail("example@@example.com")
-ezValidMail = function(addressString){
+ezValidMail = function(addressString) {
   return(!is.null(addressString) && grepl("@", addressString))
 }
 
-.waitUntilFileExists = function(myFile, maxWaitSeconds=300, interval=30){
+.waitUntilFileExists = function(myFile, maxWaitSeconds = 300, interval = 30) {
   waitSeconds = 0
-  while(!file.exists(myFile) && waitSeconds < maxWaitSeconds){
-    Sys.sleep( interval)
+  while (!file.exists(myFile) && waitSeconds < maxWaitSeconds) {
+    Sys.sleep(interval)
     waitSeconds = waitSeconds + interval
   }
-  if (!file.exists(myFile)){
+  if (!file.exists(myFile)) {
     stop(paste("waited", maxWaitSeconds, "but file is still missing:", myFile))
   }
   return()
 }
-
 
 
 ##' @title Wrapper for futile.logger
@@ -120,15 +133,16 @@ ezValidMail = function(addressString){
 ##' @examples
 ##' ezLog("This is an info message")
 ##' ezLog("This is a warning message", level="warn")
-ezLog = function(message, level="info"){
+ezLog = function(message, level = "info") {
   level = tolower(level)
-  switch(level,
-         trace = flog.trace(message),
-         debug = flog.debug(message),
-         info  = flog.info(message),
-         warn  = flog.warn(message),
-         error = flog.error(message),
-         fatal = flog.fatal(message),
-         stop("Invalid log level: ", level)
+  switch(
+    level,
+    trace = flog.trace(message),
+    debug = flog.debug(message),
+    info = flog.info(message),
+    warn = flog.warn(message),
+    error = flog.error(message),
+    fatal = flog.fatal(message),
+    stop("Invalid log level: ", level)
   )
 }

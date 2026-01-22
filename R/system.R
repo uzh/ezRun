@@ -5,7 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
 ##' @title Invokes a system command
 ##' @description Invokes the system command specified by \code{cmd}.
 ##' @param cmd a system command input as a character.
@@ -20,21 +19,34 @@
 ##' @examples
 ##' try(ezSystem("who"))
 # bash -c 'set -o pipefail; ls -a'
-ezSystem = function(cmd, echo=TRUE, intern=FALSE, stopOnFailure=!intern, ...){
-  if (echo){
+ezSystem = function(
+  cmd,
+  echo = TRUE,
+  intern = FALSE,
+  stopOnFailure = !intern,
+  ...
+) {
+  if (echo) {
     ezLog(paste("EXECUTED CMD:", cmd))
   }
-  if (grepl("|", cmd, fixed=TRUE) | grepl(";", cmd, fixed=TRUE)){
-    if(grepl("'", cmd)){
-      stop(paste("single quotes not supported in command if there is a | or a ; : ", cmd))
+  if (grepl("|", cmd, fixed = TRUE) | grepl(";", cmd, fixed = TRUE)) {
+    if (grepl("'", cmd)) {
+      stop(paste(
+        "single quotes not supported in command if there is a | or a ; : ",
+        cmd
+      ))
     }
-    res = system(paste("bash -c 'set -e; set -o pipefail; ", cmd, "'"), intern=intern, ...)
+    res = system(
+      paste("bash -c 'set -e; set -o pipefail; ", cmd, "'"),
+      intern = intern,
+      ...
+    )
   } else {
-    res = system(cmd, intern=intern, ...)    
+    res = system(cmd, intern = intern, ...)
   }
   #res = system(paste("set -o pipefail; ", cmd), intern=intern, ...)
-  if (stopOnFailure){
-    if (res != 0){
+  if (stopOnFailure) {
+    if (res != 0) {
       stop(paste(cmd, "\n", "failed"))
     }
   }
@@ -48,16 +60,15 @@ ezSystem = function(cmd, echo=TRUE, intern=FALSE, stopOnFailure=!intern, ...){
 ##' @seealso \code{\link[parallel]{detectCores}}
 ##' @examples
 ##' ezThreads()
-ezThreads = function(){
+ezThreads = function() {
   coreOpt = getOption("cores")
-  if (!is.null(coreOpt)){
+  if (!is.null(coreOpt)) {
     return(as.integer(coreOpt))
   }
   nslots = as.integer(Sys.getenv("NSLOTS"))
-  if (!is.na(nslots)){
+  if (!is.na(nslots)) {
     return(nslots)
   }
-  nslots = parallel::detectCores(logical=FALSE)
+  nslots = parallel::detectCores(logical = FALSE)
   return(nslots)
 }
-
