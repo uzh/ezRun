@@ -1,22 +1,3 @@
-# ezIsSpecified = function(x){
-#   !is.null(x) && length(x) > 0 && x[1] != "" && !is.na(x[1]) && x[1] != "NA"
-# }
-#
-# ezWrite = function(..., sep="", collapse=" ", con=stdout()){
-#   args = list(...)  ## see function message
-#   #args = sapply(args, print)# as.character)
-#   text = paste(sapply(args, paste, collapse=collapse), collapse=sep)
-#   writeLines(text, con=con)
-# }
-# # The data set https://cellxgene.cziscience.com/e/37b21763-7f0f-41ae-9001-60bad6e2841d.cxg/
-# param.test.2 <- list(cellxgeneUrl ='https://datasets.cellxgene.cziscience.com/b8a80837-155f-4474-89fd-838b78892ecf.rds', cellxgeneLabel = 'celltype_level_3',refBuild = 'Homo_sapiens/GENCODE/GRCh38.p13/Annotation/Release_42-2023-01-30')
-# system.time({scData <- UpdateSeuratObject(pbmc3k)})
-# test.result <- cellxgene_annotation(scData = scData, param = param.test.2 )
-#
-# cache_dir = "/scratch/yang/tmp"
-# data(EnsemblGeneTable.Mm)
-# scRef <- getCuratedCellxGeneRef(param.test.2$cellxgeneUrl, cache_dir=cache_dir, cell_label_author = param.test.2$cellxgeneLabel, species = 'Homo_sapiens')
-
 ## custorm the standardize gene function
 ## We want to solve the problem that can't standatize gene name of data matrix if we only have counts matrix
 ## And in this case, the output will have the counts matrix which is as same as the data matrix.
@@ -535,34 +516,7 @@ getCuratedCellxGeneRef <- function(
     }
   )
 
-  ## use the seurat way to do integration, but due to the huge cost of RAM change to use harmony method
-
-  # ### Performing integration on datasets normalized with SCTransform
-  # curated_seurat_object.list <- lapply(X = curated_seurat_object.list, FUN = SCTransform, method = "glmGamPoi")
-  # features <- SelectIntegrationFeatures(object.list = curated_seurat_object.list, nfeatures = 2000)
-  # curated_seurat_object.list <- PrepSCTIntegration(object.list = curated_seurat_object.list, anchor.features = features)
-  # curated_seurat_object.list <- lapply(X = curated_seurat_object.list, FUN = RunPCA, features = features)
-  #
-  #
-  #
-  #
-  # if ( length(curated_seurat_object.list) > 1){
-  #   anchors <- FindIntegrationAnchors(object.list = curated_seurat_object.list, normalization.method = "SCT",
-  #                                     anchor.features = features, dims = 1:30, reduction = "rpca", k.anchor = 20)
-  #
-  #   seurat.combined.sct <- IntegrateData(anchorset = anchors, normalization.method = "SCT", dims = 1:30)
-  #
-  #   seurat.combined.sct <- RunPCA(seurat.combined.sct, verbose = FALSE)
-  #   scRef <- RunUMAP(seurat.combined.sct, reduction = "pca", dims = 1:30)
-  #   qs::qsave(scRef,cached_curated_ref_data)
-  # } else {
-  #   # If there is only one element in the list(only one donor)
-  #   scRef <- curated_seurat_object.list[[1]]
-  #   scRef <- RunPCA(scRef, verbose = FALSE)
-  #   scRef <- RunUMAP(scRef, reduction = "pca", dims = 1:30)
-  #   qs::qsave(scRef,cached_curated_ref_data)
-  # }
-
+  ## due to the otherwise huge cost of memory usage use harmony method
   scRef <- Reduce(function(x, y) merge(x, y), curated_seurat_object.list)
   scRef <- NormalizeData(scRef)
   scRef <- FindVariableFeatures(
