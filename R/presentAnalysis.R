@@ -5,7 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
 ##' @title Which values to keep?
 ##' @description Returns TRUE for values that are considered as measured correctly and that are over a threshold, if one is used.
 ##' @param x a matrix with row and column names.
@@ -23,19 +22,18 @@
 ##' rownames(m1) = letters[1:5]
 ##' colnames(m1) = letters[6:9]
 ##' ezPresentFlags(m1, param=list(useSigThresh=TRUE, sigThresh=10))
-ezPresentFlags = function(x, presentFlag=NULL, param=NULL, isLog=FALSE){
-  
-  isPresent = ezMatrix(TRUE, rows=rownames(x), cols=colnames(x))
-  if (param$useSigThresh){
+ezPresentFlags = function(x, presentFlag = NULL, param = NULL, isLog = FALSE) {
+  isPresent = ezMatrix(TRUE, rows = rownames(x), cols = colnames(x))
+  if (param$useSigThresh) {
     if (isLog) {
       thresh = log2(param$sigThresh)
     } else {
-      thresh =param$sigThresh
+      thresh = param$sigThresh
     }
-    isPresent[ x < thresh] = FALSE
-    isPresent[ is.na(x)] = FALSE
+    isPresent[x < thresh] = FALSE
+    isPresent[is.na(x)] = FALSE
   }
-  if (!is.null(presentFlag)){
+  if (!is.null(presentFlag)) {
     isPresent[!presentFlag] = FALSE
   }
   isPresent

@@ -6,53 +6,61 @@
 # www.fgcz.ch
 
 EzAppScSCECompare <-
-  setRefClass("EzAppScSCECompare",
-              contains = "EzApp",
-              methods = list(
-                initialize = function()
-                {
-                  "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodScSCECompare
-                  name <<- "EzAppScSCECompare"
-                  appDefaults <<- rbind(
-                    DE.regress=ezFrame(Type="charVector", 
-                                       DefaultValue="Batch", 
-                                       Description="Regress batch if it is a bias"))
-                }
-              )
+  setRefClass(
+    "EzAppScSCECompare",
+    contains = "EzApp",
+    methods = list(
+      initialize = function() {
+        "Initializes the application using its specific defaults."
+        runMethod <<- ezMethodScSCECompare
+        name <<- "EzAppScSCECompare"
+        appDefaults <<- rbind(
+          DE.regress = ezFrame(
+            Type = "charVector",
+            DefaultValue = "Batch",
+            Description = "Regress batch if it is a bias"
+          )
+        )
+      }
+    )
   )
 
-ezMethodScSCECompare = function(input=NA, output=NA, param=NA, htmlFile="00index.html") {
+ezMethodScSCECompare = function(
+  input = NA,
+  output = NA,
+  param = NA,
+  htmlFile = "00index.html"
+) {
   library(scran)
   library(HDF5Array)
   library(SingleCellExperiment)
 
-  
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
-  on.exit(setwd(cwd), add=TRUE)
+  on.exit(setwd(cwd), add = TRUE)
   reportCwd <- getwd()
-  
+
   sceURLs <- input$getColumn("Static Report")
-  filePath <- file.path("/srv/gstore/projects", sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "",dirname(sceURLs)), "sce_h5")
+  filePath <- file.path(
+    "/srv/gstore/projects",
+    sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "", dirname(sceURLs)),
+    "sce_h5"
+  )
   sce <- loadHDF5SummarizedExperiment(filePath)
   #subset the object to only contain the conditions we are interested in
-  sce <- sce[,sce$Condition %in% c(param$sampleGroup, param$refGroup)]
-  
-  #Diff expression 
- diffGenes <- scranDiffGenes(sce, param)
+  sce <- sce[, sce$Condition %in% c(param$sampleGroup, param$refGroup)]
 
- dataFiles = saveExternalFiles(list(differential_genes=diffGenes))
- saveRDS(input, "input.rds")
- saveRDS(param, "param.rds")
-  
-  makeRmdReport(dataFiles=dataFiles, rmdFile = "ScSCECompare.Rmd", reportTitle = param$name) 
+  #Diff expression
+  diffGenes <- scranDiffGenes(sce, param)
+
+  dataFiles = saveExternalFiles(list(differential_genes = diffGenes))
+  saveRDS(input, "input.rds")
+  saveRDS(param, "param.rds")
+
+  makeRmdReport(
+    dataFiles = dataFiles,
+    rmdFile = "ScSCECompare.Rmd",
+    reportTitle = param$name
+  )
   return("Success")
-  
 }
-
-
-
-
-
-

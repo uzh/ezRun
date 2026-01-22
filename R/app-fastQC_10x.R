@@ -5,8 +5,12 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
-                               htmlFile = "00index.html") {
+ezMethodFastQC_10x <- function(
+  input = NA,
+  output = NA,
+  param = NA,
+  htmlFile = "00index.html"
+) {
   setwdNew(basename(output$getColumn("Report")))
 
   param$paired <- TRUE
@@ -17,7 +21,7 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
 
   ans4Report <- list() # a list of results for rmarkdown report
   ans4Report[["dataset"]] <- dataset
-  
+
   if (has_name(dataset, "Read Count")) {
     readCount <- signif(dataset$"Read Count" / 1e6, digits = 3)
     names(readCount) <- rownames(dataset)
@@ -25,8 +29,13 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
     stop("'Read Count' has to be specified in the dataset.")
   }
   ans4Report[["Read Counts"]] <- readCount
-  
-  taredfiles <- lapply(sampleDirs, untar, list = TRUE, tar=system("which tar", intern=TRUE))
+
+  taredfiles <- lapply(
+    sampleDirs,
+    untar,
+    list = TRUE,
+    tar = system("which tar", intern = TRUE)
+  )
   taredfiles_R1 <- sapply(taredfiles, function(x) {
     grep("_R1_", x, value = TRUE) %>% head(1)
   })
@@ -34,7 +43,11 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
     grep("_R2_", x, value = TRUE) %>% head(1)
   })
   for (i in 1:length(sampleDirs)) {
-    untar(sampleDirs[i], files = c(taredfiles_R1[i], taredfiles_R2[i]), tar=system("which tar", intern=TRUE))
+    untar(
+      sampleDirs[i],
+      files = c(taredfiles_R1[i], taredfiles_R2[i]),
+      tar = system("which tar", intern = TRUE)
+    )
   }
   taredfiles_R1 <- normalizePath(taredfiles_R1)
   taredfiles_R2 <- normalizePath(taredfiles_R2)
@@ -66,10 +79,16 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
   filesUse <- files[!file.exists(reportDirs)]
   if (length(filesUse) > 0) {
     cmd <- paste(
-      "fastqc", "--extract -o . -t", min(param$cores, 8),
-      "-a", FASTQC_ADAPTERS, "--kmers 7",
-      param$cmdOptions, paste(filesUse, collapse = " "),
-      "> fastqc.out", "2> fastqc.err"
+      "fastqc",
+      "--extract -o . -t",
+      min(param$cores, 8),
+      "-a",
+      FASTQC_ADAPTERS,
+      "--kmers 7",
+      param$cmdOptions,
+      paste(filesUse, collapse = " "),
+      "> fastqc.out",
+      "2> fastqc.err"
     )
     result <- ezSystem(cmd)
   }
@@ -79,8 +98,11 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
   styleFiles <- file.path(
     system.file("templates", package = "ezRun"),
     c(
-      "fgcz.css", "FastQC.Rmd", "FastQC_overview.Rmd",
-      "fgcz_header.html", "banner.png"
+      "fgcz.css",
+      "FastQC.Rmd",
+      "FastQC_overview.Rmd",
+      "fgcz_header.html",
+      "banner.png"
     )
   )
   file.copy(from = styleFiles, to = ".", overwrite = TRUE)
@@ -105,8 +127,11 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
     plotPage <- plotPages[i]
     pngs <- file.path(reportDirs, "Images", plots[i])
     rmarkdown::render(
-      input = "FastQC_overview.Rmd", envir = new.env(),
-      output_dir = ".", output_file = plotPage, quiet = TRUE
+      input = "FastQC_overview.Rmd",
+      envir = new.env(),
+      output_dir = ".",
+      output_file = plotPage,
+      quiet = TRUE
     )
   }
 
@@ -115,39 +140,55 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
   nrReports <- sapply(
     reportDirs,
     function(x) {
-      smy <- ezRead.table(file.path(x, "summary.txt"),
-        row.names = NULL, header = FALSE
+      smy <- ezRead.table(
+        file.path(x, "summary.txt"),
+        row.names = NULL,
+        header = FALSE
       )
       nrow(smy)
     }
   )
   i <- which.max(nrReports)
-  smy <- ezRead.table(file.path(reportDirs[i], "summary.txt"),
-    row.names = NULL, header = FALSE
+  smy <- ezRead.table(
+    file.path(reportDirs[i], "summary.txt"),
+    row.names = NULL,
+    header = FALSE
   )
   rowNames <- paste0(
-    "<a href=", reportDirs, "/fastqc_report.html>",
-    names(files), "</a>"
+    "<a href=",
+    reportDirs,
+    "/fastqc_report.html>",
+    names(files),
+    "</a>"
   )
   tbl <- ezMatrix("", rows = rowNames, cols = smy[[2]])
   for (i in 1:nFiles) {
-    smy <- ezRead.table(file.path(reportDirs[i], "summary.txt"),
-      row.names = NULL, header = FALSE
+    smy <- ezRead.table(
+      file.path(reportDirs[i], "summary.txt"),
+      row.names = NULL,
+      header = FALSE
     )
     href <- paste0(
-      reportDirs[i], "/fastqc_report.html#M",
+      reportDirs[i],
+      "/fastqc_report.html#M",
       0:(ncol(tbl) - 1)
     )[colnames(tbl) %in% smy[[2]]]
     img <- paste0(reportDirs[1], "/Icons/", statusToPng[smy[[1]]]) ##
     tbl[i, colnames(tbl) %in% smy[[2]]] <- paste0(
-      "<a href=", href,
-      "><img src=", img, "></a>"
+      "<a href=",
+      href,
+      "><img src=",
+      img,
+      "></a>"
     )
   }
-  colnames(tbl) <- ifelse(colnames(tbl) %in% names(plotPages),
+  colnames(tbl) <- ifelse(
+    colnames(tbl) %in% names(plotPages),
     paste0(
-      "<a href=", plotPages[colnames(tbl)],
-      ">", colnames(tbl),
+      "<a href=",
+      plotPages[colnames(tbl)],
+      ">",
+      colnames(tbl),
       "</a>"
     ),
     colnames(tbl)
@@ -163,10 +204,12 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
 
   ## generate the main reports
   rmarkdown::render(
-    input = "FastQC.Rmd", envir = new.env(),
-    output_dir = ".", output_file = htmlFile, quiet = TRUE
+    input = "FastQC.Rmd",
+    envir = new.env(),
+    output_dir = ".",
+    output_file = htmlFile,
+    quiet = TRUE
   )
-
 
   ## generate multiQC report
   ezSystem("multiqc .")
@@ -192,7 +235,8 @@ ezMethodFastQC_10x <- function(input = NA, output = NA, param = NA,
 ##'   {Creates and returns the images used by \code{plotQualityMatrixAsHeatmap()}.}
 ##' }
 EzAppFastqc_10x <-
-  setRefClass("EzAppFastqc_10x",
+  setRefClass(
+    "EzAppFastqc_10x",
     contains = "EzApp",
     methods = list(
       initialize = function() {

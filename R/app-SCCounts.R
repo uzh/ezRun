@@ -8,7 +8,8 @@
 ##' @templateVar method ezMethodSingleCellCounts(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run
 EzAppSCCounts <-
-  setRefClass("EzAppSCCounts",
+  setRefClass(
+    "EzAppSCCounts",
     contains = "EzApp",
     methods = list(
       initialize = function() {
@@ -42,8 +43,12 @@ EzAppSCCounts <-
   )
 
 
-ezMethodSCCounts <- function(input = NA, output = NA, param = NA,
-                             htmlFile = "00index.html") {
+ezMethodSCCounts <- function(
+  input = NA,
+  output = NA,
+  param = NA,
+  htmlFile = "00index.html"
+) {
   require(withr)
   cwd <- getwd()
   setwdNew(basename(output$getColumn("ResultDir")))
@@ -51,27 +56,33 @@ ezMethodSCCounts <- function(input = NA, output = NA, param = NA,
 
   metaFixed <- output$meta
   metaFixed[["CellDataset [File]"]] <- sub(
-    "-counts\\.mtx$", "-dataset.tsv",
+    "-counts\\.mtx$",
+    "-dataset.tsv",
     output$getColumn("CountMatrix")
   )
   metaFixed[["BAM [File]"]] <- sub(
-    "-counts\\.mtx$", ".bam",
+    "-counts\\.mtx$",
+    ".bam",
     output$getColumn("CountMatrix")
   )
   metaFixed[["BAI [File]"]] <- sub(
-    "-counts\\.mtx$", ".bai",
+    "-counts\\.mtx$",
+    ".bai",
     output$getColumn("CountMatrix")
   )
   metaFixed[["STARLog [File]"]] <- sub(
-    "-counts\\.mtx$", "_STAR.log",
+    "-counts\\.mtx$",
+    "_STAR.log",
     output$getColumn("CountMatrix")
   )
   metaFixed[["PreprocessingLog [File]"]] <- sub(
-    "-counts\\.mtx$", "_preprocessing.log",
+    "-counts\\.mtx$",
+    "_preprocessing.log",
     output$getColumn("CountMatrix")
   )
   metaFixed[["Stats [File]"]] <- sub(
-    "-counts\\.mtx$", "_stats.txt",
+    "-counts\\.mtx$",
+    "_stats.txt",
     output$getColumn("CountMatrix")
   )
   output <- EzDataset(meta = metaFixed, dataRoot = param$dataRoot)
@@ -89,39 +100,52 @@ ezMethodSCCounts <- function(input = NA, output = NA, param = NA,
   cellMeta[["PreprocessingLog [File]"]] <- output$getColumn("PreprocessingLog")
   cellMeta[["Stats [File]"]] <- output$getColumn("Stats")
 
-  write_tsv(as_tibble(cellMeta, rownames = "Name"),
+  write_tsv(
+    as_tibble(cellMeta, rownames = "Name"),
     file = basename(output$getColumn("CellDataset"))
   )
 
   bamParam <- param
   # bamParam$mail = "" Let's send several emails during SCCounts. It's a long computation.
 
-  switch(param$mapMethod,
+  switch(
+    param$mapMethod,
     STAR = {
       mappingApp <- EzAppSingleCellSTAR$new()
-      bamParam$cmdOptions <- ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+      bamParam$cmdOptions <- ifelse(
+        bamParam$mapOptions != "",
+        bamParam$mapOptions,
         "--outFilterType BySJout --outFilterMatchNmin 30 --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.05 --alignSJDBoverhangMin 1 --alignSJoverhangMin 8 --alignIntronMax 1000000 --alignMatesGapMax 1000000  --outFilterMultimapNmax 50 --chimSegmentMin 15 --chimJunctionOverhangMin 15 --chimScoreMin 15 --chimScoreSeparation 10 --outSAMstrandField intronMotif --outSAMattributes All"
       )
       if (!grepl("outSAMattributes", bamParam$cmdOptions)) {
-        bamParam$cmdOptions <- paste(bamParam$cmdOptions, "--outSAMattributes All")
+        bamParam$cmdOptions <- paste(
+          bamParam$cmdOptions,
+          "--outSAMattributes All"
+        )
       }
     },
     bowtie = {
       mappingApp <- EzAppBowtie$new()
-      bamParam$cmdOptions <- ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+      bamParam$cmdOptions <- ifelse(
+        bamParam$mapOptions != "",
+        bamParam$mapOptions,
         ""
       )
     },
     bowtie2 = {
       mappingApp <- EzAppBowtie2$new()
-      bamParam$cmdOptions <- ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+      bamParam$cmdOptions <- ifelse(
+        bamParam$mapOptions != "",
+        bamParam$mapOptions,
         "--no-unal"
       )
     },
     "bwa-mem" = {
       mappingApp <- EzAppBWA$new()
       bamParam$algorithm <- "mem"
-      bamParam$cmdOptions <- ifelse(bamParam$mapOptions != "", bamParam$mapOptions,
+      bamParam$cmdOptions <- ifelse(
+        bamParam$mapOptions != "",
+        bamParam$mapOptions,
         ""
       )
     },
@@ -139,7 +163,8 @@ ezMethodSCCounts <- function(input = NA, output = NA, param = NA,
   )
   EzAppSingleCellFeatureCounts$new()$run(
     input = featurecountsInput,
-    output = output, param = bamParam
+    output = output,
+    param = bamParam
   )
   return("SUCCESS")
 }

@@ -5,11 +5,10 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
 ezMethodNfCoreSmRnaSeq <- function(input = NA, output = NA, param = NA) {
   refbuild = param$refBuild
   outFolder = output$getColumn("smRNASeq_Result") |> basename()
-  
+
   nfSampleFile <- file.path('dataset.csv')
   nfSampleInfo = getSmRnaSeqSampleSheet(input)
   write_csv(nfSampleInfo, nfSampleFile)
@@ -18,22 +17,31 @@ ezMethodNfCoreSmRnaSeq <- function(input = NA, output = NA, param = NA) {
   cmd = paste(
     "nextflow run nf-core/smrnaseq",
     ## i/o
-    "--input", nfSampleFile,
-    "--outdir", outFolder,
-    ## genome 
-    "--genome", param[['referenceGenome']],
+    "--input",
+    nfSampleFile,
+    "--outdir",
+    outFolder,
+    ## genome
+    "--genome",
+    param[['referenceGenome']],
     ## parameters
-    "--mirtrace_species", param[['mirtraceSpecies']],
+    "--mirtrace_species",
+    param[['mirtraceSpecies']],
     ## configuration
     "-work-dir work",
     "-profile apptainer",
-    "-r", param$pipelineVersion,
-    "-c", configFile,
+    "-r",
+    param$pipelineVersion,
+    "-c",
+    configFile,
     param$cmdOptions
   )
   ezSystem(cmd)
   ezSystem(paste('mv', configFile, outFolder))
-  writePerSampleSmRnaCountFiles(nfSampleInfo, countDir=paste0(outFolder, "/mirna_quant/mirtop/"))
+  writePerSampleSmRnaCountFiles(
+    nfSampleInfo,
+    countDir = paste0(outFolder, "/mirna_quant/mirtop/")
+  )
 
   return("Success")
 }
@@ -43,8 +51,7 @@ EzAppNfCoreSmRnaSeq <- setRefClass(
   "EzAppNfCoreSmnRnaSeq",
   contains = "EzApp",
   methods = list(
-    initialize = function()
-    {
+    initialize = function() {
       "Initializes the application using its specific defaults."
       runMethod <<- ezMethodNfCoreSmRnaSeq
       name <<- "EzAppNfCoreSmRnaSeq"
@@ -53,23 +60,27 @@ EzAppNfCoreSmRnaSeq <- setRefClass(
 )
 
 ##' @description get an nf-core/smrnaseq-formatted csv file
-getSmRnaSeqSampleSheet <- function(input){
+getSmRnaSeqSampleSheet <- function(input) {
   nfSampleInfo <- ezFrame(
     sample = names(input$getFullPaths("Read1")),
     fastq_1 = input$getFullPaths("Read1")
   )
-  
+
   return(nfSampleInfo)
 }
 
 ##' @description split counts by sample
-writePerSampleSmRnaCountFiles <- function(nfSampleInfo, countDir="."){
+writePerSampleSmRnaCountFiles <- function(nfSampleInfo, countDir = ".") {
   sampleNames <- nfSampleInfo$sample
   sampleCountFiles <- paste0(countDir, "/", sampleNames, ".txt")
   annoColumnNames <- c("miRNA")
-  x <- data.table::fread(file.path(countDir, "mirna.tsv"), data.table=FALSE)
-  for (i in 1:nrow(nfSampleInfo)){
-    xSel <- x[ , c(annoColumnNames, sampleNames[i])] |> dplyr::rename("matchCounts" := !!sampleNames[i], "Identifier" := !!annoColumnNames)
-    ezWrite.table(xSel, file=sampleCountFiles[i], row.names = FALSE)
+  x <- data.table::fread(file.path(countDir, "mirna.tsv"), data.table = FALSE)
+  for (i in 1:nrow(nfSampleInfo)) {
+    xSel <- x[, c(annoColumnNames, sampleNames[i])] |>
+      dplyr::rename(
+        "matchCounts" := !!sampleNames[i],
+        "Identifier" := !!annoColumnNames
+      )
+    ezWrite.table(xSel, file = sampleCountFiles[i], row.names = FALSE)
   }
 }

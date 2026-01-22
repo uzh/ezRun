@@ -5,12 +5,32 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
-ezMethodProkka = function(input=NA, output=NA, param=NA, htmlFile="00index.html"){
+ezMethodProkka = function(
+  input = NA,
+  output = NA,
+  param = NA,
+  htmlFile = "00index.html"
+) {
   opt = param$cmdOptions
   sampleName = input$getNames()
   draft = input$getFullPaths("Draft")
-  cmd = paste("prokka --outdir", sampleName, "--prefix", sampleName, "--locustag", sampleName, "--compliant --centre FGCZ", "--kingdom", param$kingdom, "--cpus", ezThreads(), opt, draft, "1>", paste0(sampleName,"_prokka.log"))
+  cmd = paste(
+    "prokka --outdir",
+    sampleName,
+    "--prefix",
+    sampleName,
+    "--locustag",
+    sampleName,
+    "--compliant --centre FGCZ",
+    "--kingdom",
+    param$kingdom,
+    "--cpus",
+    ezThreads(),
+    opt,
+    draft,
+    "1>",
+    paste0(sampleName, "_prokka.log")
+  )
   ezSystem(cmd)
   wddir <- "."
   outfile <- paste0(sampleName, ".faa")
@@ -25,7 +45,8 @@ ezMethodProkka = function(input=NA, output=NA, param=NA, htmlFile="00index.html"
 ##' @description Use this reference class to run
 ##' @seealso \code{\link{getPbmm2Reference}}
 EzAppProkka <-
-  setRefClass("EzAppProkka",
+  setRefClass(
+    "EzAppProkka",
     contains = "EzApp",
     methods = list(
       initialize = function() {
@@ -33,9 +54,12 @@ EzAppProkka <-
         runMethod <<- ezMethodProkka
         name <<- "EzAppProkka"
         appDefaults <<- rbind(
-        kingdom = ezFrame(Type="character",  DefaultValue="Bacteria",  Description="annotation mode and genetic code. Default is Bacteria")
-	)
+          kingdom = ezFrame(
+            Type = "character",
+            DefaultValue = "Bacteria",
+            Description = "annotation mode and genetic code. Default is Bacteria"
+          )
+        )
       }
     )
   )
-
