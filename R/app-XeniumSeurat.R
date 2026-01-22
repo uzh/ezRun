@@ -731,9 +731,10 @@ ezMethodXeniumSeurat <- function(
     )
   }
 
-  # Save final analyzed object for Rmd report
+  # Save final analyzed object and parameters for Rmd report
   ezWrite("Saving final analyzed object...", "log.txt", append = TRUE)
   qs2::qs_save(scData, "scData.qs2", nthreads = param$cores)
+  qs2::qs_save(param, "param.qs2")
 
   # Generate Report
   makeRmdReport(
