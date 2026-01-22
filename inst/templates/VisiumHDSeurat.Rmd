@@ -1355,7 +1355,6 @@ ezKable(enrichrTable, escape=FALSE, format="html", format.args=list())
 
 ```{r check_banksy}
 has_banksy <- "banksy_cluster" %in% colnames(scData@meta.data)
-has_niche_genes <- FALSE  # Will be updated in niche_dotplot_setup if there are genes
 ```
 
 
@@ -1686,7 +1685,7 @@ top5 <- posMarkersBanksy %>%
   group_by(cluster) %>%
   slice_max(n = 5, order_by = tibble(diff_pct, avg_log2FC))
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
-genesToPlot <- intersect(genesToPlot, rownames(scData))
+## genesToPlot <- intersect(genesToPlot, rownames(scData))
 ```
 
 
