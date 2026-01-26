@@ -82,10 +82,7 @@ Examples:
     input_path = Path(args.input)
     
     # Determine output directory: use -o if provided, otherwise use -d
-    if args.output:
-        output_dir = Path(args.output)
-    else:
-        output_dir = Path(args.directory)
+    output_dir = Path(args.output or args.directory)
     
     if not input_path.exists():
         logger.error(f"Input file not found: {input_path}")
