@@ -134,7 +134,7 @@ ezValidMail = function(addressString) {
 ##' ezLog("This is an info message")
 ##' ezLog("This is a warning message", level="warn")
 ezLog = function(message, level = "info") {
-  custom_layout <- layout.format('~l [~t] [~f] ~m')
+  custom_layout <- layout.format('~l (ezRun) [~t] ~m')
   flog.layout(custom_layout)
 
   level = tolower(level)
