@@ -233,6 +233,12 @@ ezMethodScSeurat <- function(
     # Read the cellbender H5 file with Ensembl IDs as rownames
     cts <- Read10X_h5(cmDir, use.names = FALSE)
 
+    ## Handle multi-modality H5 files (e.g., Cell Ranger ARC/Multi with RNA + ATAC)
+    ## Extract only the Gene Expression matrix
+    if (is.list(cts)) {
+      cts <- cts$`Gene Expression`
+    }
+
     # Get path for raw matrix from current input
     if ("UnfilteredCountMatrix" %in% input$colNames) {
       countRawMatrix <- input$getFullPaths("UnfilteredCountMatrix")
