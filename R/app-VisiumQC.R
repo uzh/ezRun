@@ -42,6 +42,9 @@ ezMethodVisiumQC <- function(
     if (j == 1) {
       stats <- sampleStats
     } else {
+      commonCols <- intersect(colnames(stats),colnames(sampleStats))
+      sampleStats <- sampleStats[,commonCols]
+      stats <- stats[,commonCols]
       stats <- rbind(stats, sampleStats)
     }
   }
