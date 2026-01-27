@@ -17,7 +17,6 @@ ezMethodVisiumQC <- function(
 
   setwdNew('VisiumQC')
   dataset <- input$meta
-  spaceRangerPath <- unique(dirname(dirname(input$getColumn("Report"))))
   if (all(grepl('^H', input$getColumn('Slide')))) {
     param$visiumType <- 'HD'
   } else {
@@ -27,7 +26,7 @@ ezMethodVisiumQC <- function(
   ###CollectStats
   for (j in 1:nrow(dataset)) {
     sampleName <- rownames(dataset)[j]
-    samplePath <- file.path(param$dataRoot, spaceRangerPath, sampleName)
+    samplePath <- file.path(param$dataRoot, dirname(dataset[['Count [Link]']][j]))
     umiCounts <- sum(
       ezRead.table(file.path(
         samplePath,
@@ -60,7 +59,7 @@ ezMethodVisiumQC <- function(
     myPlots <- list()
     for (j in 1:nrow(dataset)) {
       sampleName <- rownames(dataset)[j]
-      samplePath <- file.path(param$dataRoot, spaceRangerPath, sampleName)
+      samplePath <- file.path(param$dataRoot, dirname(dataset[['Count [Link]']][j]))
       data_raw <- read10xRaw(file.path(samplePath, "raw_feature_bc_matrix"))
       if (
         file.exists(file.path(samplePath, "spatial", "tissue_positions.csv"))
@@ -107,7 +106,7 @@ ezMethodVisiumQC <- function(
     write_rds(myPlots, 'myPlots.rds')
 
     sampleName <- rownames(dataset)[1]
-    samplePath <- file.path(param$dataRoot, spaceRangerPath, sampleName)
+    samplePath <- samplePath <- file.path(param$dataRoot, dirname(dataset[['Count [Link]']][1]))
     img = Read10X_Image(
       file.path(samplePath, "spatial"),
       image.name = "tissue_hires_image.png"
