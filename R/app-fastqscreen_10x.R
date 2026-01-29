@@ -5,13 +5,22 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-ezMethodFastqScreen_10x <- function(input = NA, output = NA, param = NA,
-                                    htmlFile = "00index.html") {
+ezMethodFastqScreen_10x <- function(
+  input = NA,
+  output = NA,
+  param = NA,
+  htmlFile = "00index.html"
+) {
   dataset <- input$meta
   sampleDirs <- input$getFullPaths("RawDataDir")
   stopifnot(all(grepl("\\.tar$", sampleDirs)))
 
-  taredfiles <- lapply(sampleDirs, untar, list = TRUE, tar=system("which tar", intern=TRUE))
+  taredfiles <- lapply(
+    sampleDirs,
+    untar,
+    list = TRUE,
+    tar = system("which tar", intern = TRUE)
+  )
   if (any(str_detect(unlist(taredfiles), "_R3_"))) {
     ## ATAC has R3 for real data
     taredfiles_R2 <- sapply(
@@ -30,18 +39,23 @@ ezMethodFastqScreen_10x <- function(input = NA, output = NA, param = NA,
     )
   }
   for (i in 1:length(sampleDirs)) {
-    untar(sampleDirs[i], files = taredfiles_R2[i], tar=system("which tar", intern=TRUE))
+    untar(
+      sampleDirs[i],
+      files = taredfiles_R2[i],
+      tar = system("which tar", intern = TRUE)
+    )
   }
   taredfiles_R2 <- normalizePath(taredfiles_R2)
   dataset$`Read1` <- taredfiles_R2
   input <- EzDataset(meta = dataset, dataRoot = NULL)
-  ezMethodFastqScreen(input = input, output=output, param=param)
+  ezMethodFastqScreen(input = input, output = output, param = param)
 
   return("Success")
 }
 
 EzAppFastqScreen_10x <-
-  setRefClass("EzAppFastqScreen_10x",
+  setRefClass(
+    "EzAppFastqScreen_10x",
     contains = "EzApp",
     methods = list(
       initialize = function() {
@@ -74,8 +88,11 @@ EzAppFastqScreen_10x <-
             DefaultValue = TRUE,
             Description = "whether to search for the adapters and trim them"
           ),
-          readFileToUse = ezFrame(Type = "character", DefaultValue = "Read1",
-                                  Description = "which read file(s) to use for the analysis: Read1, Read2, or both")
+          readFileToUse = ezFrame(
+            Type = "character",
+            DefaultValue = "Read1",
+            Description = "which read file(s) to use for the analysis: Read1, Read2, or both"
+          )
         )
       }
     )

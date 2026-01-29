@@ -6,18 +6,21 @@
 # www.fgcz.ch
 
 EzAppCellRangerAggr <-
-  setRefClass("EzAppCellRangerAggr",
+  setRefClass(
+    "EzAppCellRangerAggr",
     contains = "EzApp",
     methods = list(
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCellRangerAggr
         name <<- "EzAppCellRangerAggr"
-        appDefaults <<- rbind(normalize = ezFrame(
-          Type = "character",
-          DefaultValue = "mapped",
-          Description = "String specifying how to normalize depth across the input libraries. mapped or none."
-        ))
+        appDefaults <<- rbind(
+          normalize = ezFrame(
+            Type = "character",
+            DefaultValue = "mapped",
+            Description = "String specifying how to normalize depth across the input libraries. mapped or none."
+          )
+        )
       }
     )
   )
@@ -28,11 +31,13 @@ ezMethodCellRangerAggr <- function(input = NA, output = NA, param = NA) {
   aggr_input <- tibble(
     sample_id = input$getNames(),
     molecule_h5 = file.path(
-      dirname(input$getFullPaths("Report")), "molecule_info.h5"
+      dirname(input$getFullPaths("Report")),
+      "molecule_info.h5"
     )
   )
   if (any(input$columnHasTag("Factor"))) {
-    aggr_input2 <- as_tibble(input$meta[, input$columnHasTag("Factor"), drop = FALSE],
+    aggr_input2 <- as_tibble(
+      input$meta[, input$columnHasTag("Factor"), drop = FALSE],
       rownames = "sample_id"
     )
     colnames(aggr_input2) <- str_replace(colnames(aggr_input2), " \\[.*", "")
@@ -40,15 +45,19 @@ ezMethodCellRangerAggr <- function(input = NA, output = NA, param = NA) {
   }
 
   aggr_input_fn <- tempfile(
-    pattern = "aggr_input", tmpdir = getwd(), fileext = ".csv"
+    pattern = "aggr_input",
+    tmpdir = getwd(),
+    fileext = ".csv"
   )
   write_csv(aggr_input, file = aggr_input_fn)
 
   cellRangerFolder <- str_c(param$name, "-cellRanger")
   cmd <- str_c(
-    "cellranger aggr", str_c("--id=", cellRangerFolder),
+    "cellranger aggr",
+    str_c("--id=", cellRangerFolder),
     str_c("--csv=", aggr_input_fn),
-    str_c("--normalize=", param$normalize), sep=" "
+    str_c("--normalize=", param$normalize),
+    sep = " "
   )
   ezSystem(cmd)
 

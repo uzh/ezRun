@@ -6,59 +6,84 @@
 # www.fgcz.ch
 
 EzAppSCCountQC <-
-  setRefClass("EzAppSCCountQC",
-              contains = "EzApp",
-              methods = list(
-                initialize = function()
-                {
-                  "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodSCCountQC
-                  name <<- "EzAppSCCountQC"
-                  appDefaults <<- rbind(scProtocol=ezFrame(Type="character", DefaultValue="10X", Description="Which single cell protocol?"))
-                }
-              )
+  setRefClass(
+    "EzAppSCCountQC",
+    contains = "EzApp",
+    methods = list(
+      initialize = function() {
+        "Initializes the application using its specific defaults."
+        runMethod <<- ezMethodSCCountQC
+        name <<- "EzAppSCCountQC"
+        appDefaults <<- rbind(
+          scProtocol = ezFrame(
+            Type = "character",
+            DefaultValue = "10X",
+            Description = "Which single cell protocol?"
+          )
+        )
+      }
+    )
   )
 
-ezMethodSCCountQC = function(input=NA, output=NA, param=NA, 
-                             htmlFile="00index.html"){
+ezMethodSCCountQC = function(
+  input = NA,
+  output = NA,
+  param = NA,
+  htmlFile = "00index.html"
+) {
   require(S4Vectors)
   require(SummarizedExperiment)
   require(Rsamtools)
   require(GenomeInfoDb)
-  
+
   cwd <- getwd()
   setwdNew(basename(output$getColumn("Report")))
-  on.exit(setwd(cwd), add=TRUE)
+  on.exit(setwd(cwd), add = TRUE)
   reportCwd <- getwd()
-  
+
   sce <- loadSCCountDataset(input, param)
-  
+
   ## SCCountQC always process one plate/sample once; remove the plate name
   colnames(sce) <- sub("^.*___", "", colnames(sce))
-  
-  metadata(sce)$param$name <- paste(metadata(sce)$param$name,
-                                    paste(input$getNames(), collapse=", "),
-                                    sep=": ")
+
+  metadata(sce)$param$name <- paste(
+    metadata(sce)$param$name,
+    paste(input$getNames(), collapse = ", "),
+    sep = ": "
+  )
   param <- metadata(sce)$param
-  if(toupper(param$scProtocol) == "SMART-SEQ2"){
-    mlog <- read.table(sub("-counts\\.mtx$", "_STAR.log", 
-                           input$getFullPaths("CountMatrix")),
-                       sep="|", as.is = TRUE, quote = "\"", fill=T)
-    rownames(mlog) <- trimws(mlog[,1])
+  if (toupper(param$scProtocol) == "SMART-SEQ2") {
+    mlog <- read.table(
+      sub("-counts\\.mtx$", "_STAR.log", input$getFullPaths("CountMatrix")),
+      sep = "|",
+      as.is = TRUE,
+      quote = "\"",
+      fill = T
+    )
+    rownames(mlog) <- trimws(mlog[, 1])
     metadata(sce)$mlog <- mlog
-    
-    inBam <- getBamLocally(sub("-counts\\.mtx$", ".bam",
-                               input$getFullPaths("CountMatrix")))
-    on.exit(file.remove(file.path(reportCwd, c(inBam, paste0(inBam, ".bai")))), 
-            add = TRUE)
+
+    inBam <- getBamLocally(sub(
+      "-counts\\.mtx$",
+      ".bam",
+      input$getFullPaths("CountMatrix")
+    ))
+    on.exit(
+      file.remove(file.path(reportCwd, c(inBam, paste0(inBam, ".bai")))),
+      add = TRUE
+    )
   }
-  if(all(levels(seqnames(rowRanges(sce))) %in%
-         seqnames(seqinfo(FaFile(param$ezRef['refFastaFile']))))){
+  if (
+    all(
+      levels(seqnames(rowRanges(sce))) %in%
+        seqnames(seqinfo(FaFile(param$ezRef['refFastaFile'])))
+    )
+  ) {
     param$hasControlSeqs <- FALSE
-  }else{
+  } else {
     param$hasControlSeqs <- TRUE
   }
-  
+
   ## 3' and 5' bias: not in use currently
   # minCount <- 20
   # minTxLength <- 1e3
@@ -81,128 +106,186 @@ ezMethodSCCountQC = function(input=NA, output=NA, param=NA,
   #                       useTxIDs=useTxIDs, maxTxs=maxTxs)
   #colData(sce)$bias5 <- primeBias$bias5[colnames(sce)]
   #colData(sce)$bias3 <- primeBias$bias3[colnames(sce)]
-  
+
   ## Picard metrics
-  if(param$scProtocol == "smart-Seq2" && !param$hasControlSeqs){
-    bamRGFns <- splitBamByRG(inBam, mc.cores=param$cores)
-    
+  if (param$scProtocol == "smart-Seq2" && !param$hasControlSeqs) {
+    bamRGFns <- splitBamByRG(inBam, mc.cores = param$cores)
+
     ### CollectAlignmentSummaryMetrics
     message("Start CollectAlignmentSummaryMetrics", date())
-    alnMetrics <- CollectAlignmentSummaryMetrics(inBams=bamRGFns,
-                                                 fastaFn=param$ezRef['refFastaFile'],
-                                                 paired=param$paired,
-                                                 metricLevel="SAMPLE",
-                                                 mc.cores=param$cores)
-    colData(sce) <- as(data.frame(colData(sce), alnMetrics[colnames(sce), ],
-                                  check.names = FALSE, stringsAsFactors = FALSE),
-                       "DataFrame")
-    
+    alnMetrics <- CollectAlignmentSummaryMetrics(
+      inBams = bamRGFns,
+      fastaFn = param$ezRef['refFastaFile'],
+      paired = param$paired,
+      metricLevel = "SAMPLE",
+      mc.cores = param$cores
+    )
+    colData(sce) <- as(
+      data.frame(
+        colData(sce),
+        alnMetrics[colnames(sce), ],
+        check.names = FALSE,
+        stringsAsFactors = FALSE
+      ),
+      "DataFrame"
+    )
+
     ### CollectRnaSeqMetrics
     message("Start CollectRnaSeqMetrics", date())
-    rnaSeqMetrics <- CollectRnaSeqMetrics(inBams=bamRGFns,
-                                          gtfFn=param$ezRef['refFeatureFile'],
-                                          featAnnoFn=param$ezRef['refAnnotationFile'],
-                                          strandMode=param$strandMode,
-                                          metricLevel="SAMPLE",
-                                          mc.cores=param$cores)
-    colData(sce) <- as(data.frame(colData(sce), rnaSeqMetrics[colnames(sce), ],
-                                  check.names = FALSE, stringsAsFactors = FALSE),
-                       "DataFrame")
-    
+    rnaSeqMetrics <- CollectRnaSeqMetrics(
+      inBams = bamRGFns,
+      gtfFn = param$ezRef['refFeatureFile'],
+      featAnnoFn = param$ezRef['refAnnotationFile'],
+      strandMode = param$strandMode,
+      metricLevel = "SAMPLE",
+      mc.cores = param$cores
+    )
+    colData(sce) <- as(
+      data.frame(
+        colData(sce),
+        rnaSeqMetrics[colnames(sce), ],
+        check.names = FALSE,
+        stringsAsFactors = FALSE
+      ),
+      "DataFrame"
+    )
+
     ### DuplicationMetrics
     message("Start DuplicationMetrics", date())
-    dupMetrics <- DuplicationMetrics(inBams=bamRGFns, mc.cores=param$cores)
-    colData(sce) <- as(data.frame(colData(sce), dupMetrics[colnames(sce), ],
-                                  check.names = FALSE, stringsAsFactors = FALSE),
-                       "DataFrame")
-    
+    dupMetrics <- DuplicationMetrics(inBams = bamRGFns, mc.cores = param$cores)
+    colData(sce) <- as(
+      data.frame(
+        colData(sce),
+        dupMetrics[colnames(sce), ],
+        check.names = FALSE,
+        stringsAsFactors = FALSE
+      ),
+      "DataFrame"
+    )
+
     file.remove(file.path(reportCwd, bamRGFns))
   }
   metadata(sce)$param <- param
-  saveRDS(sce, file="sce.rds")
-  
+  saveRDS(sce, file = "sce.rds")
+
   ## Copy the style files and templates
-  styleFiles <- file.path(system.file("templates", package="ezRun"),
-                          c("fgcz.css", "SCCountQC.Rmd",
-                            "fgcz_header.html", "banner.png"))
-  file.copy(from=styleFiles, to=".", overwrite=TRUE)
-  rmarkdown::render(input="SCCountQC.Rmd", envir = new.env(),
-                    output_dir=".", output_file=htmlFile, quiet=TRUE)
+  styleFiles <- file.path(
+    system.file("templates", package = "ezRun"),
+    c("fgcz.css", "SCCountQC.Rmd", "fgcz_header.html", "banner.png")
+  )
+  file.copy(from = styleFiles, to = ".", overwrite = TRUE)
+  rmarkdown::render(
+    input = "SCCountQC.Rmd",
+    envir = new.env(),
+    output_dir = ".",
+    output_file = htmlFile,
+    quiet = TRUE
+  )
 
   return("Success")
 }
 
-txEndBias <- function(param, inBam, width=100L, minTxLength=NULL,
-                      useTxIDs=NULL, maxTxs=NULL){
+txEndBias <- function(
+  param,
+  inBam,
+  width = 100L,
+  minTxLength = NULL,
+  useTxIDs = NULL,
+  maxTxs = NULL
+) {
   require(matrixStats)
-  
+
   ## 5' 100bp and 3' 100bp
-  gtf5TempFn <- tempfile(pattern="trimGTF-5-", tmpdir=".", fileext=".gtf")
-  gtf3TempFn <- tempfile(pattern="trimGTF-3-", tmpdir=".", fileext=".gtf")
-  on.exit(file.remove(c(gtf5TempFn, gtf3TempFn)), add=TRUE)
-  
-  trimTxGtf(param, outGTF=c(gtf5TempFn, gtf3TempFn), 
-            width=width, fix=c("start", "end"),
-            minTxLength=minTxLength, useTxIDs=useTxIDs, maxTxs=maxTxs)
+  gtf5TempFn <- tempfile(pattern = "trimGTF-5-", tmpdir = ".", fileext = ".gtf")
+  gtf3TempFn <- tempfile(pattern = "trimGTF-3-", tmpdir = ".", fileext = ".gtf")
+  on.exit(file.remove(c(gtf5TempFn, gtf3TempFn)), add = TRUE)
+
+  trimTxGtf(
+    param,
+    outGTF = c(gtf5TempFn, gtf3TempFn),
+    width = width,
+    fix = c("start", "end"),
+    minTxLength = minTxLength,
+    useTxIDs = useTxIDs,
+    maxTxs = maxTxs
+  )
   counts5 <- txFeatureCounts(param, inBam, gtf5TempFn)
   counts3 <- txFeatureCounts(param, inBam, gtf3TempFn)
   stopifnot(identical(rownames(counts5), rownames(counts3)))
-  
+
   ## All txs
   countsAll <- txFeatureCounts(param, inBam, param$ezRef@refFeatureFile)
   countsAll <- countsAll[rownames(counts5), ]
-  
+
   widthsTx <- getTranscriptGcAndWidth(param)
   widthsTx <- widthsTx$featWidth[rownames(countsAll)]
   bias5 <- (counts5 / width) / (countsAll / widthsTx)
   bias3 <- (counts3 / width) / (countsAll / widthsTx)
-  
-  bias5 <- colMeans(bias5, na.rm=TRUE)
-  bias3 <- colMeans(bias3, na.rm=TRUE)
-  
-  return(list(bias5=bias5, bias3=bias3))
+
+  bias5 <- colMeans(bias5, na.rm = TRUE)
+  bias3 <- colMeans(bias3, na.rm = TRUE)
+
+  return(list(bias5 = bias5, bias3 = bias3))
 }
 
 
-fixFeatureCountsRGMatrix <- function(counts, inBam){
+fixFeatureCountsRGMatrix <- function(counts, inBam) {
   require(Rsamtools)
   countsFixed <- counts
   bamHeaders <- scanBamHeader(inBam)
-  
-  colnames(countsFixed) <- sub(paste0(make.names(inBam), "."), "", 
-                               colnames(countsFixed))
-  tagsRG <- sub("ID:", "", 
-                sapply(bamHeaders[[1]]$text[names(bamHeaders[[1]]$text) == "@RG"], 
-                       "[", 1))
+
+  colnames(countsFixed) <- sub(
+    paste0(make.names(inBam), "."),
+    "",
+    colnames(countsFixed)
+  )
+  tagsRG <- sub(
+    "ID:",
+    "",
+    sapply(bamHeaders[[1]]$text[names(bamHeaders[[1]]$text) == "@RG"], "[", 1)
+  )
   ## RG starts with numbers will have X after make.names
   ## But featureCounts doesn't have this X.
   fixNameMapping <- set_names(tagsRG, make.names(tagsRG))
   indexStartNumber <- grep("^\\d", fixNameMapping)
-  names(fixNameMapping)[indexStartNumber] <- sub("^X", "", 
-                                                 set_names(fixNameMapping)[indexStartNumber])
+  names(fixNameMapping)[indexStartNumber] <- sub(
+    "^X",
+    "",
+    set_names(fixNameMapping)[indexStartNumber]
+  )
   colnames(countsFixed) <- fixNameMapping[colnames(countsFixed)]
   return(countsFixed)
 }
 
-txFeatureCounts <- function(param, inBam, gtfFn){
+txFeatureCounts <- function(param, inBam, gtfFn) {
   require(Rsubread)
   require(Rsamtools)
   bamHeaders <- scanBamHeader(inBam)
   hasRG <- "@RG" %in% names(bamHeaders[[1]]$text)
-  
-  countResult <- featureCounts(inBam, annot.inbuilt=NULL,
-                               annot.ext=gtfFn, isGTFAnnotationFile=TRUE,
-                               GTF.featureType="exon",
-                               GTF.attrType="transcript_id",
-                               allowMultiOverlap=TRUE,
-                               isPairedEnd=param$paired,
-                               nthreads=param$cores,
-                               strandSpecific=switch(param$strandMode, "both"=0, "sense"=1, "antisense"=2, stop("unsupported strand mode: ", param$strandMode)),
-                               minMQS=param$minMapQuality,
-                               minOverlap=param$minFeatureOverlap,
-                               countMultiMappingReads=param$keepMultiHits,
-                               primaryOnly=TRUE,
-                               byReadGroup=ifelse(hasRG, TRUE, FALSE))
+
+  countResult <- featureCounts(
+    inBam,
+    annot.inbuilt = NULL,
+    annot.ext = gtfFn,
+    isGTFAnnotationFile = TRUE,
+    GTF.featureType = "exon",
+    GTF.attrType = "transcript_id",
+    allowMultiOverlap = TRUE,
+    isPairedEnd = param$paired,
+    nthreads = param$cores,
+    strandSpecific = switch(
+      param$strandMode,
+      "both" = 0,
+      "sense" = 1,
+      "antisense" = 2,
+      stop("unsupported strand mode: ", param$strandMode)
+    ),
+    minMQS = param$minMapQuality,
+    minOverlap = param$minFeatureOverlap,
+    countMultiMappingReads = param$keepMultiHits,
+    primaryOnly = TRUE,
+    byReadGroup = ifelse(hasRG, TRUE, FALSE)
+  )
   ans <- fixFeatureCountsRGMatrix(countResult$counts, inBam)
   return(ans)
 }

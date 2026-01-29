@@ -5,14 +5,15 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
-doGo = function(param, seqAnno){
-  flag = param$runGO && (hasGeneMapping(param, seqAnno) || param$featureLevel == "gene") && hasGoAnnotation(seqAnno)
+doGo = function(param, seqAnno) {
+  flag = param$runGO &&
+    (hasGeneMapping(param, seqAnno) || param$featureLevel == "gene") &&
+    hasGoAnnotation(seqAnno)
   message("doGo: ", flag)
   return(flag)
 }
 
-hasGoAnnotation = function(seqAnno){
+hasGoAnnotation = function(seqAnno) {
   goColumns <- c("GO BP", "GO MF", "GO CC")
   hasGO <- all(goColumns %in% colnames(seqAnno))
   validGO <- all(colSums(seqAnno[, goColumns] == "") != nrow(seqAnno))
@@ -26,16 +27,43 @@ hasGoAnnotation = function(seqAnno){
 ##' @template roxygen-template
 ##' @return Returns the separated GO ID's
 ##' @examples separateGoIdsByOnto(c("GO:0008150", "GO:0005575"))
-separateGoIdsByOnto = function(goIdStrings){
-  require("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+separateGoIdsByOnto = function(goIdStrings) {
+  require("GO.db", warn.conflicts = WARN_CONFLICTS, quietly = !WARN_CONFLICTS)
   bpGos = keys(GOBPPARENTS)
   mfGos = keys(GOMFPARENTS)
   ccGos = keys(GOCCPARENTS)
-  result = data.frame(row.names=1:length(goIdStrings))
-  goList = strsplit(trimWhiteSpace(gsub("; ", ";", goIdStrings)), ";") ## support both separators "; " and ";" 
-  result[["GO BP"]] = sapply(lapply(goList, function(x,y){intersect(x,y)}, y=bpGos), ezCollapse)
-  result[["GO MF"]] = sapply(lapply(goList, function(x,y){intersect(x,y)}, y=mfGos), ezCollapse)
-  result[["GO CC"]] = sapply(lapply(goList, function(x,y){intersect(x,y)}, y=ccGos), ezCollapse)
+  result = data.frame(row.names = 1:length(goIdStrings))
+  goList = strsplit(trimWhiteSpace(gsub("; ", ";", goIdStrings)), ";") ## support both separators "; " and ";"
+  result[["GO BP"]] = sapply(
+    lapply(
+      goList,
+      function(x, y) {
+        intersect(x, y)
+      },
+      y = bpGos
+    ),
+    ezCollapse
+  )
+  result[["GO MF"]] = sapply(
+    lapply(
+      goList,
+      function(x, y) {
+        intersect(x, y)
+      },
+      y = mfGos
+    ),
+    ezCollapse
+  )
+  result[["GO CC"]] = sapply(
+    lapply(
+      goList,
+      function(x, y) {
+        intersect(x, y)
+      },
+      y = ccGos
+    ),
+    ezCollapse
+  )
   return(result)
 }
 
@@ -48,11 +76,16 @@ separateGoIdsByOnto = function(goIdStrings){
 ##' @examples
 ##' getGOparents("GO:0034767")
 ##' addGoParents(c("GO:0034767", "GO:0034768"), "BP")
-getGOparents = function(id, onto="BP"){
+getGOparents = function(id, onto = "BP") {
   require(GO.db)
-  go2Ancestor = switch(onto, BP=as.list(GOBPANCESTOR), MF=as.list(GOMFANCESTOR), CC=as.list(GOCCANCESTOR))
+  go2Ancestor = switch(
+    onto,
+    BP = as.list(GOBPANCESTOR),
+    MF = as.list(GOMFANCESTOR),
+    CC = as.list(GOCCANCESTOR)
+  )
   ancestorIds = setdiff(go2Ancestor[[id]], "all") ## remove the all category
-  if (is.null(ancestorIds)){
+  if (is.null(ancestorIds)) {
     return()
   } else {
     ancestorTerms = Term(GOTERM[ancestorIds])
@@ -61,47 +94,62 @@ getGOparents = function(id, onto="BP"){
 }
 
 ##' @describeIn getGOparents Adds the GO parents.
-addGoParents = function(gene2goList, onto){
+addGoParents = function(gene2goList, onto) {
   require(GO.db)
-  goParents = switch(onto, BP=as.list(GOBPPARENTS),
-                     CC=as.list(GOCCPARENTS),
-                     MF=as.list(GOMFPARENTS))
-  return(lapply(gene2goList, function(x){setdiff(union(x, unlist(goParents[x])), "all")}))
+  goParents = switch(
+    onto,
+    BP = as.list(GOBPPARENTS),
+    CC = as.list(GOCCPARENTS),
+    MF = as.list(GOMFPARENTS)
+  )
+  return(lapply(gene2goList, function(x) {
+    setdiff(union(x, unlist(goParents[x])), "all")
+  }))
 }
 
 
-compileEnrichmentInput = function(param, se){
+compileEnrichmentInput = function(param, se) {
   require(SummarizedExperiment)
-  seqAnno = data.frame(rowData(se), row.names=rownames(se),
-                       check.names = FALSE, stringsAsFactors=FALSE)
+  seqAnno = data.frame(
+    rowData(se),
+    row.names = rownames(se),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
   logSignal = log2(assays(se)$xNorm + param$minSignal)
-  groupMeans = cbind(rowMeans(logSignal[ , param$grouping == param$sampleGroup, 
-                                         drop=FALSE]),
-                     rowMeans(logSignal[ , param$grouping == param$refGroup, 
-                                         drop=FALSE])
+  groupMeans = cbind(
+    rowMeans(logSignal[, param$grouping == param$sampleGroup, drop = FALSE]),
+    rowMeans(logSignal[, param$grouping == param$refGroup, drop = FALSE])
   )
   colnames(groupMeans) = c(param$sampleGroup, param$refGroup)
-  normalizedAvgSignal=rowMeans(groupMeans)
+  normalizedAvgSignal = rowMeans(groupMeans)
   log2Ratio <- set_names(rowData(se)$log2Ratio, rowData(se)$gene_id)
-  
-  if (param$featureLevel != "gene"){
+
+  if (param$featureLevel != "gene") {
     genes = getGeneMapping(param, seqAnno)
     goAnno = aggregateGoAnnotation(seqAnno, genes)
-    seqAnno = ezFrame(gene_id=rownames(goAnno),
-                      gene_name=seqAnno$gene_name[match(rownames(goAnno), seqAnno$gene_id)],
-                      goAnno)
-    if (!is.null(normalizedAvgSignal)){ ## if its not an identity mapping
-      normalizedAvgSignal = tapply(normalizedAvgSignal[names(genes)], genes, mean)
+    seqAnno = ezFrame(
+      gene_id = rownames(goAnno),
+      gene_name = seqAnno$gene_name[match(rownames(goAnno), seqAnno$gene_id)],
+      goAnno
+    )
+    if (!is.null(normalizedAvgSignal)) {
+      ## if its not an identity mapping
+      normalizedAvgSignal = tapply(
+        normalizedAvgSignal[names(genes)],
+        genes,
+        mean
+      )
       normalizedAvgSignal = normalizedAvgSignal[rownames(seqAnno)]
     }
-    if (is.null(genes)){
+    if (is.null(genes)) {
       stop("no probe 2 gene mapping found found for ")
     }
   } else {
     genes = rownames(seqAnno)
     names(genes) = genes
   }
-  
+
   isSig = rowData(se)$pValue <= param$pValThreshGO & rowData(se)$usedInTest
   isUp = rowData(se)$log2Ratio > param$log2RatioThreshGO & isSig
   isDown = rowData(se)$log2Ratio < -param$log2RatioThreshGO & isSig
@@ -111,41 +159,65 @@ compileEnrichmentInput = function(param, se){
   downGenes = na.omit(unique(genes[probes[isDown]]))
   bothGenes = union(upGenes, downGenes)
   normalizedAvgSignal = normalizedAvgSignal[presentGenes]
-  if (length(presentGenes) == 0 | length(bothGenes) == 0){
-    ezWrite("presentGenes: ", length(presentGenes), " up: ", length(upGenes), 
-            " down: ", length(downGenes), " both: ", length(bothGenes))
+  if (length(presentGenes) == 0 | length(bothGenes) == 0) {
+    ezWrite(
+      "presentGenes: ",
+      length(presentGenes),
+      " up: ",
+      length(upGenes),
+      " down: ",
+      length(downGenes),
+      " both: ",
+      length(bothGenes)
+    )
   }
-  
+
   ontologies = c("BP", "MF", "CC")
   require(GO.db)
   go2geneDfList = list()
-  for (onto in ontologies){
-    gene2goList = goStringsToList(seqAnno[[paste("GO", onto)]], 
-                                  listNames=rownames(seqAnno))[presentGenes]
-    if (param$includeGoParentAnnotation){
-      gene2goList = addGoParents(gene2goList, onto) 
+  for (onto in ontologies) {
+    gene2goList = goStringsToList(
+      seqAnno[[paste("GO", onto)]],
+      listNames = rownames(seqAnno)
+    )[presentGenes]
+    if (param$includeGoParentAnnotation) {
+      gene2goList = addGoParents(gene2goList, onto)
     }
     ### consider only genes with annotation in the currently selected ontology!!!!
-    allGos = switch(onto,
-                    BP=keys(GOBPPARENTS),
-                    MF=keys(GOMFPARENTS),
-                    CC=keys(GOCCPARENTS),
-                    NA)
-    if (!all(unlist(gene2goList) %in% allGos)){
-      gene2goList = lapply(gene2goList, function(x){intersect(x, allGos)})
+    allGos = switch(
+      onto,
+      BP = keys(GOBPPARENTS),
+      MF = keys(GOMFPARENTS),
+      CC = keys(GOCCPARENTS),
+      NA
+    )
+    if (!all(unlist(gene2goList) %in% allGos)) {
+      gene2goList = lapply(gene2goList, function(x) {
+        intersect(x, allGos)
+      })
     }
     gene2goList = gene2goList[lengths(gene2goList) > 0]
-    goIDs <- unlist(gene2goList, use.names=FALSE)
-    go2geneDF <- data.frame(ont=goIDs,
-                            gene=rep(names(gene2goList), lengths(gene2goList)),
-                            stringsAsFactors = FALSE)
+    goIDs <- unlist(gene2goList, use.names = FALSE)
+    go2geneDF <- data.frame(
+      ont = goIDs,
+      gene = rep(names(gene2goList), lengths(gene2goList)),
+      stringsAsFactors = FALSE
+    )
     go2geneDfList[[onto]] = go2geneDF
   }
-  
-  ans = list(selections=list(upGenes=upGenes, downGenes=downGenes, bothGenes=bothGenes),
-             presentGenes=presentGenes, 
-             normalizedAvgSignal=normalizedAvgSignal, log2Ratio=log2Ratio, seqAnno=seqAnno,
-             go2gene = go2geneDfList)
+
+  ans = list(
+    selections = list(
+      upGenes = upGenes,
+      downGenes = downGenes,
+      bothGenes = bothGenes
+    ),
+    presentGenes = presentGenes,
+    normalizedAvgSignal = normalizedAvgSignal,
+    log2Ratio = log2Ratio,
+    seqAnno = seqAnno,
+    go2gene = go2geneDfList
+  )
   return(ans)
 }
 
@@ -165,27 +237,41 @@ compileEnrichmentInput = function(param, se){
 ##' @template roxygen-template
 ##' @return Returns the results of the GO analysis.
 ##' @seealso \code{\link{ezGoseq}}
-twoGroupsGO = function(param, testResult, seqAnno, normalizedAvgSignal=NULL, method="Wallenius"){
-  
+twoGroupsGO = function(
+  param,
+  testResult,
+  seqAnno,
+  normalizedAvgSignal = NULL,
+  method = "Wallenius"
+) {
   job = ezJobStart("twoGroupsGO")
-  require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  require("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  
-  if (param$featureLevel != "gene"){
+  require("GOstats", warn.conflicts = WARN_CONFLICTS, quietly = !WARN_CONFLICTS)
+  require(
+    "annotate",
+    warn.conflicts = WARN_CONFLICTS,
+    quietly = !WARN_CONFLICTS
+  )
+
+  if (param$featureLevel != "gene") {
     genes = getGeneMapping(param, seqAnno)
     seqAnno = aggregateGoAnnotation(seqAnno, genes)
-    if (!is.null(normalizedAvgSignal)){ ## if its not an identity mapping
-      normalizedAvgSignal = tapply(normalizedAvgSignal[names(genes)], genes, mean)
+    if (!is.null(normalizedAvgSignal)) {
+      ## if its not an identity mapping
+      normalizedAvgSignal = tapply(
+        normalizedAvgSignal[names(genes)],
+        genes,
+        mean
+      )
       normalizedAvgSignal = normalizedAvgSignal[rownames(seqAnno)]
     }
-    if (is.null(genes)){
+    if (is.null(genes)) {
       stop("no probe 2 gene mapping found found for ")
     }
   } else {
     genes = rownames(seqAnno)
     names(genes) = genes
   }
-  
+
   isSig = testResult$pValue < param$pValThreshGO & testResult$usedInTest
   isUp = testResult$log2Ratio > param$log2RatioThreshGO & isSig
   isDown = testResult$log2Ratio < -param$log2RatioThreshGO & isSig
@@ -195,23 +281,67 @@ twoGroupsGO = function(param, testResult, seqAnno, normalizedAvgSignal=NULL, met
   downGenes = na.omit(unique(genes[probes[isDown]]))
   bothGenes = union(upGenes, downGenes)
   normalizedAvgSignal = normalizedAvgSignal[presentGenes]
-  if (length(presentGenes) == 0 | length(bothGenes) == 0){
-    ezWrite("presentGenes: ", length(presentGenes), " up: ", length(upGenes), " down: ", length(downGenes), " both: ", length(bothGenes))
+  if (length(presentGenes) == 0 | length(bothGenes) == 0) {
+    ezWrite(
+      "presentGenes: ",
+      length(presentGenes),
+      " up: ",
+      length(upGenes),
+      " down: ",
+      length(downGenes),
+      " both: ",
+      length(bothGenes)
+    )
   }
   ontologies = c("BP", "MF", "CC")
   #goResults = list()
   #for (onto in ontologies){
-  goResults = ezMclapply(ontologies, function(onto){
-    gene2goList = goStringsToList(seqAnno[[paste("GO", onto)]], listNames=rownames(seqAnno))[presentGenes]
-    if (param$includeGoParentAnnotation){
-      gene2goList = addGoParents(gene2goList, onto) 
-    }
-    enrichUp = ezGoseq(param, selectedGenes=upGenes, allGenes=presentGenes, gene2goList=gene2goList, method=method, normalizedAvgSignal=normalizedAvgSignal, onto=onto)
-    enrichDown = ezGoseq(param, selectedGenes=downGenes, allGenes=presentGenes, gene2goList=gene2goList, method=method, normalizedAvgSignal=normalizedAvgSignal, onto=onto)
-    enrichBoth = ezGoseq(param, selectedGenes=bothGenes, allGenes=presentGenes, gene2goList=gene2goList, method=method, normalizedAvgSignal=normalizedAvgSignal, onto=onto)
-    result = list(enrichUp=enrichUp, enrichDown=enrichDown, enrichBoth=enrichBoth)
-    return(result)
-  }, mc.cores=1)
+  goResults = ezMclapply(
+    ontologies,
+    function(onto) {
+      gene2goList = goStringsToList(
+        seqAnno[[paste("GO", onto)]],
+        listNames = rownames(seqAnno)
+      )[presentGenes]
+      if (param$includeGoParentAnnotation) {
+        gene2goList = addGoParents(gene2goList, onto)
+      }
+      enrichUp = ezGoseq(
+        param,
+        selectedGenes = upGenes,
+        allGenes = presentGenes,
+        gene2goList = gene2goList,
+        method = method,
+        normalizedAvgSignal = normalizedAvgSignal,
+        onto = onto
+      )
+      enrichDown = ezGoseq(
+        param,
+        selectedGenes = downGenes,
+        allGenes = presentGenes,
+        gene2goList = gene2goList,
+        method = method,
+        normalizedAvgSignal = normalizedAvgSignal,
+        onto = onto
+      )
+      enrichBoth = ezGoseq(
+        param,
+        selectedGenes = bothGenes,
+        allGenes = presentGenes,
+        gene2goList = gene2goList,
+        method = method,
+        normalizedAvgSignal = normalizedAvgSignal,
+        onto = onto
+      )
+      result = list(
+        enrichUp = enrichUp,
+        enrichDown = enrichDown,
+        enrichBoth = enrichBoth
+      )
+      return(result)
+    },
+    mc.cores = 1
+  )
   names(goResults) = ontologies
   #     goResults[[onto]] = list(enrichUp=enrichUp, enrichDown=enrichDown, enrichBoth=enrichBoth,
   #                              countsUp=countsUp, countsDown=countsDown, countsBoth=countsBoth)
@@ -219,68 +349,109 @@ twoGroupsGO = function(param, testResult, seqAnno, normalizedAvgSignal=NULL, met
   return(goResults)
 }
 
-addGeneNamesEnrich <- function(resEnrich, se){
+addGeneNamesEnrich <- function(resEnrich, se) {
   gene_ids <- strsplit(resEnrich$Genes, "; ")
   ids2names <- set_names(rowData(se)$gene_name, rowData(se)$gene_id)
   gene_names <- relist(ids2names[unlist(gene_ids)], gene_ids)
-  gene_names <- sapply(gene_names, paste, collapse="; ")
+  gene_names <- sapply(gene_names, paste, collapse = "; ")
   resEnrich$GenesNames <- gene_names
   return(resEnrich)
 }
 
 
-twoGroupsGOSE = function(param, se, method="Wallenius"){
+twoGroupsGOSE = function(param, se, method = "Wallenius") {
   godata <- prepareGOData(param, se)
-  seqAnno <- data.frame(rowData(se), row.names=rownames(se),
-                        check.names = FALSE, stringsAsFactors=FALSE)
-  
+  seqAnno <- data.frame(
+    rowData(se),
+    row.names = rownames(se),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+
   upGenes <- godata$upGenes
   downGenes <- godata$downGenes
   bothGenes <- godata$bothGenes
   presentGenes <- godata$presentGenes
   normalizedAvgSignal <- godata$normalizedAvgSignal
-  
-  if (param$featureLevel != "gene"){
+
+  if (param$featureLevel != "gene") {
     genes = getGeneMapping(param, seqAnno)
     seqAnno = aggregateGoAnnotation(seqAnno, genes)
-    if (!is.null(normalizedAvgSignal)){ ## if its not an identity mapping
-      normalizedAvgSignal = tapply(normalizedAvgSignal[names(genes)], genes, mean)
+    if (!is.null(normalizedAvgSignal)) {
+      ## if its not an identity mapping
+      normalizedAvgSignal = tapply(
+        normalizedAvgSignal[names(genes)],
+        genes,
+        mean
+      )
       normalizedAvgSignal = normalizedAvgSignal[rownames(seqAnno)]
     }
-    if (is.null(genes)){
+    if (is.null(genes)) {
       stop("no probe 2 gene mapping found found for ")
     }
   } else {
     genes = rownames(seqAnno)
     names(genes) = genes
   }
-  
+
   job = ezJobStart("twoGroupsGO")
-  require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  require("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  
+  require("GOstats", warn.conflicts = WARN_CONFLICTS, quietly = !WARN_CONFLICTS)
+  require(
+    "annotate",
+    warn.conflicts = WARN_CONFLICTS,
+    quietly = !WARN_CONFLICTS
+  )
+
   ontologies = c("BP", "MF", "CC")
   #goResults = list()
   #for (onto in ontologies){
-  goResults = ezMclapply(ontologies, function(onto){
-    gene2goList = goStringsToList(seqAnno[[paste("GO", onto)]],
-                                  listNames=rownames(seqAnno))[presentGenes]
-    if (param$includeGoParentAnnotation){
-      gene2goList = addGoParents(gene2goList, onto) 
-    }
-    enrichUp = ezGoseq(param, selectedGenes=upGenes, allGenes=presentGenes, 
-                       gene2goList=gene2goList, method=method, 
-                       normalizedAvgSignal=normalizedAvgSignal, onto=onto)
-    enrichDown = ezGoseq(param, selectedGenes=downGenes, allGenes=presentGenes, 
-                         gene2goList=gene2goList, method=method, 
-                         normalizedAvgSignal=normalizedAvgSignal, onto=onto)
-    enrichBoth = ezGoseq(param, selectedGenes=bothGenes, allGenes=presentGenes, 
-                         gene2goList=gene2goList, method=method, 
-                         normalizedAvgSignal=normalizedAvgSignal, onto=onto)
-    result = list(enrichUp=enrichUp, enrichDown=enrichDown, enrichBoth=enrichBoth)
-    result <- lapply(result, addGeneNamesEnrich, se)
-    return(result)
-  }, mc.cores=1)
+  goResults = ezMclapply(
+    ontologies,
+    function(onto) {
+      gene2goList = goStringsToList(
+        seqAnno[[paste("GO", onto)]],
+        listNames = rownames(seqAnno)
+      )[presentGenes]
+      if (param$includeGoParentAnnotation) {
+        gene2goList = addGoParents(gene2goList, onto)
+      }
+      enrichUp = ezGoseq(
+        param,
+        selectedGenes = upGenes,
+        allGenes = presentGenes,
+        gene2goList = gene2goList,
+        method = method,
+        normalizedAvgSignal = normalizedAvgSignal,
+        onto = onto
+      )
+      enrichDown = ezGoseq(
+        param,
+        selectedGenes = downGenes,
+        allGenes = presentGenes,
+        gene2goList = gene2goList,
+        method = method,
+        normalizedAvgSignal = normalizedAvgSignal,
+        onto = onto
+      )
+      enrichBoth = ezGoseq(
+        param,
+        selectedGenes = bothGenes,
+        allGenes = presentGenes,
+        gene2goList = gene2goList,
+        method = method,
+        normalizedAvgSignal = normalizedAvgSignal,
+        onto = onto
+      )
+      result = list(
+        enrichUp = enrichUp,
+        enrichDown = enrichDown,
+        enrichBoth = enrichBoth
+      )
+      result <- lapply(result, addGeneNamesEnrich, se)
+      return(result)
+    },
+    mc.cores = 1
+  )
   names(goResults) = ontologies
   #     goResults[[onto]] = list(enrichUp=enrichUp, enrichDown=enrichDown, enrichBoth=enrichBoth,
   #                              countsUp=countsUp, countsDown=countsDown, countsBoth=countsBoth)
@@ -291,102 +462,151 @@ twoGroupsGOSE = function(param, se, method="Wallenius"){
 
 ## ezGoseq considers only the genes that have annotations; genes without annotation are removed from the selectedGenes and allGenes
 ##' @describeIn twoGroupsGO Performs the GO analysis and returns a list of results.
-ezGoseq = function(param, selectedGenes, allGenes, gene2goList=NULL, 
-                   method=c("Wallenius", "Sampling", "Hypergeometric"),
-                   onto=NULL, normalizedAvgSignal=NULL){
+ezGoseq = function(
+  param,
+  selectedGenes,
+  allGenes,
+  gene2goList = NULL,
+  method = c("Wallenius", "Sampling", "Hypergeometric"),
+  onto = NULL,
+  normalizedAvgSignal = NULL
+) {
   method = match.arg(method)
-  require("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+  require("GO.db", warn.conflicts = WARN_CONFLICTS, quietly = !WARN_CONFLICTS)
   #if (length(selectedGenes) <= 1){
   #  return(NA)
   #}
-  
+
   stopifnot(names(gene2goList) %in% allGenes)
   stopifnot(!is.null(onto))
   ### consider only genes with annotation in the currently selected ontology!!!!
-  allGos = switch(onto,
-                  BP=keys(GOBPPARENTS),
-                  MF=keys(GOMFPARENTS),
-                  CC=keys(GOCCPARENTS),
-                  NA)
-  if (!all(unlist(gene2goList) %in% allGos)){
-    gene2goList = lapply(gene2goList, function(x){intersect(x, allGos)})
+  allGos = switch(
+    onto,
+    BP = keys(GOBPPARENTS),
+    MF = keys(GOMFPARENTS),
+    CC = keys(GOCCPARENTS),
+    NA
+  )
+  if (!all(unlist(gene2goList) %in% allGos)) {
+    gene2goList = lapply(gene2goList, function(x) {
+      intersect(x, allGos)
+    })
   }
-  
+
   gene2goList = gene2goList[lengths(gene2goList) > 0]
-  
+
   ## GO analysis
   allGenes = intersect(allGenes, names(gene2goList))
   selectedGenes = intersect(selectedGenes, names(gene2goList))
-  
+
   go2GenesList = inverseMapping(gene2goList)
-  go2GenesList = go2GenesList[lengths(go2GenesList) >= param$minCountFisher]    
+  go2GenesList = go2GenesList[lengths(go2GenesList) >= param$minCountFisher]
   goSizes = lengths(go2GenesList)
-  go2SelectedGenes = lapply(go2GenesList, function(x, y){intersect(x, y)}, selectedGenes)  
+  go2SelectedGenes = lapply(
+    go2GenesList,
+    function(x, y) {
+      intersect(x, y)
+    },
+    selectedGenes
+  )
   goCounts = lengths(go2SelectedGenes)
-  
+
   gene.vector = as.integer(allGenes %in% selectedGenes)
   names(gene.vector) = allGenes
-  pwf.counts = data.frame(DEgenes=gene.vector, bias.data=1, pwf=1, row.names=names(gene.vector))
-  if (!is.null(normalizedAvgSignal)){
+  pwf.counts = data.frame(
+    DEgenes = gene.vector,
+    bias.data = 1,
+    pwf = 1,
+    row.names = names(gene.vector)
+  )
+  if (!is.null(normalizedAvgSignal)) {
     stopifnot(names(gene.vector) %in% names(normalizedAvgSignal))
-    tryCatch({pwf.counts = goseq::nullp(gene.vector, bias.data=2^normalizedAvgSignal[names(gene.vector)], plot.fit=FALSE)}, error=function(e){message("nullp failed")})
+    tryCatch(
+      {
+        pwf.counts = goseq::nullp(
+          gene.vector,
+          bias.data = 2^normalizedAvgSignal[names(gene.vector)],
+          plot.fit = FALSE
+        )
+      },
+      error = function(e) {
+        message("nullp failed")
+      }
+    )
     #tryCatch({pwf.counts = goseq::nullp(gene.vector, bias.data=2^normalizedAvgSignal[names(gene.vector)], plot.fit=FALSE)})
-    
   }
   #   else {
   #     stopifnot(method == "Hypergeometric") ## if there is no bias --> method must be Hypergeometric
   #     pwf.counts = data.frame(DEgenes=gene.vector, bias.data=1, pwf=1, row.names=names(gene.vector))
   #   }
-  go.counts = goseq::goseq(pwf.counts, gene2cat=gene2goList, method=method)
-  pvalues = go.counts[match(names(go2GenesList), go.counts$category), "over_represented_pvalue"]
-  
+  go.counts = goseq::goseq(pwf.counts, gene2cat = gene2goList, method = method)
+  pvalues = go.counts[
+    match(names(go2GenesList), go.counts$category),
+    "over_represented_pvalue"
+  ]
+
   ## compile the result
-  result = data.frame(row.names=names(go2GenesList), stringsAsFactors=FALSE, 
-                      check.names=FALSE)
+  result = data.frame(
+    row.names = names(go2GenesList),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
   result$Pvalue = pvalues
-  result$fdr = p.adjust(pvalues, method="fdr")
+  result$fdr = p.adjust(pvalues, method = "fdr")
   result$Count = goCounts
   result$Size = goSizes
   result$Term = Term(GOTERM[rownames(result)])
-  result$Genes = sapply(go2SelectedGenes, function(x){paste(sort(x), collapse="; ")})
+  result$Genes = sapply(go2SelectedGenes, function(x) {
+    paste(sort(x), collapse = "; ")
+  })
   return(result)
 }
 
 ### -----------------------------------------------------------------
 ### ezEnricher with hypergeometric implementation from clusterProfiler
 ###
-ezEnricher <- function(enrichInput, param){
+ezEnricher <- function(enrichInput, param) {
   require(clusterProfiler)
   minGenesOverlap <- 3
-  geneid2name = set_names(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
+  geneid2name = set_names(
+    enrichInput$seqAnno$gene_name,
+    enrichInput$seqAnno$gene_id
+  )
   ontologies = c("BP", "MF", "CC")
-  goResults = ezMclapply(ontologies, function(onto){
-    result = list()
-    for (mySel in names(enrichInput$selections)){
-      enrichRes <- enricher(gene=enrichInput$selections[[mySel]],
-                            universe=enrichInput$presentGenes,
-                            TERM2GENE=enrichInput$go2gene[[onto]], pvalueCutoff = param$fdrThreshORA)
-      if(!is.null(enrichRes)){
-        tempTable <- enrichRes@result
-        if(nrow(tempTable) != 0L){
-          tempTable$Description <- Term(GOTERM[tempTable$ID])
-          tempTable$geneName <- sapply(tempTable$geneID, function(idString){
-            idString %>% 
-              strsplit("/") %>% 
-              unlist %>% 
-              (function(x)geneid2name[x]) %>%  ## map to gene symbols
-              na.omit %>%
-              paste(collapse="/")
-          })
-          tempTable <- tempTable[tempTable$Count >= minGenesOverlap, ]
-          
-          enrichRes@result <- tempTable
+  goResults = ezMclapply(
+    ontologies,
+    function(onto) {
+      result = list()
+      for (mySel in names(enrichInput$selections)) {
+        enrichRes <- enricher(
+          gene = enrichInput$selections[[mySel]],
+          universe = enrichInput$presentGenes,
+          TERM2GENE = enrichInput$go2gene[[onto]],
+          pvalueCutoff = param$fdrThreshORA
+        )
+        if (!is.null(enrichRes)) {
+          tempTable <- enrichRes@result
+          if (nrow(tempTable) != 0L) {
+            tempTable$Description <- Term(GOTERM[tempTable$ID])
+            tempTable$geneName <- sapply(tempTable$geneID, function(idString) {
+              idString %>%
+                strsplit("/") %>%
+                unlist %>%
+                (function(x) geneid2name[x]) %>% ## map to gene symbols
+                na.omit %>%
+                paste(collapse = "/")
+            })
+            tempTable <- tempTable[tempTable$Count >= minGenesOverlap, ]
+
+            enrichRes@result <- tempTable
+          }
         }
+        result[[mySel]] = enrichRes
       }
-      result[[mySel]] = enrichRes
-    }
-    return(result)
-  }, mc.cores=1)
+      return(result)
+    },
+    mc.cores = 1
+  )
   names(goResults) = ontologies
   return(goResults)
 }
@@ -394,25 +614,41 @@ ezEnricher <- function(enrichInput, param){
 ### -----------------------------------------------------------------
 ### ezGSEA
 ###
-ezGSEA <- function(enrichInput, param){
+ezGSEA <- function(enrichInput, param) {
   require(clusterProfiler)
   require(GO.db)
-  geneid2name = set_names(enrichInput$seqAnno$gene_name, enrichInput$seqAnno$gene_id)
+  geneid2name = set_names(
+    enrichInput$seqAnno$gene_name,
+    enrichInput$seqAnno$gene_id
+  )
   ontologies = c("BP", "MF", "CC")
-  goResults = ezMclapply(ontologies, function(onto){
-    enrichRes <- GSEA(gene=sort(enrichInput$log2Ratio, decreasing = TRUE), pvalueCutoff = param$fdrThreshGSEA,
-                      TERM2GENE=enrichInput$go2gene[[onto]])
-    if(!is.null(enrichRes)){
-      tempTable <- enrichRes@result
-      if(nrow(tempTable) != 0L){
-        tempTable$Description <- Term(GOTERM[tempTable$ID])
-        tempTable$geneName <- sapply(relist(geneid2name[unlist(strsplit(tempTable$core_enrichment, "/"))], 
-                                            strsplit(tempTable$core_enrichment, "/")), paste, collapse="/")
-        enrichRes@result <- tempTable
+  goResults = ezMclapply(
+    ontologies,
+    function(onto) {
+      enrichRes <- GSEA(
+        gene = sort(enrichInput$log2Ratio, decreasing = TRUE),
+        pvalueCutoff = param$fdrThreshGSEA,
+        TERM2GENE = enrichInput$go2gene[[onto]]
+      )
+      if (!is.null(enrichRes)) {
+        tempTable <- enrichRes@result
+        if (nrow(tempTable) != 0L) {
+          tempTable$Description <- Term(GOTERM[tempTable$ID])
+          tempTable$geneName <- sapply(
+            relist(
+              geneid2name[unlist(strsplit(tempTable$core_enrichment, "/"))],
+              strsplit(tempTable$core_enrichment, "/")
+            ),
+            paste,
+            collapse = "/"
+          )
+          enrichRes@result <- tempTable
+        }
       }
-    }
-    return(enrichRes)
-  }, mc.cores=1)
+      return(enrichRes)
+    },
+    mc.cores = 1
+  )
   names(goResults) = ontologies
   return(goResults)
 }
@@ -426,22 +662,41 @@ ezGSEA <- function(enrichInput, param){
 ##' @param goSlim a character vector.
 ##' @template roxygen-template
 ##' @return Returns the results of grouping the GO information.
-ezGroupGO = function(selectedGenes, go2GeneList, onto="CC", levels = 2:4, goSlim=NULL) {
-  goByLevel = ezGetGoByLevels(onto, levels, goSlim=goSlim)
+ezGroupGO = function(
+  selectedGenes,
+  go2GeneList,
+  onto = "CC",
+  levels = 2:4,
+  goSlim = NULL
+) {
+  goByLevel = ezGetGoByLevels(onto, levels, goSlim = goSlim)
   levelCounts = list()
-  for (l in levels){
+  for (l in levels) {
     goIds = goByLevel[[paste("level", l)]]
-    go2selGenes = lapply(go2GeneList[goIds], function(genesInCategory) intersect(selectedGenes, genesInCategory))
-    result = data.frame("GO ID" = goIds, Level=rep(paste("level", l), length(goIds)), stringsAsFactors=FALSE, check.names=FALSE)
+    go2selGenes = lapply(go2GeneList[goIds], function(genesInCategory) {
+      intersect(selectedGenes, genesInCategory)
+    })
+    result = data.frame(
+      "GO ID" = goIds,
+      Level = rep(paste("level", l), length(goIds)),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
     result[["Term"]] = Term(GOTERM[goIds])
     result[["Count"]] = sapply(go2selGenes, length)
     result[["Size"]] = sapply(go2GeneList[goIds], length)
-    result[["Genes"]] = sapply(go2selGenes, paste, collapse="; ")
-    levelCounts[[paste("level", l)]] =result
+    result[["Genes"]] = sapply(go2selGenes, paste, collapse = "; ")
+    levelCounts[[paste("level", l)]] = result
   }
-  levelCounts[["unknown"]] = data.frame("GO ID"="unknown", Level="unknown", Term="unknown",
-                                        Count=length(setdiff(selectedGenes, unlist(go2GeneList))),
-                                        Size=NA, Genes="", stringsAsFactors=FALSE, check.names=FALSE
+  levelCounts[["unknown"]] = data.frame(
+    "GO ID" = "unknown",
+    Level = "unknown",
+    Term = "unknown",
+    Count = length(setdiff(selectedGenes, unlist(go2GeneList))),
+    Size = NA,
+    Genes = "",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
   )
   result = do.call("rbind", levelCounts)
   return(result)
@@ -449,36 +704,44 @@ ezGroupGO = function(selectedGenes, go2GeneList, onto="CC", levels = 2:4, goSlim
 
 ## copied from clusterProfiler
 ##' @describeIn ezGroupGO Gets the gene ontology by level.
-ezGetGoByLevels = function(onto, levels, goSlim=NULL) {
-  require("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  switch(onto, MF = {
-    topNode <- "GO:0003674"
-    children <- GOMFCHILDREN
-  }, BP = {
-    topNode <- "GO:0008150"
-    children <- GOBPCHILDREN
-  }, CC = {
-    topNode <- "GO:0005575"
-    children <- GOCCCHILDREN
-  })
-  if (!is.null(goSlim)){
-    goAncestor = switch(onto, BP=as.list(GOBPANCESTOR),
-                        CC=as.list(GOCCANCESTOR),
-                        MF=as.list(GOMFANCESTOR))
+ezGetGoByLevels = function(onto, levels, goSlim = NULL) {
+  require("GO.db", warn.conflicts = WARN_CONFLICTS, quietly = !WARN_CONFLICTS)
+  switch(
+    onto,
+    MF = {
+      topNode <- "GO:0003674"
+      children <- GOMFCHILDREN
+    },
+    BP = {
+      topNode <- "GO:0008150"
+      children <- GOBPCHILDREN
+    },
+    CC = {
+      topNode <- "GO:0005575"
+      children <- GOCCCHILDREN
+    }
+  )
+  if (!is.null(goSlim)) {
+    goAncestor = switch(
+      onto,
+      BP = as.list(GOBPANCESTOR),
+      CC = as.list(GOCCANCESTOR),
+      MF = as.list(GOMFANCESTOR)
+    )
     goSlim = goSlim[goSlim %in% names(goAncestor)]
     goSlim = setdiff(c(goSlim, unlist(goAncestor[goSlim])), "all")
   }
-  
+
   nodes = topNode
-  nodesByLevel = list("level 1"=nodes)
+  nodesByLevel = list("level 1" = nodes)
   for (i in seq_len(max(levels) - 1)) {
     nodes <- keys(children[nodes])
     nodes <- na.omit(unique(unlist(nodes)))
     goIds = as.character(nodes)
-    if (!is.null(goSlim)){
+    if (!is.null(goSlim)) {
       goIds = intersect(goIds, goSlim)
     }
-    nodesByLevel[[paste("level", i+1)]] = goIds
+    nodesByLevel[[paste("level", i + 1)]] = goIds
   }
   return(nodesByLevel[paste("level", levels)])
 }
@@ -493,7 +756,7 @@ ezGetGoByLevels = function(onto, levels, goSlim=NULL) {
 ##' goStrings = c("GO 1;GO 2;GO 3", "GO 4")
 ##' listNames = letters[1:2]
 ##' goStringsToList(goStrings, listNames)
-goStringsToList = function(goStrings, listNames=NULL){
+goStringsToList = function(goStrings, listNames = NULL) {
   x = strsplit(goStrings, "; ")
   names(x) = listNames
   #  x = lapply(x, function(x){ifelse(x == "", character(0), x)})
@@ -502,10 +765,9 @@ goStringsToList = function(goStrings, listNames=NULL){
 }
 
 ##' @describeIn goClusterTable Gets the child terms from a GO term and returns them together.
-getChildTerms = function(x, subset, goRelatives, indent="", childEnvir){
-  
+getChildTerms = function(x, subset, goRelatives, indent = "", childEnvir) {
   result = character()
-  if (is.element(x, subset)){
+  if (is.element(x, subset)) {
     term = getGOTerm(x)[[1]]
     displayLabel = paste0(indent, term)
     result[displayLabel] = x
@@ -513,8 +775,14 @@ getChildTerms = function(x, subset, goRelatives, indent="", childEnvir){
   }
   kids = intersect(childEnvir[[x]], goRelatives)
   indent = paste(indent, ".")
-  for (kid in kids){
-    kidResult = getChildTerms(kid, subset, goRelatives, indent=indent, childEnvir)
+  for (kid in kids) {
+    kidResult = getChildTerms(
+      kid,
+      subset,
+      goRelatives,
+      indent = indent,
+      childEnvir
+    )
     subset = setdiff(subset, kidResult) ## again the non-redundancy modification
     result = c(result, kidResult)
   }
@@ -522,15 +790,20 @@ getChildTerms = function(x, subset, goRelatives, indent="", childEnvir){
 }
 
 ##' @describeIn clusterHeatmap Initializes and returns a list of results used by \code{clusterHeatmap()} and \code{goClusterResults()}.
-clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters), 
-                          d=NULL, method="ward.D2"){
-  if (is.null(d)){
+clusterResults = function(
+  x,
+  nClusters = 5,
+  clusterColors = rainbow(nClusters),
+  d = NULL,
+  method = "ward.D2"
+) {
+  if (is.null(d)) {
     xx = x
-    xx[is.na(x)] = min(x, na.rm=TRUE)
+    xx[is.na(x)] = min(x, na.rm = TRUE)
     d = dist(xx)
   }
-  hcl = hclust(d, method=method)
-  clusterNumbers = cutree(hcl, k=nClusters)
+  hcl = hclust(d, method = method)
+  clusterNumbers = cutree(hcl, k = nClusters)
   result = list()
   result$nClusters = nClusters
   result$clusterNumbers = clusterNumbers
@@ -561,140 +834,245 @@ clusterResults = function(x, nClusters=5, clusterColors=rainbow(nClusters),
 ##' @template roxygen-template
 ##' @seealso \code{\link[stats]{hclust}}
 ##' @seealso \code{\link[gplots]{heatmap.2}}
-clusterHeatmap = function(x, param, result, file="cluster-heatmap.png", 
-                          method="ward.D2",
-                          doClusterColumns=FALSE, columnDist=NULL, 
-                          colColors=NULL, lim=c(-4, 4),
-                          lwid=c(1, 4), lhei=c(1,5),
-                          cexRow=1.0, cexCol=1.5, labRow=rownames(x), 
-                          margins=c(14,9),
-                          colors=getBlueRedScale(), 
-                          maxGenesWithLabel=50, ...){
-  require("gplots", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+clusterHeatmap = function(
+  x,
+  param,
+  result,
+  file = "cluster-heatmap.png",
+  method = "ward.D2",
+  doClusterColumns = FALSE,
+  columnDist = NULL,
+  colColors = NULL,
+  lim = c(-4, 4),
+  lwid = c(1, 4),
+  lhei = c(1, 5),
+  cexRow = 1.0,
+  cexCol = 1.5,
+  labRow = rownames(x),
+  margins = c(14, 9),
+  colors = getBlueRedScale(),
+  maxGenesWithLabel = 50,
+  ...
+) {
+  require("gplots", warn.conflicts = WARN_CONFLICTS, quietly = !WARN_CONFLICTS)
   probeDendro = as.dendrogram(result$hcl)
-  probeDendro = reorder(probeDendro, rowMeans(x, na.rm=TRUE))
-  if (doClusterColumns){
-    if (is.null(columnDist)){
+  probeDendro = reorder(probeDendro, rowMeans(x, na.rm = TRUE))
+  if (doClusterColumns) {
+    if (is.null(columnDist)) {
       columnDist = dist(t(x))
     }
-    result$hcl = hclust(columnDist, method=method)
+    result$hcl = hclust(columnDist, method = method)
     colDendro = as.dendrogram(result$hcl)
-    colDendro = reorder(colDendro, colMeans(x, na.rm=TRUE))
+    colDendro = reorder(colDendro, colMeans(x, na.rm = TRUE))
     showDendro = "both"
   } else {
     colDendro = FALSE
     showDendro = "row"
   }
-  if (param$showGeneClusterLabels & nrow(x) < maxGenesWithLabel){
-    if (is.null(labRow)){
+  if (param$showGeneClusterLabels & nrow(x) < maxGenesWithLabel) {
+    if (is.null(labRow)) {
       labRow = rownames(x)
     }
   } else {
     labRow = ""
-    margins[2] = 0.5 
+    margins[2] = 0.5
   }
-  if (!is.null(colColors)){
-    if (result$nClusters > 1){
-      heatmap.2(x,
-                ColSideColors=colColors, RowSideColors=result$clusterColors[result$clusterNumbers],
-                scale="none", dendrogram=showDendro, labRow=labRow,
-                breaks=seq(from=lim[1], to=lim[2], length.out=257),
-                Colv=colDendro, Rowv=probeDendro, col=colors,
-                key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, lwid=lwid, lhei=lhei, ...)
+  if (!is.null(colColors)) {
+    if (result$nClusters > 1) {
+      heatmap.2(
+        x,
+        ColSideColors = colColors,
+        RowSideColors = result$clusterColors[result$clusterNumbers],
+        scale = "none",
+        dendrogram = showDendro,
+        labRow = labRow,
+        breaks = seq(from = lim[1], to = lim[2], length.out = 257),
+        Colv = colDendro,
+        Rowv = probeDendro,
+        col = colors,
+        key = TRUE,
+        density.info = "none",
+        trace = "none",
+        margins = margins,
+        cexCol = cexCol,
+        cexRow = cexRow,
+        lwid = lwid,
+        lhei = lhei,
+        ...
+      )
     } else {
-      heatmap.2(x,
-                ColSideColors=colColors,
-                scale="none", dendrogram=showDendro, labRow=labRow,
-                breaks=seq(from=lim[1], to=lim[2], length.out=257),
-                Colv=colDendro, Rowv=probeDendro, col=colors,
-                key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, lwid=lwid, lhei=lhei, ...)
+      heatmap.2(
+        x,
+        ColSideColors = colColors,
+        scale = "none",
+        dendrogram = showDendro,
+        labRow = labRow,
+        breaks = seq(from = lim[1], to = lim[2], length.out = 257),
+        Colv = colDendro,
+        Rowv = probeDendro,
+        col = colors,
+        key = TRUE,
+        density.info = "none",
+        trace = "none",
+        margins = margins,
+        cexCol = cexCol,
+        cexRow = cexRow,
+        lwid = lwid,
+        lhei = lhei,
+        ...
+      )
     }
   } else {
-    if (result$nClusters > 1){
-      heatmap.2(x,
-                RowSideColors=result$clusterColors[result$clusterNumbers],
-                scale="none", dendrogram=showDendro, labRow=labRow,
-                breaks=seq(from=lim[1], to=lim[2], length.out=257),
-                Colv=colDendro, Rowv=probeDendro, col=colors,
-                key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, lwid=lwid, lhei=lhei,...)
+    if (result$nClusters > 1) {
+      heatmap.2(
+        x,
+        RowSideColors = result$clusterColors[result$clusterNumbers],
+        scale = "none",
+        dendrogram = showDendro,
+        labRow = labRow,
+        breaks = seq(from = lim[1], to = lim[2], length.out = 257),
+        Colv = colDendro,
+        Rowv = probeDendro,
+        col = colors,
+        key = TRUE,
+        density.info = "none",
+        trace = "none",
+        margins = margins,
+        cexCol = cexCol,
+        cexRow = cexRow,
+        lwid = lwid,
+        lhei = lhei,
+        ...
+      )
     } else {
-      heatmap.2(x,
-                scale="none", dendrogram=showDendro, labRow=labRow,
-                breaks=seq(from=lim[1], to=lim[2], length.out=257),
-                Colv=colDendro, Rowv=probeDendro, col=colors,
-                key=TRUE, density.info="none", trace="none", margins=margins, cexCol=cexCol, cexRow=cexRow, lwid=lwid, lhei=lhei, ...)
+      heatmap.2(
+        x,
+        scale = "none",
+        dendrogram = showDendro,
+        labRow = labRow,
+        breaks = seq(from = lim[1], to = lim[2], length.out = 257),
+        Colv = colDendro,
+        Rowv = probeDendro,
+        col = colors,
+        key = TRUE,
+        density.info = "none",
+        trace = "none",
+        margins = margins,
+        cexCol = cexCol,
+        cexRow = cexRow,
+        lwid = lwid,
+        lhei = lhei,
+        ...
+      )
     }
   }
-  if (!is.null(file)){
+  if (!is.null(file)) {
     ## export also the clusters
     xTmp = as.data.frame(result$clusterNumbers)
     colnames(xTmp) = "Cluster"
-    xTmp[ ,1] = result$clusterColors[xTmp[,1]]
-    xTmp = xTmp[order(xTmp$Cluster), ,drop=FALSE]
-    ezWrite.table(xTmp, file=sub(".png$", "-clusterMembers.txt", file))
+    xTmp[, 1] = result$clusterColors[xTmp[, 1]]
+    xTmp = xTmp[order(xTmp$Cluster), , drop = FALSE]
+    ezWrite.table(xTmp, file = sub(".png$", "-clusterMembers.txt", file))
   }
 }
 
-clusterPheatmap <- function(x, design, param, 
-                            clusterColors=c("red", "yellow", "orange", 
-                                            "green", "blue", "cyan"), 
-                            method="ward.D2", doClusterColumns=FALSE,
-                            colors=getBlueRedScale(),
-                            colColors=NULL, lim=c(-4, 4),
-                            maxGenesWithLabel=50,
-                            condColors=NULL, ...){
+clusterPheatmap <- function(
+  x,
+  design,
+  param,
+  clusterColors = c("red", "yellow", "orange", "green", "blue", "cyan"),
+  method = "ward.D2",
+  doClusterColumns = FALSE,
+  colors = getBlueRedScale(),
+  colColors = NULL,
+  lim = c(-4, 4),
+  maxGenesWithLabel = 50,
+  condColors = NULL,
+  ...
+) {
   require(pheatmap)
   nClusters <- length(clusterColors)
-  
-  if(param$showGeneClusterLabels & nrow(x) < maxGenesWithLabel){
+
+  if (param$showGeneClusterLabels & nrow(x) < maxGenesWithLabel) {
     isShowRowNames <- TRUE
-  }else{
+  } else {
     isShowRowNames <- FALSE
   }
-  
-  callback = function(hc, mat){
-    dend = reorder(as.dendrogram(hc), wts = rowMeans(mat, na.rm=TRUE))
+
+  callback = function(hc, mat) {
+    dend = reorder(as.dendrogram(hc), wts = rowMeans(mat, na.rm = TRUE))
     as.hclust(dend)
   }
-  clusterInfo <- pheatmap(x, color=colors, clustering_method=method,
-                          breaks=seq(from=lim[1], to=lim[2], length.out=257),
-                          scale="none",
-                          clustering_callback = callback,
-                          silent=TRUE, ...)
-  
+  clusterInfo <- pheatmap(
+    x,
+    color = colors,
+    clustering_method = method,
+    breaks = seq(from = lim[1], to = lim[2], length.out = 257),
+    scale = "none",
+    clustering_callback = callback,
+    silent = TRUE,
+    ...
+  )
+
   clusters <- as.factor(cutree(clusterInfo$tree_row, nClusters))
-  annotation_row = data.frame(Clusters=clusters)
-  if(doClusterColumns){
+  annotation_row = data.frame(Clusters = clusters)
+  if (doClusterColumns) {
     colDendro <- clusterInfo$tree_col
-  }else{
+  } else {
     colDendro <- FALSE
   }
-  
-  ann_colors <- c(condColors, 
-                  list(Clusters=set_names(clusterColors, levels(clusters))))
-  
-  p <- pheatmap(x, color=colors, clustering_method=method,
-                breaks=seq(from=lim[1], to=lim[2], length.out=257),
-                scale="none", cluster_rows=clusterInfo$tree_row,
-                cluster_cols=colDendro,
-                show_rownames=isShowRowNames,
-                annotation_col = design, annotation_row=annotation_row,
-                annotation_colors = ann_colors, silent=TRUE, ...)
-  
-  ans <- list(nClusters=nClusters, clusterNumbers=clusters,
-              clusterColors=clusterColors, hcl=clusterInfo$tree_row,
-              pheatmap=p)
+
+  ann_colors <- c(
+    condColors,
+    list(Clusters = set_names(clusterColors, levels(clusters)))
+  )
+
+  p <- pheatmap(
+    x,
+    color = colors,
+    clustering_method = method,
+    breaks = seq(from = lim[1], to = lim[2], length.out = 257),
+    scale = "none",
+    cluster_rows = clusterInfo$tree_row,
+    cluster_cols = colDendro,
+    show_rownames = isShowRowNames,
+    annotation_col = design,
+    annotation_row = annotation_row,
+    annotation_colors = ann_colors,
+    silent = TRUE,
+    ...
+  )
+
+  ans <- list(
+    nClusters = nClusters,
+    clusterNumbers = clusters,
+    clusterColors = clusterColors,
+    hcl = clusterInfo$tree_row,
+    pheatmap = p
+  )
   invisible(ans)
 }
 
 ##' @describeIn clusterHeatmap Applies a GO analysis to the cluster results if GO should be done.
-goClusterResults = function(x, param, result, ontologies=c("BP", "MF", "CC"), seqAnno=NULL,
-                            universeGeneIds=NULL, universeProbeIds=NULL, keggOrganism=NA){
-  require("GOstats", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  require("annotate", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
-  if (param$featureLevel != "gene"){
+goClusterResults = function(
+  x,
+  param,
+  result,
+  ontologies = c("BP", "MF", "CC"),
+  seqAnno = NULL,
+  universeGeneIds = NULL,
+  universeProbeIds = NULL,
+  keggOrganism = NA
+) {
+  require("GOstats", warn.conflicts = WARN_CONFLICTS, quietly = !WARN_CONFLICTS)
+  require(
+    "annotate",
+    warn.conflicts = WARN_CONFLICTS,
+    quietly = !WARN_CONFLICTS
+  )
+  if (param$featureLevel != "gene") {
     genes = getGeneMapping(param, seqAnno)
-    if (is.null(genes)){
+    if (is.null(genes)) {
       stop("no probe 2 gene mapping found")
     }
     seqAnno = aggregateGoAnnotation(seqAnno, genes)
@@ -702,92 +1080,128 @@ goClusterResults = function(x, param, result, ontologies=c("BP", "MF", "CC"), se
     genes = rownames(seqAnno)
     names(genes) = genes
   }
-  
-  if (is.null(universeGeneIds)){
-    universeGeneIds =na.omit(unique(unlist( genes[universeProbeIds]) ))
+
+  if (is.null(universeGeneIds)) {
+    universeGeneIds = na.omit(unique(unlist(genes[universeProbeIds])))
   }
   keggClusterResults = NULL
-  if (!is.na(keggOrganism)){
-    kegg2GenesList = getPathway2GenesList(param, keggOrganism)  ## TODOMF: function does not exist
-    if (all(unlist(kegg2GenesList)) %in% universeGeneIds){
+  if (!is.na(keggOrganism)) {
+    kegg2GenesList = getPathway2GenesList(param, keggOrganism) ## TODOMF: function does not exist
+    if (all(unlist(kegg2GenesList)) %in% universeGeneIds) {
       keggClusterResults = list()
     }
   }
-  genesByCluster = tapply(genes[rownames(x)], result$clusterNumbers, function(x){na.omit(unique(x))}, simplify=FALSE)
-  goClusterResults = ezMclapply(ontologies, function(onto){
-    gene2go = goStringsToList(seqAnno[[paste("GO", onto)]], listNames=rownames(seqAnno))[universeGeneIds]
-    if (param$includeGoParentAnnotation){
-      gene2go = addGoParents(gene2go, onto)
-    }
-    result = lapply(genesByCluster, function(selectedGenes){
-      ezGoseq(param, selectedGenes, universeGeneIds, gene2goList=gene2go,
-              method="Hypergeometric",
-              onto=onto, normalizedAvgSignal=NULL)})
-  }, mc.cores=1)
+  genesByCluster = tapply(
+    genes[rownames(x)],
+    result$clusterNumbers,
+    function(x) {
+      na.omit(unique(x))
+    },
+    simplify = FALSE
+  )
+  goClusterResults = ezMclapply(
+    ontologies,
+    function(onto) {
+      gene2go = goStringsToList(
+        seqAnno[[paste("GO", onto)]],
+        listNames = rownames(seqAnno)
+      )[universeGeneIds]
+      if (param$includeGoParentAnnotation) {
+        gene2go = addGoParents(gene2go, onto)
+      }
+      result = lapply(genesByCluster, function(selectedGenes) {
+        ezGoseq(
+          param,
+          selectedGenes,
+          universeGeneIds,
+          gene2goList = gene2go,
+          method = "Hypergeometric",
+          onto = onto,
+          normalizedAvgSignal = NULL
+        )
+      })
+    },
+    mc.cores = 1
+  )
   names(goClusterResults) = ontologies
   result$GO = goClusterResults
   return(invisible(result))
 }
 
 
-
-
-
-
-
 ## still used?
-collectChildren = function(go2geneList, onto){
-  goOffsprings = switch(onto, BP=as.list(GOBPOFFSPRING),
-                        CC=as.list(GOCCOFFSPRING),
-                        MF=as.list(GOMFOFFSPRING))
+collectChildren = function(go2geneList, onto) {
+  goOffsprings = switch(
+    onto,
+    BP = as.list(GOBPOFFSPRING),
+    CC = as.list(GOCCOFFSPRING),
+    MF = as.list(GOMFOFFSPRING)
+  )
   goNames = union(names(go2geneList), names(goOffsprings))
   names(goNames) = goNames
-  doCollect = function(goName, goOffsprings=NULL, go2genes=NULL){
+  doCollect = function(goName, goOffsprings = NULL, go2genes = NULL) {
     return(unique(unlist(go2genes[c(goOffsprings[[goName]], goName)])))
   }
-  go2geneList = lapply(goNames, doCollect, goOffsprings=goOffsprings, go2genes=go2geneList)
+  go2geneList = lapply(
+    goNames,
+    doCollect,
+    goOffsprings = goOffsprings,
+    go2genes = go2geneList
+  )
   return(go2geneList)
 }
 
 
 ## still used?
-myFisherTest = function(goGenes, selGenes, allGenes, alternative="greater"){ 
-  fisher.test(factor(allGenes %in% selGenes, levels=c("FALSE", "TRUE")), 
-              factor(allGenes %in% goGenes, levels=c("FALSE", "TRUE")), alternative=alternative)$p.value
+myFisherTest = function(goGenes, selGenes, allGenes, alternative = "greater") {
+  fisher.test(
+    factor(allGenes %in% selGenes, levels = c("FALSE", "TRUE")),
+    factor(allGenes %in% goGenes, levels = c("FALSE", "TRUE")),
+    alternative = alternative
+  )$p.value
 }
 
 ## NOTE: the GSEABase has also GO to slim mapping but does not include the GO parents
 ## at the geneontology there seems to be a map2slim perl script but
 ## a) the perl script installation seems cumbersome; lots of dependencies
 ## b) it requires a gene-assocation-file as input; a more complex than necessary file
-mapGoToSlim = function(goList, ontology, slimGo){
-  require("GO.db", warn.conflicts=WARN_CONFLICTS, quietly=!WARN_CONFLICTS)
+mapGoToSlim = function(goList, ontology, slimGo) {
+  require("GO.db", warn.conflicts = WARN_CONFLICTS, quietly = !WARN_CONFLICTS)
   #   require(GSEABase)
   #   slim = getOBOCollection(oboFile)
   #   slimGo = ids(slim)
-  goAncestor = switch(ontology, BP=as.list(GOBPANCESTOR),
-                      CC=as.list(GOCCANCESTOR),
-                      MF=as.list(GOMFANCESTOR))
-  goOffspring = switch(ontology, MF=as.list(GOMFOFFSPRING),
-                       BP=as.list(GOBPOFFSPRING), CC=as.list(GOCCOFFSPRING))
+  goAncestor = switch(
+    ontology,
+    BP = as.list(GOBPANCESTOR),
+    CC = as.list(GOCCANCESTOR),
+    MF = as.list(GOMFANCESTOR)
+  )
+  goOffspring = switch(
+    ontology,
+    MF = as.list(GOMFOFFSPRING),
+    BP = as.list(GOBPOFFSPRING),
+    CC = as.list(GOCCOFFSPRING)
+  )
   slimGo = slimGo[slimGo %in% names(goAncestor)]
-  slimGo = setdiff(union(slimGo, unlist(goAncestor[slimGo])), "all") ## this automatically filters on the ontology  
+  slimGo = setdiff(union(slimGo, unlist(goAncestor[slimGo])), "all") ## this automatically filters on the ontology
   stopifnot(slimGo %in% names(goOffspring))
-  slim2full = sapply(slimGo, function(sg){c(sg, goOffspring[[sg]])}, simplify=FALSE)
+  slim2full = sapply(
+    slimGo,
+    function(sg) {
+      c(sg, goOffspring[[sg]])
+    },
+    simplify = FALSE
+  )
   full2slim = inverseMapping(slim2full)
   ## remove all parents
-  full2slim = lapply(full2slim, function(slimIds){setdiff(slimIds, unlist(goAncestor[slimIds]))})
-  slimList = lapply(goList, function(goIds){unique(unlist(full2slim[goIds]))})
+  full2slim = lapply(full2slim, function(slimIds) {
+    setdiff(slimIds, unlist(goAncestor[slimIds]))
+  })
+  slimList = lapply(goList, function(goIds) {
+    unique(unlist(full2slim[goIds]))
+  })
   return(slimList)
 }
-
-
-
-
-
-
-
-
 
 #
 #writeChildren = function(x, subset, goRelatives, indent=""){
@@ -805,10 +1219,9 @@ mapGoToSlim = function(goList, ontology, slimGo){
 #}
 #
 
-
 ### deprecated should no longer be used
 # makeChipAnno = function(param, probeAnno, chip){
-#   
+#
 #   if (missing(chip)){
 #     stop("wrong call to makeChipAnno")
 #   }
@@ -818,11 +1231,11 @@ mapGoToSlim = function(goList, ontology, slimGo){
 #     message("make chip anno for ", chip, " -- gene mapping is missing in: ", paste(colnames(probeAnno), collapse=", "))
 #     return(NULL)
 #   }
-#   
+#
 #   require("GOstats", quietly=TRUE)
 #   require("GO.db", quietly=TRUE)
 #   require("annotate", quietly=TRUE)
-#   
+#
 #   #job = ezJobStart("entrez")
 #   entrezid = new.env(hash=TRUE, parent=emptyenv(), size=nrow(probeAnno))
 #   #  apply(probeAnno, 1, function(x){  assign(x["Probe"], unname(x["Gene Name"]), envir=entrezid)})
@@ -832,7 +1245,7 @@ mapGoToSlim = function(goList, ontology, slimGo){
 #   l2e(probe2Gene, entrezid)
 #   #  apply(probeAnno, 1, function(x){  assign(x["Probe"], unname(x[ "Entrez Gene ID"]), envir=entrezid)})
 #   #ezWriteElapsed(job)
-#   
+#
 #   #job = ezJobStart("go")
 #   if (all(c("GO BP", "GO CC", "GO MF") %in% colnames(probeAnno))){
 #     go = new.env(hash=TRUE, parent=emptyenv(), size=nrow(probeAnno))
@@ -841,43 +1254,43 @@ mapGoToSlim = function(goList, ontology, slimGo){
 #     goIds = sub("^; ", "", goIds)
 #     goIds = sub("; $", "", goIds)
 #     probe2GoList = strsplit(goIds, "; ", fixed=TRUE)
-#     
+#
 #     names(probe2GoList) = rownames(probeAnno)
 #     ##goList = lapply(goList, function(x){ if (length(x)== 0){NA} else {paste0("GO:", x)}})
 #     l2e(probe2GoList, go)
 #     #ezWriteElapsed(job)
-#     
+#
 #     #job = ezJobStart("go prep")
-#     
+#
 #     #  goTermVec = unlist(probe2GoList)
 #     #  probeVec = rep(rownames(probeAnno), sapply(probe2GoList, length))
 #     #  probesByGO = split(probeVec, goTermVec)
 #     probesByGo = inverseMapping(probe2GoList)
 #     #ezWriteElapsed(job)
-#     
+#
 #     #job = ezJobStart("go MF")
-#     
+#
 #     allGo = names(probesByGo)
 #     collectProbes = function(goName, goOffsprings, probesByGo){
 #       return(unique(unlist(probesByGo[c(goName, goOffsprings)])))
 #     }
-#     
-#     
+#
+#
 #     goBpOff = as.list(GOBPOFFSPRING)
 #     bpList = mapply(collectProbes, names(goBpOff), goBpOff, MoreArgs=list(probesByGo=probesByGo))
-#     
+#
 #     goMfOff = as.list(GOMFOFFSPRING)
 #     mfList = mapply(collectProbes, names(goMfOff), goMfOff, MoreArgs=list(probesByGo=probesByGo))
-#     
+#
 #     goCcOff = as.list(GOCCOFFSPRING)
 #     ccList = mapply(collectProbes, names(goCcOff), goCcOff, MoreArgs=list(probesByGo=probesByGo))
-#     
+#
 #     goList = c(bpList, mfList, ccList)
 #     stopifnot(!is.na(unlist(goList)))
-#     
+#
 #     go2probe = new.env(hash=TRUE, parent=emptyenv(), size=length(goList))
 #     l2e(goList, go2probe)
-#     
+#
 #     l = list()
 #     l[[paste0(chip, "GO")]] = go
 #     l[[paste0(chip, "GO2ALLPROBES")]] = go2probe
@@ -890,7 +1303,7 @@ mapGoToSlim = function(goList, ontology, slimGo){
 #   attach(l, name=pkgName)
 #   return(chip)
 # }
-# 
+#
 
 # hasGoAnnotationInEnv = function(chip){
 #   exists(paste0(chip, "GO2ALLPROBES"))

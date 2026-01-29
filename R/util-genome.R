@@ -5,7 +5,6 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-
 ##' @title Make a coordinate
 ##' @description Creates a chromosome coordinate with the provided input.
 ##' @param chrom the chromosome name.
@@ -16,7 +15,7 @@
 ##' @template roxygen-template
 ##' @examples
 ##' makeCoordinate("chrm", 3, 150, 300)
-makeCoordinate = function(chrom, strand, start, stop){
+makeCoordinate = function(chrom, strand, start, stop) {
   paste0(chrom, "(", strand, ")", ":", start, "-", stop)
 }
 
@@ -27,17 +26,23 @@ makeCoordinate = function(chrom, strand, start, stop){
 ##' @template roxygen-template
 ##' @examples
 ##' splitCoordinate("chrm:1-50")
-splitCoordinate = function(pos){
+splitCoordinate = function(pos) {
   chrom = sub(":.*", "", pos)
   start = as.numeric(sub("-.*", "", sub(".*:", "", pos)))
   stop = as.numeric(sub(".*-", "", sub(".*:", "", pos)))
-  result = data.frame(Chrom=chrom, Start=start, Stop=stop, row.names=pos, stringsAsFactors = FALSE)
+  result = data.frame(
+    Chrom = chrom,
+    Start = start,
+    Stop = stop,
+    row.names = pos,
+    stringsAsFactors = FALSE
+  )
   return(result)
 }
 
 ##' @describeIn splitCoordinate Does the same as \code{splitCoordinate}, but returns the result as a list and is more robust.
-splitRegion = function(pos){
-  if (grepl(":", pos)){
+splitRegion = function(pos) {
+  if (grepl(":", pos)) {
     chrom = sub(":.*", "", pos)
     stopifnot(grepl("-", pos))
     se = sub(".*:", "", pos)
@@ -48,5 +53,5 @@ splitRegion = function(pos){
     start = NA
     end = NA
   }
-  return(list(seq=chrom, start=start, end=end))
+  return(list(seq = chrom, start = start, end = end))
 }

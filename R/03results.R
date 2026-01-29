@@ -21,58 +21,69 @@
 ##' deResult$saveToFile(file = rdFile)
 ##' deResult2 = EzResult$new(file=rdFile)
 EzResult <-
-  setRefClass("EzResult",
-              fields=c("param", "rawData", "result", "se", "sceset"),
-              methods=list(
-                initialize = function(paramNew=list(), rawDataNew=list(), 
-                                      resultNew=list(),
-                                      file=NULL, seNew=SummarizedExperiment::SummarizedExperiment(), 
-                                      scesetNew=list()){
-                  param <<- paramNew
-                  rawData <<- rawDataNew
-                  result <<- resultNew
-                  sceset <<- scesetNew
-                  se <<- seNew
-                  if (!is.null(file)){
-                    stopifnot(length(paramNew) == 0 && length(rawDataNew) == 0 && length(resultNew) == 0)
-                    stopifnot(file.exists(file))
-                    if (grepl("RData$", file)){
-                      load(file = file) ## loads
-                      param <<- param
-                      rawData <<- rawData
-                      result <<- result
-                      se <<- se
-                      sceset <<- sceset
-                    }
-                    if (grepl("rds$", file)){
-                      se <<- readRDS(file)
-                    }
-                  }
-                },
-                saveToFile = function(file){
-                  save(param, rawData, result, se, sceset, file=file)
-                }
-              )
+  setRefClass(
+    "EzResult",
+    fields = c("param", "rawData", "result", "se", "sceset"),
+    methods = list(
+      initialize = function(
+        paramNew = list(),
+        rawDataNew = list(),
+        resultNew = list(),
+        file = NULL,
+        seNew = SummarizedExperiment::SummarizedExperiment(),
+        scesetNew = list()
+      ) {
+        param <<- paramNew
+        rawData <<- rawDataNew
+        result <<- resultNew
+        sceset <<- scesetNew
+        se <<- seNew
+        if (!is.null(file)) {
+          stopifnot(
+            length(paramNew) == 0 &&
+              length(rawDataNew) == 0 &&
+              length(resultNew) == 0
+          )
+          stopifnot(file.exists(file))
+          if (grepl("RData$", file)) {
+            load(file = file) ## loads
+            param <<- param
+            rawData <<- rawData
+            result <<- result
+            se <<- se
+            sceset <<- sceset
+          }
+          if (grepl("rds$", file)) {
+            se <<- readRDS(file)
+          }
+        }
+      },
+      saveToFile = function(file) {
+        save(param, rawData, result, se, sceset, file = file)
+      }
+    )
   )
 
-makeSummarizedExperiment = function(param, rawData, result){
+makeSummarizedExperiment = function(param, rawData, result) {
   require(SummarizedExperiment)
-  if (is.null(rawData)){
+  if (is.null(rawData)) {
     return(NULL)
   }
-  assayList = list(counts=rawData$counts)
-  if (!is.null(rawData$signal)){
+  assayList = list(counts = rawData$counts)
+  if (!is.null(rawData$signal)) {
     assayList$countsNorm = rawData$signal
   } else {
-    if (!is.null(result$xNorm)){
+    if (!is.null(result$xNorm)) {
       assayList$countsNorm = result$xNorm
     }
   }
-  
-  SummarizedExperiment(assays=assayList,
-                       rowData=rawData$seqAnno,
-                       colData=ezDesignFromDataset(rawData$dataset, param),
-                       metadata=param)
+
+  SummarizedExperiment(
+    assays = assayList,
+    rowData = rawData$seqAnno,
+    colData = ezDesignFromDataset(rawData$dataset, param),
+    metadata = param
+  )
   ## DE results can be represented
   ## --- as mcols in the rowData
   ## --- as an element in the metaData list (subsetting does not work)

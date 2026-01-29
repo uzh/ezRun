@@ -5,17 +5,21 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-.onLoad = function(libname, pkgname){
-  
-}
+.onLoad = function(libname, pkgname) {}
 
-if (!exists("EZ_GLOBAL_VARIABLES")){
-  EZ_GLOBAL_VARIABLES <<- system.file("extdata/EZ_GLOBAL_VARIABLES.txt",
-                                      package="ezRun", mustWork = TRUE)
+if (!exists("EZ_GLOBAL_VARIABLES")) {
+  EZ_GLOBAL_VARIABLES <<- system.file(
+    "extdata/EZ_GLOBAL_VARIABLES.txt",
+    package = "ezRun",
+    mustWork = TRUE
+  )
 }
-if (file.exists(EZ_GLOBAL_VARIABLES)){
+if (file.exists(EZ_GLOBAL_VARIABLES)) {
   ezWrite(paste("loading EZ_GLOBAL_VARIABLES from: ", EZ_GLOBAL_VARIABLES))
   source(EZ_GLOBAL_VARIABLES, local = TRUE)
 } else {
-  ezWrite(paste("EZ_GLOBAL_VARIABLES file defined but does not exist: ", EZ_GLOBAL_VARIABLES))    
+  ezWrite(paste(
+    "EZ_GLOBAL_VARIABLES file defined but does not exist: ",
+    EZ_GLOBAL_VARIABLES
+  ))
 }
