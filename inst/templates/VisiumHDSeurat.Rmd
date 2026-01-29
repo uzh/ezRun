@@ -620,17 +620,16 @@ center <- coords[ round(nrow(coords)/2) , c("x", "y")]
 xRange <- coords$x |> range() |> diff()
 croppedRange <- xRange * 0.1
 
-
-ezSpatialFeaturePlot(
-  subset(scData_unfiltered, cells=which(use)),
-  nCountCol,
-  pt.size.factor = 5,
-  label = "UMI counts",
-  stroke = 0.2,
-  crop = TRUE
-)
-
-
+if(length(which(use)) > 0){
+    ezSpatialFeaturePlot(
+        subset(scData_unfiltered, cells=which(use)),
+        nCountCol,
+        pt.size.factor = 5,
+        label = "UMI counts",
+        stroke = 0.2,
+        crop = TRUE
+    )
+}
 ```
 
 ### Cell size/density
