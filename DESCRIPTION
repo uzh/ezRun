@@ -21,7 +21,7 @@ Suggests:
     GenomicRanges, ShortRead, Gviz, gplots, GO.db, GOstats, annotate,
     bitops, edgeR, limma, S4Vectors, VariantAnnotation, rmarkdown, plotly,
     kableExtra, htmlwidgets, RSelenium, webshot, clusterProfiler, dupRadar,
-    scran, writexl, zip
+    scran, writexl, zip, httr2
 SystemRequirements:
 VignetteBuilder: knitr
 RoxygenNote: 7.3.2

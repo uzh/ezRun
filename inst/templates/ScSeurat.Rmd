@@ -61,7 +61,7 @@ if (file.exists("aziResults.rds")){
 }
 
 if (file.exists("cellxgeneResults.rds")){
-  cellxgeneResults <- readRDS("cellxgeneResults.rds")
+  cellxgeneResults <- readRDS("cellxgeneResults.rds") 
   scData <- AddMetaData(scData, cellxgeneResults)
 } else {
   cellxgeneResults <- NULL
@@ -1159,45 +1159,63 @@ if(azimuth_available && !is.null(azimuth_results)){
 options(ggrepel.max.overlaps = Inf)
 n_celltype <- length(unique(scData$predicted.id.cellxgene.authorlabel))
 sample_name <- names(scData)
-# print("The URL of the reference data is:")
-# print(param$cellxgeneUrl)
-## get the DOI
-d = datasets()
-c = collections()
-dataset_version_id_URL <- gsub("\\.rds$", "", basename(param$cellxgeneUrl))
-collection_id_URL <- as.character(d |> filter(dataset_version_id == dataset_version_id_URL) |> 
-                                    select(collection_id))
-DOI <- c |> filter(collection_id == collection_id_URL) |> select(doi)
-# print("The DOI of this dataset is:")
-# print(paste0("https://doi.org/", DOI))
+
+# Create shortened cell type labels for plotting (originals are kept)
+scData$cellxgene_label_short <- scData$predicted.id.cellxgene.authorlabel %>%
+  as.character() %>%
+  gsub(",", "", .) %>% 
+  gsub("-positive", "-pos", .) %>%
+  gsub("-negative", "-neg", .) %>%
+  gsub("regulatory", "reg", .) %>%
+  {ifelse(
+      nchar(.) > 30,
+      paste0(substr(., 1, 8), "...", substr(., nchar(.) - 14, nchar(.))), .)
+  }
 
 ## dimplot of prediction.id.cellxgene.authorlabel
-p1 <- DimPlot(scData, label = TRUE, repel = TRUE, group.by = 'predicted.id.cellxgene.authorlabel', cols = shared_colors) + 
-  ggtitle(paste(sample_name, "- CellxGene - Predicted ID"))
+p1 <- DimPlot(scData, label = TRUE, repel = TRUE, group.by = 'cellxgene_label_short', cols = shared_colors) +
+  ggtitle(paste(sample_name, "- CellxGene - Predicted ID")) +
+  guides(color = guide_legend(ncol = 4, byrow = TRUE, override.aes = list(size = 4, alpha = 1)))
+
+# Legend is too large, so we plot it separately and patch it together
+legend_plot_p1 <- ggdraw(get_legend(p1)) + theme(plot.margin = margin(0, 0, 0, 0))
+main_plot_p1 <- p1 + theme(legend.position = "none", plot.margin = margin(0, 0, 0, 0))
+big_plot1 <- (main_plot_p1 / legend_plot_p1) +
+  plot_layout(heights = c(3, 1))
 
 ## plots of mapping score
-p2 <- FeaturePlot(scData,features = "prediction.score.max", cols = c("lightgrey", "dodgerblue"), pt.size = 1, max.cutoff = 'q97', order = T )+ggtitle(paste(sample_name, "- mapping score"))
+p2 <- FeaturePlot(scData, features = "prediction.score.max", cols = c("lightgrey", "dodgerblue"), pt.size = 1, max.cutoff = 'q97', order = TRUE) +
+  ggtitle(paste(sample_name, "- mapping score"))
 
-## mapping quality by Vlnplots
-p3 <- VlnPlot(scData, features = 'prediction.score.max', group.by = 'predicted.id.cellxgene.authorlabel', cols = shared_colors) +
-  ggtitle(paste(sample_name, "- prediction.score.max grouped by author's cell label"))
-
+## mapping quality by Vlnplots (use short labels for x-axis readability)
+p3 <- VlnPlot(scData, features = 'prediction.score.max', group.by = 'cellxgene_label_short', cols = shared_colors, alpha = 0.3) +
+  ggtitle(paste(sample_name, "- prediction.score.max grouped by author's cell label")) +
+  theme(legend.position = "none")
 ```
 
 ```{r cellxgene_2, eval=!is.null(cellxgeneResults), echo=FALSE, message=FALSE, results="asis"}
 cat("\n\n* The URL of the reference data is:", param$cellxgeneUrl)
-cat("\n\n* The DOI of this dataset is:", ifelse(length(DOI) > 0, paste0("https://doi.org/", DOI), "DOI not available"))
+
+doi_info <- attr(cellxgeneResults, "doi")
+  if (!is.null(doi_info) && !is.na(doi_info$doi)) {
+    cat("\n\n* The DOI of the reference data is:", doi_info$doi)
+  } else if (!is.null(doi_info)) {
+    cat("\n\n* DOI:", doi_info$message)
+  }
 ```
 
-```{r cellxgene_3, eval=!is.null(cellxgeneResults), fig.width=14, fig.height=12}
+
+
+
+```{r cellxgene_3, eval=!is.null(cellxgeneResults), fig.width=12, fig.height=10}
 tryCatch({
   # Print plots individually with coord_fixed
-  print(p1 + coord_fixed())
+  print(big_plot1)
   print(p2 + coord_fixed())
-  print(p3 )
+  print(p3)
 }, error = function(e) {
   # If coord_fixed fails, print plots as-is
-  print(p1)
+  print(big_plot1)
   print(p2)
   print(p3)
 })

@@ -149,6 +149,80 @@ StandardizeGeneSymbols_customer = function(obj, assay=NULL, layers=c("counts","d
 }
 
 
+### extract DOI from cellxgene URL
+get_cellxgene_doi <- function(url) {
+  library(httr2)
+  
+  # Extract UUID from URL
+  uuid <- stringr::str_extract(url, "[a-f0-9-]{36}")
+  if (is.na(uuid)) {
+    return(list(
+      doi = NA_character_,
+      title = NA_character_,
+      source = NA_character_,
+      message = paste("No UUID found in URL:", url)
+    ))
+  }
+  
+  base_url <- "https://api.cellxgene.cziscience.com/curation/v1"
+  
+  # Helper: try an API endpoint, return NULL on failure
+  try_endpoint <- function(endpoint, ...) {
+    tryCatch({
+      request(base_url) |>
+        req_url_path_append(endpoint, ...) |>
+        req_perform() |>
+        resp_body_json()
+    }, error = function(e) NULL)
+  }
+  
+  # 1. Try dataset_versions (most common for .h5ad links)
+  resp <- try_endpoint("dataset_versions", uuid)
+  if (!is.null(resp)) {
+    doi <- stringr::str_extract(resp$citation, "10\\.[0-9]+/[^\\s]+")
+    if (is.na(doi)) doi <- NA_character_
+    return(list(
+      doi = doi,
+      title = resp$title,
+      source = "dataset_version",
+      message = if (is.na(doi)) "Dataset found but no DOI available" else NULL
+    ))
+  }
+  
+  # 2. Try collections
+  resp <- try_endpoint("collections", uuid)
+  if (!is.null(resp)) {
+    doi <- if (is.null(resp$doi) || resp$doi == "") NA_character_ else resp$doi
+    return(list(
+      doi = doi,
+      title = resp$name,
+      source = "collection",
+      message = if (is.na(doi)) "Collection found but no DOI available" else NULL
+    ))
+  }
+  
+  # 3. Try datasets (get first version)
+  resp <- try_endpoint("datasets", uuid, "versions")
+  if (!is.null(resp) && length(resp) > 0) {
+    doi <- stringr::str_extract(resp[[1]]$citation, "10\\.[0-9]+/[^\\s]+")
+    if (is.na(doi)) doi <- NA_character_
+    return(list(
+      doi = doi,
+      title = resp[[1]]$title,
+      source = "dataset",
+      message = if (is.na(doi)) "Dataset found but no DOI available" else NULL
+    ))
+  }
+  
+  return(list(
+    doi = NA_character_,
+    title = NA_character_,
+    source = NA_character_,
+    message = paste("Could not find dataset for UUID:", uuid)
+  ))
+}
+
+
 cellxgene_annotation <- function(scData, param) {
   
   
@@ -179,6 +253,13 @@ cellxgene_annotation <- function(scData, param) {
   
   scRef <- getCuratedCellxGeneRef(param$cellxgeneUrl, cache_dir=cache_dir, cell_label_author = cell_label_author, species = species)
   
+  #####
+  
+  
+  
+  
+  #####
+  
   ### StandardizeGeneSymbols
   if( species == "Homo_sapiens" ){
     scData <- StandardizeGeneSymbols_customer(scData, layers = c( "counts"), EnsemblGeneTable = EnsemblGeneTable.Hs)
@@ -207,10 +288,13 @@ cellxgene_annotation <- function(scData, param) {
     predicted.id.cellxgene.authorlabel=predictions.scData$predicted.id,
     prediction.score.max=predictions.scData$prediction.score.max,
     row.names=colnames(scData))
+  
+  # Attach DOI as attribute
+  attr(cellxgeneResults, "doi") <- get_cellxgene_doi(param$cellxgeneUrl)
+  
   return(cellxgeneResults)
   
 }
-
 
 
 getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author, species){
