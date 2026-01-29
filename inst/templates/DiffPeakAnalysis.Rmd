@@ -167,7 +167,7 @@ plot_ma <- function(res, groupName){
 
 plot_pca <- function(res, groupName){
   ml_dds <- res[[groupName]]$dds
-  vsd <- vst(ml_dds, blind=FALSE)
+  vsd <- varianceStabilizingTransformation(ml_dds, blind = FALSE)
   pca_data <- DESeq2::plotPCA(vsd, intgroup="Condition", returnData = TRUE)
   pc_val <- round(100 * attr(pca_data, "percentVar"))
   
