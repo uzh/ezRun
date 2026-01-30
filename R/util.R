@@ -1155,7 +1155,7 @@ makeGroupingVariableSortedFactor <- function(vec) {
     sort(na.last = TRUE)
   if (any(is.na(sorted_int_levels))) {
     ## use character sorting
-    return(as.factor(vec, levels = sort(unique(vec))))
+    return(factor(vec, levels = sort(unique(vec))))
   } else {
     return(factor(vec, levels = sorted_int_levels))
   }
