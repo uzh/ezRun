@@ -7,7 +7,7 @@ test_that("Tests ezIntString() and mioString()", {
   expect_identical(as.numeric(intString), num)
   mioString = mioString(num)
   expect_is(mioString, "character")
-  expect_identical(as.numeric(mioString)*1e6, num)
+  expect_identical(as.numeric(mioString) * 1e6, num)
 })
 
 test_that("Tests ezWrite.table() and ezRead.table()", {
@@ -15,7 +15,7 @@ test_that("Tests ezWrite.table() and ezRead.table()", {
   file = "exampleTable"
   colnames(m1) = letters[1:10]
   rownames(m1) = 1:10
-  ezWrite.table(m1, file, sep="\t")
+  ezWrite.table(m1, file, sep = "\t")
   expect_true(file.exists(file))
   m2 = ezRead.table(file)
   expect_is(m2, "data.frame")
@@ -25,7 +25,7 @@ test_that("Tests ezWrite.table() and ezRead.table()", {
 
 test_that("Tests ezValidFilename()", {
   file1 = ezValidFilename("example:filename")
-  file2 = ezValidFilename("or?to/remove(them", replace="")
+  file2 = ezValidFilename("or?to/remove(them", replace = "")
   expect_false(any(grepl("[$%#!?/:;() '=]", c(file1, file2))))
 })
 
