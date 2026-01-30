@@ -16,8 +16,8 @@ parseOptions(optString)
 \arguments{
 \item{userParam}{a list of parameters defined by the user}
 
-\item{globalDefaults}{a data.frame containing the global defaults for parameters. Includes for each parameter a name, 
-a default value, the type, and a description. The global defaults are read from a file. 
+\item{globalDefaults}{a data.frame containing the global defaults for parameters. Includes for each parameter a name,
+a default value, the type, and a description. The global defaults are read from a file.
 See the file EZ_PARAM_DEFAULTS.txt in the package directory.}
 
 \item{appDefaults}{a data.frame containing application specific defaults.

@@ -31,7 +31,7 @@ makeRmdReport(
 Makes an ezRun Rmd report and additionally writes the R objects to disk using eather RDS or the qs2 format
 }
 \examples{
-makeRmdReport(param=param, output=output, scData=scData, rmdFile = "ScSeuratCombine.Rmd", reportTitle = "Seurat Report", use.qs2=TRUE) 
+makeRmdReport(param=param, output=output, scData=scData, rmdFile = "ScSeuratCombine.Rmd", reportTitle = "Seurat Report", use.qs2=TRUE)
 # Outputs the report as '00index.html' in addition to files 'param.qs2', 'output.qs2', 'scData.qs2'
 }
 \author{

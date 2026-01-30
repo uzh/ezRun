@@ -2,17 +2,17 @@
 % Please edit documentation in R/messaging.R
 \name{ezLog}
 \alias{ezLog}
-\title{Wrapper for futile.logger}
+\title{Wrapper for logger}
 \usage{
 ezLog(message, level = "info")
 }
 \arguments{
 \item{message}{the message to log.}
 
-\item{level}{the log level (trace, debug, info, warn, error, fatal).}
+\item{level}{the log level (fatal, error, warn, success, info, debug, trace).}
 }
 \description{
-Logs a message at a specified level using futile.logger.
+Logs a message at a specified level using logger.
 }
 \examples{
 ezLog("This is an info message")
