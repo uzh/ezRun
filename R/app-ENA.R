@@ -156,9 +156,11 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
           fastqInfo[['Name']][i] <- paste(cleanName, sampleID, sep = '_')
         },
         error = function(e) {
-          return(message(
-            'sample title not available in experiment accession file'
-          ))
+          ezLog(
+            'sample title not available in experiment accession file',
+            level = "error"
+          )
+          return("")
         }
       )
     }
