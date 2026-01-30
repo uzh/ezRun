@@ -23,14 +23,14 @@ ezFeatureAnnotation = function(
     refAnnoGeneFn <- sub("(_byTranscript)*\\.txt$", "_byGene.txt", featAnnoFn)
 
     if (file.exists(refAnnoGeneFn)) {
-      message("Using gene level annotation: ", refAnnoGeneFn)
+      ezLog("Using gene level annotation: ", refAnnoGeneFn)
       seqAnno <- fread(refAnnoGeneFn, data.table = FALSE)
       ## replace the NA character columns with "";
       ## numeric columns shall not have NA.
       seqAnno[is.na(seqAnno)] <- ""
       rownames(seqAnno) <- seqAnno$gene_id
     } else {
-      message("Using isoform level annotation and aggregating.")
+      ezLog("Using isoform level annotation and aggregating.")
       ## For compatibility of old annotation without _byGene.txt
       seqAnnoTx <- fread(featAnnoFn)
       ## replace the NA character columns with "";
@@ -76,15 +76,15 @@ ezFeatureAnnotation = function(
     seqAnno$width <- NULL
   }
   if (!"description" %in% colnames(seqAnno) || all(seqAnno$description == "")) {
-    message("Assigning description with gene_id.")
+    ezLog("Assigning description with gene_id.")
     seqAnno$description <- seqAnno$gene_id
   }
   if (!"type" %in% colnames(seqAnno) || all(seqAnno$type == "")) {
-    message("Assigning type with protein coding.")
+    ezLog("Assigning type with protein coding.")
     seqAnno$type <- "protein_coding"
   }
   if (!"biotypes" %in% colnames(seqAnno) || all(seqAnno$biotypes == "")) {
-    message("Assigning biotypes with protein coding.")
+    ezLog("Assigning biotypes with protein coding.")
     seqAnno$biotypes <- "protein_coding"
   }
   if (!all(minimalCols %in% colnames(seqAnno))) {
@@ -242,7 +242,7 @@ makeFeatAnnoEnsembl <- function(
     c("Ensembl Transcript ID", "Description", "GO Term Accession", "GO domain")
   )
   if (!is.null(biomartFile)) {
-    message("Using local biomart file!")
+    ezLog("Using local biomart file!")
     # fread cannot handle compressed file
     mapping <- as.data.table(read_tsv(biomartFile, guess_max = 1e6))
     if (all(names(attributes) %in% colnames(mapping))) {
@@ -261,7 +261,7 @@ makeFeatAnnoEnsembl <- function(
       )
     }
   } else if (!is.null(organism)) {
-    message("Query via biomaRt package!")
+    ezLog("Query via biomaRt package!")
     require(biomaRt)
     if (is.null(host)) {
       ensembl <- useMart(mart)
@@ -287,7 +287,7 @@ makeFeatAnnoEnsembl <- function(
     mapping2 <- as_tibble(mapping2)
     mapping <- inner_join(mapping1, mapping2)
   } else {
-    message("Not using any additional annotation!")
+    ezLog("Not using any additional annotation!")
     mapping <- tibble(
       ensembl_transcript_id = featAnno$transcript_id,
       description = "",
@@ -515,10 +515,10 @@ getGeneMapping = function(param, seqAnnoDF) {
     geneCol = intersect(param$geneColumnSet, colnames(seqAnnoDF))[1]
   }
   if (is.null(geneCol) || length(geneCol) == 0 || is.na(geneCol)) {
-    message("getGeneMapping -- no geneCol provided: ", geneCol)
+    ezLog("getGeneMapping -- no geneCol provided: ", geneCol)
     x = NULL
   } else {
-    message("getGeneMapping -- using: ", geneCol)
+    ezLog("getGeneMapping -- using: ", geneCol)
     x = seqAnnoDF[[geneCol]]
     x[x == ""] = NA
     names(x) = rownames(seqAnnoDF)

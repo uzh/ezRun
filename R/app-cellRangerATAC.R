@@ -35,7 +35,7 @@ ezMethodCellRangerATAC <- function(input = NA, output = NA, param = NA) {
   cellRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-cellRanger")
 
   refDir <- getCellRangerATACReference(param)
-  message("Using the reference: ", refDir)
+  ezLog("Using the reference: ", refDir)
 
   cmd <- paste(
     "cellranger-atac count",

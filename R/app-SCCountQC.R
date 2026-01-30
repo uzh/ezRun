@@ -112,7 +112,7 @@ ezMethodSCCountQC = function(
     bamRGFns <- splitBamByRG(inBam, mc.cores = param$cores)
 
     ### CollectAlignmentSummaryMetrics
-    message("Start CollectAlignmentSummaryMetrics", date())
+    ezLog("Start CollectAlignmentSummaryMetrics", date())
     alnMetrics <- CollectAlignmentSummaryMetrics(
       inBams = bamRGFns,
       fastaFn = param$ezRef['refFastaFile'],
@@ -131,7 +131,7 @@ ezMethodSCCountQC = function(
     )
 
     ### CollectRnaSeqMetrics
-    message("Start CollectRnaSeqMetrics", date())
+    ezLog("Start CollectRnaSeqMetrics", date())
     rnaSeqMetrics <- CollectRnaSeqMetrics(
       inBams = bamRGFns,
       gtfFn = param$ezRef['refFeatureFile'],
@@ -151,7 +151,7 @@ ezMethodSCCountQC = function(
     )
 
     ### DuplicationMetrics
-    message("Start DuplicationMetrics", date())
+    ezLog("Start DuplicationMetrics", date())
     dupMetrics <- DuplicationMetrics(inBams = bamRGFns, mc.cores = param$cores)
     colData(sce) <- as(
       data.frame(

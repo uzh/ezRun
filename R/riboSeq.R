@@ -33,7 +33,7 @@ getCdsProfiles = function(
   require(GenomicAlignments)
   aln = readGAlignments(bamFile)
   stopifnot(names(tisPos) %in% levels(seqnames(aln)))
-  message(
+  ezLog(
     "genes with TIS but without alignments: ",
     length(setdiff(names(tisPos), as.vector(seqnames(aln))))
   )
@@ -134,7 +134,7 @@ getAvgTisReadStartProfiles = function(
   require(GenomicAlignments)
   aln = readGAlignments(bamFile)
   stopifnot(names(tisPos) %in% levels(seqnames(aln)))
-  message(
+  ezLog(
     "genes with TIS but without alignments: ",
     length(setdiff(as.vector(seqnames(aln)), names(tisPos)))
   )

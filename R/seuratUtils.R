@@ -50,7 +50,7 @@ seuratStandardSCTPreprocessing <- function(
         genesBlockList = my.genes.blocklist
       )
     } else {
-      message(
+      ezLog(
         'Selection method STACAS not supported for this species! Use default method instead.'
       )
       scData <- FindVariableFeatures(
@@ -1013,7 +1013,7 @@ fix_microscopy_image <- function(
   }
 
   obj@images[[img_name]]@image <- arr
-  message(sprintf(
+  ezLog(sprintf(
     "Channel order decided by means on tissue: R=%.3f, B=%.3f -> %s",
     mR,
     mB,

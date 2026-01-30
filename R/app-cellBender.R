@@ -77,7 +77,7 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
     sce <- read10xCounts(cmDir, col.names = TRUE)
 
     # Save as h5 file using write10xCounts
-    message("Saving to h5 format...")
+    ezLog("Saving to h5 format...")
     inputFile <- paste0(sampleName, '.h5')
     write10xCounts(
       inputFile,
@@ -88,7 +88,7 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
       chemistry = input$getColumn("SCDataOrigin")
     )
 
-    message("Created h5 file: ", inputFile)
+    ezLog("Created h5 file: ", inputFile)
   }
 
   cmd <- paste(

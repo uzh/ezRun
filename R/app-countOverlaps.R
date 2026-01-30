@@ -28,7 +28,7 @@ ezMethodCountOverlaps = function(input = NA, output = NA, param = NA) {
     }
     chroms = intersect(ezBamSeqNames(input), chroms)
     names(chroms) = chroms
-    message(
+    ezLog(
       "counting ",
       input,
       "; number of hits [Mio]: ",
@@ -111,7 +111,7 @@ EzAppCountOverlaps <-
 .countPairedBamHits = function(input = NULL, output = NULL, param = NULL) {
   #param = fillWithDefaults(param) ## TODOMF: function doesn't exist
   options(cores = param$cores)
-  message("countPairedBamHits")
+  ezLog("countPairedBamHits")
   require("bitops", warn.conflicts = WARN_CONFLICTS, quietly = !WARN_CONFLICTS)
 
   gff = ezLoadFeatures(param)
@@ -124,7 +124,7 @@ EzAppCountOverlaps <-
   names(chroms) = chroms
   gff = gff[gff$seqid %in% chroms, ]
 
-  message(
+  ezLog(
     "counting ",
     input,
     "; number of hits [Mio]: ",

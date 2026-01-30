@@ -116,7 +116,7 @@ ezMethodScSeuratCombine = function(
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add = TRUE)
   reportCwd <- getwd()
-  message("Attempting to load Seurat data...")
+  ezLog("Attempting to load Seurat data...")
   filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Seurat"))
   filePath_course <- file.path(
     "/srv/GT/analysis/course_sushi/public/projects",

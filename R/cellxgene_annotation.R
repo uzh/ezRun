@@ -76,7 +76,7 @@ StandardizeGeneSymbols_customer = function(
   names(geneRef_dict) <- EnsemblGeneTable[["Gene Synonym"]]
   geneRef_dict <- geneRef_dict[!is.null(names(geneRef_dict))]
 
-  message(paste("Number of genes in input object:", ngenes))
+  ezLog(paste("Number of genes in input object:", ngenes))
   genesAllowList1 <- genes.tr[
     !is.na(genes.tr) &
       genes.tr != "" &
@@ -84,16 +84,16 @@ StandardizeGeneSymbols_customer = function(
   ] #keep genes with standard Gene.name
   l <- length(genesAllowList1)
 
-  message(sprintf(
+  ezLog(sprintf(
     "Number of genes with standard symbols: %i (%.2f%%)",
     l,
     l / ngenes * 100
   ))
 
   if (l < ngenes & gname.format) {
-    message(paste("Examples of non-standard Gene.names:"))
+    ezLog(paste("Examples of non-standard Gene.names:"))
     ns <- head(genes.tr[!genes.tr %in% EnsemblGeneTable[["Gene name"]]])
-    message(paste(unname(ns), collapse = ","))
+    ezLog(paste(unname(ns), collapse = ","))
   }
 
   ###### 2. Search among synonyms
@@ -103,7 +103,7 @@ StandardizeGeneSymbols_customer = function(
   ] # keep genes with accepted Gene.name synonym
   genesAllowList2.gn <- geneRef_dict[genesAllowList2] # translate Gene.Synonym to standard Gene.name
 
-  message(paste(
+  ezLog(paste(
     "Additional number of genes with accepted Gene name synonym: ",
     length(genesAllowList2.gn)
   ))
@@ -115,7 +115,7 @@ StandardizeGeneSymbols_customer = function(
       genes.dash %in% EnsemblGeneTable[["Gene name"]]
   ]
   genesAllowList2b.gn <- gsub("\\.", "-", genesAllowList2b)
-  message(paste(
+  ezLog(paste(
     "Additional number of genes after replacing dots: ",
     length(genesAllowList2b.gn)
   ))
@@ -126,14 +126,14 @@ StandardizeGeneSymbols_customer = function(
   ###### 3. Check for duplicates
   is.dup <- duplicated(genesAllowList)
   genesAllowList <- genesAllowList[!is.dup]
-  message(sprintf(
+  ezLog(sprintf(
     "Number of duplicated Gene.name: %i (%.2f%%)",
     sum(is.dup),
     sum(is.dup) / ngenes * 100
   ))
 
   l <- length(genesAllowList)
-  message(sprintf("Final number of genes: %i (%.2f%%)", l, l / ngenes * 100))
+  ezLog(sprintf("Final number of genes: %i (%.2f%%)", l, l / ngenes * 100))
 
   ###### 4. Subset matrix for allowed genes, and translate names
   matrix <- list()
@@ -170,7 +170,7 @@ StandardizeGeneSymbols_customer = function(
 ### extract DOI from cellxgene URL
 get_cellxgene_doi <- function(url) {
   library(httr2)
-  
+
   # Extract UUID from URL
   uuid <- stringr::str_extract(url, "[a-f0-9-]{36}")
   if (is.na(uuid)) {
@@ -181,24 +181,29 @@ get_cellxgene_doi <- function(url) {
       message = paste("No UUID found in URL:", url)
     ))
   }
-  
+
   base_url <- "https://api.cellxgene.cziscience.com/curation/v1"
-  
+
   # Helper: try an API endpoint, return NULL on failure
   try_endpoint <- function(endpoint, ...) {
-    tryCatch({
-      request(base_url) |>
-        req_url_path_append(endpoint, ...) |>
-        req_perform() |>
-        resp_body_json()
-    }, error = function(e) NULL)
+    tryCatch(
+      {
+        request(base_url) |>
+          req_url_path_append(endpoint, ...) |>
+          req_perform() |>
+          resp_body_json()
+      },
+      error = function(e) NULL
+    )
   }
-  
+
   # 1. Try dataset_versions (most common for .h5ad links)
   resp <- try_endpoint("dataset_versions", uuid)
   if (!is.null(resp)) {
     doi <- stringr::str_extract(resp$citation, "10\\.[0-9]+/[^\\s]+")
-    if (is.na(doi)) doi <- NA_character_
+    if (is.na(doi)) {
+      doi <- NA_character_
+    }
     return(list(
       doi = doi,
       title = resp$title,
@@ -206,7 +211,7 @@ get_cellxgene_doi <- function(url) {
       message = if (is.na(doi)) "Dataset found but no DOI available" else NULL
     ))
   }
-  
+
   # 2. Try collections
   resp <- try_endpoint("collections", uuid)
   if (!is.null(resp)) {
@@ -215,15 +220,21 @@ get_cellxgene_doi <- function(url) {
       doi = doi,
       title = resp$name,
       source = "collection",
-      message = if (is.na(doi)) "Collection found but no DOI available" else NULL
+      message = if (is.na(doi)) {
+        "Collection found but no DOI available"
+      } else {
+        NULL
+      }
     ))
   }
-  
+
   # 3. Try datasets (get first version)
   resp <- try_endpoint("datasets", uuid, "versions")
   if (!is.null(resp) && length(resp) > 0) {
     doi <- stringr::str_extract(resp[[1]]$citation, "10\\.[0-9]+/[^\\s]+")
-    if (is.na(doi)) doi <- NA_character_
+    if (is.na(doi)) {
+      doi <- NA_character_
+    }
     return(list(
       doi = doi,
       title = resp[[1]]$title,
@@ -231,7 +242,7 @@ get_cellxgene_doi <- function(url) {
       message = if (is.na(doi)) "Dataset found but no DOI available" else NULL
     ))
   }
-  
+
   return(list(
     doi = NA_character_,
     title = NA_character_,
@@ -267,8 +278,13 @@ cellxgene_annotation <- function(scData, param) {
   # cache_dir = "/scratch/yang/tmp"
   cell_label_author = param$cellxgeneLabel
   species <- sub("/.*", "", param$refBuild)
-  scRef <- getCuratedCellxGeneRef(param$cellxgeneUrl, cache_dir=cache_dir, cell_label_author = cell_label_author, species = species)
-  
+  scRef <- getCuratedCellxGeneRef(
+    param$cellxgeneUrl,
+    cache_dir = cache_dir,
+    cell_label_author = cell_label_author,
+    species = species
+  )
+
   ### StandardizeGeneSymbols
   if (species == "Homo_sapiens") {
     scData <- StandardizeGeneSymbols_customer(
@@ -319,17 +335,23 @@ cellxgene_annotation <- function(scData, param) {
     dims = 1:30
   )
   cellxgeneResults <- data.frame(
-    predicted.id.cellxgene.authorlabel=predictions.scData$predicted.id,
-    prediction.score.max=predictions.scData$prediction.score.max,
-    row.names=colnames(scData))
-  
+    predicted.id.cellxgene.authorlabel = predictions.scData$predicted.id,
+    prediction.score.max = predictions.scData$prediction.score.max,
+    row.names = colnames(scData)
+  )
+
   # Attach DOI as attribute
   attr(cellxgeneResults, "doi") <- get_cellxgene_doi(param$cellxgeneUrl)
-  
+
   return(cellxgeneResults)
 }
 
-getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author, species){
+getCuratedCellxGeneRef <- function(
+  ref_dataset_id,
+  cache_dir,
+  cell_label_author,
+  species
+) {
   print("start cellxgene")
   lockFile <- paste0(
     cache_dir,
@@ -385,11 +407,11 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
   curated_seurat_object <- switch(
     file_extension,
     "rds" = {
-      message("Loading RDS format Seurat object...")
+      ezLog("Loading RDS format Seurat object...")
       readRDS(tmp_download_ref)
     },
     "h5ad" = {
-      message("Loading H5AD format and converting to Seurat object...")
+      ezLog("Loading H5AD format and converting to Seurat object...")
       if (!requireNamespace("schard", quietly = TRUE)) {
         stop(
           "Package 'schard' is needed for h5ad format. Please install it first."
@@ -563,7 +585,7 @@ getCuratedCellxGeneRef <- function(ref_dataset_id, cache_dir, cell_label_author,
       # and info of every assay
       if (length(assay_names) == 1) {
         # go out from if clause
-        message("Only one assay name is present. No other assay name.")
+        ezLog("Only one assay name is present. No other assay name.")
       } else {
         for (assay_name in assay_names) {
           assay_data <- GetAssayData(sample, assay = assay_name)

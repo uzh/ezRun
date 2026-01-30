@@ -158,7 +158,7 @@ ezMethodScSeuratCompare = function(
     # Save sccomp results
     saveRDS(sccomp_res, "sccomp_results.rds")
   } else {
-    message("'Sample' metadata not found. Skipping sccomp analysis.")
+    ezLog("'Sample' metadata not found. Skipping sccomp analysis.")
   }
 
   pvalue_allMarkers <- 0.05

@@ -72,7 +72,7 @@ ezMethodCombinePeaks <- function(input = NA, output = NA, param = NA) {
     file = sub("\\.bed$", ".txt", outBed),
     row.names = FALSE
   )
-  message(
+  ezLog(
     "Wrote ",
     length(collapsed),
     " peaks (in >=",

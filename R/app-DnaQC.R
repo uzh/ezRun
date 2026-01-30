@@ -41,7 +41,7 @@ computeDnaBamStats <- function(input, htmlFile, param, resultList = NULL) {
 
   resultList = list()
   for (sm in samples) {
-    message(sm)
+    ezLog(sm)
     resultList[[sm]] <- list()
     resultList[[sm]]$multiMatchInFileTable <- getBamMultiMatching(
       param,

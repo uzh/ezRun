@@ -205,7 +205,7 @@ buildRefDir <- function(
     #### some controls over gtf
     if (is.null(gtf$gene_biotype)) {
       if (is.null(gtf$gene_type)) {
-        message(
+        ezLog(
           "gene_biotype is not available in gtf. Assigning protein_coding."
         )
         gtf$gene_biotype <- "protein_coding"
@@ -222,7 +222,7 @@ buildRefDir <- function(
     }
 
     if (is.null(gtf$gene_name)) {
-      message("gene_name is not available in gtf. Assigning gene_id.")
+      ezLog("gene_name is not available in gtf. Assigning gene_id.")
       gtf$gene_name <- gtf$gene_id
     }
 
@@ -331,7 +331,7 @@ buildIgvGenome <- function(x) {
       ezWriteGff(transcriptGtf, trxFile)
     },
     error = function(e) {
-      message("Could not load features. Copy the annotation file instead.")
+      ezLog("Could not load features. Copy the annotation file instead.")
       file.copy(gtfFile, trxFile)
     }
   )

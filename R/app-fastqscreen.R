@@ -476,7 +476,7 @@ map_and_count_refseq <- function(
       ezSystem(cmd)
     },
     error = function(e) {
-      message('No reads aligned to RefSeq')
+      ezLog('No reads aligned to RefSeq')
     }
   )
   gc()

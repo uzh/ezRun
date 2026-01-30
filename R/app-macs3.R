@@ -18,7 +18,7 @@ ezMethodMacs3 = function(input = NA, output = NA, param = NA) {
   if (param$genomeSize == 0) {
     gsize <- sum(as.numeric(fasta.seqlengths(param$ezRef["refFastaFile"])))
     gsize <- round(gsize * 0.8)
-    message("Use calculated gsize: ", gsize)
+    ezLog("Use calculated gsize: ", gsize)
     opt <- paste(opt, "-g", as.character(gsize))
   }
   ## --keep-dup: behavior towards duplicate tags at the exact same location
@@ -241,7 +241,7 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
       )
     },
     error = function(e) {
-      message(paste("No peaks detected. Skip peak annotation"))
+      ezLog(paste("No peaks detected. Skip peak annotation"))
     }
   )
   if (is.null(data) | nrow(data) == 0) {
@@ -265,7 +265,7 @@ annotatePeaks = function(peakFile, peakSeqFile, param) {
   } else if ('start_codon' %in% unique(gtf$type)) {
     idx = gtf$type == 'start_codon'
   } else {
-    message('gtf is incompatabible. Peak annotation skipped!')
+    ezLog('gtf is incompatabible. Peak annotation skipped!')
     return(NULL)
   }
   gtf = gtf[idx]

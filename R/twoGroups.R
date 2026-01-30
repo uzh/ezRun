@@ -360,7 +360,7 @@ runGlm <- function(
   }
 
   if (deTest == "QL") {
-    message("Using quasi-likelihood (QL) F-test!")
+    ezLog("Using quasi-likelihood (QL) F-test!")
     fitGlm <- glmQLFit(cds, design, prior.count = priorCount, robust = robust)
     if (is.null(refGroupBaseline) || is.null(sampleGroupBaseline)) {
       contrastsIndices <- c(-1, 1, rep(0, ncol(fitGlm) - 2))
@@ -369,7 +369,7 @@ runGlm <- function(
     }
     lrt.2vs1 <- glmQLFTest(fitGlm, contrast = contrastsIndices)
   } else {
-    message("Using likelihood ratio test!")
+    ezLog("Using likelihood ratio test!")
     fitGlm <- glmFit(cds, design, prior.count = priorCount, robust = robust)
     if (is.null(refGroupBaseline) || is.null(sampleGroupBaseline)) {
       contrastsIndices <- c(-1, 1, rep(0, ncol(fitGlm) - 2))

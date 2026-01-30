@@ -39,7 +39,7 @@ ezParam = function(
   )
   unknownParams = setdiff(names(userParam), rownames(defaults))
   sapply(unknownParams, function(x) {
-    message("unknown param: ", x)
+    ezLog("unknown param: ", x)
   })
   for (nm in rownames(defaults)) {
     if (!is.null(userParam[[nm]])) {
@@ -121,7 +121,7 @@ parseOptions = function(optString) {
   for (i in 1:length(params)) {
     if (ezGrepl("=\'", params[i])) {
       j = min(quoteIdx[quoteIdx > i])
-      message(i, "- ", j, " ", params[i])
+      ezLog(i, "- ", j, " ", params[i])
       params[i] = gsub("\'", "", paste(params[i:j], collapse = " "))
       params[(i + 1):j] = ""
     }

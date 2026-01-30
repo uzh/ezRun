@@ -224,7 +224,7 @@ ezCombineReadDatasets = function(
 
   ## uniqNames: copy to the destination
   if (length(uniqNames) > 0L) {
-    message("Copying files without merging.")
+    ezLog("Copying files without merging.")
     dsUniq <- filter(ds, Name %in% uniqNames)
     dsUniqNew <- mutate(
       dsUniq,
@@ -249,7 +249,7 @@ ezCombineReadDatasets = function(
 
   ## dupNames: merge to the destination
   if (length(dupNames) > 0L) {
-    message("Merging files.")
+    ezLog("Merging files.")
     dsDupList <- list()
     dupName <- dupNames[1]
     for (dupName in dupNames) {

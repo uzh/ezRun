@@ -194,7 +194,7 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
   if (length(dataset$Name) == length(unique(dataset$Name))) {
     ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
   } else {
-    message('Data pooling needed')
+    ezLog('Data pooling needed')
     sampleNames = unique(dataset$Name)
     for (j in 1:length(sampleNames)) {
       files_R1 <- basename(dataset[['Read1 [File]']][

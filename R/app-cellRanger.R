@@ -260,7 +260,7 @@ computeBamStatsSC = function(bamFile, ram = NULL) {
       )$records
     )
     if (nAlign / ram > 20e6) {
-      message("computeBamStatsSC: not executed - would take too much RAM")
+      ezLog("computeBamStatsSC: not executed - would take too much RAM")
       return(NULL)
     }
   }

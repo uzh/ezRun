@@ -55,7 +55,7 @@ ezMethodRnaBamStats = function(
   }
   resultList = list()
   for (sm in samples) {
-    message(sm)
+    ezLog(sm)
     resultList[[sm]] = getStatsFromBam(
       param,
       files[sm],
@@ -572,7 +572,7 @@ getStatsFromBamParallel = function(
     #reduce the number of threads in case of
     maxCores = ceiling(param$ram / (nReads / 1e6) * 4)
     if (maxCores < mc.cores) {
-      message("too many reads --reducing the number of cores: ", maxCores)
+      ezLog("too many reads --reducing the number of cores: ", maxCores)
       mc.cores = maxCores
     }
   }
@@ -635,7 +635,7 @@ getStatsFromBamParallel = function(
     temp[rownames(newResult), ] = temp[rownames(newResult), ] + newResult
   }
   if (any(is.na(temp))) {
-    message("na counts: ", sum(is.na(temp)))
+    ezLog("na counts: ", sum(is.na(temp)))
     temp[is.na(temp)] = 0
   }
 
@@ -666,7 +666,7 @@ getStatsFromBamSingleChrom = function(
   transcriptsForCov = NULL
 ) {
   require("bitops", warn.conflicts = WARN_CONFLICTS, quietly = !WARN_CONFLICTS)
-  message("Processing chr ", ifelse(is.null(chrom), "all", chrom))
+  ezLog("Processing chr ", ifelse(is.null(chrom), "all", chrom))
 
   result = list()
   seqLengths = ezBamSeqLengths(bamFile)

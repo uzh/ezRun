@@ -127,18 +127,19 @@ ezValidMail = function(addressString) {
 
 ##' @title Wrapper for logger
 ##' @description Logs a message at a specified level using logger.
-##' @param message the message to log.
+##' @param ... the message to log, will be concatenated.
 ##' @param level the log level (fatal, error, warn, success, info, debug, trace).
 ##' @template roxygen-template
 ##' @examples
 ##' ezLog("This is an info message")
 ##' ezLog("This is a warning message", level="warn")
-ezLog = function(message, level = "info") {
+ezLog = function(..., level = "info") {
   custom_layout <- layout_glue_generator(
     format = '{level} (ezRun) [{format(time, \"%Y-%m-%d %H:%M:%S\")}] {msg}'
   )
   log_layout(custom_layout)
 
+  message = paste0(...)
   level = tolower(level)
   switch(
     level,

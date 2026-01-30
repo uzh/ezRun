@@ -103,7 +103,7 @@ scranIntegration <- function(sceList, method = c("None", "MNN")) {
         })
       )
     metadata(sce)$param <- metadata(sceList[[1]])$param
-    message(
+    ezLog(
       "Features are selected across samples for batch correction: ",
       length(chosen)
     )

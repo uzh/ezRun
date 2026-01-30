@@ -425,7 +425,7 @@ ezMethodVisiumHDSeurat <- function(
   DefaultAssay(scData) <- myDefAssay
   Idents(scData) <- myIdents
   # }, error = function(e) {
-  #   message("banksy failed", e)
+  #   ezLog("banksy failed", e)
   #   #writexl::write_xlsx(data.frame(), "posMarkersBanksy.xlsx")
   # })
 

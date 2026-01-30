@@ -111,7 +111,7 @@ subSampleRle = function(x, idx) {
 
 .getRleFromRanges = function(x, r) {
   gc()
-  message("getRleFromRanges")
+  ezLog("getRleFromRanges")
   rle = mapply(
     function(start, end, x) window(x, start = start, end = end),
     start(r),

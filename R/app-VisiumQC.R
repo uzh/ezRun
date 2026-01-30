@@ -26,7 +26,10 @@ ezMethodVisiumQC <- function(
   ###CollectStats
   for (j in 1:nrow(dataset)) {
     sampleName <- rownames(dataset)[j]
-    samplePath <- file.path(param$dataRoot, dirname(dataset[['Count [Link]']][j]))
+    samplePath <- file.path(
+      param$dataRoot,
+      dirname(dataset[['Count [Link]']][j])
+    )
     umiCounts <- sum(
       ezRead.table(file.path(
         samplePath,
@@ -42,9 +45,9 @@ ezMethodVisiumQC <- function(
     if (j == 1) {
       stats <- sampleStats
     } else {
-      commonCols <- intersect(colnames(stats),colnames(sampleStats))
-      sampleStats <- sampleStats[,commonCols]
-      stats <- stats[,commonCols]
+      commonCols <- intersect(colnames(stats), colnames(sampleStats))
+      sampleStats <- sampleStats[, commonCols]
+      stats <- stats[, commonCols]
       stats <- rbind(stats, sampleStats)
     }
   }
@@ -62,7 +65,10 @@ ezMethodVisiumQC <- function(
     myPlots <- list()
     for (j in 1:nrow(dataset)) {
       sampleName <- rownames(dataset)[j]
-      samplePath <- file.path(param$dataRoot, dirname(dataset[['Count [Link]']][j]))
+      samplePath <- file.path(
+        param$dataRoot,
+        dirname(dataset[['Count [Link]']][j])
+      )
       data_raw <- read10xRaw(file.path(samplePath, "raw_feature_bc_matrix"))
       if (
         file.exists(file.path(samplePath, "spatial", "tissue_positions.csv"))
@@ -109,7 +115,10 @@ ezMethodVisiumQC <- function(
     write_rds(myPlots, 'myPlots.rds')
 
     sampleName <- rownames(dataset)[1]
-    samplePath <- samplePath <- file.path(param$dataRoot, dirname(dataset[['Count [Link]']][1]))
+    samplePath <- samplePath <- file.path(
+      param$dataRoot,
+      dirname(dataset[['Count [Link]']][1])
+    )
     img = Read10X_Image(
       file.path(samplePath, "spatial"),
       image.name = "tissue_hires_image.png"
