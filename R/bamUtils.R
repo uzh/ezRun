@@ -234,6 +234,7 @@ bam2bw <- function(
       "-o",
       destination,
       "--binSize 10 -of bigwig",
+      "--normalizeUsing CPM",
       "-p",
       cores
     )
