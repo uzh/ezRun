@@ -139,6 +139,12 @@ ezMethodScSeuratCombine = function(
       aziResults <- readRDS(aziFilePath)
       scData <- AddMetaData(scData, aziResults)
     }
+    # Load cellxgene results if available
+    cellxgeneFilePath <- file.path(dirname(filePath[sm]), 'cellxgeneResults.rds')
+    if (file.exists(cellxgeneFilePath)) {
+      cellxgeneResults <- readRDS(cellxgeneFilePath)
+      scData <- AddMetaData(scData, cellxgeneResults)
+    }
     scData$Sample <- sm
     # If we have new information in the Condition column, add it to the dataset
     if (
@@ -242,6 +248,7 @@ ezMethodScSeuratCombine = function(
     TFActivity = results$TFActivity,
     pathwayActivity = results$pathwayActivity,
     aziResults = results$aziResults,
+    cellxgeneResults = results$cellxgeneResults,
     cells.AUC = results$cells.AUC,
     singler.results = results$singler.results,
     rmdFile = "ScSeuratCombine.Rmd",
@@ -300,6 +307,7 @@ seuratIntegrateDataAndAnnotate <- function(
     TFActivity = anno$TFActivity,
     cells.AUC = anno$cells.AUC,
     singler.results = anno$singler.results,
-    aziResults = anno$aziResults
+    aziResults = anno$aziResults,
+    cellxgeneResults = anno$cellxgeneResults
   ))
 }

@@ -47,9 +47,21 @@ if (file.exists("singler.results.rds")){
 }
 
 if ("Azimuth.celltype.l1" %in% colnames(scData@meta.data)){
-  aziResults <- TRUE    
+  aziResults <- TRUE
 } else {
   aziResults <- NULL
+}
+
+# Check if cellxgene annotation already in metadata (loaded from individual samples)
+# or load from file if available
+if ("predicted.id.cellxgene.authorlabel" %in% colnames(scData@meta.data)) {
+  cellxgeneResults <- TRUE
+} else if (file.exists("cellxgeneResults.rds")) {
+  cellxgeneResults <- readRDS("cellxgeneResults.rds")
+  scData <- AddMetaData(scData, cellxgeneResults)
+  cellxgeneResults <- TRUE
+} else {
+  cellxgeneResults <- NULL
 }
 
 if (file.exists("cells.AUC.rds")){
@@ -491,6 +503,63 @@ if ("Azimuth.celltype.l4" %in% colnames(scData@meta.data)){
     LabelClusters(p5, id = "Azimuth.celltype.l4",  fontface = "bold", color = "black", size = 5)
   }
 }
+```
+
+## Cell x gene
+
+```{r cellxgene, eval=!is.null(cellxgeneResults), fig.width=9, fig.height=9}
+options(ggrepel.max.overlaps = Inf)
+n_celltype <- length(unique(scData$predicted.id.cellxgene.authorlabel))
+
+# Create shortened cell type labels for plotting (originals are kept)
+scData$cellxgene_label_short <- scData$predicted.id.cellxgene.authorlabel %>%
+  as.character() %>%
+  gsub(",", "", .) %>%
+  gsub("-positive", "-pos", .) %>%
+  gsub("-negative", "-neg", .) %>%
+  gsub("regulatory", "reg", .) %>%
+  {ifelse(
+      nchar(.) > 30,
+      paste0(substr(., 1, 8), "...", substr(., nchar(.) - 14, nchar(.))), .)
+  }
+
+## dimplot of prediction.id.cellxgene.authorlabel
+p1 <- DimPlot(scData, label = TRUE, repel = TRUE, group.by = 'cellxgene_label_short', cols = shared_colors) +
+  ggtitle("Combined Samples - CellxGene - Predicted ID") +
+  guides(color = guide_legend(ncol = 4, byrow = TRUE, override.aes = list(size = 4, alpha = 1)))
+
+# Legend is too large, so we plot it separately and patch it together
+legend_plot_p1 <- ggdraw(get_legend(p1)) + theme(plot.margin = margin(0, 0, 0, 0))
+main_plot_p1 <- p1 + theme(legend.position = "none", plot.margin = margin(0, 0, 0, 0))
+big_plot1 <- (main_plot_p1 / legend_plot_p1) +
+  plot_layout(heights = c(3, 1))
+
+## plots of mapping score
+p2 <- FeaturePlot(scData, features = "prediction.score.max", cols = c("lightgrey", "dodgerblue"), pt.size = 1, max.cutoff = 'q97', order = TRUE) +
+  ggtitle("Combined Samples - Mapping Score")
+
+## mapping quality by Vlnplots (use short labels for x-axis readability)
+p3 <- VlnPlot(scData, features = 'prediction.score.max', group.by = 'cellxgene_label_short', cols = shared_colors, alpha = 0.3) +
+  ggtitle("Prediction Score by Cell Type") +
+  theme(legend.position = "none")
+```
+
+```{r cellxgene_2, eval=!is.null(cellxgeneResults), echo=FALSE, message=FALSE, results="asis"}
+if (ezIsSpecified(param$cellxgeneUrl)) {
+  cat("\n\n* The URL of the reference data is:", param$cellxgeneUrl)
+}
+```
+
+```{r cellxgene_3, eval=!is.null(cellxgeneResults), fig.width=12, fig.height=10}
+tryCatch({
+  print(big_plot1)
+  print(p2 + coord_fixed())
+  print(p3)
+}, error = function(e) {
+  print(big_plot1)
+  print(p2)
+  print(p3)
+})
 ```
 
 ## AUCell
