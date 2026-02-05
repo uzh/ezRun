@@ -277,10 +277,6 @@ ezMethodScSeurat <- function(
   colnames(featInfo) <- c("gene_id", "gene_name", "type")
   featInfo$isMito = grepl("(?i)^MT-", featInfo$gene_name)
   featInfo$isRiboprot = grepl("(?i)^RPS|^RPL", featInfo$gene_name)
-  featInfo$isRibosomal <- getRibosomalFlag(
-    featInfo$gene_id,
-    annoFile = param$ezRef@refAnnotationFile
-  )
 
   ## if we have feature barcodes we keep only the expression matrix
   if (is.list(cts)) {
@@ -311,8 +307,7 @@ ezMethodScSeurat <- function(
   scData <- addCellQcToSeurat(
     scData,
     param = param,
-    BPPARAM = BPPARAM,
-    ribosomalGenes = featInfo[rownames(scData), "isRibosomal"]
+    BPPARAM = BPPARAM
   )
 
   ## use empty drops to test for ambient
@@ -657,8 +652,7 @@ ezMethodScSeurat <- function(
 addCellQcToSeurat <- function(
   scData,
   param = NULL,
-  BPPARAM = NULL,
-  ribosomalGenes = NULL
+  BPPARAM = NULL
 ) {
   library(scater)
 
@@ -670,18 +664,13 @@ addCellQcToSeurat <- function(
     "(?i)^RPS|^RPL",
     col.name = "percent_riboprot"
   )
+
   scData <- PercentageFeatureSet(
     scData,
     "(?i)^HB[^P]",
     col.name = "percent_hb"
   )
-  if (!is.null(ribosomalGenes)) {
-    scData <- PercentageFeatureSet(
-      scData,
-      features = ribosomalGenes,
-      col.name = "percent_ribosomal"
-    )
-  }
+
   att_nCounts <- paste0("nCount_", DefaultAssay(scData))
   att_nGenes <- paste0("nFeature_", DefaultAssay(scData))
 
@@ -856,17 +845,3 @@ computePathwayActivityAnalysis <- function(cells, species) {
 }
 
 
-getRibosomalFlag <- function(gene_id, annoFile) {
-  geneAnnoFile <- sub("byTranscript", "byGene", annoFile)
-  if (file.exists(geneAnnoFile)) {
-    geneAnno <- ezRead.table(geneAnnoFile)
-    if (any(geneAnno$type == "rRNA")) {
-      isRibosomal <- geneAnno[gene_id, "type"] %in% "rRNA"
-      if (any(isRibosomal)) {
-        return(isRibosomal)
-      } else {
-        return(NULL)
-      }
-    }
-  }
-}

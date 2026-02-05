@@ -35,7 +35,7 @@ library(qs2)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
 
-```{r}
+```{r data-loading}
 param <- readRDS("param.rds")
 scData <- qs_read('scData.qs2', nthreads=param$cores)
 output <- readRDS("output.rds")
@@ -214,7 +214,7 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 ```
 
 
-```{r, fig.align='center', fig.width=14}
+```{r PCA elbow plot, fig.align='center', fig.width=14}
 pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
 cumu <- cumsum(pct)
 plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
@@ -235,7 +235,7 @@ p
 Once we have created the clusters we need to asses if the clustering was driven by technical artifacts or uninteresting biological variability, such as cell cycle, mitochondrial gene expression.
 We can explore whether the cells cluster by the different cell cycle phases. In such a case, we would have clusters where most of the cells would be in one specific phase. This bias could be taken into account when normalizing and transforming the data prior to clustering. We can also look at the total number of reads, genes detected and mitochondrial gene expression. The clusters should be more or less even but if we observe big differences among some of them for these metrics, we will keep an eye on them and see if the cell types we identify later can explain the differences.
 
-```{r, eval =!is.null(scData@meta.data$CellCycle), fig.width=10, fig.height=6}
+```{r cell-cycle-umap, eval =!is.null(scData@meta.data$CellCycle), fig.width=10, fig.height=6}
 if (any(!is.na(scData$CellCycle))){
   DimPlot(scData, label=TRUE, split.by = "CellCycle", reduction="umap")
 }
@@ -262,7 +262,7 @@ if (ezIsSpecified(param$controlSeqs)) {
 One of the most important parameters when clustering is k, the number of nearest neighbors used to construct the graph. This controls the resolution of the clustering where higher k yields a more inter-connected graph and broader clusters. Users can experiment with different values of k to obtain a satisfactory resolution. We recommend increasing the resolution when a rare population is expected. 
 Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
 
-```{r, fig.align='center', fig.width=6, fig.height=8}
+```{r clustree, fig.align='center', fig.width=6, fig.height=8}
 if(!(param$integrationMethod %in% c("none","Harmony"))) {
   clustree::clustree(scData, prefix = "integrated_snn_res.")
 } else {
@@ -296,6 +296,7 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 # prepare top 5 markers for each cluster
 top5 <- posMarkers %>%
   mutate(cluster = as.character(cluster))
+
 if (all(varhandle::check.numeric(top5$cluster))) {
   top5 <- top5 %>% mutate(cluster = as.numeric(cluster))  # Convert back to numeric if possible
 }
@@ -306,6 +307,8 @@ top5 <- top5 %>%
 # specifiy genes to plot
 genesToPlot <- c(gsub("_", "-", param$controlSeqs), unique(as.character(top5$gene)))
 genesToPlot <- intersect(genesToPlot, rownames(scData))
+
+
 if (ncol(scData) > 3e4) {
   # Heatmap and Dotplot may not work above 30'000 cells, so we downsample
   cat("We first downsample to a representative 30'000 cells.")
@@ -313,10 +316,19 @@ if (ncol(scData) > 3e4) {
 } else {
   scDataToPlot <- scData
 }
+
+# Reorder Idents numerically if all cluster levels are numeric
+cluster_levels <- levels(Idents(scDataToPlot))
+if (all(varhandle::check.numeric(cluster_levels))) {
+  new_levels <- cluster_levels[order(as.numeric(cluster_levels))]
+  Idents(scDataToPlot) <- factor(Idents(scDataToPlot), levels = new_levels)
+}
+
+
 ```
 
 ```{r marker heatmap, fig.width=12, fig.height=length(levels(Idents(scData)))}
-DoHeatmap(scDataToPlot, features=unique(genesToPlot))
+DoHeatmap(scDataToPlot, features=unique(genesToPlot)) + guides(color = "none")
 ```
 
 ```{r marker dotplot, fig.width=12, fig.height=length(levels(Idents(scData)))}
@@ -627,7 +639,7 @@ param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "in
 ```
 
 ## SessionInfo
-```{r, echo=FALSE}
+```{r session info, echo=FALSE}
 ezSessionInfo()
 ```
 
