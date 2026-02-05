@@ -763,8 +763,8 @@ if (!is.null(scData@meta.data$SoupX_contFrac)){
 ```{r cell probability, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10)}
 
 if (!is.null(scData@meta.data$negLog10CellPValue)){
-VlnPlot(scData, features ="negLog10CellPValue") + ggtitle("negative log10 Cell PValue") + NoLegend()
-FeaturePlot(scData, features="negLog10CellPValue", label = TRUE)
+VlnPlot(scData, features ="negLog10CellPValue") + ggtitle("EmptyDrops Cell Confidence") + NoLegend()
+FeaturePlot(scData, features="negLog10CellPValue", label = TRUE) + labs(color = "EmptyDrops\nCell Confidence")
 }
 ```
 
