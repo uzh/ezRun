@@ -215,10 +215,18 @@ ezMethodVisiumHDSeurat <- function(
     uniquifyFeatureNames(ID = featInfo$gene_id, names = featInfo$gene_name)
   )
   rownames(scData) <- rownames(featInfo)
-  featInfo$isRibosomal <- getRibosomalFlag(
-    featInfo$gene_id,
-    annoFile = param$ezRef@refAnnotationFile
-  )
+  geneAnnoFile <- sub("byTranscript", "byGene", param$ezRef@refAnnotationFile)
+  if (file.exists(geneAnnoFile)) {
+    geneAnno <- ezRead.table(geneAnnoFile)
+    if (any(geneAnno$type == "rRNA")) {
+      featInfo$isRibosomal <- geneAnno[featInfo$gene_id, "type"] == "rRNA"
+      featInfo$isRibosomal[is.na(featInfo$isRibosomal)] <- FALSE
+    } else {
+      featInfo$isRibosomal <- FALSE
+    }
+  } else {
+    featInfo$isRibosomal <- FALSE
+  }
   myAssay <- DefaultAssay(scData)
   scData[[myAssay]] <- AddMetaData(
     object = scData[[myAssay]],
