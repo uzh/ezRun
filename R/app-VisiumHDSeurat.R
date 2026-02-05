@@ -230,8 +230,7 @@ ezMethodVisiumHDSeurat <- function(
   scData <- addCellQcToSeurat(
     scData,
     param = param,
-    BPPARAM = BPPARAM,
-    ribosomalGenes = featInfo[rownames(scData), "isRibosomal"]
+    BPPARAM = BPPARAM
   )
   ## make image name unique
   stopifnot(length(names(scData@images)) == 1)
