@@ -8,9 +8,12 @@
 
 ezMethodDIANN = function(input=NA, output=NA, param=NA,
                            htmlFile="00index.html"){
-  setwdNew(basename(output$getColumn("Result")))
+  library(yaml)
+  #setwdNew(basename(output$getColumn("Result")))
   ## todo write inputs / params / dataset
   dir.create("work")
+  ## do not need ezRef here; and can't write it to yaml anyway --> remove it
+  param$ezRef <- NULL
   write_yaml(list(param=param), "work/params.yml")
   ## get the input
   rawDir <- "work/input/raw"
@@ -30,10 +33,10 @@ ezMethodDIANN = function(input=NA, output=NA, param=NA,
   ezSystem(cmd)
   
   ds <- input$meta |> 
-    rownames_to_column("Resource") |> 
+    rownames_to_column("Name") |> 
     rename("Relative Path"=RAW) |>
     mutate(File=basename(`Relative Path`))
-  write_csv(ds, "work/dataset.csv")
+  write_csv(ds[ , c("Resource", "Relative Path", "Name", "Grouping Var", "File")], "work/dataset.csv")
   
   
   snakeFile <- system.file("templates/Snakefile.DIANN3step.smk", package = "ezRun", mustWork = TRUE)
@@ -58,8 +61,8 @@ EzAppDIANN <-
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodCountQC
-                  name <<- "EzAppCountQC"
+                  runMethod <<- ezMethodDIANN
+                  name <<- "EzAppDIANN"
                   appDefaults <<- rbind(runGO=ezFrame(Type="logical", DefaultValue=TRUE, Description="whether to run the GO analysis"),
                                         nSampleClusters=ezFrame(Type="numeric", DefaultValue=6, Description="Number of SampleClusters, default value 6"),
                                         selectByFtest=ezFrame(Type="logical", DefaultValue=FALSE, Description="select topGenes by Test instead of SD"),

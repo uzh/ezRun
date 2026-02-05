@@ -674,43 +674,64 @@ addCellQcToSeurat <- function(
   att_nCounts <- paste0("nCount_", DefaultAssay(scData))
   att_nGenes <- paste0("nFeature_", DefaultAssay(scData))
 
+  # Handle QC filtering - use fixed thresholds if specified,
+
+  # otherwise use MAD-based filtering if nmad is specified
+  use_mad <- ezIsSpecified(param$nmad)
+
   if (!ezIsSpecified(param$nUMI)) {
-    scData$qc.lib <- isOutlier(
-      scData@meta.data[, att_nCounts],
-      log = TRUE,
-      nmads = param$nmad,
-      type = "lower"
-    )
+    if (use_mad) {
+      scData$qc.lib <- isOutlier(
+        scData@meta.data[, att_nCounts],
+        log = TRUE,
+        nmads = param$nmad,
+        type = "lower"
+      )
+    } else {
+      scData$qc.lib <- FALSE  # No filtering if neither threshold nor nmad set
+    }
   } else {
     scData$qc.lib <- scData@meta.data[, att_nCounts] < param$nUMI
   }
   if (!ezIsSpecified(param$ngenes)) {
-    scData$qc.nexprs <- isOutlier(
-      scData@meta.data[, att_nGenes],
-      nmads = param$nmad,
-      log = TRUE,
-      type = "lower"
-    )
+    if (use_mad) {
+      scData$qc.nexprs <- isOutlier(
+        scData@meta.data[, att_nGenes],
+        nmads = param$nmad,
+        log = TRUE,
+        type = "lower"
+      )
+    } else {
+      scData$qc.nexprs <- FALSE
+    }
   } else {
     scData$qc.nexprs <- scData@meta.data[, att_nGenes] < param$ngenes
   }
   if (!ezIsSpecified(param$perc_mito)) {
-    scData$qc.mito <- isOutlier(
-      scData@meta.data[, "percent_mito"],
-      subset = !is.na(scData@meta.data[, "percent_mito"]),
-      nmads = param$nmad,
-      type = "higher"
-    )
+    if (use_mad) {
+      scData$qc.mito <- isOutlier(
+        scData@meta.data[, "percent_mito"],
+        subset = !is.na(scData@meta.data[, "percent_mito"]),
+        nmads = param$nmad,
+        type = "higher"
+      )
+    } else {
+      scData$qc.mito <- FALSE
+    }
   } else {
     scData$qc.mito <- scData@meta.data[, "percent_mito"] > param$perc_mito
   }
   if (!ezIsSpecified(param$perc_riboprot)) {
-    scData$qc.riboprot <- isOutlier(
-      scData@meta.data[, "percent_riboprot"],
-      subset = !is.na(scData@meta.data[, "percent_riboprot"]),
-      nmads = param$nmad,
-      type = "higher"
-    )
+    if (use_mad) {
+      scData$qc.riboprot <- isOutlier(
+        scData@meta.data[, "percent_riboprot"],
+        subset = !is.na(scData@meta.data[, "percent_riboprot"]),
+        nmads = param$nmad,
+        type = "higher"
+      )
+    } else {
+      scData$qc.riboprot <- FALSE
+    }
   } else {
     scData$qc.riboprot <- scData@meta.data[, "percent_riboprot"] >
       as.numeric(param$perc_riboprot)
