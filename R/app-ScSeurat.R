@@ -548,9 +548,8 @@ ezMethodScSeurat <- function(
           plot = FALSE
         )
 
-        # Create simple results for saving (no complex tables)
+        # Save only the tissue type (scData already contains the annotation)
         sctype_results <- list(
-          scData = scData,
           tissue_type = tissue_type
         )
 
@@ -602,10 +601,8 @@ ezMethodScSeurat <- function(
           "Restored seurat_clusters as default Idents after CloudAzimuth"
         )
 
-        # Create simple results for saving (no complex tables)
-        azimuth_results <- list(
-          scData = scData
-        )
+        # Save a marker that Azimuth completed (scData already contains the annotation)
+        azimuth_results <- list(completed = TRUE)
 
         saveRDS(azimuth_results, "azimuth_results.rds")
         futile.logger::flog.info(

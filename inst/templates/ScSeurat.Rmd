@@ -91,23 +91,19 @@ if (file.exists("cellsPerGeneFraction.rds")){
   cellsPerGeneFraction <- NULL
 }
 
-# Load scType results
+# Load scType results (only tissue_type string, annotation is in scData metadata)
 if (file.exists("sctype_results.rds")){
   sctype_results <- readRDS("sctype_results.rds")
-  sctype_available <- TRUE
+  # Handle old format where scData was saved inside results
+  if ("scData" %in% names(sctype_results)) sctype_results$scData <- NULL
+  sctype_available <- "sctype_classification" %in% colnames(scData@meta.data)
 } else {
   sctype_results <- NULL
   sctype_available <- FALSE
 }
 
-# Load Azimuth Pan-Human results
-if (file.exists("azimuth_results.rds")){
-  azimuth_results <- readRDS("azimuth_results.rds")
-  azimuth_available <- TRUE
-} else {
-  azimuth_results <- NULL
-  azimuth_available <- FALSE
-}
+# Check Azimuth Pan-Human availability from metadata
+azimuth_available <- "final_level_labels" %in% colnames(scData@meta.data)
 
 # Create shared color palette for all annotation methods (Azimuth, Azimuth Pan-Human, Cell x gene, scType)
 # Start with Seurat's first 12 default colors, then add palettes without black colors
@@ -1095,10 +1091,10 @@ if('Azimuth.celltype.l4' %in% colnames(scData@meta.data))
 `r if(azimuth_available) "Azimuth Pan-Human provides neural network-based cell type annotation using the Satija lab reference (HUMAN DATASETS ONLY)."`
 
 ```{r azimuth panhuman results, eval=azimuth_available, results='asis', fig.width=15, fig.height=11}
-if(azimuth_available && !is.null(azimuth_results)){
+if(azimuth_available){
   cat("**Reference:** Pan-Human Azimuth neural network model (CloudAzimuth)\n\n")
-  
-  scData_az <- azimuth_results$scData
+
+  scData_az <- scData
   
   # Count annotated cells
   if("final_level_labels" %in% colnames(scData_az@meta.data)){
@@ -1281,8 +1277,8 @@ tryCatch({
 ```{r sctype results, eval=sctype_available, results='asis', fig.width=14, fig.height=10}
 if(sctype_available && !is.null(sctype_results)){
   cat("**Detected tissue:** ", sctype_results$tissue_type, "\n\n")
-  
-  scData_sc <- sctype_results$scData
+
+  scData_sc <- scData
   
   # 1. scType cell type classification UMAP
   if("sctype_classification" %in% colnames(scData_sc@meta.data)){
