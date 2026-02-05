@@ -58,8 +58,8 @@ EzAppDIANN <-
                 initialize = function()
                 {
                   "Initializes the application using its specific defaults."
-                  runMethod <<- ezMethodCountQC
-                  name <<- "EzAppCountQC"
+                  runMethod <<- ezMethodDIANN
+                  name <<- "EzAppDIANN"
                   appDefaults <<- rbind(runGO=ezFrame(Type="logical", DefaultValue=TRUE, Description="whether to run the GO analysis"),
                                         nSampleClusters=ezFrame(Type="numeric", DefaultValue=6, Description="Number of SampleClusters, default value 6"),
                                         selectByFtest=ezFrame(Type="logical", DefaultValue=FALSE, Description="select topGenes by Test instead of SD"),
