@@ -83,13 +83,23 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   samplePath <- file.path(sampleName, 'per_sample_outs')
   subSampleDirs <- list.dirs(samplePath, recursive = FALSE)
   subSamples <- basename(subSampleDirs)
+
+  # Detect CellRanger version from param$CellRangerVersion
+  # Format: "Aligner/CellRanger/X.Y.Z" - extract major version
+  # v10+ changed output structure: removed count/ subdirectory and multi/count/ path
+  crVersion <- as.numeric(
+    str_extract(param$CellRangerVersion, "(?<=/)[0-9]+(?=\\.)")
+  )
+  isV9OrBelow <- crVersion <= 9
+
   expandedDS <- data.frame(
     Name = subSamples,
     Species = ds$Species,
     refBuild = ds$refBuild,
     refFeatureFile = ds$refFeatureFile,
     featureLevel = ds$featureLevel,
-    transcriptTypes = ds$transcriptTypes
+    transcriptTypes = ds$transcriptTypes,
+    SCDataOrigin = '10X'
   )
   expandedDS[['ResultDir [File]']] <- file.path(
     param[['resultDir']],
@@ -100,24 +110,52 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
     expandedDS[['ResultDir [File]']],
     'web_summary.html'
   )
-  expandedDS[['CountMatrix [Link]']] <- file.path(
-    expandedDS[['ResultDir [File]']],
-    'count',
-    'sample_filtered_feature_bc_matrix'
-  )
-  if ("Multiplexing" %in% libraryTypes) {
-    expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(
+  if (isV9OrBelow) {
+    # v9 and below: count/ subdirectory exists
+    expandedDS[['CountMatrix [Link]']] <- file.path(
       expandedDS[['ResultDir [File]']],
       'count',
-      'sample_raw_feature_bc_matrix'
+      'sample_filtered_feature_bc_matrix'
     )
   } else {
-    expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(
-      param[['resultDir']],
-      sampleName,
-      'multi/count',
-      'raw_feature_bc_matrix'
+    # v10+: matrices directly in sample dir
+    expandedDS[['CountMatrix [Link]']] <- file.path(
+      expandedDS[['ResultDir [File]']],
+      'sample_filtered_feature_bc_matrix'
     )
+  }
+  if ("Multiplexing" %in% libraryTypes) {
+    if (isV9OrBelow) {
+      # v9 and below
+      expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(
+        expandedDS[['ResultDir [File]']],
+        'count',
+        'sample_raw_feature_bc_matrix'
+      )
+    } else {
+      # v10+
+      expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(
+        expandedDS[['ResultDir [File]']],
+        'sample_raw_feature_bc_matrix'
+      )
+    }
+  } else {
+    if (isV9OrBelow) {
+      # v9 and below: multi/count/ exists
+      expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(
+        param[['resultDir']],
+        sampleName,
+        'multi/count',
+        'raw_feature_bc_matrix'
+      )
+    } else {
+      # v10+: aggregated at top level
+      expandedDS[['UnfilteredCountMatrix [Link]']] <- file.path(
+        param[['resultDir']],
+        sampleName,
+        'raw_feature_bc_matrix'
+      )
+    }
   }
   expandedDS[['Condition [Factor]']] = c('')
   expandedDS[['Order Id [B-Fabric]']] = ds[['Order Id [B-Fabric]']]
@@ -420,7 +458,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
       chemistry <- param$chemistry
     } else if (grepl("v2\\.", param$probesetFile)) {
       # Flex v2: Matches v2.0.0, v2.1.0, etc.
-      chemistry <- ifelse(hasMult, "Flex-v2-R2", "Flex-v2-singleplex")
+      chemistry <- ifelse(hasMult, "Flex-v2-RNA-R2", "Flex-v2-singleplex")
     } else {
       # Flex v1: Default legacy behavior (MFRP/SFRP)
       chemistry <- ifelse(hasMult, "MFRP", "SFRP")

@@ -129,13 +129,13 @@ ezComputeBias = function(
       dsName = paste0(plates, "_", dsName)
     }
   }
-  message(dsName)
+  ezLog(dsName)
   resultDir = file.path(qcSummaryDir, dsName)
   setwdNew(resultDir)
 
   ## count with kallisto, align with STAR, and compute coverage profiles
   for (i in 1:nrow(inputMeta)) {
-    message(i)
+    ezLog(i)
     covStatFile = file.path(resultDir, outMeta[i, "CovStat [File]"])
     countFile = file.path(resultDir, outMeta$`Count [File]`[i])
     if (file.exists(covStatFile) && file.exists(countFile)) {

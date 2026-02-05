@@ -49,9 +49,9 @@ ezMethodSCEVANApp <- function(
   dataset <- input$meta
   nSamples <- nrow(dataset)
 
-  message("SCEVAN CNV Analysis")
-  message("===================")
-  message("Number of input files: ", nSamples)
+  ezLog("SCEVAN CNV Analysis")
+  ezLog("===================")
+  ezLog("Number of input files: ", nSamples)
 
   # Get input paths - handle both column names for compatibility
   # with ScSeuratCombine (SeuratObject) and ScSeurat (SC Seurat) apps
@@ -73,7 +73,7 @@ ezMethodSCEVANApp <- function(
   # ============================================================================
   # 4. LOAD SEURAT OBJECT
   # ============================================================================
-  message("Loading Seurat object...")
+  ezLog("Loading Seurat object...")
 
   # Get full path to Seurat object
   seuratPath <- file.path(param$dataRoot, seuratPaths[1])
@@ -90,7 +90,7 @@ ezMethodSCEVANApp <- function(
     stop("Input file is not a Seurat object: ", class(seuratObj))
   }
 
-  message(
+  ezLog(
     "Loaded Seurat object with ",
     ncol(seuratObj),
     " cells and ",
@@ -136,7 +136,7 @@ ezMethodSCEVANApp <- function(
     )
   }
 
-  message("Reference cell types: ", paste(referenceCellTypes, collapse = ", "))
+  ezLog("Reference cell types: ", paste(referenceCellTypes, collapse = ", "))
 
   # Identify normal cells
   normCells <- rownames(metadata)[
@@ -153,7 +153,7 @@ ezMethodSCEVANApp <- function(
   }
 
   normPct <- 100 * length(normCells) / ncol(seuratObj)
-  message(
+  ezLog(
     "Identified ",
     length(normCells),
     " normal cells (",
@@ -177,7 +177,7 @@ ezMethodSCEVANApp <- function(
   samples <- unique(metadata[[param$sampleColumn]])
   nSamplesInData <- length(samples)
 
-  message("Found ", nSamplesInData, " unique samples in the data")
+  ezLog("Found ", nSamplesInData, " unique samples in the data")
 
   if (nSamplesInData == 0) {
     stop("No samples found in column '", param$sampleColumn, "'")
@@ -186,20 +186,20 @@ ezMethodSCEVANApp <- function(
   # ============================================================================
   # 7. RUN SCEVAN FOR EACH SAMPLE
   # ============================================================================
-  message("\n=== Running SCEVAN pipelineCNA ===\n")
+  ezLog("\n=== Running SCEVAN pipelineCNA ===\n")
 
   resultsList <- list()
   failedSamples <- c()
 
   for (i in seq_along(samples)) {
     sampleName <- samples[i]
-    message("\n[", i, "/", nSamplesInData, "] Processing sample: ", sampleName)
+    ezLog("\n[", i, "/", nSamplesInData, "] Processing sample: ", sampleName)
 
     # Subset Seurat object for this sample
     cellsToKeep <- colnames(seuratObj)[
       metadata[[param$sampleColumn]] == sampleName
     ]
-    message("  Number of cells: ", length(cellsToKeep))
+    ezLog("  Number of cells: ", length(cellsToKeep))
 
     seuratSub <- subset(seuratObj, cells = cellsToKeep)
 
@@ -226,7 +226,7 @@ ezMethodSCEVANApp <- function(
 
     # Identify normal cells in this sample
     currentNormCells <- intersect(normCells, colnames(countMtx))
-    message("  Normal cells in this sample: ", length(currentNormCells))
+    ezLog("  Normal cells in this sample: ", length(currentNormCells))
 
     if (length(currentNormCells) < 10) {
       warning(
@@ -241,7 +241,7 @@ ezMethodSCEVANApp <- function(
     }
 
     # Run SCEVAN pipelineCNA
-    message("  Running pipelineCNA...")
+    ezLog("  Running pipelineCNA...")
     scevanResult <- tryCatch(
       {
         pipelineCNA(
@@ -264,7 +264,7 @@ ezMethodSCEVANApp <- function(
 
     if (!is.null(scevanResult)) {
       resultsList[[sampleName]] <- scevanResult
-      message("  [v] Sample ", sampleName, " completed successfully")
+      ezLog("  [v] Sample ", sampleName, " completed successfully")
     } else {
       failedSamples <- c(failedSamples, sampleName)
     }
@@ -276,10 +276,10 @@ ezMethodSCEVANApp <- function(
   nSuccessful <- length(resultsList)
   nFailed <- length(failedSamples)
 
-  message("\n=== SCEVAN Processing Summary ===")
-  message("Successful: ", nSuccessful, "/", nSamplesInData)
+  ezLog("\n=== SCEVAN Processing Summary ===")
+  ezLog("Successful: ", nSuccessful, "/", nSamplesInData)
   if (nFailed > 0) {
-    message(
+    ezLog(
       "Failed: ",
       nFailed,
       " (",
@@ -298,7 +298,7 @@ ezMethodSCEVANApp <- function(
   multiSampleResults <- NULL
 
   if (nSuccessful > 1) {
-    message("\n=== Running multi-sample comparison ===\n")
+    ezLog("\n=== Running multi-sample comparison ===\n")
 
     # Prepare count matrices list
     listCountMtx <- list()
@@ -344,18 +344,18 @@ ezMethodSCEVANApp <- function(
     )
 
     if (!is.null(multiSampleResults)) {
-      message("[v] Multi-sample comparison completed")
+      ezLog("[v] Multi-sample comparison completed")
     }
   }
 
   # ============================================================================
   # 10. SAVE RESULTS
   # ============================================================================
-  message("\n=== Saving results ===\n")
+  ezLog("\n=== Saving results ===\n")
 
   # Save SCEVAN results
   qs2::qs_save(resultsList, "scevan_results_list.qs2", nthreads = param$cores)
-  message("[v] Saved SCEVAN results list")
+  ezLog("[v] Saved SCEVAN results list")
 
   if (!is.null(multiSampleResults)) {
     qs2::qs_save(
@@ -363,12 +363,12 @@ ezMethodSCEVANApp <- function(
       "scevan_multi_sample_results.qs2",
       nthreads = param$cores
     )
-    message("[v] Saved multi-sample comparison results")
+    ezLog("[v] Saved multi-sample comparison results")
   }
 
   # Save Seurat object for report
   qs2::qs_save(seuratObj, "seurat_object.qs2", nthreads = param$cores)
-  message("[v] Saved Seurat object")
+  ezLog("[v] Saved Seurat object")
 
   # Save parameters for Rmd
   paramForRmd <- param
@@ -378,12 +378,12 @@ ezMethodSCEVANApp <- function(
   paramForRmd$nSuccessful <- nSuccessful
   paramForRmd$failedSamples <- failedSamples
   write_rds(paramForRmd, 'param.rds')
-  message("[v] Saved parameters")
+  ezLog("[v] Saved parameters")
 
   # ============================================================================
   # 11. GENERATE HTML REPORT
   # ============================================================================
-  message("\n=== Generating HTML report ===\n")
+  ezLog("\n=== Generating HTML report ===\n")
 
   reportTitle <- paste('SCEVAN CNV Analysis -', param$name)
 
@@ -395,7 +395,7 @@ ezMethodSCEVANApp <- function(
   # ============================================================================
   # 12. RETURN SUCCESS
   # ============================================================================
-  message("\n[v] SCEVAN analysis completed successfully!\n")
+  ezLog("\n[v] SCEVAN analysis completed successfully!\n")
   return("Success")
 }
 

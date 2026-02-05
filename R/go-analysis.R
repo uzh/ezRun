@@ -9,7 +9,7 @@ doGo = function(param, seqAnno) {
   flag = param$runGO &&
     (hasGeneMapping(param, seqAnno) || param$featureLevel == "gene") &&
     hasGoAnnotation(seqAnno)
-  message("doGo: ", flag)
+  ezLog("doGo: ", flag)
   return(flag)
 }
 
@@ -530,7 +530,7 @@ ezGoseq = function(
         )
       },
       error = function(e) {
-        message("nullp failed")
+        ezLog("nullp failed")
       }
     )
     #tryCatch({pwf.counts = goseq::nullp(gene.vector, bias.data=2^normalizedAvgSignal[names(gene.vector)], plot.fit=FALSE)})
@@ -1226,9 +1226,9 @@ mapGoToSlim = function(goList, ontology, slimGo) {
 #     stop("wrong call to makeChipAnno")
 #   }
 #   if (hasGeneMapping(param, probeAnno)){
-#     message("make chip anno for ", chip, " -- have gene mapping")
+#     ezLog("make chip anno for ", chip, " -- have gene mapping")
 #   } else {
-#     message("make chip anno for ", chip, " -- gene mapping is missing in: ", paste(colnames(probeAnno), collapse=", "))
+#     ezLog("make chip anno for ", chip, " -- gene mapping is missing in: ", paste(colnames(probeAnno), collapse=", "))
 #     return(NULL)
 #   }
 #

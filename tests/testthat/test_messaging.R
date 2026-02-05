@@ -17,13 +17,40 @@ test_that("Tests ezJobStart() and ezWriteElapsed()", {
   expect_is(elapsed$start, "proc_time")
 })
 
-
-
 test_that("Tests ezLog()", {
-  expect_error(ezLog("info message"), NA)
-  expect_error(ezLog("debug message", level="debug"), NA)
-  expect_error(ezLog("warn message", level="warn"), NA)
-  expect_error(ezLog("error message", level="error"), NA)
-  # expect_error(ezLog("fatal message", level="fatal"), NA) # fatal might stop execution or behave differently
-  expect_error(ezLog("invalid level", level="invalid_level"), "Invalid log level: invalid_level")
+  capture_log <- function(code) {
+    paste(capture.output(code, type = "message"), collapse = "\n")
+  }
+
+  expect_match(
+    capture_log(ezLog("info message")),
+    "INFO \\(ezRun\\) \\[.*\\] info message"
+  )
+
+  ezLogChangeLevel("debug")
+
+  expect_match(
+    capture_log(ezLog("debug message", level = "debug")),
+    "DEBUG \\(ezRun\\) \\[.*\\] debug message"
+  )
+
+  expect_match(
+    capture_log(ezLog("warn message", level = "warn")),
+    "WARN \\(ezRun\\) \\[.*\\] warn message"
+  )
+  expect_match(
+    capture_log(ezLog("error message", level = "error")),
+    "ERROR \\(ezRun\\) \\[.*\\] error message"
+  )
+  expect_error(
+    ezLog("invalid level", level = "invalid_level"),
+    "Invalid log level: invalid_level"
+  )
+  ezLogChangeLevel("warn")
+  expect_equal(capture_log(ezLog("info hidden", level = "info")), "")
+  expect_match(
+    capture_log(ezLog("warn visible", level = "warn")),
+    "WARN \\(ezRun\\) \\[.*\\] warn visible"
+  )
+  ezLogChangeLevel("info")
 })

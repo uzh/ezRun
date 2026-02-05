@@ -270,7 +270,7 @@ ezMethodSpatialSeurat <- function(
 
   tryCatch(
     create_loupe_from_seurat(scData, output_name = input$getNames()),
-    error = function(e) message('LoupeFile creation failed')
+    error = function(e) ezLog('LoupeFile creation failed')
   )
   makeRmdReport(
     dataFiles = dataFiles,
@@ -389,13 +389,13 @@ getSpatialSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
   clusterMarkers[['isSpatialMarker']] = FALSE
   #spatially variable genes
   spatialMarkersList <- list()
-  message('Find spatial Markers using markvariogram')
+  ezLog('Find spatial Markers using markvariogram')
   res <- spatialMarkers(scData, selection.method = 'markvariogram')
   spatialMarkersList[['markvariogram']] <- data.frame(
     GeneSymbol = res,
     Method = 'Markvariogram'
   )
-  message('Find spatial Markers using moransi method')
+  ezLog('Find spatial Markers using moransi method')
   res <- spatialMarkers(scData, selection.method = 'moransi')
   spatialMarkersList[['moransi']] <- data.frame(
     GeneSymbol = res,
@@ -701,7 +701,7 @@ MyDietSeurat <- function(
                   Class = "dgCMatrix"
                 )
               }
-              message(
+              ezLog(
                 "Converting layer ",
                 lyr,
                 " in assay ",

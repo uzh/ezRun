@@ -6,6 +6,8 @@
 # www.fgcz.ch
 
 ezMethodJoinGenoTypesRNASeq <- function(input = NA, output = NA, param = NA) {
+  library(VariantAnnotation)
+ 
   setwdNew(param[['name']])
   param[['genomeSeq']] = param$ezRef["refFastaFile"]
   param[['species']] = limma::strsplit2(param$ezRef['refBuild'], '/')[1]
@@ -31,6 +33,58 @@ ezMethodJoinGenoTypesRNASeq <- function(input = NA, output = NA, param = NA) {
   }
   vcfOutputFile = results[[1]]
   chromSizes = ezChromSizesFromVcf(vcfOutputFile)
+  
+  system('bcftools view -m2 -M2 -v snps allSamples.g.vcf.gz -Oz -o tmp.snps.vcf.gz')
+  system('tabix -f -p vcf tmp.snps.vcf.gz')
+  
+  tmp_vcf  <- "tmp.snps.vcf.gz"
+  out_vcf  <- "snps.sample500k.vcf.gz"
+  target_n <- 500000L
+  seed     <- 1L
+  
+  # Extract CHROM and POS
+  cmd_pos <- sprintf("bcftools query -f '%%CHROM\\t%%POS\\n' %s", shQuote(tmp_vcf))
+  pos_txt <- system(cmd_pos, intern = TRUE)
+  if (length(pos_txt) == 0L) stop("bcftools query returned no lines")
+  
+  pos <- read.table(text = pos_txt, sep = "\t", header = FALSE, stringsAsFactors = FALSE)
+  colnames(pos) <- c("CHROM", "POS")
+  
+  n_total <- nrow(pos)
+  message("Total records: ", n_total)
+  if (target_n > n_total) stop("target_n > n_total")
+  
+  # Sample exact N
+  set.seed(seed)
+  idx <- sample.int(n_total, target_n, replace = FALSE)
+  pos_sub <- pos[idx, , drop = FALSE]
+  
+  # Sort (good hygiene)
+  pos_sub <- pos_sub[order(pos_sub$CHROM, pos_sub$POS), , drop = FALSE]
+  
+  # Write regions file: 2 columns (CHROM POS), 1-based
+  regions_file <- tempfile(fileext = ".regions.txt")
+  write.table(pos_sub, file = regions_file, sep = "\t",
+              quote = FALSE, row.names = FALSE, col.names = FALSE)
+  
+  # Subset
+  cmd_view <- sprintf(
+      "bcftools view -R %s -Oz -o %s %s",
+      shQuote(regions_file), shQuote(out_vcf), shQuote(tmp_vcf)
+  )
+  status <- system(cmd_view)
+  if (status != 0) stop("bcftools view failed (exit ", status, ")")
+  
+  # Index output
+  status <- system(sprintf("tabix -f -p vcf %s", shQuote(out_vcf)))
+  if (status != 0) stop("tabix failed (exit ", status, ")")
+  
+  # Verify
+  n_out <- as.numeric(trimws(system(sprintf("bcftools index -n %s", shQuote(out_vcf)), intern = TRUE)))
+  message("Output records: ", n_out)
+  
+  vcfOutputFile = 'snps.sample500k.vcf.gz'
+  
   genotype = geno(readVcf(vcfOutputFile, genome = "genomeDummy"))
   gt = genotype$GT
   gt[genotype$DP < param$minReadDepth] = "lowCov" ## those calls will become NA in subsequent analyses

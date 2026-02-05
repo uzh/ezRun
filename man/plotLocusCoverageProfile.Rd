@@ -17,14 +17,6 @@ plotLocusCoverageProfile(
 )
 }
 \arguments{
-\item{gRanges}{}
-
-\item{bamFiles}{}
-
-\item{gtfFile}{}
-
-\item{height}{}
-
 \item{width}{}
 }
 \description{

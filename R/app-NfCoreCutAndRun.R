@@ -319,7 +319,7 @@ generateAnnotatedPeaks <- function(gtfFile, outFolder) {
   } else if ('start_codon' %in% unique(gtf$type)) {
     idx = gtf$type == 'start_codon'
   } else {
-    message('gtf is incompatabible. Peak annotation skipped!')
+    ezLog('gtf is incompatabible. Peak annotation skipped!')
     return(NULL)
   }
   gtf = gtf[idx]

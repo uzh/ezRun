@@ -460,7 +460,7 @@ EzApp <-
           } else {
             recipient = param$adminMail
           }
-          message("error exists: ", recipient)
+          ezLog("error exists: ", recipient)
           if (ezValidMail(recipient)) {
             ezMail(
               subject = paste("Error: ", subject),
@@ -473,9 +473,9 @@ EzApp <-
               ),
               to = recipient
             )
-            message("mail sent to: ", recipient)
+            ezLog("mail sent to: ", recipient)
           } else {
-            message(c(
+            ezLog(c(
               text,
               " ",
               geterrmessage(),
@@ -548,14 +548,14 @@ cleanForFreeDiskSpace <- function(param) {
     is.null(param$scratch) ||
       !grepl("^(/scratch|/export/local/scratch)", getwd())
   ) {
-    message(
+    ezLog(
       "Scratch is not specificed or the current working directory is not under /scratch. No cleaning."
     )
     return(TRUE)
   }
 
   if (Sys.getenv("SLURM_JOB_ID") == "") {
-    message("not a SLURM job. No cleaning")
+    ezLog("not a SLURM job. No cleaning")
     return(TRUE)
   }
 
@@ -564,14 +564,14 @@ cleanForFreeDiskSpace <- function(param) {
   }
   if (getGigabyteTotal(".") > 5000) {
     ## For big nodes with more than 5TB scratch, only clean for trxcopy
-    message("Clean for trxcopy!")
+    ezLog("Clean for trxcopy!")
     unusedDirs <- findUnusedDirs("/scratch", user = "trxcopy")
   } else {
-    message("Clean for all users!")
+    ezLog("Clean for all users!")
     unusedDirs <- findUnusedDirs("/scratch", user = NULL)
   }
   for (i in 1:nrow(unusedDirs)) {
-    message("remove: ", rownames(unusedDirs)[i])
+    ezLog("remove: ", rownames(unusedDirs)[i])
     unlink(rownames(unusedDirs)[i], recursive = TRUE, force = TRUE)
     if (getGigabyteFree(".") > param$scratch) {
       break

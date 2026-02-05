@@ -15,7 +15,7 @@ count results should be split}
 \item{plCountParam}{list of parameters specifying existing result files}
 }
 \description{
-\code{splitCounts} for a given count category, count results 
-for all samples given in pvSamples are written to different 
+\code{splitCounts} for a given count category, count results
+for all samples given in pvSamples are written to different
 files, according to parameters given in plCountParam
 }

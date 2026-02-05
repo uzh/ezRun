@@ -10,8 +10,8 @@ getGeneMapping(param, seqAnnoDF)
 hasGeneMapping(param, seqAnnoDF)
 }
 \arguments{
-\item{param}{the global parameter object. We need the entries \code{geneColumn} or \code{geneColumnSet} to figure out 
-which columns of the annotation data frame 
+\item{param}{the global parameter object. We need the entries \code{geneColumn} or \code{geneColumnSet} to figure out
+which columns of the annotation data frame
 should be used for the mapping}
 
 \item{seqAnnoDF}{a data.frame containing the sequence annotation.}

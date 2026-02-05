@@ -565,12 +565,12 @@ plateStatistics <- function(
   }
   colsNA <- is.na(colSums(dataset[, colname, drop = FALSE]))
   if (any(colsNA)) {
-    message("The column ", colname[colsNA], " has NA!")
+    ezLog("The column ", colname[colsNA], " has NA!")
     colname <- colname[!colsNA]
   }
   colsZero <- colSums(dataset[, colname, drop = FALSE]) == 0
   if (any(colsZero)) {
-    message("The column ", colname[colsZero], " is empty!")
+    ezLog("The column ", colname[colsZero], " is empty!")
     colname <- colname[!colsZero]
   }
   if (length(colname) == 0L) {

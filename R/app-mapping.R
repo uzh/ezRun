@@ -903,7 +903,7 @@ ezMethodBWA <- function(input = NA, output = NA, param = NA) {
       "view -S -b -",
       " > aligned.bam"
     )
-    message(cmd)
+    ezLog(cmd)
     system(cmd)
   }
   file.remove(trimmedInput$getColumn("Read1"))

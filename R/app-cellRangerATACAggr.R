@@ -55,7 +55,7 @@ ezMethodCellRangerATACAggr = function(input = NA, output = NA, param = NA) {
   cellRangerFolder = paste0(param$name, "-cellRanger")
 
   refDir <- getCellRangerATACReference(param)
-  message("Using the reference: ", refDir)
+  ezLog("Using the reference: ", refDir)
 
   cmd <- paste(
     "cellranger-atac aggr",

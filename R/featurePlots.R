@@ -66,8 +66,8 @@ ezImportCellRangerBam <- function(
     xfIsRepresentative &
     reads$tag$RE %in% regionTag
   if (!is.null(CBvalues)) {
-    message("use CBvalues: ", length(CBvalues))
-    message(paste(mean(reads$tag$CB %in% CBvalues), collapse = " "))
+    ezLog("use CBvalues: ", length(CBvalues))
+    ezLog(paste(mean(reads$tag$CB %in% CBvalues), collapse = " "))
     useAlignment <- useAlignment & reads$tag$CB %in% CBvalues
   }
   for (nm in setdiff(names(reads), "tag")) {
@@ -205,7 +205,7 @@ plotCellRangerCoverage = function(
     )
     nm = names(gr)[1]
     for (i in 1:length(gr)) {
-      message(names(gr)[i])
+      ezLog(names(gr)[i])
       trackList = list(GenomeAxisTrack(), geneTrack)
       for (sm in names(alTrackList)) {
         trackList[[sm]] = alTrackList[[sm]]
@@ -313,7 +313,7 @@ plotLocusCoverageProfile = function(
       sizes <- rep(1 / nPlots, nPlots)
     }
     for (i in 1:length(gr)) {
-      message(names(gr)[i])
+      ezLog(names(gr)[i])
       trackList = list(GenomeAxisTrack(), geneTrack)
       for (sm in names(alTrackList)) {
         trackList[[sm]] = alTrackList[[sm]]
@@ -366,7 +366,7 @@ plotLocusAverageCoverageProfile = function(
     coverageList[[strand]] = list()
     for (i in 1:length(gRanges)) {
       gene = names(gRanges)[i]
-      message(i)
+      ezLog(i)
       regionStart = start(gRanges)[i]
       regionEnd = end(gRanges)[i]
       chrom = seqnames(gRanges)[i]
@@ -420,7 +420,7 @@ plotLocusAverageCoverageProfile = function(
     )
     ids = symbol(geneTrack)
     for (i in 1:length(gr)) {
-      message(names(gr)[i])
+      ezLog(names(gr)[i])
       trackList = list(GenomeAxisTrack(), geneTrack)
       for (strand in c("+", "-")) {
         x = t(normCoverageList[[strand]][[gene]])

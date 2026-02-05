@@ -55,7 +55,7 @@ ezMethodMergeRunData <- function(input = NA, output = NA, param = NA) {
   dataset2[[matchCol]] = gsub('/', '_', dataset2[[matchCol]])
 
   if (!('Read2 [File]' %in% commonCols) && param$paired) {
-    message('At least run is not in paired end mode. Read2 is ignored!')
+    ezLog('At least run is not in paired end mode. Read2 is ignored!')
     param$paired = FALSE
   }
 

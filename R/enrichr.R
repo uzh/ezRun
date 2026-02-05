@@ -79,12 +79,12 @@ runEnrichr <- function(
   res <- enrichrEnrich(geneListResp$userListId, connectionN = connectionN)
   failureN <- length(res$failure)
   if (failureN > 0) {
-    message(
+    ezLog(
       "There were ",
       failureN,
       " failures while running Enrichr. First is displayed below."
     )
-    message(res$failure[[1]])
+    ezLog(res$failure[[1]])
   }
   resFilt <- list()
   if (length(res$success) > 0) {
@@ -248,7 +248,7 @@ enrichrEnrich <- function(
 
   while ((tryId == 0 || (length(failure) > 0) && tryId < retryN + 1)) {
     tryId <- tryId + 1
-    message(sprintf("Try: %d; failures: %d", tryId, length(failure)))
+    ezLog(sprintf("Try: %d; failures: %d", tryId, length(failure)))
     failure <<- list()
     libNamesToQuery <- setdiff(libNames, names(success))
     # All connections are to the same host, so both parameters should have the same value

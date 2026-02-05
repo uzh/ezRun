@@ -23,7 +23,7 @@ The original \code{data.frame()} is suitable for statistical modelling with fact
 Our version is designed to be more suitable for data processing, i.e. we
 * do keep column names the way they are; we do not require that they represent valid variable names
 * by default we do not convert strings to factors
-There exist, similarities with data_frame 
+There exist, similarities with data_frame
 in Hadleys package. The difference is that we encourage to use rownames while he discourages this.
 }
 \examples{

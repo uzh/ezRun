@@ -7,7 +7,7 @@
 modifyInput(psCountCategory, pdataset, psInputFn, psReportDir)
 }
 \description{
-\code{modifyInput} for a given count category, tsv-formatted 
-metadata is modified such that paths to read files are replaced 
+\code{modifyInput} for a given count category, tsv-formatted
+metadata is modified such that paths to read files are replaced
 with paths to output count files
 }

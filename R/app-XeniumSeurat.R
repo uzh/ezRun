@@ -39,7 +39,7 @@ RunBanksy_v5 <- function(
 
   # Get data using 'layer' instead of deprecated 'slot'
   if (verbose) {
-    message("Fetching data from layer ", layer, " from assay ", assay)
+    ezLog("Fetching data from layer ", layer, " from assay ", assay)
   }
   data_own <- Seurat::GetAssayData(
     object = object,
@@ -49,7 +49,7 @@ RunBanksy_v5 <- function(
 
   if (features[1] != "all") {
     if (verbose) {
-      message("Subsetting by features")
+      ezLog("Subsetting by features")
     }
     if (features[1] == "variable") {
       feat <- Seurat::VariableFeatures(object)
@@ -100,7 +100,7 @@ RunBanksy_v5 <- function(
 
   if (!is.null(group)) {
     if (verbose) {
-      message("Staggering locations by ", group)
+      ezLog("Staggering locations by ", group)
     }
     locs[, 1] <- locs[, 1] + abs(min(locs[, 1]))
     max_x <- max(locs[, 1]) * 2
@@ -125,7 +125,7 @@ RunBanksy_v5 <- function(
   }
   if (length(common_cells) < ncol(data_own)) {
     if (verbose) {
-      message("Subsetting to ", length(common_cells), " common cells")
+      ezLog("Subsetting to ", length(common_cells), " common cells")
     }
     data_own <- data_own[, common_cells, drop = FALSE]
     locs <- locs[common_cells, , drop = FALSE]
@@ -171,12 +171,12 @@ RunBanksy_v5 <- function(
 
   lambdas <- Banksy:::getLambdas(lambda, n_harmonics = length(har))
   if (verbose) {
-    message("Creating Banksy matrix")
+    ezLog("Creating Banksy matrix")
   }
   data_banksy <- c(list(data_own), har)
 
   if (verbose) {
-    message(
+    ezLog(
       "Scaling BANKSY matrix. Do not call ScaleData on assay ",
       assay_name
     )
@@ -221,7 +221,7 @@ RunBanksy_v5 <- function(
   }
 
   if (verbose) {
-    message("Setting default assay to ", assay_name)
+    ezLog("Setting default assay to ", assay_name)
   }
   object[[assay_name]] <- banksy_assay
   Seurat::DefaultAssay(object) <- assay_name
@@ -232,7 +232,7 @@ RunBanksy_v5 <- function(
     assay = assay_name
   )
   if (verbose) {
-    message("BANKSY assay created successfully")
+    ezLog("BANKSY assay created successfully")
   }
   return(object)
 }
@@ -600,8 +600,10 @@ ezMethodXeniumSeurat <- function(
         verbose = FALSE
       )
 
-      # Niche markers
+      # Niche markers - use original assay for interpretable gene markers
+      # (BANKSY features .m0/.m1 are only for clustering, not marker identification)
       Idents(scData) <- "banksy_cluster"
+      DefaultAssay(scData) <- "Xenium"
       posMarkersBanksy <- FindAllMarkers(
         scData,
         only.pos = TRUE,

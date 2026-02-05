@@ -141,7 +141,10 @@ ezMethodMageckTest = function(input = NA, output = NA, param = NA) {
       outdir = "./",
       omitEssential = FALSE
     ),
-    error = function(e) return(message('Error in running MAGECK FLUTE'))
+    error = function(e) {
+      ezLog('Error in running MAGECK FLUTE', level = 'error')
+      return(NULL)
+    }
   )
 
   saveRDS(param, 'param.rds')

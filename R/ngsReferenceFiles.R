@@ -28,7 +28,7 @@ getReferenceFeaturesBed <- function(param) {
     require(withr)
     write_lines(Sys.info(), file = lockFile)
     defer(file.remove(lockFile))
-    message("generating bed file from gtf")
+    ezLog("generating bed file from gtf")
     ## the gtf file must contain at least CDS and exons, otherwise there is an error using itemrgb ... blah
     stopifnot(c("CDS", "exon") %in% import(param$ezRef["refFeatureFile"])$type)
     txdb <- txdbmaker::makeTxDbFromGFF(

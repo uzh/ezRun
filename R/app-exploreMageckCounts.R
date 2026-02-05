@@ -88,7 +88,7 @@ loadMageckCountDataset <- function(input, param) {
 
   x <- mapply(
     function(x, y) {
-      message("loading file: ", x)
+      ezLog("loading file: ", x)
       tempTibble <- read_tsv(
         x,
         progress = FALSE,

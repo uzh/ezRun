@@ -125,27 +125,59 @@ ezValidMail = function(addressString) {
 }
 
 
-##' @title Wrapper for futile.logger
-##' @description Logs a message at a specified level using futile.logger.
-##' @param message the message to log.
-##' @param level the log level (trace, debug, info, warn, error, fatal).
+##' @title Wrapper for logger
+##' @description Logs a message at a specified level using logger.
+##' @param ... the message to log, will be concatenated.
+##' @param level the log level (fatal, error, warn, success, info, debug, trace).
 ##' @template roxygen-template
 ##' @examples
 ##' ezLog("This is an info message")
 ##' ezLog("This is a warning message", level="warn")
-ezLog = function(message, level = "info") {
-  custom_layout <- layout.format('~l (ezRun) [~t] ~m')
-  flog.layout(custom_layout)
+ezLog = function(..., level = "info") {
+  custom_layout <- layout_glue_generator(
+    format = '{level} (ezRun) [{format(time, \"%Y-%m-%d %H:%M:%S\")}] {msg}'
+  )
+  log_layout(custom_layout)
 
+  message = paste0(...)
   level = tolower(level)
   switch(
     level,
-    trace = flog.trace(message),
-    debug = flog.debug(message),
-    info = flog.info(message),
-    warn = flog.warn(message),
-    error = flog.error(message),
-    fatal = flog.fatal(message),
+    fatal = log_fatal(message),
+    error = log_error(message),
+    warn = log_warn(message),
+    success = log_success(message),
+    info = log_info(message),
+    debug = log_debug(message),
+    trace = log_trace(message),
     stop("Invalid log level: ", level)
+  )
+}
+
+
+##' @title Change log level
+##' @description Changes the log level for logger. Messages below this level
+##' will not be shown. 'fatal' is the highest level, 'trace' the lowest.
+##' @param level the log level (fatal, error, warn, success, info, debug, trace).
+##' @template roxygen-template
+##' @examples
+##' ezLogChangeLevel("debug")
+##' ezLog("This is a debug message", level="debug")
+##' ezLogChangeLevel("info")
+##' ezLog("This is an info message", level="debug") # will not be shown
+ezLogChangeLevel = function(level = "info") {
+  level = tolower(level)
+  log_threshold(
+    switch(
+      level,
+      fatal = FATAL,
+      error = ERROR,
+      warn = WARN,
+      success = SUCCESS,
+      info = INFO,
+      debug = DEBUG,
+      trace = TRACE,
+      stop("Invalid log level: ", level)
+    )
   )
 }

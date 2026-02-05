@@ -39,7 +39,7 @@ loadCountDataset <- function(input, param) {
 
   x <- mapply(
     function(x, y) {
-      message("loading file: ", x)
+      ezLog("loading file: ", x)
       tempTibble <- read_tsv(
         x,
         progress = FALSE,
@@ -674,7 +674,7 @@ removeReadsFromFastq = function(
     count = 0
     while (length(x <- yield(fqs))) {
       count = count + 1
-      message(fqOutFiles[i], " ", count)
+      ezLog(fqOutFiles[i], " ", count)
       ids = sub(" .*", "", as.character(id(x)))
       keep = !ids %in% readIds
       writeFastq(x[keep], file = fqOutFiles[i], mode = "a", compress = FALSE)

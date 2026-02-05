@@ -77,8 +77,8 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
         paste0("--localmem=", param$ram),
         paste0("--localcores=", param$cores),
         paste0("--chemistry=", param$chemistry),
-        if (grepl('^[89]', basename(param$CellRangerVersion))) {
-          paste0("--create-bam true")
+        if (grepl('^([89]|[1-9][0-9])', basename(param$CellRangerVersion))) {
+          paste0("--create-bam ", tolower(as.character(param$keepAlignment)))
         },
         if (ezIsSpecified(param$expectedCells)) {
           paste0("--expect-cells=", param$expectedCells)
@@ -260,7 +260,7 @@ computeBamStatsSC = function(bamFile, ram = NULL) {
       )$records
     )
     if (nAlign / ram > 20e6) {
-      message("computeBamStatsSC: not executed - would take too much RAM")
+      ezLog("computeBamStatsSC: not executed - would take too much RAM")
       return(NULL)
     }
   }
@@ -610,8 +610,8 @@ EzAppCellRanger <-
           ),
           keepAlignment = ezFrame(
             Type = "logical",
-            DefaultValue = FALSE,
-            Description = "keep cram/bam file produced by CellRanger"
+            DefaultValue = TRUE,
+            Description = "create and keep BAM/CRAM file (controls --create-bam for CellRanger 8+)"
           )
         )
       }

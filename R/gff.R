@@ -124,7 +124,7 @@ extendGtfThreePrime <- function(gtf, extensionWidth, seqLengths) {
 
   nm <- "1 -" # names(chrIdx)[1]
   for (nm in names(chrIdx)) {
-    message(nm)
+    ezLog(nm)
     chrName <- sub(" .", "", nm)
     idx <- chrIdx[[nm]]
     gtfChrom <- gtfUse[idx]
@@ -178,7 +178,7 @@ extendGtfThreePrime <- function(gtf, extensionWidth, seqLengths) {
         pmin(trStarts[itvl + 1] - 1) %>% ## must be before next transcript
         pmax(end(gtfChrom)[toExtend]) ## can't be shorter than before
       stopifnot(!is.na(newEnd))
-      message(
+      ezLog(
         "#extensions truncated: ",
         sum((newEnd - end(gtfChrom)[toExtend]) < extensionWidth),
         " / ",
@@ -238,7 +238,7 @@ extendGtfThreePrime <- function(gtf, extensionWidth, seqLengths) {
         pmin(start(gtfChrom)[toExtend])
 
       stopifnot(!is.na(newStart))
-      message(
+      ezLog(
         "# extensions truncated: ",
         sum((start(gtfChrom)[toExtend] - newStart) < extensionWidth),
         " / ",
@@ -729,7 +729,7 @@ ezUtrSequences = function(gtf, chromSeqs) {
   threePrimeUtr = DNAStringSet()
   fivePrimeUtr = DNAStringSet()
   for (nm in names(chromSeqs)) {
-    message(nm)
+    ezLog(nm)
     utr3 = utr[utr$seqid == nm & isThreePrime, , drop = FALSE]
     utr5 = utr[utr$seqid == nm & !isThreePrime, , drop = FALSE]
     if (nrow(utr3) > 0) {

@@ -582,7 +582,7 @@ ezReadPairedAlignments <- function(
   gaAll <- gaLeft[isNaIdx]
   values(gaAll)$mpos <- NULL
   if (any(isNaIdx)) {
-    message(paste("found invalid pairs:", sum(isNaIdx), "/", length(isNaIdx)))
+    ezLog(paste("found invalid pairs:", sum(isNaIdx), "/", length(isNaIdx)))
     gaLeft <- gaLeft[!isNaIdx]
     gaRight <- gaRight[idx[!isNaIdx]]
   } else {

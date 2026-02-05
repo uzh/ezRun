@@ -13,8 +13,8 @@ postProcessResults(dataset, psInputFn, psReportDir)
 }
 \description{
 \code{postProcessResults} takes counts for categories all, mature and precursor
-and creates a separate result file for each sample. This splitting of count 
-results is done in function splitCounts. In the tsv-formatted input metadata the  
-path to the read files is replaced by the path to the count result files. This 
+and creates a separate result file for each sample. This splitting of count
+results is done in function splitCounts. In the tsv-formatted input metadata the
+path to the read files is replaced by the path to the count result files. This
 replacement is done in function modifyInput.
 }

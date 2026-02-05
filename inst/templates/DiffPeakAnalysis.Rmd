@@ -167,7 +167,7 @@ plot_ma <- function(res, groupName){
 
 plot_pca <- function(res, groupName){
   ml_dds <- res[[groupName]]$dds
-  vsd <- vst(ml_dds, blind=FALSE)
+  vsd <- varianceStabilizingTransformation(ml_dds, blind = FALSE)
   pca_data <- DESeq2::plotPCA(vsd, intgroup="Condition", returnData = TRUE)
   pc_val <- round(100 * attr(pca_data, "percentVar"))
   
@@ -185,7 +185,7 @@ plot_heatmap <- function(res, groupName){
   ml_res <- res[[groupName]]$res
   ml_dds <- res[[groupName]]$dds
   
-  vsd <- vst(ml_dds, blind=FALSE)
+  vsd <- varianceStabilizingTransformation(ml_dds, blind = FALSE)
   top_peaks <- order(ml_res$padj, na.last=TRUE)[1:1000]
   mat <-assay(vsd)[ml_res[top_peaks,][['peakId']],]
   rownames(mat) <- rownames(ml_res)[top_peaks]

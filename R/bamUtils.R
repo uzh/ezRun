@@ -45,7 +45,7 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
 
   ## remove the duplicates in bam
   noDupBam <- tempfile(pattern = "nodup_", tmpdir = ".", fileext = ".bam")
-  message("Remove duplicates...")
+  ezLog("Remove duplicates...")
   if (param$removeDuplicates) {
     dupBam(
       inBam = bamFile,
@@ -109,11 +109,11 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
     )
     #scanBamParam <- ScanBamParam(flag = flag, tag = tags, what = what, which = GRanges(seqname, IRanges(afrom, ato)))
     scanBamParam <- ScanBamParam(flag = flag, tag = tags, what = what)
-    message("Reading nodup noMT bam file...")
+    ezLog("Reading nodup noMT bam file...")
     reads <- readGAlignmentPairs(file = noDupNoMTNOLowBam, param = scanBamParam)
     file.remove(c(noDupNoMTNOLowBam, paste0(noDupNoMTNOLowBam, ".bai")))
     ## shiftAlignments
-    message("Shifting 5' start...")
+    ezLog("Shifting 5' start...")
     firstReads <- ATACseqQC:::shiftReads(
       first(reads),
       positive = 4L,
@@ -125,7 +125,7 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
       negative = 5L
     )
     rm(reads)
-    message("Exporting bam file...")
+    ezLog("Exporting bam file...")
     export(
       GAlignmentPairs(first = firstReads, last = lastReads),
       noDupNoMTNOLowBam
@@ -234,6 +234,7 @@ bam2bw <- function(
       "-o",
       destination,
       "--binSize 10 -of bigwig",
+      "--normalizeUsing CPM",
       "-p",
       cores
     )

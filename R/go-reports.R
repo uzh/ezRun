@@ -135,7 +135,7 @@ goUpDownTables = function(param, goResult) {
     x = goResult[[onto]]
     for (sub in names(x)) {
       #c("enrichUp", "enrichDown", "enrichBoth")){
-      message("sub: ", sub)
+      ezLog("sub: ", sub)
       xSub = x[[sub]]
       if (is.data.frame(xSub)) {
         ## We always output the goseq results files
@@ -199,7 +199,7 @@ goUpDownTables = function(param, goResult) {
   require(AnnotationDbi)
 
   if (!is.data.frame(x)) {
-    message("got no data frame")
+    ezLog("got no data frame")
     return(ezFrame(
       "Term" = character(0),
       "ID" = character(0),
