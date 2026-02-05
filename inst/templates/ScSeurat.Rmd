@@ -285,6 +285,40 @@ plot6 + plot7
 ```
 
 
+```{r hemoglobin plots, fig.width=8, fig.height=4}
+
+plot_hb1 <- plotColData(
+  xxAll,
+  x = "Sample",
+  y = "percent_hb",
+  colour_by = "discard"
+) +
+  labs(
+    title = "Hemoglobin percent",
+    x = "",
+    y = "Hemoglobin reads %"
+  ) +
+  theme(legend.position = "none")
+
+plot_hb2 <- plotColData(
+  xxAll,
+  x = "nCount_RNA",
+  y = "percent_hb",
+  colour_by = "discard"
+) +
+  scale_x_log10() +
+  labs(
+    x = "UMI counts",
+    y = "Hemoglobin reads %"
+  ) +
+  theme(legend.position = "none")
+
+plot_hb1 + plot_hb2
+
+
+```
+
+
 ```{r  5th line of plots, fig.width=8, fig.height=4}
 
 plot8 <- plotColData(
@@ -703,6 +737,9 @@ if (!is.null(scData@meta.data$percent_ribosomal)){
   print(VlnPlot(scData, features ="percent_ribosomal") + ggtitle("Ribosomal RNA percentage vs ident") + NoLegend())
   print(FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
 }
+
+VlnPlot(scData, features = "percent_hb") + ggtitle("Hemoglobin percentage vs ident") + NoLegend()
+FeaturePlot(scData, features = "percent_hb", label = TRUE)
 
 VlnPlot(scData, features ="doubletScore") + ggtitle("DoubletScore vs ident") + NoLegend()
 FeaturePlot(scData, features="doubletScore", label = TRUE)

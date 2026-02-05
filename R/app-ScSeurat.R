@@ -670,6 +670,11 @@ addCellQcToSeurat <- function(
     "(?i)^RPS|^RPL",
     col.name = "percent_riboprot"
   )
+  scData <- PercentageFeatureSet(
+    scData,
+    "(?i)^HB[^P]",
+    col.name = "percent_hb"
+  )
   if (!is.null(ribosomalGenes)) {
     scData <- PercentageFeatureSet(
       scData,
