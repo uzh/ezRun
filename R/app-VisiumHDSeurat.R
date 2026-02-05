@@ -226,7 +226,7 @@ ezMethodVisiumHDSeurat <- function(
   )
   scData@meta.data$Sample <- input$getNames()
 
-  param$nreads <- as.numeric(param$numis) ## needed by qc script
+  param$nUMI <- as.numeric(param$numis) ## needed by addCellQcToSeurat
   scData <- addCellQcToSeurat(
     scData,
     param = param,
