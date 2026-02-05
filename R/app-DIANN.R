@@ -12,6 +12,8 @@ ezMethodDIANN = function(input=NA, output=NA, param=NA,
   setwdNew(basename(output$getColumn("Result")))
   ## todo write inputs / params / dataset
   dir.create("work")
+  ## do not need ezRef here; and can't write it to yaml anyway --> remove it
+  param$ezRef <- NULL
   write_yaml(list(param=param), "work/params.yml")
   ## get the input
   rawDir <- "work/input/raw"
