@@ -65,10 +65,10 @@ EzAppScSeurat <-
             DefaultValue = 0.5,
             Description = "Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."
           ),
-          nreads = ezFrame(
+          nUMI = ezFrame(
             Type = "numeric",
             DefaultValue = Inf,
-            Description = "Low quality cells have less than \"nUMI\" reads. Only when applying fixed thresholds."
+            Description = "Low quality cells have less than \"nUMI\" UMIs. Only when applying fixed thresholds."
           ),
           ngenes = ezFrame(
             Type = "numeric",
@@ -100,10 +100,10 @@ EzAppScSeurat <-
             DefaultValue = 0,
             Description = "A gene will be kept if it is expressed in at least this percentage of cells"
           ),
-          nUMIs = ezFrame(
+          geneMinUMI = ezFrame(
             Type = "numeric",
             DefaultValue = 1,
-            Description = "A gene will be kept if it has at least nUMIs in the fraction of cells specified before"
+            Description = "A gene will be kept if it has at least this many UMIs in the fraction of cells specified before"
           ),
           nmad = ezFrame(
             Type = "numeric",
@@ -384,7 +384,7 @@ ezMethodScSeurat <- function(
   ## remove lowly expressed genes
   num.cells <- param$cellsFraction * ncol(scData) # if we expect at least one rare subpopulation of cells, we should decrease the percentage of cells
   cellsPerGene <- Matrix::rowSums(
-    GetAssayData(scData, layer = "counts") >= param$nUMIs
+    GetAssayData(scData, layer = "counts") >= param$geneMinUMI
   )
   is.expressed <- cellsPerGene >= num.cells
   cellsPerGeneFraction <- data.frame(
@@ -680,7 +680,7 @@ addCellQcToSeurat <- function(
   att_nCounts <- paste0("nCount_", DefaultAssay(scData))
   att_nGenes <- paste0("nFeature_", DefaultAssay(scData))
 
-  if (!ezIsSpecified(param$nreads)) {
+  if (!ezIsSpecified(param$nUMI)) {
     scData$qc.lib <- isOutlier(
       scData@meta.data[, att_nCounts],
       log = TRUE,
@@ -688,7 +688,7 @@ addCellQcToSeurat <- function(
       type = "lower"
     )
   } else {
-    scData$qc.lib <- scData@meta.data[, att_nCounts] < param$nreads
+    scData$qc.lib <- scData@meta.data[, att_nCounts] < param$nUMI
   }
   if (!ezIsSpecified(param$ngenes)) {
     scData$qc.nexprs <- isOutlier(
