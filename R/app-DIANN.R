@@ -33,10 +33,10 @@ ezMethodDIANN = function(input=NA, output=NA, param=NA,
   ezSystem(cmd)
   
   ds <- input$meta |> 
-    rownames_to_column("Resource") |> 
+    rownames_to_column("Name") |> 
     rename("Relative Path"=RAW) |>
     mutate(File=basename(`Relative Path`))
-  write_csv(ds, "work/dataset.csv")
+  write_csv(ds[ , c("Resource", "Relative Path", "Name", "Grouping Var", "File")], "work/dataset.csv")
   
   
   snakeFile <- system.file("templates/Snakefile.DIANN3step.smk", package = "ezRun", mustWork = TRUE)
