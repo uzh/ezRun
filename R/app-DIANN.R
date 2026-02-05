@@ -8,6 +8,7 @@
 
 ezMethodDIANN = function(input=NA, output=NA, param=NA,
                            htmlFile="00index.html"){
+  library(yaml)
   setwdNew(basename(output$getColumn("Result")))
   ## todo write inputs / params / dataset
   dir.create("work")
