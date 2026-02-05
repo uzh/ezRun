@@ -600,8 +600,10 @@ ezMethodXeniumSeurat <- function(
         verbose = FALSE
       )
 
-      # Niche markers
+      # Niche markers - use original assay for interpretable gene markers
+      # (BANKSY features .m0/.m1 are only for clustering, not marker identification)
       Idents(scData) <- "banksy_cluster"
+      DefaultAssay(scData) <- "Xenium"
       posMarkersBanksy <- FindAllMarkers(
         scData,
         only.pos = TRUE,

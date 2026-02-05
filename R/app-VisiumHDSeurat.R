@@ -393,6 +393,8 @@ ezMethodVisiumHDSeurat <- function(
     resolution = niche_res,
     verbose = FALSE
   )
+  # Use original assay for marker identification (not BANKSY augmented features)
+  DefaultAssay(scData) <- myDefAssay
   posMarkersBanksy <- FindAllMarkers(
     scData,
     only.pos = TRUE,

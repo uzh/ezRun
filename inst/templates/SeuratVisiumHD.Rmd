@@ -1744,7 +1744,9 @@ scData <- FindClusters(scData,
 
 ```{r compute banksy markers, echo=F, message=F, warning=F}
 # Compute positive markers for BANKSY clusters
+# Use original assay for interpretable gene markers (not BANKSY .m0/.m1 features)
 Idents(scData) <- "banksy_cluster"
+DefaultAssay(scData) <- orig_assay
 vars.to.regress <- NULL
 
 markers_banksy <- FindAllMarkers(
