@@ -756,6 +756,12 @@ querySignificantClusterAnnotationEnrichR <- function(
   reportTopN = 5,
   keepGenes = FALSE
 ) {
+  # Return NULL if no databases are specified
+  if (!ezIsSpecified(dbs)) {
+    futile.logger::flog.info("No enrichR databases specified, skipping enrichment analysis")
+    return(NULL)
+  }
+
   enrichRout <- list()
   columnsToKeep <- c(
     "Term",
