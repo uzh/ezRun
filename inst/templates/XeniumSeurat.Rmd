@@ -50,6 +50,7 @@ library(scater)
 library(SingleCellExperiment)
 library(SpatialExperiment)
 library(grid)
+library(ComplexHeatmap)
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
                       knitr.table.format = "html")
@@ -113,20 +114,24 @@ spe <- Seurat_to_SPE(scData_unfiltered, coords)
 ::: {.col-md-6}
 
 ```{r upset_plot, echo=FALSE, message=FALSE, warning=FALSE, eval=has_unfiltered}
+
 qcFrame <- colData(spe) |> data.frame() |> dplyr::select(starts_with("qc."))
 qcFrame[is.na(qcFrame)] <- FALSE
 ## select only columns that have at least one flag
 useColumn <- apply(qcFrame, 2, any)
 qcFrame <- qcFrame[ , useColumn, drop=FALSE]
+colnames(qcFrame) <- c("Transcript_Counts", "nGenes")
+
 
 if (ncol(qcFrame) > 1) {
-  UpSetR::upset(
+  print(UpSetR::upset(
     qcFrame + 0, ## convert from logical to integer
     nsets = min(5, ncol(qcFrame)),
     mainbar.y.label = "cells"
-  )
+  ))
   grid.text("cells removed", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 }
+
 ```
 :::
 
@@ -142,13 +147,13 @@ qcStats <- ezFrame(
   "Fraction"        = numeric(0)
 )
 
-qcStats["Library Size", ] <- c(
+qcStats["Transcript Counts", ] <- c(
   c(sum(meta$qc.lib),
     range(meta[[nCountCol]][meta$useCell])) %>% as.integer(),
   round(sum(meta$qc.lib) / nrow(meta), 2)
 )
 
-qcStats["Expressed genes", ] <- c(
+qcStats["# Genes", ] <- c(
   c(sum(meta$qc.nexprs),
     range(meta[[nFeatureCol]][meta$useCell])) %>% as.integer(),
   round(sum(meta$qc.nexprs) / nrow(meta), 2)
@@ -218,36 +223,37 @@ ezKable(qcDiagnostics)
 
 
 
-```{r nCount_plots, fig.width=12, fig.height=4, eval=has_unfiltered}
+```{r nCount_plots, fig.width=12, fig.height=6, eval=has_unfiltered}
 plot1 <- plotColData(
   spe, x = "Sample",
   y = nCountCol,
-  colour_by = "discard"
-) + scale_y_log10() +
-  labs(title = "Transcript counts", y = "Transcript counts per cell")
+  colour_by = "discard") + 
+  scale_y_log10() +
+  labs(title = "Transcript counts", y = "Transcript counts per cell") +
+  theme(legend.position = "none")
 
-plot2 <- ImageFeaturePlot(
+plot2 <- plotColData(
+  spe,
+  x = nCountCol,
+  y = nFeatureCol,
+  colour_by = "discard") +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = "", x = "Transcript counts", y = "#genes")
+
+plot3 <- ImageFeaturePlot(
   scData_unfiltered, features = nCountCol,
   max.cutoff = "q95", size = 0.5, axes = TRUE
 ) +
   labs(title = "Transcripts per cell", fill = "Transcript counts") +
-  scale_fill_viridis_c(option = "turbo", na.value = "grey95")
+  scale_fill_viridis_c(option = "turbo", na.value = "grey95") +
+  theme(legend.position = "bottom")
 
-plot3 <- plotColData(
-  spe,
-  x = nCountCol,
-  y = nFeatureCol,
-  colour_by = "discard"
-) +
-  scale_x_log10() +
-  scale_y_log10() +
-  labs(
-    title = "",
-    x = "Transcript counts",
-    y = "#genes"
-  )
+wrap_plots(
+  (plot1 | plot2) + plot_layout(guides = "collect") & theme(legend.position = "bottom"),
+  plot3,
+  widths = c(2, 2))
 
-plot1 + plot2 + plot3
 ```
 
 
@@ -257,23 +263,27 @@ plot1 <- plotColData(
   y = nFeatureCol,
   colour_by = "discard"
 ) +
-  labs(title = "Genes", y = "#genes per cell")
+  labs(title = "Genes", y = "#genes per cell")+
+  theme(legend.position = "bottom",
+        legend.direction = "vertical")
 
 plot2 <- ImageFeaturePlot(
   scData_unfiltered, features = nFeatureCol,
   max.cutoff = "q95", size = 0.5, axes = TRUE
 ) +
   labs(title = "Genes per cell", fill = "#genes") +
-  scale_fill_viridis_c(option = "turbo", na.value = "grey95")
+  scale_fill_viridis_c(option = "turbo", na.value = "grey95")+
+  theme(legend.position = "bottom")
 
 plot3 <- ImageDimPlot(
   scData_unfiltered, group.by = "Sample",
   size = 0.1, axes = TRUE, cols = "grey90"
 ) +
   labs(title = "Tissue overview") +
-  guides(color = "none")
+  guides(color = "none")+
+  theme(legend.position = "bottom")
 
-plot1 + plot2 + plot3
+plot1 + plot2 + plot3 + plot_layout(widths = c(1, 2, 2))
 ```
 
 ## QC {.tabset}
@@ -1305,7 +1315,7 @@ if (has_rctd_niche) {
 has_annotation_niche <- !is.null(celltype_col_niche)
 ```
 
-```{r niche_celltype_heatmap, fig.width=12, fig.height=10, eval=has_banksy && has_annotation_niche}
+```{r niche_celltype_heatmap prep, eval=has_banksy && has_annotation_niche}
 # Calculate proportion of each cell type within each niche (row-normalized)
 niche_celltype_df <- scData@meta.data |>
  dplyr::filter(!is.na(banksy_cluster), !is.na(.data[[celltype_col_niche]])) |>
@@ -1336,25 +1346,31 @@ if (!exists("truncate_label")) {
 }
 colnames(prop_matrix_ct) <- truncate_label(colnames(prop_matrix_ct), max_chars = 40)
 
-# Heatmap with reduced padding
-pheatmap::pheatmap(
- prop_matrix_ct,
- cluster_rows = FALSE,
- cluster_cols = TRUE,
- scale = "none",
- color = colorRampPalette(c("white", "#B2182B"))(100),
- main = "Cell type composition per niche",
- angle_col = 45,
- fontsize_row = 10,
- fontsize_col = 8,
- cellheight = 20,
- cellwidth = 12,
- display_numbers = FALSE,
- border_color = "grey90",
- treeheight_col = 20,
- treeheight_row = 0
-)
 ```
+
+```{r niche_celltype_heatmap plot, eval=has_banksy && has_annotation_niche}
+
+# Heatmap with reduced padding
+
+ht <- ComplexHeatmap::Heatmap(
+  prop_matrix_ct,
+  cluster_rows = FALSE,
+  cluster_columns = TRUE,
+  col = colorRampPalette(c("white", "#B2182B"))(100),
+  column_title = "Cell type composition per niche",
+  column_title_gp = gpar(fontsize = 12, fontface = "bold"),
+  row_names_gp = gpar(fontsize = 8),
+  column_names_gp = gpar(fontsize = 8),
+  column_names_rot = 45,
+  column_names_max_height = max_text_width(colnames(prop_matrix_ct), gp = gpar(fontsize = 8)),
+  rect_gp = gpar(col = "grey80", lwd = 0.5),
+  heatmap_legend_param = list(title = "Proportion")
+)
+
+# Draw with explicit padding
+draw(ht, padding = unit(c(2, 2, 2, 2), "cm"))  # bottom, left, top, right
+```
+
 
 ```{r no_niche_celltype_heatmap, eval=!has_banksy || !has_annotation_niche}
 cat("Niche x Cell type heatmap not available (no BANKSY results or no cell type annotation).")
