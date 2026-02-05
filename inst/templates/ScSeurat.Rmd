@@ -699,10 +699,6 @@ FeaturePlot(scData, features="percent_mito", label = TRUE)
 VlnPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal protein percentage vs ident") + NoLegend()
 FeaturePlot(scData, features="percent_riboprot", label = TRUE)
 
-if (!is.null(scData@meta.data$percent_ribosomal)){
-  print(VlnPlot(scData, features ="percent_ribosomal") + ggtitle("Ribosomal RNA percentage vs ident") + NoLegend())
-  print(FeaturePlot(scData, features="percent_ribosomal", label = TRUE))
-}
 
 VlnPlot(scData, features ="doubletScore") + ggtitle("DoubletScore vs ident") + NoLegend()
 FeaturePlot(scData, features="doubletScore", label = TRUE)
@@ -1125,11 +1121,11 @@ if(azimuth_available && !is.null(azimuth_results)){
     cat("\n\n")
   }
   
-  # 5. Confidence scores FeaturePlot
-  if("final_level_softmax_prob" %in% colnames(scData_az@meta.data)){
+  # 5. FeaturePlot of confidence scores for final level celltype assignment
+  if("final_level_confidence" %in% colnames(scData_az@meta.data)){
     cat("#### Confidence Scores by Cell\n\n")
     reduction_to_use <- if("azimuth_umap" %in% names(scData_az@reductions)) "azimuth_umap" else "umap"
-    print(FeaturePlot(scData_az, features = "final_level_softmax_prob", 
+    print(FeaturePlot(scData_az, features = "final_level_confidence", 
                       reduction = reduction_to_use) + 
             ggtitle("Azimuth Pan-Human: Confidence Scores") +
             scale_colour_viridis_c() +
@@ -1137,11 +1133,11 @@ if(azimuth_available && !is.null(azimuth_results)){
     cat("\n\n")
   }
   
-  # 6. Histogram of softmax probabilities
-  if("final_level_softmax_prob" %in% colnames(scData_az@meta.data)){
+  # 6. Histogram of confidence scores for final level celltype assignment
+  if("final_level_confidence" %in% colnames(scData_az@meta.data)){
     cat("#### Confidence Score Distribution\n\n")
     library(ggplot2)
-    p <- ggplot(scData_az@meta.data, aes(x = final_level_softmax_prob)) +
+    p <- ggplot(scData_az@meta.data, aes(x = final_level_confidence)) +
       geom_histogram(bins = 30, fill = "skyblue", color = "white", alpha = 0.8) +
       theme_minimal() +
       labs(title = "Azimuth Pan-Human: Softmax Probabilities",
@@ -1150,6 +1146,26 @@ if(azimuth_available && !is.null(azimuth_results)){
     print(p)
     cat("\n\n")
   }
+  
+  # 7. Violin plot of confidence scores for final level celltype assignment per cell type
+  if("final_level_confidence" %in% colnames(scData_az@meta.data) &&
+     "final_level_labels" %in% colnames(scData_az@meta.data)){
+    cat("#### Confidence Score by Cell Type\n\n")
+    p <- ggplot(scData_az@meta.data, 
+                aes(x = final_level_labels, y = final_level_confidence, fill = final_level_labels)) +
+      geom_violin(alpha = 0.8, width = 0.8, scale = "width") +
+      geom_boxplot(width = 0.3, outlier.size = 0.5, fill = "white") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = "none") +
+      scale_fill_manual(values = shared_colors) +
+      labs(title = "Azimuth Pan-Human: Confidence by Cell Type",
+           x = "Cell Type",
+           y = "Confidence Score")
+    print(p)
+    cat("\n\n")
+  }
+  
 }
 ```
 
