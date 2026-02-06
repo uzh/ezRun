@@ -14,7 +14,7 @@ ezMethodDIANN = function(input=NA, output=NA, param=NA,
   dir.create("work")
   ## do not need ezRef here; and can't write it to yaml anyway --> remove it
   param$ezRef <- NULL
-  write_yaml(list(param=param,
+  write_yaml(list(params=param,
                   registration=list(workunit_id="0000", container_id="1111")), "work/params.yml")
   ## get the input
   rawDir <- "work/input/raw"
@@ -24,7 +24,6 @@ ezMethodDIANN = function(input=NA, output=NA, param=NA,
   for (x in rawUrl){
     ezSystem(paste("scp", x, rawDir))
   }
-  
   cmd <- paste0("scp ", "fgcz-r-033:", param$`03b_additional_fasta_database_path`,
   " work/input/", basename(param$`03b_additional_fasta_database_path`))
   ezSystem(cmd)
@@ -39,7 +38,8 @@ ezMethodDIANN = function(input=NA, output=NA, param=NA,
   write_csv(ds[ , c("Resource", "Relative Path", "Name", "Grouping Var", "File")], "work/dataset.csv")
 
   
-  ## get the DIANN-RUNNER:  
+  ## ALERT: this currently fails on all transcriptomics nodes but works on fgcz-r-033
+  ## reason unclear; looks likde some dependency of thermoraw
   ezSystem("git clone https://github.com/wolski/diann-runner.git")
   snakeFile <- "diann-runner/src/diann_runner/Snakefile.DIANN3step.smk"
   stopifnot(file.exists(snakeFile))
@@ -52,31 +52,17 @@ ezMethodDIANN = function(input=NA, output=NA, param=NA,
                     "--cores 64 -p all",
                     "-d ./work")
   fullCmd <- paste(
-    "uv venv",
+    "uv venv --managed-python",
     "source .venv/bin/activate",
     "uv pip install -e diann-runner", 
     snakeCmd,
-    collapse = "; ")
+    sep = "; ")
   ezSystem(fullCmd)
   
-  # 
-  # 
-  # ## not needed: python -m diann_runner.snakemake_cli --cores 64 -p all -d work
-  # cp ./diann-runner/src/diann_runner/Snakefile.DIANN3step.smk Snakefile.DIANN3step.smk
-  # snakemake -s Snakefile.DIANN3step.smk --cores 64 -p all -d work
-  # 
-  # setUpCmd <- paste(
-  # "git clone https://github.com/wolski/diann-runner.git",
-  # "uv venv",
-  # "source .venv/bin/activate",
-  # "uv pip install -e diann-runner", 
-  # snakeCmd
-  # collapse = "; ")
-  # 
-  #   ezSystem(cmd)
+  ## move the files: TODO should not be hardcoded: out-DIANN_quantB
+  ezSystem(paste("mv", "work/out-DIANN_quantB", output$getColumn("DIANN Quant")))
+  ezSystem(paste("mv", "work/qc_result/*/*", output$getColumn("qc_result")))
   
-  ##
-
   return("Success")
 }
 
