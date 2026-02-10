@@ -50,6 +50,8 @@ ezMethodScSeuratCompare = function(
   library(qs2)
   library(tidyverse)
   library(sccomp)
+  library(ComplexHeatmap)
+  library(clusterProfiler)
 
   cache_stan_model <- system.file("stan", package = "sccomp", mustWork = TRUE)
   ## matches path in installation script

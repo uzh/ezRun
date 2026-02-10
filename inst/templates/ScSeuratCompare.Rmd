@@ -27,6 +27,9 @@ library(qs2)
 library(dittoSeq)
 library(sccomp)
 library(cmdstanr)
+library(ComplexHeatmap)
+library(circlize)
+library(clusterProfiler)
 cache_stan_model <- system.file("stan", package="sccomp", mustWork = TRUE)
 ## matches path in installation script
 cmdstanr::set_cmdstan_path("/misc/ngseq12/src/CmdStan/cmdstan-2.36.0/cmdstan-2.36.0")
@@ -65,6 +68,22 @@ scData <- ScaleData(scData, features = rownames(scData))
 Idents(scData) <- scData@meta.data[[param$CellIdentity]]
 clusterNames <- sort(unique(Idents(scData)))
 var_heigth <- 1
+
+# Determine sample column for pseudobulk aggregation
+sample_col <- if (ezIsSpecified(param$replicateGrouping) &&
+                  param$replicateGrouping != "") {
+  param$replicateGrouping
+} else {
+  "Sample"
+}
+
+# Check we have sample-level replication for PCA/MSE
+samples <- unique(scData@meta.data[[sample_col]])
+n_samples <- length(samples)
+has_replicates <- n_samples >= 3
+
+# Species for clusterProfiler
+species <- getSpecies(param$refBuild)
 ```
 
 
@@ -116,6 +135,268 @@ tryCatch({
                   "and split by", param$grouping))
   print(p1)
 })
+```
+
+```{r pseudobulk-pca-setup, eval=has_replicates, include=FALSE}
+# Build sample -> condition mapping
+sample_meta <- scData@meta.data[, c(sample_col, param$grouping)] |>
+  dplyr::distinct()
+colnames(sample_meta) <- c("SampleID", "Condition")
+
+min_cells_per_sample <- 5
+
+# Helper: compute pseudobulk matrix (sum of counts per sample)
+compute_pseudobulk <- function(obj, group_col) {
+  counts <- GetAssayData(obj, assay = "RNA", layer = "counts")
+  groups <- unique(obj@meta.data[[group_col]])
+  pb <- sapply(groups, function(g) {
+    cells <- which(obj@meta.data[[group_col]] == g)
+    if (length(cells) > 1) rowSums(counts[, cells]) else counts[, cells]
+  })
+  colnames(pb) <- groups
+  pb
+}
+
+# Helper: run PCA on pseudobulk and return plot-ready dataframe
+run_pseudobulk_pca <- function(pb_matrix) {
+  # Filter zero-variance genes
+  gene_vars <- apply(pb_matrix, 1, var)
+  pb_filtered <- pb_matrix[gene_vars > 0, ]
+
+  pca_result <- prcomp(t(pb_filtered), center = TRUE, scale. = TRUE)
+
+  var_explained <- pca_result$sdev^2 / sum(pca_result$sdev^2)
+  var_pct <- round(var_explained * 100, 1)
+
+  n_dims <- min(2, ncol(pca_result$x))
+  pca_df <- data.frame(
+    PC1 = pca_result$x[, 1],
+    PC2 = if (n_dims >= 2) pca_result$x[, 2] else 0,
+    SampleID = rownames(pca_result$x)
+  )
+
+  list(pca_df = pca_df, var_pct = var_pct, n_dims = n_dims)
+}
+```
+
+```{r pseudobulk-pca-explanation, eval=has_replicates, results='asis'}
+cat("## Pseudobulk PCA\n")
+cat("\n")
+cat("Pseudobulk PCA aggregates single-cell expression profiles by sample (sum of raw counts) to visualize sample-level relationships in principal component space. This helps assess whether samples separate by condition and whether there are outlier samples.\n")
+cat("\n")
+```
+
+```{r pseudobulk-pca-all, eval=has_replicates, fig.width=10, fig.height=7}
+pb_matrix <- compute_pseudobulk(scData, sample_col)
+pca_res <- run_pseudobulk_pca(pb_matrix)
+pca_df <- dplyr::left_join(pca_res$pca_df, sample_meta, by = "SampleID")
+
+if (pca_res$n_dims >= 2) {
+  p <- ggplot(pca_df, aes(x = PC1, y = PC2,
+                           color = Condition, label = SampleID)) +
+    geom_point(size = 4) +
+    ggrepel::geom_text_repel(size = 3, max.overlaps = 20) +
+    labs(title = "Pseudobulk PCA - All Cells",
+         x = paste0("PC1 (", pca_res$var_pct[1], "%)"),
+         y = paste0("PC2 (", pca_res$var_pct[2], "%)")) +
+    coord_fixed() +
+    theme_bw()
+  print(p)
+} else {
+  p <- ggplot(pca_df, aes(x = PC1, y = PC2,
+                           color = Condition, label = SampleID)) +
+    geom_point(size = 4) +
+    ggrepel::geom_text_repel(size = 3, max.overlaps = 20) +
+    labs(title = "Pseudobulk PCA - All Cells (1 PC)",
+         x = paste0("PC1 (", pca_res$var_pct[1], "%)"), y = "") +
+    theme_bw()
+  print(p)
+}
+```
+
+```{r pseudobulk-pca-per-cluster-header, eval=has_replicates, results='asis'}
+cat("### Per-cluster Pseudobulk PCA {.tabset}\n\n")
+cat("PCA computed separately within each cluster/cell type to visualize sample-level variation for each cell population.\n\n")
+```
+
+```{r pseudobulk-pca-per-cluster, eval=has_replicates, fig.width=9, fig.height=6, results='asis'}
+for (cl in clusterNames) {
+  cells_cl <- WhichCells(scData, idents = cl)
+  sample_counts <- table(scData@meta.data[cells_cl, sample_col])
+  valid_samples <- names(sample_counts[sample_counts >= min_cells_per_sample])
+
+  if (length(valid_samples) < 3) next
+
+  cat(paste0("\n\n#### ", cl, "\n\n"))
+
+  tryCatch({
+    scData_cl <- subset(scData, cells = cells_cl)
+    scData_cl <- subset(scData_cl,
+                        cells = colnames(scData_cl)[
+                          scData_cl@meta.data[[sample_col]] %in% valid_samples
+                        ])
+
+    pb_cl_matrix <- compute_pseudobulk(scData_cl, sample_col)
+    pca_cl <- run_pseudobulk_pca(pb_cl_matrix)
+    pca_df_cl <- dplyr::left_join(pca_cl$pca_df, sample_meta, by = "SampleID")
+
+    if (pca_cl$n_dims >= 2) {
+      p_cl <- ggplot(pca_df_cl, aes(x = PC1, y = PC2,
+                                     color = Condition,
+                                     label = SampleID)) +
+        geom_point(size = 4) +
+        ggrepel::geom_text_repel(size = 3, max.overlaps = 20) +
+        labs(title = paste0("Pseudobulk PCA - ", cl),
+             x = paste0("PC1 (", pca_cl$var_pct[1], "%)"),
+             y = paste0("PC2 (", pca_cl$var_pct[2], "%)")) +
+        coord_fixed() +
+        theme_bw()
+      print(p_cl)
+    }
+  }, error = function(e) {
+    message("Skipping PCA for cluster ", cl, ": ", e$message)
+  })
+}
+```
+
+```{r mse-explanation, eval=has_replicates, results='asis'}
+cat("## Sample MSE Distance\n")
+cat("\n")
+cat("Mean Squared Error (MSE) distance quantifies the transcriptional divergence between pseudobulk sample profiles using the top highly variable genes. Lower MSE indicates more similar expression profiles. The heatmap is colored by log-transformed MSE to improve visualization of relative differences.\n")
+cat("\n")
+```
+
+```{r mse-global, eval=has_replicates, fig.width=10, fig.height=8}
+# Get HVGs
+hvgs <- VariableFeatures(scData)
+if (length(hvgs) == 0) {
+  scData <- FindVariableFeatures(scData, assay = "RNA", verbose = FALSE)
+  hvgs <- VariableFeatures(scData)
+}
+hvgs <- head(hvgs, 2000)
+hvgs <- hvgs[hvgs %in% rownames(scData)]
+
+# Extract expression data
+expr_mat <- GetAssayData(scData, assay = "RNA", layer = "data")[hvgs, ]
+
+# Compute pseudobulk mean per sample
+pb_means <- sapply(samples, function(s) {
+  cells_s <- which(scData@meta.data[[sample_col]] == s)
+  if (length(cells_s) > 1) {
+    rowMeans(expr_mat[, cells_s])
+  } else {
+    expr_mat[, cells_s]
+  }
+})
+colnames(pb_means) <- samples
+
+# Pairwise MSE
+mse_mat <- matrix(0, nrow = n_samples, ncol = n_samples,
+                  dimnames = list(samples, samples))
+for (i in seq_along(samples)) {
+  for (j in seq_along(samples)) {
+    if (i != j) {
+      mse_mat[i, j] <- mean((pb_means[, i] - pb_means[, j])^2)
+    }
+  }
+}
+
+# Annotation
+sample_condition_map <- setNames(sample_meta$Condition, sample_meta$SampleID)
+condition_levels <- unique(sample_meta$Condition)
+n_conditions <- length(condition_levels)
+condition_colors <- setNames(
+  scales::hue_pal()(n_conditions),
+  condition_levels
+)
+anno_colors <- list(Condition = condition_colors)
+
+ha <- HeatmapAnnotation(
+  Condition = sample_condition_map[samples],
+  col = anno_colors
+)
+ra <- rowAnnotation(
+  Condition = sample_condition_map[samples],
+  col = anno_colors, show_legend = FALSE
+)
+
+ht <- Heatmap(
+  log1p(mse_mat),
+  name = "log(1+MSE)",
+  col = viridis::magma(100),
+  top_annotation = ha,
+  left_annotation = ra,
+  column_title = paste0("MSE Distance Between Samples (All Cells, ",
+                         length(hvgs), " HVGs)"),
+  show_row_names = TRUE, show_column_names = TRUE,
+  row_names_gp = gpar(fontsize = 9),
+  column_names_gp = gpar(fontsize = 9)
+)
+draw(ht)
+```
+
+```{r mse-per-cluster-header, eval=has_replicates, results='asis'}
+cat("### Per-cluster MSE Distance {.tabset}\n\n")
+cat("MSE distance computed within each cluster/cell type separately.\n\n")
+```
+
+```{r mse-per-cluster, eval=has_replicates, fig.width=9, fig.height=7, results='asis'}
+for (cl in clusterNames) {
+  cells_cl <- WhichCells(scData, idents = cl)
+  sample_counts <- table(scData@meta.data[cells_cl, sample_col])
+  valid_samples <- names(sample_counts[sample_counts >= min_cells_per_sample])
+
+  if (length(valid_samples) < 3) next
+
+  cat(paste0("\n\n#### ", cl, "\n\n"))
+
+  tryCatch({
+    pb_cl_means <- sapply(valid_samples, function(s) {
+      cells_s <- intersect(
+        cells_cl,
+        colnames(scData)[scData@meta.data[[sample_col]] == s]
+      )
+      if (length(cells_s) > 1) {
+        rowMeans(expr_mat[, cells_s])
+      } else {
+        expr_mat[, cells_s]
+      }
+    })
+
+    n_valid <- length(valid_samples)
+    mse_cl <- matrix(0, nrow = n_valid, ncol = n_valid,
+                     dimnames = list(valid_samples, valid_samples))
+    for (i in seq_along(valid_samples)) {
+      for (j in seq_along(valid_samples)) {
+        if (i != j) {
+          mse_cl[i, j] <- mean(
+            (pb_cl_means[, i] - pb_cl_means[, j])^2
+          )
+        }
+      }
+    }
+
+    ha_cl <- HeatmapAnnotation(
+      Condition = sample_condition_map[valid_samples],
+      col = anno_colors,
+      show_legend = (cl == clusterNames[1])
+    )
+
+    ht_cl <- Heatmap(
+      log1p(mse_cl),
+      name = "log(1+MSE)",
+      col = viridis::magma(100),
+      top_annotation = ha_cl,
+      column_title = paste0("MSE Distance - ", cl),
+      show_row_names = TRUE, show_column_names = TRUE,
+      row_names_gp = gpar(fontsize = 9),
+      column_names_gp = gpar(fontsize = 9)
+    )
+    draw(ht_cl)
+  }, error = function(e) {
+    message("Skipping MSE for cluster ", cl, ": ", e$message)
+  })
+}
 ```
 
 ```{r consMarkers table, eval=conservedMarkersPresent, results='asis'}
@@ -218,6 +499,136 @@ for (clusterName in clusterNames) {
   p <- do_VolcanoPlot(scData, dt, plot.title = clusterName, FC_cutoff = 0.5, add_gene_tags = TRUE, order_tags_by = "pvalue")
   print(p)
 }
+```
+
+```{r enrichment-setup, eval=diffGenesPresent, include=FALSE}
+orgDb_name <- switch(species,
+  "Human" = "org.Hs.eg.db",
+  "Mouse" = "org.Mm.eg.db",
+  NULL
+)
+kegg_org <- switch(species, "Human" = "hsa", "Mouse" = "mmu", NULL)
+has_orgDb <- !is.null(orgDb_name)
+```
+
+```{r enrichment-header, eval=diffGenesPresent, results='asis'}
+cat("## Pathway Enrichment\n")
+cat("\n")
+cat(sprintf("Gene set enrichment analysis of differentially expressed genes between %s and %s, split by cluster. GO Biological Process and KEGG pathway enrichment are shown as bubble plots where dot size indicates gene count and color indicates adjusted p-value.\n", param$sampleGroup, param$refGroup))
+cat("\n")
+```
+
+```{r enrichment-go-bp, eval=diffGenesPresent && has_orgDb, fig.width=12, fig.height=10, results='asis'}
+library(orgDb_name, character.only = TRUE)
+
+sig_degs <- diffGenes |>
+  dplyr::filter(!is.na(p_val_adj), p_val_adj < 0.05)
+
+for (direction in c("Upregulated", "Downregulated")) {
+  if (direction == "Upregulated") {
+    gene_set <- sig_degs |> dplyr::filter(avg_log2FC > 0.25)
+  } else {
+    gene_set <- sig_degs |> dplyr::filter(avg_log2FC < -0.25)
+  }
+
+  if (nrow(gene_set) == 0) next
+
+  genes_by_cluster <- split(gene_set$gene, gene_set$cluster)
+  genes_by_cluster <- genes_by_cluster[lengths(genes_by_cluster) >= 5]
+
+  if (length(genes_by_cluster) == 0) next
+
+  cat(paste0("\n\n### GO BP - ", direction, " in ", param$sampleGroup,
+             " vs ", param$refGroup, "\n\n"))
+
+  ck <- tryCatch({
+    compareCluster(
+      geneClusters = genes_by_cluster,
+      fun = "enrichGO",
+      OrgDb = get(orgDb_name),
+      keyType = "SYMBOL",
+      ont = "BP",
+      pAdjustMethod = "BH",
+      pvalueCutoff = 0.05,
+      qvalueCutoff = 0.2
+    )
+  }, error = function(e) {
+    message("GO BP enrichment failed for ", direction, ": ", e$message)
+    NULL
+  })
+
+  if (!is.null(ck) && nrow(as.data.frame(ck)) > 0) {
+    p <- dotplot(ck, showCategory = 5) +
+      ggtitle(paste0("GO BP - ", direction, " genes")) +
+      theme(axis.text.y = element_text(size = 8))
+    print(p)
+  } else {
+    cat("No significant GO BP enrichments found.\n\n")
+  }
+}
+```
+
+```{r enrichment-kegg, eval=diffGenesPresent && has_orgDb, fig.width=12, fig.height=10, results='asis'}
+for (direction in c("Upregulated", "Downregulated")) {
+  if (direction == "Upregulated") {
+    gene_set <- sig_degs |> dplyr::filter(avg_log2FC > 0.25)
+  } else {
+    gene_set <- sig_degs |> dplyr::filter(avg_log2FC < -0.25)
+  }
+
+  if (nrow(gene_set) == 0) next
+
+  # Map gene symbols to Entrez IDs for KEGG
+  gene_mapping <- tryCatch({
+    bitr(unique(gene_set$gene),
+         fromType = "SYMBOL",
+         toType = "ENTREZID",
+         OrgDb = get(orgDb_name))
+  }, error = function(e) {
+    message("Gene ID mapping failed: ", e$message)
+    NULL
+  })
+
+  if (is.null(gene_mapping) || nrow(gene_mapping) == 0) next
+
+  gene_set_mapped <- gene_set |>
+    dplyr::inner_join(gene_mapping, by = c("gene" = "SYMBOL"))
+
+  genes_by_cluster <- split(gene_set_mapped$ENTREZID,
+                             gene_set_mapped$cluster)
+  genes_by_cluster <- genes_by_cluster[lengths(genes_by_cluster) >= 5]
+
+  if (length(genes_by_cluster) == 0) next
+
+  cat(paste0("\n\n### KEGG - ", direction, " in ", param$sampleGroup,
+             " vs ", param$refGroup, "\n\n"))
+
+  ck_kegg <- tryCatch({
+    compareCluster(
+      geneClusters = genes_by_cluster,
+      fun = "enrichKEGG",
+      organism = kegg_org,
+      pvalueCutoff = 0.05,
+      qvalueCutoff = 0.2
+    )
+  }, error = function(e) {
+    message("KEGG enrichment failed for ", direction, ": ", e$message)
+    NULL
+  })
+
+  if (!is.null(ck_kegg) && nrow(as.data.frame(ck_kegg)) > 0) {
+    p <- dotplot(ck_kegg, showCategory = 5) +
+      ggtitle(paste0("KEGG - ", direction, " genes")) +
+      theme(axis.text.y = element_text(size = 8))
+    print(p)
+  } else {
+    cat("No significant KEGG enrichments found.\n\n")
+  }
+}
+```
+
+```{r enrichment-no-orgdb, eval=diffGenesPresent && !has_orgDb, results='asis'}
+cat("Pathway enrichment analysis (GO and KEGG) is currently only supported for Human and Mouse species.\n")
 ```
 
 ## Barplots of proportions
