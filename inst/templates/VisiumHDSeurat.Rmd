@@ -1964,13 +1964,13 @@ ht <- ComplexHeatmap::Heatmap(
   row_names_gp = gpar(fontsize = 8),
   column_names_gp = gpar(fontsize = 8),
   column_names_rot = 45,
-  column_names_max_height = max_text_width(
-    colnames(prop_matrix_ct), gp = gpar(fontsize = 8)
+  column_names_max_height = ComplexHeatmap::max_text_width(
+    colnames(prop_matrix_ct), gp = grid::gpar(fontsize = 8)
   ),
   rect_gp = gpar(col = "grey80", lwd = 0.5),
   heatmap_legend_param = list(title = "Proportion")
 )
-draw(ht, padding = unit(c(2, 2, 2, 2), "cm"))
+ComplexHeatmap::draw(ht, padding = grid::unit(c(2, 2, 2, 2), "cm"))
 ```
 
 ```{r no_niche_celltype_heatmap, eval=!has_banksy || !has_annotation_niche}
