@@ -1865,10 +1865,17 @@ truncate_label <- function(x, max_chars = 35) {
 }
 celltype_labels <- setNames(truncate_label(celltypes_unique), celltypes_unique)
 
+# Replace NA in celltype_col with "Unassigned" for plotting
+plot_col <- paste0(celltype_col, "_plot")
+plot_vals <- as.character(scData@meta.data[[celltype_col]])
+plot_vals[is.na(plot_vals)] <- "Unassigned"
+scData@meta.data[[plot_col]] <- factor(plot_vals)
+celltype_colors_plot <- c(celltype_colors, "Unassigned" = "grey80")
+
 # Spatial plot
-p1 <- SpatialDimPlot(scData, group.by = celltype_col,
-                     pt.size.factor = 2) +
-  scale_fill_manual(values = celltype_colors, labels = celltype_labels) +
+p1 <- SpatialDimPlot(scData, group.by = plot_col,
+                     label = TRUE, repel = TRUE, label.size = 4) +
+  scale_fill_manual(values = celltype_colors_plot) +
   ggtitle("Cell types - Spatial") +
   labs(fill = "Cell type") +
   theme(legend.position = "bottom",
@@ -1876,7 +1883,7 @@ p1 <- SpatialDimPlot(scData, group.by = celltype_col,
   guides(fill = guide_legend(ncol = 4, override.aes = list(size = 3)))
 
 # UMAP with coord_fixed
-p2 <- DimPlot(scData, group.by = celltype_col, cols = celltype_colors,
+p2 <- DimPlot(scData, group.by = plot_col, cols = celltype_colors_plot,
               label = TRUE, repel = TRUE, pt.size = 0.5,
               label.size = 3, raster = FALSE) +
   coord_fixed() +
@@ -1985,7 +1992,7 @@ ht <- ComplexHeatmap::Heatmap(
   rect_gp = gpar(col = "grey80", lwd = 0.5),
   heatmap_legend_param = list(title = "Proportion")
 )
-ComplexHeatmap::draw(ht, padding = grid::unit(c(2, 2, 2, 2), "cm"))
+ComplexHeatmap::draw(ht, padding = grid::unit(c(2, 2, 15, 2), "mm"))
 ```
 
 ```{r no_niche_celltype_heatmap, eval=!has_banksy || !has_annotation_niche}
@@ -2130,8 +2137,7 @@ rctd_class_colors <- c("singlet" = "#2ecc71",
 
 # Spatial plot
 p1 <- SpatialDimPlot(scData, group.by = "spot_class",
-                     cols = rctd_class_colors,
-                     pt.size.factor = 2) +
+                     cols = rctd_class_colors) +
   ggtitle("RCTD classification - Spatial") +
   labs(fill = "RCTD class")
 
@@ -2229,8 +2235,7 @@ if (length(weight_cols_sp) > 0 &&
       scData$rctd_max_weight_plot[is.na(scData$rctd_max_weight_plot)] <- 0
 
       p1 <- SpatialFeaturePlot(scData,
-                               features = "rctd_max_weight_plot",
-                               pt.size.factor = 2) +
+                               features = "rctd_max_weight_plot") +
         scale_fill_gradientn(colors = viridis::plasma(100),
                              limits = c(0, 1),
                              name = "Max Weight") +
