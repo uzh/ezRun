@@ -86,67 +86,6 @@ if (nrow(alarms) > 0) {
 }
 ```
 
-## Overview
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
-
-This report presents quality control metrics for Xenium spatial transcriptomics data across multiple samples/regions.
-
-```{r overview table, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=7, results='asis'}
-datatable(
-  data,
-  options = list(
-    pageLength = 20,
-    autoWidth = TRUE,
-    scrollX = TRUE
-  ),
-  rownames = FALSE
-)
-```
-
-## Barplots per Metric
-```{r barplots per metric, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=min(8+(nrow(data)-5)*0.3, 20), fig.height=6}
-# Identify numeric columns (exclude first few metadata columns)
-numeric_cols <- names(data)[sapply(data, is.numeric)]
-
-# Skip columns that have dedicated plots with thresholds in Key Quality Metrics section
-skip_cols <- c("estimated_number_of_false_positive_transcripts_per_cell",
-               "estimated_number_of_false_positive_transcripts_per_cell_including_genomic_counts",
-               "negative_control_probe_counts_per_control_per_cell",
-               "genomic_control_probe_counts_per_control_per_cell",
-               "fraction_predesigned_transcripts_q20",
-               "fraction_custom_transcripts_q20",
-               "nuclear_transcripts_per_100um2")
-
-# Create barplots for key metrics
-for (col in numeric_cols) {
-    # Skip problematic columns
-    if (col %in% skip_cols) {
-      next
-    }
-
-    p <- ggplot(data, aes(x = sampleName, y = !!sym(col))) +
-    geom_bar(stat = "identity", fill = "steelblue") +
-    xlab('Sample') +
-    ylab(gsub('_', ' ', col)) +
-    theme_bw() +
-    ggtitle(gsub('_', ' ', col)) +
-    RotatedAxis() +
-    theme(
-      plot.title = element_text(hjust = 0.5, face = "bold")
-    )
-
-    # Add percentage labels on y-axis for fraction columns
-    if (grepl("fraction|rate|frac", col, ignore.case = TRUE)) {
-      p <- p + scale_y_continuous(labels = scales::percent, limits = c(0, NA))
-    } else {
-      # Remove scientific notation for large numbers
-      p <- p + scale_y_continuous(labels = scales::comma)
-    }
-
-  print(p)
-}
-```
-
 ## Key Quality Metrics
 ```{r key quality metrics, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=min(8+(nrow(data)-5)*0.3, 20), fig.height=6}
 # Total transcripts
@@ -252,11 +191,17 @@ if ("nuclear_transcripts_per_100um2" %in% colnames(data) &&
 
 # Negative control probe counts per control per cell
 if ("negative_control_probe_counts_per_control_per_cell" %in% colnames(data)) {
+  ncp_max <- max(data$negative_control_probe_counts_per_control_per_cell, na.rm = TRUE)
+  ncp_warn <- 0.025
+  ncp_err <- 0.05
+  # Show thresholds only when data approaches them; otherwise zoom into data range
+  ncp_ylim <- if (ncp_max > ncp_warn * 0.5) max(ncp_err * 1.1, ncp_max * 1.1) else ncp_max * 1.3
   p7 <- ggplot(data, aes(x = sampleName, y = negative_control_probe_counts_per_control_per_cell)) +
     geom_bar(stat = "identity", fill = "#c0392b") +
-    geom_hline(yintercept = 0.025, linetype = "dashed", color = "orange", size = 0.8) +
-    geom_hline(yintercept = 0.05, linetype = "dashed", color = "red", size = 0.8) +
-    scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+    geom_hline(yintercept = ncp_warn, linetype = "dashed", color = "orange", size = 0.8) +
+    geom_hline(yintercept = ncp_err, linetype = "dashed", color = "red", size = 0.8) +
+    scale_y_continuous(labels = scales::percent) +
+    coord_cartesian(ylim = c(0, ncp_ylim)) +
     xlab('Sample') +
     ylab('NCP per Control per Cell') +
     ggtitle('Negative Control Probe Counts per Control per Cell (Warning >2.5%, Error >5%)') +
@@ -309,11 +254,16 @@ if ("fraction_custom_transcripts_q20" %in% colnames(data) &&
 # Genomic control probe counts per control per cell (Xenium Prime only)
 if ("genomic_control_probe_counts_per_control_per_cell" %in% colnames(data) &&
     any(!is.na(data$genomic_control_probe_counts_per_control_per_cell))) {
+  gcp_max <- max(data$genomic_control_probe_counts_per_control_per_cell, na.rm = TRUE)
+  gcp_warn <- 0.01
+  gcp_err <- 0.02
+  gcp_ylim <- if (gcp_max > gcp_warn * 0.5) max(gcp_err * 1.1, gcp_max * 1.1) else gcp_max * 1.3
   p10 <- ggplot(data, aes(x = sampleName, y = genomic_control_probe_counts_per_control_per_cell)) +
     geom_bar(stat = "identity", fill = "#7f8c8d") +
-    geom_hline(yintercept = 0.01, linetype = "dashed", color = "orange", size = 0.8) +
-    geom_hline(yintercept = 0.02, linetype = "dashed", color = "red", size = 0.8) +
-    scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+    geom_hline(yintercept = gcp_warn, linetype = "dashed", color = "orange", size = 0.8) +
+    geom_hline(yintercept = gcp_err, linetype = "dashed", color = "red", size = 0.8) +
+    scale_y_continuous(labels = scales::percent) +
+    coord_cartesian(ylim = c(0, gcp_ylim)) +
     xlab('Sample') +
     ylab('GCP per Control per Cell') +
     ggtitle('Genomic Control Probe Counts per Control per Cell (Warning >1%, Error >2%)') +
@@ -323,6 +273,67 @@ if ("genomic_control_probe_counts_per_control_per_cell" %in% colnames(data) &&
       plot.title = element_text(hjust = 0.5, face = "bold")
     )
   print(p10)
+}
+```
+
+## Overview
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
+This report presents quality control metrics for Xenium spatial transcriptomics data across multiple samples/regions.
+
+```{r overview table, echo=FALSE, message=FALSE, warning=FALSE, fig.width=14, fig.height=7, results='asis'}
+datatable(
+  data,
+  options = list(
+    pageLength = 20,
+    autoWidth = TRUE,
+    scrollX = TRUE
+  ),
+  rownames = FALSE
+)
+```
+
+## Barplots per Metric
+```{r barplots per metric, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=min(8+(nrow(data)-5)*0.3, 20), fig.height=6}
+# Identify numeric columns (exclude first few metadata columns)
+numeric_cols <- names(data)[sapply(data, is.numeric)]
+
+# Skip columns that have dedicated plots with thresholds in Key Quality Metrics section
+skip_cols <- c("estimated_number_of_false_positive_transcripts_per_cell",
+               "estimated_number_of_false_positive_transcripts_per_cell_including_genomic_counts",
+               "negative_control_probe_counts_per_control_per_cell",
+               "genomic_control_probe_counts_per_control_per_cell",
+               "fraction_predesigned_transcripts_q20",
+               "fraction_custom_transcripts_q20",
+               "nuclear_transcripts_per_100um2")
+
+# Create barplots for key metrics
+for (col in numeric_cols) {
+    # Skip problematic columns
+    if (col %in% skip_cols) {
+      next
+    }
+
+    p <- ggplot(data, aes(x = sampleName, y = !!sym(col))) +
+    geom_bar(stat = "identity", fill = "steelblue") +
+    xlab('Sample') +
+    ylab(gsub('_', ' ', col)) +
+    theme_bw() +
+    ggtitle(gsub('_', ' ', col)) +
+    RotatedAxis() +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+
+    # Add percentage labels on y-axis for fraction columns
+    if (grepl("fraction|rate|frac", col, ignore.case = TRUE)) {
+      p <- p + scale_y_continuous(labels = scales::percent, limits = c(0, NA))
+    } else {
+      # Remove scientific notation for large numbers
+      p <- p + scale_y_continuous(labels = scales::comma)
+    }
+
+  print(p)
 }
 ```
 
