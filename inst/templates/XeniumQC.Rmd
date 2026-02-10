@@ -43,6 +43,47 @@ param <- readRDS('param.rds')
 if (nrow(data) == 0) {
   stop("metrics_summary.tsv is empty")
 }
+
+# Read alarms if available
+alarms <- if (file.exists("alarms.tsv")) {
+  ezRead.table("alarms.tsv", row.names = NULL)
+} else {
+  data.frame()
+}
+```
+
+## Instrument Alerts
+
+```{r instrument alerts, echo=FALSE, results='asis'}
+if (nrow(alarms) > 0) {
+  for (i in seq_len(nrow(alarms))) {
+    alarm <- alarms[i, ]
+    if (alarm$level == "ERROR") {
+      color <- "#e74c3c"
+      bg <- "#fdf0ef"
+      icon <- "&#10060;"
+    } else if (alarm$level == "WARNING") {
+      color <- "#f39c12"
+      bg <- "#fef9ed"
+      icon <- "&#9888;&#65039;"
+    } else {
+      color <- "#3498db"
+      bg <- "#edf4fd"
+      icon <- "&#8505;&#65039;"
+    }
+    cat(sprintf(
+      '<div style="border-left: 4px solid %s; background: %s; padding: 12px 16px; margin-bottom: 10px; border-radius: 4px;">
+<strong>%s %s</strong> &mdash; <em>%s</em><br>
+<span style="color: #555;">%s</span>
+</div>\n',
+      color, bg, icon, alarm$title, alarm$sampleName, alarm$message
+    ))
+  }
+} else {
+  cat('<div style="border-left: 4px solid #2ecc71; background: #edfdf5; padding: 12px 16px; border-radius: 4px;">
+<strong>&#9989; No instrument alerts detected.</strong> All samples passed 10x quality checks.
+</div>\n')
+}
 ```
 
 ## Overview

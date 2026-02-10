@@ -5,6 +5,20 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+extractXeniumAlarms <- function(htmlPath) {
+  if (!file.exists(htmlPath)) return(data.frame())
+  htmlContent <- readLines(htmlPath, warn = FALSE) |> paste(collapse = "")
+  match <- regmatches(
+    htmlContent,
+    regexpr('"alarms":\\{"alarms":\\[.*?\\]\\}', htmlContent)
+  )
+  if (length(match) == 0) return(data.frame())
+  alarmsJson <- paste0("{", match, "}")
+  parsed <- tryCatch(jsonlite::fromJSON(alarmsJson), error = function(e) NULL)
+  if (is.null(parsed) || length(parsed$alarms$alarms) == 0) return(data.frame())
+  parsed$alarms$alarms
+}
+
 ezMethodXeniumQC <- function(
   input = NA,
   output = NA,
@@ -20,6 +34,7 @@ ezMethodXeniumQC <- function(
 
   ###Collect Stats from each Xenium output directory
   stats <- data.frame()
+  allAlarms <- data.frame()
 
   for (j in 1:nrow(dataset)) {
     sampleName <- rownames(dataset)[j]
@@ -111,6 +126,14 @@ ezMethodXeniumQC <- function(
         proteinList <- proteinList[proteinList != "n/a"]
         proteinTargets <- paste(proteinList, collapse = ", ")
       }
+    }
+
+    # Extract alarms from analysis_summary.html
+    summaryHtml <- file.path(xeniumPath, 'analysis_summary.html')
+    sampleAlarms <- extractXeniumAlarms(summaryHtml)
+    if (nrow(sampleAlarms) > 0) {
+      sampleAlarms$sampleName <- sampleName
+      allAlarms <- rbind(allAlarms, sampleAlarms)
     }
 
     # Verify protein features in cell_feature_matrix
@@ -216,6 +239,11 @@ ezMethodXeniumQC <- function(
 
   # Write summary table
   ezWrite.table(stats, file = 'metrics_summary.tsv', row.names = FALSE)
+
+  # Write alarms table if any alarms were found
+  if (nrow(allAlarms) > 0) {
+    ezWrite.table(allAlarms, file = 'alarms.tsv', row.names = FALSE)
+  }
 
   # Save param for Rmd
   write_rds(param, 'param.rds')
