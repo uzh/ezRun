@@ -135,7 +135,22 @@ if (ncol(qcFrame) > 1) {
     mainbar.y.label = "bins/cells"
   ) |> print()
   grid.text("bins/cells removed",x = 0.65, y=0.95, gp=gpar(fontsize=20))
-  
+} else if (ncol(qcFrame) == 1) {
+  n_flagged <- sum(qcFrame[[1]])
+  n_total <- nrow(qcFrame)
+  df <- data.frame(
+    Status = c("Removed", "Kept"),
+    Count = c(n_flagged, n_total - n_flagged)
+  )
+  p <- ggplot(df, aes(x = Status, y = Count, fill = Status)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(values = c("Removed" = "#e74c3c", "Kept" = "#2ecc71")) +
+    geom_text(aes(label = Count), vjust = -0.5, size = 5) +
+    labs(title = paste("Bins/cells removed by:", colnames(qcFrame)),
+         y = "Number of bins/cells") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  print(p)
 }
   
 
