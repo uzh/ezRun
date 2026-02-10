@@ -481,30 +481,21 @@ ezMethodVisiumHDSeurat <- function(
   ref_path <- NULL
   if (!is.null(param$rctdFile) && param$rctdFile != "") {
     ref_path <- param$rctdFile
-    ezWrite(
-      paste("Using manual RCTD reference:", ref_path),
-      "log.txt",
-      append = TRUE
-    )
+    cat(paste("Using manual RCTD reference:", ref_path, "\n"),
+        file = "log.txt", append = TRUE)
   } else if (
     ezIsSpecified(param$rctdReference) && param$rctdReference != "None"
   ) {
     ref_relative <- sub(" \\([^)]+\\)$", "", param$rctdReference)
     ref_path <- file.path("/srv/GT/databases/RCTD_References", ref_relative)
-    ezWrite(
-      paste("Using RCTD reference from dropdown:", ref_path),
-      "log.txt",
-      append = TRUE
-    )
+    cat(paste("Using RCTD reference from dropdown:", ref_path, "\n"),
+        file = "log.txt", append = TRUE)
   }
 
   if (!is.null(ref_path)) {
     stopifnot(file.exists(ref_path))
-    ezWrite(
-      paste("Running RCTD with reference:", ref_path),
-      "log.txt",
-      append = TRUE
-    )
+    cat(paste("Running RCTD with reference:", ref_path, "\n"),
+        file = "log.txt", append = TRUE)
     ref_obj <- ezLoadRobj(ref_path)
 
     # Check if it is a spacexr Reference object
@@ -513,11 +504,8 @@ ezMethodVisiumHDSeurat <- function(
         ref_obj <- ref_obj$reference
       } else if (inherits(ref_obj, "Seurat")) {
         # Convert Seurat object to RCTD Reference
-        ezWrite(
-          "Converting Seurat object to RCTD Reference...",
-          "log.txt",
-          append = TRUE
-        )
+        cat("Converting Seurat object to RCTD Reference...\n",
+            file = "log.txt", append = TRUE)
         ref_counts <- Seurat::GetAssayData(ref_obj, layer = "counts")
         # Try common cell type annotation columns
         celltype_col <- intersect(
@@ -534,15 +522,9 @@ ezMethodVisiumHDSeurat <- function(
           names(ref_celltypes) <- colnames(ref_obj)
           ref_celltypes <- as.factor(ref_celltypes)
           ref_obj <- spacexr::Reference(ref_counts, ref_celltypes)
-          ezWrite(
-            paste(
-              "Created RCTD Reference with",
-              length(levels(ref_celltypes)),
-              "cell types"
-            ),
-            "log.txt",
-            append = TRUE
-          )
+          cat(paste("Created RCTD Reference with",
+                    length(levels(ref_celltypes)), "cell types\n"),
+              file = "log.txt", append = TRUE)
         }
       } else {
         warning(
@@ -633,7 +615,7 @@ ezMethodVisiumHDSeurat <- function(
           scData <- sdata_rctd
         }
 
-        ezWrite("RCTD annotation completed", "log.txt", append = TRUE)
+        cat("RCTD annotation completed\n", file = "log.txt", append = TRUE)
       }
     }
   }

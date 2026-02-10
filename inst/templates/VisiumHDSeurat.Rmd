@@ -119,22 +119,29 @@ spe <- Seurat_to_SPE(scData_unfiltered, scData_unfiltered[[imageName]]@boundarie
 ::: {.row}
 ::: {.col-md-6}
 
-```{r, echo=F, message=F, warning=F}
+```{r upset_plot, echo=FALSE, message=FALSE, warning=FALSE}
 
-
-qcFrame <- colData(spe) |> data.frame() |> select(starts_with("qc."))
+qcFrame <- colData(spe) |> data.frame() |> dplyr::select(starts_with("qc."))
 qcFrame[is.na(qcFrame)] <- FALSE
+
+# Rename to friendly names
+name_map <- c(qc.lib = "UMI_Counts", qc.nexprs = "nGenes",
+              qc.mito = "Mito_Percent", qc.riboprot = "Ribo_Percent")
+for (old in names(name_map)) {
+  if (old %in% colnames(qcFrame)) colnames(qcFrame)[colnames(qcFrame) == old] <- name_map[old]
+}
+
 ## select only columns that have at least one flag
 useColumn <- apply(qcFrame, 2, any)
-qcFrame <- qcFrame[ , useColumn, drop=FALSE]
+qcFrame <- qcFrame[, useColumn, drop = FALSE]
 
 if (ncol(qcFrame) > 1) {
   UpSetR::upset(
-    qcFrame + 0,## convert to from logical to integer
+    qcFrame + 0, ## convert from logical to integer
     nsets = min(5, ncol(qcFrame)),
     mainbar.y.label = "bins/cells"
   ) |> print()
-  grid.text("bins/cells removed",x = 0.65, y=0.95, gp=gpar(fontsize=20))
+  grid.text("bins/cells removed", x = 0.65, y = 0.95, gp = gpar(fontsize = 20))
 } else if (ncol(qcFrame) == 1) {
   n_flagged <- sum(qcFrame[[1]])
   n_total <- nrow(qcFrame)
@@ -151,49 +158,51 @@ if (ncol(qcFrame) > 1) {
     theme_minimal() +
     theme(legend.position = "none")
   print(p)
+} else {
+  cat("No cells were removed by quality filtering.")
 }
-  
 
 ```
 :::
 
 ::: {.col-md-6}
 
-```{r, echo=F, message=F, warning=F}
-
+```{r qc_stats_table, echo=FALSE, message=FALSE, warning=FALSE}
 
 meta <- colData(spe)
 
 qcStats <- ezFrame(
-  "Number of bins/cells" = numeric(0), 
-  "Min Pass Value"       = numeric(0), 
-  "Max Pass Value"       = numeric(0), 
-  "Fraction"             = numeric(0)
+  "Number of bins/cells" = numeric(0),
+  "Min Pass Value"       = numeric(0),
+  "Max Pass Value"       = numeric(0),
+  "Fraction removed"     = numeric(0)
 )
 
-qcStats["Library Size", ] <- c(
+qcStats["UMI Counts", ] <- c(
   c(sum(meta$qc.lib),
     range(meta[[nCountCol]][meta$useCell])) %>% as.integer(),
   round(sum(meta$qc.lib) / nrow(meta), 2)
 )
 
-qcStats["Expressed genes", ] <- c(
+qcStats["# Genes", ] <- c(
   c(sum(meta$qc.nexprs),
     range(meta[[nFeatureCol]][meta$useCell])) %>% as.integer(),
   round(sum(meta$qc.nexprs) / nrow(meta), 2)
 )
 
-qcStats["Mitochondrial Percent", ] <- c(
-  c(sum(meta$qc.mito, na.rm=TRUE),
-    range(meta$percent_mito[meta$useCell])) %>% as.integer(),
-  round(sum(meta$qc.mito, na.rm=TRUE) / nrow(meta), 2)
-)
+if (!is.null(meta$qc.mito) && sum(meta$qc.mito, na.rm = TRUE) > 0) {
+  qcStats["Mitochondrial %", ] <- c(
+    c(sum(meta$qc.mito, na.rm = TRUE),
+      range(meta$percent_mito[meta$useCell])) %>% as.integer(),
+    round(sum(meta$qc.mito, na.rm = TRUE) / nrow(meta), 2)
+  )
+}
 
-if (!is.null(meta$qc.riboprot) ){
-  qcStats["Ribosomal protein Percent", ] <- c(
-    c(sum(meta$qc.riboprot, na.rm=TRUE),
+if (!is.null(meta$qc.riboprot) && sum(meta$qc.riboprot, na.rm = TRUE) > 0) {
+  qcStats["Ribosomal %", ] <- c(
+    c(sum(meta$qc.riboprot, na.rm = TRUE),
       range(meta$percent_riboprot[meta$useCell])) %>% as.integer(),
-    round(sum(meta$qc.riboprot, na.rm=TRUE) / nrow(meta), 2)
+    round(sum(meta$qc.riboprot, na.rm = TRUE) / nrow(meta), 2)
   )
 }
 
@@ -1872,9 +1881,11 @@ plot_vals[is.na(plot_vals)] <- "Unassigned"
 scData@meta.data[[plot_col]] <- factor(plot_vals)
 celltype_colors_plot <- c(celltype_colors, "Unassigned" = "grey80")
 
-# Spatial plot
+# Spatial plot (same style as cluster SpatialDimPlot)
 p1 <- SpatialDimPlot(scData, group.by = plot_col,
-                     label = TRUE, repel = TRUE, label.size = 4) +
+                     images = Images(scData),
+                     label = TRUE, repel = TRUE, label.size = 4,
+                     plot_segmentations = TRUE, pt.size.factor = 2) +
   scale_fill_manual(values = celltype_colors_plot) +
   ggtitle("Cell types - Spatial") +
   labs(fill = "Cell type") +
@@ -2135,8 +2146,16 @@ rctd_class_colors <- c("singlet" = "#2ecc71",
                        "reject" = "#95a5a6",
                        "unassigned" = "#3498db")
 
-# Spatial plot
-p1 <- SpatialDimPlot(scData, group.by = "spot_class",
+# Replace NA in spot_class with "unassigned" to avoid nn2 crash with label=TRUE
+spot_class_vals <- as.character(scData@meta.data[["spot_class"]])
+spot_class_vals[is.na(spot_class_vals)] <- "unassigned"
+scData@meta.data[["spot_class_plot"]] <- factor(spot_class_vals)
+
+# Spatial plot (same style as cluster SpatialDimPlot)
+p1 <- SpatialDimPlot(scData, group.by = "spot_class_plot",
+                     images = Images(scData),
+                     label = TRUE, repel = TRUE, label.size = 4,
+                     plot_segmentations = TRUE, pt.size.factor = 2,
                      cols = rctd_class_colors) +
   ggtitle("RCTD classification - Spatial") +
   labs(fill = "RCTD class")
@@ -2200,7 +2219,12 @@ if (length(weight_cols) > 0) {
   if (valid_weights > 0) {
     x_labels <- setNames(truncate_label(celltypes_unique), celltypes_unique)
 
-    p1 <- VlnPlot(scData, features = "rctd_max_weight",
+    # Subset to cells with non-NA celltype and weight to avoid VlnPlot crash
+    valid_cells <- which(!is.na(scData@meta.data[[celltype_col]]) &
+                         !is.na(scData$rctd_max_weight))
+    scData_vln <- subset(scData, cells = colnames(scData)[valid_cells])
+
+    p1 <- VlnPlot(scData_vln, features = "rctd_max_weight",
                   group.by = celltype_col, pt.size = 0,
                   cols = celltype_colors) +
       scale_x_discrete(labels = x_labels) +
@@ -2213,6 +2237,7 @@ if (length(weight_cols) > 0) {
             axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
             axis.title.x = element_blank())
     print(p1)
+    rm(scData_vln)
   } else {
     cat("No valid RCTD prediction weights available for violin plot.")
   }
