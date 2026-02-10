@@ -151,7 +151,13 @@ compute_pseudobulk <- function(obj, group_col) {
   groups <- unique(obj@meta.data[[group_col]])
   pb <- sapply(groups, function(g) {
     cells <- which(obj@meta.data[[group_col]] == g)
-    if (length(cells) > 1) rowSums(counts[, cells]) else counts[, cells]
+    if (length(cells) == 0) {
+      rep(0, nrow(counts))
+    } else if (length(cells) == 1) {
+      as.numeric(counts[, cells])
+    } else {
+      Matrix::rowSums(counts[, cells, drop = FALSE])
+    }
   })
   colnames(pb) <- groups
   pb
