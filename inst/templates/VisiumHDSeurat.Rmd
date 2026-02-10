@@ -1852,8 +1852,6 @@ celltype_labels <- setNames(truncate_label(celltypes_unique), celltypes_unique)
 
 # Spatial plot
 p1 <- SpatialDimPlot(scData, group.by = celltype_col,
-                     label = TRUE, label.size = 3, repel = TRUE,
-                     plot_segmentations = TRUE,
                      pt.size.factor = 2) +
   scale_fill_manual(values = celltype_colors, labels = celltype_labels) +
   ggtitle("Cell types - Spatial") +
@@ -2118,7 +2116,6 @@ rctd_class_colors <- c("singlet" = "#2ecc71",
 # Spatial plot
 p1 <- SpatialDimPlot(scData, group.by = "spot_class",
                      cols = rctd_class_colors,
-                     plot_segmentations = TRUE,
                      pt.size.factor = 2) +
   ggtitle("RCTD classification - Spatial") +
   labs(fill = "RCTD class")
