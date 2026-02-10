@@ -14,6 +14,29 @@ EzAppVisiumHDSeurat <-
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodVisiumHDSeurat
         name <<- "EzAppSeuratVisiumHD"
+
+        # Populate RCTD References
+        rctd_refs <- tryCatch(
+          {
+            if (dir.exists("/srv/GT/databases/RCTD_References")) {
+              list.files(
+                "/srv/GT/databases/RCTD_References",
+                pattern = ".rds$",
+                full.names = FALSE
+              )
+            } else {
+              c("Reference_Not_Found_Locally")
+            }
+          },
+          error = function(e) {
+            c("Error_Listing_References")
+          }
+        )
+
+        if (length(rctd_refs) == 0) {
+          rctd_refs <- c("None")
+        }
+
         appDefaults <<- rbind(
           nfeatures = ezFrame(
             Type = "numeric",
@@ -134,6 +157,21 @@ EzAppVisiumHDSeurat <-
             Type = "numeric",
             DefaultValue = 0.5,
             Description = "Value of the Niche resolution parameter for BANKSY clustering, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."
+          ),
+          rctdReference = ezFrame(
+            Type = "charVector",
+            DefaultValue = rctd_refs[1],
+            Description = "RCTD Reference to use"
+          ),
+          rctdFile = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "Manual override: Full path to custom RCTD reference .rds file"
+          ),
+          rctdUMImin = ezFrame(
+            Type = "numeric",
+            DefaultValue = 20,
+            Description = "Minimum UMI count for RCTD annotation"
           )
         )
       }
@@ -154,6 +192,7 @@ ezMethodVisiumHDSeurat <- function(
   library(SeuratWrappers)
   library(scater)
   library(enrichR)
+  library(spacexr)
   library(future)
   library(BiocParallel)
   library(sf)
@@ -437,6 +476,167 @@ ezMethodVisiumHDSeurat <- function(
   #   ezLog("banksy failed", e)
   #   #writexl::write_xlsx(data.frame(), "posMarkersBanksy.xlsx")
   # })
+
+  # 7. RCTD Annotation
+  ref_path <- NULL
+  if (!is.null(param$rctdFile) && param$rctdFile != "") {
+    ref_path <- param$rctdFile
+    ezWrite(
+      paste("Using manual RCTD reference:", ref_path),
+      "log.txt",
+      append = TRUE
+    )
+  } else if (
+    ezIsSpecified(param$rctdReference) && param$rctdReference != "None"
+  ) {
+    ref_relative <- sub(" \\([^)]+\\)$", "", param$rctdReference)
+    ref_path <- file.path("/srv/GT/databases/RCTD_References", ref_relative)
+    ezWrite(
+      paste("Using RCTD reference from dropdown:", ref_path),
+      "log.txt",
+      append = TRUE
+    )
+  }
+
+  if (!is.null(ref_path)) {
+    stopifnot(file.exists(ref_path))
+    ezWrite(
+      paste("Running RCTD with reference:", ref_path),
+      "log.txt",
+      append = TRUE
+    )
+    ref_obj <- ezLoadRobj(ref_path)
+
+    # Check if it is a spacexr Reference object
+    if (!inherits(ref_obj, "Reference")) {
+      if (is.list(ref_obj) && "reference" %in% names(ref_obj)) {
+        ref_obj <- ref_obj$reference
+      } else if (inherits(ref_obj, "Seurat")) {
+        # Convert Seurat object to RCTD Reference
+        ezWrite(
+          "Converting Seurat object to RCTD Reference...",
+          "log.txt",
+          append = TRUE
+        )
+        ref_counts <- Seurat::GetAssayData(ref_obj, layer = "counts")
+        # Try common cell type annotation columns
+        celltype_col <- intersect(
+          c("author_cell_type", "cell_type", "celltype", "CellType"),
+          colnames(ref_obj@meta.data)
+        )[1]
+        if (is.na(celltype_col)) {
+          warning(
+            "No cell type column found in Seurat reference. Skipping RCTD."
+          )
+          ref_obj <- NULL
+        } else {
+          ref_celltypes <- ref_obj@meta.data[[celltype_col]]
+          names(ref_celltypes) <- colnames(ref_obj)
+          ref_celltypes <- as.factor(ref_celltypes)
+          ref_obj <- spacexr::Reference(ref_counts, ref_celltypes)
+          ezWrite(
+            paste(
+              "Created RCTD Reference with",
+              length(levels(ref_celltypes)),
+              "cell types"
+            ),
+            "log.txt",
+            append = TRUE
+          )
+        }
+      } else {
+        warning(
+          "Loaded object is not a valid RCTD Reference or Seurat object. Skipping RCTD."
+        )
+        ref_obj <- NULL
+      }
+    }
+
+    if (!is.null(ref_obj)) {
+      # Prepare Query (SpatialRNA object)
+      counts <- GetAssayData(scData, assay = myAssay, layer = "counts")
+      coords <- GetTissueCoordinates(scData)
+
+      # Ensure coords match counts columns
+      if ("x" %in% colnames(coords) && "y" %in% colnames(coords)) {
+        if ("cell" %in% colnames(coords)) {
+          rownames(coords) <- coords$cell
+        }
+        coords <- coords[, c("x", "y")]
+      } else {
+        colnames(coords)[1:2] <- c("x", "y")
+        if ("cell" %in% colnames(coords)) {
+          rownames(coords) <- coords$cell
+        }
+        coords <- coords[, c("x", "y")]
+      }
+
+      # Match cells
+      common_cells <- intersect(colnames(counts), rownames(coords))
+      if (length(common_cells) == 0) {
+        warning(
+          "No common cells between counts and coordinates. Skipping RCTD."
+        )
+        ref_obj <- NULL
+      } else {
+        counts <- counts[, common_cells, drop = FALSE]
+        coords <- coords[common_cells, , drop = FALSE]
+
+        # Create SpatialRNA object
+        query.puck <- SpatialRNA(coords, counts, Matrix::colSums(counts))
+
+        # Run RCTD
+        umi_min <- ifelse(
+          is.null(param$rctdUMImin),
+          20,
+          as.numeric(param$rctdUMImin)
+        )
+        myRCTD <- create.RCTD(
+          query.puck,
+          ref_obj,
+          max_cores = param$cores,
+          UMI_min = umi_min
+        )
+        myRCTD <- run.RCTD(myRCTD, doublet_mode = 'doublet')
+
+        # Extract results
+        results <- myRCTD@results
+        norm_weights <- normalize_weights(results$weights)
+
+        # Add to Seurat metadata - Primary cell type assignment
+        max_type <- colnames(norm_weights)[max.col(
+          norm_weights,
+          ties.method = "first"
+        )]
+        names(max_type) <- rownames(norm_weights)
+        scData <- AddMetaData(
+          scData, metadata = max_type, col.name = "RCTD_Main"
+        )
+
+        # Add normalized weights as metadata columns
+        weight_df <- as.data.frame(norm_weights)
+        colnames(weight_df) <- paste0("rctd.weight.", colnames(weight_df))
+        common_cells <- intersect(colnames(scData), rownames(weight_df))
+        if (length(common_cells) > 0) {
+          for (wt_col in colnames(weight_df)) {
+            wt_vals <- weight_df[common_cells, wt_col]
+            names(wt_vals) <- common_cells
+            scData <- AddMetaData(
+              scData, metadata = wt_vals, col.name = wt_col
+            )
+          }
+        }
+
+        # Add doublet/singlet classification
+        if (!is.null(results$results_df)) {
+          sdata_rctd <- AddMetaData(scData, metadata = results$results_df)
+          scData <- sdata_rctd
+        }
+
+        ezWrite("RCTD annotation completed", "log.txt", append = TRUE)
+      }
+    }
+  }
 
   ## generate template for manual cluster annotation -----
   ## we only deal with one sample

@@ -39,6 +39,7 @@ library(UpSetR)
 
 library(SeuratWrappers)
 library(Banksy)
+library(spacexr)
 
 library(sf)
 library(Matrix)
@@ -1772,6 +1773,501 @@ ezKable(enrichrTable1, escape=FALSE, format="html", format.args=list())
 
 ```
 
+## Cell type annotation {.tabset}
+
+```{r check_annotation}
+# Check for RCTD annotation columns
+has_rctd <- "RCTD_Main" %in% colnames(scData@meta.data)
+has_spot_class <- "spot_class" %in% colnames(scData@meta.data)
+
+# Use RCTD_Main or predicted.celltype
+if (has_rctd) {
+  celltype_col <- "RCTD_Main"
+} else if ("predicted.celltype" %in% colnames(scData@meta.data)) {
+  celltype_col <- "predicted.celltype"
+} else {
+  celltype_col <- NULL
+}
+
+has_annotation <- !is.null(celltype_col)
+
+# Get RCTD reference information from param
+rctd_ref_name <- if (!is.null(param$rctdReference) &&
+                     param$rctdReference != "" &&
+                     param$rctdReference != "None") {
+  param$rctdReference
+} else {
+  NULL
+}
+
+rctd_ref_file <- if (!is.null(param$rctdFile) && param$rctdFile != "") {
+  param$rctdFile
+} else {
+  NULL
+}
+```
+
+### Reference info
+
+```{r rctd_reference_info, eval=has_annotation && !is.null(rctd_ref_name), results='asis'}
+cat("**RCTD Reference:** ", rctd_ref_name, "\n\n", sep = "")
+if (!is.null(rctd_ref_file)) {
+  cat("**Reference file:** ", rctd_ref_file, "\n\n", sep = "")
+}
+umi_min_used <- ifelse(!is.null(param$rctdUMImin), param$rctdUMImin, 20)
+cat("**UMI_min threshold:** ", umi_min_used,
+    " (cells below this were not classified)\n\n", sep = "")
+cat("**Number of cell types:** ",
+    length(unique(na.omit(scData@meta.data[[celltype_col]]))), "\n\n", sep = "")
+```
+
+```{r no_rctd_ref, eval=!has_annotation || is.null(rctd_ref_name)}
+cat("RCTD annotation was not performed or reference information not available.")
+```
+
+### Cell types
+
+```{r celltype_spatial, fig.width=18, fig.height=10, eval=has_annotation}
+# Get unique cell types and create consistent color mapping
+celltypes_unique <- sort(unique(na.omit(scData@meta.data[[celltype_col]])))
+n_celltypes <- length(celltypes_unique)
+cluster_colors <- unname(pals::polychrome())
+extended_colors <- c(
+  cluster_colors,
+  RColorBrewer::brewer.pal(9, "Set1"),
+  RColorBrewer::brewer.pal(8, "Set2"),
+  RColorBrewer::brewer.pal(12, "Set3")
+)
+extended_colors <- unique(extended_colors)
+if (n_celltypes > length(extended_colors)) {
+  extended_colors <- rep(extended_colors, length.out = n_celltypes)
+}
+celltype_colors <- setNames(extended_colors[1:n_celltypes], celltypes_unique)
+
+# Create truncated labels for legend
+truncate_label <- function(x, max_chars = 35) {
+  ifelse(nchar(x) > max_chars, paste0(substr(x, 1, max_chars - 3), "..."), x)
+}
+celltype_labels <- setNames(truncate_label(celltypes_unique), celltypes_unique)
+
+# Spatial plot
+p1 <- SpatialDimPlot(scData, group.by = celltype_col,
+                     label = TRUE, label.size = 3, repel = TRUE,
+                     plot_segmentations = TRUE,
+                     pt.size.factor = 2) +
+  scale_fill_manual(values = celltype_colors, labels = celltype_labels) +
+  ggtitle("Cell types - Spatial") +
+  labs(fill = "Cell type") +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 7)) +
+  guides(fill = guide_legend(ncol = 4, override.aes = list(size = 3)))
+
+# UMAP with coord_fixed
+p2 <- DimPlot(scData, group.by = celltype_col, cols = celltype_colors,
+              label = TRUE, repel = TRUE, pt.size = 0.5,
+              label.size = 3, raster = FALSE) +
+  coord_fixed() +
+  ggtitle("Cell types - UMAP") +
+  theme_void() +
+  theme(legend.position = "none")
+
+(p1 + p2) + plot_layout(nrow = 1, widths = c(1.2, 1))
+```
+
+```{r no_annotation, eval=!has_annotation}
+cat("Cell type annotation was not performed.",
+    "Select an RCTD reference to enable annotation.")
+```
+
+### Cell type proportions
+
+```{r celltype_barplot, fig.width=10, fig.height=8, eval=has_annotation}
+celltype_counts <- as.data.frame(table(scData@meta.data[[celltype_col]]))
+colnames(celltype_counts) <- c("CellType", "Count")
+celltype_counts <- celltype_counts[order(celltype_counts$Count,
+                                         decreasing = FALSE), ]
+celltype_counts$CellType <- factor(celltype_counts$CellType,
+                                   levels = celltype_counts$CellType)
+
+ggplot(celltype_counts, aes(x = CellType, y = Count, fill = CellType)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = celltype_colors) +
+  coord_flip() +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none",
+        axis.title.y = element_blank(),
+        axis.text.y = element_text(size = 9)) +
+  labs(title = "Cell type proportions", y = "Number of cells") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)))
+```
+
+```{r celltype_table, eval=has_annotation}
+celltype_prop <- as.data.frame(table(scData@meta.data[[celltype_col]]))
+colnames(celltype_prop) <- c("CellType", "Count")
+celltype_prop <- celltype_prop[order(celltype_prop$Count, decreasing = TRUE), ]
+celltype_prop$Proportion <- celltype_prop$Count / sum(celltype_prop$Count)
+
+ezInteractiveTableRmd(celltype_prop, rowNames = FALSE,
+                      title = "Cell type proportions") |>
+  DT::formatPercentage(columns = "Proportion", digits = 2)
+```
+
+### Niche x cell type
+
+```{r niche_celltype_heatmap_check}
+has_rctd_niche <- "RCTD_Main" %in% colnames(scData@meta.data)
+if (has_rctd_niche) {
+  celltype_col_niche <- "RCTD_Main"
+} else if ("predicted.celltype" %in% colnames(scData@meta.data)) {
+  celltype_col_niche <- "predicted.celltype"
+} else {
+  celltype_col_niche <- NULL
+}
+has_annotation_niche <- !is.null(celltype_col_niche)
+```
+
+```{r niche_celltype_heatmap_prep, eval=has_banksy && has_annotation_niche}
+# Calculate proportion of each cell type within each niche
+niche_celltype_df <- scData@meta.data |>
+  dplyr::filter(!is.na(banksy_cluster),
+                !is.na(.data[[celltype_col_niche]])) |>
+  dplyr::group_by(banksy_cluster, .data[[celltype_col_niche]]) |>
+  dplyr::summarise(count = n(), .groups = "drop") |>
+  dplyr::group_by(banksy_cluster) |>
+  dplyr::mutate(proportion = count / sum(count)) |>
+  dplyr::ungroup()
+
+# Create proportion matrix
+prop_matrix_ct <- niche_celltype_df |>
+  dplyr::select(banksy_cluster, all_of(celltype_col_niche), proportion) |>
+  tidyr::pivot_wider(names_from = all_of(celltype_col_niche),
+                     values_from = proportion, values_fill = 0) |>
+  tibble::column_to_rownames("banksy_cluster") |>
+  as.matrix()
+
+# Sort rows numerically if possible
+tryCatch({
+  row_order <- order(as.numeric(rownames(prop_matrix_ct)))
+  prop_matrix_ct <- prop_matrix_ct[row_order, , drop = FALSE]
+}, error = function(e) NULL)
+
+colnames(prop_matrix_ct) <- truncate_label(colnames(prop_matrix_ct),
+                                           max_chars = 40)
+```
+
+```{r niche_celltype_heatmap_plot, eval=has_banksy && has_annotation_niche, fig.width=12, fig.height=8}
+ht <- ComplexHeatmap::Heatmap(
+  prop_matrix_ct,
+  cluster_rows = FALSE,
+  cluster_columns = TRUE,
+  col = colorRampPalette(c("white", "#B2182B"))(100),
+  column_title = "Cell type composition per niche",
+  column_title_gp = gpar(fontsize = 12, fontface = "bold"),
+  row_names_gp = gpar(fontsize = 8),
+  column_names_gp = gpar(fontsize = 8),
+  column_names_rot = 45,
+  column_names_max_height = max_text_width(
+    colnames(prop_matrix_ct), gp = gpar(fontsize = 8)
+  ),
+  rect_gp = gpar(col = "grey80", lwd = 0.5),
+  heatmap_legend_param = list(title = "Proportion")
+)
+draw(ht, padding = unit(c(2, 2, 2, 2), "cm"))
+```
+
+```{r no_niche_celltype_heatmap, eval=!has_banksy || !has_annotation_niche}
+cat("Niche x Cell type heatmap not available",
+    "(no BANKSY results or no cell type annotation).")
+```
+
+### Cell type markers
+
+```{r celltype_markers_compute, eval=has_annotation}
+Idents(scData) <- celltype_col
+celltype_markers <- FindAllMarkers(scData, only.pos = TRUE,
+                                   min.pct = 0.25, logfc.threshold = 0.25,
+                                   verbose = FALSE)
+if (nrow(celltype_markers) > 0) {
+  celltype_markers$diff_pct <- abs(
+    celltype_markers$pct.1 - celltype_markers$pct.2
+  )
+}
+has_celltype_markers <- exists("celltype_markers") && nrow(celltype_markers) > 0
+# Reset identity to seurat_clusters
+Idents(scData) <- "seurat_clusters"
+```
+
+```{r celltype_markers_table, eval=has_annotation && has_celltype_markers}
+celltype_markers_sorted <- celltype_markers |>
+  dplyr::arrange(cluster, desc(avg_log2FC)) |>
+  dplyr::select(-diff_pct)
+
+ezInteractiveTableRmd(celltype_markers_sorted,
+                      rowNames = FALSE, title = "Cell type marker genes")
+```
+
+```{r no_celltype_markers, eval=has_annotation && !has_celltype_markers}
+cat("No significant cell type markers found.")
+```
+
+### Cell type marker dotplot
+
+```{r celltype_dotplot_setup, eval=has_annotation && has_celltype_markers}
+top5_celltype <- celltype_markers |>
+  dplyr::group_by(cluster) |>
+  dplyr::arrange(desc(diff_pct)) |>
+  dplyr::slice_head(n = 5) |>
+  dplyr::ungroup()
+
+sorted_clusters <- sort(unique(as.character(top5_celltype$cluster)))
+genesToPlot_celltype <- character()
+for (ct in sorted_clusters) {
+  ct_genes <- top5_celltype$gene[top5_celltype$cluster == ct]
+  genesToPlot_celltype <- c(genesToPlot_celltype,
+                            setdiff(ct_genes, genesToPlot_celltype))
+}
+genesToPlot_celltype <- as.character(genesToPlot_celltype)
+genesToPlot_celltype <- gsub("_", "-", genesToPlot_celltype)
+genesToPlot_celltype <- intersect(genesToPlot_celltype, rownames(scData))
+genesToPlot_celltype <- make.unique(genesToPlot_celltype)
+
+has_genes_to_plot <- length(genesToPlot_celltype) > 0
+```
+
+```{r celltype_dotplot, fig.width=15, fig.height=20, eval=has_annotation && has_celltype_markers && has_genes_to_plot, results='asis'}
+original_types <- as.character(scData@meta.data[[celltype_col]])
+cells_with_celltype <- which(!is.na(original_types))
+
+if (length(cells_with_celltype) < ncol(scData)) {
+  n_na <- ncol(scData) - length(cells_with_celltype)
+  cat("\n\n*Note:* Excluding ", n_na,
+      " cells with unassigned cell types from dotplot.\n\n", sep = "")
+}
+
+scData_subset <- subset(scData,
+                        cells = colnames(scData)[cells_with_celltype])
+cleaned_types <- gsub("[/\\\\]", "_", original_types[cells_with_celltype])
+cleaned_types <- gsub("\\s+", "_", cleaned_types)
+cleaned_types <- make.names(cleaned_types)
+scData_subset$celltype_clean <- factor(cleaned_types)
+Idents(scData_subset) <- "celltype_clean"
+
+tryCatch({
+  p <- DotPlot(scData_subset, features = rev(genesToPlot_celltype),
+               group.by = "celltype_clean") +
+    coord_flip() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+    labs(x = "Gene", y = "Cell type")
+  print(p)
+}, error = function(e) {
+  tryCatch({
+    cat("\n\n*Note:* Using fewer markers due to plotting constraints.\n\n")
+    top_genes <- unique(head(genesToPlot_celltype, 20))
+    p <- DotPlot(scData_subset, features = rev(top_genes),
+                 group.by = "celltype_clean") +
+      coord_flip() +
+      theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+      labs(x = "Gene", y = "Cell type")
+    print(p)
+  }, error = function(e2) {
+    cat("Cell type marker dotplot could not be generated:", e2$message, "\n")
+  })
+})
+
+rm(scData_subset)
+```
+
+```{r no_celltype_dotplot, eval=has_annotation && has_celltype_markers && !has_genes_to_plot}
+cat("No valid marker genes found for dotplot.")
+```
+
+### RCTD classification
+
+<details>
+  <summary>RCTD classification definitions</summary>
+
+```{r rctd_class_definitions}
+rctd_def_tbl <- tibble::tibble(
+  Class = c("singlet", "doublet_certain", "doublet_uncertain",
+            "reject", "unassigned"),
+  Definition = c(
+    "Cell confidently assigned to a single cell type.",
+    "Cell identified as containing two distinct cell types with high confidence.",
+    "Cell potentially contains two cell types, but assignment confidence is lower.",
+    "Cell could not be reliably classified (no good fit, too few transcripts, or no matching reference type).",
+    "Cell was excluded by RCTD before analysis due to the UMI_min threshold."
+  ),
+  Color = c("#2ecc71 (green)", "#e74c3c (red)", "#f39c12 (orange)",
+            "#95a5a6 (gray)", "#3498db (blue)")
+)
+ezKable(rctd_def_tbl)
+```
+
+**Note:** High proportions of singlets indicate good data quality and reference match. Doublets may indicate overlapping cells or spots spanning cell boundaries. Rejects warrant investigation - they may represent novel cell types not in the reference, dying cells, or technical artifacts.
+
+</details>
+
+```{r rctd_class_combined, fig.width=16, fig.height=7, eval=has_spot_class}
+# Define RCTD class colors
+rctd_class_colors <- c("singlet" = "#2ecc71",
+                       "doublet_certain" = "#e74c3c",
+                       "doublet_uncertain" = "#f39c12",
+                       "reject" = "#95a5a6",
+                       "unassigned" = "#3498db")
+
+# Spatial plot
+p1 <- SpatialDimPlot(scData, group.by = "spot_class",
+                     cols = rctd_class_colors,
+                     plot_segmentations = TRUE,
+                     pt.size.factor = 2) +
+  ggtitle("RCTD classification - Spatial") +
+  labs(fill = "RCTD class")
+
+# Barplot
+class_vector <- as.character(scData$spot_class)
+class_vector[is.na(class_vector)] <- "unassigned"
+class_counts <- as.data.frame(table(class_vector, useNA = "no"))
+colnames(class_counts) <- c("Class", "Count")
+class_counts <- class_counts[order(class_counts$Count, decreasing = TRUE), ]
+class_counts$Class <- factor(class_counts$Class, levels = class_counts$Class)
+class_counts$Proportion <- class_counts$Count / sum(class_counts$Count)
+
+p2 <- ggplot(class_counts, aes(x = Class, y = Count, fill = Class)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = rctd_class_colors) +
+  geom_text(aes(label = paste0(round(Proportion * 100, 1), "%")),
+            vjust = -0.5, size = 4) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "RCTD classification distribution",
+       x = "Classification", y = "Number of cells") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
+
+(p1 + p2) + plot_layout(widths = c(1.3, 1))
+```
+
+```{r rctd_class_table, eval=has_spot_class}
+class_vector <- as.character(scData$spot_class)
+class_vector[is.na(class_vector)] <- "unassigned"
+class_table <- as.data.frame(table(class_vector))
+colnames(class_table) <- c("Class", "Count")
+class_table$Proportion <- class_table$Count / sum(class_table$Count)
+class_table <- class_table[order(class_table$Count, decreasing = TRUE), ]
+
+ezInteractiveTableRmd(class_table, rowNames = FALSE,
+                      title = "RCTD classification summary") |>
+  DT::formatPercentage(columns = "Proportion", digits = 2)
+```
+
+```{r no_rctd_class, eval=!has_spot_class}
+cat("RCTD classification (spot_class) not available.",
+    "Run RCTD annotation to generate.")
+```
+
+### Prediction scores
+
+```{r prediction_scores_violin, fig.width=14, fig.height=10, eval=has_annotation}
+weight_cols <- grep("^rctd\\.weight\\.", colnames(scData@meta.data),
+                    value = TRUE)
+
+if (length(weight_cols) > 0) {
+  weight_matrix <- scData@meta.data[, weight_cols, drop = FALSE]
+  max_weights <- apply(weight_matrix, 1, max, na.rm = TRUE)
+  max_weights[is.infinite(max_weights)] <- NA
+  scData$rctd_max_weight <- max_weights
+
+  valid_weights <- sum(!is.na(scData$rctd_max_weight))
+
+  if (valid_weights > 0) {
+    x_labels <- setNames(truncate_label(celltypes_unique), celltypes_unique)
+
+    p1 <- VlnPlot(scData, features = "rctd_max_weight",
+                  group.by = celltype_col, pt.size = 0,
+                  cols = celltype_colors) +
+      scale_x_discrete(labels = x_labels) +
+      stat_summary(fun = median, geom = "crossbar", width = 0.5,
+                   color = "white", linewidth = 0.8) +
+      ggtitle("RCTD max weight by cell type") +
+      ylab("Max prediction weight") +
+      theme_minimal(base_size = 12) +
+      theme(legend.position = "none",
+            axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+            axis.title.x = element_blank())
+    print(p1)
+  } else {
+    cat("No valid RCTD prediction weights available for violin plot.")
+  }
+} else {
+  cat("RCTD prediction weights not found in metadata.")
+}
+```
+
+```{r prediction_scores_spatial, fig.width=14, fig.height=6, eval=has_annotation, results='asis'}
+weight_cols_sp <- grep("^rctd\\.weight\\.", colnames(scData@meta.data),
+                       value = TRUE)
+
+if (length(weight_cols_sp) > 0 &&
+    "rctd_max_weight" %in% colnames(scData@meta.data)) {
+  valid_weights_sp <- sum(!is.na(scData$rctd_max_weight))
+
+  if (valid_weights_sp > 0) {
+    tryCatch({
+      scData$rctd_max_weight_plot <- scData$rctd_max_weight
+      scData$rctd_max_weight_plot[is.na(scData$rctd_max_weight_plot)] <- 0
+
+      p1 <- SpatialFeaturePlot(scData,
+                               features = "rctd_max_weight_plot",
+                               pt.size.factor = 2) +
+        scale_fill_gradientn(colors = viridis::plasma(100),
+                             limits = c(0, 1),
+                             name = "Max Weight") +
+        ggtitle("Prediction confidence - Spatial")
+
+      p2 <- FeaturePlot(scData, features = "rctd_max_weight_plot",
+                        reduction = "umap", max.cutoff = "q95",
+                        raster = FALSE, order = TRUE) +
+        scale_color_gradientn(colors = viridis::plasma(100),
+                              limits = c(0, 1),
+                              name = "Max Weight") +
+        coord_fixed() +
+        ggtitle("Prediction confidence - UMAP") +
+        theme_void()
+
+      print((p1 + p2) + plot_layout(widths = c(1.2, 1)))
+
+      na_count <- sum(is.na(scData$rctd_max_weight))
+      if (na_count > 0) {
+        cat("\n\n*Note:* ", na_count,
+            " cells without RCTD weights shown as 0 (dark color).\n\n",
+            sep = "")
+      }
+    }, error = function(e) {
+      cat("Spatial prediction confidence plot not available:",
+          e$message, "\n")
+    })
+  } else {
+    cat("No valid RCTD prediction weights available for spatial plot.")
+  }
+} else {
+  cat("RCTD prediction weights not found in metadata.")
+}
+```
+
+```{r prediction_scores_summary, eval=has_annotation}
+if ("rctd_max_weight" %in% colnames(scData@meta.data)) {
+  valid_count <- sum(!is.na(scData$rctd_max_weight))
+  if (valid_count > 0) {
+    cat("Cells with valid prediction weights:", valid_count,
+        "of", ncol(scData), "total cells\n")
+    cat("Mean max weight:",
+        round(mean(scData$rctd_max_weight, na.rm = TRUE), 3), "\n")
+    cat("Median max weight:",
+        round(median(scData$rctd_max_weight, na.rm = TRUE), 3), "\n")
+  }
+}
+```
+
 ## Links
 
 ### Data files
@@ -1805,7 +2301,9 @@ ezListAsKable(param[c("binSize",
         "lambda",
         "DE.method",
         "nUMIs",
-        "nmad")],
+        "nmad",
+        "rctdReference",
+        "rctdUMImin")],
         col.names=c("Parameter", "Value"),
         caption="Parameters used")
 
