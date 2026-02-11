@@ -115,7 +115,6 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
     }
   }
   
-  stopifnot(!any(duplicated(reportDirs)) || needsRenaming)
   filesUse <- files[!file.exists(reportDirs)]
   if (length(filesUse) > 0) {
     cmd <- paste(
@@ -144,18 +143,25 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   
   ## Rename directories if needed to resolve duplicates
   if (needsRenaming) {
+    renamed <- character(0)  ## Track which directories have been renamed
     for (i in seq_along(files)) {
-      if (reportDirs[i] != reportDirsRenamed[i] && file.exists(reportDirs[i])) {
-        file.rename(reportDirs[i], reportDirsRenamed[i])
+      oldDir <- reportDirs[i]
+      newDir <- reportDirsRenamed[i]
+      
+      ## Only rename if they're different and we haven't already renamed this directory
+      if (oldDir != newDir && !(oldDir %in% renamed) && file.exists(oldDir)) {
+        file.rename(oldDir, newDir)
+        renamed <- c(renamed, oldDir)
+        
         ## Also rename the zip file if it exists
-        zipOld <- paste0(reportDirs[i], ".zip")
-        zipNew <- paste0(reportDirsRenamed[i], ".zip")
+        zipOld <- paste0(oldDir, ".zip")
+        zipNew <- paste0(newDir, ".zip")
         if (file.exists(zipOld)) {
           file.rename(zipOld, zipNew)
         }
         ## Also rename the html file if it exists
-        htmlOld <- paste0(reportDirs[i], ".html")
-        htmlNew <- paste0(reportDirsRenamed[i], ".html")
+        htmlOld <- paste0(oldDir, ".html")
+        htmlNew <- paste0(newDir, ".html")
         if (file.exists(htmlOld)) {
           file.rename(htmlOld, htmlNew)
         }

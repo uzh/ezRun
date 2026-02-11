@@ -23,8 +23,8 @@ test_that("Duplicate detection logic works correctly", {
   
   # Test 3: Duplicates that cannot be resolved (both basename and sample names duplicate)
   files_dup_unresolvable <- c(
-    "sample1_R1" = "path1/reads.fastq.gz",
-    "sample1_R1" = "path2/reads.fastq.gz"
+    "sample1_R1_1" = "path1/reads.fastq.gz",
+    "sample1_R1_2" = "path2/reads.fastq.gz"
   )
   reportDirs_dup_unres <- sub("\\.(fastq|fq|bam)(\\.gz)*$", "_fastqc", basename(files_dup_unresolvable))
   expect_true(any(duplicated(reportDirs_dup_unres)))
