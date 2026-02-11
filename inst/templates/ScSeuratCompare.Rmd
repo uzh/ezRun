@@ -192,7 +192,7 @@ cat("Pseudobulk PCA aggregates single-cell expression profiles by sample (sum of
 cat("\n")
 ```
 
-```{r pseudobulk-pca-all, eval=has_replicates, fig.width=10, fig.height=7}
+```{r pseudobulk-pca-all, eval=has_replicates, fig.width=10, fig.height=10}
 pb_matrix <- compute_pseudobulk(scData, sample_col)
 pca_res <- run_pseudobulk_pca(pb_matrix)
 pca_df <- dplyr::left_join(pca_res$pca_df, sample_meta, by = "SampleID")
@@ -225,7 +225,7 @@ cat("### Per-cluster Pseudobulk PCA {.tabset}\n\n")
 cat("PCA computed separately within each cluster/cell type to visualize sample-level variation for each cell population.\n\n")
 ```
 
-```{r pseudobulk-pca-per-cluster, eval=has_replicates, fig.width=9, fig.height=6, results='asis'}
+```{r pseudobulk-pca-per-cluster, eval=has_replicates, fig.width=9, fig.height=9, results='asis'}
 for (cl in clusterNames) {
   cells_cl <- WhichCells(scData, idents = cl)
   sample_counts <- table(scData@meta.data[cells_cl, sample_col])
@@ -665,23 +665,25 @@ if(!is.null(param$replicateGrouping) && param$replicateGrouping != "") {
 if(exists('sccomp_res')){
   cat("\n\n### Intervals\n")
   cat("The error bars represent 95% credible intervals. The dashed lines represent the minimal effect that the hypothesis test is based on. An effect is labelled as significant if it exceeds the minimal effect according to the 95% credible interval.\n\n")
-  
+
   # Get both conditions
   all_conditions <- sccomp_res %>% attributes %>% .$count_data %>%
     dplyr::pull(param$grouping) %>%
     unique()
-  
+
   # Create title
   plot_title <- unique(sccomp_res$parameter[grep('(Intercept)',sccomp_res$parameter, invert = TRUE)])
-  
+
   # Use in plot
-  sccomp_res |> 
+  sccomp_res |>
     plot_1D_intervals() +
     ggtitle(plot_title) +
     theme(
-      axis.text.y = element_text(size = 12), 
+      axis.text.y = element_text(size = 12),
       plot.title = element_text(size = 13)
     )
+} else {
+  cat("\n\n**sccomp analysis not available.** This analysis requires biological replicates (≥3 samples per condition) to model compositional variability. The current dataset does not meet these requirements, or the 'Sample' metadata column is not present.\n\n")
 }
 ```
 
