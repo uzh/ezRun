@@ -205,8 +205,8 @@ if (pca_res$n_dims >= 2) {
     labs(title = "Pseudobulk PCA - All Cells",
          x = paste0("PC1 (", pca_res$var_pct[1], "%)"),
          y = paste0("PC2 (", pca_res$var_pct[2], "%)")) +
-    coord_fixed() +
-    theme_bw()
+    theme_bw() +
+    theme(aspect.ratio = 1)
   print(p)
 } else {
   p <- ggplot(pca_df, aes(x = PC1, y = PC2,
@@ -255,8 +255,8 @@ for (cl in clusterNames) {
         labs(title = paste0("Pseudobulk PCA - ", cl),
              x = paste0("PC1 (", pca_cl$var_pct[1], "%)"),
              y = paste0("PC2 (", pca_cl$var_pct[2], "%)")) +
-        coord_fixed() +
-        theme_bw()
+        theme_bw() +
+        theme(aspect.ratio = 1)
       print(p_cl)
     }
   }, error = function(e) {
@@ -522,117 +522,120 @@ has_orgDb <- !is.null(orgDb_name)
 ```
 
 ```{r enrichment-header, eval=diffGenesPresent, results='asis'}
-cat("## Pathway Enrichment\n")
+cat("## Pathway Enrichment {.tabset}\n")
 cat("\n")
-cat(sprintf("Gene set enrichment analysis of differentially expressed genes between %s and %s, split by cluster. GO Biological Process and KEGG pathway enrichment are shown as bubble plots where dot size indicates gene count and color indicates adjusted p-value.\n", param$sampleGroup, param$refGroup))
+cat(sprintf("Gene set enrichment analysis of differentially expressed genes between %s and %s. GO Biological Process and KEGG pathway enrichment are computed per cluster and direction (upregulated vs downregulated). Bubble plots show top 10 pathways where dot size indicates gene count and color indicates adjusted p-value.\n", param$sampleGroup, param$refGroup))
 cat("\n")
 ```
 
-```{r enrichment-go-bp, eval=diffGenesPresent && has_orgDb, fig.width=12, fig.height=10, results='asis'}
+```{r enrichment-per-cluster, eval=diffGenesPresent && has_orgDb, fig.width=10, fig.height=8, results='asis'}
 library(orgDb_name, character.only = TRUE)
 
 sig_degs <- diffGenes |>
   dplyr::filter(!is.na(p_val_adj), p_val_adj < 0.05)
 
-for (direction in c("Upregulated", "Downregulated")) {
-  if (direction == "Upregulated") {
-    gene_set <- sig_degs |> dplyr::filter(avg_log2FC > 0.25)
-  } else {
-    gene_set <- sig_degs |> dplyr::filter(avg_log2FC < -0.25)
+# Gene ID mapping for KEGG (do once for all)
+gene_mapping <- tryCatch({
+  bitr(unique(sig_degs$gene),
+       fromType = "SYMBOL",
+       toType = "ENTREZID",
+       OrgDb = get(orgDb_name))
+}, error = function(e) {
+  message("Gene ID mapping failed: ", e$message)
+  NULL
+})
+
+for (cl in clusterNames) {
+  cat(paste0("\n\n### ", cl, "\n\n"))
+
+  sig_degs_cl <- sig_degs |> dplyr::filter(cluster == cl)
+
+  if (nrow(sig_degs_cl) == 0) {
+    cat("No significant DEGs for this cluster.\n\n")
+    next
   }
 
-  if (nrow(gene_set) == 0) next
+  # Upregulated
+  up_genes <- sig_degs_cl |>
+    dplyr::filter(avg_log2FC > 0.25) |>
+    dplyr::pull(gene)
 
-  genes_by_cluster <- split(gene_set$gene, gene_set$cluster)
-  genes_by_cluster <- genes_by_cluster[lengths(genes_by_cluster) >= 5]
+  # Downregulated
+  down_genes <- sig_degs_cl |>
+    dplyr::filter(avg_log2FC < -0.25) |>
+    dplyr::pull(gene)
 
-  if (length(genes_by_cluster) == 0) next
+  for (direction in c("Upregulated", "Downregulated")) {
+    genes <- if (direction == "Upregulated") up_genes else down_genes
 
-  cat(paste0("\n\n### GO BP - ", direction, " in ", param$sampleGroup,
-             " vs ", param$refGroup, "\n\n"))
+    if (length(genes) < 5) {
+      cat(paste0("**", direction, " genes (", length(genes), ")**: Too few genes for enrichment (<5).\n\n"))
+      next
+    }
 
-  ck <- tryCatch({
-    compareCluster(
-      geneClusters = genes_by_cluster,
-      fun = "enrichGO",
-      OrgDb = get(orgDb_name),
-      keyType = "SYMBOL",
-      ont = "BP",
-      pAdjustMethod = "BH",
-      pvalueCutoff = 0.05,
-      qvalueCutoff = 0.2
-    )
-  }, error = function(e) {
-    message("GO BP enrichment failed for ", direction, ": ", e$message)
-    NULL
-  })
+    cat(paste0("**", direction, " genes (", length(genes), ")**\n\n"))
 
-  if (!is.null(ck) && nrow(as.data.frame(ck)) > 0) {
-    p <- dotplot(ck, showCategory = 5) +
-      ggtitle(paste0("GO BP - ", direction, " genes")) +
-      theme(axis.text.y = element_text(size = 8))
-    print(p)
-  } else {
-    cat("No significant GO BP enrichments found.\n\n")
-  }
-}
-```
+    # GO BP enrichment
+    ego <- tryCatch({
+      enrichGO(
+        gene = genes,
+        OrgDb = get(orgDb_name),
+        keyType = "SYMBOL",
+        ont = "BP",
+        pAdjustMethod = "BH",
+        pvalueCutoff = 0.05,
+        qvalueCutoff = 0.2
+      )
+    }, error = function(e) {
+      message("GO BP enrichment failed for ", cl, " ", direction, ": ", e$message)
+      NULL
+    })
 
-```{r enrichment-kegg, eval=diffGenesPresent && has_orgDb, fig.width=12, fig.height=10, results='asis'}
-for (direction in c("Upregulated", "Downregulated")) {
-  if (direction == "Upregulated") {
-    gene_set <- sig_degs |> dplyr::filter(avg_log2FC > 0.25)
-  } else {
-    gene_set <- sig_degs |> dplyr::filter(avg_log2FC < -0.25)
-  }
+    if (!is.null(ego) && nrow(as.data.frame(ego)) > 0) {
+      cat("*GO Biological Process*\n\n")
+      p <- dotplot(ego, showCategory = 10) +
+        ggtitle(paste0("GO BP - ", direction, " in ", cl)) +
+        theme(axis.text.y = element_text(size = 9))
+      print(p)
+      cat("\n\n")
+    } else {
+      cat("*GO Biological Process*: No significant enrichments.\n\n")
+    }
 
-  if (nrow(gene_set) == 0) next
+    # KEGG enrichment
+    if (!is.null(gene_mapping)) {
+      genes_entrez <- gene_mapping |>
+        dplyr::filter(SYMBOL %in% genes) |>
+        dplyr::pull(ENTREZID) |>
+        unique()
 
-  # Map gene symbols to Entrez IDs for KEGG
-  gene_mapping <- tryCatch({
-    bitr(unique(gene_set$gene),
-         fromType = "SYMBOL",
-         toType = "ENTREZID",
-         OrgDb = get(orgDb_name))
-  }, error = function(e) {
-    message("Gene ID mapping failed: ", e$message)
-    NULL
-  })
+      if (length(genes_entrez) >= 5) {
+        kegg <- tryCatch({
+          enrichKEGG(
+            gene = genes_entrez,
+            organism = kegg_org,
+            pvalueCutoff = 0.05,
+            qvalueCutoff = 0.2
+          )
+        }, error = function(e) {
+          message("KEGG enrichment failed for ", cl, " ", direction, ": ", e$message)
+          NULL
+        })
 
-  if (is.null(gene_mapping) || nrow(gene_mapping) == 0) next
-
-  gene_set_mapped <- gene_set |>
-    dplyr::inner_join(gene_mapping, by = c("gene" = "SYMBOL"))
-
-  genes_by_cluster <- split(gene_set_mapped$ENTREZID,
-                             gene_set_mapped$cluster)
-  genes_by_cluster <- genes_by_cluster[lengths(genes_by_cluster) >= 5]
-
-  if (length(genes_by_cluster) == 0) next
-
-  cat(paste0("\n\n### KEGG - ", direction, " in ", param$sampleGroup,
-             " vs ", param$refGroup, "\n\n"))
-
-  ck_kegg <- tryCatch({
-    compareCluster(
-      geneClusters = genes_by_cluster,
-      fun = "enrichKEGG",
-      organism = kegg_org,
-      pvalueCutoff = 0.05,
-      qvalueCutoff = 0.2
-    )
-  }, error = function(e) {
-    message("KEGG enrichment failed for ", direction, ": ", e$message)
-    NULL
-  })
-
-  if (!is.null(ck_kegg) && nrow(as.data.frame(ck_kegg)) > 0) {
-    p <- dotplot(ck_kegg, showCategory = 5) +
-      ggtitle(paste0("KEGG - ", direction, " genes")) +
-      theme(axis.text.y = element_text(size = 8))
-    print(p)
-  } else {
-    cat("No significant KEGG enrichments found.\n\n")
+        if (!is.null(kegg) && nrow(as.data.frame(kegg)) > 0) {
+          cat("*KEGG Pathways*\n\n")
+          p <- dotplot(kegg, showCategory = 10) +
+            ggtitle(paste0("KEGG - ", direction, " in ", cl)) +
+            theme(axis.text.y = element_text(size = 9))
+          print(p)
+          cat("\n\n")
+        } else {
+          cat("*KEGG Pathways*: No significant enrichments.\n\n")
+        }
+      } else {
+        cat("*KEGG Pathways*: Too few mapped genes (<5).\n\n")
+      }
+    }
   }
 }
 ```
