@@ -93,9 +93,29 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   }
   nFiles <- length(files)
 
-  ## guess the names of the report directories that will be creatd by fastqc
+  ## guess the names of the report directories that will be created by fastqc
   reportDirs <- sub("\\.(fastq|fq|bam)(\\.gz)*$", "_fastqc", basename(files))
-  stopifnot(!any(duplicated(reportDirs)))
+  
+  ## Check for duplicates and determine if renaming to sample names resolves it
+  needsRenaming <- FALSE
+  reportDirsRenamed <- NULL
+  if (any(duplicated(reportDirs))) {
+    ## Try using sample names instead
+    reportDirsRenamed <- sub("\\.(fastq|fq|bam)(\\.gz)*$", "_fastqc", names(files))
+    
+    if (!any(duplicated(reportDirsRenamed))) {
+      ## Renaming to sample names resolves the duplication
+      needsRenaming <- TRUE
+    } else {
+      ## Renaming doesn't resolve duplication - throw error
+      stop("Duplicated fastq file names detected that cannot be resolved by renaming to sample names. ",
+           "This typically occurs when merging samples from different run directories with identical file names. ",
+           "Duplicated report directories: ", 
+           paste(reportDirs[duplicated(reportDirs)], collapse = ", "))
+    }
+  }
+  
+  stopifnot(!any(duplicated(reportDirs)) || needsRenaming)
   filesUse <- files[!file.exists(reportDirs)]
   if (length(filesUse) > 0) {
     cmd <- paste(
@@ -120,6 +140,29 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
       result <- ezSystem(cmd)
     }
     gc()
+  }
+  
+  ## Rename directories if needed to resolve duplicates
+  if (needsRenaming) {
+    for (i in seq_along(files)) {
+      if (reportDirs[i] != reportDirsRenamed[i] && file.exists(reportDirs[i])) {
+        file.rename(reportDirs[i], reportDirsRenamed[i])
+        ## Also rename the zip file if it exists
+        zipOld <- paste0(reportDirs[i], ".zip")
+        zipNew <- paste0(reportDirsRenamed[i], ".zip")
+        if (file.exists(zipOld)) {
+          file.rename(zipOld, zipNew)
+        }
+        ## Also rename the html file if it exists
+        htmlOld <- paste0(reportDirs[i], ".html")
+        htmlNew <- paste0(reportDirsRenamed[i], ".html")
+        if (file.exists(htmlOld)) {
+          file.rename(htmlOld, htmlNew)
+        }
+      }
+    }
+    ## Update reportDirs to the renamed versions
+    reportDirs <- reportDirsRenamed
   }
 
   if (ezIsSpecified(param$showNativeReports) && param$showNativeReports) {
