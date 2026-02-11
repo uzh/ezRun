@@ -569,11 +569,11 @@ for (cl in clusterNames) {
     genes <- if (direction == "Upregulated") up_genes else down_genes
 
     if (length(genes) < 5) {
-      cat(paste0("**", direction, " genes (", length(genes), ")**: Too few genes for enrichment (<5).\n\n"))
+      cat(paste0("#### ", direction, " genes (", length(genes), ")\n\nToo few genes for enrichment (<5).\n\n"))
       next
     }
 
-    cat(paste0("**", direction, " genes (", length(genes), ")**\n\n"))
+    cat(paste0("#### ", direction, " genes (", length(genes), ")\n\n"))
 
     # GO BP enrichment
     ego <- tryCatch({
