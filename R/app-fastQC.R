@@ -149,21 +149,38 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
       newDir <- reportDirsRenamed[i]
       
       ## Only rename if they're different and we haven't already renamed this directory
-      if (oldDir != newDir && !(oldDir %in% renamed) && file.exists(oldDir)) {
-        file.rename(oldDir, newDir)
-        renamed <- c(renamed, oldDir)
-        
-        ## Also rename the zip file if it exists
-        zipOld <- paste0(oldDir, ".zip")
-        zipNew <- paste0(newDir, ".zip")
-        if (file.exists(zipOld)) {
-          file.rename(zipOld, zipNew)
-        }
-        ## Also rename the html file if it exists
-        htmlOld <- paste0(oldDir, ".html")
-        htmlNew <- paste0(newDir, ".html")
-        if (file.exists(htmlOld)) {
-          file.rename(htmlOld, htmlNew)
+      if (oldDir != newDir && !(oldDir %in% renamed)) {
+        if (file.exists(oldDir)) {
+          ## Check if target already exists (shouldn't happen, but be safe)
+          if (file.exists(newDir)) {
+            warning("Target directory ", newDir, " already exists. Skipping rename of ", oldDir)
+          } else {
+            ## Attempt to rename and check for success
+            success <- file.rename(oldDir, newDir)
+            if (!success) {
+              stop("Failed to rename FastQC directory from ", oldDir, " to ", newDir)
+            }
+            renamed <- c(renamed, oldDir)
+            
+            ## Also rename the zip file if it exists
+            zipOld <- paste0(oldDir, ".zip")
+            zipNew <- paste0(newDir, ".zip")
+            if (file.exists(zipOld)) {
+              success <- file.rename(zipOld, zipNew)
+              if (!success) {
+                warning("Failed to rename zip file from ", zipOld, " to ", zipNew)
+              }
+            }
+            ## Also rename the html file if it exists
+            htmlOld <- paste0(oldDir, ".html")
+            htmlNew <- paste0(newDir, ".html")
+            if (file.exists(htmlOld)) {
+              success <- file.rename(htmlOld, htmlNew)
+              if (!success) {
+                warning("Failed to rename html file from ", htmlOld, " to ", htmlNew)
+              }
+            }
+          }
         }
       }
     }
