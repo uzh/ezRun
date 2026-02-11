@@ -145,40 +145,38 @@ colnames(sample_meta) <- c("SampleID", "Condition")
 
 min_cells_per_sample <- 5
 
-# Helper: compute pseudobulk matrix (sum of counts per sample)
-compute_pseudobulk <- function(obj, group_col) {
-  counts <- GetAssayData(obj, assay = "RNA", layer = "counts")
-  groups <- unique(obj@meta.data[[group_col]])
-  pb <- sapply(groups, function(g) {
-    cells <- which(obj@meta.data[[group_col]] == g)
-    if (length(cells) == 0) {
-      rep(0, nrow(counts))
-    } else if (length(cells) == 1) {
-      as.numeric(counts[, cells])
-    } else {
-      Matrix::rowSums(counts[, cells, drop = FALSE])
-    }
-  })
-  colnames(pb) <- groups
-  pb
-}
+# Helper: run PCA on pseudobulk using AggregateExpression + Seurat workflow
+run_pseudobulk_pca <- function(obj, group_col) {
+  # Use AggregateExpression to create pseudobulk Seurat object
+  pb_seurat <- AggregateExpression(
+    obj,
+    assays = "RNA",
+    return.seurat = TRUE,
+    group.by = group_col
+  )
 
-# Helper: run PCA on pseudobulk and return plot-ready dataframe
-run_pseudobulk_pca <- function(pb_matrix) {
-  # Filter zero-variance genes
-  gene_vars <- apply(pb_matrix, 1, var)
-  pb_filtered <- pb_matrix[gene_vars > 0, ]
+  # Apply Seurat normalization workflow
+  pb_seurat <- NormalizeData(pb_seurat, verbose = FALSE)
+  pb_seurat <- FindVariableFeatures(pb_seurat, verbose = FALSE)
+  pb_seurat <- ScaleData(pb_seurat, verbose = FALSE)
+  pb_seurat <- RunPCA(pb_seurat, npcs = min(10, ncol(pb_seurat) - 1), verbose = FALSE)
 
-  pca_result <- prcomp(t(pb_filtered), center = TRUE, scale. = TRUE)
+  # Extract PCA embeddings
+  pca_embeddings <- Embeddings(pb_seurat, reduction = "pca")
 
-  var_explained <- pca_result$sdev^2 / sum(pca_result$sdev^2)
+  # Extract variance explained
+  stdev <- Stdev(pb_seurat, reduction = "pca")
+  var_explained <- stdev^2 / sum(stdev^2)
   var_pct <- round(var_explained * 100, 1)
 
-  n_dims <- min(2, ncol(pca_result$x))
+  # Determine number of valid dimensions
+  n_dims <- min(2, ncol(pca_embeddings))
+
+  # Create dataframe for plotting
   pca_df <- data.frame(
-    PC1 = pca_result$x[, 1],
-    PC2 = if (n_dims >= 2) pca_result$x[, 2] else 0,
-    SampleID = rownames(pca_result$x)
+    PC1 = pca_embeddings[, 1],
+    PC2 = if (n_dims >= 2) pca_embeddings[, 2] else 0,
+    SampleID = rownames(pca_embeddings)
   )
 
   list(pca_df = pca_df, var_pct = var_pct, n_dims = n_dims)
@@ -193,8 +191,7 @@ cat("\n")
 ```
 
 ```{r pseudobulk-pca-all, eval=has_replicates, fig.width=10, fig.height=10}
-pb_matrix <- compute_pseudobulk(scData, sample_col)
-pca_res <- run_pseudobulk_pca(pb_matrix)
+pca_res <- run_pseudobulk_pca(scData, sample_col)
 pca_df <- dplyr::left_join(pca_res$pca_df, sample_meta, by = "SampleID")
 
 if (pca_res$n_dims >= 2) {
@@ -242,8 +239,7 @@ for (cl in clusterNames) {
                           scData_cl@meta.data[[sample_col]] %in% valid_samples
                         ])
 
-    pb_cl_matrix <- compute_pseudobulk(scData_cl, sample_col)
-    pca_cl <- run_pseudobulk_pca(pb_cl_matrix)
+    pca_cl <- run_pseudobulk_pca(scData_cl, sample_col)
     pca_df_cl <- dplyr::left_join(pca_cl$pca_df, sample_meta, by = "SampleID")
 
     if (pca_cl$n_dims >= 2) {
