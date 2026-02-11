@@ -97,10 +97,6 @@ ezMethodScSeuratCompare = function(
   # # Load sccomp and set up cmdstan
   # library(sccomp)
 
-  # check if in pseudobulk mode
-  pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) &&
-    param$pseudoBulkMode == "true"
-
   # # Load model
   # mod <- sccomp:::load_model(
   #   name = "glm_multi_beta_binomial",
@@ -187,19 +183,41 @@ ezMethodScSeuratCompare = function(
   stopifnot(c(param$sampleGroup, param$refGroup) %in% Idents(scData))
   scData <- subset(scData, idents = c(param$sampleGroup, param$refGroup))
 
-  # Only run sccomp if 'Sample' metadata exists
-  if (pseudoBulkMode) {
-    # Prepare data for sccomp using cellTypeIntegrated
-    metadata <- scData@meta.data
-    cell_counts <- table(
-      metadata[[param$CellIdentity]],
-      metadata[[param$replicateGrouping]]
-    ) %>%
-      as.data.frame() %>%
-      rename(cell_group = Var1, sample = Freq)
+  # Run sccomp if we have biological replicates (≥3 samples per condition)
+  run_sccomp <- FALSE
+  if (ezIsSpecified(param$replicateGrouping) &&
+      param$replicateGrouping != "") {
+    # Check if replicateGrouping column exists in metadata
+    if (param$replicateGrouping %in% colnames(scData@meta.data)) {
+      # Count samples per condition (simple base R approach)
+      sample_condition_pairs <- unique(
+        scData@meta.data[, c(param$replicateGrouping, param$grouping)]
+      )
+      sample_counts <- table(sample_condition_pairs[[param$grouping]])
 
-    # Run sccomp analysis with condition
-    sccomp_res <- scData %>%
+      ezLog("Sample counts per condition:")
+      print(sample_counts)
+
+      # Need at least 3 samples per condition for sccomp
+      if (all(sample_counts >= 3)) {
+        run_sccomp <- TRUE
+        ezLog(paste("Running sccomp compositional analysis",
+                    "(≥3 samples per condition)"))
+      } else {
+        ezLog(paste("Skipping sccomp: Need ≥3 samples per condition,",
+                    "found:", paste(sample_counts, collapse = ", ")))
+      }
+    } else {
+      ezLog(paste("Skipping sccomp: replicateGrouping column",
+                  param$replicateGrouping, "not found in metadata"))
+    }
+  } else {
+    ezLog("Skipping sccomp: replicateGrouping parameter not specified")
+  }
+
+  if (run_sccomp) {
+    # Run sccomp analysis
+    sccomp_res <- scData |>
       sccomp_estimate(
         formula_composition = as.formula(paste("~", param$grouping)),
         sample = param$replicateGrouping,
@@ -210,17 +228,16 @@ ezMethodScSeuratCompare = function(
         verbose = TRUE
       )
 
-    sccomp_res <- sccomp_res %>%
+    sccomp_res <- sccomp_res |>
       sccomp_remove_outliers(
         cores = as.integer(param$cores),
         cache_stan_model = cache_stan_model
-      ) %>%
+      ) |>
       sccomp_test()
 
     # Save sccomp results
     saveRDS(sccomp_res, "sccomp_results.rds")
-  } else {
-    ezLog("'Sample' metadata not found. Skipping sccomp analysis.")
+    ezLog("sccomp analysis completed and saved to sccomp_results.rds")
   }
 
   pvalue_allMarkers <- 0.05
