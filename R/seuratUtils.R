@@ -521,6 +521,9 @@ conservedMarkers <- function(
     DE.method <- "wilcox"
   }
 
+  # Track if we fall back to RNA due to SCT errors
+  fallback_to_rna <- FALSE
+
   for (eachCluster in levels(Idents(scData))) {
     markersEach <- try(
       FindConservedMarkers(
@@ -534,6 +537,30 @@ conservedMarkers <- function(
       ),
       silent = TRUE
     )
+
+    # If SCT fails with PrepSCTFindMarkers error, retry with RNA
+    if (class(markersEach) == "try-error" && assay == "SCT") {
+      error_msg <- as.character(markersEach)
+      if (grepl("PrepSCTFindMarkers|unequal library sizes", error_msg)) {
+        if (!fallback_to_rna) {
+          ezLog("SCT assay failed with PrepSCTFindMarkers error. Falling back to RNA assay.")
+          fallback_to_rna <- TRUE
+        }
+        markersEach <- try(
+          FindConservedMarkers(
+            scData,
+            ident.1 = eachCluster,
+            grouping.var = grouping.var,
+            print.bar = FALSE,
+            only.pos = TRUE,
+            assay = "RNA",
+            test.use = DE.method
+          ),
+          silent = TRUE
+        )
+      }
+    }
+
     if (class(markersEach) != "try-error" && nrow(markersEach) > 0) {
       markers[[eachCluster]] <- as_tibble(markersEach, rownames = "gene")
     }
@@ -564,6 +591,16 @@ diffExpressedGenes <- function(scData, param, grouping.var = "Condition") {
     vars.to.regress <- param$DE.regress
   }
 
+  # Determine assay to use
+  if ("SCT" %in% Seurat::Assays(scData)) {
+    assay <- "SCT"
+  } else {
+    assay <- "RNA"
+  }
+
+  # Track if we fall back to RNA due to SCT errors
+  fallback_to_rna <- FALSE
+
   diffGenes <- list()
   for (eachCluster in gtools::mixedsort(levels(seurat_clusters))) {
     markersEach <- try(FindMarkers(
@@ -571,8 +608,29 @@ diffExpressedGenes <- function(scData, param, grouping.var = "Condition") {
       ident.1 = paste0(eachCluster, "_", param$sampleGroup),
       ident.2 = paste0(eachCluster, "_", param$refGroup),
       test.use = DE.method,
-      latent.vars = vars.to.regress
+      latent.vars = vars.to.regress,
+      assay = assay
     ))
+
+    # If SCT fails with PrepSCTFindMarkers error, retry with RNA
+    if (class(markersEach) == "try-error" && assay == "SCT") {
+      error_msg <- as.character(markersEach)
+      if (grepl("PrepSCTFindMarkers|unequal library sizes", error_msg)) {
+        if (!fallback_to_rna) {
+          ezLog("SCT assay failed with PrepSCTFindMarkers error. Falling back to RNA assay for DEG analysis.")
+          fallback_to_rna <- TRUE
+        }
+        markersEach <- try(FindMarkers(
+          scData,
+          ident.1 = paste0(eachCluster, "_", param$sampleGroup),
+          ident.2 = paste0(eachCluster, "_", param$refGroup),
+          test.use = DE.method,
+          latent.vars = vars.to.regress,
+          assay = "RNA"
+        ))
+      }
+    }
+
     ## to skip some groups with few cells
     if (class(markersEach) != "try-error") {
       diffGenes[[eachCluster]] <- as_tibble(markersEach, rownames = "gene")
