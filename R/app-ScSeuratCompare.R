@@ -121,6 +121,37 @@ ezMethodScSeuratCompare = function(
     nthreads = param$cores
   )
 
+  # Auto-detect best cell identity column
+  # Prioritize: celltype > celltypeintegrated > manualAnnot > ident > seurat_clusters
+  available_cols <- colnames(scData@meta.data)
+  priority_cols <- c("celltype", "celltypeintegrated", "cellTypeIntegrated",
+                     "manualAnnot", "ident")
+
+  for (col in priority_cols) {
+    if (col %in% available_cols) {
+      # Check if column has meaningful values (not all NA/empty)
+      values <- scData@meta.data[[col]]
+      if (!all(is.na(values)) && length(unique(values)) > 1) {
+        ezLog(paste("Using", col, "as CellIdentity (auto-detected)"))
+        param$CellIdentity <- col
+        break
+      }
+    }
+  }
+
+  # If no priority column found and CellIdentity not set, default to seurat_clusters
+  if (!ezIsSpecified(param$CellIdentity) || !(param$CellIdentity %in% available_cols)) {
+    if ("seurat_clusters" %in% available_cols) {
+      ezLog("Using seurat_clusters as CellIdentity (fallback)")
+      param$CellIdentity <- "seurat_clusters"
+    } else {
+      ezLog("Using ident as CellIdentity (default fallback)")
+      param$CellIdentity <- "ident"
+    }
+  } else {
+    ezLog(paste("Using", param$CellIdentity, "as CellIdentity (from parameters)"))
+  }
+
   DefaultAssay(scData) = "SCT"
   #subset the object to only contain the conditions we are interested in
   Idents(scData) <- scData@meta.data[[param$grouping]]
