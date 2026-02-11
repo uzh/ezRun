@@ -648,8 +648,11 @@ cat("Pathway enrichment analysis (GO and KEGG) is currently only supported for H
 `r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
 ```{r barplots, results='asis', fig.width=8, fig.height=7}
+# Ensure Idents are set to cell types for proper visualization
+Idents(scData) <- scData@meta.data[[param$CellIdentity]]
+
 cat("\n")
-cat("The barplots show the proportion of cells from each sample in each cluster. The barplots are split by the Seurat metadata column '", param$CellIdentity, "'.")
+cat("The barplots show the proportion of each cell type (", param$CellIdentity, ") within each condition (", param$grouping, "). Each bar represents one condition, with colors indicating different cell types.")
 cat("\n\n")
 
 # This plot should always work as param$grouping is required
