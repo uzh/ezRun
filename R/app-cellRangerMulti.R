@@ -164,7 +164,10 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
     basename(param[['resultDir']])
   )
   if (!dir.exists(commonPath)) {
-    dir.create(commonPath)
+    success <- dir.create(commonPath, recursive = TRUE)
+    if (!success) {
+      stop(paste("Failed to create directory:", commonPath))
+    }
   }
   dsPath <- file.path(commonPath, 'expanded_dataset.tsv')
   if (!file.exists(dsPath)) {

@@ -121,6 +121,35 @@ ezMethodScSeuratCompare = function(
     nthreads = param$cores
   )
 
+  # Auto-detect species/refBuild if not set
+  if (!ezIsSpecified(param$refBuild) || param$refBuild == "") {
+    # Try to get from scData misc slot
+    if ("refBuild" %in% names(scData@misc) && !is.null(scData@misc$refBuild)) {
+      param$refBuild <- scData@misc$refBuild
+      ezLog(paste("Using refBuild from scData:", param$refBuild))
+    } else {
+      # Infer from gene names
+      genes <- rownames(scData)
+      # Sample 100 genes to check capitalization
+      sample_genes <- head(genes[grepl("^[A-Z]", genes)], 100)
+
+      # Human genes are typically ALL CAPS (ACTB, GAPDH, etc.)
+      # Mouse genes are Title Case (Actb, Gapdh, etc.)
+      uppercase_count <- sum(grepl("^[A-Z][A-Z]", sample_genes))
+      titlecase_count <- sum(grepl("^[A-Z][a-z]", sample_genes))
+
+      if (uppercase_count > titlecase_count) {
+        param$refBuild <- "Homo_sapiens/Ensembl/GRCh38/Annotation/Release_110-2023-10-30"
+        ezLog("Inferred Human species from gene names")
+      } else {
+        param$refBuild <- "Mus_musculus/Ensembl/GRCm39/Annotation/Release_109-2023-06-29"
+        ezLog("Inferred Mouse species from gene names")
+      }
+    }
+  } else {
+    ezLog(paste("Using refBuild from parameters:", param$refBuild))
+  }
+
   # Auto-detect best cell identity column
   # Prioritize: celltype > celltypeintegrated > manualAnnot > ident > seurat_clusters
   available_cols <- colnames(scData@meta.data)
