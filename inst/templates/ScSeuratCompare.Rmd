@@ -288,10 +288,12 @@ expr_mat <- GetAssayData(scData, assay = "RNA", layer = "data")[hvgs, ]
 # Compute pseudobulk mean per sample
 pb_means <- sapply(samples, function(s) {
   cells_s <- which(scData@meta.data[[sample_col]] == s)
-  if (length(cells_s) > 1) {
-    rowMeans(expr_mat[, cells_s])
+  if (length(cells_s) == 0) {
+    rep(0, nrow(expr_mat))
+  } else if (length(cells_s) == 1) {
+    as.numeric(expr_mat[, cells_s])
   } else {
-    expr_mat[, cells_s]
+    Matrix::rowMeans(expr_mat[, cells_s, drop = FALSE])
   }
 })
 colnames(pb_means) <- samples
@@ -362,10 +364,12 @@ for (cl in clusterNames) {
         cells_cl,
         colnames(scData)[scData@meta.data[[sample_col]] == s]
       )
-      if (length(cells_s) > 1) {
-        rowMeans(expr_mat[, cells_s])
+      if (length(cells_s) == 0) {
+        rep(0, nrow(expr_mat))
+      } else if (length(cells_s) == 1) {
+        as.numeric(expr_mat[, cells_s])
       } else {
-        expr_mat[, cells_s]
+        Matrix::rowMeans(expr_mat[, cells_s, drop = FALSE])
       }
     })
 
