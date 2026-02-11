@@ -143,6 +143,12 @@ sample_meta <- scData@meta.data[, c(sample_col, param$grouping)] |>
   dplyr::distinct()
 colnames(sample_meta) <- c("SampleID", "Condition")
 
+# AggregateExpression mangles names: replaces _ with - and prepends 'g' if
+# the name starts with a digit. Build the transformed names for joining.
+sample_meta$AggName <- gsub("_", "-", sample_meta$SampleID)
+starts_digit <- grepl("^[0-9]", sample_meta$AggName)
+sample_meta$AggName[starts_digit] <- paste0("g", sample_meta$AggName[starts_digit])
+
 min_cells_per_sample <- 5
 
 # Helper: run PCA on pseudobulk using AggregateExpression + Seurat workflow
@@ -192,11 +198,18 @@ cat("\n")
 
 ```{r pseudobulk-pca-all, eval=has_replicates, fig.width=10, fig.height=10}
 pca_res <- run_pseudobulk_pca(scData, sample_col)
-pca_df <- dplyr::left_join(pca_res$pca_df, sample_meta, by = "SampleID")
+# Join using AggName (AggregateExpression-transformed names)
+pca_df <- dplyr::left_join(
+  pca_res$pca_df, sample_meta,
+  by = c("SampleID" = "AggName")
+)
+# Use original sample names for labels
+pca_df$Label <- pca_df$SampleID.y
+pca_df$Label[is.na(pca_df$Label)] <- pca_df$SampleID[is.na(pca_df$Label)]
 
 if (pca_res$n_dims >= 2) {
   p <- ggplot(pca_df, aes(x = PC1, y = PC2,
-                           color = Condition, label = SampleID)) +
+                           color = Condition, label = Label)) +
     geom_point(size = 4) +
     ggrepel::geom_text_repel(size = 3, max.overlaps = 20) +
     labs(title = "Pseudobulk PCA - All Cells",
@@ -207,7 +220,7 @@ if (pca_res$n_dims >= 2) {
   print(p)
 } else {
   p <- ggplot(pca_df, aes(x = PC1, y = PC2,
-                           color = Condition, label = SampleID)) +
+                           color = Condition, label = Label)) +
     geom_point(size = 4) +
     ggrepel::geom_text_repel(size = 3, max.overlaps = 20) +
     labs(title = "Pseudobulk PCA - All Cells (1 PC)",
@@ -240,12 +253,17 @@ for (cl in clusterNames) {
                         ])
 
     pca_cl <- run_pseudobulk_pca(scData_cl, sample_col)
-    pca_df_cl <- dplyr::left_join(pca_cl$pca_df, sample_meta, by = "SampleID")
+    pca_df_cl <- dplyr::left_join(
+      pca_cl$pca_df, sample_meta,
+      by = c("SampleID" = "AggName")
+    )
+    pca_df_cl$Label <- pca_df_cl$SampleID.y
+    pca_df_cl$Label[is.na(pca_df_cl$Label)] <- pca_df_cl$SampleID[is.na(pca_df_cl$Label)]
 
     if (pca_cl$n_dims >= 2) {
       p_cl <- ggplot(pca_df_cl, aes(x = PC1, y = PC2,
                                      color = Condition,
-                                     label = SampleID)) +
+                                     label = Label)) +
         geom_point(size = 4) +
         ggrepel::geom_text_repel(size = 3, max.overlaps = 20) +
         labs(title = paste0("Pseudobulk PCA - ", cl),
