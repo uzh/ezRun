@@ -105,6 +105,11 @@ ezMethodScSeuratCompare = function(
   # )
   #
 
+  # Determine pseudobulk mode for DEG analysis
+  # Note: This is independent of sccomp (which runs based on sample counts)
+  pseudoBulkMode <- ezIsSpecified(param$replicateGrouping) &&
+    param$pseudoBulkMode == "true"
+
   ###
   set.seed(38)
 
