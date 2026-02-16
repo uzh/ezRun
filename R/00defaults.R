@@ -38,9 +38,9 @@ ezParam = function(
     appDefaults
   )
   unknownParams = setdiff(names(userParam), rownames(defaults))
-  sapply(unknownParams, function(x) {
-    ezLog("unknown param: ", x)
-  })
+  if (length(unknownParams) > 0) {
+    ezLog("unknown params:\n - ", paste(unknownParams, collapse = "\n - "))
+  }
   for (nm in rownames(defaults)) {
     if (!is.null(userParam[[nm]])) {
       value <- userParam[[nm]]
