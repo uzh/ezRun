@@ -711,14 +711,22 @@ if(exists('sccomp_res')){
 if(exists('sccomp_res')){
   cat("### Differential Cell Type Composition\n")
   cat("\nWe used [sccomp](https://github.com/MangiolaLaboratory/sccomp) to analyze differences in cell type composition between conditions. The analysis takes into account the count nature of the data and models both changes in proportion and variability.\n\n")
-  
+
+  # Fix: sccomp_boxplot() internally calls sccomp_replicate() which uses
+  # sccomp_stan_models_cache_dir (defaults to ~/.sccomp_models) as cache.
+  # SUSHI jobs run as trxcopy whose home may not have cached compiled models.
+  # Redirect to the package stan/ dir where pre-compiled .rds caches exist.
+  assignInNamespace("sccomp_stan_models_cache_dir",
+                    system.file("stan", package = "sccomp"),
+                    ns = "sccomp")
+
   # Create interactive table of significant results
   # First get the plot object
   invisible(capture.output(
-    p <- sccomp_res |> 
+    p <- sccomp_res |>
       sccomp_boxplot(
         factor = param$grouping
-      ) + 
+      ) +
       theme(
         strip.text = element_text(size = 20, face = "bold"),
         axis.title = element_text(size = 12),
