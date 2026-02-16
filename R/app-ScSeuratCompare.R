@@ -154,8 +154,13 @@ ezMethodScSeuratCompare = function(
   # Auto-detect best cell identity column
   # Prioritize: celltype > celltypeintegrated > manualAnnot > ident > seurat_clusters
   available_cols <- colnames(scData@meta.data)
-  priority_cols <- c("celltype", "celltypeintegrated", "cellTypeIntegrated",
-                     "manualAnnot", "ident")
+  priority_cols <- c(
+    "celltype",
+    "celltypeintegrated",
+    "cellTypeIntegrated",
+    "manualAnnot",
+    "ident"
+  )
 
   for (col in priority_cols) {
     if (col %in% available_cols) {
@@ -170,7 +175,10 @@ ezMethodScSeuratCompare = function(
   }
 
   # If no priority column found and CellIdentity not set, default to seurat_clusters
-  if (!ezIsSpecified(param$CellIdentity) || !(param$CellIdentity %in% available_cols)) {
+  if (
+    !ezIsSpecified(param$CellIdentity) ||
+      !(param$CellIdentity %in% available_cols)
+  ) {
     if ("seurat_clusters" %in% available_cols) {
       ezLog("Using seurat_clusters as CellIdentity (fallback)")
       param$CellIdentity <- "seurat_clusters"
@@ -179,7 +187,11 @@ ezMethodScSeuratCompare = function(
       param$CellIdentity <- "ident"
     }
   } else {
-    ezLog(paste("Using", param$CellIdentity, "as CellIdentity (from parameters)"))
+    ezLog(paste(
+      "Using",
+      param$CellIdentity,
+      "as CellIdentity (from parameters)"
+    ))
   }
 
   DefaultAssay(scData) = "SCT"
@@ -188,10 +200,12 @@ ezMethodScSeuratCompare = function(
   stopifnot(c(param$sampleGroup, param$refGroup) %in% Idents(scData))
   scData <- subset(scData, idents = c(param$sampleGroup, param$refGroup))
 
-  # Run sccomp if we have biological replicates (≥3 samples per condition)
+  # Run sccomp if we have biological replicates (>=3 samples per condition)
   run_sccomp <- FALSE
-  if (ezIsSpecified(param$replicateGrouping) &&
-      param$replicateGrouping != "") {
+  if (
+    ezIsSpecified(param$replicateGrouping) &&
+      param$replicateGrouping != ""
+  ) {
     # Check if replicateGrouping column exists in metadata
     if (param$replicateGrouping %in% colnames(scData@meta.data)) {
       # Count samples per condition (simple base R approach)
@@ -206,15 +220,23 @@ ezMethodScSeuratCompare = function(
       # Need at least 3 samples per condition for sccomp
       if (all(sample_counts >= 3)) {
         run_sccomp <- TRUE
-        ezLog(paste("Running sccomp compositional analysis",
-                    "(≥3 samples per condition)"))
+        ezLog(paste(
+          "Running sccomp compositional analysis",
+          "(>=3 samples per condition)"
+        ))
       } else {
-        ezLog(paste("Skipping sccomp: Need ≥3 samples per condition,",
-                    "found:", paste(sample_counts, collapse = ", ")))
+        ezLog(paste(
+          "Skipping sccomp: Need >=3 samples per condition,",
+          "found:",
+          paste(sample_counts, collapse = ", ")
+        ))
       }
     } else {
-      ezLog(paste("Skipping sccomp: replicateGrouping column",
-                  param$replicateGrouping, "not found in metadata"))
+      ezLog(paste(
+        "Skipping sccomp: replicateGrouping column",
+        param$replicateGrouping,
+        "not found in metadata"
+      ))
     }
   } else {
     ezLog("Skipping sccomp: replicateGrouping parameter not specified")
