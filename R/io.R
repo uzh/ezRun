@@ -373,7 +373,26 @@ ezIsAbsolutePath = function(x) {
   !is.null(x) & grepl("^/", x)
 }
 
-
 ezRandomString = function(length) {
   paste(sample(c(0:9, letters, LETTERS), length, replace = TRUE), collapse = "")
+}
+
+##' @title Create ezParam from parameters.tsv
+##' @description Read in a parameters.tsv file from disc into an ezParam object
+##' @param tsvPath Path to the parameters.tsv file on disk
+##' @return Returns an ezParam object
+##' @template roxygen-template
+##' @examples
+##' params <- ezParamFromTsv("parameters.tsv")
+##' params$cores
+ezParamFromTsv <- function(tsvPath) {
+  paramsDf <- read.table(
+    tsvPath,
+    sep = "\t",
+    header = FALSE,
+    stringsAsFactors = FALSE
+  )
+  # Convert to a list of pairs
+  paramsList <- split(paramsDf$V2, paramsDf$V1)
+  return(ezParam(paramsList))
 }
