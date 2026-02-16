@@ -4,10 +4,10 @@
 \alias{ezLog}
 \title{Wrapper for logger}
 \usage{
-ezLog(message, level = "info")
+ezLog(..., level = "info")
 }
 \arguments{
-\item{message}{the message to log.}
+\item{...}{the message to log, will be concatenated.}
 
 \item{level}{the log level (fatal, error, warn, success, info, debug, trace).}
 }
