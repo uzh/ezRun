@@ -1249,6 +1249,7 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
     cmd <- paste(
       "bismark",
       param$cmdOptions,
+      "--gzip",
       "--path_to_bowtie",
       paste0("$Bowtie2", "/bin"),
       defOpt,
@@ -1262,6 +1263,7 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
     cmd <- paste(
       "bismark",
       param$cmdOptions,
+      "--gzip",
       "--path_to_bowtie",
       paste0("$Bowtie2", "/bin"),
       defOpt,
