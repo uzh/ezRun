@@ -455,13 +455,39 @@ buildMultiConfigFile <- function(input, param, dirList) {
 
     # Determine Chemistry for Flex v1/v2
     # Priority 1: User specified chemistry in parameters (not "auto")
-    # Priority 2: Auto-detect based on probe set version (v2.x.x vs v1.x.x)
+    # Priority 2: Auto-detect based on probe set version and FASTQ read lengths
     # Cell Ranger 10.0+ requires explicit chemistry for reliable Flex v2 detection
+    # Flex v2 has two valid sequencing configs:
+    #   "Read 1" (R1=54, R2=50) -> Flex-v2-RNA-R1
+    #   "Read 2" (R1=28, R2=90) -> Flex-v2-RNA-R2
     if (ezIsSpecified(param$chemistry) && param$chemistry != "auto") {
       chemistry <- param$chemistry
     } else if (grepl("v2\\.", param$probesetFile)) {
       # Flex v2: Matches v2.0.0, v2.1.0, etc.
-      chemistry <- ifelse(hasMult, "Flex-v2-RNA-R2", "Flex-v2-singleplex")
+      if (hasMult) {
+        # Detect R1 vs R2 config from FASTQ read lengths
+        r1Files <- list.files(dirList$sampleDirs,
+                              pattern = "_R1_.*\\.fastq\\.gz$",
+                              recursive = TRUE, full.names = TRUE)
+        if (length(r1Files) > 0) {
+          r1Conn <- gzfile(r1Files[1], "r")
+          r1Lines <- readLines(r1Conn, n = 2)
+          close(r1Conn)
+          r1Length <- nchar(r1Lines[2])
+          # R1 > 28 indicates "Read 1" config (R1=54, R2=50)
+          # R1 <= 28 indicates "Read 2" config (R1=28, R2=90)
+          chemistry <- ifelse(r1Length > 28, "Flex-v2-RNA-R1", "Flex-v2-RNA-R2")
+          message(sprintf(
+            "Flex v2 auto-detect: R1 length = %d -> chemistry = %s",
+            r1Length, chemistry
+          ))
+        } else {
+          chemistry <- "Flex-v2-RNA-R2"
+          warning("Could not detect R1 length from FASTQs, defaulting to Flex-v2-RNA-R2")
+        }
+      } else {
+        chemistry <- "Flex-v2-singleplex"
+      }
     } else {
       # Flex v1: Default legacy behavior (MFRP/SFRP)
       chemistry <- ifelse(hasMult, "MFRP", "SFRP")
