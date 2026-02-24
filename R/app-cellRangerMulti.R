@@ -457,9 +457,10 @@ buildMultiConfigFile <- function(input, param, dirList) {
     # Priority 1: User specified chemistry in parameters (not "auto")
     # Priority 2: Auto-detect based on probe set version and FASTQ read lengths
     # Cell Ranger 10.0+ requires explicit chemistry for reliable Flex v2 detection
-    # Flex v2 has two valid sequencing configs:
-    #   "Read 1" (R1=54, R2=50) -> Flex-v2-RNA-R1
+    # Flex v2 has two valid sequencing configs (CellRanger 10.0+):
+    #   "Read 1" (R1=54, R2=50) -> Flex-v2-R1
     #   "Read 2" (R1=28, R2=90) -> Flex-v2-RNA-R2
+    # Ref: 10xgenomics.com/support/software/cell-ranger/latest/analysis/inputs/cr-multi-config-csv-opts
     if (ezIsSpecified(param$chemistry) && param$chemistry != "auto") {
       chemistry <- param$chemistry
     } else if (grepl("v2\\.", param$probesetFile)) {
@@ -476,7 +477,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
           r1Length <- nchar(r1Lines[2])
           # R1 > 28 indicates "Read 1" config (R1=54, R2=50)
           # R1 <= 28 indicates "Read 2" config (R1=28, R2=90)
-          chemistry <- ifelse(r1Length > 28, "Flex-v2-RNA-R1", "Flex-v2-RNA-R2")
+          chemistry <- ifelse(r1Length > 28, "Flex-v2-R1", "Flex-v2-RNA-R2")
           message(sprintf(
             "Flex v2 auto-detect: R1 length = %d -> chemistry = %s",
             r1Length, chemistry
