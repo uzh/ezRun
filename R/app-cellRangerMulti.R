@@ -193,11 +193,25 @@ prepareFastqData <- function(input, param) {
   sampleName <- input$getNames()
 
   #1. Prepare GEX data
-  sampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
+  rawSampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
+
+  # Detect multi-pool case: RawDataDir contains comma-separated paths (multiple pools
+  # from one chip sequenced in separate lanes/pools, to be combined in one CellRanger run)
+  isMultiPool <- length(rawSampleDirs) > 1L
+  poolNames <- NULL
 
   #1.1. decompress tar files if they are in tar format
-  if (all(grepl("\\.tar$", sampleDirs))) {
-    sampleDirs <- tarExtract(sampleDirs)
+  if (all(grepl("\\.tar$", rawSampleDirs))) {
+    # Capture pool names from tarball basenames before extraction (e.g. "409691_1-A")
+    if (isMultiPool) {
+      poolNames <- gsub("\\.tar$", "", basename(rawSampleDirs))
+    }
+    sampleDirs <- tarExtract(rawSampleDirs)
+  } else {
+    sampleDirs <- rawSampleDirs
+    if (isMultiPool && is.null(poolNames)) {
+      poolNames <- basename(rawSampleDirs)
+    }
   }
 
   #1.2. Subsample if chosen
@@ -207,28 +221,39 @@ prepareFastqData <- function(input, param) {
 
   sampleDirs <- normalizePath(sampleDirs)
 
-  #1.3. Fix FileNames if sampleName in dataset was changed
-  fileLevelDirs <- list.files(sampleDirs)
-  if (length(fileLevelDirs) == 1L) {
-    if (fileLevelDirs != sampleName) {
-      setwd(sampleDirs)
-      ezSystem(paste('mv', fileLevelDirs, sampleName))
-      cmd <- paste(
-        'rename',
-        paste0('s/', fileLevelDirs, '/', sampleName, '/'),
-        paste0(sampleName, '/*.gz')
-      )
-      ezSystem(cmd)
-      setwd('..')
+  if (!isMultiPool) {
+    #1.3. Fix FileNames if sampleName in dataset was changed (single-pool only)
+    fileLevelDirs <- list.files(sampleDirs)
+    if (length(fileLevelDirs) == 1L) {
+      if (fileLevelDirs != sampleName) {
+        setwd(sampleDirs)
+        ezSystem(paste('mv', fileLevelDirs, sampleName))
+        cmd <- paste(
+          'rename',
+          paste0('s/', fileLevelDirs, '/', sampleName, '/'),
+          paste0(sampleName, '/*.gz')
+        )
+        ezSystem(cmd)
+        setwd('..')
+      }
+    } else if (length(fileLevelDirs) > 1L) {
+      if (all(fileLevelDirs %in% sampleName)) {
+        #...
+      } else {
+        stop('multiple runs and renaming samples is an unsupported case')
+      }
     }
-  } else if (length(fileLevelDirs) > 1L) {
-    if (all(fileLevelDirs %in% sampleName)) {
-      #...
-    } else {
-      stop('multiple runs and renaming samples is an unsupported case')
-    }
+    dirList <- list(sampleName = sampleName, sampleDirs = sampleDirs)
+  } else {
+    # Multi-pool: all tarballs share the same parent dir (tarExtract returns identical paths).
+    # Use per-pool names as fastq_id in the [libraries] section so CellRanger can match
+    # each pool's FASTQ files by their filename prefix.
+    message(sprintf(
+      "Multi-pool mode: combining %d pools into one CellRanger run (%s)",
+      length(poolNames), paste(poolNames, collapse = ", ")
+    ))
+    dirList <- list(sampleName = poolNames, sampleDirs = sampleDirs)
   }
-  dirList <- list(sampleName = sampleName, sampleDirs = sampleDirs)
 
   #2. Check the dataset for the other modalities and get the fastq files
   libraryTypes <- as.vector(str_split(param$TenXLibrary, ",", simplify = TRUE))
