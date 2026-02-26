@@ -415,6 +415,19 @@ ggplot(scData@meta.data, aes_string(x = nFeatureCol)) +
  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 ```
 
+#### Transcript vs Gene scatter
+
+```{r scatter_transcripts_genes, fig.width=7, fig.height=6}
+ggplot(scData@meta.data, aes_string(x = nCountCol, y = nFeatureCol)) +
+  geom_point(size = 0.3, alpha = 0.3, color = "steelblue") +
+  scale_x_log10(labels = label_number()) +
+  scale_y_log10(labels = label_number()) +
+  theme_minimal(base_size = 12) +
+  labs(title = "Transcripts vs genes detected per cell",
+       x = "Transcript counts (log10 scale)",
+       y = "Genes detected (log10 scale)") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
 ### Cell morphology {.tabset}
 
 Cell and nucleus area distributions (if available from segmentation).

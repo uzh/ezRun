@@ -215,17 +215,49 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% 
 
 
 ```{r PCA elbow plot, fig.align='center', fig.width=14}
-pct <- scData[["pca"]]@stdev / sum(scData[["pca"]]@stdev) * 100
-cumu <- cumsum(pct)
-plot_df <- data.frame(pct = pct, cumu = cumu, rank = 1:length(pct))
+  k <- param$npcs
 
-# Elbow plot
-p <- ggplot(plot_df, aes(cumu, pct, label = rank, color = rank > param$npcs))
-p <- p + geom_vline(xintercept = cumu[param$npcs], color = "grey") + geom_text() 
-p <- p + xlab(paste("Variance based on 50 PCs of", param$nfeatures, "features")) +  ylab("Cumulative variance in % explained per PC") 
-p <- p + theme_bw() + labs(color = paste("PC >", param$npcs)) + theme(legend.position = "bottom")
-p <- p + annotate(geom="text", y=max(plot_df$pct), x=max(plot_df$cumu[param$npcs]), label=paste('Variance used:', round(plot_df$cumu[param$npcs], digits = 2), '%'), color="red")
-p
+  top_n <- max(80, k)
+
+  stdev <- scData[["pca"]]@stdev %>% head(top_n)
+  pct  <- ((stdev^2) / sum(stdev^2)) * 100
+  cumu <- cumsum(pct)
+
+  plot_df <- data.frame(
+    PC   = seq_along(pct),
+    pct  = pct,
+    cumu = cumu,
+    used = seq_along(pct) <= k)
+
+  ggplot(plot_df, aes(x = PC)) +
+    geom_col(aes(y = pct, fill = used),
+             width = 0.7,
+             show.legend = FALSE) +
+    scale_fill_manual(values = c(`TRUE` = "grey20",
+                                 `FALSE` = "grey75")) +
+    geom_line(aes(y = cumu / max(cumu) * max(pct), group = 1),
+              linewidth = 0.5,
+              color = "orange") +
+    geom_point(aes(y = cumu / max(cumu) * max(pct)),
+               size = 1,
+               color = "orange") +
+    geom_vline(xintercept = k,
+               linetype = "dashed",
+               color = "grey40") +
+    scale_y_continuous(
+      name = "Variance explained (%)",
+      sec.axis = sec_axis(~ . / max(plot_df$pct) * 100,
+                          name = "Cumulative variance (%)")) +
+    labs(
+      title    = "PCA variance explained",
+      subtitle = paste0("PCs used: ", k, "   |   Cumulative: ", sprintf('%.2f%%', cumu[k])),
+      x = NULL) +
+    theme_bw() +
+    theme(
+      axis.title.y.left  = element_text(color = "grey20"),
+      axis.title.y.right = element_text(color = "orange"),
+      plot.title         = element_text(hjust = 0.5),
+      panel.grid.minor   = element_blank())
 ```
 
 ## Cluster assessment
