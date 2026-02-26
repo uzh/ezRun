@@ -622,7 +622,6 @@ ezMethodScSeurat <- function(
     )
   }
 
-  qs2::qs_save(scData, "scData.qs2", nthreads = param$cores)
 
   makeRmdReport(
     param = param,
