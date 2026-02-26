@@ -24,3 +24,16 @@ pre code, pre, code {
   word-break: keep-all !important;
   word-wrap: initial !important;
 }
+
+
+/* Level 1 tabs: larger and bold */
+.nav-tabs > li > a {
+  font-size: 1.15em;
+  font-weight: bold;
+}
+
+/* Level 2 tabs (nested): normal size */
+.tab-content .nav-tabs > li > a {
+  font-size: 1.0em;
+  font-weight: normal;
+}
