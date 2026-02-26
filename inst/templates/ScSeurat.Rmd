@@ -463,39 +463,49 @@ htmlwidgets::prependContent(
 
 pca_name <- if ("pca.sketch" %in% names(scData@reductions)) "pca.sketch" else "pca"
 
-k <- param$npcs 
+  k <- param$npcs
 
-top_n <- max(80,k)
+  top_n <- max(80, k)
 
-stdev <- scData[[pca_name]]@stdev %>% head(top_n)
-pct  <- ((stdev^2) / sum(stdev^2)) * 100        
+  stdev <- scData[[pca_name]]@stdev %>% head(top_n)
+  pct  <- ((stdev^2) / sum(stdev^2)) * 100
+  cumu <- cumsum(pct)
 
-cumu    <- cumsum(pct)
-plot_df <- data.frame(pct = pct, cumu = cumu, rank = seq_along(pct))
-plot_df$included <- factor(plot_df$rank <= k, levels=c(TRUE, FALSE))
+  plot_df <- data.frame(
+    PC   = seq_along(pct),
+    pct  = pct,
+    cumu = cumu,
+    used = seq_along(pct) <= k)
 
-ggplot(plot_df, aes(x = cumu, 
-                    y = pct, 
-                    label = rank, 
-                    color = included)) +
-  geom_point(size = 3) + 
-  geom_text(vjust = -0.8, size = 3) +
-  geom_vline(xintercept = cumu[k], color = "grey50", linetype = "dashed") +
-  
-  labs(
-    title    = "Percent variance explained by the principal components",
-    subtitle = paste0("number of PCs used: ", k),
-    x = "Cumulative percent variance explained ",
-    y = "Per PC variance explained"
-  ) +
-  
-  annotate(
-    "text",
-    x = cumu[k], y = max(plot_df$pct),
-    label = paste0("Variance used: ", sprintf("%.2f", cumu[k]), "%"),
-    vjust = -0.4, size = 3, color = gg_color_hue(2)[1]
-  ) + 
-  theme_bw()
+  ggplot(plot_df, aes(x = PC)) +
+    geom_col(aes(y = pct, fill = used),
+             width = 0.7,
+             show.legend = FALSE) +
+    scale_fill_manual(values = c(`TRUE` = "grey20",
+                                 `FALSE` = "grey75")) +
+    geom_line(aes(y = cumu / max(cumu) * max(pct), group = 1),
+              linewidth = 0.5,
+              color = "orange") +
+    geom_point(aes(y = cumu / max(cumu) * max(pct)),
+               size = 1,
+               color = "orange") +
+    geom_vline(xintercept = k,
+               linetype = "dashed",
+               color = "grey40") +
+    scale_y_continuous(
+      name = "Variance explained (%)",
+      sec.axis = sec_axis(~ . / max(plot_df$pct) * 100,
+                          name = "Cumulative variance (%)")) +
+    labs(
+      title    = "PCA variance explained",
+      subtitle = paste0("PCs used: ", k, "   |   Cumulative: ", sprintf('%.2f%%', cumu[k])),
+      x = NULL) +
+    theme_bw() +
+    theme(
+      axis.title.y.left  = element_text(color = "grey20"),
+      axis.title.y.right = element_text(color = "orange"),
+      plot.title         = element_text(hjust = 0.5),
+      panel.grid.minor   = element_blank())
 
 ```
 
