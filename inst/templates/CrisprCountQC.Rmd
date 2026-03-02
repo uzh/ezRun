@@ -30,9 +30,9 @@ library(ggpubr)
 
 ```{r prepare data countQC, include=FALSE}
 debug <- FALSE
-if(!exists("rawData")){
-  rawData <- readRDS("rawData.rds")
-  # rawData <- readRDS("/srv/gstore/projects/p3682/CountQC_57360_2021-07-18--01-48-29/Count_QC/rawData.rds")
+if (!exists("rawData")) {
+  rawData <- ezLoadRobj("rawData")
+  # rawData <- ezLoadRobj("/srv/gstore/projects/p3682/CountQC_57360_2021-07-18--01-48-29/Count_QC/rawData")
   # ctrl+enter in RStudio set cwd in the Rmd folder.
 }
 output <- metadata(rawData)$output

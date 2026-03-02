@@ -176,3 +176,100 @@ test_that("Tests functions in util-genome.R", {
   region = splitRegion(coord)
   expect_is(region, "list")
 })
+
+test_that("Tests ezFindRobj()", {
+  # Create temp directory with test files
+
+tmpDir <- tempfile()
+  dir.create(tmpDir)
+  on.exit(unlink(tmpDir, recursive = TRUE))
+
+  # Create test files
+  testData <- list(a = 1, b = 2)
+  rdsPath <- file.path(tmpDir, "test.rds")
+  saveRDS(testData, rdsPath)
+
+  # Test with full path including extension
+  expect_equal(ezFindRobj(rdsPath), rdsPath)
+
+  # Test with base path (no extension)
+  basePath <- file.path(tmpDir, "test")
+  expect_equal(ezFindRobj(basePath), rdsPath)
+
+  # Test non-existent file returns NULL
+  expect_null(ezFindRobj(file.path(tmpDir, "nonexistent")))
+  expect_null(ezFindRobj(file.path(tmpDir, "nonexistent.rds")))
+
+  # Test priority: .qs2 > .qs > .rds
+  if (requireNamespace("qs2", quietly = TRUE)) {
+    qs2Path <- file.path(tmpDir, "test.qs2")
+    qs2::qs_save(testData, qs2Path)
+    expect_equal(ezFindRobj(basePath), qs2Path)
+  }
+})
+
+test_that("Tests ezRobjExists()", {
+  # Create temp directory with test file
+  tmpDir <- tempfile()
+  dir.create(tmpDir)
+  on.exit(unlink(tmpDir, recursive = TRUE))
+
+  testData <- list(a = 1, b = 2)
+  rdsPath <- file.path(tmpDir, "exists.rds")
+  saveRDS(testData, rdsPath)
+
+  # Test existing file
+  expect_true(ezRobjExists(rdsPath))
+  expect_true(ezRobjExists(file.path(tmpDir, "exists")))
+
+  # Test non-existent file
+  expect_false(ezRobjExists(file.path(tmpDir, "nonexistent")))
+  expect_false(ezRobjExists(file.path(tmpDir, "nonexistent.rds")))
+})
+
+test_that("Tests ezLoadRobj()", {
+  # Create temp directory with test files
+  tmpDir <- tempfile()
+  dir.create(tmpDir)
+  on.exit(unlink(tmpDir, recursive = TRUE))
+
+  testData <- list(a = 1:10, b = "test")
+
+  # Test loading .rds file
+  rdsPath <- file.path(tmpDir, "data.rds")
+  saveRDS(testData, rdsPath)
+  loaded <- ezLoadRobj(rdsPath)
+  expect_equal(loaded, testData)
+
+  # Test auto-detection with base path
+  basePath <- file.path(tmpDir, "data")
+  loaded2 <- ezLoadRobj(basePath)
+  expect_equal(loaded2, testData)
+
+  # Test error on non-existent file
+  expect_error(ezLoadRobj(file.path(tmpDir, "nonexistent")))
+  expect_error(ezLoadRobj(file.path(tmpDir, "nonexistent.rds")))
+
+  # Test qs format if available
+  if (requireNamespace("qs", quietly = TRUE)) {
+    qsPath <- file.path(tmpDir, "qsdata.qs")
+    qs::qsave(testData, qsPath)
+    loadedQs <- ezLoadRobj(qsPath)
+    expect_equal(loadedQs, testData)
+  }
+
+  # Test qs2 format if available
+  if (requireNamespace("qs2", quietly = TRUE)) {
+    qs2Path <- file.path(tmpDir, "qs2data.qs2")
+    qs2::qs_save(testData, qs2Path)
+    loadedQs2 <- ezLoadRobj(qs2Path)
+    expect_equal(loadedQs2, testData)
+  }
+})
+
+test_that("Tests .ezDefaultThreads()", {
+  threads <- ezRun:::.ezDefaultThreads()
+  expect_is(threads, "integer")
+  expect_gte(threads, 1L)
+  expect_lte(threads, 4L)
+})

@@ -23,21 +23,21 @@ library(ggplot2)
 library(DescTools)
 debug <- FALSE
 #dict <- ezRead.table('/srv/gstore/projects/p33200/CountSpacer_Baggen_2021_2024-04-07--14-01-14/QC_Screen/QC_Screen-sgRNA_counts.txt', row.names = #NULL)
-dict <- readRDS('dict.rds')
+dict <- ezLoadRobj("dict")
 res <- dict[!dict$isControl,]
-param <- readRDS('param.rds')
-output <- readRDS("output.rds")
-sortedCounts = log2(1+sort(res$Count))
+param <- ezLoadRobj("param")
+output <- ezLoadRobj("output")
+sortedCounts <- log2(1 + sort(res$Count))
 meanCounts <- mean(sortedCounts)
-upperCutOff = meanCounts + param$diffToLogMeanThreshold
-lowerCutOff = meanCounts - param$diffToLogMeanThreshold
-up_sgRNAs = sum(sortedCounts>upperCutOff)
-relUp_sgRNA = round(100 * (up_sgRNAs/length(sortedCounts)), digits = 2)
-down_sgRNAs = sum(sortedCounts<lowerCutOff)
-relDown_sgRNA = round(100 * (down_sgRNAs/length(sortedCounts)), digits = 2)
+upperCutOff <- meanCounts + param$diffToLogMeanThreshold
+lowerCutOff <- meanCounts - param$diffToLogMeanThreshold
+up_sgRNAs <- sum(sortedCounts > upperCutOff)
+relUp_sgRNA <- round(100 * (up_sgRNAs / length(sortedCounts)), digits = 2)
+down_sgRNAs <- sum(sortedCounts < lowerCutOff)
+relDown_sgRNA <- round(100 * (down_sgRNAs / length(sortedCounts)), digits = 2)
 
 
-stats <- readRDS('stats.rds')
+stats <- ezLoadRobj("stats")
 data = data.frame(group = rep('Count', nrow(dict)), counts = c(dict$Count))
 sampleName <- output$getNames()
 ```

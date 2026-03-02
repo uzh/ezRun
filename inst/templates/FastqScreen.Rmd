@@ -21,24 +21,26 @@ require(plotly)
 require(seqLogo)
 require(ezRun)
 
-output <- readRDS("output.rds")
-param <- readRDS("param.rds")
-input <- readRDS("input.rds")
-rawScreenResult <- readRDS("rawScreenResult.rds")
-procScreenResult <- readRDS("procScreenResult.rds")
-virusResult <- readRDS("virusResult.rds")
-if(file.exists('refseqResult.rds')){
-  refseqResult = readRDS("refseqResult.rds")
+output <- ezLoadRobj("output")
+param <- ezLoadRobj("param")
+input <- ezLoadRobj("input")
+rawScreenResult <- ezLoadRobj("rawScreenResult")
+procScreenResult <- ezLoadRobj("procScreenResult")
+virusResult <- ezLoadRobj("virusResult")
+
+if (ezRobjExists("refseqResult")) {
+  refseqResult <- ezLoadRobj("refseqResult")
 } else {
-  refseqResult = NULL
+  refseqResult <- NULL
 }
-krakenResult <- readRDS("krakenResult.rds")
-rRNAstrandResult <- readRDS("rRNAstrandResult.rds")
-PWMresult <- readRDS("PWMs.rds")
-dataset = input$meta
-samples = input$getNames()
-ans4Report <- data.frame(dataset[['Read Count']], check.names=FALSE, row.names=samples)
-colnames(ans4Report) <- 'Read Count' 
+
+krakenResult <- ezLoadRobj("krakenResult")
+rRNAstrandResult <- ezLoadRobj("rRNAstrandResult")
+PWMresult <- ezLoadRobj("PWMs")
+dataset <- input$meta
+samples <- input$getNames()
+ans4Report <- data.frame(dataset[['Read Count']], check.names = FALSE, row.names = samples)
+colnames(ans4Report) <- 'Read Count'
 
 debug <- FALSE
 ```

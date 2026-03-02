@@ -28,16 +28,17 @@ ezLoadPackage('Seurat')
 ```
 
 ```{r prepare data xeniumQC, include=FALSE}
+library(ezRun)
 # Read data with error handling
 if (!file.exists("metrics_summary.tsv")) {
   stop("metrics_summary.tsv not found in working directory: ", getwd())
 }
-if (!file.exists("param.rds")) {
-  stop("param.rds not found in working directory: ", getwd())
+if (!ezRobjExists("param")) {
+  stop("param object not found in working directory: ", getwd())
 }
 
 data <- ezRead.table("metrics_summary.tsv", row.names = NULL)
-param <- readRDS('param.rds')
+param <- ezLoadRobj("param")
 
 # Check data
 if (nrow(data) == 0) {

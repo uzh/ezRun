@@ -35,11 +35,11 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 ```
 
 ```{r}
-clusterInfoFile <- readRDS("clusterInfoFile.rds")
+clusterInfoFile <- ezLoadRobj("clusterInfoFile")
 pvalue_allMarkers <- 0.05
 sce <- loadHDF5SummarizedExperiment("sce_h5")
 sce.unfiltered <- loadHDF5SummarizedExperiment("sce.unfiltered_h5")
-param = metadata(sce)$param
+param <- metadata(sce)$param
 ```
 
 

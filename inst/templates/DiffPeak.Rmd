@@ -48,8 +48,8 @@ library(kableExtra)
 
 ```{r load_data}
 # setwdNew('/scratch/test-nfcore/o35568_NfCoreAtacSeq_2025-06-18--13-21-07/peakRes/')
-dds <- qs2::qs_read('dds.qs2')
-peakAnno <- qs2::qs_read('peakAnno.qs2')
+dds <- ezLoadRobj("dds")
+peakAnno <- ezLoadRobj("peakAnno")
 ```
 
 ```{r get_results}

@@ -54,8 +54,8 @@ library(DT)
 
 
 ```{r, echo=FALSE}
-##Load the data 
-physeq<-readRDS("physeq.rds")
+##Load the data
+physeq <- ezLoadRobj("physeq")
 #Filter samples: feature present in at least 10% of the samples
 physeq_filter = genefilter_sample(physeq, filterfun_sample(function(x) x > 1), A=0.1*nsamples(physeq))
 physeq1 = prune_taxa(physeq_filter, physeq)
@@ -67,27 +67,27 @@ physeq_Genus2 = transform_sample_counts(physeq_Genus, function(x){x / sum(x)})
 physeq_Species = tax_glom(physeq1, "Species", NArm = TRUE)
 physeq_Species2 = transform_sample_counts(physeq_Species, function(x){x / sum(x)})
 
-dada2 <- readRDS("dada2.rds")
-metadata<-readRDS("metadata.rds")
+dada2 <- ezLoadRobj("dada2")
+metadata <- ezLoadRobj("metadata")
 colnames(metadata) <- c("SampleID", "Group")
-shannon<-readRDS("shannon.rds")
-evenness<-readRDS("evenness.rds")
-richness<-readRDS("richness.rds")
-shannon<-shannon$data %>% rownames_to_column("SampleID")
-richness<- richness$data %>% rownames_to_column("SampleID")
-evenness<- evenness$data %>% rownames_to_column("SampleID") 
-jaccard<-readRDS("jaccard.rds")
-jaccardmatrix <- readRDS("jaccardmatrix.rds")
+shannon <- ezLoadRobj("shannon")
+evenness <- ezLoadRobj("evenness")
+richness <- ezLoadRobj("richness")
+shannon <- shannon$data %>% rownames_to_column("SampleID")
+richness <- richness$data %>% rownames_to_column("SampleID")
+evenness <- evenness$data %>% rownames_to_column("SampleID")
+jaccard <- ezLoadRobj("jaccard")
+jaccardmatrix <- ezLoadRobj("jaccardmatrix")
 jaccardmatrix <- as.matrix(jaccardmatrix$data)
-bray<-readRDS("bray.rds")
-braymatrix <- readRDS("braymatrix.rds")
+bray <- ezLoadRobj("bray")
+braymatrix <- ezLoadRobj("braymatrix")
 braymatrix <- as.matrix(braymatrix$data)
-unifrac <- readRDS("unifrac.rds")
-unifracmatrix <- readRDS("unifracmatrix.rds")
+unifrac <- ezLoadRobj("unifrac")
+unifracmatrix <- ezLoadRobj("unifracmatrix")
 unifracmatrix <- as.matrix(unifracmatrix$data)
 
 #Define grouping parameter
-params = readRDS("param.rds")
+params <- ezLoadRobj("param")
 grouping <- "Group"
 
 

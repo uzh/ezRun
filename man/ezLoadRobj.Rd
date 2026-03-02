@@ -4,38 +4,45 @@
 \alias{ezLoadRobj}
 \title{Load R objects from various serialized formats}
 \usage{
-ezLoadRobj(filePath, nthreads = 1L)
+ezLoadRobj(filePath, nthreads = .ezDefaultThreads())
 }
 \arguments{
-\item{filePath}{Character string specifying the path to the R object file.}
+\item{filePath}{Character string specifying the path to the R object file.
+Can be provided with or without extension for auto-detection.}
 
 \item{nthreads}{Integer specifying how many threads to use for qs/qs2 loading.
-Default is 1.}
+Default uses min(4, physical cores) with fallback to 1.}
 }
 \value{
 The R object stored in the file.
 }
 \description{
 This function loads R objects from files with different extensions (.qs2, .qs, .rds)
-by automatically detecting the file format based on the extension.
+by automatically detecting the file format based on the extension. If no extension
+is provided, it searches for files in priority order: .qs2 > .qs > .rds
 }
 \details{
 The function checks if the required packages are available (qs2, qs)
 and loads the appropriate package for the file extension.
 Supported formats:
 \itemize{
-  \item .qs2 - Uses qs2::qread() for fastest serialization
+  \item .qs2 - Uses qs2::qs_read() for fastest serialization
   \item .qs - Uses qs::qread() for fast serialization
   \item .rds - Uses base::readRDS() for standard R serialization
 }
+When no extension is provided, the function uses ezFindRobj() to search
+for files in priority order (.qs2 > .qs > .rds).
 }
 \examples{
 \dontrun{
-# Load a qs2 file
-my_object <- ezLoadRobj("path/to/data.qs2", nthreads=4L)
+# Load with auto-detection (no extension)
+my_object <- ezLoadRobj("path/to/data")
+
+# Load a qs2 file explicitly
+my_object <- ezLoadRobj("path/to/data.qs2", nthreads = 4L)
 
 # Load a qs file
-my_object <- ezLoadRobj("path/to/data.qs", nthreads=3L)
+my_object <- ezLoadRobj("path/to/data.qs", nthreads = 3L)
 
 # Load an rds file
 my_object <- ezLoadRobj("path/to/data.rds")

@@ -26,11 +26,12 @@ ezLoadPackage('Seurat')
 ```
 
 ```{r prepare data spatialQC, include=FALSE}
+library(ezRun)
 data <- ezRead.table("metrics_summary.tsv", row.names = NULL)
-param <- readRDS('param.rds')
-if(param$visiumType == 'SD'){
-    myPlots <- readRDS("myPlots.rds")
-    scData <- readRDS("scData.rds")
+param <- ezLoadRobj("param")
+if (param$visiumType == "SD") {
+  myPlots <- ezLoadRobj("myPlots")
+  scData <- ezLoadRobj("scData")
 }
 ```
 

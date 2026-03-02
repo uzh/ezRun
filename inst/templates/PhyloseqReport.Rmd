@@ -21,10 +21,11 @@ debug <- FALSE
 ```
 
 ```{r}
-QCChimeraObject <- readRDS("QCChimeraObject.rds")
-physeqFullObject <- readRDS("physeqFullObject.rds")
-physeqObjectNoTreeUnfilt <- readRDS("physeqObjectNoTreeUnfilt.rds")
-param = readRDS("param.rds")
+library(ezRun)
+QCChimeraObject <- ezLoadRobj("QCChimeraObject")
+physeqFullObject <- ezLoadRobj("physeqFullObject")
+physeqObjectNoTreeUnfilt <- ezLoadRobj("physeqObjectNoTreeUnfilt")
+param <- ezLoadRobj("param")
 numTopRanks <- param$numTopRanks 
 rawCount <- param$rawCount
 rank <- param$taxonomicRank

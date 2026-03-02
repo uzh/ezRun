@@ -27,11 +27,10 @@ library(scater)
 library(SingleCellExperiment)
 library(enrichR)
 library(SCpubr)
-library(qs2)
 
 library(DT)
 library(ggtext)
-library(grid) 
+library(grid)
 library(htmltools)
 library(patchwork)
 library(scales)
@@ -52,28 +51,28 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 
 ```{r}
 posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
-param <- qs_read("param.qs2")
+param <- ezLoadRobj("param")
 lambda <- param$lambda  # BANKSY spatial weighting parameter
-input <- qs_read("input.qs2")
-output <- qs_read("output.qs2")
-#scData <- qs_read("scData.qs2")
-scData <- qs_read("scData.unfiltered.qs2")
+input <- ezLoadRobj("input")
+output <- ezLoadRobj("output")
+#scData <- ezLoadRobj("scData")
+scData <- ezLoadRobj("scData.unfiltered")
 
-nCountCol <- grep('^nCount_Spatial.*', 
-                  colnames(scData@meta.data), 
+nCountCol <- grep('^nCount_Spatial.*',
+                  colnames(scData@meta.data),
                   value=TRUE) %>% head(1)
 
-nFeatureCol <- grep('^nFeature_Spatial.*', 
-                    colnames(scData@meta.data), 
+nFeatureCol <- grep('^nFeature_Spatial.*',
+                    colnames(scData@meta.data),
                     value=TRUE) %>% head(1)
 
 imageName <- names(scData@images)
 
-#allCellsMeta <- qs_read("allCellsMeta.qs2")
+#allCellsMeta <- ezLoadRobj("allCellsMeta")
 #sampleName <- input$getNames()
 
-if (file.exists("cellsPerGeneFraction.qs2")){
-  cellsPerGeneFraction <-  qs_read("cellsPerGeneFraction.qs2")
+if (ezRobjExists("cellsPerGeneFraction")) {
+  cellsPerGeneFraction <- ezLoadRobj("cellsPerGeneFraction")
 } else {
   cellsPerGeneFraction <- NULL
 }

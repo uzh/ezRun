@@ -21,11 +21,10 @@ library(patchwork)
 library(kableExtra)
 library(DSS)
 require(bsseq)
-library(qs2)
 ```
 
 ```{r prepare data dmrseq, include=FALSE}
-param <- readRDS('param.rds')
+param <- ezLoadRobj("param")
 n <- 100
 gtf <- import(param$ezRef@refFeatureFile)
 gtf <- gtf[gtf$type == 'gene',]
@@ -36,26 +35,10 @@ genesAnnot <- ezRead.table(param$genesAnnotFile, row.names = NULL)
 genesAnnot <- genesAnnot[,c('gene_id', 'gene_name', 'description')]
 
 #Load result files:
-if(file.exists('bismarkBSseq_filtered.qs2')){
-    bismarkBSseq_filtered <- qs_read('bismarkBSseq_filtered.qs2')
-} else {
-    bismarkBSseq_filtered <- readRDS("bismarkBSseq_filtered.rds")
-}
-if(file.exists('dmrseq_results.qs2')){
-    regions <- qs_read('dmrseq_results.qs2')
-} else {
-    regions <- readRDS("dmrseq_results.rds")
-} 
-if(file.exists('large_blocks.qs2')){
-    blocks <- qs_read('large_blocks.qs2')
-} else {
-    blocks <- readRDS("large_blocks.rds")
-}
-if(file.exists('dss_results.qs2')){
-    dssResults <- qs_read('dss_results.qs2')
-} else {
-    dssResults <- readRDS("dss_results.rds")
-}
+bismarkBSseq_filtered <- ezLoadRobj("bismarkBSseq_filtered")
+regions <- ezLoadRobj("dmrseq_results")
+blocks <- ezLoadRobj("large_blocks")
+dssResults <- ezLoadRobj("dss_results")
 ```
 
 # {.tabset}

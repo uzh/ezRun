@@ -21,8 +21,8 @@ library(kableExtra)
 ```
 
 ```{r input, include=FALSE}
-baseUrl <- readRDS("baseUrlPeaks.rds")
-sampleNames <- readRDS("sampleNames.rds")
+baseUrl <- ezLoadRobj("baseUrlPeaks")
+sampleNames <- ezLoadRobj("sampleNames")
 ```
 
 ## Plots {.tabset}

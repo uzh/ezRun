@@ -42,58 +42,61 @@ library(patchwork)
 library(SCpubr)
 library(dplyr)
 library(cellxgenedp)
-library(qs2)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 
 # clusterInfoFile <- "clusterInfos.xlsx" # -- not used
 posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
-param <- readRDS("param.rds")
-scData <- qs_read('scData.qs2', nthreads=param$cores)
-output <- readRDS("output.rds")
+param <- ezLoadRobj("param")
+scData <- ezLoadRobj("scData", nthreads = param$cores)
+output <- ezLoadRobj("output")
 scData$qc.doublet <- scData$doubletClass %in% "doublet"
-allCellsMeta <- readRDS("allCellsMeta.rds")
+allCellsMeta <- ezLoadRobj("allCellsMeta")
 species <- getSpecies(param$refBuild)
-if (file.exists("aziResults.rds")){
-  aziResults <- readRDS("aziResults.rds")
+
+if (ezRobjExists("aziResults")) {
+  aziResults <- ezLoadRobj("aziResults")
   scData <- AddMetaData(scData, aziResults)
 } else {
   aziResults <- NULL
 }
 
-if (file.exists("cellxgeneResults.rds")){
-  cellxgeneResults <- readRDS("cellxgeneResults.rds") 
+if (ezRobjExists("cellxgeneResults")) {
+  cellxgeneResults <- ezLoadRobj("cellxgeneResults")
   scData <- AddMetaData(scData, cellxgeneResults)
 } else {
   cellxgeneResults <- NULL
 }
 
-if (file.exists("singler.results.rds")){
-  singler.results <- readRDS("singler.results.rds")
+if (ezRobjExists("singler.results")) {
+  singler.results <- ezLoadRobj("singler.results")
 } else {
   singler.results <- NULL
 }
-if (file.exists("cells.AUC.rds")){
-  cells.AUC <- readRDS("cells.AUC.rds")
+
+if (ezRobjExists("cells.AUC")) {
+  cells.AUC <- ezLoadRobj("cells.AUC")
 } else {
   cells.AUC <- NULL
 }
-if (file.exists("enrichRout.rds")){
-  enrichRout <- readRDS("enrichRout.rds")
-  if(length(enrichRout) == 1){ ##enrichR call creates empty file
-    enrichRout <- NULL 
+
+if (ezRobjExists("enrichRout")) {
+  enrichRout <- ezLoadRobj("enrichRout")
+  if (length(enrichRout) == 1) { ##enrichR call creates empty file
+    enrichRout <- NULL
   }
 } else {
   enrichRout <- NULL
 }
-if (file.exists("cellsPerGeneFraction.rds")){
-  cellsPerGeneFraction <-  readRDS("cellsPerGeneFraction.rds")
+
+if (ezRobjExists("cellsPerGeneFraction")) {
+  cellsPerGeneFraction <- ezLoadRobj("cellsPerGeneFraction")
 } else {
   cellsPerGeneFraction <- NULL
 }
 
 # Load scType results (only tissue_type string, annotation is in scData metadata)
-if (file.exists("sctype_results.rds")){
-  sctype_results <- readRDS("sctype_results.rds")
+if (ezRobjExists("sctype_results")) {
+  sctype_results <- ezLoadRobj("sctype_results")
   # Handle old format where scData was saved inside results
   if ("scData" %in% names(sctype_results)) sctype_results$scData <- NULL
   sctype_available <- "sctype_classification" %in% colnames(scData@meta.data)

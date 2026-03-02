@@ -16,8 +16,9 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 library(cowplot)
 library(plotly)
-dataFiles = readRDS("dataFiles.rds")
-plots = readRDS("plots.rds")
+library(ezRun)
+dataFiles <- ezLoadRobj("dataFiles")
+plots <- ezLoadRobj("plots")
 
 # ## start of debug
 # # require(ezRun)

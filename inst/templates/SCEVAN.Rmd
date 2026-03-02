@@ -28,7 +28,6 @@ library(ezRun)
 
 # Load required packages
 ezLoadPackage('Seurat')
-ezLoadPackage('qs2')
 ezLoadPackage('dplyr')
 ezLoadPackage('tidyr')
 ezLoadPackage('ggplot2')
@@ -43,18 +42,17 @@ ezLoadPackage('pals')
 
 ```{r load data, include=FALSE}
 # Load parameters
-param <- readRDS('param.rds')
+param <- ezLoadRobj("param")
 
 # Load Seurat object
-seuratObj <- qs2::qs_read("seurat_object.qs2", nthreads = param$cores)
+seuratObj <- ezLoadRobj("seurat_object", nthreads = param$cores)
 
 # Load SCEVAN results
-resultsList <- qs2::qs_read("scevan_results_list.qs2", nthreads = param$cores)
+resultsList <- ezLoadRobj("scevan_results_list", nthreads = param$cores)
 
 # Load multi-sample results if available
-multiSampleFile <- "scevan_multi_sample_results.qs2"
-if (file.exists(multiSampleFile)) {
-  multiSampleResults <- qs2::qs_read(multiSampleFile, nthreads = param$cores)
+if (ezRobjExists("scevan_multi_sample_results")) {
+  multiSampleResults <- ezLoadRobj("scevan_multi_sample_results", nthreads = param$cores)
 } else {
   multiSampleResults <- NULL
 }

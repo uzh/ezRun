@@ -19,10 +19,11 @@ knitr::opts_chunk$set(echo = TRUE)
 require(knitr)
 require(kableExtra)
 require(plotly)
+require(ezRun)
 
-output <- readRDS("output.rds")
-se <- readRDS("deResult.rds")
-param <- readRDS("param.rds")
+output <- ezLoadRobj("output")
+se <- ezLoadRobj("deResult")
+param <- ezLoadRobj("param")
 
 
 debug <- FALSE

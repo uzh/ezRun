@@ -47,8 +47,8 @@ library(kableExtra)
 ```
 
 ```{r load_data}
-dds <- qs2::qs_read('dds.qs2')
-peakAnno <- qs2::qs_read('peakAnno.qs2')
+dds <- ezLoadRobj("dds")
+peakAnno <- ezLoadRobj("peakAnno")
 ```
 
 ```{r get_results}

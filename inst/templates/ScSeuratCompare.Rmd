@@ -23,7 +23,6 @@ library(tidyverse)
 library(ezRun)
 library(Seurat)
 library(SCpubr)
-library(qs2)
 library(dittoSeq)
 library(sccomp)
 library(cmdstanr)
@@ -37,26 +36,20 @@ cmdstanr::set_cmdstan_path("/misc/ngseq12/src/CmdStan/cmdstan-2.36.0/cmdstan-2.3
 ```
 
 ```{r load rds and qs}
-# Always load param.rds first since it's guaranteed
-param = readRDS("param.rds")
+# Load param first
+param <- ezLoadRobj("param")
 
-# Then try to load the other files with error handling
+# Load scData with error handling
 tryCatch({
-  scData <- qs_read('scData.qs2', nthreads=param$cores)
+  scData <- ezLoadRobj("scData", nthreads = param$cores)
 }, error = function(e) {
-  message("Could not load scData.qs2, trying scData.rds instead")
-  tryCatch({
-    scData <- readRDS("scData.rds")
-  }, error = function(e) {
-    message("Could not load scData.rds either: ", e$message)
-  })
+  message("Could not load scData: ", e$message)
 })
 
-tryCatch({
-  sccomp_res <- readRDS("sccomp_results.rds")
-}, error = function(e) {
-  message("Could not load sccomp_results.rds: ", e$message)
-})
+# Load sccomp results
+if (ezRobjExists("sccomp_results")) {
+  sccomp_res <- ezLoadRobj("sccomp_results")
+}
 ```
 
 ```{r set idents}

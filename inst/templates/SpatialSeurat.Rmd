@@ -33,37 +33,39 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.tabl
 ```{r}
 posMarkers <- readxl::read_xlsx("posMarkers.xlsx")
 spatialMarkers <- readxl::read_xlsx("spatialMarkers.xlsx")
-param <- readRDS("param.rds")
-input <- readRDS("input.rds")
-output <- readRDS("output.rds")
-scData <- readRDS("scData.rds")
-scData.unfiltered_spatial <- readRDS("scData.unfiltered.rds")
+param <- ezLoadRobj("param")
+input <- ezLoadRobj("input")
+output <- ezLoadRobj("output")
+scData <- ezLoadRobj("scData")
+scData.unfiltered_spatial <- ezLoadRobj("scData.unfiltered")
 imageName <- names(scData@images)
 names(scData.unfiltered_spatial@images) <- imageName
 scData.unfiltered_spatial@images[[imageName]]@scale.factors$lowres=scData@images[[imageName]]@scale.factors$lowres
-scDataRaw <- readRDS("scData.raw.rds")
-allCellsMeta <- readRDS("allCellsMeta.rds")
+scDataRaw <- ezLoadRobj("scData.raw")
+allCellsMeta <- ezLoadRobj("allCellsMeta")
 sampleName <- input$getNames()
 
 coord <- GetTissueCoordinates(object = scData@images[[imageName]])
 #myRatio <- (max(coord$imagerow) - min(coord$imagerow)) / (max(coord$imagecol) - min(coord$imagecol))
 myRatio <- (max(coord$x) - min(coord$x)) / (max(coord$y) - min(coord$y))
 
-if (file.exists("cellsPerGeneFraction.rds")){
-    cellsPerGeneFraction <-  readRDS("cellsPerGeneFraction.rds")
+if (ezRobjExists("cellsPerGeneFraction")) {
+  cellsPerGeneFraction <- ezLoadRobj("cellsPerGeneFraction")
 } else {
   cellsPerGeneFraction <- NULL
 }
-if (file.exists("enrichRout.rds")){
-  enrichRout <- readRDS("enrichRout.rds")
-  if(length(enrichRout) == 1){ ##enrichR call creates empty file
-     enrichRout <- NULL 
+
+if (ezRobjExists("enrichRout")) {
+  enrichRout <- ezLoadRobj("enrichRout")
+  if (length(enrichRout) == 1) { ##enrichR call creates empty file
+    enrichRout <- NULL
   }
 } else {
   enrichRout <- NULL
 }
-if (file.exists("aziResults.rds")){
-  aziResults <- readRDS("aziResults.rds")
+
+if (ezRobjExists("aziResults")) {
+  aziResults <- ezLoadRobj("aziResults")
 } else {
   aziResults <- NULL
 }

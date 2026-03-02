@@ -1026,41 +1026,76 @@ ezLoadPackage <- function(packageName) {
   })
 }
 
+##' @title Compute Default Thread Count for qs/qs2
+##' @description
+##' Internal helper to compute a safe default thread count for parallel loading.
+##' Uses physical cores capped at 4, with fallback to 1 if detection fails.
+##' @return Integer number of threads to use.
+##' @keywords internal
+.ezDefaultThreads <- function() {
+  cores <- parallel::detectCores(logical = FALSE)
+  if (is.na(cores)) {
+    cores <- 1L
+  }
+  min(4L, cores)
+}
+
 ##' @title Load R objects from various serialized formats
 ##' @description
 ##' This function loads R objects from files with different extensions (.qs2, .qs, .rds)
-##' by automatically detecting the file format based on the extension.
+##' by automatically detecting the file format based on the extension. If no extension
+##' is provided, it searches for files in priority order: .qs2 > .qs > .rds
 ##' @param filePath Character string specifying the path to the R object file.
+##' Can be provided with or without extension for auto-detection.
 ##' @param nthreads Integer specifying how many threads to use for qs/qs2 loading.
-##' Default is 1.
+##' Default uses min(4, physical cores) with fallback to 1.
 ##' @return The R object stored in the file.
 ##' @details
 ##' The function checks if the required packages are available (qs2, qs)
 ##' and loads the appropriate package for the file extension.
 ##' Supported formats:
 ##' \itemize{
-##'   \item .qs2 - Uses qs2::qread() for fastest serialization
+##'   \item .qs2 - Uses qs2::qs_read() for fastest serialization
 ##'   \item .qs - Uses qs::qread() for fast serialization
 ##'   \item .rds - Uses base::readRDS() for standard R serialization
 ##' }
+##' When no extension is provided, the function uses ezFindRobj() to search
+##' for files in priority order (.qs2 > .qs > .rds).
 ##' @template roxygen-template
 ##' @examples
 ##' \dontrun{
-##' # Load a qs2 file
-##' my_object <- ezLoadRobj("path/to/data.qs2", nthreads=4L)
+##' # Load with auto-detection (no extension)
+##' my_object <- ezLoadRobj("path/to/data")
+##'
+##' # Load a qs2 file explicitly
+##' my_object <- ezLoadRobj("path/to/data.qs2", nthreads = 4L)
 ##'
 ##' # Load a qs file
-##' my_object <- ezLoadRobj("path/to/data.qs", nthreads=3L)
+##' my_object <- ezLoadRobj("path/to/data.qs", nthreads = 3L)
 ##'
 ##' # Load an rds file
 ##' my_object <- ezLoadRobj("path/to/data.rds")
 ##' }
-ezLoadRobj <- function(filePath, nthreads = 1L) {
+ezLoadRobj <- function(filePath, nthreads = .ezDefaultThreads()) {
   qsAvailable <- require(qs, quietly = TRUE)
   qs2Available <- require(qs2, quietly = TRUE)
 
   # Extract file extension
   fileExt <- tolower(tools::file_ext(filePath))
+  knownExtensions <- c("qs2", "qs", "rds")
+
+  # If no known extension, use auto-detection
+  if (!(fileExt %in% knownExtensions)) {
+    foundPath <- ezFindRobj(filePath)
+    if (is.null(foundPath)) {
+      stop(
+        "No file found for base path: ", filePath,
+        ". Searched for extensions: ", paste(knownExtensions, collapse = ", ")
+      )
+    }
+    filePath <- foundPath
+    fileExt <- tolower(tools::file_ext(filePath))
+  }
 
   # Check if file exists
   stopifnot("File does not exist" = file.exists(filePath))
@@ -1072,13 +1107,13 @@ ezLoadRobj <- function(filePath, nthreads = 1L) {
       stopifnot(
         "Package 'qs2' is required to load .qs2 files. Please install it with: install.packages('qs2')" = qs2Available
       )
-      return(qs2::qs_read(filePath))
+      return(qs2::qs_read(filePath, nthreads = nthreads))
     },
     qs = {
       stopifnot(
         "Package 'qs' is required to load .qs files. Please install it with: install.packages('qs')" = qsAvailable
       )
-      return(qs::qread(filePath))
+      return(qs::qread(filePath, nthreads = nthreads))
     },
     rds = {
       return(readRDS(filePath))
@@ -1091,6 +1126,62 @@ ezLoadRobj <- function(filePath, nthreads = 1L) {
       )
     }
   )
+}
+
+##' @title Find R Object File
+##' @description
+##' Finds an R object file by checking for multiple extensions in priority order.
+##' If the provided path already has a known extension (.qs2, .qs, .rds), checks
+##' if that file exists. Otherwise, tries each extension in priority order.
+##' @param basePath Character string specifying the base path (with or without extension).
+##' @return The path to the found file, or NULL if no file exists.
+##' @details
+##' Extension priority order: .qs2 > .qs > .rds (newer/faster formats preferred)
+##' @template roxygen-template
+##' @examples
+##' \dontrun{
+##' # Find file, auto-detecting extension
+##' path <- ezFindRobj("data/results")  # might return "data/results.qs2"
+##'
+##' # If exact path provided
+##' path <- ezFindRobj("data/results.rds")  # returns same if exists
+##' }
+ezFindRobj <- function(basePath) {
+  knownExtensions <- c("qs2", "qs", "rds")
+  fileExt <- tolower(tools::file_ext(basePath))
+
+  # If path already has known extension, check if it exists
+  if (fileExt %in% knownExtensions) {
+    if (file.exists(basePath)) {
+      return(basePath)
+    }
+    return(NULL)
+  }
+
+  # Try each extension in priority order
+  for (ext in knownExtensions) {
+    candidate <- paste0(basePath, ".", ext)
+    if (file.exists(candidate)) {
+      return(candidate)
+    }
+  }
+  return(NULL)
+}
+
+##' @title Check if R Object File Exists
+##' @description
+##' Checks whether an R object file exists with any supported extension.
+##' @param basePath Character string specifying the base path (with or without extension).
+##' @return Logical indicating whether a matching file exists.
+##' @template roxygen-template
+##' @examples
+##' \dontrun{
+##' if (ezRobjExists("optional_data")) {
+##'   data <- ezLoadRobj("optional_data")
+##' }
+##' }
+ezRobjExists <- function(basePath) {
+  !is.null(ezFindRobj(basePath))
 }
 
 setNFTmpDir <- function() {

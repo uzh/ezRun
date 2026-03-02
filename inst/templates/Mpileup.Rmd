@@ -27,11 +27,11 @@ library(htmlwidgets)
 library(tidyverse)
 library(readxl)
 
-output <- readRDS("output.rds")
-param <- readRDS("param.rds")
-input <- readRDS("input.rds")
-gt <- readRDS("gt.rds")
-chromSizes <- readRDS("chromSizes.rds")
+output <- ezLoadRobj("output")
+param <- ezLoadRobj("param")
+input <- ezLoadRobj("input")
+gt <- ezLoadRobj("gt")
+chromSizes <- ezLoadRobj("chromSizes")
 dataset = input$meta
 samples = input$getNames()
 

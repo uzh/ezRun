@@ -31,14 +31,14 @@ library(ggiraph)
 ```
 
 ```{r prepare data RNABamStats, include=FALSE}
-if(!exists("dataset")){
-  dataset <- readRDS("dataset.rds")
+if (!exists("dataset")) {
+  dataset <- ezLoadRobj("dataset")
 }
-if(!exists("param")){
-  param <- readRDS("param.rds")
+if (!exists("param")) {
+  param <- ezLoadRobj("param")
 }
-if(!exists("resultList")){
-  resultList <- readRDS("resultList.rds")
+if (!exists("resultList")) {
+  resultList <- ezLoadRobj("resultList")
 }
 
 

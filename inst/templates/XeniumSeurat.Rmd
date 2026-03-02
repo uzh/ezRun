@@ -22,7 +22,6 @@ library(ggplot2)
 library(patchwork)
 library(dplyr)
 library(ezRun)
-library(qs2)
 library(DT)
 library(pals)
 library(scales)
@@ -43,12 +42,12 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
 
 ```{r load_data}
 # Load pre-computed data
-scData <- qs_read("scData.qs2")
-param <- qs_read("param.qs2")
+scData <- ezLoadRobj("scData")
+param <- ezLoadRobj("param")
 
 # Load unfiltered data if available
-if (file.exists("scData.unfiltered.qs2")) {
-  scData_unfiltered <- qs_read("scData.unfiltered.qs2")
+if (ezRobjExists("scData.unfiltered")) {
+  scData_unfiltered <- ezLoadRobj("scData.unfiltered")
   has_unfiltered <- TRUE
 } else {
   has_unfiltered <- FALSE

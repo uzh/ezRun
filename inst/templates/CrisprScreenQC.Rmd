@@ -20,14 +20,15 @@ require(knitr)
 require(kableExtra)
 require(plotly)
 require(seqLogo)
+require(ezRun)
 
-output <- readRDS("output.rds")
-param <- readRDS("param.rds")
-input <- readRDS("input.rds")
-data <- readRDS("data.rds")
+output <- ezLoadRobj("output")
+param <- ezLoadRobj("param")
+input <- ezLoadRobj("input")
+data <- ezLoadRobj("data")
 
-dataset = input$meta
-samples = input$getNames()
+dataset <- input$meta
+samples <- input$getNames()
 
 debug <- FALSE
 ```

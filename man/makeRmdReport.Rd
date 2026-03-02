@@ -10,7 +10,7 @@ makeRmdReport(
   rmdFile = "",
   selfContained = TRUE,
   reportTitle = "SUSHI Report",
-  use.qs2 = FALSE,
+  use.qs2 = TRUE,
   nthreads = 4
 )
 }

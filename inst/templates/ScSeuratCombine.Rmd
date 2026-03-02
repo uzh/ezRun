@@ -31,22 +31,22 @@ library(AUCell)
 library(ezRun)
 library(HDF5Array)
 library(enrichR)
-library(qs2)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 ```
 
 ```{r data-loading}
-param <- readRDS("param.rds")
-scData <- qs_read('scData.qs2', nthreads=param$cores)
-output <- readRDS("output.rds")
+param <- ezLoadRobj("param")
+scData <- ezLoadRobj("scData", nthreads = param$cores)
+output <- ezLoadRobj("output")
 species <- getSpecies(param$refBuild)
-if (file.exists("singler.results.rds")){
-  singler.results <- readRDS("singler.results.rds")
+
+if (ezRobjExists("singler.results")) {
+  singler.results <- ezLoadRobj("singler.results")
 } else {
   singler.results <- NULL
 }
 
-if ("Azimuth.celltype.l1" %in% colnames(scData@meta.data)){
+if ("Azimuth.celltype.l1" %in% colnames(scData@meta.data)) {
   aziResults <- TRUE
 } else {
   aziResults <- NULL
@@ -56,24 +56,24 @@ if ("Azimuth.celltype.l1" %in% colnames(scData@meta.data)){
 # or load from file if available
 if ("predicted.id.cellxgene.authorlabel" %in% colnames(scData@meta.data)) {
   cellxgeneResults <- TRUE
-} else if (file.exists("cellxgeneResults.rds")) {
-  cellxgeneResults <- readRDS("cellxgeneResults.rds")
+} else if (ezRobjExists("cellxgeneResults")) {
+  cellxgeneResults <- ezLoadRobj("cellxgeneResults")
   scData <- AddMetaData(scData, cellxgeneResults)
   cellxgeneResults <- TRUE
 } else {
   cellxgeneResults <- NULL
 }
 
-if (file.exists("cells.AUC.rds")){
-  cells.AUC <- readRDS("cells.AUC.rds")
+if (ezRobjExists("cells.AUC")) {
+  cells.AUC <- ezLoadRobj("cells.AUC")
 } else {
   cells.AUC <- NULL
 }
 
-if (file.exists("enrichRout.rds")){
-  enrichRout <- readRDS("enrichRout.rds")
-  if(length(enrichRout) == 1){ ##enrichR call creates empty file
-    enrichRout <- NULL 
+if (ezRobjExists("enrichRout")) {
+  enrichRout <- ezLoadRobj("enrichRout")
+  if (length(enrichRout) == 1) { ##enrichR call creates empty file
+    enrichRout <- NULL
   }
 } else {
   enrichRout <- NULL
