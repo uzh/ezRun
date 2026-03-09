@@ -527,6 +527,7 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents, sprintf("reference,%s", vdjRefDir))
     fileContents <- append(fileContents, c(""))
   }
+  featureSectionStarted <- FALSE
   if (hasFb) {
     featureRefFile <- file.path(param$dataRoot, param$FeatureBarcodeFile)
     fileContents <- append(fileContents, "[feature]")
@@ -534,7 +535,11 @@ buildMultiConfigFile <- function(input, param, dirList) {
       fileContents,
       sprintf("reference,%s", featureRefFile)
     )
-    fileContents <- append(fileContents, c(""))
+    featureSectionStarted <- TRUE
+    # Only add blank line if HTO antibody section won't follow
+    if (!(hasMult && param$MultiplexingType == "antibody")) {
+      fileContents <- append(fileContents, c(""))
+    }
   }
   if (hasMult) {
     multiplexBarcodeFile <- NULL # Initialize as NULL; only created for CMO/HTO
@@ -546,7 +551,10 @@ buildMultiConfigFile <- function(input, param, dirList) {
         fileext = ".csv"
       )
       multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
-      fileContents <- append(fileContents, "[feature]")
+      # Merge into existing [feature] section if FeatureBarcoding already started one
+      if (!featureSectionStarted) {
+        fileContents <- append(fileContents, "[feature]")
+      }
       fileContents <- append(
         fileContents,
         sprintf("reference,%s", multiplexBarcodeFile)
@@ -611,15 +619,18 @@ buildMultiConfigFile <- function(input, param, dirList) {
   # Multiplexing library entry - skip for OCM (multiplexing info embedded in GEX reads)
   if (hasMult && !isFixed && param$MultiplexingType != "ocm") {
     if (param$MultiplexingType == "antibody") {
-      fileContents <- append(
-        fileContents,
-        sprintf(
-          "%s,%s,%s",
-          dirList$featureName,
-          dirList$featureDirs,
-          "Antibody Capture"
+      # Skip if FeatureBarcoding already added the same Antibody Capture library
+      if (!hasFb) {
+        fileContents <- append(
+          fileContents,
+          sprintf(
+            "%s,%s,%s",
+            dirList$featureName,
+            dirList$featureDirs,
+            "Antibody Capture"
+          )
         )
-      )
+      }
     } else {
       fileContents <- append(
         fileContents,
