@@ -622,7 +622,6 @@ ezMethodScSeurat <- function(
     )
   }
 
-
   makeRmdReport(
     param = param,
     output = output,
@@ -684,7 +683,7 @@ addCellQcToSeurat <- function(
         type = "lower"
       )
     } else {
-      scData$qc.lib <- FALSE  # No filtering if neither threshold nor nmad set
+      scData$qc.lib <- FALSE # No filtering if neither threshold nor nmad set
     }
   } else {
     scData$qc.lib <- scData@meta.data[, att_nCounts] < param$nUMI
@@ -769,7 +768,9 @@ querySignificantClusterAnnotationEnrichR <- function(
 ) {
   # Return NULL if no databases are specified
   if (!ezIsSpecified(dbs)) {
-    futile.logger::flog.info("No enrichR databases specified, skipping enrichment analysis")
+    futile.logger::flog.info(
+      "No enrichR databases specified, skipping enrichment analysis"
+    )
     return(NULL)
   }
 
@@ -860,5 +861,3 @@ computePathwayActivityAnalysis <- function(cells, species) {
 
   return(activities)
 }
-
-
