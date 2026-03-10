@@ -527,39 +527,53 @@ buildMultiConfigFile <- function(input, param, dirList) {
     fileContents <- append(fileContents, sprintf("reference,%s", vdjRefDir))
     fileContents <- append(fileContents, c(""))
   }
-  featureSectionStarted <- FALSE
-  if (hasFb) {
+  combinedFeatureFile <- NULL
+  if (hasFb && hasMult && param$MultiplexingType == "antibody") {
+    # Both CITE-seq ADT and HTO antibody multiplexing: use a single combined
+    # feature reference file (CellRanger only allows one reference per [feature])
+    combinedFeatureFile <- tempfile(
+      pattern = "combined_feature_ref",
+      tmpdir = ".",
+      fileext = ".csv"
+    )
+    combinedFeatureFile <- file.path(getwd(), combinedFeatureFile)
+    fileContents <- append(fileContents, "[feature]")
+    fileContents <- append(
+      fileContents,
+      sprintf("reference,%s", combinedFeatureFile)
+    )
+    fileContents <- append(fileContents, c(""))
+  } else if (hasFb) {
     featureRefFile <- file.path(param$dataRoot, param$FeatureBarcodeFile)
     fileContents <- append(fileContents, "[feature]")
     fileContents <- append(
       fileContents,
       sprintf("reference,%s", featureRefFile)
     )
-    featureSectionStarted <- TRUE
-    # Only add blank line if HTO antibody section won't follow
-    if (!(hasMult && param$MultiplexingType == "antibody")) {
-      fileContents <- append(fileContents, c(""))
-    }
+    fileContents <- append(fileContents, c(""))
   }
   if (hasMult) {
     multiplexBarcodeFile <- NULL # Initialize as NULL; only created for CMO/HTO
     if (param$MultiplexingType == "antibody") {
       # HTO/Hashtag multiplexing - needs [feature] section
-      multiplexBarcodeFile <- tempfile(
-        pattern = "multi_barcode_set",
-        tmpdir = ".",
-        fileext = ".csv"
-      )
-      multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
-      # Merge into existing [feature] section if FeatureBarcoding already started one
-      if (!featureSectionStarted) {
+      if (!is.null(combinedFeatureFile)) {
+        # Combined mode: HTO barcodes will be merged with ADT into combinedFeatureFile
+        multiplexBarcodeFile <- combinedFeatureFile
+      } else {
+        # HTO only (no CITE-seq ADT panel)
+        multiplexBarcodeFile <- tempfile(
+          pattern = "multi_barcode_set",
+          tmpdir = ".",
+          fileext = ".csv"
+        )
+        multiplexBarcodeFile <- file.path(getwd(), multiplexBarcodeFile)
         fileContents <- append(fileContents, "[feature]")
+        fileContents <- append(
+          fileContents,
+          sprintf("reference,%s", multiplexBarcodeFile)
+        )
+        fileContents <- append(fileContents, c(""))
       }
-      fileContents <- append(
-        fileContents,
-        sprintf("reference,%s", multiplexBarcodeFile)
-      )
-      fileContents <- append(fileContents, c(""))
     } else if (!isFixed && param$MultiplexingType != "ocm") {
       # CMO/CellPlex multiplexing - needs cmo-set reference
       multiplexBarcodeFile <- tempfile(
@@ -696,11 +710,21 @@ buildMultiConfigFile <- function(input, param, dirList) {
         )))
         multiplexBarcodeSet <- multiplexBarcodeSet %>%
           filter(id %in% all_barcode_ids)
-        data.table::fwrite(
-          multiplexBarcodeSet,
-          file = multiplexBarcodeFile,
-          sep = ","
-        )
+        if (!is.null(combinedFeatureFile)) {
+          # Merge ADT cocktail reference with filtered HTO barcodes into one file
+          adtRef <- read_csv(
+            file.path(param$dataRoot, param$FeatureBarcodeFile),
+            show_col_types = FALSE
+          )
+          combined <- bind_rows(adtRef, multiplexBarcodeSet)
+          data.table::fwrite(combined, file = multiplexBarcodeFile, sep = ",")
+        } else {
+          data.table::fwrite(
+            multiplexBarcodeSet,
+            file = multiplexBarcodeFile,
+            sep = ","
+          )
+        }
 
         if (param$MultiplexingType == "antibody") {
           fileContents <- append(
