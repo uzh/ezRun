@@ -347,27 +347,34 @@ ezMethodScSeurat <- function(
         rawCts <- rawCts[featInfo$gene_id, ]
       }
       stopifnot(rownames(rawCts) == featInfo$gene_id)
-      emptyStats <- emptyDrops(
-        rawCts[!featInfo$isMito & !featInfo$isRiboprot, ],
-        BPPARAM = BPPARAM,
-        niters = 1e5
-      )
-      scData$negLog10CellPValue <- -log10(emptyStats[
-        colnames(scData),
-        "PValue"
-      ])
-      emptyStats <- emptyDrops(rawCts, BPPARAM = BPPARAM, niters = 1e5)
-      scData$negLog10CellPValue <- pmin(
-        scData$negLog10CellPValue,
-        -log10(emptyStats[colnames(scData), "PValue"])
-      )
-      scData@meta.data$negLog10CellPValue[is.na(scData$negLog10CellPValue)] <- 0
+      # Skip emptyDrops if raw matrix has no additional (empty) barcodes
+      # This happens with CellRanger Multi per_sample_outs where raw == filtered
+      if (ncol(rawCts) > ncol(scData)) {
+        emptyStats <- emptyDrops(
+          rawCts[!featInfo$isMito & !featInfo$isRiboprot, ],
+          BPPARAM = BPPARAM,
+          niters = 1e5
+        )
+        scData$negLog10CellPValue <- -log10(emptyStats[
+          colnames(scData),
+          "PValue"
+        ])
+        emptyStats <- emptyDrops(rawCts, BPPARAM = BPPARAM, niters = 1e5)
+        scData$negLog10CellPValue <- pmin(
+          scData$negLog10CellPValue,
+          -log10(emptyStats[colnames(scData), "PValue"])
+        )
+        scData@meta.data$negLog10CellPValue[is.na(scData$negLog10CellPValue)] <- 0
 
-      if (param$maxEmptyDropPValue < 1) {
-        scData$qc.empty[
-          scData$negLog10CellPValue < -log10(param$maxEmptyDropPValue)
-        ] <- TRUE
-        scData$useCell[scData$qc.empty] <- FALSE
+        if (param$maxEmptyDropPValue < 1) {
+          scData$qc.empty[
+            scData$negLog10CellPValue < -log10(param$maxEmptyDropPValue)
+          ] <- TRUE
+          scData$useCell[scData$qc.empty] <- FALSE
+        }
+      } else {
+        futile.logger::flog.warn("emptyDrops skipped: raw matrix has no additional empty barcodes (e.g. CellRanger Multi per_sample output)")
+        scData$negLog10CellPValue <- 0
       }
     }
     remove(rawCts)
