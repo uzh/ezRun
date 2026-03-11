@@ -748,19 +748,30 @@ addCellQcToSeurat <- function(
 
   if (DefaultAssay(scData) == "RNA") {
     set.seed(38)
-    doubletsInfo <- scDblFinder(
-      GetAssayData(scData, layer = "counts")[, scData$useCell],
-      returnType = "table",
-      clusters = TRUE,
-      BPPARAM = BPPARAM
-    )
-    scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
-    scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
-    scData$qc.doublet <- scData$doubletClass %in% "doublet"
-    if (ezIsSpecified(param$keepDoublets) && param$keepDoublets) {
-      futile.logger::flog.info("Keeping doublets...")
+    doubletsInfo <- tryCatch({
+      scDblFinder(
+        GetAssayData(scData, layer = "counts")[, scData$useCell],
+        returnType = "table",
+        clusters = TRUE,
+        BPPARAM = BPPARAM
+      )
+    }, error = function(e) {
+      futile.logger::flog.warn(paste("scDblFinder failed (likely too few cells), skipping doublet detection:", conditionMessage(e)))
+      NULL
+    })
+    if (!is.null(doubletsInfo)) {
+      scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
+      scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
+      scData$qc.doublet <- scData$doubletClass %in% "doublet"
+      if (ezIsSpecified(param$keepDoublets) && param$keepDoublets) {
+        futile.logger::flog.info("Keeping doublets...")
+      } else {
+        scData$useCell <- scData$useCell & scData$doubletClass %in% "singlet"
+      }
     } else {
-      scData$useCell <- scData$useCell & scData$doubletClass %in% "singlet"
+      scData$doubletScore <- NA_real_
+      scData$doubletClass <- "undetermined"
+      scData$qc.doublet <- FALSE
     }
   }
   return(scData)
