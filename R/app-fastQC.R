@@ -93,9 +93,28 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   }
   nFiles <- length(files)
 
-  ## guess the names of the report directories that will be creatd by fastqc
+  ## guess the names of the report directories that will be created by fastqc
   reportDirs <- sub("\\.(fastq|fq|bam)(\\.gz)*$", "_fastqc", basename(files))
-  stopifnot(!any(duplicated(reportDirs)))
+  
+  ## Check for duplicates and determine if renaming to sample names resolves it
+  needsRenaming <- FALSE
+  reportDirsRenamed <- NULL
+  if (any(duplicated(reportDirs))) {
+    ## Try using sample names instead
+    reportDirsRenamed <- sub("\\.(fastq|fq|bam)(\\.gz)*$", "_fastqc", names(files))
+    
+    if (!any(duplicated(reportDirsRenamed))) {
+      ## Renaming to sample names resolves the duplication
+      needsRenaming <- TRUE
+    } else {
+      ## Renaming doesn't resolve duplication - throw error
+      stop("Duplicated fastq file names detected that cannot be resolved by renaming to sample names. ",
+           "This typically occurs when merging samples from different run directories with identical file names. ",
+           "Duplicated report directories: ", 
+           paste(reportDirs[duplicated(reportDirs)], collapse = ", "))
+    }
+  }
+  
   filesUse <- files[!file.exists(reportDirs)]
   if (length(filesUse) > 0) {
     cmd <- paste(
@@ -120,6 +139,53 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
       result <- ezSystem(cmd)
     }
     gc()
+  }
+  
+  ## Rename directories if needed to resolve duplicates
+  if (needsRenaming) {
+    renamed <- character(0)  ## Track which directories have been renamed
+    for (i in seq_along(files)) {
+      oldDir <- reportDirs[i]
+      newDir <- reportDirsRenamed[i]
+      
+      ## Only rename if they're different and we haven't already renamed this directory
+      if (oldDir != newDir && !(oldDir %in% renamed)) {
+        if (file.exists(oldDir)) {
+          ## Check if target already exists (shouldn't happen, but be safe)
+          if (file.exists(newDir)) {
+            warning("Target directory ", newDir, " already exists. Skipping rename of ", oldDir)
+          } else {
+            ## Attempt to rename and check for success
+            success <- file.rename(oldDir, newDir)
+            if (!success) {
+              stop("Failed to rename FastQC directory from ", oldDir, " to ", newDir)
+            }
+            renamed <- c(renamed, oldDir)
+            
+            ## Also rename the zip file if it exists
+            zipOld <- paste0(oldDir, ".zip")
+            zipNew <- paste0(newDir, ".zip")
+            if (file.exists(zipOld)) {
+              success <- file.rename(zipOld, zipNew)
+              if (!success) {
+                warning("Failed to rename zip file from ", zipOld, " to ", zipNew)
+              }
+            }
+            ## Also rename the html file if it exists
+            htmlOld <- paste0(oldDir, ".html")
+            htmlNew <- paste0(newDir, ".html")
+            if (file.exists(htmlOld)) {
+              success <- file.rename(htmlOld, htmlNew)
+              if (!success) {
+                warning("Failed to rename html file from ", htmlOld, " to ", htmlNew)
+              }
+            }
+          }
+        }
+      }
+    }
+    ## Update reportDirs to the renamed versions
+    reportDirs <- reportDirsRenamed
   }
 
   if (ezIsSpecified(param$showNativeReports) && param$showNativeReports) {
