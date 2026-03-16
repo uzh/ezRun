@@ -160,6 +160,33 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
 
 ```
 
+```{r strandedness, echo=FALSE, results='asis', message=FALSE, fig.width=8, fig.height=min(max(4, 2 + length(samples) * 0.4), 10), warning=FALSE, eval=!is.null(resultList[[1]][["Strandness"]])}
+cat("\n##", "Strandedness", "\n")
+strandList = lapply(resultList, function(x) x$Strandness)
+# Ensure all samples have the same names (some might be missing if file failed)
+allNames = unique(unlist(lapply(strandList, names)))
+strandMat = ezMatrix(0, rows=names(strandList), cols=allNames)
+for (sm in names(strandList)){
+  if (!is.null(strandList[[sm]])){
+    strandMat[sm, names(strandList[[sm]])] = strandList[[sm]]
+  }
+}
+
+df = reshape2::melt(strandMat, varnames=c("Sample", "Type"))
+df$Sample = factor(df$Sample, levels=rev(names(strandList)))
+
+p = ggplot(df, aes(x=Sample, y=value, fill=Type)) +
+  geom_bar(stat="identity") +
+  coord_flip() +
+  labs(y="Fraction of reads", x="", fill="") +
+  theme_minimal() +
+  scale_fill_brewer(palette="Set1")
+print(p)
+
+ezInteractiveTableRmd(as.data.frame(signif(strandMat, digits=4)), title="Strandedness Fractions")
+```
+
+
 
 
 ```{r genebody coverage legend, echo=FALSE, fig.width=10, fig.height=7, results='asis'}

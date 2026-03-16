@@ -115,6 +115,15 @@ ezMethodRnaBamStats = function(
     gc()
   }
 
+  if (input$hasColumn("StrandFile")) {
+    strandFiles <- input$getFullPaths("StrandFile")
+    for (sm in samples) {
+      if (ezIsSpecified(strandFiles[sm]) && file.exists(strandFiles[sm])) {
+        resultList[[sm]][["Strandness"]] <- ezReadRSeQCStrandness(strandFiles[sm])
+      }
+    }
+  }
+
   makeRmdReport(
     dataset = dataset,
     param = param,
@@ -1090,4 +1099,47 @@ getDupRateFromBam <- function(
     threads = threads
   )
   return(dm)
+}
+
+ezReadRSeQCStrandness <- function(file) {
+  lines <- readLines(file)
+  lines <- lines[lines != ""]
+  if (length(lines) == 0) {
+    return(NULL)
+  }
+
+  ## Extract fractions
+  failedLine <- grep(
+    "Fraction of reads failed to determine:",
+    lines,
+    value = TRUE
+  )
+  if (length(failedLine) > 0) {
+    failed <- as.numeric(sub(
+      "Fraction of reads failed to determine: ",
+      "",
+      failedLine
+    ))
+  } else {
+    failed <- NA
+  }
+
+  explainedLines <- grep("Fraction of reads explained by", lines, value = TRUE)
+  if (length(explainedLines) > 0) {
+    explainedKeys <- sub(
+      "Fraction of reads explained by \"(.*)\": .*",
+      "\\1",
+      explainedLines
+    )
+    explainedVals <- as.numeric(sub(
+      "Fraction of reads explained by \".*\": ",
+      "",
+      explainedLines
+    ))
+    names(explainedVals) <- explainedKeys
+  } else {
+    explainedVals <- NULL
+  }
+
+  return(c(failed = failed, explainedVals))
 }
