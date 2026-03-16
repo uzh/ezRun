@@ -140,7 +140,10 @@ ezMethodScSeuratCombine = function(
       scData <- AddMetaData(scData, aziResults)
     }
     # Load cellxgene results if available
-    cellxgeneFilePath <- file.path(dirname(filePath[sm]), 'cellxgeneResults.rds')
+    cellxgeneFilePath <- file.path(
+      dirname(filePath[sm]),
+      'cellxgeneResults.rds'
+    )
     if (file.exists(cellxgeneFilePath)) {
       cellxgeneResults <- readRDS(cellxgeneFilePath)
       scData <- AddMetaData(scData, cellxgeneResults)

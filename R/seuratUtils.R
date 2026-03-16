@@ -543,7 +543,9 @@ conservedMarkers <- function(
       error_msg <- as.character(markersEach)
       if (grepl("PrepSCTFindMarkers|unequal library sizes", error_msg)) {
         if (!fallback_to_rna) {
-          ezLog("SCT assay failed with PrepSCTFindMarkers error. Falling back to RNA assay.")
+          ezLog(
+            "SCT assay failed with PrepSCTFindMarkers error. Falling back to RNA assay."
+          )
           fallback_to_rna <- TRUE
         }
         markersEach <- try(
@@ -617,7 +619,9 @@ diffExpressedGenes <- function(scData, param, grouping.var = "Condition") {
       error_msg <- as.character(markersEach)
       if (grepl("PrepSCTFindMarkers|unequal library sizes", error_msg)) {
         if (!fallback_to_rna) {
-          ezLog("SCT assay failed with PrepSCTFindMarkers error. Falling back to RNA assay for DEG analysis.")
+          ezLog(
+            "SCT assay failed with PrepSCTFindMarkers error. Falling back to RNA assay for DEG analysis."
+          )
           fallback_to_rna <- TRUE
         }
         markersEach <- try(FindMarkers(

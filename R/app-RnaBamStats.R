@@ -119,7 +119,9 @@ ezMethodRnaBamStats = function(
     strandFiles <- input$getFullPaths("StrandFile")
     for (sm in samples) {
       if (ezIsSpecified(strandFiles[sm]) && file.exists(strandFiles[sm])) {
-        resultList[[sm]][["Strandness"]] <- ezReadRSeQCStrandness(strandFiles[sm])
+        resultList[[sm]][["Strandness"]] <- ezReadRSeQCStrandness(strandFiles[
+          sm
+        ])
       }
     }
   }

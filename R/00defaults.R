@@ -39,7 +39,11 @@ ezParam = function(
   )
   unknownParams = setdiff(names(userParam), rownames(defaults))
   if (length(unknownParams) > 0) {
-    ezLog("unknown params:\n - ", paste(unknownParams, collapse = "\n - "), level="warn")
+    ezLog(
+      "unknown params:\n - ",
+      paste(unknownParams, collapse = "\n - "),
+      level = "warn"
+    )
   }
   for (nm in rownames(defaults)) {
     if (!is.null(userParam[[nm]])) {

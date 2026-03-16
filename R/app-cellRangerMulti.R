@@ -250,7 +250,8 @@ prepareFastqData <- function(input, param) {
     # each pool's FASTQ files by their filename prefix.
     message(sprintf(
       "Multi-pool mode: combining %d pools into one CellRanger run (%s)",
-      length(poolNames), paste(poolNames, collapse = ", ")
+      length(poolNames),
+      paste(poolNames, collapse = ", ")
     ))
     dirList <- list(sampleName = poolNames, sampleDirs = sampleDirs)
   }
@@ -492,9 +493,12 @@ buildMultiConfigFile <- function(input, param, dirList) {
       # Flex v2: Matches v2.0.0, v2.1.0, etc.
       if (hasMult) {
         # Detect R1 vs R2 config from FASTQ read lengths
-        r1Files <- list.files(dirList$sampleDirs,
-                              pattern = "_R1_.*\\.fastq\\.gz$",
-                              recursive = TRUE, full.names = TRUE)
+        r1Files <- list.files(
+          dirList$sampleDirs,
+          pattern = "_R1_.*\\.fastq\\.gz$",
+          recursive = TRUE,
+          full.names = TRUE
+        )
         if (length(r1Files) > 0) {
           r1Conn <- gzfile(r1Files[1], "r")
           r1Lines <- readLines(r1Conn, n = 2)
@@ -505,11 +509,14 @@ buildMultiConfigFile <- function(input, param, dirList) {
           chemistry <- ifelse(r1Length > 28, "Flex-v2-R1", "Flex-v2-RNA-R2")
           message(sprintf(
             "Flex v2 auto-detect: R1 length = %d -> chemistry = %s",
-            r1Length, chemistry
+            r1Length,
+            chemistry
           ))
         } else {
           chemistry <- "Flex-v2-RNA-R2"
-          warning("Could not detect R1 length from FASTQs, defaulting to Flex-v2-RNA-R2")
+          warning(
+            "Could not detect R1 length from FASTQs, defaulting to Flex-v2-RNA-R2"
+          )
         }
       } else {
         chemistry <- "Flex-v2-singleplex"

@@ -481,21 +481,30 @@ ezMethodVisiumHDSeurat <- function(
   ref_path <- NULL
   if (!is.null(param$rctdFile) && param$rctdFile != "") {
     ref_path <- param$rctdFile
-    cat(paste("Using manual RCTD reference:", ref_path, "\n"),
-        file = "log.txt", append = TRUE)
+    cat(
+      paste("Using manual RCTD reference:", ref_path, "\n"),
+      file = "log.txt",
+      append = TRUE
+    )
   } else if (
     ezIsSpecified(param$rctdReference) && param$rctdReference != "None"
   ) {
     ref_relative <- sub(" \\([^)]+\\)$", "", param$rctdReference)
     ref_path <- file.path("/srv/GT/databases/RCTD_References", ref_relative)
-    cat(paste("Using RCTD reference from dropdown:", ref_path, "\n"),
-        file = "log.txt", append = TRUE)
+    cat(
+      paste("Using RCTD reference from dropdown:", ref_path, "\n"),
+      file = "log.txt",
+      append = TRUE
+    )
   }
 
   if (!is.null(ref_path)) {
     stopifnot(file.exists(ref_path))
-    cat(paste("Running RCTD with reference:", ref_path, "\n"),
-        file = "log.txt", append = TRUE)
+    cat(
+      paste("Running RCTD with reference:", ref_path, "\n"),
+      file = "log.txt",
+      append = TRUE
+    )
     ref_obj <- ezLoadRobj(ref_path)
 
     # Check if it is a spacexr Reference object
@@ -504,8 +513,11 @@ ezMethodVisiumHDSeurat <- function(
         ref_obj <- ref_obj$reference
       } else if (inherits(ref_obj, "Seurat")) {
         # Convert Seurat object to RCTD Reference
-        cat("Converting Seurat object to RCTD Reference...\n",
-            file = "log.txt", append = TRUE)
+        cat(
+          "Converting Seurat object to RCTD Reference...\n",
+          file = "log.txt",
+          append = TRUE
+        )
         ref_counts <- Seurat::GetAssayData(ref_obj, layer = "counts")
         # Try common cell type annotation columns
         celltype_col <- intersect(
@@ -522,9 +534,15 @@ ezMethodVisiumHDSeurat <- function(
           names(ref_celltypes) <- colnames(ref_obj)
           ref_celltypes <- as.factor(ref_celltypes)
           ref_obj <- spacexr::Reference(ref_counts, ref_celltypes)
-          cat(paste("Created RCTD Reference with",
-                    length(levels(ref_celltypes)), "cell types\n"),
-              file = "log.txt", append = TRUE)
+          cat(
+            paste(
+              "Created RCTD Reference with",
+              length(levels(ref_celltypes)),
+              "cell types\n"
+            ),
+            file = "log.txt",
+            append = TRUE
+          )
         }
       } else {
         warning(
@@ -592,7 +610,9 @@ ezMethodVisiumHDSeurat <- function(
         )]
         names(max_type) <- rownames(norm_weights)
         scData <- AddMetaData(
-          scData, metadata = max_type, col.name = "RCTD_Main"
+          scData,
+          metadata = max_type,
+          col.name = "RCTD_Main"
         )
 
         # Add normalized weights as metadata columns
@@ -604,7 +624,9 @@ ezMethodVisiumHDSeurat <- function(
             wt_vals <- weight_df[common_cells, wt_col]
             names(wt_vals) <- common_cells
             scData <- AddMetaData(
-              scData, metadata = wt_vals, col.name = wt_col
+              scData,
+              metadata = wt_vals,
+              col.name = wt_col
             )
           }
         }

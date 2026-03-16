@@ -6,16 +6,22 @@
 # www.fgcz.ch
 
 extractXeniumAlarms <- function(htmlPath) {
-  if (!file.exists(htmlPath)) return(data.frame())
+  if (!file.exists(htmlPath)) {
+    return(data.frame())
+  }
   htmlContent <- readLines(htmlPath, warn = FALSE) |> paste(collapse = "")
   match <- regmatches(
     htmlContent,
     regexpr('"alarms":\\{"alarms":\\[.*?\\]\\}', htmlContent)
   )
-  if (length(match) == 0) return(data.frame())
+  if (length(match) == 0) {
+    return(data.frame())
+  }
   alarmsJson <- paste0("{", match, "}")
   parsed <- tryCatch(jsonlite::fromJSON(alarmsJson), error = function(e) NULL)
-  if (is.null(parsed) || length(parsed$alarms$alarms) == 0) return(data.frame())
+  if (is.null(parsed) || length(parsed$alarms$alarms) == 0) {
+    return(data.frame())
+  }
   parsed$alarms$alarms
 }
 

@@ -321,7 +321,9 @@ cellsLabelsWithAUC <- function(
   }
   # Return NULL if tissue is not specified
   if (!ezIsSpecified(tissue)) {
-    futile.logger::flog.info("No tissue specified for CellMarker2, skipping AUC annotation")
+    futile.logger::flog.info(
+      "No tissue specified for CellMarker2, skipping AUC annotation"
+    )
     return(NULL)
   }
   geneSets <- createCellMarker2_GeneSets(species, tissue, minGsSize)

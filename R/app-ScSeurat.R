@@ -364,7 +364,9 @@ ezMethodScSeurat <- function(
           scData$negLog10CellPValue,
           -log10(emptyStats[colnames(scData), "PValue"])
         )
-        scData@meta.data$negLog10CellPValue[is.na(scData$negLog10CellPValue)] <- 0
+        scData@meta.data$negLog10CellPValue[is.na(
+          scData$negLog10CellPValue
+        )] <- 0
 
         if (param$maxEmptyDropPValue < 1) {
           scData$qc.empty[
@@ -373,7 +375,9 @@ ezMethodScSeurat <- function(
           scData$useCell[scData$qc.empty] <- FALSE
         }
       } else {
-        futile.logger::flog.warn("emptyDrops skipped: raw matrix has no additional empty barcodes (e.g. CellRanger Multi per_sample output)")
+        futile.logger::flog.warn(
+          "emptyDrops skipped: raw matrix has no additional empty barcodes (e.g. CellRanger Multi per_sample output)"
+        )
         scData$negLog10CellPValue <- 0
       }
     }
@@ -747,17 +751,23 @@ addCellQcToSeurat <- function(
 
   if (DefaultAssay(scData) == "RNA") {
     set.seed(38)
-    doubletsInfo <- tryCatch({
-      scDblFinder(
-        GetAssayData(scData, layer = "counts")[, scData$useCell],
-        returnType = "table",
-        clusters = TRUE,
-        BPPARAM = BPPARAM
-      )
-    }, error = function(e) {
-      futile.logger::flog.warn(paste("scDblFinder failed (likely too few cells), skipping doublet detection:", conditionMessage(e)))
-      NULL
-    })
+    doubletsInfo <- tryCatch(
+      {
+        scDblFinder(
+          GetAssayData(scData, layer = "counts")[, scData$useCell],
+          returnType = "table",
+          clusters = TRUE,
+          BPPARAM = BPPARAM
+        )
+      },
+      error = function(e) {
+        futile.logger::flog.warn(paste(
+          "scDblFinder failed (likely too few cells), skipping doublet detection:",
+          conditionMessage(e)
+        ))
+        NULL
+      }
+    )
     if (!is.null(doubletsInfo)) {
       scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
       scData$doubletClass <- doubletsInfo[colnames(scData), "class"]

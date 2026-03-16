@@ -1089,8 +1089,10 @@ ezLoadRobj <- function(filePath, nthreads = .ezDefaultThreads()) {
     foundPath <- ezFindRobj(filePath)
     if (is.null(foundPath)) {
       stop(
-        "No file found for base path: ", filePath,
-        ". Searched for extensions: ", paste(knownExtensions, collapse = ", ")
+        "No file found for base path: ",
+        filePath,
+        ". Searched for extensions: ",
+        paste(knownExtensions, collapse = ", ")
       )
     }
     filePath <- foundPath

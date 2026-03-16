@@ -84,7 +84,7 @@ ezMethodVeloCyto <- function(input = NA, output = NA, param = NA) {
   }
 
   cramPath <- file.path(sampleDir, 'outs', 'possorted_genome_bam.cram')
-  bamPath  <- file.path(sampleDir, 'outs', 'possorted_genome_bam.bam')
+  bamPath <- file.path(sampleDir, 'outs', 'possorted_genome_bam.bam')
   alignFile <- if (file.exists(cramPath)) cramPath else bamPath
   convertCramToBam(alignFile, bamPath, cores = param$cores)
 
