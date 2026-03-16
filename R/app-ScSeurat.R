@@ -347,27 +347,34 @@ ezMethodScSeurat <- function(
         rawCts <- rawCts[featInfo$gene_id, ]
       }
       stopifnot(rownames(rawCts) == featInfo$gene_id)
-      emptyStats <- emptyDrops(
-        rawCts[!featInfo$isMito & !featInfo$isRiboprot, ],
-        BPPARAM = BPPARAM,
-        niters = 1e5
-      )
-      scData$negLog10CellPValue <- -log10(emptyStats[
-        colnames(scData),
-        "PValue"
-      ])
-      emptyStats <- emptyDrops(rawCts, BPPARAM = BPPARAM, niters = 1e5)
-      scData$negLog10CellPValue <- pmin(
-        scData$negLog10CellPValue,
-        -log10(emptyStats[colnames(scData), "PValue"])
-      )
-      scData@meta.data$negLog10CellPValue[is.na(scData$negLog10CellPValue)] <- 0
+      # Skip emptyDrops if raw matrix has no additional (empty) barcodes
+      # This happens with CellRanger Multi per_sample_outs where raw == filtered
+      if (ncol(rawCts) > ncol(scData)) {
+        emptyStats <- emptyDrops(
+          rawCts[!featInfo$isMito & !featInfo$isRiboprot, ],
+          BPPARAM = BPPARAM,
+          niters = 1e5
+        )
+        scData$negLog10CellPValue <- -log10(emptyStats[
+          colnames(scData),
+          "PValue"
+        ])
+        emptyStats <- emptyDrops(rawCts, BPPARAM = BPPARAM, niters = 1e5)
+        scData$negLog10CellPValue <- pmin(
+          scData$negLog10CellPValue,
+          -log10(emptyStats[colnames(scData), "PValue"])
+        )
+        scData@meta.data$negLog10CellPValue[is.na(scData$negLog10CellPValue)] <- 0
 
-      if (param$maxEmptyDropPValue < 1) {
-        scData$qc.empty[
-          scData$negLog10CellPValue < -log10(param$maxEmptyDropPValue)
-        ] <- TRUE
-        scData$useCell[scData$qc.empty] <- FALSE
+        if (param$maxEmptyDropPValue < 1) {
+          scData$qc.empty[
+            scData$negLog10CellPValue < -log10(param$maxEmptyDropPValue)
+          ] <- TRUE
+          scData$useCell[scData$qc.empty] <- FALSE
+        }
+      } else {
+        futile.logger::flog.warn("emptyDrops skipped: raw matrix has no additional empty barcodes (e.g. CellRanger Multi per_sample output)")
+        scData$negLog10CellPValue <- 0
       }
     }
     remove(rawCts)
@@ -740,19 +747,30 @@ addCellQcToSeurat <- function(
 
   if (DefaultAssay(scData) == "RNA") {
     set.seed(38)
-    doubletsInfo <- scDblFinder(
-      GetAssayData(scData, layer = "counts")[, scData$useCell],
-      returnType = "table",
-      clusters = TRUE,
-      BPPARAM = BPPARAM
-    )
-    scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
-    scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
-    scData$qc.doublet <- scData$doubletClass %in% "doublet"
-    if (ezIsSpecified(param$keepDoublets) && param$keepDoublets) {
-      futile.logger::flog.info("Keeping doublets...")
+    doubletsInfo <- tryCatch({
+      scDblFinder(
+        GetAssayData(scData, layer = "counts")[, scData$useCell],
+        returnType = "table",
+        clusters = TRUE,
+        BPPARAM = BPPARAM
+      )
+    }, error = function(e) {
+      futile.logger::flog.warn(paste("scDblFinder failed (likely too few cells), skipping doublet detection:", conditionMessage(e)))
+      NULL
+    })
+    if (!is.null(doubletsInfo)) {
+      scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
+      scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
+      scData$qc.doublet <- scData$doubletClass %in% "doublet"
+      if (ezIsSpecified(param$keepDoublets) && param$keepDoublets) {
+        futile.logger::flog.info("Keeping doublets...")
+      } else {
+        scData$useCell <- scData$useCell & scData$doubletClass %in% "singlet"
+      }
     } else {
-      scData$useCell <- scData$useCell & scData$doubletClass %in% "singlet"
+      scData$doubletScore <- NA_real_
+      scData$doubletClass <- "undetermined"
+      scData$qc.doublet <- FALSE
     }
   }
   return(scData)
