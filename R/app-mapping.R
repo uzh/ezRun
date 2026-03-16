@@ -595,6 +595,8 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   }
 
   ## check the strandedness
+  sampleName <- sub(".bam", "", basename(bamFile))
+  strandFile <- paste0(sampleName, "_strand.txt")
   tryCatch(
     {
       ezSystem(
@@ -605,6 +607,8 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
           "-i",
           basename(bamFile),
           "-s 1000000",
+          ">",
+          strandFile,
           sep = " "
         ),
         stopOnFailure = FALSE
