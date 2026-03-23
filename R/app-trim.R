@@ -195,11 +195,18 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
       paste("--trim_tail1", param$trim_tail1)
     },
     if (
-      ezIsSpecified(param$barcodePattern) &&
-        param$barcodePattern != '' &&
-        param$paired
+      ezIsSpecified(param$barcodePattern1) &&
+        param$barcodePattern1 != ''
     ) {
-      paste("--trim_front2 0")
+      paste("--trim_front1 0")
+    },
+    if (
+      (ezIsSpecified(param$barcodePattern2) && param$barcodePattern2 != '') ||
+        (ezIsSpecified(param$barcodePattern) && param$barcodePattern != '')
+    ) {
+      if (param$paired) {
+        paste("--trim_front2 0")
+      }
     },
     # quality-based trimming per read
     if_else(

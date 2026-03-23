@@ -409,51 +409,85 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
 
+  # Backward compat: map old barcodePattern to barcodePattern2
   if (ezIsSpecified(param$barcodePattern) && param$barcodePattern != '') {
-    #Extract UMI
+    if (!ezIsSpecified(param$barcodePattern2) || param$barcodePattern2 == '') {
+      warning("barcodePattern is deprecated. Use barcodePattern2 instead.")
+      param$barcodePattern2 <- param$barcodePattern
+    }
+  }
+
+  if (
+    (ezIsSpecified(param$barcodePattern1) && param$barcodePattern1 != '') ||
+      (ezIsSpecified(param$barcodePattern2) && param$barcodePattern2 != '')
+  ) {
+    # Extract UMI from R1 and/or R2
     require(Herper)
     local_CondaEnv(
       "gi_umi_tools",
       pathToMiniConda = "/usr/local/ngseq/miniforge3"
     )
-    ##Extract UMI from R2
+
     markedFile_R1 <- sub('R1', 'markedUMI_R1', trimmedInput$getColumn("Read1"))
     markedFile_R2 <- sub('R2', 'markedUMI_R2', trimmedInput$getColumn("Read2"))
+
+    # Build umi_tools extract command with natural read order
     cmd <- paste0(
-      'umi_tools extract --temp-dir=. --verbose=0 --stdin=',
-      trimmedInput$getColumn("Read2"),
-      ' --read2-in=',
-      trimmedInput$getColumn("Read1"),
-      ' --stdout=',
-      markedFile_R2,
-      ' --read2-out=',
-      markedFile_R1,
-      ' --bc-pattern=',
-      param$barcodePattern
+      'umi_tools extract --temp-dir=. --verbose=0',
+      ' --stdin=', trimmedInput$getColumn("Read1"),
+      ' --read2-in=', trimmedInput$getColumn("Read2"),
+      ' --stdout=', markedFile_R1,
+      ' --read2-out=', markedFile_R2
     )
+    if (ezIsSpecified(param$barcodePattern1) && param$barcodePattern1 != '') {
+      cmd <- paste0(cmd, ' --bc-pattern=', param$barcodePattern1)
+    }
+    if (ezIsSpecified(param$barcodePattern2) && param$barcodePattern2 != '') {
+      cmd <- paste0(cmd, ' --bc-pattern2=', param$barcodePattern2)
+    }
     ezSystem(cmd)
 
-    ###Run Fastp to trim the first 6 bases of markedFile_R2
-    ## paste command
-    cmd <- str_c(
-      "fastp -i",
-      markedFile_R2,
-      "-o",
-      trimmedInput$getColumn("Read2"),
-      # general options
-      "--thread",
-      param$cores,
-      # global trimming
-      paste(
-        "--trim_front1 6 --disable_quality_filtering --disable_length_filtering --disable_adapter_trimming"
-      ),
-      "--compression",
-      param$fastpCompression,
-      sep = " "
-    )
-    ezSystem(cmd)
+    # Linker trimming for R1 if barcodePattern1 was set
+    linkerSize1 <- if (ezIsSpecified(param$linkerSize1)) param$linkerSize1 else 6
+    if (
+      ezIsSpecified(param$barcodePattern1) &&
+        param$barcodePattern1 != '' &&
+        linkerSize1 > 0
+    ) {
+      cmd <- str_c(
+        "fastp -i", markedFile_R1,
+        "-o", trimmedInput$getColumn("Read1"),
+        "--thread", param$cores,
+        paste0("--trim_front1 ", linkerSize1),
+        "--disable_quality_filtering --disable_length_filtering --disable_adapter_trimming",
+        "--compression", param$fastpCompression,
+        sep = " "
+      )
+      ezSystem(cmd)
+    } else {
+      ezSystem(paste('mv', markedFile_R1, trimmedInput$getColumn("Read1")))
+    }
 
-    ezSystem(paste('mv', markedFile_R1, trimmedInput$getColumn("Read1")))
+    # Linker trimming for R2 if barcodePattern2 was set
+    linkerSize2 <- if (ezIsSpecified(param$linkerSize2)) param$linkerSize2 else 6
+    if (
+      ezIsSpecified(param$barcodePattern2) &&
+        param$barcodePattern2 != '' &&
+        linkerSize2 > 0
+    ) {
+      cmd <- str_c(
+        "fastp -i", markedFile_R2,
+        "-o", trimmedInput$getColumn("Read2"),
+        "--thread", param$cores,
+        paste0("--trim_front1 ", linkerSize2),
+        "--disable_quality_filtering --disable_length_filtering --disable_adapter_trimming",
+        "--compression", param$fastpCompression,
+        sep = " "
+      )
+      ezSystem(cmd)
+    } else {
+      ezSystem(paste('mv', markedFile_R2, trimmedInput$getColumn("Read2")))
+    }
   }
 
   if (!str_detect(param$cmdOptions, "outSAMattributes")) {
@@ -556,8 +590,11 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
     )
   }
 
-  if (ezIsSpecified(param$barcodePattern) && param$barcodePattern != '') {
-    #Deduplicated based on UMI
+  if (
+    (ezIsSpecified(param$barcodePattern1) && param$barcodePattern1 != '') ||
+      (ezIsSpecified(param$barcodePattern2) && param$barcodePattern2 != '')
+  ) {
+    # Deduplicate based on UMI
     deDupBamFile <- sub('.bam', '_dedup.bam', basename(bamFile))
     cmd <- paste0(
       'umi_tools dedup --temp-dir=. --verbose=0 --paired --no-sort-output --stdin=',
@@ -803,6 +840,16 @@ EzAppSTAR <-
             Type = "logical",
             DefaultValue = "TRUE",
             Description = "1-pass mapping or basic 2-pass mapping"
+          ),
+          linkerSize1 = ezFrame(
+            Type = "numeric",
+            DefaultValue = "6",
+            Description = "Bases to trim from Read1 after UMI extraction"
+          ),
+          linkerSize2 = ezFrame(
+            Type = "numeric",
+            DefaultValue = "6",
+            Description = "Bases to trim from Read2 after UMI extraction"
           )
         )
       }
