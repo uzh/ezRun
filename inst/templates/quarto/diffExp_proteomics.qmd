@@ -1,0 +1,523 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'FGCZ Proteomics Report'`"
+metadata-files: ["_fgcz-report.yml"]
+---
+
+```{r setup}
+#| include: false
+source("_helpers.R")
+
+library(SummarizedExperiment)
+library(DT)
+library(ggplot2)
+library(tidyverse)
+library(pheatmap)
+library(writexl)
+library(jsonlite)
+
+## Load data (qs2 with rds fallback)
+se <- fgczLoadData("deResult")
+```
+
+```{r prepare-data}
+#| include: false
+## Extract metadata
+bfabric_urls <- metadata(se)$bfabric_urls
+contrasts    <- metadata(se)$contrasts
+formula_info <- metadata(se)$formula
+
+## Parse contrast information
+contrast_names <- rownames(contrasts)
+
+## Build per-contrast result tables from rowData
+rd <- as.data.frame(rowData(se))
+
+## Identify contrast column prefixes (e.g. "constrast_OT_vs_Manual")
+contrast_prefixes <- paste0("constrast_", contrast_names)
+
+## Sample info
+sample_info <- as.data.frame(colData(se))
+
+## Group column
+group_col <- grep("^G_|^group|^Group", colnames(sample_info), value = TRUE)[1]
+if (is.na(group_col)) group_col <- colnames(sample_info)[3]  # fallback
+
+## Thresholds
+fdr_threshold  <- 0.05
+diff_threshold <- 1.0
+```
+
+::: {.panel-tabset}
+
+# Settings
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
+::: {.callout-note collapse="true"}
+## Analysis Parameters
+
+```{r settings-table}
+settings_df <- data.frame(
+  Parameter = c("Formula", "FDR threshold", "Difference threshold",
+                "Number of proteins", "Number of samples",
+                "Number of contrasts"),
+  Value = c(
+    formula_info$formula[1],
+    fdr_threshold,
+    diff_threshold,
+    nrow(se),
+    ncol(se),
+    length(contrast_names)
+  ),
+  row.names = NULL
+)
+fgczDatatable(settings_df, caption = "Analysis settings", filter = "none")
+```
+:::
+
+::: {.callout-note collapse="true"}
+## Contrasts
+
+```{r contrasts-table}
+fgczDatatable(
+  data.frame(
+    Name = rownames(contrasts),
+    Formula = contrasts$contrast,
+    row.names = NULL
+  ),
+  caption = "Contrasts tested",
+  filter = "none"
+)
+```
+:::
+
+::: {.callout-tip collapse="true"}
+## B-Fabric Links
+
+```{r bfabric-links}
+#| results: asis
+if (!is.null(bfabric_urls)) {
+  for (nm in names(bfabric_urls)) {
+    cat(paste0("- [", nm, "](", bfabric_urls[[nm]], "){target='_blank'}"), "\n")
+  }
+}
+```
+:::
+
+# Results Summary
+
+```{r results-summary}
+summary_rows <- list()
+for (cn in contrast_names) {
+  prefix <- paste0("constrast_", cn)
+  fdr_col  <- paste0(prefix, ".FDR")
+  diff_col <- paste0(prefix, ".diff")
+  if (all(c(fdr_col, diff_col) %in% colnames(rd))) {
+    n_sig   <- sum(rd[[fdr_col]] < fdr_threshold & abs(rd[[diff_col]]) > diff_threshold,
+                   na.rm = TRUE)
+    n_up    <- sum(rd[[fdr_col]] < fdr_threshold & rd[[diff_col]] > diff_threshold,
+                   na.rm = TRUE)
+    n_down  <- sum(rd[[fdr_col]] < fdr_threshold & rd[[diff_col]] < -diff_threshold,
+                   na.rm = TRUE)
+    summary_rows[[cn]] <- data.frame(
+      Contrast = cn, Total = nrow(rd),
+      Significant = n_sig, Up = n_up, Down = n_down,
+      row.names = NULL)
+  }
+}
+summary_df <- do.call(rbind, summary_rows)
+fgczDatatable(summary_df, caption = "Significant protein counts per contrast",
+              filter = "none")
+```
+
+```{r write-results-xlsx}
+#| include: false
+## Write combined results Excel
+result_sheets <- list()
+for (cn in contrast_names) {
+  prefix <- paste0("constrast_", cn)
+  cols <- grep(paste0("^", prefix), colnames(rd), value = TRUE)
+  short_cols <- gsub(paste0("^", prefix, "\\."), "", cols)
+  df_out <- rd[, cols, drop = FALSE]
+  colnames(df_out) <- short_cols
+  df_out$protein_Id <- rownames(rd)
+  df_out <- df_out[, c("protein_Id", setdiff(colnames(df_out), "protein_Id"))]
+  result_sheets[[cn]] <- df_out
+}
+result_file <- "result--proteomics.xlsx"
+write_xlsx(result_sheets, path = result_file)
+```
+
+Full result table: [`r result_file`](`r result_file`)
+
+# Quality Control
+
+::: {.panel-tabset}
+
+## Missing Values
+
+::: {.callout-warning collapse="true"}
+## About missing values
+Absent protein measurements may indicate biological relevance or technical problems. The heatmap below shows present (white) vs absent (black) patterns across samples.
+:::
+
+```{r missing-heatmap}
+#| fig-width: 8
+#| fig-height: 7
+mat <- assay(se, "rawData")
+na_mat <- ifelse(is.na(mat), 1, 0)
+## Only show proteins with at least one NA
+has_na <- rowSums(na_mat) > 0
+n_with_na <- sum(has_na)
+
+if (n_with_na > 0 && n_with_na < 5000) {
+  anno_col <- data.frame(Group = sample_info[[group_col]],
+                         row.names = colnames(se))
+  pheatmap(na_mat[has_na, , drop = FALSE],
+           color = c("white", "black"),
+           cluster_rows = TRUE, cluster_cols = TRUE,
+           show_rownames = FALSE,
+           annotation_col = anno_col,
+           main = paste0("Missing value pattern (", n_with_na,
+                         " proteins with >= 1 NA)"),
+           legend = FALSE)
+} else if (n_with_na >= 5000) {
+  cat("Too many proteins with missing values to display heatmap:",
+      n_with_na, "\n")
+} else {
+  cat("No missing values detected.\n")
+}
+```
+
+## Abundance Distribution
+
+```{r density-plots}
+#| fig-width: 10
+#| fig-height: 5
+raw_long <- as.data.frame(assay(se, "rawData")) |>
+  pivot_longer(everything(), names_to = "Sample", values_to = "Abundance") |>
+  mutate(Type = "Raw")
+
+trans_long <- as.data.frame(assay(se, "transformedData")) |>
+  pivot_longer(everything(), names_to = "Sample", values_to = "Abundance") |>
+  mutate(Type = "Normalised")
+
+combined <- bind_rows(raw_long, trans_long)
+
+ggplot(combined, aes(x = Abundance, colour = Sample)) +
+  geom_density(na.rm = TRUE, linewidth = 0.5) +
+  facet_wrap(~Type, scales = "free") +
+  theme_minimal() +
+  theme(legend.position = if (ncol(se) > 12) "none" else "right") +
+  labs(x = "log2 Abundance", y = "Density",
+       title = "Protein abundance distribution")
+```
+
+## CV Analysis
+
+```{r cv-analysis}
+#| fig-width: 7
+#| fig-height: 4
+mat_norm <- assay(se, "transformedData")
+groups <- sample_info[[group_col]]
+
+cv_list <- list()
+for (grp in unique(groups)) {
+  idx <- which(groups == grp)
+  if (length(idx) >= 2) {
+    row_means <- rowMeans(mat_norm[, idx], na.rm = TRUE)
+    row_sds   <- matrixStats::rowSds(mat_norm[, idx], na.rm = TRUE)
+    cv <- (row_sds / abs(row_means)) * 100
+    cv_list[[grp]] <- data.frame(Group = grp, CV = cv[is.finite(cv)])
+  }
+}
+## Add "All"
+all_means <- rowMeans(mat_norm, na.rm = TRUE)
+all_sds   <- matrixStats::rowSds(mat_norm, na.rm = TRUE)
+cv_all <- (all_sds / abs(all_means)) * 100
+cv_list[["All"]] <- data.frame(Group = "All", CV = cv_all[is.finite(cv_all)])
+
+cv_df <- do.call(rbind, cv_list)
+
+p_cv <- ggplot(cv_df, aes(x = Group, y = CV, fill = Group)) +
+  geom_violin(draw_quantiles = 0.5, alpha = 0.7) +
+  theme_minimal() +
+  labs(x = NULL, y = "CV (%)", title = "Coefficient of Variation") +
+  theme(legend.position = "none") +
+  coord_cartesian(ylim = c(0, quantile(cv_df$CV, 0.99)))
+print(p_cv)
+fgczSavePlot(p_cv, "cv-violin", width = 7, height = 4)
+```
+
+## PCA
+
+```{r pca}
+#| fig-width: 7
+#| fig-height: 6
+mat_pca <- assay(se, "transformedData")
+mat_pca <- mat_pca[complete.cases(mat_pca), ]
+
+if (nrow(mat_pca) >= 10) {
+  pca_res <- prcomp(t(mat_pca), center = TRUE, scale. = TRUE)
+  pca_df <- data.frame(
+    PC1 = pca_res$x[, 1], PC2 = pca_res$x[, 2],
+    Sample = colnames(mat_pca),
+    Group = sample_info[[group_col]])
+  var_expl <- round(summary(pca_res)$importance[2, 1:2] * 100, 1)
+
+  p_pca <- ggplot(pca_df, aes(x = PC1, y = PC2, colour = Group, label = Sample)) +
+    geom_point(size = 3) +
+    ggrepel::geom_text_repel(size = 3, max.overlaps = 15) +
+    theme_minimal() +
+    labs(x = paste0("PC1 (", var_expl[1], "%)"),
+         y = paste0("PC2 (", var_expl[2], "%)"),
+         title = "PCA of normalised abundances") +
+    coord_fixed()
+  print(p_pca)
+  fgczSavePlot(p_pca, "pca", width = 7, height = 6)
+}
+```
+
+:::
+
+# Differential Expression
+
+::: {.panel-tabset}
+
+## Volcano
+
+```{r volcano-plots}
+#| fig-width: 9
+#| fig-height: 7
+#| results: asis
+for (cn in contrast_names) {
+  prefix   <- paste0("constrast_", cn)
+  diff_col <- paste0(prefix, ".diff")
+  fdr_col  <- paste0(prefix, ".FDR")
+  name_col <- paste0(prefix, ".gene_name")
+  model_col <- paste0(prefix, ".modelName")
+
+  if (!all(c(diff_col, fdr_col) %in% colnames(rd))) next
+
+  plot_df <- data.frame(
+    diff = rd[[diff_col]],
+    FDR  = rd[[fdr_col]],
+    name = if (name_col %in% colnames(rd)) rd[[name_col]] else rownames(rd),
+    model = if (model_col %in% colnames(rd)) rd[[model_col]] else "unknown"
+  )
+  plot_df <- plot_df[!is.na(plot_df$FDR), ]
+
+  p <- ggplot(plot_df, aes(x = diff, y = -log10(FDR), colour = model)) +
+    geom_point(alpha = 0.5, size = 1) +
+    geom_hline(yintercept = -log10(fdr_threshold), linetype = "dashed",
+               colour = "red") +
+    geom_vline(xintercept = c(-diff_threshold, diff_threshold),
+               linetype = "dashed", colour = "darkgreen") +
+    theme_minimal() +
+    labs(x = "Difference (log2)", y = "-log10(FDR)",
+         title = cn, colour = "Model") +
+    scale_colour_manual(values = c("Linear_Model_moderated" = "black",
+                                   "Imputed_Mean_moderated" = "orange"))
+  print(p)
+  fgczSavePlot(p, paste0("volcano-", cn))
+  cat("\n\n")
+}
+```
+
+## Results Table
+
+```{r results-table}
+#| results: asis
+for (cn in contrast_names) {
+  prefix <- paste0("constrast_", cn)
+  cols_needed <- c(
+    paste0(prefix, c(".protein_Id", ".gene_name", ".description",
+                     ".diff", ".FDR", ".modelName")))
+  cols_avail <- intersect(cols_needed, colnames(rd))
+
+  if (length(cols_avail) >= 3) {
+    df_show <- rd[, cols_avail, drop = FALSE]
+    colnames(df_show) <- gsub(paste0("^", prefix, "\\."), "", colnames(df_show))
+    if ("diff" %in% colnames(df_show))
+      df_show$diff <- round(df_show$diff, 3)
+    if ("FDR" %in% colnames(df_show))
+      df_show$FDR <- signif(df_show$FDR, 3)
+
+    cat("###", cn, "\n\n")
+    print(fgczDatatable(df_show, caption = paste("All proteins —", cn)))
+    cat("\n\n")
+  }
+}
+```
+
+:::
+
+# Significant Proteins
+
+```{r significant-proteins}
+#| results: asis
+for (cn in contrast_names) {
+  prefix   <- paste0("constrast_", cn)
+  diff_col <- paste0(prefix, ".diff")
+  fdr_col  <- paste0(prefix, ".FDR")
+  name_col <- paste0(prefix, ".gene_name")
+  desc_col <- paste0(prefix, ".description")
+
+  if (!all(c(diff_col, fdr_col) %in% colnames(rd))) next
+
+  is_sig <- !is.na(rd[[fdr_col]]) &
+    rd[[fdr_col]] < fdr_threshold &
+    abs(rd[[diff_col]]) > diff_threshold
+
+  sig_df <- data.frame(
+    protein_Id = rownames(rd)[is_sig],
+    gene_name  = if (name_col %in% colnames(rd)) rd[is_sig, name_col] else NA,
+    description = if (desc_col %in% colnames(rd)) rd[is_sig, desc_col] else NA,
+    diff = round(rd[is_sig, diff_col], 3),
+    FDR  = signif(rd[is_sig, fdr_col], 3),
+    row.names = NULL
+  )
+  sig_df <- sig_df[order(sig_df$FDR), ]
+
+  cat("###", cn, paste0("(", nrow(sig_df), " significant)"), "\n\n")
+  print(fgczDatatable(sig_df, caption = paste("Significant proteins —", cn)))
+  cat("\n\n")
+}
+```
+
+### Heatmap of Significant Proteins
+
+```{r sig-heatmap}
+#| fig-width: 8
+#| fig-height: 8
+## Combine significant proteins across all contrasts
+all_sig_ids <- c()
+for (cn in contrast_names) {
+  prefix   <- paste0("constrast_", cn)
+  diff_col <- paste0(prefix, ".diff")
+  fdr_col  <- paste0(prefix, ".FDR")
+  if (all(c(diff_col, fdr_col) %in% colnames(rd))) {
+    is_sig <- !is.na(rd[[fdr_col]]) &
+      rd[[fdr_col]] < fdr_threshold &
+      abs(rd[[diff_col]]) > diff_threshold
+    all_sig_ids <- union(all_sig_ids, rownames(rd)[is_sig])
+  }
+}
+
+mat_sig <- assay(se, "transformedData")[all_sig_ids, , drop = FALSE]
+mat_sig <- mat_sig[complete.cases(mat_sig), , drop = FALSE]
+
+if (nrow(mat_sig) >= 2 && nrow(mat_sig) <= 500) {
+  ## Row-centre
+  mat_sig_scaled <- t(scale(t(mat_sig)))
+  anno_col <- data.frame(Group = sample_info[[group_col]],
+                         row.names = colnames(se))
+  show_rownames <- nrow(mat_sig_scaled) <= 50
+
+  pheatmap(mat_sig_scaled,
+           cluster_rows = TRUE, cluster_cols = TRUE,
+           show_rownames = show_rownames,
+           annotation_col = anno_col,
+           main = paste0("Significant proteins (n=", nrow(mat_sig_scaled), ")"),
+           color = colorRampPalette(c("blue", "white", "red"))(100))
+} else if (nrow(mat_sig) > 500) {
+  cat("Too many significant proteins for heatmap display:", nrow(mat_sig), "\n")
+} else {
+  cat("Fewer than 2 significant proteins with complete data.\n")
+}
+```
+
+# Technical QC
+
+::: {.callout-note collapse="true"}
+## Model Types
+Proteins with sufficient observations use `Linear_Model_moderated`. Those with missing group means use `Imputed_Mean_moderated` — these are less reliable.
+:::
+
+```{r model-summary}
+model_summary <- list()
+for (cn in contrast_names) {
+  model_col <- paste0("constrast_", cn, ".modelName")
+  if (model_col %in% colnames(rd)) {
+    tbl <- table(rd[[model_col]])
+    model_summary[[cn]] <- data.frame(
+      Contrast = cn,
+      Model = names(tbl),
+      Count = as.integer(tbl),
+      row.names = NULL)
+  }
+}
+if (length(model_summary) > 0) {
+  model_df <- do.call(rbind, model_summary)
+  fgczDatatable(model_df, caption = "Modelling approach per contrast",
+                filter = "none")
+}
+```
+
+# Input Dataset
+
+```{r input-dataset}
+fgczDatatable(sample_info, caption = "Sample annotation")
+```
+
+# Session Info
+
+```{r session-info}
+sessionInfo()
+```
+
+:::
+
+```{r agent-metadata}
+#| include: false
+## Write agent metadata sidecar
+comparison_list <- lapply(contrast_names, function(cn) {
+  prefix <- paste0("constrast_", cn)
+  fdr_col  <- paste0(prefix, ".FDR")
+  diff_col <- paste0(prefix, ".diff")
+
+  n_sig_up   <- sum(rd[[fdr_col]] < fdr_threshold &
+                       rd[[diff_col]] > diff_threshold, na.rm = TRUE)
+  n_sig_down <- sum(rd[[fdr_col]] < fdr_threshold &
+                       rd[[diff_col]] < -diff_threshold, na.rm = TRUE)
+  list(
+    name = cn,
+    formula = contrasts[cn, "contrast"],
+    method = "prolfqua",
+    significantUp = n_sig_up,
+    significantDown = n_sig_down
+  )
+})
+
+## Top hits from first contrast
+first_cn <- contrast_names[1]
+prefix   <- paste0("constrast_", first_cn)
+fdr_col  <- paste0(prefix, ".FDR")
+diff_col <- paste0(prefix, ".diff")
+name_col <- paste0(prefix, ".gene_name")
+
+top_idx <- order(rd[[fdr_col]])[1:min(20, nrow(rd))]
+top_hits <- data.frame(
+  id = rownames(rd)[top_idx],
+  name = if (name_col %in% colnames(rd)) rd[top_idx, name_col] else rownames(rd)[top_idx],
+  log2FC = round(rd[top_idx, diff_col], 3),
+  fdr = signif(rd[top_idx, fdr_col], 3)
+)
+
+fgczAgentMetadata(
+  reportType = "differential-expression",
+  omicsType = "proteomics",
+  comparisons = comparison_list,
+  thresholds = list(fdr = fdr_threshold, diff = diff_threshold),
+  counts = list(
+    totalTested = nrow(rd),
+    significantUp = sum(summary_df$Up),
+    significantDown = sum(summary_df$Down)
+  ),
+  topHits = top_hits,
+  files = list(
+    resultTable = result_file,
+    plots = "plots/"
+  )
+)
+```
