@@ -184,26 +184,6 @@ EzAppScSeurat <-
             Type = "character",
             DefaultValue = "",
             Description = "Biological context for annotation"
-          ),
-          CyteTypeR.llmProvider = ezFrame(
-            Type = "character",
-            DefaultValue = "default",
-            Description = "LLM provider: default or openai"
-          ),
-          CyteTypeR.llmBaseUrl = ezFrame(
-            Type = "character",
-            DefaultValue = "",
-            Description = "Base URL for custom LLM endpoint"
-          ),
-          CyteTypeR.llmApiKey = ezFrame(
-            Type = "character",
-            DefaultValue = "",
-            Description = "API key for custom LLM endpoint"
-          ),
-          CyteTypeR.llmModel = ezFrame(
-            Type = "character",
-            DefaultValue = "",
-            Description = "Model name for custom LLM endpoint"
           )
         )
       }
@@ -787,40 +767,11 @@ ezMethodScSeurat <- function(
           )
         }
 
-        # Build llm_configs if custom provider specified
-        llm_configs <- NULL
-        if (
-          ezIsSpecified(param$CyteTypeR.llmProvider) &&
-            param$CyteTypeR.llmProvider == "openai"
-        ) {
-          if (
-            ezIsSpecified(param$CyteTypeR.llmBaseUrl) &&
-              ezIsSpecified(param$CyteTypeR.llmModel)
-          ) {
-            llm_configs <- list(
-              provider = "openai",
-              name = param$CyteTypeR.llmModel,
-              apiKey = if (ezIsSpecified(param$CyteTypeR.llmApiKey)) {
-                param$CyteTypeR.llmApiKey
-              } else {
-                "not-needed"
-              },
-              baseUrl = param$CyteTypeR.llmBaseUrl,
-              modelSettings = list(temperature = 0.0, max_tokens = 4096L)
-            )
-            futile.logger::flog.info(
-              "Using custom LLM endpoint: %s",
-              param$CyteTypeR.llmBaseUrl
-            )
-          }
-        }
-
         # Submit annotation job (use copy to avoid mutating scData on failure)
         scData_ct <- CyteTypeR::CyteTypeR(
           obj = scData_ct,
           prepped_data = prepped_data,
           study_context = study_context,
-          llm_configs = llm_configs,
           auth_token = api_key,
           require_artifacts = FALSE,
           metadata = list(
