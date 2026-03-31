@@ -313,7 +313,6 @@ p <- p + geom_fruit(data=melt_simple, geom=geom_boxplot,
          mapping = aes(
                      y=OTU,
                      x=val,
-                     group=label,
                      fill=Phylum),
          size=.2,
          outlier.size=0.5,
@@ -716,7 +715,7 @@ Let's check if the variance exceeds the mean over all samples for each taxon.
 ```{r, fig.width = 5, fig.height = 5, echo=FALSE}
 means <- apply(otu_table(physeq1),1,mean)
 variances <- apply(otu_table(physeq1),1,var)
-df <- melt(otu_table(physeq1))
+df <- reshape2::melt(otu_table(physeq1))
 names(df) <- c("Taxon", "Sample", "Reads")
 df <- df %>% group_by(Taxon) %>%
              summarise(mean = mean(Reads),
@@ -775,15 +774,15 @@ If you would like to know more, read the following publication:
 
 #### Differential abundance testing.      
 </br>
-Advanced methods of differential abundance testing based on linear regression are applied because sequencing data sets deviate from symmetric, continuous, Gaussian assumptions in many ways. Types of tests that were applied:
+Advanced methods of differential abundance testing based on linear regression are applied because sequencing data sets deviate from symmetric, continuous, Gaussian assumptions in many ways. Types of tests that could be applied:
 
 - ANCOMBC (Analysis of Microbial Composition with Bias Correction).   
-- DESeq2.   
-- EdgeR. 
-- Combination of EdgeR and DESeq2.  
-
+- DESeq2
+- EdgeR
+- Combination of EdgeR and DESeq2
+- LEFse (LDA Effect Size)
 You can also run:
-- LEFse (LDA Effect Size).  
+
 
 
 
@@ -796,6 +795,11 @@ ANCOM is claimed to produce the most consistent results and is probably a conser
 See here for QIIME2 ANCOM Interactive Report run on ASV level, not on Genus level:
 [Interactive QIIME2 ANCOM](`r difabundance`){target="_blank"}
 
+</br> 
+
+#### ANCOM-BC Primary Test Results Genus
+
+Result from the ANCOM-BC log-linear model to determine taxa that are differentially abundant according to the covariate of interest. It contains: 1) log fold changes; 2) standard errors; 3) test statistics; 4) p-values; 5) adjusted p-values; 6) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
 
 ```{r, echo=FALSE}
 res<- ANCOMBC::ancombc2(data = physeq1,
@@ -813,31 +817,30 @@ res<- ANCOMBC::ancombc2(data = physeq1,
 ```
 
 </br> 
-
-#### ANCOM-BC Primary Test Results
-
-Result from the ANCOM-BC log-linear model to determine taxa that are differentially abundant according to the covariate of interest. It contains: 1) log fold changes; 2) standard errors; 3) test statistics; 4) p-values; 5) adjusted p-values; 6) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
-
-</br> 
 Lets look at table 6).Each group is compared to reference group and if the difference is significant the output is TRUE.
 
 ```{r, echo=FALSE}
-res$res$diff_abn %>% datatable()
+res$res %>%
+  select(taxon, starts_with("diff_") & !starts_with("diff_robust_")) %>%
+  rename_with(~ gsub("diff_Group|diff_", "", .x), starts_with("diff_")) %>%
+  datatable()
 ```
 </br> 
 Lets look at table 1): the Log Fold Changes from the Primary Result.
 </br> 
 
 ```{r, echo=FALSE}
-tab_lfc = res$res$lfc
-tab_lfc %>% datatable(caption = "Log Fold Changes from the Primary Result") %>% formatRound(colnames(tab_lfc)[-1], digits = 2)
+tab_lfc <- res$res %>% select(taxon, starts_with("lfc_"))
+tab_lfc %>% 
+  datatable(caption = "Log Fold Changes from the Primary Result") %>% 
+  formatRound(colnames(tab_lfc)[-1], digits = 2)
 ```
 </br> 
 Lets look at table 5): the adjusted p-values.
 </br> 
 
 ```{r, echo=FALSE}
-tab_q = res$res$q_val
+tab_q <- res$res %>% select(taxon, starts_with("q_"))
 tab_q %>% 
   datatable(caption = "Adjusted p-values from the Primary Result") %>%
   formatRound(colnames(tab_q)[-1], digits = 2)
@@ -852,7 +855,7 @@ Note that we are only able to estimate sampling fractions up to an additive cons
 ```{r, echo=FALSE}
 samp_frac = res$samp_frac
 # Replace NA with 0
-samp_frac[is.na(samp_frac)] = 0 
+samp_frac[is.na(samp_frac)] = 0
 # Add pesudo-count (1) to avoid taking the log of 0
 log_obs_abn = log(res$feature_table + 1)
 # Adjust the log observed abundances
@@ -865,46 +868,144 @@ round(log_corr_abn[, 1:6], 2) %>%
 Lets visualise log fold changes per grouping factor.
 </br> 
 ```{r, fig.width = 8, fig.height=6, echo=FALSE}
-tab_lfc = data.frame(res$res$lfc[, -1] * res$res$diff_abn[, -1], check.names = FALSE) %>%
-  mutate(taxon_id = res$res$diff_abn$taxon) %>%
-  dplyr::select(taxon_id, everything())
-tab_se = data.frame(res$res$se[, -1] * res$res$diff_abn[, -1], check.names = FALSE) %>% 
-  mutate(taxon_id = res$res$diff_abn$taxon) %>%
-  dplyr::select(taxon_id, everything())
-colnames(tab_se)[-1] = paste0(colnames(tab_se)[-1], "SE")
+# Build lfc and se tables masked by diff_ significance
+diff_cols <- res$res %>% select(starts_with("diff_") & !starts_with("diff_robust_"))
+lfc_cols  <- res$res %>% select(starts_with("lfc_"))
+se_cols   <- res$res %>% select(starts_with("se_"))
 
-for (i in colnames(tab_lfc)[grepl("Group",colnames(tab_lfc))]) {
-  x = colnames(tab_se)[grepl("Group",colnames(tab_se)) & grepl("SE",colnames(tab_se))]
-  tab_for_plot = tab_lfc %>% 
-  dplyr::left_join(tab_se, by = "taxon_id") %>%
-  dplyr::transmute(tab_lfc$taxon_id, tab_lfc[,i], tab_se[,x]) %>% 
-    dplyr::rename("taxon_id" = 1, "fold_change" = 2, "SE" = 3) %>%
-    dplyr::filter(fold_change != 0) %>%
-    dplyr::arrange(desc(fold_change)) %>%
-    dplyr::mutate(direct = ifelse(fold_change > 0, "Positive LFC", "Negative LFC"))
-  tab_for_plot$taxon_id = factor(tab_for_plot$taxon_id, levels = tab_for_plot$taxon_id)
-  tab_for_plot$direct = factor(tab_for_plot$direct, 
-                        levels = c("Positive LFC", "Negative LFC"))
+# Align column names
+colnames(diff_cols) <- gsub("diff_", "", colnames(diff_cols))
+colnames(lfc_cols)  <- gsub("lfc_",  "", colnames(lfc_cols))
+colnames(se_cols)   <- gsub("se_",   "", colnames(se_cols))
+
+tab_lfc <- data.frame(lfc_cols * diff_cols, check.names = FALSE) %>%
+  mutate(taxon_id = res$res$taxon) %>%
+  select(taxon_id, everything())
+
+tab_se <- data.frame(se_cols * diff_cols, check.names = FALSE) %>%
+  mutate(taxon_id = res$res$taxon) %>%
+  select(taxon_id, everything())
+colnames(tab_se)[-1] <- paste0(colnames(tab_se)[-1], "_SE")
+
+group_cols <- colnames(tab_lfc)[grepl("Group", colnames(tab_lfc))]
+
+for (i in group_cols) {
+  se_col <- paste0(i, "_SE")
   
-  print(ggplot(data = tab_for_plot, 
-         aes(x = taxon_id, y = fold_change, fill = direct, color = direct)) + 
-    geom_bar(stat = "identity", width = 0.7, 
-           position = position_dodge(width = 0.4)) +
-    geom_errorbar(aes(ymin = fold_change - SE, ymax = fold_change - SE), width = 0.2,
-                position = position_dodge(0.05), color = "black") + 
-    labs(x = NULL, y = "Log fold change", 
-       title = paste("Log fold changes as one unit increase of", i)) + 
+  tab_for_plot <- tab_lfc %>%
+    left_join(tab_se, by = "taxon_id") %>%
+    transmute(taxon_id, fold_change = .data[[i]], SE = .data[[se_col]]) %>%
+    filter(fold_change != 0) %>%
+    arrange(desc(fold_change)) %>%
+    mutate(direct = ifelse(fold_change > 0, "Positive LFC", "Negative LFC"))
+  
+  tab_for_plot$taxon_id <- factor(tab_for_plot$taxon_id, levels = tab_for_plot$taxon_id)
+  tab_for_plot$direct   <- factor(tab_for_plot$direct, levels = c("Positive LFC", "Negative LFC"))
+  
+  print(ggplot(data = tab_for_plot,
+         aes(x = taxon_id, y = fold_change, fill = direct, color = direct)) +
+    geom_bar(stat = "identity", width = 0.7, position = position_dodge(width = 0.4)) +
+    geom_errorbar(aes(ymin = fold_change - SE, ymax = fold_change + SE), width = 0.2,
+                  position = position_dodge(0.05), color = "black") +
+    labs(x = NULL, y = "Log fold change",
+         title = paste("Log fold changes as one unit increase of", i)) +
     scale_fill_discrete(name = NULL) +
     scale_color_discrete(name = NULL) +
-    theme_bw() + 
+    theme_bw() +
     theme(plot.title = element_text(hjust = 0.5),
-        panel.grid.minor.y = element_blank(),
-        axis.text.x = element_text(size = 6, angle = 60, hjust = 1)))
-
+          panel.grid.minor.y = element_blank(),
+          axis.text.x = element_text(size = 6, angle = 60, hjust = 1)))
 }
 ```
 
-#### ANCOM-BC Global Test Results
+
+```{r, echo=FALSE}
+# 1. Table of structural zero taxa
+res$zero_ind %>%
+  filter(rowSums(.[,-1]) > 0) %>%
+  datatable(caption = "Taxa excluded from model due to structural zeros (absent in at least one group)")
+
+# 2. Agglomerate to genus and fix names
+physeq_genus <- tax_glom(physeq1, taxrank = "Genus", NArm = FALSE)
+tax_df <- as.data.frame(tax_table(physeq_genus))
+genus_names <- ifelse(is.na(tax_df$Genus), paste0("Unknown_", seq_len(nrow(tax_df))), tax_df$Genus)
+genus_names <- make.unique(genus_names)
+taxa_names(physeq_genus) <- genus_names
+
+# 3. Compute observed lfc from physeq_genus (ALL taxa)
+log_obs_abn <- as(otu_table(physeq_genus), "matrix")
+
+# Robustly ensure Taxa are rows and Samples are columns
+if (!taxa_are_rows(physeq_genus)) {
+  log_obs_abn <- t(log_obs_abn)
+}
+
+# Apply log transformation
+log_obs_abn <- log(log_obs_abn + 1)
+
+# Bias correction using samp_frac from the model (only for the 3 modelled taxa)
+# For all taxa we just use raw log abundances as observed lfc
+group_info   <- factor(sample_data(physeq_genus)[[grouping]])
+ref_group    <- levels(group_info)[1]
+other_groups <- levels(group_info)[-1]
+
+group_means <- sapply(levels(group_info), function(g) {
+  rowMeans(log_obs_abn[, group_info == g, drop = FALSE])
+})
+
+obs_lfc <- as.data.frame(group_means[, other_groups, drop = FALSE] - group_means[, ref_group])
+obs_lfc$taxon <- rownames(obs_lfc)
+
+# 4. Significance from model (Keeping your original logic)
+sig_df <- res$res %>%
+  select(taxon, starts_with("diff_") & !starts_with("diff_robust_")) %>%
+  rename_with(~ gsub("diff_Group", "", .x), starts_with("diff_"))
+
+# 5. Structural zero taxa
+struc_zero_taxa <- res$zero_ind$taxon
+
+# 6. Plot per group
+for (grp in other_groups) {
+  tab_for_plot <- obs_lfc %>%
+    select(taxon, fold_change = all_of(grp)) %>%
+    left_join(sig_df %>% select(taxon, significant = all_of(grp)), by = "taxon") %>%
+    mutate(
+      significant = ifelse(is.na(significant), FALSE, significant),
+      status = case_when(
+        significant                ~ "Significant (modelled)",
+        taxon %in% struc_zero_taxa ~ "Structural zero",
+        TRUE                       ~ "Not significant"
+      )
+    ) %>%
+    arrange(desc(fold_change)) %>%
+    mutate(taxon = factor(taxon, levels = taxon))
+
+  print(
+    ggplot(tab_for_plot, aes(x = taxon, y = fold_change, fill = status, color = status)) +
+      geom_bar(stat = "identity", width = 0.7) +
+      scale_fill_manual(values = c(
+        "Significant (modelled)" = "#E41A1C",
+        "Not significant"        = "#999999",
+        "Structural zero"        = "#377EB8"
+      )) +
+      scale_color_manual(values = c(
+        "Significant (modelled)" = "#E41A1C",
+        "Not significant"        = "#999999",
+        "Structural zero"        = "#377EB8"
+      )) +
+      labs(x = NULL, y = "Log fold change (observed)",
+           title = paste("Log fold changes vs", ref_group, ":", grp),
+           fill = NULL, color = NULL,
+           caption = "Red = significant in ANCOMBC2 model | Blue = structural zeros | Grey = not significant") +
+      theme_bw() +
+      theme(plot.title = element_text(hjust = 0.5),
+            panel.grid.minor.y = element_blank(),
+            axis.text.x = element_text(size = 6, angle = 60, hjust = 1))
+  )
+}
+```
+
+#### ANCOM-BC Global Test Results Genus
 
 If you have more than 2 groups this will also be relevant to you. Result from the ANCOM-BC global test to determine taxa that are differentially abundant between at least two groups across three or more different groups. The result contains: 1) test statistics; 2) p-values; 3) adjusted p-values; 4) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
 
@@ -980,6 +1081,293 @@ p_sig
 ```
 
 </br> 
+
+
+#### ANCOM-BC Primary Test Results Family
+
+Result from the ANCOM-BC log-linear model to determine taxa that are differentially abundant according to the covariate of interest. It contains: 1) log fold changes; 2) standard errors; 3) test statistics; 4) p-values; 5) adjusted p-values; 6) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
+
+```{r, echo=FALSE}
+res<- ANCOMBC::ancombc2(data = physeq1,
+                        fix_formula = grouping, 
+                        tax_level = "Family",
+                        p_adj_method = "BH", 
+                        lib_cut = 0, 
+                        prv_cut = 0.1,
+                        group = grouping, 
+                        struc_zero = TRUE, 
+                        neg_lb = TRUE, 
+                        iter_control = list(tol = 1e-5, max_iter = 100, verbose = TRUE), 
+                        alpha = 0.05, 
+                        global = TRUE)
+```
+
+</br> 
+  Lets look at table 6).Each group is compared to reference group and if the difference is significant the output is TRUE.
+
+```{r, echo=FALSE}
+res$res %>%
+  select(taxon, starts_with("diff_") & !starts_with("diff_robust_")) %>%
+  rename_with(~ gsub("diff_Group|diff_", "", .x), starts_with("diff_")) %>%
+  datatable()
+```
+</br> 
+  Lets look at table 1): the Log Fold Changes from the Primary Result.
+</br> 
+  
+```{r, echo=FALSE}
+tab_lfc <- res$res %>% select(taxon, starts_with("lfc_"))
+tab_lfc %>% 
+  datatable(caption = "Log Fold Changes from the Primary Result") %>% 
+  formatRound(colnames(tab_lfc)[-1], digits = 2)
+```
+</br> 
+  Lets look at table 5): the adjusted p-values.
+</br> 
+  
+```{r, echo=FALSE}
+tab_q <- res$res %>% select(taxon, starts_with("q_"))
+tab_q %>% 
+  datatable(caption = "Adjusted p-values from the Primary Result") %>%
+  formatRound(colnames(tab_q)[-1], digits = 2)
+```
+</br> 
+  Lets obtain bias-corrected abundances.    
+Step 1: obtain estimated sample-specific sampling fractions (in log scale).     
+Step 2: correct the log observed abundances by subtracting the estimated sampling fraction from log observed abundances of each sample.    
+</br> 
+  Note that we are only able to estimate sampling fractions up to an additive constant. Thus, only the difference between bias-corrected abundances are meaningful.    
+</br> 
+```{r, echo=FALSE}
+samp_frac = res$samp_frac
+# Replace NA with 0
+samp_frac[is.na(samp_frac)] = 0
+# Add pesudo-count (1) to avoid taking the log of 0
+log_obs_abn = log(res$feature_table + 1)
+# Adjust the log observed abundances
+log_corr_abn = t(t(log_obs_abn) - samp_frac)
+# Show the first 6 samples
+round(log_corr_abn[, 1:6], 2) %>% 
+  datatable(caption = "Bias-corrected log observed abundances")
+```
+</br> 
+  Lets visualise log fold changes per grouping factor.
+</br> 
+```{r, fig.width = 8, fig.height=6, echo=FALSE}
+# Build lfc and se tables masked by diff_ significance
+diff_cols <- res$res %>% select(starts_with("diff_") & !starts_with("diff_robust_"))
+lfc_cols  <- res$res %>% select(starts_with("lfc_"))
+se_cols   <- res$res %>% select(starts_with("se_"))
+
+# Align column names
+colnames(diff_cols) <- gsub("diff_", "", colnames(diff_cols))
+colnames(lfc_cols)  <- gsub("lfc_",  "", colnames(lfc_cols))
+colnames(se_cols)   <- gsub("se_",   "", colnames(se_cols))
+
+tab_lfc <- data.frame(lfc_cols * diff_cols, check.names = FALSE) %>%
+  mutate(taxon_id = res$res$taxon) %>%
+  select(taxon_id, everything())
+
+tab_se <- data.frame(se_cols * diff_cols, check.names = FALSE) %>%
+  mutate(taxon_id = res$res$taxon) %>%
+  select(taxon_id, everything())
+colnames(tab_se)[-1] <- paste0(colnames(tab_se)[-1], "_SE")
+
+group_cols <- colnames(tab_lfc)[grepl("Group", colnames(tab_lfc))]
+
+for (i in group_cols) {
+  se_col <- paste0(i, "_SE")
+  
+  tab_for_plot <- tab_lfc %>%
+    left_join(tab_se, by = "taxon_id") %>%
+    transmute(taxon_id, fold_change = .data[[i]], SE = .data[[se_col]]) %>%
+    filter(fold_change != 0) %>%
+    arrange(desc(fold_change)) %>%
+    mutate(direct = ifelse(fold_change > 0, "Positive LFC", "Negative LFC"))
+  
+  tab_for_plot$taxon_id <- factor(tab_for_plot$taxon_id, levels = tab_for_plot$taxon_id)
+  tab_for_plot$direct   <- factor(tab_for_plot$direct, levels = c("Positive LFC", "Negative LFC"))
+  
+  print(ggplot(data = tab_for_plot,
+               aes(x = taxon_id, y = fold_change, fill = direct, color = direct)) +
+          geom_bar(stat = "identity", width = 0.7, position = position_dodge(width = 0.4)) +
+          geom_errorbar(aes(ymin = fold_change - SE, ymax = fold_change + SE), width = 0.2,
+                        position = position_dodge(0.05), color = "black") +
+          labs(x = NULL, y = "Log fold change",
+               title = paste("Log fold changes as one unit increase of", i)) +
+          scale_fill_discrete(name = NULL) +
+          scale_color_discrete(name = NULL) +
+          theme_bw() +
+          theme(plot.title = element_text(hjust = 0.5),
+                panel.grid.minor.y = element_blank(),
+                axis.text.x = element_text(size = 6, angle = 60, hjust = 1)))
+}
+```
+
+
+```{r, echo=FALSE}
+# 1. Table of structural zero taxa
+res$zero_ind %>%
+  filter(rowSums(.[,-1]) > 0) %>%
+  datatable(caption = "Taxa excluded from model due to structural zeros (absent in at least one group)")
+
+# 2. Agglomerate to family and fix names
+physeq_family <- tax_glom(physeq1, taxrank = "Family", NArm = FALSE)
+tax_df <- as.data.frame(tax_table(physeq_family))
+family_names <- ifelse(is.na(tax_df$Family), paste0("Unknown_", seq_len(nrow(tax_df))), tax_df$Family)
+family_names <- make.unique(family_names)
+taxa_names(physeq_family) <- family_names
+
+# 3. Compute observed lfc from physeq_family (ALL taxa)
+log_obs_abn <- as(otu_table(physeq_family), "matrix")
+
+# Robustly ensure Taxa are rows and Samples are columns
+if (!taxa_are_rows(physeq_family)) {
+  log_obs_abn <- t(log_obs_abn)
+}
+
+# Apply log transformation
+log_obs_abn <- log(log_obs_abn + 1)
+
+# Bias correction using samp_frac from the model (only for the 3 modelled taxa)
+# For all taxa we just use raw log abundances as observed lfc
+group_info   <- factor(sample_data(physeq_family)[[grouping]])
+ref_group    <- levels(group_info)[1]
+other_groups <- levels(group_info)[-1]
+
+group_means <- sapply(levels(group_info), function(g) {
+  rowMeans(log_obs_abn[, group_info == g, drop = FALSE])
+})
+
+obs_lfc <- as.data.frame(group_means[, other_groups, drop = FALSE] - group_means[, ref_group])
+obs_lfc$taxon <- rownames(obs_lfc)
+
+# 4. Significance from model (Keeping your original logic)
+sig_df <- res$res %>%
+  select(taxon, starts_with("diff_") & !starts_with("diff_robust_")) %>%
+  rename_with(~ gsub("diff_Group", "", .x), starts_with("diff_"))
+
+# 5. Structural zero taxa
+struc_zero_taxa <- res$zero_ind$taxon
+
+# 6. Plot per group
+for (grp in other_groups) {
+  tab_for_plot <- obs_lfc %>%
+    select(taxon, fold_change = all_of(grp)) %>%
+    left_join(sig_df %>% select(taxon, significant = all_of(grp)), by = "taxon") %>%
+    mutate(
+      significant = ifelse(is.na(significant), FALSE, significant),
+      status = case_when(
+        significant                ~ "Significant (modelled)",
+        taxon %in% struc_zero_taxa ~ "Structural zero",
+        TRUE                       ~ "Not significant"
+      )
+    ) %>%
+    arrange(desc(fold_change)) %>%
+    mutate(taxon = factor(taxon, levels = taxon))
+  
+  print(
+    ggplot(tab_for_plot, aes(x = taxon, y = fold_change, fill = status, color = status)) +
+      geom_bar(stat = "identity", width = 0.7) +
+      scale_fill_manual(values = c(
+        "Significant (modelled)" = "#E41A1C",
+        "Not significant"        = "#999999",
+        "Structural zero"        = "#377EB8"
+      )) +
+      scale_color_manual(values = c(
+        "Significant (modelled)" = "#E41A1C",
+        "Not significant"        = "#999999",
+        "Structural zero"        = "#377EB8"
+      )) +
+      labs(x = NULL, y = "Log fold change (observed)",
+           title = paste("Log fold changes vs", ref_group, ":", grp),
+           fill = NULL, color = NULL,
+           caption = "Red = significant in ANCOMBC2 model | Blue = structural zeros | Grey = not significant") +
+      theme_bw() +
+      theme(plot.title = element_text(hjust = 0.5),
+            panel.grid.minor.y = element_blank(),
+            axis.text.x = element_text(size = 6, angle = 60, hjust = 1))
+  )
+}
+```
+
+#### ANCOM-BC Global Test Results Family
+
+If you have more than 2 groups this will also be relevant to you. Result from the ANCOM-BC global test to determine taxa that are differentially abundant between at least two groups across three or more different groups. The result contains: 1) test statistics; 2) p-values; 3) adjusted p-values; 4) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
+
+</br> 
+Lets look at table 1): the Test Statistic
+
+```{r, echo=FALSE}
+if (length(levels(as.factor(metadata$Group))) > 2){
+  tab_w = res$res_global[, c("taxon", "W")]
+tab_w %>% datatable(caption = "Test Statistics 
+                    from the Global Test Result") %>%
+      formatRound(c("W"), digits = 2)
+} else { print("You only have 2 Groups")}
+```
+</br> 
+Lets look at table 3): the Adjusted P-values.
+</br> 
+
+```{r, echo=FALSE}
+if (length(levels(as.factor(metadata$Group))) > 2){
+  tab_q = res$res_global[, c("taxon", "q_val")]
+tab_q %>% datatable(caption = "Adjusted p-values 
+                    from the Global Test Result") %>%
+      formatRound(c("q_val"), digits = 2)
+} else { print("You only have 2 Groups")}
+```
+</br> 
+Lets look at table 4): the differentially abundant taxa.
+</br> 
+
+```{r, echo=FALSE}
+if (length(levels(as.factor(metadata$Group))) > 2){
+tab_diff = res$res_global[, c("taxon", "diff_abn")]
+tab_diff %>% datatable(caption = "Differentially Abundant Taxa 
+                       from the Global Test Result")
+} else { print("You only have 2 Groups")}
+```
+
+</br> 
+Let's visualise the log fold changes of sample groups to reference group of globally significant taxa. 
+```{r, fig.width = 8, fig.height=10, echo=FALSE}
+if (length(levels(as.factor(metadata$Group))) > 2){
+sig_taxa = res$res_global %>%
+  dplyr::filter(diff_abn == TRUE) %>%
+  .$taxon
+
+df_sig = tab_lfc %>%
+    dplyr::select(-2) %>% rename_with(~str_remove(., 'Group')) %>%
+    filter(taxon_id %in% sig_taxa)
+
+df_sig2 = df_sig %>%
+    pivot_longer(cols = -one_of("taxon_id"),
+                 names_to = "region", values_to = "value") %>%
+    mutate(value = round(value, 2))
+df_sig2$taxon_id = factor(df_sig2$taxon_id, levels = sort(sig_taxa))
+
+lo = floor(min(df_sig2$value))
+up = ceiling(max(df_sig2$value))
+mid = (lo + up)/2
+p_sig = df_sig2 %>%
+  ggplot(aes(x = region, y = taxon_id, fill = value)) + 
+  geom_tile(color = "black") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       na.value = "white", midpoint = mid, limit = c(lo, up),
+                       name = NULL) +
+  geom_text(aes(region, taxon_id, label = value), color = "black", size = 4) +
+  labs(x = NULL, y = NULL, 
+       title = "Log fold changes for globally significant taxa") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+p_sig
+} else { print("You only have 2 Groups")}
+```
+
+</br> 
+
 
 ### DESeq2/EdgeR results {.tabset}
 
