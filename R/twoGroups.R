@@ -105,7 +105,8 @@ twoGroupCountComparison <- function(rawData) {
       param$grouping,
       grouping2 = param$grouping2,
       isPresent = useProbe,
-      cooksCutoff = ezIsSpecified(param$cooksCutoff) && param$cooksCutoff
+      cooksCutoff = ezIsSpecified(param$cooksCutoff) && param$cooksCutoff,
+      useLfcShrink = ezIsSpecified(param$useLfcShrink) && param$useLfcShrink
     ),
     exactTest = runEdger(
       round(x),
@@ -190,7 +191,8 @@ runDeseq2 <- function(
   grouping,
   grouping2 = NULL,
   isPresent = NULL,
-  cooksCutoff = FALSE
+  cooksCutoff = FALSE,
+  useLfcShrink = FALSE
 ) {
   require(DESeq2)
   ## get size factors -- grouping2 not needed
@@ -253,7 +255,8 @@ runDeseq2 <- function(
     contrast = c("grouping", sampleGroup, refGroup),
     cooksCutoff = cooksCutoff
   )
-  if (ezIsSpecified(param$useLfcShrink) && param$useLfcShrink){
+  if (useLfcShrink){
+    message("use lfcShrink")
     resRaw <- res
     res <- lfcShrink(dds, res=res, contrast = c("grouping", sampleGroup, refGroup), 
                              type="ashr")
