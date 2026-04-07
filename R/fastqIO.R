@@ -429,6 +429,7 @@ ezMethodSubsampleFastq <- function(
     n,
     mc.cores = param$cores
   )
+  gc()
   return(output)
 }
 
