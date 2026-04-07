@@ -253,7 +253,7 @@ runDeseq2 <- function(
     contrast = c("grouping", sampleGroup, refGroup),
     cooksCutoff = cooksCutoff
   )
-  shrunkenRes <- lfcShrink(natRes$dds, res=res, contrast = c("grouping", sampleGroup, refGroup), 
+  shrunkenRes <- lfcShrink(dds, res=res, contrast = c("grouping", sampleGroup, refGroup), 
                            type="ashr")
   res$log2FoldChangeShrink <- shrunkenRes$log2FoldChange
   res$lfcSEShrink <- shrunkenRes$lfcSE
