@@ -255,6 +255,8 @@ runDeseq2 <- function(
   )
   shrunkenRes <- lfcShrink(dds, res=res, contrast = c("grouping", sampleGroup, refGroup), 
                            type="ashr")
+  res$gene_id <- rownames(res)
+  res <- as.list(res)
   res$log2FoldChangeShrink <- shrunkenRes$log2FoldChange
   res$lfcSEShrink <- shrunkenRes$lfcSE
   res$sf <- sf
