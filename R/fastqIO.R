@@ -429,6 +429,7 @@ ezMethodSubsampleFastq <- function(
     n,
     mc.cores = param$cores
   )
+  ## we have to clean memory here, since non-cleared RAM causes out-of-memory in subsequent multi-thread STAR
   gc()
   return(output)
 }
