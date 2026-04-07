@@ -253,12 +253,15 @@ runDeseq2 <- function(
     contrast = c("grouping", sampleGroup, refGroup),
     cooksCutoff = cooksCutoff
   )
-  shrunkenRes <- lfcShrink(dds, res=res, contrast = c("grouping", sampleGroup, refGroup), 
-                           type="ashr")
+  if (ezIsSpecified(param$useLfcShrink) && param$useLfcShrink){
+    resRaw <- res
+    res <- lfcShrink(dds, res=res, contrast = c("grouping", sampleGroup, refGroup), 
+                             type="ashr")
+    res$log2FoldChangeNoShrink <- resRaw$log2FoldChange
+    res$lfcSENoShrink <- resRaw$lfcSE
+  }
   res$gene_id <- rownames(res)
   res <- as.list(res)
-  res$log2FoldChangeShrink <- shrunkenRes$log2FoldChange
-  res$lfcSEShrink <- shrunkenRes$lfcSE
   res$sf <- sf
   res$dds = dds
   return(res)
