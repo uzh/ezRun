@@ -672,16 +672,15 @@ buildMultiConfigFile <- function(input, param, dirList) {
     sampleMultiplexFiles <- getSampleMultiplexFiles(input)
     # we match according to just the beginning ^ and the sample names as a
     # prefix, since sometimes parts of the library information are
-    # as postfixes. This may potentially cause collisions but we risk it
+    # as postfixes. Use word-boundary anchor (_|$) to avoid ^1 matching "13".
     names(sampleMultiplexFiles) <- paste0(
       '^',
-      sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles))
+      sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles)),
+      '(_|$)'
     )
     sampleMultiplexFile <- sampleMultiplexFiles[sapply(
       names(sampleMultiplexFiles),
-      grepl,
-      pattern = sampleName,
-      ignore.case = TRUE
+      \(pat) grepl(pattern = pat, x = sampleName, ignore.case = TRUE)
     )]
     sampleMultiplexMapping <- read_csv(
       sampleMultiplexFile,
