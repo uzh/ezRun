@@ -275,27 +275,33 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
     ezSystem('find . -name "*.bam" -type f -delete')
     ezSystem('find . -name "*.bam.bai" -type f -delete')
   } else {
-    if (param$secondRef == '') {
-      setwd(finalSampleName)
-      refDir <- param$ezRef["refFastaFile"]
-      bamFile <- 'possorted_genome_bam.bam'
-      out <- tryCatch(
-        ezSystem(paste(
-          'samtools view',
-          '-T',
-          refDir,
-          '-@',
-          param$cores,
-          '-o',
-          sub('.bam$', '.cram', bamFile),
-          '-C',
-          bamFile
-        )),
-        error = function(e) NULL
-      )
-      system('rm possorted_genome_bam.bam')
-      setwd('..')
+    setwd(finalSampleName)
+    refFasta <- param$ezRef["refFastaFile"]
+    bamFile <- 'possorted_genome_bam.bam'
+    cramFile <- sub('.bam$', '.cram', bamFile)
+
+    tryCatch(
+      ezSystem(paste(
+        'samtools view',
+        '-T', refFasta,
+        '-@', param$cores,
+        '-o', cramFile,
+        '-C', bamFile
+      )),
+      error = function(e) {
+        warning("BAM to CRAM conversion failed: ", e$message)
+      }
+    )
+
+    # Only delete BAM if CRAM was successfully created
+    if (file.exists(cramFile)) {
+      file.remove(bamFile)
+      baiFile <- paste0(bamFile, '.bai')
+      if (file.exists(baiFile)) file.remove(baiFile)
+    } else {
+      warning("CRAM file was not created. Keeping BAM file to prevent data loss.")
     }
+    setwd('..')
   }
 
   cmDir <- file.path(finalSampleName, 'filtered_feature_bc_matrix')
