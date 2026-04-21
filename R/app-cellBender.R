@@ -30,6 +30,56 @@ EzAppCellBender <-
     )
   )
 
+#' Drop ATAC Peaks from a multimodal 10x h5 before CellBender inference.
+#'
+#' CellBender models ambient RNA (and also antibody/hashtag contamination
+#' for CITE-seq / CellPlex inputs), but it is NOT designed for ATAC
+#' fragments. On ARC/multiome inputs the ~130-180k Peaks features inflate
+#' runtime by ~10x because MCKP posterior estimation scales with
+#' features x cells. We drop only the "Peaks" feature_type and keep
+#' Gene Expression, Antibody Capture, Multiplexing Capture, etc.
+#'
+#' Returns the path to the filtered h5, or the original inputFile if no
+#' Peaks were present.
+dropPeaksFromH5 <- function(inputFile, sampleName) {
+  featureTypes <- as.character(rhdf5::h5read(inputFile, "matrix/features/feature_type"))
+  typeCounts <- table(featureTypes)
+
+  if (!"Peaks" %in% names(typeCounts)) {
+    return(inputFile)
+  }
+
+  ezLog(paste0(
+    "Multimodal input detected: ",
+    paste(names(typeCounts), typeCounts, sep = "=", collapse = ", ")
+  ))
+  ezLog("Dropping Peaks (ATAC) for CellBender; keeping all other modalities.")
+
+  sce <- DropletUtils::read10xCounts(inputFile, col.names = TRUE)
+  keepMask <- rowData(sce)$Type != "Peaks"
+  sceKeep <- sce[keepMask, ]
+
+  ezLog(paste0(
+    "Keeping ", sum(keepMask), " non-Peaks features, dropping ",
+    sum(!keepMask), " Peaks."
+  ))
+
+  outH5 <- paste0(sampleName, "_nopeaks.h5")
+  if (file.exists(outH5)) file.remove(outH5)
+
+  DropletUtils::write10xCounts(
+    outH5,
+    counts(sceKeep),
+    gene.id = rowData(sceKeep)$ID,
+    gene.symbol = rowData(sceKeep)$Symbol,
+    type = "HDF5",
+    genome = unique(as.character(rhdf5::h5read(inputFile, "matrix/features/genome"))),
+    version = "3"
+  )
+
+  return(outH5)
+}
+
 ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
   require(DropletUtils)
 
@@ -90,6 +140,8 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
 
     ezLog("Created h5 file: ", inputFile)
   }
+
+  inputFile <- dropPeaksFromH5(inputFile, sampleName)
 
   cmd <- paste(
     "cellbender remove-background",
