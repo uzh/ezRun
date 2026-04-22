@@ -90,15 +90,26 @@ ezSessionInfo <- function() {
 ##' }
 ezMail = function(text = "done", subject = "r-mail", to = "") {
   stopifnot(to != "")
+  ## Recreate session tempdir if a node-level cleanup removed it mid-job;
+  ## system(..., input=) writes the input to tempdir() internally.
+  tempdir(check = TRUE)
   text = paste(
     c(text, paste("Host:", Sys.info()["nodename"]), paste("Dir:", getwd())),
     collapse = "\n"
   )
-  res = system(
-    paste("ssh fgcz-c-044 \" mail -s '", subject, "'", to, "\""),
-    input = text
+  res = tryCatch(
+    system(
+      paste("ssh fgcz-c-044 \" mail -s '", subject, "'", to, "\""),
+      input = text
+    ),
+    error = function(e) {
+      message("ezMail: notification failed (", conditionMessage(e), ")")
+      -1L
+    }
   )
-  stopifnot(res == 0)
+  if (res != 0) {
+    message("ezMail: non-zero exit (", res, "); continuing anyway")
+  }
 }
 
 ##' @title Is the email-address valid?
