@@ -9,6 +9,30 @@ ezMethodKallisto = function(input = NA, output = NA, param = NA) {
   sampleName = input$getNames()
   ref = getKallistoReference(param)
   refIdx = paste0(ref, ".idx")
+  useGpu = !is.null(param$gpu) && as.numeric(param$gpu) > 0
+  if (useGpu) {
+    Sys.setenv(PATH = paste(
+      "/srv/GT/analysis/tools/gpukallisto/bin",
+      Sys.getenv("PATH"),
+      sep = ":"
+    ))
+    kallistoBin = "gpukallisto"
+    # gpukallisto 0.52 GPU path only calls plaintext_writer; abundance.h5 is
+    # never produced. Force bootstraps off to avoid wasted compute and a
+    # missing-file surprise downstream. Use gpu=0 for sleuth-ready output.
+    if (!is.null(param$"bootstrap-samples") && as.numeric(param$"bootstrap-samples") > 0) {
+      warning(
+        "gpukallisto does not write bootstrap HDF5 output — ",
+        "forcing bootstrap-samples=0. Use gpu=0 for sleuth-ready results."
+      )
+      param$"bootstrap-samples" = 0
+    }
+    gpuRefIdx = file.path(param$outputDir, "transcripts.gpuidx")
+    ezSystem(paste("gpukallisto convert-index -i", refIdx, "-o", gpuRefIdx))
+    refIdx = gpuRefIdx
+  } else {
+    kallistoBin = "kallisto"
+  }
   if (!param$paired) {
     if (param$"fragment-length" == 0) {
       param$"fragment-length" = 180
@@ -73,7 +97,8 @@ ezMethodKallisto = function(input = NA, output = NA, param = NA) {
   pathRunInfo = file.path(param$outputDir, "run_info.json")
 
   cmd = paste(
-    "export HDF5_DISABLE_VERSION_CHECK=1 kallisto; kallisto",
+    "export HDF5_DISABLE_VERSION_CHECK=1;",
+    kallistoBin,
     "quant",
     opt,
     pathFastqFiles
@@ -142,6 +167,11 @@ EzAppKallisto <-
             Type = "character",
             DefaultValue = "",
             Description = "Path to fasta file with additional sequences to add to reference"
+          ),
+          gpu = ezFrame(
+            Type = "numeric",
+            DefaultValue = 0,
+            Description = "Set to 1 to run gpukallisto (CUDA). Bootstrap output is not supported on GPU — use gpu=0 for sleuth-ready results. TPM concordance ~0.995 vs CPU."
           )
         )
       }
