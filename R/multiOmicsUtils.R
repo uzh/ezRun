@@ -212,6 +212,78 @@ processVDJ <- function(obj, vdjTPath = NULL, vdjBPath = NULL, sampleName) {
   obj
 }
 
+##' @title Run WNN integration when 2+ dimensional modalities are present.
+##' @description Wraps `Seurat::FindMultiModalNeighbors` selecting from
+##'   {`pca`, `adt.pca`, `lsi`} based on which reductions exist on the object.
+##'   Computes a `wnn.umap` and adds per-modality weights to metadata.
+##' @param obj Seurat object.
+##' @param dims_rna,dims_adt,dims_atac Dimension ranges per modality.
+##' @return Seurat object with `reductions$wnn.umap`, `wsnn` graph, and
+##'   per-modality `*.weight` columns. Returns obj unchanged when fewer than
+##'   2 dimensional modalities exist.
+##' @export
+runWNN <- function(obj, dims_rna = 1:20, dims_adt = NULL, dims_atac = NULL) {
+  reds <- names(obj@reductions)
+  components <- list()
+  if ("pca" %in% reds)     components$rna  <- list(red = "pca",     dims = dims_rna)
+  if ("adt.pca" %in% reds) components$adt  <- list(red = "adt.pca", dims = dims_adt %||% seq_len(min(18L, ncol(obj[["adt.pca"]]))))
+  if ("lsi" %in% reds)     components$atac <- list(red = "lsi",     dims = dims_atac %||% 2:min(30L, ncol(obj[["lsi"]])))
+  if (length(components) < 2L) {
+    message("WNN skipped: fewer than 2 dimensional modalities (", length(components), ").")
+    return(obj)
+  }
+
+  reductions <- vapply(components, `[[`, "red", FUN.VALUE = character(1))
+  dims_list  <- lapply(components, `[[`, "dims")
+  message("Running WNN on: ", paste(reductions, collapse = " + "))
+
+  obj <- Seurat::FindMultiModalNeighbors(
+    obj,
+    reduction.list = unname(as.list(reductions)),
+    dims.list      = unname(dims_list),
+    knn.graph.name = "wknn",
+    snn.graph.name = "wsnn",
+    weighted.nn.name = "weighted.nn",
+    verbose = FALSE
+  )
+  n_neighbors <- min(30L, max(2L, ncol(obj) - 1L))
+  obj <- Seurat::RunUMAP(obj, nn.name = "weighted.nn",
+                         reduction.name = "wnn.umap",
+                         reduction.key  = "wnnUMAP_",
+                         n.neighbors = n_neighbors, verbose = FALSE)
+  obj <- Seurat::FindClusters(obj, graph.name = "wsnn", algorithm = 3,
+                              resolution = 0.5, verbose = FALSE)
+  obj
+}
+
+##' @title Load a BD Rhapsody pre-built Seurat object.
+##' @description BD Rhapsody pipelines produce a `<sample>_Seurat.rds` next to
+##'   the per-sample MEX folder, already populated with RNA and (when AbSeq is
+##'   present) ADT assays plus tSNE/UMAP. This loader reads that file, prefixes
+##'   barcodes `<sample>_<barcode>`, and aligns metadata to ScMultiOmics
+##'   conventions. If the RDS is absent, returns NULL so callers can fall
+##'   back.
+##' @param resultDir Path to the BD Rhapsody result directory (one sample).
+##' @param sampleName Sample name to prefix barcodes; ScSeurat-style.
+##' @return Seurat object or NULL.
+##' @export
+loadBDRhapsody <- function(resultDir, sampleName) {
+  rds <- list.files(resultDir, pattern = "_Seurat\\.rds$", full.names = TRUE,
+                    recursive = FALSE)
+  if (length(rds) == 0) {
+    message("No *_Seurat.rds found in ", resultDir)
+    return(NULL)
+  }
+  obj <- readRDS(rds[1])
+  if (!inherits(obj, "Seurat")) return(NULL)
+  obj <- Seurat::RenameCells(obj,
+                             new.names = paste0(sampleName, "_", colnames(obj)))
+  obj$Sample <- sampleName
+  obj$cellBarcode <- sub(paste0("^", sampleName, "_"), "", colnames(obj))
+  Seurat::DefaultAssay(obj) <- "RNA"
+  obj
+}
+
 ##' @title Locate the CellRanger ARC ATAC fragments + peaks for a CountMatrix.
 ##' @param countMatrixPath Path to the CountMatrix value.
 ##' @return Named list with `fragments` and `peaks` paths, or NULL if absent.

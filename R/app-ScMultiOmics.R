@@ -96,21 +96,50 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
   on.exit(setwd(cwd), add = TRUE)
 
   ## 1. Locate inputs ---------------------------------------------------------
-  scDataPath <- findScDataPath(input)
-  if (!nzchar(scDataPath) || !file.exists(scDataPath)) {
-    stop("scData.qs2 not found in input dataset; run ScSeurat first.")
-  }
-  if (!"CountMatrix" %in% input$colNames) {
-    stop("CountMatrix column missing from input dataset; required to locate ADT/VDJ/ATAC siblings.")
-  }
-  countMatrixPath <- input$getFullPaths("CountMatrix")
+  scDataPath      <- findScDataPath(input)
+  countMatrixPath <- if ("CountMatrix" %in% input$colNames)
+    input$getFullPaths("CountMatrix") else ""
+  bdResultDir     <- if ("BDRhapsodyPath" %in% input$colNames)
+    input$getFullPaths("BDRhapsodyPath") else ""
+  scDataOrigin    <- if ("SCDataOrigin" %in% input$colNames)
+    input$getColumn("SCDataOrigin") else ""
+
+  isBD <- nzchar(bdResultDir) || identical(unname(scDataOrigin), "BDRhapsody")
 
   ## 2. Load annotated RNA object --------------------------------------------
-  message("Loading annotated scData from: ", scDataPath)
-  obj <- qs2::qs_read(scDataPath, nthreads = max(1L, param$cores %||% 4L))
+  if (isBD) {
+    bd_root <- if (nzchar(bdResultDir)) bdResultDir else
+      if (nzchar(countMatrixPath)) dirname(countMatrixPath) else
+      stop("BD Rhapsody mode requires BDRhapsodyPath or CountMatrix.")
+    message("Loading BD Rhapsody Seurat from: ", bd_root)
+    obj <- loadBDRhapsody(bd_root, sampleName = input$getNames())
+    if (is.null(obj)) stop("BD Rhapsody Seurat not found in ", bd_root)
+  } else {
+    if (!nzchar(scDataPath) || !file.exists(scDataPath)) {
+      stop("scData.qs2 not found in input dataset; run ScSeurat first.")
+    }
+    if (!nzchar(countMatrixPath)) {
+      stop("CountMatrix column missing from input dataset; required to locate ADT/VDJ/ATAC siblings.")
+    }
+    message("Loading annotated scData from: ", scDataPath)
+    obj <- qs2::qs_read(scDataPath, nthreads = max(1L, param$cores %||% 4L))
+  }
 
   ## 3. Detect modalities -----------------------------------------------------
-  mod <- detectModalities(countMatrixPath)
+  if (isBD) {
+    mod <- list(hasRNA  = TRUE,
+                hasADT  = "ADT" %in% Seurat::Assays(obj),
+                hasVDJ_T = "VDJTPath" %in% input$colNames,
+                hasVDJ_B = "VDJBPath" %in% input$colNames,
+                hasATAC  = FALSE)
+  } else {
+    mod <- detectModalities(countMatrixPath)
+  }
+  # Standalone VDJ columns override auto-discovery
+  if ("VDJTPath" %in% input$colNames &&
+      nzchar(input$getColumn("VDJTPath")[[1]])) mod$hasVDJ_T <- TRUE
+  if ("VDJBPath" %in% input$colNames &&
+      nzchar(input$getColumn("VDJBPath")[[1]])) mod$hasVDJ_B <- TRUE
   message("Detected modalities: ",
           paste(names(mod)[unlist(mod)], collapse = ", "))
   saveRDS(mod, "modalities.rds")
@@ -118,7 +147,7 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
   sampleName <- input$getNames()
 
   ## 4. Per-modality processing ----------------------------------------------
-  if (isTRUE(mod$hasADT)) {
+  if (isTRUE(mod$hasADT) && !isBD) {
     h5 <- findFilteredH5(countMatrixPath)
     adt <- readADTCounts(h5, sampleName = sampleName)
     if (!is.null(adt) && ncol(adt) > 0) {
@@ -129,6 +158,26 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
     } else {
       warning("hasADT was TRUE but readADTCounts returned no data; skipping.")
       mod$hasADT <- FALSE
+    }
+  } else if (isTRUE(mod$hasADT) && isBD) {
+    # BD Rhapsody Seurat already carries the ADT assay; build a quick PCA + UMAP
+    # so the ADT tab and (later) WNN have something to consume.
+    if (!"adt.pca" %in% names(obj@reductions)) {
+      message("Computing ADT PCA + UMAP on BD Rhapsody ADT assay.")
+      Seurat::DefaultAssay(obj) <- "ADT"
+      obj <- Seurat::NormalizeData(obj, assay = "ADT",
+                                   normalization.method = "CLR", margin = 2,
+                                   verbose = FALSE)
+      obj <- Seurat::ScaleData(obj, assay = "ADT", verbose = FALSE)
+      npcs <- min(param$npcsADT %||% 18, nrow(obj[["ADT"]]) - 1)
+      obj <- Seurat::RunPCA(obj, assay = "ADT", reduction.name = "adt.pca",
+                            npcs = npcs, features = rownames(obj[["ADT"]]),
+                            approx = FALSE, verbose = FALSE)
+      n_neighbors <- min(30L, max(2L, ncol(obj) - 1L))
+      obj <- Seurat::RunUMAP(obj, assay = "ADT", reduction = "adt.pca",
+                             dims = seq_len(npcs), reduction.name = "adt.umap",
+                             n.neighbors = n_neighbors, verbose = FALSE)
+      Seurat::DefaultAssay(obj) <- "RNA"
     }
   }
 
@@ -151,8 +200,26 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
   wantVDJ_T <- (vdjChain %in% c("auto", "TCR", "both")) && isTRUE(mod$hasVDJ_T)
   wantVDJ_B <- (vdjChain %in% c("auto", "BCR", "both")) && isTRUE(mod$hasVDJ_B)
   if (wantVDJ_T || wantVDJ_B) {
-    vdjTPath <- if (wantVDJ_T) findVDJContigCsv(countMatrixPath, "T") else NULL
-    vdjBPath <- if (wantVDJ_B) findVDJContigCsv(countMatrixPath, "B") else NULL
+    # Standalone-VDJ columns take priority over auto-discovery.
+    vdjTPath <- NULL; vdjBPath <- NULL
+    if (wantVDJ_T) {
+      vdjTPath <- if ("VDJTPath" %in% input$colNames &&
+                      nzchar(input$getColumn("VDJTPath")[[1]]))
+        input$getFullPaths("VDJTPath") else
+        findVDJContigCsv(countMatrixPath, "T")
+      if (is.character(vdjTPath) && length(vdjTPath) > 0 && dir.exists(vdjTPath)) {
+        vdjTPath <- file.path(vdjTPath, "filtered_contig_annotations.csv")
+      }
+    }
+    if (wantVDJ_B) {
+      vdjBPath <- if ("VDJBPath" %in% input$colNames &&
+                      nzchar(input$getColumn("VDJBPath")[[1]]))
+        input$getFullPaths("VDJBPath") else
+        findVDJContigCsv(countMatrixPath, "B")
+      if (is.character(vdjBPath) && length(vdjBPath) > 0 && dir.exists(vdjBPath)) {
+        vdjBPath <- file.path(vdjBPath, "filtered_contig_annotations.csv")
+      }
+    }
     message("Attaching VDJ clones: ",
             if (wantVDJ_T) paste("T (", basename(vdjTPath), ")", sep = "") else "",
             if (wantVDJ_T && wantVDJ_B) " + " else "",
@@ -167,7 +234,18 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
     }
   }
 
-  ## 5. Save and render -------------------------------------------------------
+  ## 5. WNN integration -------------------------------------------------------
+  ranWNN <- FALSE
+  if (isTRUE(param$runWNN %||% TRUE)) {
+    n_dim_mod <- sum(c("pca", "adt.pca", "lsi") %in% names(obj@reductions))
+    if (n_dim_mod >= 2L) {
+      obj <- runWNN(obj)
+      ranWNN <- "wnn.umap" %in% names(obj@reductions)
+    }
+  }
+  mod$ranWNN <- ranWNN
+
+  ## 6. Save and render -------------------------------------------------------
   makeRmdReport(
     scMultiData = obj,
     param = param,

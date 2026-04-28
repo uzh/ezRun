@@ -1,0 +1,67 @@
+## WNN
+
+```{r wnn-prep, include=FALSE}
+n_cells <- ncol(scMultiData)
+red_used <- intersect(c("pca", "adt.pca", "lsi"), names(scMultiData@reductions))
+weight_cols <- grep("\\.weight$", colnames(scMultiData@meta.data), value = TRUE)
+has_wsnn <- "wsnn_res.0.5" %in% colnames(scMultiData@meta.data)
+cluster_col <- if (has_wsnn) {
+  "wsnn_res.0.5"
+} else if ("seurat_clusters" %in% colnames(scMultiData@meta.data)) {
+  "seurat_clusters"
+} else NULL
+```
+
+**Weighted Nearest Neighbor integration**
+
+- **Reductions integrated:** `r paste(red_used, collapse = ", ")`
+- **WNN cells:** `r format(n_cells, big.mark = ",")`
+- **Per-modality weights:** `r if (length(weight_cols) > 0) paste(weight_cols, collapse = ", ") else "n/a"`
+
+### WNN UMAP {.tabset}
+
+#### By Sample
+
+```{r wnn-umap-sample, echo=FALSE, fig.width=7, fig.height=7}
+if ("wnn.umap" %in% names(scMultiData@reductions)) {
+  p <- DimPlot(scMultiData, reduction = "wnn.umap",
+               group.by = "Sample", raster = FALSE) +
+    theme(aspect.ratio = 1) +
+    ggtitle("WNN UMAP - by Sample")
+  print(p)
+}
+```
+
+#### By WNN cluster
+
+```{r wnn-umap-cluster, echo=FALSE, fig.width=7, fig.height=7}
+if ("wnn.umap" %in% names(scMultiData@reductions) && !is.null(cluster_col)) {
+  p <- DimPlot(scMultiData, reduction = "wnn.umap",
+               group.by = cluster_col, raster = FALSE,
+               label = TRUE, repel = TRUE) +
+    theme(aspect.ratio = 1) +
+    ggtitle(paste("WNN UMAP -", cluster_col))
+  print(p)
+}
+```
+
+### Per-modality weights
+
+```{r wnn-weights-vln, echo=FALSE, fig.width=10, fig.height=5}
+if (length(weight_cols) > 0 && !is.null(cluster_col)) {
+  p <- VlnPlot(scMultiData, features = weight_cols,
+               group.by = cluster_col, pt.size = 0, ncol = length(weight_cols))
+  print(p)
+}
+```
+
+```{r wnn-weights-feat, echo=FALSE, fig.width=12, fig.height=4 * ceiling(length(weight_cols)/3)}
+if (length(weight_cols) > 0 && "wnn.umap" %in% names(scMultiData@reductions)) {
+  p <- FeaturePlot(scMultiData, features = weight_cols,
+                   reduction = "wnn.umap", raster = FALSE,
+                   ncol = min(3L, length(weight_cols))) &
+    theme(aspect.ratio = 1) &
+    scale_color_viridis_c(option = "C")
+  print(p)
+}
+```

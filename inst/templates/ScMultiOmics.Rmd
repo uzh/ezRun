@@ -44,6 +44,9 @@ scMultiData  <- ezLoadRobj("scMultiData",
 ```{r atac-child, eval = isTRUE(modalities$hasATAC), child = system.file("templates/_scMultiOmics_atac.Rmd", package = "ezRun")}
 ```
 
+```{r wnn-child, eval = isTRUE(modalities$ranWNN), child = system.file("templates/_scMultiOmics_wnn.Rmd", package = "ezRun")}
+```
+
 ## Session Information
 
 ```{r session-info}
