@@ -132,6 +132,21 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
     }
   }
 
+  if (isTRUE(mod$hasATAC)) {
+    atac_files <- findATACFiles(countMatrixPath)
+    if (!is.null(atac_files)) {
+      message("Adding ATAC assay from: ", basename(atac_files$fragments))
+      obj <- processATAC(obj,
+                         fragmentsPath = atac_files$fragments,
+                         peaksPath = atac_files$peaks,
+                         refBuild = param$refBuild,
+                         sampleName = sampleName)
+    } else {
+      warning("hasATAC was TRUE but ATAC files not found; skipping.")
+      mod$hasATAC <- FALSE
+    }
+  }
+
   vdjChain <- param$vdjChain %||% "auto"
   wantVDJ_T <- (vdjChain %in% c("auto", "TCR", "both")) && isTRUE(mod$hasVDJ_T)
   wantVDJ_B <- (vdjChain %in% c("auto", "BCR", "both")) && isTRUE(mod$hasVDJ_B)

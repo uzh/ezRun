@@ -212,6 +212,126 @@ processVDJ <- function(obj, vdjTPath = NULL, vdjBPath = NULL, sampleName) {
   obj
 }
 
+##' @title Locate the CellRanger ARC ATAC fragments + peaks for a CountMatrix.
+##' @param countMatrixPath Path to the CountMatrix value.
+##' @return Named list with `fragments` and `peaks` paths, or NULL if absent.
+##' @keywords internal
+findATACFiles <- function(countMatrixPath) {
+  candidates <- unique(c(countMatrixPath, dirname(countMatrixPath)))
+  for (p in candidates) {
+    fr <- file.path(p, "atac_fragments.tsv.gz")
+    pk <- file.path(p, "atac_peaks.bed")
+    if (file.exists(fr) && file.exists(pk)) {
+      return(list(fragments = fr, peaks = pk))
+    }
+  }
+  NULL
+}
+
+##' @title Resolve gene annotation GRanges for a Signac chromatin assay.
+##' @description Tries the EnsDb package matching the param$refBuild species; the
+##'   caller may also supply a pre-loaded annotation via param$annotation.
+##' @param refBuild ezRun refBuild string (or species name).
+##' @return GRanges with seqlevelsStyle "UCSC", or NULL if no EnsDb available.
+##' @keywords internal
+getATACAnnotation <- function(refBuild = NULL) {
+  if (is.null(refBuild)) refBuild <- ""
+  human <- grepl("Homo_sapiens|GRCh38|hg38|human", refBuild, ignore.case = TRUE)
+  mouse <- grepl("Mus_musculus|GRCm|mm10|mm39|mouse", refBuild, ignore.case = TRUE)
+  ensdb_pkg <- if (human) "EnsDb.Hsapiens.v86" else if (mouse) "EnsDb.Mmusculus.v79" else NULL
+  if (is.null(ensdb_pkg) || !requireNamespace(ensdb_pkg, quietly = TRUE)) {
+    return(NULL)
+  }
+  ensdb <- getExportedValue(ensdb_pkg, ensdb_pkg)
+  ann <- Signac::GetGRangesFromEnsDb(ensdb = ensdb)
+  GenomeInfoDb::seqlevelsStyle(ann) <- "UCSC"
+  ann
+}
+
+##' @title Attach an ATAC assay to a multiome Seurat object.
+##' @description Reads the CellRanger ARC peak matrix from the H5, builds a
+##'   `Signac::ChromatinAssay` (with fragments + annotation), runs TF-IDF + SVD,
+##'   computes an ATAC UMAP, and adds a `GeneActivity` assay.
+##' @param obj Seurat object with RNA assay (cells already prefixed `<Sample>_<barcode>`).
+##' @param fragmentsPath Path to atac_fragments.tsv.gz.
+##' @param peaksPath Path to atac_peaks.bed (currently informational; the H5
+##'   matrix carries the called peak set).
+##' @param refBuild ezRun refBuild string used to resolve EnsDb annotation.
+##' @param sampleName Sample name to prefix barcodes; must match `obj$Sample`.
+##' @return Seurat object with `assays$ATAC`, `reductions$lsi`, `reductions$atac.umap`,
+##'   and `assays$GeneActivity`.
+##' @export
+processATAC <- function(obj, fragmentsPath, peaksPath, refBuild = NULL,
+                        sampleName) {
+  if (!requireNamespace("Signac", quietly = TRUE)) {
+    stop("Signac is required for processATAC()")
+  }
+  stopifnot(file.exists(fragmentsPath))
+
+  cm_dir <- dirname(fragmentsPath)
+  h5 <- list.files(cm_dir, pattern = "filtered_feature_bc_matrix\\.h5$", full.names = TRUE)
+  if (length(h5) == 0) stop("Could not find filtered_feature_bc_matrix.h5 next to ", fragmentsPath)
+  cts <- Seurat::Read10X_h5(h5[1], use.names = TRUE, unique.features = TRUE)
+  if (!is.list(cts) || !"Peaks" %in% names(cts)) {
+    stop("Expected a 'Peaks' submatrix in ", h5[1], "; got: ", paste(names(cts), collapse = ", "))
+  }
+  peak_counts <- cts[["Peaks"]]
+  colnames(peak_counts) <- paste0(sampleName, "_", colnames(peak_counts))
+
+  shared <- intersect(colnames(peak_counts), colnames(obj))
+  if (length(shared) < ncol(obj) * 0.5) {
+    warning(sprintf("Only %d/%d cells overlap ATAC barcodes - check sample prefixing.",
+                    length(shared), ncol(obj)))
+  }
+  obj <- obj[, shared]
+  peak_counts <- peak_counts[, shared, drop = FALSE]
+
+  ann <- getATACAnnotation(refBuild)
+
+  # Build a fragments object with bare-barcode -> sample-prefixed-barcode map
+  bare_bcs <- sub(paste0("^", sampleName, "_"), "", shared)
+  cell_map <- setNames(bare_bcs, shared)
+  frag_obj <- Signac::CreateFragmentObject(path = fragmentsPath, cells = cell_map,
+                                           validate.fragments = FALSE)
+
+  chrom <- Signac::CreateChromatinAssay(
+    counts = peak_counts,
+    sep = c(":", "-"),
+    fragments = frag_obj,
+    annotation = ann,
+    min.cells = 0,
+    min.features = 0
+  )
+  obj[["ATAC"]] <- chrom
+  Seurat::DefaultAssay(obj) <- "ATAC"
+
+  obj <- Signac::FindTopFeatures(obj, min.cutoff = "q5")
+  obj <- Signac::RunTFIDF(obj)
+  obj <- Signac::RunSVD(obj)
+
+  n_lsi <- min(30L, ncol(Seurat::Embeddings(obj, "lsi")))
+  n_neighbors <- min(30L, max(2L, ncol(obj) - 1L))
+  obj <- Seurat::RunUMAP(obj, reduction = "lsi", dims = 2:n_lsi,
+                         reduction.name = "atac.umap",
+                         n.neighbors = n_neighbors, verbose = FALSE)
+
+  if (!is.null(ann)) {
+    ga <- tryCatch(Signac::GeneActivity(obj), error = function(e) {
+      message("GeneActivity skipped: ", conditionMessage(e)); NULL
+    })
+    if (!is.null(ga)) {
+      obj[["GeneActivity"]] <- Seurat::CreateAssayObject(counts = ga)
+      obj <- Seurat::NormalizeData(obj, assay = "GeneActivity",
+                                   normalization.method = "LogNormalize",
+                                   scale.factor = median(obj$nCount_GeneActivity),
+                                   verbose = FALSE)
+    }
+  }
+
+  Seurat::DefaultAssay(obj) <- "RNA"
+  obj
+}
+
 ##' @title Add an ADT assay to a Seurat object with normalization, PCA and UMAP.
 ##' @description Attaches a Seurat v5 ADT assay built from raw antibody counts,
 ##'   normalizes (ADTnorm or CLR), runs PCA on the ADT features and a UMAP

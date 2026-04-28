@@ -1,0 +1,125 @@
+## ATAC
+
+```{r atac-prep, include=FALSE}
+library(Signac)
+n_peaks <- nrow(scMultiData[["ATAC"]])
+n_cells <- ncol(scMultiData)
+
+DefaultAssay(scMultiData) <- "ATAC"
+if (!"nucleosome_signal" %in% colnames(scMultiData@meta.data)) {
+  scMultiData <- tryCatch(
+    NucleosomeSignal(scMultiData, assay = "ATAC"),
+    error = function(e) { message("NucleosomeSignal skipped: ", conditionMessage(e)); scMultiData }
+  )
+}
+if (!"TSS.enrichment" %in% colnames(scMultiData@meta.data)) {
+  scMultiData <- tryCatch(
+    TSSEnrichment(scMultiData, assay = "ATAC", fast = TRUE),
+    error = function(e) { message("TSSEnrichment skipped: ", conditionMessage(e)); scMultiData }
+  )
+}
+
+atac_qc <- data.frame(
+  metric = c("Peaks", "Cells", "Mean fragments / cell",
+             "Median TSS enrichment", "Median nucleosome signal"),
+  value  = c(n_peaks, n_cells,
+             round(mean(scMultiData$nCount_ATAC), 1),
+             if ("TSS.enrichment" %in% colnames(scMultiData@meta.data))
+               round(median(scMultiData$TSS.enrichment, na.rm = TRUE), 2) else NA,
+             if ("nucleosome_signal" %in% colnames(scMultiData@meta.data))
+               round(median(scMultiData$nucleosome_signal, na.rm = TRUE), 3) else NA)
+)
+
+cluster_col <- if ("seurat_clusters" %in% colnames(scMultiData@meta.data)) {
+  "seurat_clusters"
+} else NULL
+
+has_ga <- "GeneActivity" %in% Assays(scMultiData)
+DefaultAssay(scMultiData) <- "RNA"
+```
+
+**ATAC QC**
+
+```{r atac-qc, echo=FALSE}
+knitr::kable(atac_qc, col.names = c("Metric", "Value"))
+```
+
+### QC distributions {.tabset}
+
+#### Fragment counts
+
+```{r atac-frag, echo=FALSE, fig.width=8, fig.height=5}
+p <- VlnPlot(scMultiData, features = "nCount_ATAC",
+             group.by = "Sample", pt.size = 0) +
+  scale_y_log10() + NoLegend() +
+  ggtitle("ATAC fragments per cell")
+print(p)
+```
+
+#### TSS enrichment
+
+```{r atac-tss, echo=FALSE, fig.width=8, fig.height=5}
+if ("TSS.enrichment" %in% colnames(scMultiData@meta.data)) {
+  p <- VlnPlot(scMultiData, features = "TSS.enrichment",
+               group.by = "Sample", pt.size = 0) + NoLegend() +
+    ggtitle("TSS enrichment")
+  print(p)
+}
+```
+
+#### Nucleosome signal
+
+```{r atac-nuc, echo=FALSE, fig.width=8, fig.height=5}
+if ("nucleosome_signal" %in% colnames(scMultiData@meta.data)) {
+  p <- VlnPlot(scMultiData, features = "nucleosome_signal",
+               group.by = "Sample", pt.size = 0) + NoLegend() +
+    ggtitle("Nucleosome signal")
+  print(p)
+}
+```
+
+### ATAC UMAP {.tabset}
+
+#### By Sample
+
+```{r atac-umap-sample, echo=FALSE, fig.width=7, fig.height=7}
+if ("atac.umap" %in% names(scMultiData@reductions)) {
+  p <- DimPlot(scMultiData, reduction = "atac.umap",
+               group.by = "Sample", raster = FALSE) +
+    theme(aspect.ratio = 1) +
+    ggtitle("ATAC UMAP - by Sample")
+  print(p)
+}
+```
+
+#### By RNA cluster
+
+```{r atac-umap-cluster, echo=FALSE, fig.width=7, fig.height=7}
+if ("atac.umap" %in% names(scMultiData@reductions) && !is.null(cluster_col)) {
+  p <- DimPlot(scMultiData, reduction = "atac.umap",
+               group.by = cluster_col, raster = FALSE,
+               label = TRUE, repel = TRUE) +
+    theme(aspect.ratio = 1) +
+    ggtitle("ATAC UMAP - by RNA cluster")
+  print(p)
+}
+```
+
+### Gene activity FeaturePlots
+
+```{r atac-gene-activity, echo=FALSE, fig.width=12, fig.height=10}
+if (has_ga) {
+  DefaultAssay(scMultiData) <- "GeneActivity"
+  ga_means <- rowMeans(GetAssayData(scMultiData, assay = "GeneActivity", layer = "data"))
+  top_ga <- names(sort(ga_means, decreasing = TRUE))[1:min(8L, length(ga_means))]
+  red <- if ("atac.umap" %in% names(scMultiData@reductions)) "atac.umap" else "umap"
+  p <- FeaturePlot(scMultiData, features = top_ga, reduction = red,
+                   raster = FALSE, ncol = 4) &
+    theme(aspect.ratio = 1) &
+    scale_color_viridis_c(option = "D")
+  print(p)
+  DefaultAssay(scMultiData) <- "RNA"
+} else {
+  cat("GeneActivity assay not available - skipped.\n")
+}
+```
