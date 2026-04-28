@@ -95,6 +95,123 @@ readADTCounts <- function(h5path, sampleName) {
   adt
 }
 
+##' @title Find the directory holding a CellRanger Multi sample's vdj_* sibling.
+##' @description Returns the directory that contains `vdj_t/` and/or `vdj_b/`
+##'   relative to the CountMatrix path. Mirrors the search logic in
+##'   `detectModalities()`.
+##' @param countMatrixPath Path to the CountMatrix value.
+##' @return Character path of the parent directory holding vdj_*/, or character(0).
+##' @keywords internal
+findVDJSiblingDir <- function(countMatrixPath) {
+  candidates <- unique(c(dirname(countMatrixPath), dirname(dirname(countMatrixPath))))
+  for (p in candidates) {
+    if (dir.exists(file.path(p, "vdj_t")) || dir.exists(file.path(p, "vdj_b"))) {
+      return(p)
+    }
+  }
+  character(0)
+}
+
+##' @title Locate a CellRanger VDJ filtered_contig_annotations.csv.
+##' @param countMatrixPath Path to the CountMatrix value.
+##' @param chain "T" for vdj_t, "B" for vdj_b.
+##' @return Character path to the CSV, or character(0) if absent.
+##' @keywords internal
+findVDJContigCsv <- function(countMatrixPath, chain = c("T", "B")) {
+  chain <- match.arg(chain)
+  parent <- findVDJSiblingDir(countMatrixPath)
+  if (length(parent) == 0) return(character(0))
+  sub <- if (chain == "T") "vdj_t" else "vdj_b"
+  csv <- file.path(parent, sub, "filtered_contig_annotations.csv")
+  if (file.exists(csv)) csv else character(0)
+}
+
+##' @title Prefix VDJ contig barcodes with a sample name to match Seurat colnames.
+##' @description CellRanger VDJ contig CSVs report bare cell barcodes
+##'   (`AAACCTGCATTCTCAT-1`); ScSeurat prefixes barcodes with the sample
+##'   (`<Sample>_<barcode>`). This helper rewrites the `barcode` column so
+##'   downstream `combineTCR/BCR` outputs join cleanly with the Seurat object.
+##' @param df data.frame loaded from filtered_contig_annotations.csv.
+##' @param sample Character sample name to prepend.
+##' @return data.frame with `barcode` and (if present) `contig_id` rewritten.
+##' @keywords internal
+prefixVDJBarcodes <- function(df, sample) {
+  stopifnot("barcode" %in% colnames(df))
+  if (any(grepl(paste0("^", sample, "_"), df$barcode))) {
+    return(df)  # already prefixed
+  }
+  df$barcode <- paste0(sample, "_", df$barcode)
+  if ("contig_id" %in% colnames(df)) {
+    df$contig_id <- paste0(sample, "_", df$contig_id)
+  }
+  df
+}
+
+##' @title Attach VDJ-T / VDJ-B clonal annotations to a Seurat object.
+##' @description Wraps `scRepertoire::combineTCR` / `combineBCR` and
+##'   `combineExpression` so `obj@meta.data` gains CTaa / CTgene / cloneSize /
+##'   Frequency columns. Returns the (possibly subset) Seurat object plus the
+##'   raw combined clones list as an attribute.
+##' @param obj Seurat object (already annotated).
+##' @param vdjTPath Optional path to vdj_t/filtered_contig_annotations.csv.
+##' @param vdjBPath Optional path to vdj_b/filtered_contig_annotations.csv.
+##' @param sampleName Sample identifier matching obj$Sample / column prefix.
+##' @return Seurat object with VDJ metadata. The combined clones list is
+##'   attached as `attr(obj, "vdjCombined")`; saving as `qs2` strips
+##'   attributes, so callers may also export the raw list to TSV.
+##' @export
+processVDJ <- function(obj, vdjTPath = NULL, vdjBPath = NULL, sampleName) {
+  if (!requireNamespace("scRepertoire", quietly = TRUE)) {
+    stop("scRepertoire is required for processVDJ()")
+  }
+  contigs <- list()
+  chains <- character()
+  if (!is.null(vdjTPath) && nzchar(vdjTPath) && file.exists(vdjTPath)) {
+    contigs[[sampleName]] <- prefixVDJBarcodes(
+      utils::read.csv(vdjTPath, stringsAsFactors = FALSE), sampleName
+    )
+    chains <- "T"
+  } else if (!is.null(vdjBPath) && nzchar(vdjBPath) && file.exists(vdjBPath)) {
+    contigs[[sampleName]] <- prefixVDJBarcodes(
+      utils::read.csv(vdjBPath, stringsAsFactors = FALSE), sampleName
+    )
+    chains <- "B"
+  } else {
+    warning("processVDJ called with no usable contig CSV; returning obj unchanged.")
+    return(obj)
+  }
+
+  combined <- if (chains == "T") {
+    scRepertoire::combineTCR(contigs, samples = sampleName,
+                             removeNA = FALSE, removeMulti = FALSE,
+                             filterMulti = FALSE)
+  } else {
+    scRepertoire::combineBCR(contigs, samples = sampleName,
+                             removeNA = FALSE, removeMulti = FALSE,
+                             filterMulti = FALSE)
+  }
+
+  # combineTCR/BCR prefixes barcodes again as <sample>_<barcode>; collapse the
+  # double prefix back to the Seurat-style single prefix so combineExpression
+  # finds the cells.
+  for (i in seq_along(combined)) {
+    bc <- combined[[i]]$barcode
+    dup <- paste0(sampleName, "_", sampleName, "_")
+    bc <- sub(dup, paste0(sampleName, "_"), bc, fixed = TRUE)
+    combined[[i]]$barcode <- bc
+  }
+
+  obj <- scRepertoire::combineExpression(
+    combined, obj,
+    cloneCall = "strict",
+    group.by = "sample",
+    proportion = TRUE
+  )
+  attr(obj, "vdjCombined") <- combined
+  attr(obj, "vdjChain")    <- chains
+  obj
+}
+
 ##' @title Add an ADT assay to a Seurat object with normalization, PCA and UMAP.
 ##' @description Attaches a Seurat v5 ADT assay built from raw antibody counts,
 ##'   normalizes (ADTnorm or CLR), runs PCA on the ADT features and a UMAP

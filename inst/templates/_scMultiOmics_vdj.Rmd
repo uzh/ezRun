@@ -1,0 +1,175 @@
+## VDJ
+
+```{r vdj-prep, include=FALSE}
+library(scRepertoire)
+
+has_vdjT <- isTRUE(modalities$hasVDJ_T)
+has_vdjB <- isTRUE(modalities$hasVDJ_B)
+chain_label <- paste(c(if (has_vdjT) "TCR" else NULL,
+                       if (has_vdjB) "BCR" else NULL), collapse = " + ")
+chain_prefix <- if (has_vdjT) "TR" else "IG"
+
+ct_cols   <- intersect(c("CTaa", "CTgene", "cloneSize", "Frequency", "clonalFrequency"),
+                       colnames(scMultiData@meta.data))
+n_with_clone <- sum(!is.na(scMultiData@meta.data[["CTaa"]]))
+n_total      <- ncol(scMultiData)
+pct_recovery <- round(100 * n_with_clone / n_total, 1)
+
+# Top clones table
+top_clones <- NA
+if ("CTaa" %in% colnames(scMultiData@meta.data)) {
+  ct <- scMultiData@meta.data[["CTaa"]]; ct <- ct[!is.na(ct)]
+  if (length(ct) > 0) {
+    top_clones <- as.data.frame(sort(table(ct), decreasing = TRUE)[1:min(10, length(unique(ct)))])
+    colnames(top_clones) <- c("CDR3 amino acids (paired)", "Cells")
+  }
+}
+
+cluster_col <- if ("seurat_clusters" %in% colnames(scMultiData@meta.data)) {
+  "seurat_clusters"
+} else NULL
+
+safe_print <- function(expr_call, ...) {
+  p <- tryCatch(eval(expr_call), error = function(e) {
+    message("Plot skipped: ", conditionMessage(e)); NULL
+  })
+  if (!is.null(p)) print(p)
+}
+```
+
+**`r chain_label` repertoire summary**
+
+- **Cells with paired clone:** `r format(n_with_clone, big.mark = ",")` / `r format(n_total, big.mark = ",")` (`r pct_recovery`%)
+- **Unique CDR3aa clonotypes:** `r if ("CTaa" %in% colnames(scMultiData@meta.data)) format(length(unique(na.omit(scMultiData@meta.data[["CTaa"]]))), big.mark = ",") else "NA"`
+- **Sample(s):** `r paste(unique(scMultiData$Sample), collapse = ", ")`
+- **Clone-size bins (cloneSize):**
+
+```{r vdj-clone-size, echo=FALSE}
+if ("cloneSize" %in% colnames(scMultiData@meta.data)) {
+  cs <- as.data.frame(table(scMultiData$cloneSize, useNA = "ifany"))
+  colnames(cs) <- c("cloneSize bin", "Cells")
+  knitr::kable(cs)
+}
+```
+
+**Top 10 paired clones**
+
+```{r vdj-top-clones, echo=FALSE}
+if (is.data.frame(top_clones)) knitr::kable(top_clones)
+```
+
+### Clone size landscape {.tabset}
+
+#### clonalQuant
+
+```{r vdj-quant, echo=FALSE, fig.width=8, fig.height=5}
+safe_print(quote(clonalQuant(scMultiData, cloneCall = "strict", chain = "both",
+                             scale = TRUE, group.by = "Sample")))
+```
+
+#### clonalAbundance
+
+```{r vdj-abundance, echo=FALSE, fig.width=8, fig.height=5}
+safe_print(quote(clonalAbundance(scMultiData, cloneCall = "strict",
+                                 scale = FALSE, group.by = "Sample")))
+```
+
+#### clonalHomeostasis
+
+```{r vdj-homeostasis, echo=FALSE, fig.width=8, fig.height=5}
+safe_print(quote(clonalHomeostasis(scMultiData, cloneCall = "strict", group.by = "Sample")))
+```
+
+#### clonalProportion
+
+```{r vdj-proportion, echo=FALSE, fig.width=8, fig.height=5}
+safe_print(quote(clonalProportion(scMultiData, cloneCall = "strict", group.by = "Sample")))
+```
+
+#### clonalDiversity
+
+```{r vdj-diversity, echo=FALSE, fig.width=10, fig.height=5}
+safe_print(quote(clonalDiversity(scMultiData, cloneCall = "strict", group.by = "Sample",
+                                 metrics = c("shannon", "inv.simpson", "norm.entropy"))))
+```
+
+### Clone size on embeddings {.tabset}
+
+#### RNA UMAP
+
+```{r vdj-overlay-rna, echo=FALSE, fig.width=8, fig.height=8}
+if ("umap" %in% names(scMultiData@reductions) && "cloneSize" %in% colnames(scMultiData@meta.data)) {
+  p <- DimPlot(scMultiData, reduction = "umap", group.by = "cloneSize",
+               raster = FALSE, order = TRUE) +
+    theme(aspect.ratio = 1) +
+    ggtitle(paste(chain_label, "clone size on RNA UMAP"))
+  print(p)
+}
+```
+
+#### ADT UMAP
+
+```{r vdj-overlay-adt, echo=FALSE, fig.width=8, fig.height=8}
+if ("adt.umap" %in% names(scMultiData@reductions) && "cloneSize" %in% colnames(scMultiData@meta.data)) {
+  p <- DimPlot(scMultiData, reduction = "adt.umap", group.by = "cloneSize",
+               raster = FALSE, order = TRUE) +
+    theme(aspect.ratio = 1) +
+    ggtitle(paste(chain_label, "clone size on ADT UMAP"))
+  print(p)
+} else {
+  cat("ADT UMAP not available - skipped.\n")
+}
+```
+
+#### Top clones highlighted
+
+```{r vdj-highlight, echo=FALSE, fig.width=8, fig.height=8}
+if (is.data.frame(top_clones) && "umap" %in% names(scMultiData@reductions)) {
+  top_seqs <- as.character(top_clones[seq_len(min(5L, nrow(top_clones))), 1])
+  obj_h <- tryCatch(
+    highlightClones(scMultiData, cloneCall = "aa", sequence = top_seqs),
+    error = function(e) NULL
+  )
+  if (!is.null(obj_h)) {
+    p <- DimPlot(obj_h, reduction = "umap", group.by = "highlight",
+                 raster = FALSE, order = TRUE, cols = c("grey85", scales::hue_pal()(length(top_seqs)))) +
+      theme(aspect.ratio = 1) +
+      ggtitle("Top 5 clones highlighted (RNA UMAP)")
+    print(p)
+  }
+}
+```
+
+### V / J gene usage {.tabset}
+
+#### V gene barplot
+
+```{r vdj-vgene, echo=FALSE, fig.width=12, fig.height=5}
+v_axis <- paste0(chain_prefix, "BV")
+safe_print(bquote(vizGenes(scMultiData, x.axis = .(v_axis), y.axis = NULL,
+                           plot = "barplot", scale = TRUE)))
+```
+
+#### V x J heatmap
+
+```{r vdj-vj-heatmap, echo=FALSE, fig.width=10, fig.height=8}
+v_axis <- paste0(chain_prefix, "BV")
+j_axis <- paste0(chain_prefix, "BJ")
+safe_print(bquote(vizGenes(scMultiData, x.axis = .(v_axis), y.axis = .(j_axis),
+                           plot = "heatmap", scale = TRUE)))
+```
+
+#### CDR3aa length distribution
+
+```{r vdj-aa-length, echo=FALSE, fig.width=9, fig.height=5}
+safe_print(quote(clonalLength(scMultiData, cloneCall = "aa", chain = "both",
+                              scale = TRUE, group.by = "Sample")))
+```
+
+### Per-cluster clonal occupancy
+
+```{r vdj-bycluster, echo=FALSE, fig.width=10, fig.height=5}
+if (!is.null(cluster_col)) {
+  safe_print(bquote(clonalOccupy(scMultiData, x.axis = .(cluster_col))))
+}
+```

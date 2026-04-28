@@ -115,10 +115,11 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
           paste(names(mod)[unlist(mod)], collapse = ", "))
   saveRDS(mod, "modalities.rds")
 
-  ## 4. Per-modality processing (Phase 1: ADT only) --------------------------
+  sampleName <- input$getNames()
+
+  ## 4. Per-modality processing ----------------------------------------------
   if (isTRUE(mod$hasADT)) {
     h5 <- findFilteredH5(countMatrixPath)
-    sampleName <- input$getNames()
     adt <- readADTCounts(h5, sampleName = sampleName)
     if (!is.null(adt) && ncol(adt) > 0) {
       message("Adding ADT assay: ", nrow(adt), " features x ", ncol(adt), " cells.")
@@ -128,6 +129,26 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
     } else {
       warning("hasADT was TRUE but readADTCounts returned no data; skipping.")
       mod$hasADT <- FALSE
+    }
+  }
+
+  vdjChain <- param$vdjChain %||% "auto"
+  wantVDJ_T <- (vdjChain %in% c("auto", "TCR", "both")) && isTRUE(mod$hasVDJ_T)
+  wantVDJ_B <- (vdjChain %in% c("auto", "BCR", "both")) && isTRUE(mod$hasVDJ_B)
+  if (wantVDJ_T || wantVDJ_B) {
+    vdjTPath <- if (wantVDJ_T) findVDJContigCsv(countMatrixPath, "T") else NULL
+    vdjBPath <- if (wantVDJ_B) findVDJContigCsv(countMatrixPath, "B") else NULL
+    message("Attaching VDJ clones: ",
+            if (wantVDJ_T) paste("T (", basename(vdjTPath), ")", sep = "") else "",
+            if (wantVDJ_T && wantVDJ_B) " + " else "",
+            if (wantVDJ_B) paste("B (", basename(vdjBPath), ")", sep = "") else "")
+    obj <- processVDJ(obj, vdjTPath = vdjTPath, vdjBPath = vdjBPath,
+                      sampleName = sampleName)
+    # Persist the raw clones list as TSV alongside the report
+    cb <- attr(obj, "vdjCombined")
+    if (!is.null(cb)) {
+      tsv <- file.path(getwd(), paste0("clones_", sampleName, ".tsv"))
+      utils::write.table(cb[[1]], tsv, sep = "\t", quote = FALSE, row.names = FALSE)
     }
   }
 

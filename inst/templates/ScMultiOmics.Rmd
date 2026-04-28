@@ -38,6 +38,9 @@ scMultiData  <- ezLoadRobj("scMultiData",
 ```{r adt-child, eval = isTRUE(modalities$hasADT), child = system.file("templates/_scMultiOmics_adt.Rmd", package = "ezRun")}
 ```
 
+```{r vdj-child, eval = isTRUE(modalities$hasVDJ_T) || isTRUE(modalities$hasVDJ_B), child = system.file("templates/_scMultiOmics_vdj.Rmd", package = "ezRun")}
+```
+
 ## Session Information
 
 ```{r session-info}
