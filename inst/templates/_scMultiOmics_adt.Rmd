@@ -1,0 +1,83 @@
+## ADT
+
+```{r adt-prep, include=FALSE}
+n_adt   <- nrow(scMultiData[["ADT"]])
+adt_features <- rownames(scMultiData[["ADT"]])
+
+adt_counts_mat <- tryCatch(
+  as.matrix(GetAssayData(scMultiData, assay = "ADT", layer = "counts")),
+  error = function(e) NULL
+)
+mean_umi   <- if (is.matrix(adt_counts_mat)) round(mean(colSums(adt_counts_mat)), 1) else NA
+median_umi <- if (is.matrix(adt_counts_mat)) round(median(colSums(adt_counts_mat)), 1) else NA
+
+adt_qc <- data.frame(
+  metric = c("ADT features", "Cells with ADT", "Mean UMIs / cell", "Median UMIs / cell"),
+  value  = c(n_adt, ncol(scMultiData), mean_umi, median_umi)
+)
+
+cluster_col <- if ("seurat_clusters" %in% colnames(scMultiData@meta.data)) {
+  "seurat_clusters"
+} else if ("ident" %in% colnames(scMultiData@meta.data)) {
+  "ident"
+} else {
+  NULL
+}
+```
+
+**ADT QC**
+
+```{r adt-qc, echo=FALSE}
+knitr::kable(adt_qc, col.names = c("Metric", "Value"))
+```
+
+**ADT UMAP**
+
+```{r adt-umap, echo=FALSE, fig.width=7, fig.height=7}
+if ("adt.umap" %in% names(scMultiData@reductions)) {
+  p <- DimPlot(scMultiData, reduction = "adt.umap",
+               group.by = "Sample", raster = FALSE) +
+    theme(aspect.ratio = 1) +
+    ggtitle("ADT UMAP - by Sample")
+  print(p)
+  if (!is.null(cluster_col)) {
+    p2 <- DimPlot(scMultiData, reduction = "adt.umap",
+                  group.by = cluster_col, raster = FALSE,
+                  label = TRUE, repel = TRUE) +
+      theme(aspect.ratio = 1) +
+      ggtitle("ADT UMAP - by RNA cluster")
+    print(p2)
+  }
+}
+```
+
+**Per-cluster ADT means (DotPlot)**
+
+```{r adt-dotplot, echo=FALSE, fig.width=10, fig.height=max(6, length(adt_features) * 0.18)}
+if (!is.null(cluster_col)) {
+  Idents(scMultiData) <- cluster_col
+  DefaultAssay(scMultiData) <- "ADT"
+  p <- DotPlot(scMultiData, features = unique(adt_features),
+               assay = "ADT") +
+    coord_flip() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  print(p)
+  DefaultAssay(scMultiData) <- "RNA"
+}
+```
+
+**Top markers by mean ADT signal**
+
+```{r adt-feature-plots, echo=FALSE, fig.width=12, fig.height=10}
+counts <- GetAssayData(scMultiData, assay = "ADT", layer = "data")
+top_n <- min(8L, nrow(counts))
+top_features <- names(sort(rowMeans(counts), decreasing = TRUE))[seq_len(top_n)]
+DefaultAssay(scMultiData) <- "ADT"
+p <- FeaturePlot(scMultiData, features = top_features,
+                 reduction = "adt.umap", raster = FALSE,
+                 ncol = 4) &
+  theme(aspect.ratio = 1) &
+  scale_color_viridis_c(option = "D")
+print(p)
+DefaultAssay(scMultiData) <- "RNA"
+```

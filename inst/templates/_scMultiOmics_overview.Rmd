@@ -1,0 +1,47 @@
+## Overview
+
+```{r overview-prep, include=FALSE}
+n_cells   <- ncol(scMultiData)
+n_genes   <- nrow(scMultiData)
+sample_tbl <- as.data.frame(table(scMultiData$Sample))
+colnames(sample_tbl) <- c("Sample", "Cells")
+
+modality_tbl <- data.frame(
+  Modality = c("RNA", "ADT", "VDJ-T", "VDJ-B", "ATAC"),
+  Detected = c(modalities$hasRNA, modalities$hasADT,
+               modalities$hasVDJ_T, modalities$hasVDJ_B,
+               modalities$hasATAC),
+  stringsAsFactors = FALSE
+)
+modality_tbl$Detected <- ifelse(modality_tbl$Detected, "yes", "no")
+```
+
+**Dataset summary**
+
+- **Total cells:** `r format(n_cells, big.mark = ",")`
+- **Total RNA features:** `r format(n_genes, big.mark = ",")`
+- **Default assay:** `r DefaultAssay(scMultiData)`
+- **Assays present:** `r paste(Assays(scMultiData), collapse = ", ")`
+- **Reductions present:** `r paste(names(scMultiData@reductions), collapse = ", ")`
+
+**Modality detection**
+
+```{r overview-modalities, echo=FALSE}
+knitr::kable(modality_tbl)
+```
+
+**Sample composition**
+
+```{r overview-samples, echo=FALSE}
+knitr::kable(sample_tbl)
+```
+
+```{r overview-rna-umap, echo=FALSE, fig.width=7, fig.height=7}
+if ("umap" %in% names(scMultiData@reductions)) {
+  p <- DimPlot(scMultiData, reduction = "umap",
+               group.by = "Sample", raster = FALSE) +
+    theme(aspect.ratio = 1) +
+    ggtitle("RNA UMAP - by Sample")
+  print(p)
+}
+```

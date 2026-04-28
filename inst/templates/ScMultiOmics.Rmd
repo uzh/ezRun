@@ -1,0 +1,45 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'ScMultiOmics Report'`"
+output:
+  html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
+    includes:
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+    code_folding: hide
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, comment = "")
+library(ezRun)
+library(Seurat)
+library(ggplot2)
+library(qs2)
+library(knitr)
+
+param        <- ezLoadRobj("param")
+modalities   <- ezLoadRobj("modalities")
+scMultiData  <- ezLoadRobj("scMultiData",
+                           nthreads = max(1L, param$cores %||% 4L))
+
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+```
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
+# {.tabset}
+
+```{r overview-child, child = system.file("templates/_scMultiOmics_overview.Rmd", package = "ezRun")}
+```
+
+```{r adt-child, eval = isTRUE(modalities$hasADT), child = system.file("templates/_scMultiOmics_adt.Rmd", package = "ezRun")}
+```
+
+## Session Information
+
+```{r session-info}
+sessionInfo()
+```
