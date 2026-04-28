@@ -67,3 +67,15 @@ test_that("detectModalities flags ADT when H5 has Antibody Capture features", {
   expect_true(m$hasRNA)
   expect_true(m$hasADT)
 })
+
+test_that("processADT attaches ADT assay and adt.umap reduction to a Seurat object", {
+  skip_on_cran(); skip_if_not_installed("Seurat")
+  set.seed(1)
+  rna <- Seurat::CreateSeuratObject(counts = matrix(rpois(2000, 5), nrow = 100, ncol = 20))
+  adt_counts <- matrix(rpois(200, 50), nrow = 10, ncol = 20)
+  rownames(adt_counts) <- paste0("ADT", 1:10)
+  colnames(adt_counts) <- colnames(rna)
+  obj <- processADT(rna, adt_counts, normMethod = "CLR")  # CLR for fast test
+  expect_true("ADT" %in% Seurat::Assays(obj))
+  expect_true("adt.umap" %in% names(obj@reductions))
+})
