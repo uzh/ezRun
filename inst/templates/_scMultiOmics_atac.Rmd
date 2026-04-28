@@ -110,14 +110,22 @@ if ("atac.umap" %in% names(scMultiData@reductions) && !is.null(cluster_col)) {
 ```{r atac-gene-activity, echo=FALSE, fig.width=12, fig.height=10}
 if (has_ga) {
   DefaultAssay(scMultiData) <- "GeneActivity"
-  ga_means <- rowMeans(GetAssayData(scMultiData, assay = "GeneActivity", layer = "data"))
-  top_ga <- names(sort(ga_means, decreasing = TRUE))[1:min(8L, length(ga_means))]
+  ga_mat <- tryCatch(
+    as.matrix(GetAssayData(scMultiData, assay = "GeneActivity", layer = "data")),
+    error = function(e) NULL
+  )
+  ga_means <- if (is.matrix(ga_mat)) rowMeans(ga_mat) else NULL
+  top_ga <- if (!is.null(ga_means)) names(sort(ga_means, decreasing = TRUE))[1:min(8L, length(ga_means))] else NULL
   red <- if ("atac.umap" %in% names(scMultiData@reductions)) "atac.umap" else "umap"
-  p <- FeaturePlot(scMultiData, features = top_ga, reduction = red,
-                   raster = FALSE, ncol = 4) &
-    theme(aspect.ratio = 1) &
-    scale_color_viridis_c(option = "D")
-  print(p)
+  if (!is.null(top_ga) && length(top_ga) > 0) {
+    p <- FeaturePlot(scMultiData, features = top_ga, reduction = red,
+                     raster = FALSE, ncol = 4) &
+      theme(aspect.ratio = 1) &
+      scale_color_viridis_c(option = "D")
+    print(p)
+  } else {
+    cat("No gene-activity values to plot.\n")
+  }
   DefaultAssay(scMultiData) <- "RNA"
 } else {
   cat("GeneActivity assay not available - skipped.\n")
