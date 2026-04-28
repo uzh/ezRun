@@ -20,9 +20,7 @@ detectModalities <- function(countMatrixPath) {
                             full.names = TRUE, recursive = FALSE)
   hasRNA <- length(h5_filtered) > 0
 
-  # ADT detection requires reading the H5; populated in detectModalities once
-  # h5HasAntibodyCapture() is wired in (see Task 1.2).
-  hasADT <- FALSE
+  hasADT <- hasRNA && h5HasAntibodyCapture(h5_filtered[1])
 
   parent <- dirname(countMatrixPath)  # e.g. per_sample_outs/<sample>/
   hasVDJ_T <- file.exists(file.path(parent, "vdj_t", "filtered_contig_annotations.csv"))
@@ -34,4 +32,21 @@ detectModalities <- function(countMatrixPath) {
   list(hasRNA = hasRNA, hasADT = hasADT,
        hasVDJ_T = hasVDJ_T, hasVDJ_B = hasVDJ_B,
        hasATAC = hasATAC)
+}
+
+##' @title Check whether a CellRanger HDF5 has any Antibody Capture features.
+##' @param h5path Path to a CellRanger filtered_feature_bc_matrix.h5 file.
+##' @return TRUE if any feature has type "Antibody Capture", FALSE otherwise
+##'   (or if the file is missing / empty / unreadable).
+##' @keywords internal
+h5HasAntibodyCapture <- function(h5path) {
+  if (!file.exists(h5path)) return(FALSE)
+  if (file.size(h5path) == 0) return(FALSE)
+  tryCatch({
+    hf <- hdf5r::H5File$new(h5path, mode = "r")
+    on.exit(hf$close_all(), add = TRUE)
+    if (!hf$exists("matrix/features/feature_type")) return(FALSE)
+    ft <- hf[["matrix/features/feature_type"]]$read()
+    any(ft == "Antibody Capture")
+  }, error = function(e) FALSE)
 }
