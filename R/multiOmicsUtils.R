@@ -5,33 +5,94 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+##' @title Locate the CellRanger filtered feature H5 from a CountMatrix path.
+##' @description The dataset.tsv `CountMatrix` column may point either at the matrix
+##'   mtx directory (`*/sample_filtered_feature_bc_matrix/`, Read10X layout) or at
+##'   a directory that already contains the H5 file. This helper returns the first
+##'   matching `*filtered_feature_bc_matrix.h5` found in either the path itself or
+##'   its parent directory.
+##' @param countMatrixPath Path to the CountMatrix value.
+##' @return Character path to the H5 file, or character(0) if none found.
+##' @keywords internal
+findFilteredH5 <- function(countMatrixPath) {
+  candidates <- c(countMatrixPath, dirname(countMatrixPath))
+  for (d in candidates) {
+    if (!dir.exists(d)) next
+    h5 <- list.files(d, pattern = "filtered_feature_bc_matrix\\.h5$",
+                     full.names = TRUE, recursive = FALSE)
+    if (length(h5) > 0) return(h5[1])
+  }
+  character(0)
+}
+
 ##' @title Detect modalities present in a single-cell input directory.
 ##' @description Inspects a CellRanger / CellRanger Multi / CellRanger ARC output
 ##'   directory and reports which modalities are available for downstream
-##'   processing.
-##' @param countMatrixPath Path to a directory containing CellRanger count outputs
-##'   (the value of the dataset.tsv `CountMatrix` column).
+##'   processing. Robust to the CountMatrix path being either the matrix mtx
+##'   directory (Read10X layout) or a count parent directory.
+##' @param countMatrixPath Path to a directory containing or adjacent to
+##'   CellRanger count outputs (the value of the dataset.tsv `CountMatrix` column).
 ##' @return Named list with logical flags: hasRNA, hasADT, hasVDJ_T, hasVDJ_B, hasATAC.
 ##' @export
 detectModalities <- function(countMatrixPath) {
   stopifnot(dir.exists(countMatrixPath))
 
-  h5_filtered <- list.files(countMatrixPath, pattern = "filtered_feature_bc_matrix\\.h5$",
-                            full.names = TRUE, recursive = FALSE)
-  hasRNA <- length(h5_filtered) > 0
+  h5 <- findFilteredH5(countMatrixPath)
+  hasRNA <- length(h5) > 0
 
-  hasADT <- hasRNA && h5HasAntibodyCapture(h5_filtered[1])
+  hasADT <- hasRNA && h5HasAntibodyCapture(h5)
 
-  parent <- dirname(countMatrixPath)  # e.g. per_sample_outs/<sample>/
-  hasVDJ_T <- file.exists(file.path(parent, "vdj_t", "filtered_contig_annotations.csv"))
-  hasVDJ_B <- file.exists(file.path(parent, "vdj_b", "filtered_contig_annotations.csv"))
+  # VDJ siblings can live one or two levels up from the CountMatrix.
+  # Plain CellRanger:        <sample>/<count_or_outs>/vdj_t/...
+  # CellRanger Multi (FGCZ): per_sample_outs/<sample>-cellRanger/{count,vdj_t}/...
+  vdj_candidates <- unique(c(dirname(countMatrixPath),
+                             dirname(dirname(countMatrixPath))))
+  hasVDJ_T <- any(vapply(vdj_candidates, function(p) {
+    file.exists(file.path(p, "vdj_t", "filtered_contig_annotations.csv"))
+  }, logical(1)))
+  hasVDJ_B <- any(vapply(vdj_candidates, function(p) {
+    file.exists(file.path(p, "vdj_b", "filtered_contig_annotations.csv"))
+  }, logical(1)))
 
-  hasATAC <- file.exists(file.path(countMatrixPath, "atac_fragments.tsv.gz")) &&
-             file.exists(file.path(countMatrixPath, "atac_peaks.bed"))
+  # ATAC siblings live alongside or just above the count matrix.
+  atac_candidates <- unique(c(countMatrixPath, dirname(countMatrixPath)))
+  hasATAC <- any(vapply(atac_candidates, function(p) {
+    file.exists(file.path(p, "atac_fragments.tsv.gz")) &&
+      file.exists(file.path(p, "atac_peaks.bed"))
+  }, logical(1)))
 
   list(hasRNA = hasRNA, hasADT = hasADT,
        hasVDJ_T = hasVDJ_T, hasVDJ_B = hasVDJ_B,
        hasATAC = hasATAC)
+}
+
+##' @title Extract Antibody Capture (ADT) counts from a CellRanger H5.
+##' @description Reads a multi-modal CellRanger filtered_feature_bc_matrix.h5 and
+##'   returns the Antibody Capture submatrix with `<sample>_<barcode>` colnames so
+##'   it aligns with a Seurat object built upstream (which prefixes barcodes by
+##'   sample name). When the H5 has only a single feature type, that matrix is
+##'   returned unchanged when it is Antibody Capture, otherwise an empty matrix.
+##' @param h5path Path to the CellRanger HDF5.
+##' @param sampleName Sample identifier used to prefix barcodes (matches
+##'   `obj$Sample` / `obj$cellBarcode`).
+##' @return Sparse matrix with ADT features as rows and prefixed cell barcodes
+##'   as columns, or NULL if no ADT features are present.
+##' @export
+readADTCounts <- function(h5path, sampleName) {
+  stopifnot(file.exists(h5path))
+  cts <- Seurat::Read10X_h5(h5path, use.names = TRUE, unique.features = TRUE)
+  if (is.list(cts)) {
+    if (!"Antibody Capture" %in% names(cts)) return(NULL)
+    adt <- cts[["Antibody Capture"]]
+  } else {
+    # Single feature type - inspect the H5 directly to confirm it's ADT.
+    if (!h5HasAntibodyCapture(h5path)) return(NULL)
+    adt <- cts
+  }
+  if (!is.null(adt) && ncol(adt) > 0) {
+    colnames(adt) <- paste0(sampleName, "_", colnames(adt))
+  }
+  adt
 }
 
 ##' @title Add an ADT assay to a Seurat object with normalization, PCA and UMAP.
