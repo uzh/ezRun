@@ -185,10 +185,14 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
     atac_files <- findATACFiles(countMatrixPath)
     if (!is.null(atac_files)) {
       message("Adding ATAC assay from: ", basename(atac_files$fragments))
+      refBuild <- param$refBuild
+      if (is.null(refBuild) && "refBuild" %in% input$colNames) {
+        refBuild <- input$getColumn("refBuild")[[1]]
+      }
       obj <- processATAC(obj,
                          fragmentsPath = atac_files$fragments,
                          peaksPath = atac_files$peaks,
-                         refBuild = param$refBuild,
+                         refBuild = refBuild,
                          sampleName = sampleName)
     } else {
       warning("hasATAC was TRUE but ATAC files not found; skipping.")
@@ -236,14 +240,16 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
 
   ## 5. WNN integration -------------------------------------------------------
   ranWNN <- FALSE
+  wnn_resolution <- param$wnnResolution %||% 0.5
   if (isTRUE(param$runWNN %||% TRUE)) {
     n_dim_mod <- sum(c("pca", "adt.pca", "lsi") %in% names(obj@reductions))
     if (n_dim_mod >= 2L) {
-      obj <- runWNN(obj)
+      obj <- runWNN(obj, resolution = wnn_resolution)
       ranWNN <- "wnn.umap" %in% names(obj@reductions)
     }
   }
   mod$ranWNN <- ranWNN
+  mod$wnnResolution <- wnn_resolution
 
   ## 6. Save and render -------------------------------------------------------
   makeRmdReport(
@@ -256,6 +262,13 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
     use.qs2 = TRUE,
     nthreads = max(1L, param$cores %||% 4L)
   )
+
+  # Also expose the object as scData.qs2 so downstream apps that read the
+  # standard ScSeurat output (e.g. ScSeuratCombine) work without a separate
+  # branch. SUSHI's next_dataset advertises the file via 'SC Seurat [Link]'.
+  if (file.exists("scMultiData.qs2") && !file.exists("scData.qs2")) {
+    file.symlink("scMultiData.qs2", "scData.qs2")
+  }
 
   return("Success")
 }

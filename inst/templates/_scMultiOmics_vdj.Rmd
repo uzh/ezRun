@@ -1,4 +1,4 @@
-## VDJ
+## VDJ {.tabset}
 
 ```{r vdj-prep, include=FALSE}
 library(scRepertoire)
@@ -13,41 +13,54 @@ n_with_clone <- sum(!is.na(scMultiData@meta.data[["CTaa"]]))
 n_total      <- ncol(scMultiData)
 pct_recovery <- round(100 * n_with_clone / n_total, 1)
 
-# Force a colour scale layer for DimPlot(group.by = "cloneSize") so it matches
-# scRepertoire bar plots. We also set the order so the densest categories
-# render on top.
-clone_dim <- function(obj, reduction) {
-  if (!"cloneSize" %in% colnames(obj@meta.data)) return(NULL)
-  # Force the cloneSize column to a factor with all 6 levels so the legend
-  # shows every bin (Hyperexpanded -> None) even when only a few are populated.
-  obj$cloneSize <- factor(obj$cloneSize, levels = names(clone_pal))
-  DimPlot(obj, reduction = reduction, group.by = "cloneSize",
-          raster = FALSE, order = TRUE) +
-    scale_color_manual(values = clone_pal, na.value = "grey85",
-                       limits = names(clone_pal), breaks = names(clone_pal),
-                       drop = FALSE) +
-    theme(aspect.ratio = 1)
-}
+group_for_clonal <- cluster_col %||% "Sample"
 
-safe_print <- function(expr_call) {
+# Match the seurat_clusters fill palette to the RNA / ADT / WNN tabs so
+# users can read clusters consistently across the report.
+group_levels <- if (!is.null(scMultiData@meta.data[[group_for_clonal]])) {
+  lvls <- levels(as.factor(scMultiData@meta.data[[group_for_clonal]]))
+  if (all(!is.na(suppressWarnings(as.integer(lvls))))) {
+    as.character(sort(as.integer(lvls)))
+  } else lvls
+} else NULL
+cluster_pal <- if (!is.null(group_levels)) {
+  setNames(unname(pals::polychrome())[seq_along(group_levels)], group_levels)
+} else NULL
+
+safe_print <- function(..., recolor = TRUE) {
+  args <- list(...)
+  expr_call <- args[[1]]
   p <- tryCatch(eval(expr_call), error = function(e) {
     message("Plot skipped: ", conditionMessage(e)); NULL
   })
-  if (!is.null(p)) print(p)
+  if (!is.null(p)) {
+    if (isTRUE(recolor) && !is.null(cluster_pal) && inherits(p, "ggplot")) {
+      p <- p + scale_fill_manual(values = cluster_pal, drop = FALSE,
+                                 limits = names(cluster_pal))
+    }
+    print(p)
+  }
 }
 ```
 
+*VDJ data is metadata-only* — it overlays cloneSize on the RNA / ADT / WNN UMAPs but produces no clustering of its own. Bar plots below are grouped by **`r group_for_clonal`** (the active clustering column).
+
+### cloneSize on UMAPs
+
 ```{r vdj-umap, echo=FALSE, fig.width=14, fig.height=7}
 plots <- list()
-p_rna <- clone_dim(scMultiData, rna_umap)
-if (!is.null(p_rna)) plots[["RNA"]] <- p_rna + ggtitle(paste(chain_label, "clone size on RNA UMAP"))
+p_rna <- ezRun::cloneDimPlot(scMultiData, rna_umap, palette = clone_pal,
+                             title = paste(chain_label, "clone size on RNA UMAP"))
+if (!is.null(p_rna)) plots[["RNA"]] <- p_rna
 if ("adt.umap" %in% names(scMultiData@reductions)) {
-  p_adt <- clone_dim(scMultiData, "adt.umap")
-  if (!is.null(p_adt)) plots[["ADT"]] <- p_adt + ggtitle(paste(chain_label, "on ADT UMAP"))
+  p_adt <- ezRun::cloneDimPlot(scMultiData, "adt.umap", palette = clone_pal,
+                               title = paste(chain_label, "on ADT UMAP"))
+  if (!is.null(p_adt)) plots[["ADT"]] <- p_adt
 }
 if ("wnn.umap" %in% names(scMultiData@reductions)) {
-  p_wnn <- clone_dim(scMultiData, "wnn.umap")
-  if (!is.null(p_wnn)) plots[["WNN"]] <- p_wnn + ggtitle(paste(chain_label, "on WNN UMAP"))
+  p_wnn <- ezRun::cloneDimPlot(scMultiData, "wnn.umap", palette = clone_pal,
+                               title = paste(chain_label, "on WNN UMAP"))
+  if (!is.null(p_wnn)) plots[["WNN"]] <- p_wnn
 }
 if (length(plots) >= 2) {
   print(patchwork::wrap_plots(plots, ncol = min(length(plots), 2L), guides = "collect"))
@@ -56,34 +69,58 @@ if (length(plots) >= 2) {
 }
 ```
 
+### Per cluster / cell type {.tabset}
+
+#### clonalOccupy by cluster
+
+```{r vdj-occ-cluster, echo=FALSE, fig.width=10, fig.height=10}
+if (!is.null(cluster_col)) {
+  p_n   <- ezRun::cloneOccupyFull(scMultiData, x.axis = cluster_col, palette = clone_pal)
+  p_pct <- ezRun::cloneOccupyFull(scMultiData, x.axis = cluster_col,
+                                  palette = clone_pal, proportion = TRUE)
+  print(patchwork::wrap_plots(p_n, p_pct, ncol = 1, guides = "collect"))
+}
+```
+
+#### clonalOccupy by cell type
+
+```{r vdj-occ-celltype, echo=FALSE, fig.width=10, fig.height=10}
+if (!is.null(celltype_col)) {
+  p_n   <- ezRun::cloneOccupyFull(scMultiData, x.axis = celltype_col, palette = clone_pal)
+  p_pct <- ezRun::cloneOccupyFull(scMultiData, x.axis = celltype_col,
+                                  palette = clone_pal, proportion = TRUE)
+  print(patchwork::wrap_plots(p_n, p_pct, ncol = 1, guides = "collect"))
+} else {
+  cat("No cell-type annotation column on the object.\n")
+}
+```
+
 ### Repertoire statistics {.tabset}
 
 #### clonalQuant
 
 ```{r vdj-quant, echo=FALSE, fig.width=8, fig.height=5}
-group_for_clonal <- cluster_col %||% "Sample"
 safe_print(bquote(clonalQuant(scMultiData, cloneCall = "strict", chain = "both",
                               scale = TRUE, group.by = .(group_for_clonal))))
-```
-
-#### clonalAbundance
-
-```{r vdj-abundance, echo=FALSE, fig.width=8, fig.height=5}
-safe_print(bquote(clonalAbundance(scMultiData, cloneCall = "strict",
-                                  scale = FALSE, group.by = .(group_for_clonal))))
 ```
 
 #### clonalHomeostasis
 
 ```{r vdj-homeostasis, echo=FALSE, fig.width=8, fig.height=5}
-safe_print(bquote(clonalHomeostasis(scMultiData, cloneCall = "strict",
+# scRepertoire fills by Var2 (homeostasis bins: Rare/Small/Medium/Large/Hyperexpanded),
+# NOT by cluster - skip the polychrome recolor.
+safe_print(recolor = FALSE,
+           bquote(clonalHomeostasis(scMultiData, cloneCall = "strict",
                                     group.by = .(group_for_clonal))))
 ```
 
 #### clonalProportion
 
 ```{r vdj-proportion, echo=FALSE, fig.width=8, fig.height=5}
-safe_print(bquote(clonalProportion(scMultiData, cloneCall = "strict",
+# scRepertoire fills by Var2 (clonalSplit bins like [1:10], [11:100]),
+# NOT by cluster - skip the polychrome recolor.
+safe_print(recolor = FALSE,
+           bquote(clonalProportion(scMultiData, cloneCall = "strict",
                                    group.by = .(group_for_clonal))))
 ```
 
@@ -102,51 +139,35 @@ safe_print(bquote(clonalLength(scMultiData, cloneCall = "aa", chain = "both",
                                scale = TRUE, group.by = .(group_for_clonal))))
 ```
 
-### Per cluster / cell type {.tabset}
+### Top 3 clones on UMAP
 
-#### clonalOccupy by cluster
-
-```{r vdj-occ-cluster, echo=FALSE, fig.width=10, fig.height=5}
-if (!is.null(cluster_col)) {
-  safe_print(bquote(clonalOccupy(scMultiData, x.axis = .(cluster_col)) +
-                      scale_fill_manual(values = clone_pal, na.value = "grey85",
-                                              limits = names(clone_pal),
-                                              breaks = names(clone_pal),
-                                              drop = FALSE)))
+```{r vdj-top3-umap, echo=FALSE, fig.width=15, fig.height=5}
+if ("CTstrict" %in% colnames(scMultiData@meta.data)) {
+  ct_counts <- sort(table(scMultiData$CTstrict), decreasing = TRUE)
+  top3 <- names(ct_counts)[seq_len(min(3L, length(ct_counts)))]
+  if (length(top3) > 0) {
+    plots <- lapply(seq_along(top3), function(i) {
+      key <- top3[i]
+      col_name <- paste0(".tmp_top_clone_", i)
+      hl <- ifelse(!is.na(scMultiData$CTstrict) & scMultiData$CTstrict == key,
+                   "in clone", "other")
+      scMultiData[[col_name]] <- factor(hl, levels = c("in clone", "other"))
+      cdr3 <- scMultiData$CTaa[scMultiData$CTstrict == key &
+                               !is.na(scMultiData$CTstrict)][1]
+      cdr3_short <- if (is.na(cdr3)) "" else
+                    paste0("\n", substr(cdr3, 1, 35),
+                           if (nchar(cdr3) > 35) "..." else "")
+      DimPlot(scMultiData, group.by = col_name, reduction = rna_umap,
+              order = TRUE, cols = c("in clone" = "#E45358",
+                                     "other"     = "grey85"),
+              raster = FALSE, pt.size = 0.6) +
+        theme(aspect.ratio = 1) +
+        NoLegend() +
+        ggtitle(sprintf("Clone %d (%d cells)%s", i, ct_counts[key], cdr3_short))
+    })
+    print(patchwork::wrap_plots(plots, ncol = 3))
+  }
 }
-```
-
-#### clonalOccupy by cell type
-
-```{r vdj-occ-celltype, echo=FALSE, fig.width=10, fig.height=5}
-if (!is.null(celltype_col)) {
-  safe_print(bquote(clonalOccupy(scMultiData, x.axis = .(celltype_col)) +
-                      scale_fill_manual(values = clone_pal, na.value = "grey85",
-                                              limits = names(clone_pal),
-                                              breaks = names(clone_pal),
-                                              drop = FALSE)))
-} else {
-  cat("No cell-type annotation column on the object.\n")
-}
-```
-
-### V / J gene usage {.tabset}
-
-#### V gene barplot
-
-```{r vdj-vgene, echo=FALSE, fig.width=12, fig.height=5}
-v_axis <- paste0(chain_prefix, "BV")
-safe_print(bquote(vizGenes(scMultiData, x.axis = .(v_axis), y.axis = NULL,
-                           plot = "barplot", scale = TRUE)))
-```
-
-#### V x J heatmap
-
-```{r vdj-vj-heatmap, echo=FALSE, fig.width=10, fig.height=8}
-v_axis <- paste0(chain_prefix, "BV")
-j_axis <- paste0(chain_prefix, "BJ")
-safe_print(bquote(vizGenes(scMultiData, x.axis = .(v_axis), y.axis = .(j_axis),
-                           plot = "heatmap", scale = TRUE)))
 ```
 
 ### Top clones

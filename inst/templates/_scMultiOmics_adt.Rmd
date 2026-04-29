@@ -1,26 +1,4 @@
-## ADT
-
-```{r adt-umaps, echo=FALSE, fig.width=14, fig.height=7}
-plots <- list()
-if ("adt.umap" %in% names(scMultiData@reductions) && !is.null(cluster_col)) {
-  plots[["clusters"]] <- DimPlot(scMultiData, reduction = "adt.umap",
-                                 group.by = cluster_col, raster = FALSE,
-                                 label = TRUE, repel = TRUE, order = TRUE,
-                                 cols = unname(pals::polychrome())) +
-    theme(aspect.ratio = 1) + ggtitle("ADT UMAP - clusters")
-}
-if ("adt.umap" %in% names(scMultiData@reductions) && !is.null(celltype_col)) {
-  plots[["celltype"]] <- DimPlot(scMultiData, reduction = "adt.umap",
-                                 group.by = celltype_col, raster = FALSE,
-                                 label = TRUE, repel = TRUE, order = TRUE) +
-    theme(aspect.ratio = 1) + ggtitle("ADT UMAP - cell type")
-}
-if (length(plots) >= 2) {
-  print(patchwork::wrap_plots(plots, ncol = 2))
-} else if (length(plots) == 1) {
-  print(plots[[1]])
-}
-```
+## ADT {.tabset}
 
 ```{r adt-prep, include=FALSE}
 n_adt   <- nrow(scMultiData[["ADT"]])
@@ -32,20 +10,70 @@ adt_counts_mat <- tryCatch(
 mean_umi   <- if (is.matrix(adt_counts_mat)) round(mean(colSums(adt_counts_mat)), 1) else NA
 median_umi <- if (is.matrix(adt_counts_mat)) round(median(colSums(adt_counts_mat)), 1) else NA
 adt_norm <- if (!is.null(param$adtNorm)) param$adtNorm else "ADTnorm"
+
+# Top-N ADT per group, ordered for a clean diagonal after coord_flip.
+# (1) z-score mean expression per row → group-specific markers (not bright everywhere)
+# (2) per group take top n
+# (3) order final union by each marker's BEST group → diagonal pattern even when
+#     groups share markers (e.g. CD3 across all T-cell subsets)
+# Isotype controls excluded.
+adt_top_per_group <- function(obj, group_col, n = 3L) {
+  avg <- Seurat::AverageExpression(obj, assays = "ADT", group.by = group_col,
+                                   layer = "data", verbose = FALSE)$ADT
+  avg <- avg[!grepl("(?i)isotype", rownames(avg)), , drop = FALSE]
+  if (ncol(avg) < 2L || nrow(avg) == 0L) {
+    return(rownames(avg)[seq_len(min(n, nrow(avg)))])
+  }
+  z <- t(scale(t(avg)))
+  z[!is.finite(z)] <- 0
+  picked <- unique(unlist(lapply(seq_len(ncol(z)), function(j) {
+    names(sort(z[, j], decreasing = TRUE))[seq_len(min(n, nrow(z)))]
+  })))
+  z_pick <- z[picked, , drop = FALSE]
+  best_group <- apply(z_pick, 1, which.max)
+  best_z     <- apply(z_pick, 1, max)
+  ord <- order(best_group, -best_z)
+  rev(picked[ord])  # coord_flip reverses y-axis
+}
 ```
 
-### Details {.tabset}
+*Clustering used:* **`r if (!is.null(cluster_col)) cluster_col else "_none_"`** — RNA-derived (no ADT-specific clustering computed). UMAP layout is from the ADT-only PCA (`adt.pca`).
 
-#### DotPlot - by cluster
+### UMAP
 
-DotPlot of normalized ADT signal (`r adt_norm`); colour = viridis.
+```{r adt-umaps, echo=FALSE, fig.width=14, fig.height=7}
+plots <- list()
+if ("adt.umap" %in% names(scMultiData@reductions) && !is.null(cluster_col)) {
+  plots[["clusters"]] <- DimPlot(scMultiData, reduction = "adt.umap",
+                                 group.by = cluster_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE,
+                                 cols = unname(pals::polychrome())) +
+    theme(aspect.ratio = 1) + ggtitle(paste0("ADT UMAP - clusters (", cluster_col, ")"))
+}
+if ("adt.umap" %in% names(scMultiData@reductions) && !is.null(celltype_col)) {
+  plots[["celltype"]] <- DimPlot(scMultiData, reduction = "adt.umap",
+                                 group.by = celltype_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE) +
+    theme(aspect.ratio = 1) + ggtitle(paste0("ADT UMAP - cell type (", celltype_col, ")"))
+}
+if (length(plots) >= 2) {
+  print(patchwork::wrap_plots(plots, ncol = 2))
+} else if (length(plots) == 1) {
+  print(plots[[1]])
+}
+```
 
-```{r adt-dotplot-cluster, echo=FALSE, fig.width=10, fig.height=max(6, length(adt_features) * 0.18)}
+### DotPlot - by cluster
+
+DotPlot of normalized ADT signal (`r adt_norm`) — top 3 markers per cluster (z-scored across clusters; isotypes excluded). Colour = viridis. Grouped by `r if (!is.null(cluster_col)) sprintf("**%s**", cluster_col) else "_no clustering column_"`.
+
+```{r adt-dotplot-cluster, echo=FALSE, fig.width=12, fig.height=14}
 if (!is.null(cluster_col)) {
   scMultiData_dp <- scMultiData
   Idents(scMultiData_dp) <- cluster_col
   DefaultAssay(scMultiData_dp) <- "ADT"
-  p <- DotPlot(scMultiData_dp, features = unique(adt_features), assay = "ADT") +
+  feats <- adt_top_per_group(scMultiData_dp, cluster_col, n = 3L)
+  p <- DotPlot(scMultiData_dp, features = feats, assay = "ADT") +
     coord_flip() +
     scale_color_viridis_c(option = "D") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -53,16 +81,17 @@ if (!is.null(cluster_col)) {
 }
 ```
 
-#### DotPlot - by cell type
+### DotPlot - by cell type
 
-DotPlot of normalized ADT signal (`r adt_norm`) grouped by `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_no annotation column_"`.
+DotPlot of normalized ADT signal (`r adt_norm`) — top 3 markers per cell type (z-scored across cell types; isotypes excluded). Grouped by `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_no annotation column_"`.
 
-```{r adt-dotplot-celltype, echo=FALSE, fig.width=10, fig.height=max(6, length(adt_features) * 0.18)}
+```{r adt-dotplot-celltype, echo=FALSE, fig.width=14, fig.height=16}
 if (!is.null(celltype_col)) {
   scMultiData_dp <- scMultiData
   Idents(scMultiData_dp) <- celltype_col
   DefaultAssay(scMultiData_dp) <- "ADT"
-  p <- DotPlot(scMultiData_dp, features = unique(adt_features), assay = "ADT") +
+  feats <- adt_top_per_group(scMultiData_dp, celltype_col, n = 3L)
+  p <- DotPlot(scMultiData_dp, features = feats, assay = "ADT") +
     coord_flip() +
     scale_color_viridis_c(option = "D") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -72,25 +101,29 @@ if (!is.null(celltype_col)) {
 }
 ```
 
-#### Top markers (FeaturePlot)
+### Top markers (FeaturePlot)
 
-```{r adt-feature-plots, echo=FALSE, fig.width=12, fig.height=10}
+```{r adt-feature-plots, echo=FALSE, fig.width=14, fig.height=7}
 if (!is.null(adt_counts_mat)) {
   data_mat <- tryCatch(
     as.matrix(GetAssayData(scMultiData, assay = "ADT", layer = "data")),
     error = function(e) adt_counts_mat
   )
-  top_features <- names(sort(rowMeans(data_mat), decreasing = TRUE))[seq_len(min(8L, nrow(data_mat)))]
+  # Skip isotype controls when ranking top ADT markers
+  rm_iso <- !grepl("(?i)isotype", rownames(data_mat))
+  ranked <- names(sort(rowMeans(data_mat[rm_iso, , drop = FALSE]), decreasing = TRUE))
+  top_features <- ranked[seq_len(min(8L, length(ranked)))]
   scMultiData_fp <- scMultiData
   DefaultAssay(scMultiData_fp) <- "ADT"
   p <- FeaturePlot(scMultiData_fp, features = top_features,
                    reduction = "adt.umap", raster = FALSE, ncol = 4) &
-    theme(aspect.ratio = 1) &
-    scale_color_viridis_c(option = "D")
+    scale_color_viridis_c(option = "D") &
+    theme(plot.margin = ggplot2::margin(2, 4, 2, 4, "pt"),
+          plot.title  = ggplot2::element_text(size = 11, margin = ggplot2::margin(b = 2)))
   print(p)
 }
 ```
 
-#### QC
+### QC
 
 `r format(n_adt, big.mark = ",")` ADT features, normalization: **`r adt_norm`**, mean `r mean_umi` UMI/cell, median `r median_umi` UMI/cell. Cell-type column: `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_none available_"`.

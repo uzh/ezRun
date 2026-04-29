@@ -20,12 +20,13 @@ library(ggplot2)
 library(qs2)
 library(knitr)
 
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
 param        <- ezLoadRobj("param")
 modalities   <- ezLoadRobj("modalities")
 scMultiData  <- ezLoadRobj("scMultiData",
                            nthreads = max(1L, param$cores %||% 4L))
-
-`%||%` <- function(a, b) if (!is.null(a)) a else b
+output       <- tryCatch(ezLoadRobj("output"), error = function(e) NULL)
 
 # Pick best embedding for the RNA "primary" UMAP and a cell-type column.
 rna_umap <- if ("umap" %in% names(scMultiData@reductions)) "umap" else
@@ -38,6 +39,22 @@ cluster_col <- if ("seurat_clusters" %in% colnames(scMultiData@meta.data)) {
 sample_name <- if ("Sample" %in% colnames(scMultiData@meta.data)) {
   unique(scMultiData$Sample)[1]
 } else "sample"
+
+# Build exploreSC URL once so child Rmds don't have to re-discover the path.
+explore_url <- NULL
+if (!is.null(output) && "Report" %in% output$colNames) {
+  rp <- output$getColumn("Report")
+  if (is.character(rp) && nzchar(rp)) {
+    if (!grepl("^p\\d+/", rp)) {
+      proj <- regmatches(getwd(), regexec("/(p\\d+)/", getwd()))[[1]][2]
+      if (!is.na(proj)) rp <- file.path(proj, basename(rp))
+    }
+    if (grepl("^p\\d+/", rp)) {
+      explore_url <- paste0("https://fgcz-shiny.uzh.ch/app/exploreSC/?data=",
+                            rp, "/scMultiData.qs2")
+    }
+  }
+}
 ```
 
 # {.tabset}

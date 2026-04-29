@@ -1,0 +1,19 @@
+**`r format(nrow(mk), big.mark = ",")` markers across `r length(unique(mk$cluster))` clusters** from the `r assay_name` assay.
+
+```{r echo=FALSE, fig.width=14, fig.height=20}
+scMultiData_wm <- scMultiData
+DefaultAssay(scMultiData_wm) <- assay_name
+Idents(scMultiData_wm) <- wnn_cluster_col
+p <- Seurat::DotPlot(scMultiData_wm, features = top_genes, assay = assay_name) +
+  ggplot2::coord_flip() +
+  ggplot2::scale_color_viridis_c(option = "D") +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, size = 11),
+                 axis.text.y = ggplot2::element_text(size = 11),
+                 axis.title  = ggplot2::element_text(size = 12),
+                 legend.text = ggplot2::element_text(size = 10))
+print(p)
+```
+
+```{r echo=FALSE}
+ezRun::ezInteractiveTableRmd(mk, title = paste(label, "cluster markers"))
+```

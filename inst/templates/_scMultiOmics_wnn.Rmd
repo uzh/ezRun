@@ -1,15 +1,19 @@
-## WNN
+## WNN {.tabset}
 
 ```{r wnn-prep, include=FALSE}
 red_used <- intersect(c("pca", "adt.pca", "lsi"), names(scMultiData@reductions))
 weight_cols <- grep("\\.weight$", colnames(scMultiData@meta.data), value = TRUE)
-has_wsnn <- "wsnn_res.0.5" %in% colnames(scMultiData@meta.data)
-wnn_cluster_col <- if (has_wsnn) {
-  "wsnn_res.0.5"
-} else {
-  cluster_col
+wnn_resolution <- modalities$wnnResolution %||% scMultiData@misc$wnn_resolution %||% 0.5
+wnn_cluster_col <- scMultiData@misc$wnn_cluster_col %||% paste0("wsnn_res.", wnn_resolution)
+if (!wnn_cluster_col %in% colnames(scMultiData@meta.data)) {
+  wsnn_hits <- grep("^wsnn_res\\.", colnames(scMultiData@meta.data), value = TRUE)
+  wnn_cluster_col <- if (length(wsnn_hits) > 0) wsnn_hits[1] else cluster_col
 }
 ```
+
+*Clustering used:* **`r wnn_cluster_col`** — Leiden on the weighted SNN graph at resolution `r wnn_resolution`. Integrated reductions: **`r paste(red_used, collapse = ", ")`**.
+
+### UMAP
 
 ```{r wnn-umaps, echo=FALSE, fig.width=14, fig.height=7}
 plots <- list()
@@ -18,13 +22,13 @@ if ("wnn.umap" %in% names(scMultiData@reductions) && !is.null(wnn_cluster_col)) 
                                  group.by = wnn_cluster_col, raster = FALSE,
                                  label = TRUE, repel = TRUE, order = TRUE,
                                  cols = unname(pals::polychrome())) +
-    theme(aspect.ratio = 1) + ggtitle("WNN UMAP - clusters")
+    theme(aspect.ratio = 1) + ggtitle(paste0("WNN UMAP - clusters (", wnn_cluster_col, ")"))
 }
 if ("wnn.umap" %in% names(scMultiData@reductions) && !is.null(celltype_col)) {
   plots[["celltype"]] <- DimPlot(scMultiData, reduction = "wnn.umap",
                                  group.by = celltype_col, raster = FALSE,
                                  label = TRUE, repel = TRUE, order = TRUE) +
-    theme(aspect.ratio = 1) + ggtitle("WNN UMAP - cell type")
+    theme(aspect.ratio = 1) + ggtitle(paste0("WNN UMAP - cell type (", celltype_col, ")"))
 }
 if (length(plots) >= 2) {
   print(patchwork::wrap_plots(plots, ncol = 2))
@@ -33,9 +37,69 @@ if (length(plots) >= 2) {
 }
 ```
 
-### Details {.tabset}
+### Cluster DEGs {.tabset}
 
-#### Per-modality weights (Violin)
+Wilcoxon `FindAllMarkers` per modality, grouped by **`r wnn_cluster_col`** (`min.pct = 0.25`, `logfc.threshold = 0.25`, only positive markers). One subtab per modality available on the object: top markers as DotPlot + interactive sortable / filterable / Excel-exportable table. RNA uses the `RNA` assay; ADT uses the `ADT` assay; ATAC uses the `GeneActivity` assay (gene-level chromatin accessibility derived from the fragments).
+
+```{r wnn-deg-compute, include=FALSE}
+deg_assays <- c()
+if ("RNA" %in% Assays(scMultiData)) deg_assays <- c(deg_assays, RNA = "RNA")
+if ("ADT" %in% Assays(scMultiData)) deg_assays <- c(deg_assays, ADT = "ADT")
+if ("GeneActivity" %in% Assays(scMultiData)) deg_assays <- c(deg_assays, ATAC = "GeneActivity")
+
+deg_results <- list()
+top_features  <- list()
+if (!is.null(wnn_cluster_col) && wnn_cluster_col %in% colnames(scMultiData@meta.data)) {
+  for (label in names(deg_assays)) {
+    assay_name <- deg_assays[[label]]
+    scMultiData_wm <- scMultiData
+    DefaultAssay(scMultiData_wm) <- assay_name
+    Idents(scMultiData_wm) <- wnn_cluster_col
+    n_features <- nrow(scMultiData_wm[[assay_name]])
+    if (n_features < 2L) next
+    mk <- tryCatch(
+      Seurat::FindAllMarkers(scMultiData_wm, assay = assay_name, only.pos = TRUE,
+                             min.pct = 0.25, logfc.threshold = 0.25,
+                             verbose = FALSE),
+      error = function(e) { message("FindAllMarkers ", label, " failed: ",
+                                    conditionMessage(e)); NULL }
+    )
+    if (!is.null(mk) && nrow(mk) > 0) {
+      mk <- mk[, c("gene", "cluster", "avg_log2FC", "p_val_adj", "pct.1", "pct.2")]
+      mk$avg_log2FC <- round(mk$avg_log2FC, 3)
+      mk$pct.1 <- round(mk$pct.1, 3); mk$pct.2 <- round(mk$pct.2, 3)
+      deg_results[[label]] <- mk
+      top_features[[label]] <- mk |>
+        dplyr::group_by(cluster) |>
+        dplyr::slice_max(order_by = avg_log2FC, n = 5) |>
+        dplyr::pull(gene) |>
+        unique()
+    }
+  }
+}
+```
+
+```{r wnn-deg-children, echo=FALSE, results='asis'}
+# Render each modality as a knit_child so the embedded ezInteractiveTableRmd
+# DT widget loads its CSS/JS deps correctly (asis + print() loses them).
+if (length(deg_results) == 0) {
+  cat("No WNN cluster markers detected.\n\n")
+} else {
+  subtab_path <- system.file("templates/_scMultiOmics_wnn_deg_subtab.Rmd",
+                             package = "ezRun")
+  for (lbl in names(deg_results)) {
+    label      <- lbl
+    assay_name <- deg_assays[[lbl]]
+    mk         <- deg_results[[lbl]]
+    top_genes  <- top_features[[lbl]]
+    cat(sprintf("\n#### %s\n\n", label))
+    cat(knitr::knit_child(subtab_path, envir = environment(), quiet = TRUE),
+        sep = "\n")
+  }
+}
+```
+
+### Per-modality weights (Violin)
 
 ```{r wnn-weights-vln, echo=FALSE, fig.width=10, fig.height=5}
 if (length(weight_cols) > 0 && !is.null(wnn_cluster_col)) {
@@ -47,9 +111,9 @@ if (length(weight_cols) > 0 && !is.null(wnn_cluster_col)) {
 }
 ```
 
-#### Per-modality weights (FeaturePlot)
+### Per-modality weights (FeaturePlot)
 
-```{r wnn-weights-feat, echo=FALSE, fig.width=12, fig.height=4 * ceiling(length(weight_cols)/3)}
+```{r wnn-weights-feat, echo=FALSE, fig.width=12, fig.height=4 * ceiling(max(1, length(weight_cols))/3)}
 if (length(weight_cols) > 0 && "wnn.umap" %in% names(scMultiData@reductions)) {
   p <- FeaturePlot(scMultiData, features = weight_cols,
                    reduction = "wnn.umap", raster = FALSE,
@@ -62,6 +126,6 @@ if (length(weight_cols) > 0 && "wnn.umap" %in% names(scMultiData@reductions)) {
 }
 ```
 
-#### Summary
+### Summary
 
-Integrated reductions: **`r paste(red_used, collapse = ", ")`**.
+Integrated reductions: **`r paste(red_used, collapse = ", ")`**. Resolution: **`r wnn_resolution`**. Cluster column: **`r wnn_cluster_col`**.

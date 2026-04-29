@@ -205,8 +205,18 @@ processVDJ <- function(obj, vdjTPath = NULL, vdjBPath = NULL, sampleName) {
     combined, obj,
     cloneCall = "strict",
     group.by = "sample",
-    proportion = TRUE
+    proportion = FALSE,
+    cloneSize = c(Single = 1, Small = 5, Medium = 20, Large = 100, Hyperexpanded = 500)
   )
+  # exploreSC crashes on NA factor values when group.by/color uses cloneSize
+  # (server-import.R hits `if (grepl(NA, ...))`). Convert NAs to an explicit
+  # "No clonotype" level so the saved scMultiData.qs2 stays Shiny-safe.
+  if ("cloneSize" %in% colnames(obj@meta.data)) {
+    pal_levels <- names(cloneSizePalette())
+    cs <- as.character(obj$cloneSize)
+    cs[is.na(cs)] <- "No clonotype"
+    obj$cloneSize <- factor(cs, levels = pal_levels)
+  }
   attr(obj, "vdjCombined") <- combined
   attr(obj, "vdjChain")    <- chains
   obj
@@ -252,12 +262,13 @@ pickCellTypeColumn <- function(obj) {
 ##'   "cloneSize") and scRepertoire bar plots use consistent colours.
 ##' @keywords internal
 cloneSizePalette <- function() {
-  c("Hyperexpanded (0.1 < X <= 1)" = "#FFFE9E",
-    "Large (0.01 < X <= 0.1)"      = "#F7AA2D",
-    "Medium (0.001 < X <= 0.01)"   = "#E45358",
-    "Small (1e-04 < X <= 0.001)"   = "#A01975",
-    "Rare (0 < X <= 1e-04)"        = "#4C1258",
-    "None ( < X <= 0)"             = "#040404")
+  c("Hyperexpanded (100 < X <= 500)" = "#FFFE9E",
+    "Large (20 < X <= 100)"          = "#F7AA2D",
+    "Medium (5 < X <= 20)"           = "#E45358",
+    "Small (1 < X <= 5)"             = "#A01975",
+    "Single (0 < X <= 1)"            = "#4C1258",
+    "None ( < X <= 0)"               = "#040404",
+    "No clonotype"                   = "#BDBDBD")
 }
 
 ##' @title Run WNN integration when 2+ dimensional modalities are present.
@@ -270,7 +281,8 @@ cloneSizePalette <- function() {
 ##'   per-modality `*.weight` columns. Returns obj unchanged when fewer than
 ##'   2 dimensional modalities exist.
 ##' @export
-runWNN <- function(obj, dims_rna = 1:20, dims_adt = NULL, dims_atac = NULL) {
+runWNN <- function(obj, dims_rna = 1:20, dims_adt = NULL, dims_atac = NULL,
+                   resolution = 0.5) {
   reds <- names(obj@reductions)
   components <- list()
   if ("pca" %in% reds)     components$rna  <- list(red = "pca",     dims = dims_rna)
@@ -283,7 +295,8 @@ runWNN <- function(obj, dims_rna = 1:20, dims_adt = NULL, dims_atac = NULL) {
 
   reductions <- vapply(components, `[[`, "red", FUN.VALUE = character(1))
   dims_list  <- lapply(components, `[[`, "dims")
-  message("Running WNN on: ", paste(reductions, collapse = " + "))
+  message("Running WNN on: ", paste(reductions, collapse = " + "),
+          " | resolution = ", resolution)
 
   obj <- Seurat::FindMultiModalNeighbors(
     obj,
@@ -300,8 +313,126 @@ runWNN <- function(obj, dims_rna = 1:20, dims_adt = NULL, dims_atac = NULL) {
                          reduction.key  = "wnnUMAP_",
                          n.neighbors = n_neighbors, verbose = FALSE)
   obj <- Seurat::FindClusters(obj, graph.name = "wsnn", algorithm = 3,
-                              resolution = 0.5, verbose = FALSE)
+                              resolution = resolution, verbose = FALSE)
+  cluster_col <- paste0("wsnn_res.", resolution)
+  cl <- obj[[cluster_col, drop = TRUE]]
+  if (is.factor(cl) && all(!is.na(suppressWarnings(as.integer(levels(cl)))))) {
+    sorted_levels <- as.character(sort(as.integer(levels(cl))))
+    cl <- factor(cl, levels = sorted_levels)
+    obj[[cluster_col]] <- cl
+    obj$seurat_clusters <- cl
+    Seurat::Idents(obj) <- cluster_col
+  }
+  obj@misc$wnn_cluster_col <- cluster_col
+  obj@misc$wnn_resolution  <- resolution
   obj
+}
+
+##' @title clonalOccupy with all cloneSize bins in the legend.
+##' @description Wraps `scRepertoire::clonalOccupy()` so empty cloneSize bins
+##'   still appear (with their colour) in the legend. scRepertoire drops rows
+##'   with `n == 0` before plotting, which strips empty levels from the
+##'   geom data and prevents ggplot2 from emitting their fill swatches even
+##'   with `drop = FALSE`. We pull the data via `exportTable = TRUE`, inject
+##'   `n = 0L` phantom rows for missing levels, then rebuild the bar plot
+##'   with the canonical `cloneSizePalette()`.
+##' @param obj Seurat object with scRepertoire metadata.
+##' @param x.axis Metadata column for the x axis.
+##' @param palette Named colour vector; defaults to `cloneSizePalette()`.
+##' @return ggplot object.
+##' @export
+cloneOccupyFull <- function(obj, x.axis, palette = cloneSizePalette(),
+                            proportion = FALSE) {
+  df <- scRepertoire::clonalOccupy(obj, x.axis = x.axis, exportTable = TRUE)
+  if (!is.factor(df[[x.axis]])) df[[x.axis]] <- factor(df[[x.axis]])
+  df$cloneSize <- factor(df$cloneSize, levels = names(palette))
+  empty <- setdiff(names(palette), as.character(df$cloneSize))
+  if (length(empty) > 0L) {
+    pad <- data.frame(matrix(NA, nrow = length(empty), ncol = 0))
+    pad[[x.axis]] <- factor(rep(levels(df[[x.axis]])[1], length(empty)),
+                            levels = levels(df[[x.axis]]))
+    pad$cloneSize <- factor(empty, levels = names(palette))
+    pad$n <- 0L
+    df <- rbind(df, pad[, colnames(df), drop = FALSE])
+  }
+  if (isTRUE(proportion)) {
+    totals <- stats::ave(df$n, df[[x.axis]], FUN = sum)
+    df$pct <- ifelse(totals > 0, 100 * df$n / totals, 0)
+    p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[x.axis]], y = .data[["pct"]],
+                                          fill = .data[["cloneSize"]])) +
+      ggplot2::geom_bar(stat = "identity", color = "black", linewidth = 0.25) +
+      ggplot2::geom_text(data = df[df$n > 0, ],
+                         ggplot2::aes(label = sprintf("%.0f%%", .data[["pct"]])),
+                         position = ggplot2::position_stack(vjust = 0.5),
+                         size = 3) +
+      ggplot2::scale_y_continuous(labels = function(x) paste0(x, "%"),
+                                  expand = ggplot2::expansion(mult = c(0, 0.02))) +
+      ggplot2::ylab("% of cells per group")
+  } else {
+    p <- ggplot2::ggplot(df, ggplot2::aes(x = .data[[x.axis]], y = .data[["n"]],
+                                          fill = .data[["cloneSize"]])) +
+      ggplot2::geom_bar(stat = "identity", color = "black", linewidth = 0.25) +
+      ggplot2::geom_text(data = df[df$n > 0, ],
+                         ggplot2::aes(label = .data[["n"]]),
+                         position = ggplot2::position_stack(vjust = 0.5)) +
+      ggplot2::ylab("Single Cells")
+  }
+  p +
+    ggplot2::scale_fill_manual(values = palette, drop = FALSE,
+                               limits = names(palette)) +
+    ggplot2::theme_classic() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
+                   axis.title.x = ggplot2::element_blank())
+}
+
+##' @title DimPlot of cloneSize with all 6 swatches in the legend.
+##' @description Seurat's `DimPlot(group.by = "cloneSize")` only emits legend
+##'   keys for levels actually drawn, so empty bins (Hyperexpanded, Small,
+##'   Rare, None) silently lose their colour swatch. We rebuild the plot
+##'   from the embedding + metadata, append one phantom point per missing
+##'   level so ggplot2 generates a key for it, then hide the phantoms via
+##'   `override.aes(alpha = 1)`. The visible points are unchanged.
+##' @param obj Seurat object with scRepertoire metadata + reduction.
+##' @param reduction Reduction name (e.g. "umap", "adt.umap", "wnn.umap").
+##' @param palette Named colour vector; defaults to `cloneSizePalette()`.
+##' @param point_size Point size for visible cells.
+##' @param title Plot title (optional).
+##' @return ggplot object, or NULL when the reduction or cloneSize column
+##'   is missing.
+##' @export
+cloneDimPlot <- function(obj, reduction, palette = cloneSizePalette(),
+                         point_size = 0.5, title = NULL) {
+  if (!reduction %in% names(obj@reductions)) return(NULL)
+  if (!"cloneSize" %in% colnames(obj@meta.data)) return(NULL)
+  emb <- as.data.frame(Seurat::Embeddings(obj, reduction))
+  axis_x <- colnames(emb)[1]; axis_y <- colnames(emb)[2]
+  emb$cloneSize <- factor(obj$cloneSize, levels = names(palette))
+  empty <- setdiff(names(palette), as.character(unique(emb$cloneSize)))
+  phantom <- if (length(empty) > 0) {
+    data.frame(setNames(list(rep(mean(emb[[axis_x]], na.rm = TRUE), length(empty)),
+                              rep(mean(emb[[axis_y]], na.rm = TRUE), length(empty))),
+                         c(axis_x, axis_y)),
+               cloneSize = factor(empty, levels = names(palette)))
+  } else NULL
+  emb_ord <- emb[order(!is.na(emb$cloneSize)), ]
+  p <- ggplot2::ggplot(emb_ord,
+                       ggplot2::aes(x = .data[[axis_x]], y = .data[[axis_y]],
+                                    color = .data[["cloneSize"]])) +
+    ggplot2::geom_point(size = point_size)
+  if (!is.null(phantom)) {
+    p <- p + ggplot2::geom_point(data = phantom, alpha = 0)
+  }
+  p <- p +
+    ggplot2::scale_color_manual(values = palette, na.value = "grey85",
+                                drop = FALSE, limits = names(palette)) +
+    ggplot2::guides(color = ggplot2::guide_legend(
+      override.aes = list(size = 6, alpha = 1, stroke = 0.5))) +
+    ggplot2::theme_classic() +
+    ggplot2::theme(aspect.ratio = 1,
+                   legend.key.size = ggplot2::unit(1.2, "lines"),
+                   legend.text = ggplot2::element_text(size = 10))
+  if (!is.null(title)) p <- p + ggplot2::ggtitle(title)
+  p
 }
 
 ##' @title Load a BD Rhapsody pre-built Seurat object.

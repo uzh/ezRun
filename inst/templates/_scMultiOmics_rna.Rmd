@@ -1,4 +1,8 @@
-## RNA
+## RNA {.tabset}
+
+*Clustering used:* **`r if (!is.null(cluster_col)) cluster_col else "_none_"`** (Seurat Louvain on RNA SNN graph).
+
+### UMAP
 
 ```{r rna-umap, echo=FALSE, fig.width=14, fig.height=7}
 plots <- list()
@@ -7,13 +11,13 @@ if (!is.null(cluster_col)) {
                                  group.by = cluster_col, raster = FALSE,
                                  label = TRUE, repel = TRUE, order = TRUE,
                                  cols = unname(pals::polychrome())) +
-    theme(aspect.ratio = 1) + ggtitle("Clusters")
+    theme(aspect.ratio = 1) + ggtitle(paste0("RNA UMAP - clusters (", cluster_col, ")"))
 }
 if (!is.null(celltype_col)) {
   plots[["celltype"]] <- DimPlot(scMultiData, reduction = rna_umap,
                                  group.by = celltype_col, raster = FALSE,
                                  label = TRUE, repel = TRUE, order = TRUE) +
-    theme(aspect.ratio = 1) + ggtitle("Cell type annotation")
+    theme(aspect.ratio = 1) + ggtitle(paste0("RNA UMAP - cell type (", celltype_col, ")"))
 }
 if (length(plots) >= 2) {
   print(patchwork::wrap_plots(plots, ncol = 2))
@@ -21,6 +25,8 @@ if (length(plots) >= 2) {
   print(plots[[1]])
 }
 ```
+
+### Summary
 
 ```{r rna-summary, include=FALSE}
 n_cells <- ncol(scMultiData)

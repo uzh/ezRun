@@ -6,36 +6,6 @@ The link below will take you to an interactive Shiny app which can be used to ma
 production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
 
 ```{r explore-link, echo=FALSE, results='asis'}
-explore_url <- NULL
-output_obj <- tryCatch(ezLoadRobj("output"), error = function(e) NULL)
-if (!is.null(output_obj)) {
-  for (cand in c("Report", "SC Cluster Report", "ScMultiOmics")) {
-    if (cand %in% output_obj$colNames) {
-      report_path <- output_obj$getColumn(cand)
-      if (!is.null(report_path) && nzchar(report_path)) {
-        # ScMultiOmics column already points at scMultiData.qs2 directly,
-        # the others point at the report directory.
-        if (grepl("\\.qs2$", report_path)) {
-          explore_url <- paste0("https://fgcz-shiny.uzh.ch/app/exploreSC/?data=", report_path)
-        } else {
-          explore_url <- paste0("https://fgcz-shiny.uzh.ch/app/exploreSC/?data=",
-                                report_path, "/scMultiData.qs2")
-        }
-        break
-      }
-    }
-  }
-}
-if (is.null(explore_url)) {
-  # Best-effort: build a likely URL from the project + sample name when the
-  # report sits inside /srv/gstore/projects/.
-  cwd <- getwd()
-  m <- regmatches(cwd, regexec("/srv/gstore/projects/(p\\d+)/(.+)", cwd))[[1]]
-  if (length(m) == 3) {
-    qs2_path <- file.path(m[2], m[3], "scMultiData.qs2")
-    explore_url <- paste0("https://fgcz-shiny.uzh.ch/app/exploreSC/?data=", qs2_path)
-  }
-}
 if (!is.null(explore_url) && nzchar(explore_url)) {
   cat(sprintf("[Single Cell Explorer](%s){target=\"_blank\"}\n\n", explore_url))
 } else {

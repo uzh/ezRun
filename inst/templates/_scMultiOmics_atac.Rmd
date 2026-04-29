@@ -1,31 +1,9 @@
-## ATAC
-
-```{r atac-umaps, echo=FALSE, fig.width=14, fig.height=7}
-plots <- list()
-if ("atac.umap" %in% names(scMultiData@reductions) && !is.null(cluster_col)) {
-  plots[["clusters"]] <- DimPlot(scMultiData, reduction = "atac.umap",
-                                 group.by = cluster_col, raster = FALSE,
-                                 label = TRUE, repel = TRUE, order = TRUE,
-                                 cols = unname(pals::polychrome())) +
-    theme(aspect.ratio = 1) + ggtitle("ATAC UMAP - clusters")
-}
-if ("atac.umap" %in% names(scMultiData@reductions) && !is.null(celltype_col)) {
-  plots[["celltype"]] <- DimPlot(scMultiData, reduction = "atac.umap",
-                                 group.by = celltype_col, raster = FALSE,
-                                 label = TRUE, repel = TRUE, order = TRUE) +
-    theme(aspect.ratio = 1) + ggtitle("ATAC UMAP - cell type")
-}
-if (length(plots) >= 2) {
-  print(patchwork::wrap_plots(plots, ncol = 2))
-} else if (length(plots) == 1) {
-  print(plots[[1]])
-}
-```
+## ATAC {.tabset}
 
 ```{r atac-prep, include=FALSE}
 library(Signac)
 n_peaks <- nrow(scMultiData[["ATAC"]])
-n_cells <- ncol(scMultiData)
+n_cells_atac <- ncol(scMultiData)
 DefaultAssay(scMultiData) <- "ATAC"
 if (!"nucleosome_signal" %in% colnames(scMultiData@meta.data)) {
   scMultiData <- tryCatch(
@@ -43,9 +21,33 @@ DefaultAssay(scMultiData) <- "RNA"
 has_ga <- "GeneActivity" %in% Assays(scMultiData)
 ```
 
-### Details {.tabset}
+*Clustering used:* **`r if (!is.null(cluster_col)) cluster_col else "_none_"`** — RNA-derived (no ATAC-specific clustering computed). UMAP layout is from the ATAC LSI reduction (`atac.umap`).
 
-#### Gene activity FeaturePlots
+### UMAP
+
+```{r atac-umaps, echo=FALSE, fig.width=14, fig.height=7}
+plots <- list()
+if ("atac.umap" %in% names(scMultiData@reductions) && !is.null(cluster_col)) {
+  plots[["clusters"]] <- DimPlot(scMultiData, reduction = "atac.umap",
+                                 group.by = cluster_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE,
+                                 cols = unname(pals::polychrome())) +
+    theme(aspect.ratio = 1) + ggtitle(paste0("ATAC UMAP - clusters (", cluster_col, ")"))
+}
+if ("atac.umap" %in% names(scMultiData@reductions) && !is.null(celltype_col)) {
+  plots[["celltype"]] <- DimPlot(scMultiData, reduction = "atac.umap",
+                                 group.by = celltype_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE) +
+    theme(aspect.ratio = 1) + ggtitle(paste0("ATAC UMAP - cell type (", celltype_col, ")"))
+}
+if (length(plots) >= 2) {
+  print(patchwork::wrap_plots(plots, ncol = 2))
+} else if (length(plots) == 1) {
+  print(plots[[1]])
+}
+```
+
+### Gene activity FeaturePlots
 
 ```{r atac-gene-activity, echo=FALSE, fig.width=12, fig.height=10}
 if (has_ga) {
@@ -70,14 +72,14 @@ if (has_ga) {
 }
 ```
 
-#### Fragment counts
+### Fragment counts
 
 ```{r atac-frag, echo=FALSE, fig.width=8, fig.height=5}
 print(VlnPlot(scMultiData, features = "nCount_ATAC", group.by = cluster_col %||% "Sample",
               pt.size = 0) + scale_y_log10() + NoLegend())
 ```
 
-#### TSS enrichment
+### TSS enrichment
 
 ```{r atac-tss, echo=FALSE, fig.width=8, fig.height=5}
 if ("TSS.enrichment" %in% colnames(scMultiData@meta.data)) {
@@ -88,7 +90,7 @@ if ("TSS.enrichment" %in% colnames(scMultiData@meta.data)) {
 }
 ```
 
-#### Nucleosome signal
+### Nucleosome signal
 
 ```{r atac-nuc, echo=FALSE, fig.width=8, fig.height=5}
 if ("nucleosome_signal" %in% colnames(scMultiData@meta.data)) {
@@ -99,6 +101,6 @@ if ("nucleosome_signal" %in% colnames(scMultiData@meta.data)) {
 }
 ```
 
-#### Summary
+### Summary
 
-`r format(n_peaks, big.mark = ",")` peaks, `r format(n_cells, big.mark = ",")` cells. `r if (has_ga) paste0("GeneActivity assay: ", format(nrow(scMultiData[["GeneActivity"]]), big.mark = ","), " genes.") else "GeneActivity assay not available."`
+`r format(n_peaks, big.mark = ",")` peaks, `r format(n_cells_atac, big.mark = ",")` cells. `r if (has_ga) paste0("GeneActivity assay: ", format(nrow(scMultiData[["GeneActivity"]]), big.mark = ","), " genes.") else "GeneActivity assay not available."`
