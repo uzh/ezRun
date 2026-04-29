@@ -26,13 +26,23 @@ scMultiData  <- ezLoadRobj("scMultiData",
                            nthreads = max(1L, param$cores %||% 4L))
 
 `%||%` <- function(a, b) if (!is.null(a)) a else b
-```
 
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+# Pick best embedding for the RNA "primary" UMAP and a cell-type column.
+rna_umap <- if ("umap" %in% names(scMultiData@reductions)) "umap" else
+            if ("tsne" %in% names(scMultiData@reductions)) "tsne" else
+            names(scMultiData@reductions)[1]
+celltype_col <- ezRun::pickCellTypeColumn(scMultiData)
+cluster_col <- if ("seurat_clusters" %in% colnames(scMultiData@meta.data)) {
+  "seurat_clusters"
+} else NULL
+sample_name <- if ("Sample" %in% colnames(scMultiData@meta.data)) {
+  unique(scMultiData$Sample)[1]
+} else "sample"
+```
 
 # {.tabset}
 
-```{r overview-child, child = system.file("templates/_scMultiOmics_overview.Rmd", package = "ezRun")}
+```{r rna-child, child = system.file("templates/_scMultiOmics_rna.Rmd", package = "ezRun")}
 ```
 
 ```{r adt-child, eval = isTRUE(modalities$hasADT), child = system.file("templates/_scMultiOmics_adt.Rmd", package = "ezRun")}
@@ -45,6 +55,12 @@ scMultiData  <- ezLoadRobj("scMultiData",
 ```
 
 ```{r wnn-child, eval = isTRUE(modalities$ranWNN), child = system.file("templates/_scMultiOmics_wnn.Rmd", package = "ezRun")}
+```
+
+```{r explore-child, child = system.file("templates/_scMultiOmics_explore.Rmd", package = "ezRun")}
+```
+
+```{r notes-child, child = system.file("templates/_scMultiOmics_notes.Rmd", package = "ezRun")}
 ```
 
 ## Session Information

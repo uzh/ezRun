@@ -1,57 +1,45 @@
 ## WNN
 
 ```{r wnn-prep, include=FALSE}
-n_cells <- ncol(scMultiData)
 red_used <- intersect(c("pca", "adt.pca", "lsi"), names(scMultiData@reductions))
 weight_cols <- grep("\\.weight$", colnames(scMultiData@meta.data), value = TRUE)
 has_wsnn <- "wsnn_res.0.5" %in% colnames(scMultiData@meta.data)
-cluster_col <- if (has_wsnn) {
+wnn_cluster_col <- if (has_wsnn) {
   "wsnn_res.0.5"
-} else if ("seurat_clusters" %in% colnames(scMultiData@meta.data)) {
-  "seurat_clusters"
-} else NULL
-```
-
-**Weighted Nearest Neighbor integration**
-
-- **Reductions integrated:** `r paste(red_used, collapse = ", ")`
-- **WNN cells:** `r format(n_cells, big.mark = ",")`
-- **Per-modality weights:** `r if (length(weight_cols) > 0) paste(weight_cols, collapse = ", ") else "n/a"`
-
-### WNN UMAP {.tabset}
-
-#### By Sample
-
-```{r wnn-umap-sample, echo=FALSE, fig.width=7, fig.height=7}
-if ("wnn.umap" %in% names(scMultiData@reductions)) {
-  p <- DimPlot(scMultiData, reduction = "wnn.umap",
-               group.by = "Sample", raster = FALSE) +
-    theme(aspect.ratio = 1) +
-    ggtitle("WNN UMAP - by Sample")
-  print(p)
+} else {
+  cluster_col
 }
 ```
 
-#### By WNN cluster
-
-```{r wnn-umap-cluster, echo=FALSE, fig.width=7, fig.height=7}
-if ("wnn.umap" %in% names(scMultiData@reductions) && !is.null(cluster_col)) {
-  p <- DimPlot(scMultiData, reduction = "wnn.umap",
-               group.by = cluster_col, raster = FALSE,
-               label = TRUE, repel = TRUE) +
-    theme(aspect.ratio = 1) +
-    ggtitle(paste("WNN UMAP -", cluster_col))
-  print(p)
+```{r wnn-umaps, echo=FALSE, fig.width=14, fig.height=7}
+plots <- list()
+if ("wnn.umap" %in% names(scMultiData@reductions) && !is.null(wnn_cluster_col)) {
+  plots[["clusters"]] <- DimPlot(scMultiData, reduction = "wnn.umap",
+                                 group.by = wnn_cluster_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE,
+                                 cols = unname(pals::polychrome())) +
+    theme(aspect.ratio = 1) + ggtitle("WNN UMAP - clusters")
+}
+if ("wnn.umap" %in% names(scMultiData@reductions) && !is.null(celltype_col)) {
+  plots[["celltype"]] <- DimPlot(scMultiData, reduction = "wnn.umap",
+                                 group.by = celltype_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE) +
+    theme(aspect.ratio = 1) + ggtitle("WNN UMAP - cell type")
+}
+if (length(plots) >= 2) {
+  print(patchwork::wrap_plots(plots, ncol = 2))
+} else if (length(plots) == 1) {
+  print(plots[[1]])
 }
 ```
 
 ### Per-modality weights
 
 ```{r wnn-weights-vln, echo=FALSE, fig.width=10, fig.height=5}
-if (length(weight_cols) > 0 && !is.null(cluster_col)) {
-  p <- VlnPlot(scMultiData, features = weight_cols,
-               group.by = cluster_col, pt.size = 0, ncol = length(weight_cols))
-  print(p)
+if (length(weight_cols) > 0 && !is.null(wnn_cluster_col)) {
+  print(VlnPlot(scMultiData, features = weight_cols,
+                group.by = wnn_cluster_col, pt.size = 0,
+                ncol = length(weight_cols)))
 }
 ```
 
@@ -65,3 +53,7 @@ if (length(weight_cols) > 0 && "wnn.umap" %in% names(scMultiData@reductions)) {
   print(p)
 }
 ```
+
+### Summary
+
+Integrated reductions: **`r paste(red_used, collapse = ", ")`**.

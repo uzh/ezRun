@@ -212,6 +212,54 @@ processVDJ <- function(obj, vdjTPath = NULL, vdjBPath = NULL, sampleName) {
   obj
 }
 
+##' @title Pick the best cell-type / annotation metadata column on a Seurat object.
+##' @description Returns the first column matching a known annotation pattern,
+##'   or NULL if none found. Used by the report to pick a UMAP `group.by` column
+##'   for "by cell type" panels.
+##' @param obj Seurat object.
+##' @return Character column name or NULL.
+##' @export
+pickCellTypeColumn <- function(obj) {
+  # Priority requested by FGCZ:
+  # CyteType > cellxgene > AzimuthPanHuman > Azimuth > scType.
+  # Other manual / experimental annotations come last so an upstream
+  # CyteType column always wins when present.
+  candidates <- c(
+    # CyteType (Nygen Analytics CyteTypeR)
+    "CyteTypeR.annotation", "CyteType_annotation", "cytetype", "CyteType",
+    # cellxgene mapping (label-transfer from a cellxgene reference dataset)
+    "cellxgene.labels", "cellxgene_labels", "cellxgene", "cellxgene_celltype",
+    # Azimuth Pan-Human
+    "azimuth_pan_human", "AzimuthPanHuman.labels", "panhuman.predicted.celltype",
+    "PanHuman.celltype",
+    # Azimuth tissue references
+    "predicted.celltype.l2", "predicted.celltype.l1",
+    "Azimuth.labels", "azimuth.labels",
+    # scType
+    "scType.labels", "scType_label", "sctype", "scType",
+    # Manual / experimental fallbacks
+    "manual_celltype", "celltype", "CellType", "cell_type",
+    "Cell_Type_Experimental",
+    "SingleR.labels"
+  )
+  hit <- intersect(candidates, colnames(obj@meta.data))
+  if (length(hit) > 0) hit[1] else NULL
+}
+
+##' @title scRepertoire-style cloneSize palette for Seurat DimPlots.
+##' @description Returns a 6-colour vector matching scRepertoire's default
+##'   yellow-to-black ramp (Hyperexpanded -> None) so DimPlot(group.by =
+##'   "cloneSize") and scRepertoire bar plots use consistent colours.
+##' @keywords internal
+cloneSizePalette <- function() {
+  c("Hyperexpanded (0.1 < X <= 1)" = "#FFFE9E",
+    "Large (0.01 < X <= 0.1)"      = "#F7AA2D",
+    "Medium (0.001 < X <= 0.01)"   = "#E45358",
+    "Small (1e-04 < X <= 0.001)"   = "#A01975",
+    "Rare (0 < X <= 1e-04)"        = "#4C1258",
+    "None ( < X <= 0)"             = "#040404")
+}
+
 ##' @title Run WNN integration when 2+ dimensional modalities are present.
 ##' @description Wraps `Seurat::FindMultiModalNeighbors` selecting from
 ##'   {`pca`, `adt.pca`, `lsi`} based on which reductions exist on the object.
@@ -281,6 +329,19 @@ loadBDRhapsody <- function(resultDir, sampleName) {
   obj$Sample <- sampleName
   obj$cellBarcode <- sub(paste0("^", sampleName, "_"), "", colnames(obj))
   Seurat::DefaultAssay(obj) <- "RNA"
+  # BD's RDS ships UMAP/tSNE but no `pca` reduction. Compute one so downstream
+  # WNN integration can see RNA + ADT as two dimensional modalities.
+  if (!"pca" %in% names(obj@reductions)) {
+    message("BD Seurat has no PCA - computing RNA PCA + neighbors + clusters.")
+    if (length(Seurat::VariableFeatures(obj)) == 0) {
+      obj <- Seurat::FindVariableFeatures(obj, verbose = FALSE)
+    }
+    obj <- Seurat::NormalizeData(obj, verbose = FALSE)
+    obj <- Seurat::ScaleData(obj, verbose = FALSE)
+    obj <- Seurat::RunPCA(obj, npcs = 30, verbose = FALSE)
+    obj <- Seurat::FindNeighbors(obj, dims = 1:30, verbose = FALSE)
+    obj <- Seurat::FindClusters(obj, resolution = 0.5, verbose = FALSE)
+  }
   obj
 }
 

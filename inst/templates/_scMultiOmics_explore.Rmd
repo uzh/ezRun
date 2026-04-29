@@ -1,0 +1,24 @@
+## Interactive exploration
+
+```{r explore-link, echo=FALSE, results='asis'}
+explore_url <- param$exploreSCUrl
+if (is.null(explore_url) || !nzchar(explore_url)) {
+  # Best-effort: build a likely URL from the project + sample name when the
+  # report sits inside /srv/gstore/projects/.
+  cwd <- getwd()
+  m <- regmatches(cwd, regexec("/srv/gstore/projects/(p\\d+)/(.+)", cwd))[[1]]
+  if (length(m) == 3) {
+    qs2_path <- file.path(m[2], m[3], "scMultiData.qs2")
+    explore_url <- paste0("https://fgcz-shiny.uzh.ch/app/exploreSC/?data=", qs2_path)
+  }
+}
+if (!is.null(explore_url) && nzchar(explore_url)) {
+  cat(sprintf(
+    "Open this object in the **scExplorer / exploreSC Shiny app**:\n\n[%s](%s)\n\n",
+    explore_url, explore_url))
+} else {
+  cat("Set `param$exploreSCUrl` to expose a direct link to the scExplorer Shiny app, ",
+      "or copy `scMultiData.qs2` to `/srv/gstore/projects/<project>/...` and the ",
+      "report will auto-build the URL on the next render.\n")
+}
+```

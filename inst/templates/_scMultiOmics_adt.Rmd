@@ -1,83 +1,97 @@
 ## ADT
 
+```{r adt-umaps, echo=FALSE, fig.width=14, fig.height=7}
+plots <- list()
+if ("adt.umap" %in% names(scMultiData@reductions) && !is.null(cluster_col)) {
+  plots[["clusters"]] <- DimPlot(scMultiData, reduction = "adt.umap",
+                                 group.by = cluster_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE,
+                                 cols = unname(pals::polychrome())) +
+    theme(aspect.ratio = 1) + ggtitle("ADT UMAP - clusters")
+}
+if ("adt.umap" %in% names(scMultiData@reductions) && !is.null(celltype_col)) {
+  plots[["celltype"]] <- DimPlot(scMultiData, reduction = "adt.umap",
+                                 group.by = celltype_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE) +
+    theme(aspect.ratio = 1) + ggtitle("ADT UMAP - cell type")
+}
+if (length(plots) >= 2) {
+  print(patchwork::wrap_plots(plots, ncol = 2))
+} else if (length(plots) == 1) {
+  print(plots[[1]])
+}
+```
+
 ```{r adt-prep, include=FALSE}
 n_adt   <- nrow(scMultiData[["ADT"]])
 adt_features <- rownames(scMultiData[["ADT"]])
-
 adt_counts_mat <- tryCatch(
   as.matrix(GetAssayData(scMultiData, assay = "ADT", layer = "counts")),
   error = function(e) NULL
 )
 mean_umi   <- if (is.matrix(adt_counts_mat)) round(mean(colSums(adt_counts_mat)), 1) else NA
 median_umi <- if (is.matrix(adt_counts_mat)) round(median(colSums(adt_counts_mat)), 1) else NA
-
-adt_qc <- data.frame(
-  metric = c("ADT features", "Cells with ADT", "Mean UMIs / cell", "Median UMIs / cell"),
-  value  = c(n_adt, ncol(scMultiData), mean_umi, median_umi)
-)
-
-cluster_col <- if ("seurat_clusters" %in% colnames(scMultiData@meta.data)) {
-  "seurat_clusters"
-} else if ("ident" %in% colnames(scMultiData@meta.data)) {
-  "ident"
-} else {
-  NULL
-}
+adt_norm <- if (!is.null(param$adtNorm)) param$adtNorm else "ADTnorm"
 ```
 
-**ADT QC**
+The DotPlot below shows the **normalized ADT signal** (`r adt_norm` normalization, then z-scored across cells via Seurat's `DotPlot` default). Colour ramp uses **viridis** so the same scale applies across panels.
 
-```{r adt-qc, echo=FALSE}
-knitr::kable(adt_qc, col.names = c("Metric", "Value"))
-```
+### DotPlot {.tabset}
 
-**ADT UMAP**
+#### By cluster
 
-```{r adt-umap, echo=FALSE, fig.width=7, fig.height=7}
-if ("adt.umap" %in% names(scMultiData@reductions)) {
-  p <- DimPlot(scMultiData, reduction = "adt.umap",
-               group.by = "Sample", raster = FALSE) +
-    theme(aspect.ratio = 1) +
-    ggtitle("ADT UMAP - by Sample")
-  print(p)
-  if (!is.null(cluster_col)) {
-    p2 <- DimPlot(scMultiData, reduction = "adt.umap",
-                  group.by = cluster_col, raster = FALSE,
-                  label = TRUE, repel = TRUE) +
-      theme(aspect.ratio = 1) +
-      ggtitle("ADT UMAP - by RNA cluster")
-    print(p2)
-  }
-}
-```
-
-**Per-cluster ADT means (DotPlot)**
-
-```{r adt-dotplot, echo=FALSE, fig.width=10, fig.height=max(6, length(adt_features) * 0.18)}
+```{r adt-dotplot-cluster, echo=FALSE, fig.width=10, fig.height=max(6, length(adt_features) * 0.18)}
 if (!is.null(cluster_col)) {
-  Idents(scMultiData) <- cluster_col
-  DefaultAssay(scMultiData) <- "ADT"
-  p <- DotPlot(scMultiData, features = unique(adt_features),
-               assay = "ADT") +
+  scMultiData_dp <- scMultiData
+  Idents(scMultiData_dp) <- cluster_col
+  DefaultAssay(scMultiData_dp) <- "ADT"
+  p <- DotPlot(scMultiData_dp, features = unique(adt_features), assay = "ADT") +
     coord_flip() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    scale_color_viridis_c(option = "D") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = paste("ADT signal per cluster (", adt_norm, ")"))
   print(p)
-  DefaultAssay(scMultiData) <- "RNA"
 }
 ```
 
-**Top markers by mean ADT signal**
+#### By cell type
+
+```{r adt-dotplot-celltype, echo=FALSE, fig.width=10, fig.height=max(6, length(adt_features) * 0.18)}
+if (!is.null(celltype_col)) {
+  scMultiData_dp <- scMultiData
+  Idents(scMultiData_dp) <- celltype_col
+  DefaultAssay(scMultiData_dp) <- "ADT"
+  p <- DotPlot(scMultiData_dp, features = unique(adt_features), assay = "ADT") +
+    coord_flip() +
+    scale_color_viridis_c(option = "D") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = paste0("ADT signal per cell type (", celltype_col,
+                        " annotation, ", adt_norm, ")"))
+  print(p)
+} else {
+  cat("No cell-type annotation column on the object - cluster panel only.\n")
+}
+```
+
+### Top markers (FeaturePlot)
 
 ```{r adt-feature-plots, echo=FALSE, fig.width=12, fig.height=10}
-counts <- GetAssayData(scMultiData, assay = "ADT", layer = "data")
-top_n <- min(8L, nrow(counts))
-top_features <- names(sort(rowMeans(counts), decreasing = TRUE))[seq_len(top_n)]
-DefaultAssay(scMultiData) <- "ADT"
-p <- FeaturePlot(scMultiData, features = top_features,
-                 reduction = "adt.umap", raster = FALSE,
-                 ncol = 4) &
-  theme(aspect.ratio = 1) &
-  scale_color_viridis_c(option = "D")
-print(p)
-DefaultAssay(scMultiData) <- "RNA"
+if (!is.null(adt_counts_mat)) {
+  data_mat <- tryCatch(
+    as.matrix(GetAssayData(scMultiData, assay = "ADT", layer = "data")),
+    error = function(e) adt_counts_mat
+  )
+  top_features <- names(sort(rowMeans(data_mat), decreasing = TRUE))[seq_len(min(8L, nrow(data_mat)))]
+  scMultiData_fp <- scMultiData
+  DefaultAssay(scMultiData_fp) <- "ADT"
+  p <- FeaturePlot(scMultiData_fp, features = top_features,
+                   reduction = "adt.umap", raster = FALSE, ncol = 4) &
+    theme(aspect.ratio = 1) &
+    scale_color_viridis_c(option = "D")
+  print(p)
+}
 ```
+
+### QC
+
+`r format(n_adt, big.mark = ",")` ADT features, normalization: **`r adt_norm`**, mean `r mean_umi` UMI/cell, median `r median_umi` UMI/cell. Cell-type column used for annotation panels: `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_none available_"`.

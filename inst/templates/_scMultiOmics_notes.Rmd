@@ -1,0 +1,24 @@
+## Methods & notes
+
+This single-sample multi-omics report layers ADT, VDJ, and ATAC analyses on top
+of an annotated ScSeurat object (or a BD Rhapsody pre-built Seurat). The RNA
+assay stays the default so the existing exploreSC Shiny app renders the RNA
+UMAP unchanged.
+
+- **ADT**: `processADT()` builds a Seurat v5 ADT assay, normalizes (ADTnorm or
+  CLR), runs PCA on antibody features, computes `adt.umap`. Top markers in
+  the **ADT** tab are ranked by mean normalized signal.
+- **VDJ**: `processVDJ()` wraps `scRepertoire::combineTCR/BCR` and
+  `combineExpression`. Cells receive `CTaa`, `CTgene`, `cloneSize`, and
+  `clonalFrequency` metadata. Repertoire statistics, V/J usage, and
+  per-cluster occupancy are computed via scRepertoire 2.x.
+- **ATAC**: `processATAC()` builds a `Signac::ChromatinAssay` from the
+  CellRanger ARC peak matrix, runs TF-IDF + SVD + UMAP, and adds a
+  `GeneActivity` assay when an EnsDb annotation is available for the genome.
+- **WNN**: `runWNN()` runs `FindMultiModalNeighbors` on the available
+  dimensional reductions (`pca`, `adt.pca`, `lsi`) when at least two are
+  present. Per-modality weights are stored as `*.weight` columns.
+- **BD Rhapsody**: `loadBDRhapsody()` reads the per-sample `*_Seurat.rds`
+  shipped by the BDRhapsodySA app, prefixes barcodes `<Sample>_<barcode>`,
+  computes a fresh RNA PCA so WNN can run, and reuses the RNA + ADT assays
+  already built upstream.

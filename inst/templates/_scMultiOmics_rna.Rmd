@@ -1,0 +1,33 @@
+## RNA
+
+```{r rna-umap, echo=FALSE, fig.width=14, fig.height=7}
+plots <- list()
+if (!is.null(cluster_col)) {
+  plots[["clusters"]] <- DimPlot(scMultiData, reduction = rna_umap,
+                                 group.by = cluster_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE,
+                                 cols = unname(pals::polychrome())) +
+    theme(aspect.ratio = 1) + ggtitle("Clusters")
+}
+if (!is.null(celltype_col)) {
+  plots[["celltype"]] <- DimPlot(scMultiData, reduction = rna_umap,
+                                 group.by = celltype_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE) +
+    theme(aspect.ratio = 1) + ggtitle("Cell type annotation")
+}
+if (length(plots) >= 2) {
+  print(patchwork::wrap_plots(plots, ncol = 2))
+} else if (length(plots) == 1) {
+  print(plots[[1]])
+}
+```
+
+```{r rna-summary, include=FALSE}
+n_cells <- ncol(scMultiData)
+n_genes <- nrow(scMultiData[["RNA"]])
+n_clusters <- if (!is.null(cluster_col)) length(unique(scMultiData@meta.data[[cluster_col]])) else NA
+n_celltypes <- if (!is.null(celltype_col)) length(unique(scMultiData@meta.data[[celltype_col]])) else NA
+```
+
+**Sample:** `r sample_name`. `r format(n_cells, big.mark = ",")` cells, `r format(n_genes, big.mark = ",")` RNA features.
+`r if (!is.na(n_clusters)) paste0(n_clusters, " clusters") else ""``r if (!is.na(n_clusters) && !is.na(n_celltypes)) "; " else ""``r if (!is.na(n_celltypes)) paste0(n_celltypes, " annotated cell types (", celltype_col, ")") else ""`.
