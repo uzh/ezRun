@@ -43,7 +43,9 @@ DefaultAssay(scMultiData) <- "RNA"
 has_ga <- "GeneActivity" %in% Assays(scMultiData)
 ```
 
-### Gene activity FeaturePlots
+### Details {.tabset}
+
+#### Gene activity FeaturePlots
 
 ```{r atac-gene-activity, echo=FALSE, fig.width=12, fig.height=10}
 if (has_ga) {
@@ -68,33 +70,35 @@ if (has_ga) {
 }
 ```
 
-### QC distributions {.tabset}
-
 #### Fragment counts
 
-```{r atac-frag, echo=FALSE, fig.width=6, fig.height=5}
+```{r atac-frag, echo=FALSE, fig.width=8, fig.height=5}
 print(VlnPlot(scMultiData, features = "nCount_ATAC", group.by = cluster_col %||% "Sample",
               pt.size = 0) + scale_y_log10() + NoLegend())
 ```
 
 #### TSS enrichment
 
-```{r atac-tss, echo=FALSE, fig.width=6, fig.height=5}
+```{r atac-tss, echo=FALSE, fig.width=8, fig.height=5}
 if ("TSS.enrichment" %in% colnames(scMultiData@meta.data)) {
   print(VlnPlot(scMultiData, features = "TSS.enrichment", group.by = cluster_col %||% "Sample",
                 pt.size = 0) + NoLegend())
+} else {
+  cat("TSS enrichment unavailable - genome annotation could not be resolved.\n")
 }
 ```
 
 #### Nucleosome signal
 
-```{r atac-nuc, echo=FALSE, fig.width=6, fig.height=5}
+```{r atac-nuc, echo=FALSE, fig.width=8, fig.height=5}
 if ("nucleosome_signal" %in% colnames(scMultiData@meta.data)) {
   print(VlnPlot(scMultiData, features = "nucleosome_signal", group.by = cluster_col %||% "Sample",
                 pt.size = 0) + NoLegend())
+} else {
+  cat("Nucleosome signal unavailable - genome annotation could not be resolved.\n")
 }
 ```
 
-### Summary
+#### Summary
 
 `r format(n_peaks, big.mark = ",")` peaks, `r format(n_cells, big.mark = ",")` cells. `r if (has_ga) paste0("GeneActivity assay: ", format(nrow(scMultiData[["GeneActivity"]]), big.mark = ","), " genes.") else "GeneActivity assay not available."`

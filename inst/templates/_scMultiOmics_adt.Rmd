@@ -34,11 +34,11 @@ median_umi <- if (is.matrix(adt_counts_mat)) round(median(colSums(adt_counts_mat
 adt_norm <- if (!is.null(param$adtNorm)) param$adtNorm else "ADTnorm"
 ```
 
-The DotPlot below shows the **normalized ADT signal** (`r adt_norm` normalization, then z-scored across cells via Seurat's `DotPlot` default). Colour ramp uses **viridis** so the same scale applies across panels.
+### Details {.tabset}
 
-### DotPlot {.tabset}
+#### DotPlot - by cluster
 
-#### By cluster
+DotPlot of normalized ADT signal (`r adt_norm`); colour = viridis.
 
 ```{r adt-dotplot-cluster, echo=FALSE, fig.width=10, fig.height=max(6, length(adt_features) * 0.18)}
 if (!is.null(cluster_col)) {
@@ -48,13 +48,14 @@ if (!is.null(cluster_col)) {
   p <- DotPlot(scMultiData_dp, features = unique(adt_features), assay = "ADT") +
     coord_flip() +
     scale_color_viridis_c(option = "D") +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    labs(title = paste("ADT signal per cluster (", adt_norm, ")"))
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
   print(p)
 }
 ```
 
-#### By cell type
+#### DotPlot - by cell type
+
+DotPlot of normalized ADT signal (`r adt_norm`) grouped by `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_no annotation column_"`.
 
 ```{r adt-dotplot-celltype, echo=FALSE, fig.width=10, fig.height=max(6, length(adt_features) * 0.18)}
 if (!is.null(celltype_col)) {
@@ -64,16 +65,14 @@ if (!is.null(celltype_col)) {
   p <- DotPlot(scMultiData_dp, features = unique(adt_features), assay = "ADT") +
     coord_flip() +
     scale_color_viridis_c(option = "D") +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    labs(title = paste0("ADT signal per cell type (", celltype_col,
-                        " annotation, ", adt_norm, ")"))
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
   print(p)
 } else {
   cat("No cell-type annotation column on the object - cluster panel only.\n")
 }
 ```
 
-### Top markers (FeaturePlot)
+#### Top markers (FeaturePlot)
 
 ```{r adt-feature-plots, echo=FALSE, fig.width=12, fig.height=10}
 if (!is.null(adt_counts_mat)) {
@@ -92,6 +91,6 @@ if (!is.null(adt_counts_mat)) {
 }
 ```
 
-### QC
+#### QC
 
-`r format(n_adt, big.mark = ",")` ADT features, normalization: **`r adt_norm`**, mean `r mean_umi` UMI/cell, median `r median_umi` UMI/cell. Cell-type column used for annotation panels: `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_none available_"`.
+`r format(n_adt, big.mark = ",")` ADT features, normalization: **`r adt_norm`**, mean `r mean_umi` UMI/cell, median `r median_umi` UMI/cell. Cell-type column: `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_none available_"`.

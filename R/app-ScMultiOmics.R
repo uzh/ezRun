@@ -249,6 +249,7 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
   makeRmdReport(
     scMultiData = obj,
     param = param,
+    output = output,
     modalities = mod,
     rmdFile = "ScMultiOmics.Rmd",
     reportTitle = paste0("ScMultiOmics: ", input$getNames()),

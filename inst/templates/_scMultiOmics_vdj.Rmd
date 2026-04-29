@@ -18,9 +18,14 @@ pct_recovery <- round(100 * n_with_clone / n_total, 1)
 # render on top.
 clone_dim <- function(obj, reduction) {
   if (!"cloneSize" %in% colnames(obj@meta.data)) return(NULL)
+  # Force the cloneSize column to a factor with all 6 levels so the legend
+  # shows every bin (Hyperexpanded -> None) even when only a few are populated.
+  obj$cloneSize <- factor(obj$cloneSize, levels = names(clone_pal))
   DimPlot(obj, reduction = reduction, group.by = "cloneSize",
           raster = FALSE, order = TRUE) +
-    scale_color_manual(values = clone_pal, na.value = "grey85", drop = FALSE) +
+    scale_color_manual(values = clone_pal, na.value = "grey85",
+                       limits = names(clone_pal), breaks = names(clone_pal),
+                       drop = FALSE) +
     theme(aspect.ratio = 1)
 }
 
@@ -104,7 +109,10 @@ safe_print(bquote(clonalLength(scMultiData, cloneCall = "aa", chain = "both",
 ```{r vdj-occ-cluster, echo=FALSE, fig.width=10, fig.height=5}
 if (!is.null(cluster_col)) {
   safe_print(bquote(clonalOccupy(scMultiData, x.axis = .(cluster_col)) +
-                      scale_fill_manual(values = clone_pal, na.value = "grey85", drop = FALSE)))
+                      scale_fill_manual(values = clone_pal, na.value = "grey85",
+                                              limits = names(clone_pal),
+                                              breaks = names(clone_pal),
+                                              drop = FALSE)))
 }
 ```
 
@@ -113,7 +121,10 @@ if (!is.null(cluster_col)) {
 ```{r vdj-occ-celltype, echo=FALSE, fig.width=10, fig.height=5}
 if (!is.null(celltype_col)) {
   safe_print(bquote(clonalOccupy(scMultiData, x.axis = .(celltype_col)) +
-                      scale_fill_manual(values = clone_pal, na.value = "grey85", drop = FALSE)))
+                      scale_fill_manual(values = clone_pal, na.value = "grey85",
+                                              limits = names(clone_pal),
+                                              breaks = names(clone_pal),
+                                              drop = FALSE)))
 } else {
   cat("No cell-type annotation column on the object.\n")
 }

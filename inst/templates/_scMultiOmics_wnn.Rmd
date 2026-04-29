@@ -33,15 +33,21 @@ if (length(plots) >= 2) {
 }
 ```
 
-### Per-modality weights
+### Details {.tabset}
+
+#### Per-modality weights (Violin)
 
 ```{r wnn-weights-vln, echo=FALSE, fig.width=10, fig.height=5}
 if (length(weight_cols) > 0 && !is.null(wnn_cluster_col)) {
   print(VlnPlot(scMultiData, features = weight_cols,
                 group.by = wnn_cluster_col, pt.size = 0,
                 ncol = length(weight_cols)))
+} else {
+  cat("No modality weight columns - WNN may not have run.\n")
 }
 ```
+
+#### Per-modality weights (FeaturePlot)
 
 ```{r wnn-weights-feat, echo=FALSE, fig.width=12, fig.height=4 * ceiling(length(weight_cols)/3)}
 if (length(weight_cols) > 0 && "wnn.umap" %in% names(scMultiData@reductions)) {
@@ -51,9 +57,11 @@ if (length(weight_cols) > 0 && "wnn.umap" %in% names(scMultiData@reductions)) {
     theme(aspect.ratio = 1) &
     scale_color_viridis_c(option = "C")
   print(p)
+} else {
+  cat("FeaturePlot unavailable - WNN UMAP missing.\n")
 }
 ```
 
-### Summary
+#### Summary
 
 Integrated reductions: **`r paste(red_used, collapse = ", ")`**.
