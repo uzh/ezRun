@@ -33,7 +33,11 @@ rna_umap <- if ("umap" %in% names(scMultiData@reductions)) "umap" else
             if ("tsne" %in% names(scMultiData@reductions)) "tsne" else
             names(scMultiData@reductions)[1]
 celltype_col <- ezRun::pickCellTypeColumn(scMultiData)
-cluster_col <- if ("seurat_clusters" %in% colnames(scMultiData@meta.data)) {
+# Prefer WNN clusters when WNN ran; fall back to RNA seurat_clusters.
+wnn_col <- scMultiData@misc$wnn_cluster_col
+cluster_col <- if (!is.null(wnn_col) && wnn_col %in% colnames(scMultiData@meta.data)) {
+  wnn_col
+} else if ("seurat_clusters" %in% colnames(scMultiData@meta.data)) {
   "seurat_clusters"
 } else NULL
 sample_name <- if ("Sample" %in% colnames(scMultiData@meta.data)) {
@@ -65,13 +69,13 @@ if (!is.null(output) && "Report" %in% output$colNames) {
 ```{r adt-child, eval = isTRUE(modalities$hasADT), child = system.file("templates/_scMultiOmics_adt.Rmd", package = "ezRun")}
 ```
 
-```{r vdj-child, eval = isTRUE(modalities$hasVDJ_T) || isTRUE(modalities$hasVDJ_B), child = system.file("templates/_scMultiOmics_vdj.Rmd", package = "ezRun")}
-```
-
 ```{r atac-child, eval = isTRUE(modalities$hasATAC), child = system.file("templates/_scMultiOmics_atac.Rmd", package = "ezRun")}
 ```
 
 ```{r wnn-child, eval = isTRUE(modalities$ranWNN), child = system.file("templates/_scMultiOmics_wnn.Rmd", package = "ezRun")}
+```
+
+```{r vdj-child, eval = isTRUE(modalities$hasVDJ_T) || isTRUE(modalities$hasVDJ_B), child = system.file("templates/_scMultiOmics_vdj.Rmd", package = "ezRun")}
 ```
 
 ```{r explore-child, child = system.file("templates/_scMultiOmics_explore.Rmd", package = "ezRun")}

@@ -47,7 +47,7 @@ safe_print <- function(..., recolor = TRUE) {
 
 ### cloneSize on UMAPs
 
-```{r vdj-umap, echo=FALSE, fig.width=14, fig.height=7}
+```{r vdj-umap, echo=FALSE, fig.width=20, fig.height=10}
 plots <- list()
 p_rna <- ezRun::cloneDimPlot(scMultiData, rna_umap, palette = clone_pal,
                              title = paste(chain_label, "clone size on RNA UMAP"))
