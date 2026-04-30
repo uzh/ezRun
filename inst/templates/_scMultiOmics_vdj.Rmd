@@ -105,12 +105,20 @@ Pairwise Morisita-Horn overlap between clusters (accounts for clone abundance, n
 
 ```{r vdj-overlap-cluster, echo=FALSE, fig.width=10, fig.height=9}
 if (!is.null(cluster_col)) {
-  safe_print(recolor = FALSE,
-             bquote(clonalOverlap(scMultiData, cloneCall = "strict",
-                                  method = "morisita",
-                                  group.by = .(cluster_col),
-                                  order.by = .(cluster_levels)) +
-                    theme(axis.text.x = element_text(angle = 45, hjust = 1))))
+  p <- tryCatch(
+    clonalOverlap(scMultiData, cloneCall = "strict", method = "morisita",
+                  group.by = cluster_col, order.by = cluster_levels),
+    error = function(e) { message("clonalOverlap failed: ", conditionMessage(e)); NULL }
+  )
+  # scRepertoire reorders the matrix per order.by, but the ggplot layer
+  # factorises axis names alphabetically by default. Force numeric-cluster
+  # order on both axes.
+  if (!is.null(p)) {
+    p <- p + scale_x_discrete(limits = cluster_levels) +
+             scale_y_discrete(limits = cluster_levels) +
+             theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    print(p)
+  }
 }
 ```
 
@@ -160,15 +168,6 @@ safe_print(recolor = FALSE,
            bquote(clonalProportion(scMultiData, cloneCall = "strict",
                                    group.by = .(group_for_clonal),
                                    order.by = .(group_levels))))
-```
-
-#### clonalDiversity
-
-```{r vdj-diversity, echo=FALSE, fig.width=10, fig.height=5}
-safe_print(bquote(clonalDiversity(scMultiData, cloneCall = "strict",
-                                  group.by = .(group_for_clonal),
-                                  order.by = .(group_levels),
-                                  metrics = c("shannon", "inv.simpson", "norm.entropy"))))
 ```
 
 #### CDR3aa length

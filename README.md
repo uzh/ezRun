@@ -78,6 +78,38 @@ submission notes see
 - Wrap the return in `as.matrix()` before any matrix algebra (see
   `adt_top_per_group()` in `_scMultiOmics_adt.Rmd`).
 
+### Cluster colours must be homogenised across panels
+- Each `pals::polychrome()` call returns the same vector, but `DimPlot`,
+  `VlnPlot`, scRepertoire bars, and `clonalOverlap` all map colours to factor
+  levels in their own way. If one tab uses `seurat_clusters` (factor levels
+  `"0", "1", "10", ..., "9"`) and another uses `wsnn_res.0.5` (different
+  level set), cluster 0 ends up two different colours in the same report.
+- Build a single `cluster_pal` (named-by-level palette) once in the parent
+  `ScMultiOmics.Rmd` setup, force the cluster column on the object to a
+  numeric-sorted factor (`as.character(sort(as.integer(levels)))`), and pass
+  `cols = cluster_pal` to every plot that fills/colors by cluster
+  (`DimPlot`, `VlnPlot` weights/QC, `cloneOccupyFull`).
+- `VlnPlot()` defaults to ggplot2 hue palette when `cols=` is omitted —
+  silently breaks the shared palette. Always pass `cols = cluster_pal`.
+
+### scRepertoire `clonalOverlap`: `order.by` doesn't reach the ggplot factor levels
+- `clonalOverlap(..., order.by = cluster_levels)` reorders the underlying
+  overlap matrix correctly, but the heatmap layer factorises axis names
+  alphabetically anyway. Result: x/y axes render in character order
+  (`0, 1, 10, 11, …, 2, 3, …`) regardless of `order.by`.
+- Fix: append
+  `+ scale_x_discrete(limits = cluster_levels) + scale_y_discrete(limits = cluster_levels)`
+  to the returned ggplot. Same trick may apply to other scRepertoire
+  heatmap-style outputs.
+
+### Numeric cluster IDs need explicit `order.by` for scRepertoire bar plots
+- scRepertoire defaults to character sorting for `group.by` factor levels,
+  giving `0, 1, 10, 11, 2, 3, …` on the x-axis of `clonalQuant`,
+  `clonalHomeostasis`, `clonalProportion`, `clonalDiversity`,
+  `clonalLength` etc.
+- Pass `order.by = cluster_levels` (numeric-sorted character vector) to
+  every scRepertoire plotting function.
+
 ### `Seurat::DotPlot()` + `coord_flip()` puts `features[1]` at the BOTTOM
 - Counter-intuitive but verified empirically: with `coord_flip()`, the FIRST
   element of the `features =` vector lands at the **bottom** of the y-axis,

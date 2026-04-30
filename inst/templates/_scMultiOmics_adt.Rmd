@@ -21,16 +21,25 @@ adt_norm <- if (!is.null(param$adtNorm)) param$adtNorm else "ADTnorm"
 adt_top_per_group <- function(obj, group_col, n = 3L, min_cells = 30L) {
   groups <- obj[[group_col, drop = TRUE]]
   group_counts <- table(groups, useNA = "no")
-  keep <- names(group_counts)[group_counts >= min_cells]
-  if (length(keep) < 2L) keep <- names(group_counts)  # fallback
+  # AverageExpression returns alphabetical columns regardless of factor levels;
+  # DotPlot's x-axis follows Idents() factor levels (often non-alphabetical from
+  # Azimuth / scType). Reorder avg to match the factor levels so best_group
+  # indices line up with the rendered x-axis -> diagonal forms correctly.
+  level_order <- if (is.factor(groups)) levels(groups)
+                 else sort(unique(as.character(groups)))
+  keep <- intersect(level_order, names(group_counts)[group_counts >= min_cells])
+  if (length(keep) < 2L) keep <- intersect(level_order, names(group_counts))
   avg <- Seurat::AverageExpression(obj, assays = "ADT", group.by = group_col,
                                    layer = "data", verbose = FALSE)$ADT
   # Seurat v5 may return a data.frame; coerce so t() / scale() work.
   avg <- as.matrix(avg)
-  # Seurat replaces underscores in idents with dashes for column names → match either.
+  # Seurat replaces underscores in idents with dashes for column names -> match either.
   keep_seurat <- gsub("_", "-", keep)
-  col_keep <- colnames(avg) %in% keep | colnames(avg) %in% keep_seurat
-  if (any(col_keep)) avg <- avg[, col_keep, drop = FALSE]
+  reorder_idx <- match(keep, colnames(avg))
+  na_idx <- is.na(reorder_idx)
+  if (any(na_idx)) reorder_idx[na_idx] <- match(keep_seurat[na_idx], colnames(avg))
+  reorder_idx <- reorder_idx[!is.na(reorder_idx)]
+  if (length(reorder_idx) > 0L) avg <- avg[, reorder_idx, drop = FALSE]
   avg <- avg[!grepl("(?i)isotype", rownames(avg)), , drop = FALSE]
   if (ncol(avg) < 2L || nrow(avg) == 0L) {
     return(rownames(avg)[seq_len(min(n, nrow(avg)))])
@@ -83,8 +92,9 @@ if (!is.null(cluster_col)) {
   scMultiData_dp <- scMultiData
   Idents(scMultiData_dp) <- cluster_col
   DefaultAssay(scMultiData_dp) <- "ADT"
-  feats <- adt_top_per_group(scMultiData_dp, cluster_col, n = 3L)
-  p <- DotPlot(scMultiData_dp, features = feats, assay = "ADT") +
+  picked <- adt_top_per_group(scMultiData_dp, cluster_col, n = 3L)
+  p <- DotPlot(scMultiData_dp, features = picked$features, assay = "ADT",
+               idents = picked$idents) +
     coord_flip() +
     scale_color_viridis_c(option = "D") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -101,10 +111,12 @@ if (!is.null(celltype_col)) {
   scMultiData_dp <- scMultiData
   Idents(scMultiData_dp) <- celltype_col
   DefaultAssay(scMultiData_dp) <- "ADT"
-  feats <- adt_top_per_group(scMultiData_dp, celltype_col, n = 3L, min_cells = 30L)
-  message("ADT DotPlot by cell type: ", length(feats), " features (top 3 per type, dedup; ",
-          "of ", nrow(scMultiData_dp[["ADT"]]), " ADT features total)")
-  p <- DotPlot(scMultiData_dp, features = feats, assay = "ADT") +
+  picked <- adt_top_per_group(scMultiData_dp, celltype_col, n = 3L, min_cells = 30L)
+  message("ADT DotPlot by cell type: ", length(picked$features), " features x ",
+          length(picked$idents), " idents (top 3 per type, dedup; of ",
+          nrow(scMultiData_dp[["ADT"]]), " ADT features total)")
+  p <- DotPlot(scMultiData_dp, features = picked$features, assay = "ADT",
+               idents = picked$idents) +
     coord_flip() +
     scale_color_viridis_c(option = "D") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
