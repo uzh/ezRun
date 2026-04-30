@@ -108,6 +108,7 @@ if (length(deg_results) == 0) {
 if (length(weight_cols) > 0 && !is.null(wnn_cluster_col)) {
   print(VlnPlot(scMultiData, features = weight_cols,
                 group.by = wnn_cluster_col, pt.size = 0,
+                cols = cluster_pal,
                 ncol = length(weight_cols)))
 } else {
   cat("No modality weight columns - WNN may not have run.\n")

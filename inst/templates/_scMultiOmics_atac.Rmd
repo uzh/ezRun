@@ -76,7 +76,7 @@ if (has_ga) {
 
 ```{r atac-frag, echo=FALSE, fig.width=8, fig.height=5}
 print(VlnPlot(scMultiData, features = "nCount_ATAC", group.by = cluster_col %||% "Sample",
-              pt.size = 0) + scale_y_log10() + NoLegend())
+              pt.size = 0, cols = cluster_pal) + scale_y_log10() + NoLegend())
 ```
 
 ### TSS enrichment
@@ -84,7 +84,7 @@ print(VlnPlot(scMultiData, features = "nCount_ATAC", group.by = cluster_col %||%
 ```{r atac-tss, echo=FALSE, fig.width=8, fig.height=5}
 if ("TSS.enrichment" %in% colnames(scMultiData@meta.data)) {
   print(VlnPlot(scMultiData, features = "TSS.enrichment", group.by = cluster_col %||% "Sample",
-                pt.size = 0) + NoLegend())
+                pt.size = 0, cols = cluster_pal) + NoLegend())
 } else {
   cat("TSS enrichment unavailable - genome annotation could not be resolved.\n")
 }
@@ -95,7 +95,7 @@ if ("TSS.enrichment" %in% colnames(scMultiData@meta.data)) {
 ```{r atac-nuc, echo=FALSE, fig.width=8, fig.height=5}
 if ("nucleosome_signal" %in% colnames(scMultiData@meta.data)) {
   print(VlnPlot(scMultiData, features = "nucleosome_signal", group.by = cluster_col %||% "Sample",
-                pt.size = 0) + NoLegend())
+                pt.size = 0, cols = cluster_pal) + NoLegend())
 } else {
   cat("Nucleosome signal unavailable - genome annotation could not be resolved.\n")
 }
