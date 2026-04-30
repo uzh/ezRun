@@ -300,11 +300,48 @@ submission notes see
   ("Destination path already exists"). Re-rendering on top of a previous
   output requires `g-req -w remove <dest>` first, then `g-req -w copy`. For
   individual files, `g-req copynow -f` (force) is fine.
-- **exploreSC link in the rendered HTML** is built from
-  `output$getColumn("Report")`. SUSHI populates this with the gstore-relative
-  output path automatically; smoke-test drivers must set it themselves
-  (otherwise the URL collapses to `pXXXXX/<basename>/scMultiData.qs2`, which
-  404s in exploreSC).
+- **exploreSC link in the rendered HTML — cwd-stripping heuristic, NOT
+  `output$getColumn("Report")`.** Every render before 2026-04-30 emitted a
+  broken link: the old setup chunk did
+  `rp <- file.path(proj, basename(rp))`, which throws away every intermediate
+  segment between the project ID and the report dir. So
+  `p31662/Analyses_Paul/scmultiomics_smoke_paul/<report_dir>` was written
+  out as `p31662/<report_dir>` — exploreSC then 404'd silently
+  (`Server module skipped: data load returned NULL`). The issue affected
+  every run, not just ad-hoc smoke drivers; earlier wording in this README
+  blaming smoke drivers was wrong.
+- **Fix in `ScMultiOmics.Rmd` setup chunk (current):**
+  1. Two render params take precedence — `params$explore_url` (literal URL)
+     and `params$gstore_data_path` (gstore-relative dir without filename).
+  2. Fallback now derives from `getwd()` by keeping the FULL remainder
+     after `/pXXXXX/`, not just the basename:
+     `regmatches(getwd(), regexec("/(p\\d+)/(.+)$", getwd()))[[1]]` →
+     `paste0(proj, "/", subpath, "/scMultiData.qs2")`.
+- **When patching an already-delivered HTML on gstore**, copy the file out,
+  `sed` the broken URL to the working one, then `g-req copynow -f` it back.
+  Cheaper than re-rendering the whole report just to fix the link.
+
+### `ScMultiOmicsApp` output dataset must propagate `refFeatureFile` for `ScSeuratCombineApp`
+- `ScSeuratCombineApp.rb` gates on
+  `@required_columns = ['Name', 'Species', 'refBuild', 'refFeatureFile', 'Static Report']`.
+  The original `ScMultiOmicsApp#next_dataset` emitted only
+  `Name, Species, refBuild, Static Report [Link], Report [File], ScMultiOmics [Link], SC Seurat [Link]`
+  — no `refFeatureFile`, so SUSHI refused to launch the combine job at the
+  column-validation step before R was ever invoked. The
+  `scData.qs2 → scMultiData.qs2` symlink fix only addressed half of the
+  compatibility problem.
+- Fix landed 2026-04-30 in `ScMultiOmicsApp.rb`: declared
+  `@params['refFeatureFile'] = 'genes.gtf'`, inherited it in
+  `set_default_parameters` from `@dataset[0]['refFeatureFile']` when present,
+  and emitted it in `next_dataset`. `ScSeuratFilterClustersApp` and
+  `ScSeuratLabelClustersApp` only require
+  `Name, Species, refBuild, SC Seurat`, so they were already compatible via
+  the symlink — only Combine was blocked.
+- General lesson: when adding a new SUSHI app whose output is meant to feed
+  any downstream app, scrape every downstream `.rb`'s `@required_columns`
+  set and make sure `next_dataset` covers their union. Don't trust that
+  inheriting `Factor` / `B-Fabric` tags fills the gap — those are user
+  metadata, not pipeline-required columns.
 
 ### BD Rhapsody `*_Seurat.rds` ships ATAC as `peaks`, not `ATAC`
 - BD multiome RDS objects expose chromatin under `Assays(obj)` named `peaks`,
@@ -337,6 +374,33 @@ submission notes see
 - Fix in `adt_top_per_group()`: reorder the avg matrix to `levels(Idents())`
   before computing z-scores. Drop low-count idents from the obj subset
   (`droplevels(Idents(obj))`) so they don't surface as empty x-axis columns.
+
+### `obj[[col, drop=TRUE]]` returns CHARACTER even when `Idents` is a factor with custom levels
+- Subtle trap that broke the cell-type DotPlot diagonal even after the fix
+  above was supposedly applied. The previous `adt_top_per_group()` did
+  `groups <- obj[[group_col, drop=TRUE]]` and then
+  `level_order <- if (is.factor(groups)) levels(groups) else sort(unique(...))`.
+  For Azimuth's `predicted.celltype.l2` the meta.data column may be
+  *character* even though `Idents(obj)` (assigned from the same column)
+  is a factor with non-alphabetical levels — so the `is.factor(groups)`
+  branch never fired and `level_order` came out alphabetical, NOT in the
+  Idents/DotPlot x-axis order. The reorder block then produced an `avg`
+  matrix that was alphabetical, and `best_group` indices pointed at the
+  wrong columns of the rendered DotPlot.
+- Symptom: the DotPlot looks "approximately diagonal" because the bright
+  cell type for each marker is *correct* (z-score is order-invariant),
+  but the FEATURE rows are placed at the wrong y-axis positions —
+  rolling a clean diagonal into a scrambled one. Spearman(x_pos, y_pos)
+  drops from ±1 to ~±0.4.
+- Fix: read the canonical group order directly from `Idents()`, not from
+  the metadata column:
+  `groups <- droplevels(Idents(obj)); level_order <- levels(groups)`.
+  After the fix, `colnames(avg)` matches `levels(Idents(obj))` exactly
+  (modulo `_` → `-`), and Spearman correlation jumps to ±0.998.
+- Diagnostic recipe (from the debug session): build the DotPlot, extract
+  `p$data`, find each feature's max-`avg.exp.scaled` cell type, and
+  compare its x-axis index in `levels(p$data$id)` to the feature's y-axis
+  index in `levels(p$data$features.plot)`. Perfect diagonal ⇒ Spearman ±1.
 
 ### CellRanger v10+ Multi layout — no code changes needed
 - CR Multi v10 keeps the `per_sample_outs/<sample>/sample_filtered_feature_bc_matrix.h5`
@@ -426,3 +490,83 @@ submission notes see
   alpha-0.5 for "No clonotype" cells (drawn first → behind), and
   `point_size = 1.4` for real clonotypes (drawn last → on top), with
   the foreground sub-sorted so Hyperexpanded ends up at the very top.
+
+### Smoke test drivers must source `scData.qs2` from a real ScSeurat run
+- Hand-rolled drivers that build `scData.qs2` from a count matrix +
+  `NormalizeData → PCA → FindClusters → RunUMAP` do NOT run Azimuth, so
+  the resulting object has no `predicted.celltype.l2` (or any other
+  `pickCellTypeColumn()` candidate). Every "by cell type" panel in the
+  rendered report falls through to the "_no annotation column_"
+  placeholder.
+- For comparable output, point `SC Seurat [Link]` at the gstore-resident
+  ScSeurat scData.qs2 (`/srv/gstore/projects/pXXXXX/.../*_SCReport/scData.qs2`)
+  rather than rebuilding RNA-only on the fly. The CR v10+ Hbt_257 driver
+  is fine for "does the pipeline run" smoke testing but generates reports
+  without cell-type panels.
+
+### CLR is fast; ADTnorm is the production default
+- `ScMultiOmicsApp.rb` advertises `adtNorm = ['ADTnorm', 'CLR']` (first item
+  is the SUSHI default). Smoke drivers in this repo set `adtNorm = "CLR"`
+  for speed — fine for "does it run" tests, but the rendered report will
+  read `normalization: CLR` in the QC tab, and the ADT UMAP separation
+  will look noticeably worse than a SUSHI-driven run with ADTnorm.
+- ADTnorm is single-threaded and slow on >50k cells (10-15 min on a typical
+  CITE-seq panel); CLR is sub-second. Use CLR only for iteration loops
+  where you don't care about the final ADT UMAP quality.
+
+### `g-req copynow` races with concurrent SUSHI loops on the same gstore path
+- A SUSHI app actively iterating on `pXXXXX/Analyses_Paul/<dir>/<report>`
+  triggers `g-req` trash + copy cycles every few minutes. If a side
+  re-render copies into the same path, it survives until the next SUSHI
+  copy lands (or hits "Destination path already exists" and gets dropped).
+- For ad-hoc smoke renders during a live SUSHI loop, copy to a parallel
+  path (`pXXXXX/Analyses_Paul/<dir>_smoke_paul/<report>`) to avoid the
+  race. `gstore-list` makes the contention visible.
+
+### ADT modality correlation: literal `match()` misses ~80% of TotalSeq panels
+- Original code at [`_scMultiOmics_adt.Rmd`](inst/templates/_scMultiOmics_adt.Rmd)
+  did `match(sub("\\.\\d+$", "", adtFeats), rnaFeats)` — only resolves ADT
+  names that are *literally* gene symbols. On the BioLegend TotalSeq-C
+  Human Universal Cocktail v1 (143 antibodies, p31662), this matched
+  26/143 = 18%; the remaining 117 markers showed no correlation panel
+  even though most have an obvious gene counterpart.
+- Markers that escape the literal rule include the clone-suffixed names
+  (`CD4(RPA-T4)` → `CD4`), the parenthesized-payload form
+  (`CD326-(EPCAM)` → `EPCAM`, `CD278-(ICOS)` → `ICOS`), markers whose
+  gene differs from the antigen (`CD56` → `NCAM1`, `CD64` → `FCGR1A`,
+  `CD16` → `FCGR3A`, `CD8` → `CD8A`, `CD45*` → `PTPRC`), Ig isotypes
+  (`IgD` → `IGHD`, `Ig-light-chain-kappa` → `IGKC`), and TCR variable
+  chains (`TCR-Valpha7.2` → `TRAV1-2`).
+- Fix: `mapADTtoRNA()` in `multiOmicsUtils.R` driven by
+  `inst/extdata/adt_to_gene_lookup.tsv` (~300 hand-verified rows
+  covering TotalSeq Universal Cocktail v1/v2 + TotalSeq-A/B/C variants).
+  Falls back to literal equality, then regex (`CDxxx-(GENE)` payload,
+  `STEM(CLONE)` stem). Records `matchSource` so the QC tab can show how
+  each marker resolved. Coverage on p31662 panel: 136/136 (100%) of
+  non-isotype markers, all via lookup.
+- The lookup-first / strip-second order is critical: stripping
+  `\\.\\d+$` first turns `TCR-Valpha7.2` into `TCR-Valpha7` and
+  guarantees a miss. Try the raw name against the lookup before
+  applying the make.unique-collision strip.
+
+### Existing protein↔gene resources (for future maintenance)
+- **`AbNames` R package** by Helen Lindsay (UZH):
+  https://github.com/HelenLindsay/AbNames — same problem, more
+  comprehensive scope. Ships `data(totalseq)` (977 BioLegend antibodies
+  with `Antigen`, `Clone`, `Cat_Number`, `HGNC_SYMBOL`, `ENSEMBL_ID`,
+  `TotalSeq_Cat`), `data(citeseq)` (3,212 antibodies seen in published
+  studies), `data(gene_aliases)` (HGNC alias table), plus matching
+  helpers `searchTotalseq`, `getCommonName`, `renameADT`, `formatIg`,
+  `formatTCR`, `replaceGreekSyms`. Aiming for Bioconductor; not on CRAN
+  yet.
+- We don't take a hard dep on AbNames because it has gaps for several
+  textbook markers (CD16, CD56, CD8 all have `HGNC_SYMBOL = NA` in
+  `totalseq` as of 2026-04 — the same markers we get right via the
+  curated TSV). Once AbNames lands on Bioconductor and fills those
+  gaps, switch to it as the primary data source and reduce our TSV to
+  FGCZ-specific overrides only.
+- BioLegend itself publishes per-panel **feature-reference CSVs** at
+  `biolegend.com/Files/Images/BioLegend/totalseq/<PANEL>_<CAT#>_Antibody_reference_UMI_counting*.csv`,
+  but the `name` column is the antibody label, NOT the gene symbol — so
+  these CSVs are useful for `cellranger --feature-ref` but not directly
+  for ADT↔RNA correlation lookup.

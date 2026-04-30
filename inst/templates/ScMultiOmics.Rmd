@@ -8,6 +8,9 @@ output:
       in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
     css: !expr system.file("templates/fgcz.css", package="ezRun")
     code_folding: hide
+params:
+  gstore_data_path: null
+  explore_url: null
 editor_options:
   chunk_output_type: inline
 ---
@@ -67,18 +70,28 @@ if (!is.null(cluster_col) && !is.null(cluster_levels) &&
 }
 
 # Build exploreSC URL once so child Rmds don't have to re-discover the path.
+# Precedence:
+#   1. params$explore_url       — caller passes a literal URL.
+#   2. params$gstore_data_path  — caller passes a gstore-relative dir
+#                                 ("pXXXXX/.../<report_dir>"); we append the
+#                                 file name.
+#   3. cwd heuristic            — strip everything up to the project segment
+#                                 from getwd() and keep the FULL remainder.
+#                                 Replaces the previous basename()-based logic
+#                                 that dropped intermediate dirs (e.g.
+#                                 Analyses_Paul/<run>/) and 404'd in exploreSC.
 explore_url <- NULL
-if (!is.null(output) && "Report" %in% output$colNames) {
-  rp <- output$getColumn("Report")
-  if (is.character(rp) && nzchar(rp)) {
-    if (!grepl("^p\\d+/", rp)) {
-      proj <- regmatches(getwd(), regexec("/(p\\d+)/", getwd()))[[1]][2]
-      if (!is.na(proj)) rp <- file.path(proj, basename(rp))
-    }
-    if (grepl("^p\\d+/", rp)) {
-      explore_url <- paste0("https://fgcz-shiny.uzh.ch/app/exploreSC/?data=",
-                            rp, "/scMultiData.qs2")
-    }
+if (!is.null(params$explore_url) && nzchar(params$explore_url)) {
+  explore_url <- params$explore_url
+} else if (!is.null(params$gstore_data_path) && nzchar(params$gstore_data_path)) {
+  explore_url <- paste0("https://fgcz-shiny.uzh.ch/app/exploreSC/?data=",
+                        sub("/+$", "", params$gstore_data_path),
+                        "/scMultiData.qs2")
+} else {
+  m <- regmatches(getwd(), regexec("/(p\\d+)/(.+)$", getwd()))[[1]]
+  if (length(m) == 3 && nzchar(m[2]) && nzchar(m[3])) {
+    explore_url <- paste0("https://fgcz-shiny.uzh.ch/app/exploreSC/?data=",
+                          m[2], "/", m[3], "/scMultiData.qs2")
   }
 }
 ```

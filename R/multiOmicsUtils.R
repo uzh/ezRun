@@ -301,12 +301,36 @@ prefixVDJBarcodes <- function(df, sample) {
 ##' @param contigsB Optional pre-loaded B-cell contig data frame (overrides
 ##'   vdjBPath when supplied).
 ##' @param sampleName Sample identifier matching obj$Sample / column prefix.
+##' @param cloneCallTCR How to define a TCR clone in `combineExpression`. One of
+##'   `"strict"` (V/J + CDR3 nt; default), `"aa"` (CDR3 amino acid; merges
+##'   synonymous nt mutations — useful for cross-donor convergence), or any
+##'   other scRepertoire `cloneCall` value (`"nt"`, `"gene"`, `"gene+nt"`).
+##'   When `tcrSimilarityMerge = TRUE` this is overridden by the cluster
+##'   column produced by `scRepertoire::clonalCluster()`.
+##' @param tcrSimilarityMerge Logical. When TRUE, run
+##'   `scRepertoire::clonalCluster()` on TCR chains before
+##'   `combineExpression()` to collapse near-identical CDR3 sequences within
+##'   `tcrSimilarityThreshold`. Off by default — most users want exact-match
+##'   clonality. Useful for cross-donor convergence studies or noise
+##'   correction on long sequencing runs.
+##' @param tcrSimilarityThreshold Normalized similarity threshold (0-1) for
+##'   `clonalCluster()` on TCR. 0.85 ≈ 15% Hamming distance; 0.95 is
+##'   typical for noise-only correction. Only used when
+##'   `tcrSimilarityMerge = TRUE`.
+##' @param bcrSimilarityThreshold Threshold passed to `combineBCR()` for
+##'   merging BCR clones with related CDR3 sequences (somatic
+##'   hypermutation). scRepertoire default is 0.85. Tighten (0.90-0.95) for
+##'   clean datasets; loosen (0.75) for highly mutated lineages.
 ##' @return Seurat object with VDJ metadata. The combined clones list is
 ##'   attached as `attr(obj, "vdjCombined")`; saving as `qs2` strips
 ##'   attributes, so callers may also export the raw list to TSV.
 ##' @export
 processVDJ <- function(obj, vdjTPath = NULL, vdjBPath = NULL,
-                       contigsT = NULL, contigsB = NULL, sampleName) {
+                       contigsT = NULL, contigsB = NULL, sampleName,
+                       cloneCallTCR = "strict",
+                       tcrSimilarityMerge = FALSE,
+                       tcrSimilarityThreshold = 0.85,
+                       bcrSimilarityThreshold = 0.85) {
   if (!requireNamespace("scRepertoire", quietly = TRUE)) {
     stop("scRepertoire is required for processVDJ()")
   }
@@ -339,6 +363,7 @@ processVDJ <- function(obj, vdjTPath = NULL, vdjBPath = NULL,
                              filterMulti = FALSE)
   } else {
     scRepertoire::combineBCR(contigs, samples = sampleName,
+                             threshold = bcrSimilarityThreshold,
                              removeNA = FALSE, removeMulti = FALSE,
                              filterMulti = FALSE)
   }
@@ -353,9 +378,31 @@ processVDJ <- function(obj, vdjTPath = NULL, vdjBPath = NULL,
     combined[[i]]$barcode <- bc
   }
 
+  # Optional TCR similarity-based merging. clonalCluster() adds a
+  # <chain>_cluster.<method> column to each list element; we then point
+  # combineExpression at that column so cluster IDs become the clone identity.
+  effectiveClone <- cloneCallTCR
+  if (chains == "T" && isTRUE(tcrSimilarityMerge)) {
+    combined <- scRepertoire::clonalCluster(
+      combined, chain = "TRB", sequence = "aa",
+      threshold = tcrSimilarityThreshold
+    )
+    cluster_cols <- grep("^TRB_cluster", colnames(combined[[1]]), value = TRUE)
+    if (length(cluster_cols) > 0) {
+      effectiveClone <- cluster_cols[1]
+      message("processVDJ: TCR similarity merging on (threshold=",
+              tcrSimilarityThreshold, "); using cluster column '",
+              effectiveClone, "' as cloneCall.")
+    } else {
+      warning("processVDJ: tcrSimilarityMerge=TRUE but clonalCluster() did not ",
+              "produce a TRB_cluster column; falling back to cloneCallTCR='",
+              cloneCallTCR, "'.")
+    }
+  }
+
   obj <- scRepertoire::combineExpression(
     combined, obj,
-    cloneCall = "strict",
+    cloneCall = effectiveClone,
     group.by = "sample",
     proportion = FALSE,
     cloneSize = c(Single = 1, Small = 5, Medium = 20, Large = 100, Hyperexpanded = 500)
@@ -371,6 +418,15 @@ processVDJ <- function(obj, vdjTPath = NULL, vdjBPath = NULL,
   }
   attr(obj, "vdjCombined") <- combined
   attr(obj, "vdjChain")    <- chains
+  # Persist the parameters used so the report can show them and exploreSC can
+  # display them next to the cloneSize legend.
+  obj@misc$vdjParams <- list(
+    cloneCallTCR             = cloneCallTCR,
+    effectiveCloneCall       = effectiveClone,
+    tcrSimilarityMerge       = isTRUE(tcrSimilarityMerge),
+    tcrSimilarityThreshold   = tcrSimilarityThreshold,
+    bcrSimilarityThreshold   = bcrSimilarityThreshold
+  )
   obj
 }
 
@@ -452,6 +508,38 @@ cloneSizeMatchPalette <- function(levels, palette = cloneSizePalette()) {
   palette[hits]
 }
 
+##' @title Round overlap heatmap labels to N significant figures.
+##' @description scRepertoire's `clonalOverlap()` returns a ggplot whose
+##'   tile fill and on-tile text both come from a numeric `values` column.
+##'   Default rendering shows 4-5 decimal digits, which makes the heatmap
+##'   visually noisy. Round the values via `signif()` so geom_text labels
+##'   read at most `digits` significant figures. Tile fill colours track
+##'   the same column so the rounding has a near-imperceptible effect on
+##'   the gradient.
+##' @param p A ggplot from scRepertoire (or NULL — pass-through).
+##' @param digits Number of significant figures to keep (default 2).
+##' @return The plot with `p$data` and any layer-local data rounded.
+##' @export
+trimOverlapDigits <- function(p, digits = 2L) {
+  if (is.null(p) || !inherits(p, "ggplot")) return(p)
+  round_cols <- function(df) {
+    if (is.null(df) || !is.data.frame(df)) return(df)
+    for (col in c("values", "value", "morisita", "overlap")) {
+      if (col %in% names(df) && is.numeric(df[[col]])) {
+        df[[col]] <- signif(df[[col]], digits)
+      }
+    }
+    df
+  }
+  p$data <- round_cols(p$data)
+  for (i in seq_along(p$layers)) {
+    if (!is.null(p$layers[[i]]$data) && length(p$layers[[i]]$data) > 0) {
+      p$layers[[i]]$data <- round_cols(p$layers[[i]]$data)
+    }
+  }
+  p
+}
+
 ##' @title Run WNN integration when 2+ dimensional modalities are present.
 ##' @description Wraps `Seurat::FindMultiModalNeighbors` selecting from
 ##'   {`pca`, `adt.pca`, `lsi`} based on which reductions exist on the object.
@@ -526,13 +614,12 @@ cloneOccupyFull <- function(obj, x.axis, palette = cloneSizePalette(),
                             proportion = FALSE) {
   df <- scRepertoire::clonalOccupy(obj, x.axis = x.axis, exportTable = TRUE)
   if (!is.factor(df[[x.axis]])) df[[x.axis]] <- factor(df[[x.axis]])
-  # Subset the master palette to the bin scheme actually present in the
-  # data (count vs proportion). Without this, scRepertoire 2.7+ proportion
-  # labels miss every entry in the count-based palette and every bar comes
-  # out empty / grey.
-  palette <- cloneSizeMatchPalette(unique(c(as.character(df$cloneSize),
-                                            levels(df$cloneSize))),
-                                   palette)
+  # Subset the master palette to the cloneSize values actually present in
+  # the data (which determines the bin scheme — count vs proportion).
+  # Using as.character() on values, NOT levels(): processVDJ() may have
+  # padded the factor with every level the master palette knows about,
+  # which would drag the other scheme into the legend.
+  palette <- cloneSizeMatchPalette(as.character(df$cloneSize), palette)
   df$cloneSize <- factor(df$cloneSize, levels = names(palette))
   empty <- setdiff(names(palette), as.character(df$cloneSize))
   if (length(empty) > 0L) {
@@ -568,9 +655,14 @@ cloneOccupyFull <- function(obj, x.axis, palette = cloneSizePalette(),
   p +
     ggplot2::scale_fill_manual(values = palette, drop = FALSE,
                                limits = names(palette)) +
+    # Discrete x defaults to expansion(add = 0.6) on each side. Drop it
+    # entirely so the first / last bar sit flush against the plot edges.
+    ggplot2::scale_x_discrete(expand = ggplot2::expansion(add = 0)) +
+    ggplot2::coord_cartesian(clip = "off") +
     ggplot2::theme_classic() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
-                   axis.title.x = ggplot2::element_blank())
+                   axis.title.x = ggplot2::element_blank(),
+                   plot.margin = ggplot2::margin(2, 2, 2, 2))
 }
 
 ##' @title DimPlot of cloneSize with all 6 swatches in the legend.
@@ -600,11 +692,11 @@ cloneDimPlot <- function(obj, reduction, palette = cloneSizePalette(),
   axis_x <- colnames(emb)[1]; axis_y <- colnames(emb)[2]
   # scRepertoire 2.7+ uses proportion-based bin labels
   # ("Hyperexpanded (0.1 < X <= 1)") that don't match the count-based
-  # entries in the master palette. Subset to the levels actually present
-  # so factor() / scale_color_manual() can map them to colours.
-  palette <- cloneSizeMatchPalette(unique(c(as.character(obj$cloneSize),
-                                            levels(obj$cloneSize))),
-                                   palette)
+  # entries in the master palette. Subset to the values actually present
+  # in the data (NOT factor levels — processVDJ() may have padded the
+  # factor with every level the master palette knows about, dragging the
+  # other scheme into the legend).
+  palette <- cloneSizeMatchPalette(as.character(obj$cloneSize), palette)
   emb$cloneSize <- factor(obj$cloneSize, levels = names(palette))
 
   # Split background ("No clonotype") from foreground (real clones), and
@@ -1036,4 +1128,119 @@ h5HasAntibodyCapture <- function(h5path) {
     ft <- hf[["matrix/features/feature_type"]]$read()
     any(ft == "Antibody Capture")
   }, error = function(e) FALSE)
+}
+
+##' @title Map ADT antibody names to RNA gene symbols.
+##'
+##' @description The literal-equality matcher previously used in the ADT
+##'   modality-correlation tab miss most BioLegend TotalSeq names because
+##'   antibody panels routinely use clone or alias notation
+##'   (`CD4(RPA-T4)`, `CD326-(EPCAM)`, `CD56`, `Ig-light-chain-kappa`).
+##'   This helper resolves each ADT name to a gene symbol via:
+##'   (1) a curated lookup TSV shipped with the package
+##'   (`inst/extdata/adt_to_gene_lookup.tsv`),
+##'   (2) literal equality after stripping a trailing `.<digit>` suffix
+##'   (the only rule the old code used),
+##'   (3) regex extraction of the parenthesized payload in `CDxxx-(GENE)`
+##'   names, and
+##'   (4) regex extraction of the stem from `STEM(CLONE)` names.
+##'
+##' @param adtFeats Character vector of ADT feature names (rownames of the
+##'   ADT assay).
+##' @param rnaFeats Character vector of RNA feature names (rownames of the
+##'   RNA assay) — used to confirm a candidate gene is actually expressed.
+##' @param lookupPath Path to the ADT→gene lookup TSV. Defaults to the
+##'   package resource.
+##' @return data.frame with columns `sourceFeature`, `sourceDisplay`,
+##'   `rnaFeature`, `matchSource`. One row per ADT marker that resolved to
+##'   an RNA feature; unmatched markers are dropped (see attr `unmatched`
+##'   for their names).
+##' @export
+mapADTtoRNA <- function(adtFeats, rnaFeats,
+                        lookupPath = system.file("extdata/adt_to_gene_lookup.tsv",
+                                                 package = "ezRun")) {
+  stopifnot(is.character(adtFeats), is.character(rnaFeats))
+  rnaSet <- unique(rnaFeats)
+  rnaInSet <- function(g) !is.na(g) && nzchar(g) && g %in% rnaSet
+  src <- sub("\\.\\d+$", "", adtFeats)
+  out <- data.frame(sourceFeature = adtFeats,
+                    sourceDisplay = src,
+                    rnaFeature    = NA_character_,
+                    matchSource   = NA_character_,
+                    stringsAsFactors = FALSE)
+
+  # --- 1) curated lookup ------------------------------------------------
+  # Look up by the raw name first; only fall back to the .digit-stripped form
+  # if the raw didn't hit. The strip rule exists for `Read10X_h5(unique=TRUE)`
+  # collision suffixes (`CD14.1`), but real antibody names like
+  # `TCR-Valpha7.2` end in `.<digit>` legitimately and would be mangled if we
+  # strip first.
+  if (nzchar(lookupPath) && file.exists(lookupPath)) {
+    lkp <- utils::read.delim(lookupPath, stringsAsFactors = FALSE,
+                             check.names = FALSE)
+    keepRow <- !is.na(lkp$adt_pattern) & nzchar(lkp$adt_pattern) &
+               !is.na(lkp$gene_symbol) & nzchar(lkp$gene_symbol)
+    lkp <- lkp[keepRow, , drop = FALSE]
+    aliasCol <- if ("aliases" %in% colnames(lkp)) lkp$aliases else rep(NA_character_, nrow(lkp))
+    .resolve <- function(idx) {
+      if (is.na(idx)) return(c(NA_character_, NA_character_))
+      g <- lkp$gene_symbol[idx]
+      if (rnaInSet(g)) return(c(g, "lookup"))
+      al <- aliasCol[idx]
+      if (!is.na(al) && nzchar(al)) {
+        for (g2 in strsplit(al, ";", fixed = TRUE)[[1]]) {
+          if (rnaInSet(g2)) return(c(g2, "lookup_alias"))
+        }
+      }
+      c(NA_character_, NA_character_)
+    }
+    rawIdx     <- match(adtFeats,             lkp$adt_pattern)
+    strippedIdx <- match(out$sourceDisplay,   lkp$adt_pattern)
+    for (i in seq_len(nrow(out))) {
+      r <- .resolve(rawIdx[i])
+      if (is.na(r[1])) r <- .resolve(strippedIdx[i])
+      if (!is.na(r[1])) {
+        out$rnaFeature[i]  <- r[1]
+        out$matchSource[i] <- r[2]
+      }
+    }
+  }
+
+  # --- 2) literal equality (after .digit strip) -------------------------
+  unmatched <- which(is.na(out$rnaFeature))
+  for (i in unmatched) {
+    g <- out$sourceDisplay[i]
+    if (rnaInSet(g)) {
+      out$rnaFeature[i] <- g
+      out$matchSource[i] <- "literal"
+    }
+  }
+
+  # --- 3) regex_paren: CDxxx-(GENE) or CDxxx-(ALIAS--SYNONYM) -----------
+  unmatched <- which(is.na(out$rnaFeature))
+  for (i in unmatched) {
+    m <- regmatches(out$sourceDisplay[i],
+                    regexec("^CD\\d+\\W*\\((.+)\\)$", out$sourceDisplay[i]))[[1]]
+    if (length(m) == 2L && nzchar(m[2])) {
+      cand <- toupper(gsub("[^A-Za-z0-9]", "", strsplit(m[2], "--", fixed = TRUE)[[1]][1]))
+      if (rnaInSet(cand)) { out$rnaFeature[i] <- cand; out$matchSource[i] <- "regex_paren" }
+    }
+  }
+
+  # --- 4) regex_clone: STEM(CLONE) -> STEM ------------------------------
+  unmatched <- which(is.na(out$rnaFeature))
+  for (i in unmatched) {
+    m <- regmatches(out$sourceDisplay[i],
+                    regexec("^([A-Za-z][A-Za-z0-9]+)\\(.+\\)$", out$sourceDisplay[i]))[[1]]
+    if (length(m) == 2L && nzchar(m[2])) {
+      cand <- m[2]
+      if (rnaInSet(cand)) { out$rnaFeature[i] <- cand; out$matchSource[i] <- "regex_clone" }
+    }
+  }
+
+  unmatchedNames <- out$sourceFeature[is.na(out$rnaFeature)]
+  out <- out[!is.na(out$rnaFeature), , drop = FALSE]
+  attr(out, "unmatched") <- unmatchedNames
+  attr(out, "n_input")   <- length(adtFeats)
+  out
 }

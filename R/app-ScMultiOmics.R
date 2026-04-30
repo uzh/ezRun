@@ -41,6 +41,26 @@ EzAppScMultiOmics <-
             Type = "numeric",
             DefaultValue = 18,
             Description = "Number of PCs for the ADT assay."
+          ),
+          cloneCallTCR = ezFrame(
+            Type = "character",
+            DefaultValue = "strict",
+            Description = "How to merge TCR clones in combineExpression: 'strict' (V/J + CDR3 nt) or 'aa' (CDR3 amino acid)."
+          ),
+          tcrSimilarityMerge = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "Run scRepertoire::clonalCluster on TCR before combineExpression to collapse near-identical CDR3 sequences."
+          ),
+          tcrSimilarityThreshold = ezFrame(
+            Type = "numeric",
+            DefaultValue = 0.85,
+            Description = "Normalized similarity threshold for TCR clonalCluster (0-1). Only used when tcrSimilarityMerge = TRUE."
+          ),
+          bcrSimilarityThreshold = ezFrame(
+            Type = "numeric",
+            DefaultValue = 0.85,
+            Description = "Threshold passed to combineBCR for SHM-aware clone merging."
           )
         )
       }
@@ -258,7 +278,11 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
             if (wantVDJ_B && !is.null(src_B)) paste0("B(", src_B, ")") else "")
     obj <- processVDJ(obj, vdjTPath = vdjTPath, vdjBPath = vdjBPath,
                       contigsT = contigsT, contigsB = contigsB,
-                      sampleName = sampleName)
+                      sampleName = sampleName,
+                      cloneCallTCR           = param$cloneCallTCR           %||% "strict",
+                      tcrSimilarityMerge     = isTRUE(param$tcrSimilarityMerge),
+                      tcrSimilarityThreshold = as.numeric(param$tcrSimilarityThreshold %||% 0.85),
+                      bcrSimilarityThreshold = as.numeric(param$bcrSimilarityThreshold %||% 0.85))
     # Persist the raw clones list as TSV alongside the report
     cb <- attr(obj, "vdjCombined")
     if (!is.null(cb)) {
