@@ -409,18 +409,47 @@ pickCellTypeColumn <- function(obj) {
 }
 
 ##' @title scRepertoire-style cloneSize palette for Seurat DimPlots.
-##' @description Returns a 6-colour vector matching scRepertoire's default
-##'   yellow-to-black ramp (Hyperexpanded -> None) so DimPlot(group.by =
-##'   "cloneSize") and scRepertoire bar plots use consistent colours.
+##' @description Yellow-to-black ramp keyed by both label schemes
+##'   scRepertoire emits: count-based bins (`<= 2.6`, e.g.
+##'   `"Hyperexpanded (100 < X <= 500)"`) and proportion-based bins
+##'   (`>= 2.7` default, e.g. `"Hyperexpanded (0.1 < X <= 1)"`). Callers
+##'   should subset via `cloneSizeMatchPalette()` to keep only the labels
+##'   that exist in the data so `scale_color_manual()` doesn't fall
+##'   through to its grey `na.value` for unmatched levels.
 ##' @keywords internal
 cloneSizePalette <- function() {
-  c("Hyperexpanded (100 < X <= 500)" = "#FFFE9E",
+  c(
+    # Count-based labels (scRepertoire <= 2.6).
+    "Hyperexpanded (100 < X <= 500)" = "#FFFE9E",
     "Large (20 < X <= 100)"          = "#F7AA2D",
     "Medium (5 < X <= 20)"           = "#E45358",
     "Small (1 < X <= 5)"             = "#A01975",
     "Single (0 < X <= 1)"            = "#4C1258",
-    "None ( < X <= 0)"               = "#040404",
-    "No clonotype"                   = "#BDBDBD")
+    # Proportion-based labels (scRepertoire >= 2.7 default).
+    "Hyperexpanded (0.1 < X <= 1)"      = "#FFFE9E",
+    "Large (0.01 < X <= 0.1)"           = "#F7AA2D",
+    "Medium (0.001 < X <= 0.01)"        = "#E45358",
+    "Small (1e-04 < X <= 0.001)"        = "#A01975",
+    "Rare (0 < X <= 1e-04)"             = "#4C1258",
+    # Shared.
+    "None ( < X <= 0)"                  = "#040404",
+    "No clonotype"                      = "#BDBDBD"
+  )
+}
+
+##' @title Subset a cloneSize palette to the levels actually present.
+##' @description Both bin schemes share the same conceptual order
+##'   (Hyperexpanded > Large > Medium > Small > Rare / Single > None > No
+##'   clonotype). This returns the slice of `palette` whose names appear in
+##'   `levels`, preserving palette order so the legend reads from largest
+##'   clones to smallest.
+##' @param levels Character / factor levels of the cloneSize column.
+##' @param palette Master palette; defaults to `cloneSizePalette()`.
+##' @return Named colour vector with one entry per matching level.
+##' @keywords internal
+cloneSizeMatchPalette <- function(levels, palette = cloneSizePalette()) {
+  hits <- intersect(names(palette), as.character(levels))
+  palette[hits]
 }
 
 ##' @title Run WNN integration when 2+ dimensional modalities are present.
@@ -497,6 +526,13 @@ cloneOccupyFull <- function(obj, x.axis, palette = cloneSizePalette(),
                             proportion = FALSE) {
   df <- scRepertoire::clonalOccupy(obj, x.axis = x.axis, exportTable = TRUE)
   if (!is.factor(df[[x.axis]])) df[[x.axis]] <- factor(df[[x.axis]])
+  # Subset the master palette to the bin scheme actually present in the
+  # data (count vs proportion). Without this, scRepertoire 2.7+ proportion
+  # labels miss every entry in the count-based palette and every bar comes
+  # out empty / grey.
+  palette <- cloneSizeMatchPalette(unique(c(as.character(df$cloneSize),
+                                            levels(df$cloneSize))),
+                                   palette)
   df$cloneSize <- factor(df$cloneSize, levels = names(palette))
   empty <- setdiff(names(palette), as.character(df$cloneSize))
   if (length(empty) > 0L) {
@@ -562,6 +598,13 @@ cloneDimPlot <- function(obj, reduction, palette = cloneSizePalette(),
   if (!"cloneSize" %in% colnames(obj@meta.data)) return(NULL)
   emb <- as.data.frame(Seurat::Embeddings(obj, reduction))
   axis_x <- colnames(emb)[1]; axis_y <- colnames(emb)[2]
+  # scRepertoire 2.7+ uses proportion-based bin labels
+  # ("Hyperexpanded (0.1 < X <= 1)") that don't match the count-based
+  # entries in the master palette. Subset to the levels actually present
+  # so factor() / scale_color_manual() can map them to colours.
+  palette <- cloneSizeMatchPalette(unique(c(as.character(obj$cloneSize),
+                                            levels(obj$cloneSize))),
+                                   palette)
   emb$cloneSize <- factor(obj$cloneSize, levels = names(palette))
 
   # Split background ("No clonotype") from foreground (real clones), and
@@ -918,10 +961,24 @@ processADT <- function(obj, adtCounts, normMethod = c("ADTnorm", "CLR"), npcs = 
     }
     obj <- Seurat::SetAssayData(obj, assay = "ADT", layer = "data",
                                 new.data = data_mat)
+    # Surface the per-marker normalization status so the Rmd can warn users
+    # which markers fell back to CLR. Use @misc to survive qs2 round-trips.
+    obj@misc$adtnorm <- list(
+      method = "ADTnorm",
+      n_markers = length(markers),
+      n_ok = sum(ok),
+      ok_markers = markers[ok],
+      failed_markers = markers[!ok]
+    )
   } else {
     obj <- Seurat::NormalizeData(obj, assay = "ADT",
                                  normalization.method = "CLR", margin = 2,
                                  verbose = FALSE)
+    obj@misc$adtnorm <- list(method = "CLR",
+                              n_markers = nrow(adt_aligned),
+                              n_ok = nrow(adt_aligned),
+                              ok_markers = rownames(adt_aligned),
+                              failed_markers = character())
   }
   # Defensive: even after the zero-column filter, ADTnorm or CLR can emit
   # NaN/Inf for individual cells with extreme distributions. Replace with 0

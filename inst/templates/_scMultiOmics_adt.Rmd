@@ -92,9 +92,8 @@ if (!is.null(cluster_col)) {
   scMultiData_dp <- scMultiData
   Idents(scMultiData_dp) <- cluster_col
   DefaultAssay(scMultiData_dp) <- "ADT"
-  picked <- adt_top_per_group(scMultiData_dp, cluster_col, n = 3L)
-  p <- DotPlot(scMultiData_dp, features = picked$features, assay = "ADT",
-               idents = picked$idents) +
+  feats <- adt_top_per_group(scMultiData_dp, cluster_col, n = 3L)
+  p <- DotPlot(scMultiData_dp, features = feats, assay = "ADT") +
     coord_flip() +
     scale_color_viridis_c(option = "D") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -111,12 +110,18 @@ if (!is.null(celltype_col)) {
   scMultiData_dp <- scMultiData
   Idents(scMultiData_dp) <- celltype_col
   DefaultAssay(scMultiData_dp) <- "ADT"
-  picked <- adt_top_per_group(scMultiData_dp, celltype_col, n = 3L, min_cells = 30L)
-  message("ADT DotPlot by cell type: ", length(picked$features), " features x ",
-          length(picked$idents), " idents (top 3 per type, dedup; of ",
-          nrow(scMultiData_dp[["ADT"]]), " ADT features total)")
-  p <- DotPlot(scMultiData_dp, features = picked$features, assay = "ADT",
-               idents = picked$idents) +
+  # Drop low-count cell types from Idents so they don't show as empty x-axis
+  # columns and break the diagonal pattern.
+  ct_counts <- table(scMultiData_dp[[celltype_col, drop = TRUE]], useNA = "no")
+  keep_ct <- names(ct_counts)[ct_counts >= 30L]
+  if (length(keep_ct) >= 2L) {
+    scMultiData_dp <- scMultiData_dp[, as.character(Idents(scMultiData_dp)) %in% keep_ct]
+    Idents(scMultiData_dp) <- droplevels(Idents(scMultiData_dp))
+  }
+  feats <- adt_top_per_group(scMultiData_dp, celltype_col, n = 3L, min_cells = 30L)
+  message("ADT DotPlot by cell type: ", length(feats), " features (top 3 per type, dedup; ",
+          "of ", nrow(scMultiData_dp[["ADT"]]), " ADT features total)")
+  p <- DotPlot(scMultiData_dp, features = feats, assay = "ADT") +
     coord_flip() +
     scale_color_viridis_c(option = "D") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -152,3 +157,26 @@ if (!is.null(adt_counts_mat)) {
 ### QC
 
 `r format(n_adt, big.mark = ",")` ADT features, normalization: **`r adt_norm`**, mean `r mean_umi` UMI/cell, median `r median_umi` UMI/cell. Cell-type column: `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_none available_"`.
+
+```{r adt-norm-status, echo=FALSE, results='asis'}
+adtnorm_info <- scMultiData@misc$adtnorm
+if (!is.null(adtnorm_info) && adtnorm_info$method == "ADTnorm") {
+  n_failed <- length(adtnorm_info$failed_markers)
+  n_ok     <- adtnorm_info$n_ok
+  if (n_failed > 0L) {
+    cat(sprintf(
+      "\n**ADTnorm normalization status:** **%d / %d** markers were peak-aligned by ADTnorm. ",
+      n_ok, adtnorm_info$n_markers))
+    cat(sprintf(
+      "**%d** marker(s) failed (typically near-flat or zero-heavy distributions where ADTnorm's `lnsrch_morph` can't fit a peak) and **fell back to CLR for those rows only**: ",
+      n_failed))
+    cat(sprintf("`%s`\n\n", paste(adtnorm_info$failed_markers, collapse = "`, `")))
+    cat("Failed-marker rows in the DotPlots / FeaturePlots therefore use a different scale (CLR log-ratio) than the ADTnorm rows (0-1-2 landmark). Per-marker z-scoring in the DotPlots makes within-marker comparisons across cell types robust to the mixed scales.\n\n")
+  } else {
+    cat(sprintf("\n**ADTnorm normalization status:** all %d markers peak-aligned successfully.\n\n",
+                adtnorm_info$n_markers))
+  }
+} else if (!is.null(adtnorm_info) && adtnorm_info$method == "CLR") {
+  cat("\n**Normalization:** CLR was used for all markers (ADTnorm not requested or unavailable).\n\n")
+}
+```
