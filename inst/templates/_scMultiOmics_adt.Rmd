@@ -12,16 +12,25 @@ median_umi <- if (is.matrix(adt_counts_mat)) round(median(colSums(adt_counts_mat
 adt_norm <- if (!is.null(param$adtNorm)) param$adtNorm else "ADTnorm"
 
 # Top-N ADT per group, ordered for a clean diagonal after coord_flip.
-# (1) z-score mean expression per row → group-specific markers (not bright everywhere)
-# (2) per group take top n
-# (3) order final union by each marker's BEST group → diagonal pattern even when
+# (1) drop groups with < min_cells (rare Azimuth labels add noise + bloat)
+# (2) z-score mean expression per row → group-specific markers
+# (3) per group take top n
+# (4) order final union by each marker's BEST group → diagonal pattern even when
 #     groups share markers (e.g. CD3 across all T-cell subsets)
 # Isotype controls excluded.
-adt_top_per_group <- function(obj, group_col, n = 3L) {
+adt_top_per_group <- function(obj, group_col, n = 3L, min_cells = 30L) {
+  groups <- obj[[group_col, drop = TRUE]]
+  group_counts <- table(groups, useNA = "no")
+  keep <- names(group_counts)[group_counts >= min_cells]
+  if (length(keep) < 2L) keep <- names(group_counts)  # fallback
   avg <- Seurat::AverageExpression(obj, assays = "ADT", group.by = group_col,
                                    layer = "data", verbose = FALSE)$ADT
   # Seurat v5 may return a data.frame; coerce so t() / scale() work.
   avg <- as.matrix(avg)
+  # Seurat replaces underscores in idents with dashes for column names → match either.
+  keep_seurat <- gsub("_", "-", keep)
+  col_keep <- colnames(avg) %in% keep | colnames(avg) %in% keep_seurat
+  if (any(col_keep)) avg <- avg[, col_keep, drop = FALSE]
   avg <- avg[!grepl("(?i)isotype", rownames(avg)), , drop = FALSE]
   if (ncol(avg) < 2L || nrow(avg) == 0L) {
     return(rownames(avg)[seq_len(min(n, nrow(avg)))])
@@ -85,14 +94,16 @@ if (!is.null(cluster_col)) {
 
 ### DotPlot - by cell type
 
-DotPlot of normalized ADT signal (`r adt_norm`) — top 3 markers per cell type (z-scored across cell types; isotypes excluded). Grouped by `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_no annotation column_"`.
+DotPlot of normalized ADT signal (`r adt_norm`) — top 3 markers per cell type (z-scored; isotypes excluded; cell types with < 30 cells dropped to keep the panel readable). Grouped by `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_no annotation column_"`.
 
 ```{r adt-dotplot-celltype, echo=FALSE, fig.width=14, fig.height=16}
 if (!is.null(celltype_col)) {
   scMultiData_dp <- scMultiData
   Idents(scMultiData_dp) <- celltype_col
   DefaultAssay(scMultiData_dp) <- "ADT"
-  feats <- adt_top_per_group(scMultiData_dp, celltype_col, n = 3L)
+  feats <- adt_top_per_group(scMultiData_dp, celltype_col, n = 3L, min_cells = 30L)
+  message("ADT DotPlot by cell type: ", length(feats), " features (top 3 per type, dedup; ",
+          "of ", nrow(scMultiData_dp[["ADT"]]), " ADT features total)")
   p <- DotPlot(scMultiData_dp, features = feats, assay = "ADT") +
     coord_flip() +
     scale_color_viridis_c(option = "D") +
