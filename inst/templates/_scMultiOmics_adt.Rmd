@@ -19,14 +19,15 @@ adt_norm <- if (!is.null(param$adtNorm)) param$adtNorm else "ADTnorm"
 #     groups share markers (e.g. CD3 across all T-cell subsets)
 # Isotype controls excluded.
 adt_top_per_group <- function(obj, group_col, n = 3L, min_cells = 30L) {
-  groups <- obj[[group_col, drop = TRUE]]
+  # DotPlot's x-axis follows Idents() factor levels, which are NOT alphabetical
+  # when the column came from Seurat with custom levels (Azimuth's
+  # predicted.celltype.l2, scType, etc). Reading obj[[group_col, drop=TRUE]]
+  # gives a character column whose alphabetical sort disagrees with the x-axis,
+  # so best_group indices line up against the wrong columns and the diagonal
+  # ends up scrambled. Pull the canonical order from Idents() instead.
+  groups <- droplevels(Idents(obj))
   group_counts <- table(groups, useNA = "no")
-  # AverageExpression returns alphabetical columns regardless of factor levels;
-  # DotPlot's x-axis follows Idents() factor levels (often non-alphabetical from
-  # Azimuth / scType). Reorder avg to match the factor levels so best_group
-  # indices line up with the rendered x-axis -> diagonal forms correctly.
-  level_order <- if (is.factor(groups)) levels(groups)
-                 else sort(unique(as.character(groups)))
+  level_order <- levels(groups)
   keep <- intersect(level_order, names(group_counts)[group_counts >= min_cells])
   if (length(keep) < 2L) keep <- intersect(level_order, names(group_counts))
   avg <- Seurat::AverageExpression(obj, assays = "ADT", group.by = group_col,
@@ -220,20 +221,25 @@ adtCorrCorr <- data.frame()
 if (adtCorrAvail) {
   adtFeats <- rownames(scMultiData[["ADT"]])
   rnaFeats <- rownames(scMultiData[["RNA"]])
-  matchIdx <- match(sub("\\.\\d+$", "", adtFeats), rnaFeats)
-  fmap <- data.frame(
-    sourceFeature = adtFeats,
-    sourceDisplay = sub("\\.\\d+$", "", adtFeats),
-    rnaFeature    = rnaFeats[matchIdx],
-    stringsAsFactors = FALSE
-  )
-  fmap <- fmap[!is.na(fmap$rnaFeature) & !grepl("(?i)isotype", fmap$sourceFeature), , drop = FALSE]
+  # Curated lookup + regex fallbacks (BioLegend TotalSeq names rarely equal
+  # the gene symbol literally; the old `match(sub("\\.\\d+$", ""), ...)` rule
+  # missed ~80% of a 143-marker panel).
+  fmap <- ezRun::mapADTtoRNA(adtFeats, rnaFeats)
+  adtCorrUnmatched <- attr(fmap, "unmatched")
+  adtCorrMatchSummary <- if (nrow(fmap) > 0) table(fmap$matchSource) else integer(0)
+  fmap <- fmap[!grepl("(?i)isotype", fmap$sourceFeature), , drop = FALSE]
 
   if (nrow(fmap) > 0) {
     avgAdt <- as.matrix(Seurat::AverageExpression(scMultiData, assays = "ADT",
                           group.by = adtCorrGroupCol, layer = "data", verbose = FALSE)$ADT)
     avgRna <- as.matrix(Seurat::AverageExpression(scMultiData, assays = "RNA",
                           group.by = adtCorrGroupCol, layer = "data", verbose = FALSE)$RNA)
+    # Seurat::AverageExpression() prefixes numeric ident column names with
+    # "g" to keep them valid R variable names (cluster "0" -> "g0"). Strip
+    # it back so plot facets / x-axes show the original cluster IDs.
+    strip_g <- function(x) ifelse(grepl("^g[0-9]+$", x), sub("^g", "", x), x)
+    colnames(avgAdt) <- strip_g(colnames(avgAdt))
+    colnames(avgRna) <- strip_g(colnames(avgRna))
     grps <- colnames(avgAdt)
     adtCorrPseudobulk <- dplyr::bind_rows(lapply(seq_len(nrow(fmap)), function(i) {
       sf <- fmap$sourceFeature[i]; sd <- fmap$sourceDisplay[i]; rf <- fmap$rnaFeature[i]
@@ -261,6 +267,19 @@ if (adtCorrAvail) {
 ```
 
 #### Multimodal Correlation overview
+
+```{r adt-corr-match-summary, echo=FALSE, results='asis'}
+if (adtCorrAvail) {
+  n_in <- length(adtFeats)
+  n_match <- if (length(adtCorrMatchSummary) > 0) sum(adtCorrMatchSummary) else 0L
+  by_src <- if (length(adtCorrMatchSummary) > 0)
+    paste(sprintf("%s: %d", names(adtCorrMatchSummary), as.integer(adtCorrMatchSummary)),
+          collapse = ", ") else "none"
+  cat(sprintf(
+    "**ADT ↔ RNA matching:** %d / %d markers resolved (%s). Isotypes are excluded from correlations.\n\n",
+    n_match, n_in, by_src))
+}
+```
 
 ```{r adt-corr-overview-barplot, echo=FALSE, fig.width=10, fig.height=6}
 if (!adtCorrAvail || nrow(adtCorrCorr) == 0) {
@@ -394,5 +413,17 @@ if (!is.null(adtnorm_info) && adtnorm_info$method == "ADTnorm") {
   }
 } else if (!is.null(adtnorm_info) && adtnorm_info$method == "CLR") {
   cat("\n**Normalization:** CLR was used for all markers (ADTnorm not requested or unavailable).\n\n")
+}
+```
+
+```{r adt-corr-unmatched, echo=FALSE, results='asis'}
+if (exists("adtCorrUnmatched") && length(adtCorrUnmatched) > 0) {
+  not_iso <- adtCorrUnmatched[!grepl("(?i)isotype", adtCorrUnmatched)]
+  if (length(not_iso) > 0) {
+    cat(sprintf(
+      "\n**ADT ↔ RNA matcher unmatched (excluding isotypes):** %d marker(s) had no curated lookup entry, no literal gene-symbol match, and no parenthesized-payload regex hit. Add a row to `inst/extdata/adt_to_gene_lookup.tsv` if you know the canonical gene symbol:\n\n",
+      length(not_iso)))
+    cat(sprintf("`%s`\n\n", paste(not_iso, collapse = "`, `")))
+  }
 }
 ```
