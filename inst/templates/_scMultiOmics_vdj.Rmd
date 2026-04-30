@@ -99,6 +99,37 @@ if (!is.null(celltype_col)) {
 }
 ```
 
+#### Clonal overlap by cluster
+
+Pairwise Morisita-Horn overlap between clusters (accounts for clone abundance, not just presence/absence). Higher = more shared clones.
+
+```{r vdj-overlap-cluster, echo=FALSE, fig.width=10, fig.height=9}
+if (!is.null(cluster_col)) {
+  safe_print(recolor = FALSE,
+             bquote(clonalOverlap(scMultiData, cloneCall = "strict",
+                                  method = "morisita",
+                                  group.by = .(cluster_col),
+                                  order.by = .(cluster_levels)) +
+                    theme(axis.text.x = element_text(angle = 45, hjust = 1))))
+}
+```
+
+#### Clonal overlap by cell type
+
+Pairwise Morisita-Horn overlap between cell types.
+
+```{r vdj-overlap-celltype, echo=FALSE, fig.width=12, fig.height=10}
+if (!is.null(celltype_col)) {
+  safe_print(recolor = FALSE,
+             bquote(clonalOverlap(scMultiData, cloneCall = "strict",
+                                  method = "morisita",
+                                  group.by = .(celltype_col)) +
+                    theme(axis.text.x = element_text(angle = 45, hjust = 1))))
+} else {
+  cat("No cell-type annotation column on the object.\n")
+}
+```
+
 ### Repertoire statistics {.tabset}
 
 #### clonalQuant
