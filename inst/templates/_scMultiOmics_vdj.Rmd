@@ -146,23 +146,25 @@ if ("CTstrict" %in% colnames(scMultiData@meta.data)) {
   ct_counts <- sort(table(scMultiData$CTstrict), decreasing = TRUE)
   top3 <- names(ct_counts)[seq_len(min(3L, length(ct_counts)))]
   if (length(top3) > 0) {
+    emb <- as.data.frame(Embeddings(scMultiData, rna_umap))
+    xcol <- colnames(emb)[1]; ycol <- colnames(emb)[2]
     plots <- lapply(seq_along(top3), function(i) {
       key <- top3[i]
-      col_name <- paste0(".tmp_top_clone_", i)
-      hl <- ifelse(!is.na(scMultiData$CTstrict) & scMultiData$CTstrict == key,
-                   "in clone", "other")
-      scMultiData[[col_name]] <- factor(hl, levels = c("in clone", "other"))
       cdr3 <- scMultiData$CTaa[scMultiData$CTstrict == key &
                                !is.na(scMultiData$CTstrict)][1]
       cdr3_short <- if (is.na(cdr3)) "" else
                     paste0("\n", substr(cdr3, 1, 35),
                            if (nchar(cdr3) > 35) "..." else "")
-      DimPlot(scMultiData, group.by = col_name, reduction = rna_umap,
-              order = TRUE, cols = c("in clone" = "#E45358",
-                                     "other"     = "grey85"),
-              raster = FALSE, pt.size = 0.6) +
-        theme(aspect.ratio = 1) +
-        NoLegend() +
+      in_clone <- !is.na(scMultiData$CTstrict) & scMultiData$CTstrict == key
+      df_bg <- emb[!in_clone, ]
+      df_fg <- emb[in_clone, ]
+      ggplot() +
+        geom_point(data = df_bg, aes(.data[[xcol]], .data[[ycol]]),
+                   color = "grey85", size = 0.4, alpha = 0.6) +
+        geom_point(data = df_fg, aes(.data[[xcol]], .data[[ycol]]),
+                   color = "#E45358", size = 1.6) +
+        theme_classic() +
+        theme(aspect.ratio = 1, panel.grid = element_blank()) +
         ggtitle(sprintf("Clone %d (%d cells)%s", i, ct_counts[key], cdr3_short))
     })
     print(patchwork::wrap_plots(plots, ncol = 3))
