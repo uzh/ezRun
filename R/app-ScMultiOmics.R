@@ -127,11 +127,18 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
 
   ## 3. Detect modalities -----------------------------------------------------
   if (isBD) {
-    mod <- list(hasRNA  = TRUE,
-                hasADT  = "ADT" %in% Seurat::Assays(obj),
-                hasVDJ_T = "VDJTPath" %in% input$colNames,
-                hasVDJ_B = "VDJBPath" %in% input$colNames,
-                hasATAC  = FALSE)
+    bd_assays <- Seurat::Assays(obj)
+    bd_meta_cols <- colnames(obj@meta.data)
+    # BD encodes VDJ as wide metadata columns on the prebuilt Seurat object
+    # (BCR_Heavy_*_Dominant, TCR_Alpha_Gamma_*_Dominant, ...). Detect either
+    # chain family by looking for a CDR3 nucleotide column.
+    bdHasTCR <- any(grepl("^TCR_.*_CDR3_Nucleotide_Dominant$", bd_meta_cols))
+    bdHasBCR <- any(grepl("^BCR_.*_CDR3_Nucleotide_Dominant$", bd_meta_cols))
+    mod <- list(hasRNA   = "RNA" %in% bd_assays,
+                hasADT   = "ADT" %in% bd_assays,
+                hasVDJ_T = bdHasTCR,
+                hasVDJ_B = bdHasBCR,
+                hasATAC  = any(c("ATAC", "peaks") %in% bd_assays))
   } else {
     mod <- detectModalities(countMatrixPath)
   }
@@ -154,7 +161,8 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
       message("Adding ADT assay: ", nrow(adt), " features x ", ncol(adt), " cells.")
       obj <- processADT(obj, adt,
                         normMethod = param$adtNorm %||% "ADTnorm",
-                        npcs = param$npcsADT %||% 18)
+                        npcs = param$npcsADT %||% 18,
+                        cores = max(1L, as.integer(param$cores %||% 4L)))
     } else {
       warning("hasADT was TRUE but readADTCounts returned no data; skipping.")
       mod$hasADT <- FALSE
@@ -206,29 +214,50 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
   if (wantVDJ_T || wantVDJ_B) {
     # Standalone-VDJ columns take priority over auto-discovery.
     vdjTPath <- NULL; vdjBPath <- NULL
-    if (wantVDJ_T) {
-      vdjTPath <- if ("VDJTPath" %in% input$colNames &&
-                      nzchar(input$getColumn("VDJTPath")[[1]]))
-        input$getFullPaths("VDJTPath") else
-        findVDJContigCsv(countMatrixPath, "T")
-      if (is.character(vdjTPath) && length(vdjTPath) > 0 && dir.exists(vdjTPath)) {
-        vdjTPath <- file.path(vdjTPath, "filtered_contig_annotations.csv")
+    contigsT <- NULL; contigsB <- NULL
+    if (isBD) {
+      # BD ships an AIRR contig table; scRepertoire's BD format reader
+      # parses it once; we filter to T/B and feed processVDJ() pre-loaded
+      # data frames.
+      bdContigs <- loadBDContigs(bd_root)
+      contigsT <- if (wantVDJ_T) bdContigs$T else NULL
+      contigsB <- if (wantVDJ_B) bdContigs$B else NULL
+      if (wantVDJ_T && (is.null(contigsT) || nrow(contigsT) == 0)) {
+        mod$hasVDJ_T <- FALSE; wantVDJ_T <- FALSE
+      }
+      if (wantVDJ_B && (is.null(contigsB) || nrow(contigsB) == 0)) {
+        mod$hasVDJ_B <- FALSE; wantVDJ_B <- FALSE
+      }
+    } else {
+      if (wantVDJ_T) {
+        vdjTPath <- if ("VDJTPath" %in% input$colNames &&
+                        nzchar(input$getColumn("VDJTPath")[[1]]))
+          input$getFullPaths("VDJTPath") else
+          findVDJContigCsv(countMatrixPath, "T")
+        if (is.character(vdjTPath) && length(vdjTPath) > 0 && dir.exists(vdjTPath)) {
+          vdjTPath <- file.path(vdjTPath, "filtered_contig_annotations.csv")
+        }
+      }
+      if (wantVDJ_B) {
+        vdjBPath <- if ("VDJBPath" %in% input$colNames &&
+                        nzchar(input$getColumn("VDJBPath")[[1]]))
+          input$getFullPaths("VDJBPath") else
+          findVDJContigCsv(countMatrixPath, "B")
+        if (is.character(vdjBPath) && length(vdjBPath) > 0 && dir.exists(vdjBPath)) {
+          vdjBPath <- file.path(vdjBPath, "filtered_contig_annotations.csv")
+        }
       }
     }
-    if (wantVDJ_B) {
-      vdjBPath <- if ("VDJBPath" %in% input$colNames &&
-                      nzchar(input$getColumn("VDJBPath")[[1]]))
-        input$getFullPaths("VDJBPath") else
-        findVDJContigCsv(countMatrixPath, "B")
-      if (is.character(vdjBPath) && length(vdjBPath) > 0 && dir.exists(vdjBPath)) {
-        vdjBPath <- file.path(vdjBPath, "filtered_contig_annotations.csv")
-      }
-    }
+    src_T <- if (!is.null(contigsT)) sprintf("BD AIRR (%d contigs)", nrow(contigsT))
+             else if (!is.null(vdjTPath)) basename(vdjTPath) else NULL
+    src_B <- if (!is.null(contigsB)) sprintf("BD AIRR (%d contigs)", nrow(contigsB))
+             else if (!is.null(vdjBPath)) basename(vdjBPath) else NULL
     message("Attaching VDJ clones: ",
-            if (wantVDJ_T) paste("T (", basename(vdjTPath), ")", sep = "") else "",
+            if (wantVDJ_T && !is.null(src_T)) paste0("T(", src_T, ")") else "",
             if (wantVDJ_T && wantVDJ_B) " + " else "",
-            if (wantVDJ_B) paste("B (", basename(vdjBPath), ")", sep = "") else "")
+            if (wantVDJ_B && !is.null(src_B)) paste0("B(", src_B, ")") else "")
     obj <- processVDJ(obj, vdjTPath = vdjTPath, vdjBPath = vdjBPath,
+                      contigsT = contigsT, contigsB = contigsB,
                       sampleName = sampleName)
     # Persist the raw clones list as TSV alongside the report
     cb <- attr(obj, "vdjCombined")
