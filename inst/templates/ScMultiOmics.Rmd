@@ -44,6 +44,28 @@ sample_name <- if ("Sample" %in% colnames(scMultiData@meta.data)) {
   unique(scMultiData$Sample)[1]
 } else "sample"
 
+# Canonical cluster palette + numeric ordering, shared across all child tabs
+# so DimPlots / DotPlots / scRepertoire bar plots use consistent colors and
+# numeric x-axis order (0, 1, 2, ..., 10, 11) instead of character-sort.
+cluster_levels <- if (!is.null(cluster_col) &&
+                      !is.null(scMultiData@meta.data[[cluster_col]])) {
+  lvls <- levels(as.factor(scMultiData@meta.data[[cluster_col]]))
+  num  <- suppressWarnings(as.integer(lvls))
+  if (all(!is.na(num))) as.character(sort(num)) else lvls
+} else NULL
+cluster_pal <- if (!is.null(cluster_levels)) {
+  setNames(unname(pals::polychrome())[seq_along(cluster_levels)], cluster_levels)
+} else unname(pals::polychrome())
+# Force the cluster column to the numeric-sorted factor so every chunk
+# (including scRepertoire functions that read group.by directly) sees the
+# right order.
+if (!is.null(cluster_col) && !is.null(cluster_levels) &&
+    is.factor(scMultiData@meta.data[[cluster_col]])) {
+  scMultiData@meta.data[[cluster_col]] <- factor(
+    as.character(scMultiData@meta.data[[cluster_col]]),
+    levels = cluster_levels)
+}
+
 # Build exploreSC URL once so child Rmds don't have to re-discover the path.
 explore_url <- NULL
 if (!is.null(output) && "Report" %in% output$colNames) {

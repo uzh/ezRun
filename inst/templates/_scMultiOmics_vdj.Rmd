@@ -15,15 +15,19 @@ pct_recovery <- round(100 * n_with_clone / n_total, 1)
 
 group_for_clonal <- cluster_col %||% "Sample"
 
-# Match the seurat_clusters fill palette to the RNA / ADT / WNN tabs so
-# users can read clusters consistently across the report.
-group_levels <- if (!is.null(scMultiData@meta.data[[group_for_clonal]])) {
+# Reuse the canonical cluster palette / numeric ordering from the parent Rmd.
+# When VDJ is grouped by something other than cluster_col (e.g. "Sample"),
+# fall back to a fresh polychrome and the alphabetical level order.
+if (identical(group_for_clonal, cluster_col) && !is.null(cluster_levels)) {
+  group_levels <- cluster_levels
+} else {
   lvls <- levels(as.factor(scMultiData@meta.data[[group_for_clonal]]))
-  if (all(!is.na(suppressWarnings(as.integer(lvls))))) {
-    as.character(sort(as.integer(lvls)))
-  } else lvls
-} else NULL
-cluster_pal <- if (!is.null(group_levels)) {
+  num  <- suppressWarnings(as.integer(lvls))
+  group_levels <- if (all(!is.na(num))) as.character(sort(num)) else lvls
+}
+group_pal <- if (identical(group_for_clonal, cluster_col) && !is.null(cluster_pal)) {
+  cluster_pal
+} else if (!is.null(group_levels)) {
   setNames(unname(pals::polychrome())[seq_along(group_levels)], group_levels)
 } else NULL
 
@@ -34,9 +38,9 @@ safe_print <- function(..., recolor = TRUE) {
     message("Plot skipped: ", conditionMessage(e)); NULL
   })
   if (!is.null(p)) {
-    if (isTRUE(recolor) && !is.null(cluster_pal) && inherits(p, "ggplot")) {
-      p <- p + scale_fill_manual(values = cluster_pal, drop = FALSE,
-                                 limits = names(cluster_pal))
+    if (isTRUE(recolor) && !is.null(group_pal) && inherits(p, "ggplot")) {
+      p <- p + scale_fill_manual(values = group_pal, drop = FALSE,
+                                 limits = names(group_pal))
     }
     print(p)
   }
@@ -101,7 +105,8 @@ if (!is.null(celltype_col)) {
 
 ```{r vdj-quant, echo=FALSE, fig.width=8, fig.height=5}
 safe_print(bquote(clonalQuant(scMultiData, cloneCall = "strict", chain = "both",
-                              scale = TRUE, group.by = .(group_for_clonal))))
+                              scale = TRUE, group.by = .(group_for_clonal),
+                              order.by = .(group_levels))))
 ```
 
 #### clonalHomeostasis
@@ -111,7 +116,8 @@ safe_print(bquote(clonalQuant(scMultiData, cloneCall = "strict", chain = "both",
 # NOT by cluster - skip the polychrome recolor.
 safe_print(recolor = FALSE,
            bquote(clonalHomeostasis(scMultiData, cloneCall = "strict",
-                                    group.by = .(group_for_clonal))))
+                                    group.by = .(group_for_clonal),
+                                    order.by = .(group_levels))))
 ```
 
 #### clonalProportion
@@ -121,7 +127,8 @@ safe_print(recolor = FALSE,
 # NOT by cluster - skip the polychrome recolor.
 safe_print(recolor = FALSE,
            bquote(clonalProportion(scMultiData, cloneCall = "strict",
-                                   group.by = .(group_for_clonal))))
+                                   group.by = .(group_for_clonal),
+                                   order.by = .(group_levels))))
 ```
 
 #### clonalDiversity
@@ -129,6 +136,7 @@ safe_print(recolor = FALSE,
 ```{r vdj-diversity, echo=FALSE, fig.width=10, fig.height=5}
 safe_print(bquote(clonalDiversity(scMultiData, cloneCall = "strict",
                                   group.by = .(group_for_clonal),
+                                  order.by = .(group_levels),
                                   metrics = c("shannon", "inv.simpson", "norm.entropy"))))
 ```
 
@@ -136,7 +144,8 @@ safe_print(bquote(clonalDiversity(scMultiData, cloneCall = "strict",
 
 ```{r vdj-aa-length, echo=FALSE, fig.width=9, fig.height=5}
 safe_print(bquote(clonalLength(scMultiData, cloneCall = "aa", chain = "both",
-                               scale = TRUE, group.by = .(group_for_clonal))))
+                               scale = TRUE, group.by = .(group_for_clonal),
+                               order.by = .(group_levels))))
 ```
 
 ### Top 3 clones on UMAP

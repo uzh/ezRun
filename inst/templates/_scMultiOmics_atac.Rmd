@@ -31,7 +31,7 @@ if ("atac.umap" %in% names(scMultiData@reductions) && !is.null(cluster_col)) {
   plots[["clusters"]] <- DimPlot(scMultiData, reduction = "atac.umap",
                                  group.by = cluster_col, raster = FALSE,
                                  label = TRUE, repel = TRUE, order = TRUE,
-                                 cols = unname(pals::polychrome())) +
+                                 cols = cluster_pal) +
     theme(aspect.ratio = 1) + ggtitle(paste0("ATAC UMAP - clusters (", cluster_col, ")"))
 }
 if ("atac.umap" %in% names(scMultiData@reductions) && !is.null(celltype_col)) {
