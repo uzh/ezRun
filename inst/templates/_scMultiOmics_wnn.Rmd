@@ -130,6 +130,221 @@ if (length(weight_cols) > 0 && "wnn.umap" %in% names(scMultiData@reductions)) {
 }
 ```
 
+
+### Modality correlation {.tabset}
+
+```{r wnn-corr-prep, include=FALSE}
+.wnn_make_group_palette <- function(groups) {
+  lvls <- unique(groups)
+  if (all(!is.na(suppressWarnings(as.integer(lvls))))) lvls <- as.character(sort(as.integer(lvls)))
+  else lvls <- sort(lvls)
+  setNames(unname(pals::polychrome())[seq_along(lvls)], lvls)
+}
+
+.wnn_format_p <- function(p) {
+  if (is.na(p)) "NA" else if (p < 0.001) "< 0.001" else sprintf("= %.3f", p)
+}
+
+.wnn_plot_stats <- function(data) {
+  dplyr::bind_rows(lapply(split(data, data$plotFeature), function(df) {
+    x <- df$rnaMean; y <- df$sourceMean
+    keep <- is.finite(x) & is.finite(y); x <- x[keep]; y <- y[keep]
+    if (length(x) < 3 || length(unique(x)) < 2 || length(unique(y)) < 2) {
+      rho <- pv <- r2 <- NA_real_
+    } else {
+      ct <- suppressWarnings(cor.test(x, y, method = "spearman", exact = FALSE))
+      rho <- unname(ct$estimate); pv <- ct$p.value; r2 <- summary(lm(y ~ x))$r.squared
+    }
+    data.frame(plotFeature = df$plotFeature[1],
+               statLabel = paste0("rho = ", ifelse(is.na(rho), "NA", sprintf("%.2f", rho)),
+                                  "\np ", .wnn_format_p(pv),
+                                  "\nR^2 = ", ifelse(is.na(r2), "NA", sprintf("%.2f", r2))),
+               stringsAsFactors = FALSE)
+  }))
+}
+
+.wnn_pair_scatter <- function(plotData, yLabel, ncol = 5, statSide = "left", aspectRatio = NULL) {
+  pal <- .wnn_make_group_palette(plotData$group)
+  plotData$group <- factor(plotData$group, levels = names(pal))
+  facetLevels <- if (is.factor(plotData$plotFeature)) levels(plotData$plotFeature) else unique(plotData$plotFeature)
+  plotData$plotFeature <- factor(plotData$plotFeature, levels = facetLevels)
+  stats <- .wnn_plot_stats(plotData)
+  stats$plotFeature <- factor(stats$plotFeature, levels = facetLevels)
+  statX <- if (identical(statSide, "right")) Inf else -Inf
+  statH <- if (identical(statSide, "right")) 1.05 else -0.05
+  p <- ggplot(plotData, aes(x = rnaMean, y = sourceMean)) +
+    geom_smooth(method = "lm", se = FALSE, color = "grey35", linewidth = 0.4) +
+    geom_point(aes(color = group), size = 1.8) +
+    geom_text(data = stats, aes(label = statLabel),
+              x = statX, y = Inf, hjust = statH, vjust = 1.1, size = 2.7, inherit.aes = FALSE) +
+    facet_wrap(~ plotFeature, scales = "free", ncol = ncol) +
+    scale_color_manual(values = pal, drop = FALSE) +
+    guides(color = guide_legend(nrow = 2, byrow = TRUE)) +
+    labs(x = "Mean RNA expression", y = yLabel, color = "Cluster") +
+    theme_bw() + theme(legend.position = "top")
+  if (!is.null(aspectRatio)) p <- p + theme(aspect.ratio = aspectRatio)
+  p
+}
+
+wnnCorrGroupCol <- if (!is.null(wnn_cluster_col) && wnn_cluster_col %in% colnames(scMultiData@meta.data)) wnn_cluster_col else NULL
+wnnCorrAvail <- "GeneActivity" %in% Seurat::Assays(scMultiData) &&
+                "RNA" %in% Seurat::Assays(scMultiData) &&
+                !is.null(wnnCorrGroupCol)
+wnnCorrPseudobulk <- data.frame()
+wnnCorrCorr <- data.frame()
+wnnGlobalPseudobulk <- data.frame()
+
+if (wnnCorrAvail) {
+  gaFeats <- rownames(scMultiData[["GeneActivity"]])
+  rnaFeats <- rownames(scMultiData[["RNA"]])
+  matchIdx <- match(gaFeats, rnaFeats)
+  fmap <- data.frame(
+    sourceFeature = gaFeats,
+    sourceDisplay = gaFeats,
+    rnaFeature    = rnaFeats[matchIdx],
+    stringsAsFactors = FALSE
+  )
+  fmap <- fmap[!is.na(fmap$rnaFeature), , drop = FALSE]
+
+  if (nrow(fmap) > 0) {
+    avgGa <- as.matrix(Seurat::AverageExpression(scMultiData, assays = "GeneActivity",
+                          group.by = wnnCorrGroupCol, layer = "data", verbose = FALSE)$GeneActivity)
+    avgRna <- as.matrix(Seurat::AverageExpression(scMultiData, assays = "RNA",
+                          group.by = wnnCorrGroupCol, layer = "data", verbose = FALSE)$RNA)
+    grps <- colnames(avgGa)
+    wnnCorrPseudobulk <- dplyr::bind_rows(lapply(seq_len(nrow(fmap)), function(i) {
+      sf <- fmap$sourceFeature[i]; sd <- fmap$sourceDisplay[i]; rf <- fmap$rnaFeature[i]
+      data.frame(sourceFeature = sf, sourceDisplay = sd, rnaFeature = rf, group = grps,
+                 sourceMean = if (sf %in% rownames(avgGa)) avgGa[sf, ] else NA_real_,
+                 rnaMean    = if (rf %in% rownames(avgRna)) avgRna[rf, ] else NA_real_,
+                 stringsAsFactors = FALSE)
+    }))
+    wnnGlobalPseudobulk <- wnnCorrPseudobulk
+    wnnCorrCorr <- dplyr::bind_rows(lapply(
+      split(wnnCorrPseudobulk, paste(wnnCorrPseudobulk$sourceFeature, wnnCorrPseudobulk$rnaFeature)),
+      function(df) {
+        x <- df$rnaMean; y <- df$sourceMean
+        keep <- is.finite(x) & is.finite(y); x <- x[keep]; y <- y[keep]
+        rho <- if (length(x) >= 3 && length(unique(x)) > 1 && length(unique(y)) > 1)
+          suppressWarnings(stats::cor(x, y, method = "spearman")) else NA_real_
+        data.frame(sourceFeature = df$sourceFeature[1], sourceDisplay = df$sourceDisplay[1],
+                   rnaFeature = df$rnaFeature[1], spearmanPseudobulk = rho,
+                   stringsAsFactors = FALSE)
+      }
+    ))
+  } else {
+    wnnCorrAvail <- FALSE
+  }
+}
+```
+
+#### Multimodal Correlation overview
+
+```{r wnn-corr-overview-barplot, echo=FALSE, fig.width=10, fig.height=6}
+if (!wnnCorrAvail || nrow(wnnCorrCorr) == 0) {
+  cat("No ATAC/RNA correlations available.\n")
+} else {
+  pd <- wnnCorrCorr[!is.na(wnnCorrCorr$spearmanPseudobulk), ]
+  topC <- pd[order(pd$spearmanPseudobulk, decreasing = TRUE)[seq_len(min(20L, nrow(pd)))], ]
+  topD <- pd[order(pd$spearmanPseudobulk)[seq_len(min(20L, nrow(pd)))], ]
+  topData <- unique(rbind(topC, topD))
+  print(ggplot(topData, aes(x = reorder(sourceDisplay, spearmanPseudobulk), y = spearmanPseudobulk)) +
+    geom_col(fill = "#2C7FB8") +
+    coord_flip() +
+    labs(x = NULL, y = "Pseudobulk Spearman ρ") +
+    theme_bw())
+}
+```
+
+```{r wnn-corr-overview-density, echo=FALSE, fig.width=7.2, fig.height=4.8}
+if (wnnCorrAvail && nrow(wnnGlobalPseudobulk) > 0) {
+  pd <- wnnGlobalPseudobulk
+  pd$logRna <- log1p(pd$rnaMean)
+  pd$logSrc <- log1p(pd$sourceMean)
+  pd <- pd[!(pd$logRna == 0 & pd$logSrc == 0) & is.finite(pd$logRna) & is.finite(pd$logSrc), ]
+  if (nrow(pd) > 0) {
+    x <- pd$logRna; y <- pd$logSrc
+    ct <- suppressWarnings(cor.test(x, y, method = "spearman", exact = FALSE))
+    r2 <- summary(lm(y ~ x))$r.squared
+    statLbl <- paste0("rho = ", sprintf("%.2f", unname(ct$estimate)),
+                      "\np ", .wnn_format_p(ct$p.value),
+                      "\nR^2 = ", sprintf("%.2f", r2))
+    print(ggplot(pd, aes(x = logRna, y = logSrc)) +
+      geom_bin2d(bins = 85) +
+      scale_fill_viridis_c(option = "C", trans = "log10") +
+      geom_smooth(color = "black", method = "lm", se = FALSE, linewidth = 0.5) +
+      annotate("text", x = Inf, y = -Inf, label = statLbl,
+               hjust = 1.05, vjust = -0.1, size = 3) +
+      labs(x = "log1p mean RNA expression", y = "log1p mean GeneActivity signal",
+           fill = "Point density") +
+      theme_bw() + theme(legend.position = "bottom"))
+  }
+}
+```
+
+```{r wnn-corr-overview-table, echo=FALSE}
+if (wnnCorrAvail && nrow(wnnCorrCorr) > 0) {
+  td <- wnnCorrCorr[order(abs(wnnCorrCorr$spearmanPseudobulk), decreasing = TRUE, na.last = TRUE), ]
+  td$spearmanPseudobulk <- round(td$spearmanPseudobulk, 3)
+  DT::datatable(td, rownames = FALSE, filter = "top", extensions = "Buttons",
+                options = list(dom = "Bfrtip", buttons = c("copy", "csv", "excel"), pageLength = 25))
+}
+```
+
+#### Top concordant markers
+
+```{r wnn-corr-concordant-scatter, echo=FALSE, fig.width=12, fig.height=8}
+if (!wnnCorrAvail || nrow(wnnCorrCorr) == 0) {
+  cat("No ATAC/RNA correlations available.\n")
+} else {
+  topPairs <- wnnCorrCorr[!is.na(wnnCorrCorr$spearmanPseudobulk), ]
+  topPairs <- head(topPairs[order(topPairs$spearmanPseudobulk, decreasing = TRUE), ], 10L)
+  pd <- wnnCorrPseudobulk[
+    paste(wnnCorrPseudobulk$sourceFeature, wnnCorrPseudobulk$rnaFeature) %in%
+    paste(topPairs$sourceFeature, topPairs$rnaFeature), ]
+  pd$plotFeature <- factor(pd$sourceDisplay, levels = unique(topPairs$sourceDisplay))
+  if (nrow(pd) > 0) print(.wnn_pair_scatter(pd, "Mean GeneActivity signal", ncol = 5, statSide = "left", aspectRatio = 1))
+}
+```
+
+```{r wnn-corr-concordant-table, echo=FALSE}
+if (wnnCorrAvail && nrow(wnnCorrCorr) > 0) {
+  td <- wnnCorrCorr[!is.na(wnnCorrCorr$spearmanPseudobulk), ]
+  td <- head(td[order(td$spearmanPseudobulk, decreasing = TRUE), ], 10L)
+  td$spearmanPseudobulk <- round(td$spearmanPseudobulk, 3)
+  DT::datatable(td, rownames = FALSE, filter = "top", extensions = "Buttons",
+                options = list(dom = "Bfrtip", buttons = c("copy", "csv", "excel"), pageLength = 10))
+}
+```
+
+#### Top discordant markers
+
+```{r wnn-corr-discordant-scatter, echo=FALSE, fig.width=12, fig.height=8}
+if (!wnnCorrAvail || nrow(wnnCorrCorr) == 0) {
+  cat("No ATAC/RNA correlations available.\n")
+} else {
+  topPairs <- wnnCorrCorr[!is.na(wnnCorrCorr$spearmanPseudobulk), ]
+  topPairs <- head(topPairs[order(topPairs$spearmanPseudobulk), ], 10L)
+  pd <- wnnCorrPseudobulk[
+    paste(wnnCorrPseudobulk$sourceFeature, wnnCorrPseudobulk$rnaFeature) %in%
+    paste(topPairs$sourceFeature, topPairs$rnaFeature), ]
+  pd$plotFeature <- factor(pd$sourceDisplay, levels = unique(topPairs$sourceDisplay))
+  if (nrow(pd) > 0) print(.wnn_pair_scatter(pd, "Mean GeneActivity signal", ncol = 5, statSide = "right", aspectRatio = 1))
+}
+```
+
+```{r wnn-corr-discordant-table, echo=FALSE}
+if (wnnCorrAvail && nrow(wnnCorrCorr) > 0) {
+  td <- wnnCorrCorr[!is.na(wnnCorrCorr$spearmanPseudobulk), ]
+  td <- head(td[order(td$spearmanPseudobulk), ], 10L)
+  td$spearmanPseudobulk <- round(td$spearmanPseudobulk, 3)
+  DT::datatable(td, rownames = FALSE, filter = "top", extensions = "Buttons",
+                options = list(dom = "Bfrtip", buttons = c("copy", "csv", "excel"),
+                               pageLength = 10, ordering = FALSE))
+}
+```
+
+
 ### Summary
 
 Integrated reductions: **`r paste(red_used, collapse = ", ")`**. Resolution: **`r wnn_resolution`**. Cluster column: **`r wnn_cluster_col`**.
