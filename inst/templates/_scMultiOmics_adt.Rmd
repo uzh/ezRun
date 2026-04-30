@@ -1,0 +1,429 @@
+## ADT {.tabset}
+
+```{r adt-prep, include=FALSE}
+n_adt   <- nrow(scMultiData[["ADT"]])
+adt_features <- rownames(scMultiData[["ADT"]])
+adt_counts_mat <- tryCatch(
+  as.matrix(GetAssayData(scMultiData, assay = "ADT", layer = "counts")),
+  error = function(e) NULL
+)
+mean_umi   <- if (is.matrix(adt_counts_mat)) round(mean(colSums(adt_counts_mat)), 1) else NA
+median_umi <- if (is.matrix(adt_counts_mat)) round(median(colSums(adt_counts_mat)), 1) else NA
+adt_norm <- if (!is.null(param$adtNorm)) param$adtNorm else "ADTnorm"
+
+# Top-N ADT per group, ordered for a clean diagonal after coord_flip.
+# (1) drop groups with < min_cells (rare Azimuth labels add noise + bloat)
+# (2) z-score mean expression per row → group-specific markers
+# (3) per group take top n
+# (4) order final union by each marker's BEST group → diagonal pattern even when
+#     groups share markers (e.g. CD3 across all T-cell subsets)
+# Isotype controls excluded.
+adt_top_per_group <- function(obj, group_col, n = 3L, min_cells = 30L) {
+  # DotPlot's x-axis follows Idents() factor levels, which are NOT alphabetical
+  # when the column came from Seurat with custom levels (Azimuth's
+  # predicted.celltype.l2, scType, etc). Reading obj[[group_col, drop=TRUE]]
+  # gives a character column whose alphabetical sort disagrees with the x-axis,
+  # so best_group indices line up against the wrong columns and the diagonal
+  # ends up scrambled. Pull the canonical order from Idents() instead.
+  groups <- droplevels(Idents(obj))
+  group_counts <- table(groups, useNA = "no")
+  level_order <- levels(groups)
+  keep <- intersect(level_order, names(group_counts)[group_counts >= min_cells])
+  if (length(keep) < 2L) keep <- intersect(level_order, names(group_counts))
+  avg <- Seurat::AverageExpression(obj, assays = "ADT", group.by = group_col,
+                                   layer = "data", verbose = FALSE)$ADT
+  # Seurat v5 may return a data.frame; coerce so t() / scale() work.
+  avg <- as.matrix(avg)
+  # Seurat replaces underscores in idents with dashes for column names -> match either.
+  keep_seurat <- gsub("_", "-", keep)
+  reorder_idx <- match(keep, colnames(avg))
+  na_idx <- is.na(reorder_idx)
+  if (any(na_idx)) reorder_idx[na_idx] <- match(keep_seurat[na_idx], colnames(avg))
+  reorder_idx <- reorder_idx[!is.na(reorder_idx)]
+  if (length(reorder_idx) > 0L) avg <- avg[, reorder_idx, drop = FALSE]
+  avg <- avg[!grepl("(?i)isotype", rownames(avg)), , drop = FALSE]
+  if (ncol(avg) < 2L || nrow(avg) == 0L) {
+    return(rownames(avg)[seq_len(min(n, nrow(avg)))])
+  }
+  z <- t(scale(t(avg)))
+  z[!is.finite(z)] <- 0
+  picked <- unique(unlist(lapply(seq_len(ncol(z)), function(j) {
+    names(sort(z[, j], decreasing = TRUE))[seq_len(min(n, nrow(z)))]
+  })))
+  z_pick <- z[picked, , drop = FALSE]
+  best_group <- apply(z_pick, 1, which.max)
+  best_z     <- apply(z_pick, 1, max)
+  ord <- order(best_group, -best_z)
+  rev(picked[ord])  # coord_flip reverses y-axis
+}
+```
+
+*Clustering used:* **`r if (!is.null(cluster_col)) cluster_col else "_none_"`** — RNA-derived (no ADT-specific clustering computed). UMAP layout is from the ADT-only PCA (`adt.pca`).
+
+### UMAP
+
+```{r adt-umaps, echo=FALSE, fig.width=14, fig.height=7}
+plots <- list()
+if ("adt.umap" %in% names(scMultiData@reductions) && !is.null(cluster_col)) {
+  plots[["clusters"]] <- DimPlot(scMultiData, reduction = "adt.umap",
+                                 group.by = cluster_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE,
+                                 cols = cluster_pal) +
+    theme(aspect.ratio = 1) + ggtitle(paste0("ADT UMAP - clusters (", cluster_col, ")"))
+}
+if ("adt.umap" %in% names(scMultiData@reductions) && !is.null(celltype_col)) {
+  plots[["celltype"]] <- DimPlot(scMultiData, reduction = "adt.umap",
+                                 group.by = celltype_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE) +
+    theme(aspect.ratio = 1) + ggtitle(paste0("ADT UMAP - cell type (", celltype_col, ")"))
+}
+if (length(plots) >= 2) {
+  print(patchwork::wrap_plots(plots, ncol = 2))
+} else if (length(plots) == 1) {
+  print(plots[[1]])
+}
+```
+
+### DotPlot - by cluster
+
+DotPlot of normalized ADT signal (`r adt_norm`) — top 3 markers per cluster (z-scored across clusters; isotypes excluded). Colour = viridis. Grouped by `r if (!is.null(cluster_col)) sprintf("**%s**", cluster_col) else "_no clustering column_"`.
+
+```{r adt-dotplot-cluster, echo=FALSE, fig.width=12, fig.height=14}
+if (!is.null(cluster_col)) {
+  scMultiData_dp <- scMultiData
+  Idents(scMultiData_dp) <- cluster_col
+  DefaultAssay(scMultiData_dp) <- "ADT"
+  feats <- adt_top_per_group(scMultiData_dp, cluster_col, n = 3L)
+  p <- DotPlot(scMultiData_dp, features = feats, assay = "ADT") +
+    coord_flip() +
+    scale_color_viridis_c(option = "D") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  print(p)
+}
+```
+
+### DotPlot - by cell type
+
+DotPlot of normalized ADT signal (`r adt_norm`) — top 3 markers per cell type (z-scored; isotypes excluded; cell types with < 30 cells dropped to keep the panel readable). Grouped by `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_no annotation column_"`.
+
+```{r adt-dotplot-celltype, echo=FALSE, fig.width=14, fig.height=16}
+if (!is.null(celltype_col)) {
+  scMultiData_dp <- scMultiData
+  Idents(scMultiData_dp) <- celltype_col
+  DefaultAssay(scMultiData_dp) <- "ADT"
+  # Drop low-count cell types from Idents so they don't show as empty x-axis
+  # columns and break the diagonal pattern.
+  ct_counts <- table(scMultiData_dp[[celltype_col, drop = TRUE]], useNA = "no")
+  keep_ct <- names(ct_counts)[ct_counts >= 30L]
+  if (length(keep_ct) >= 2L) {
+    scMultiData_dp <- scMultiData_dp[, as.character(Idents(scMultiData_dp)) %in% keep_ct]
+    Idents(scMultiData_dp) <- droplevels(Idents(scMultiData_dp))
+  }
+  feats <- adt_top_per_group(scMultiData_dp, celltype_col, n = 3L, min_cells = 30L)
+  message("ADT DotPlot by cell type: ", length(feats), " features (top 3 per type, dedup; ",
+          "of ", nrow(scMultiData_dp[["ADT"]]), " ADT features total)")
+  p <- DotPlot(scMultiData_dp, features = feats, assay = "ADT") +
+    coord_flip() +
+    scale_color_viridis_c(option = "D") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  print(p)
+} else {
+  cat("No cell-type annotation column on the object - cluster panel only.\n")
+}
+```
+
+### Top markers (FeaturePlot)
+
+```{r adt-feature-plots, echo=FALSE, fig.width=14, fig.height=7}
+if (!is.null(adt_counts_mat)) {
+  data_mat <- tryCatch(
+    as.matrix(GetAssayData(scMultiData, assay = "ADT", layer = "data")),
+    error = function(e) adt_counts_mat
+  )
+  # Skip isotype controls when ranking top ADT markers
+  rm_iso <- !grepl("(?i)isotype", rownames(data_mat))
+  ranked <- names(sort(rowMeans(data_mat[rm_iso, , drop = FALSE]), decreasing = TRUE))
+  top_features <- ranked[seq_len(min(8L, length(ranked)))]
+  scMultiData_fp <- scMultiData
+  DefaultAssay(scMultiData_fp) <- "ADT"
+  p <- FeaturePlot(scMultiData_fp, features = top_features,
+                   reduction = "adt.umap", raster = FALSE, ncol = 4) &
+    scale_color_viridis_c(option = "D") &
+    theme(plot.margin = ggplot2::margin(2, 4, 2, 4, "pt"),
+          plot.title  = ggplot2::element_text(size = 11, margin = ggplot2::margin(b = 2)))
+  print(p)
+}
+```
+
+
+### Modality correlation {.tabset}
+
+```{r adt-corr-prep, include=FALSE}
+.adt_make_group_palette <- function(groups) {
+  lvls <- unique(groups)
+  if (all(!is.na(suppressWarnings(as.integer(lvls))))) lvls <- as.character(sort(as.integer(lvls)))
+  else lvls <- sort(lvls)
+  setNames(unname(pals::polychrome())[seq_along(lvls)], lvls)
+}
+
+.adt_format_p <- function(p) {
+  if (is.na(p)) "NA" else if (p < 0.001) "< 0.001" else sprintf("= %.3f", p)
+}
+
+.adt_plot_stats <- function(data) {
+  dplyr::bind_rows(lapply(split(data, data$plotFeature), function(df) {
+    x <- df$rnaMean; y <- df$sourceMean
+    keep <- is.finite(x) & is.finite(y); x <- x[keep]; y <- y[keep]
+    if (length(x) < 3 || length(unique(x)) < 2 || length(unique(y)) < 2) {
+      rho <- pv <- r2 <- NA_real_
+    } else {
+      ct <- suppressWarnings(cor.test(x, y, method = "spearman", exact = FALSE))
+      rho <- unname(ct$estimate); pv <- ct$p.value; r2 <- summary(lm(y ~ x))$r.squared
+    }
+    data.frame(plotFeature = df$plotFeature[1],
+               statLabel = paste0("rho = ", ifelse(is.na(rho), "NA", sprintf("%.2f", rho)),
+                                  "\np ", .adt_format_p(pv),
+                                  "\nR^2 = ", ifelse(is.na(r2), "NA", sprintf("%.2f", r2))),
+               stringsAsFactors = FALSE)
+  }))
+}
+
+.adt_pair_scatter <- function(plotData, yLabel, ncol = 4, statSide = "left", aspectRatio = NULL) {
+  pal <- .adt_make_group_palette(plotData$group)
+  plotData$group <- factor(plotData$group, levels = names(pal))
+  facetLevels <- if (is.factor(plotData$plotFeature)) levels(plotData$plotFeature) else unique(plotData$plotFeature)
+  plotData$plotFeature <- factor(plotData$plotFeature, levels = facetLevels)
+  stats <- .adt_plot_stats(plotData)
+  stats$plotFeature <- factor(stats$plotFeature, levels = facetLevels)
+  statX <- if (identical(statSide, "right")) Inf else -Inf
+  statH <- if (identical(statSide, "right")) 1.05 else -0.05
+  p <- ggplot(plotData, aes(x = rnaMean, y = sourceMean)) +
+    geom_smooth(method = "lm", se = FALSE, color = "grey35", linewidth = 0.4) +
+    geom_point(aes(color = group), size = 1.8) +
+    geom_text(data = stats, aes(label = statLabel),
+              x = statX, y = Inf, hjust = statH, vjust = 1.1, size = 2.7, inherit.aes = FALSE) +
+    facet_wrap(~ plotFeature, scales = "free", ncol = ncol) +
+    scale_color_manual(values = pal, drop = FALSE) +
+    guides(color = guide_legend(nrow = 2, byrow = TRUE)) +
+    labs(x = "Mean RNA expression", y = yLabel, color = "Cluster") +
+    theme_bw() + theme(legend.position = "top")
+  if (!is.null(aspectRatio)) p <- p + theme(aspect.ratio = aspectRatio)
+  p
+}
+
+adtCorrGroupCol <- if (!is.null(cluster_col) && cluster_col %in% colnames(scMultiData@meta.data)) cluster_col else NULL
+adtCorrAvail <- "ADT" %in% Seurat::Assays(scMultiData) &&
+                "RNA" %in% Seurat::Assays(scMultiData) &&
+                !is.null(adtCorrGroupCol)
+adtCorrPseudobulk <- data.frame()
+adtCorrCorr <- data.frame()
+
+if (adtCorrAvail) {
+  adtFeats <- rownames(scMultiData[["ADT"]])
+  rnaFeats <- rownames(scMultiData[["RNA"]])
+  # Curated lookup + regex fallbacks (BioLegend TotalSeq names rarely equal
+  # the gene symbol literally; the old `match(sub("\\.\\d+$", ""), ...)` rule
+  # missed ~80% of a 143-marker panel).
+  fmap <- ezRun::mapADTtoRNA(adtFeats, rnaFeats)
+  adtCorrUnmatched <- attr(fmap, "unmatched")
+  adtCorrMatchSummary <- if (nrow(fmap) > 0) table(fmap$matchSource) else integer(0)
+  fmap <- fmap[!grepl("(?i)isotype", fmap$sourceFeature), , drop = FALSE]
+
+  if (nrow(fmap) > 0) {
+    avgAdt <- as.matrix(Seurat::AverageExpression(scMultiData, assays = "ADT",
+                          group.by = adtCorrGroupCol, layer = "data", verbose = FALSE)$ADT)
+    avgRna <- as.matrix(Seurat::AverageExpression(scMultiData, assays = "RNA",
+                          group.by = adtCorrGroupCol, layer = "data", verbose = FALSE)$RNA)
+    # Seurat::AverageExpression() prefixes numeric ident column names with
+    # "g" to keep them valid R variable names (cluster "0" -> "g0"). Strip
+    # it back so plot facets / x-axes show the original cluster IDs.
+    strip_g <- function(x) ifelse(grepl("^g[0-9]+$", x), sub("^g", "", x), x)
+    colnames(avgAdt) <- strip_g(colnames(avgAdt))
+    colnames(avgRna) <- strip_g(colnames(avgRna))
+    grps <- colnames(avgAdt)
+    adtCorrPseudobulk <- dplyr::bind_rows(lapply(seq_len(nrow(fmap)), function(i) {
+      sf <- fmap$sourceFeature[i]; sd <- fmap$sourceDisplay[i]; rf <- fmap$rnaFeature[i]
+      data.frame(sourceFeature = sf, sourceDisplay = sd, rnaFeature = rf, group = grps,
+                 sourceMean = if (sf %in% rownames(avgAdt)) avgAdt[sf, ] else NA_real_,
+                 rnaMean    = if (rf %in% rownames(avgRna)) avgRna[rf, ] else NA_real_,
+                 stringsAsFactors = FALSE)
+    }))
+    adtCorrCorr <- dplyr::bind_rows(lapply(
+      split(adtCorrPseudobulk, paste(adtCorrPseudobulk$sourceFeature, adtCorrPseudobulk$rnaFeature)),
+      function(df) {
+        x <- df$rnaMean; y <- df$sourceMean
+        keep <- is.finite(x) & is.finite(y); x <- x[keep]; y <- y[keep]
+        rho <- if (length(x) >= 3 && length(unique(x)) > 1 && length(unique(y)) > 1)
+          suppressWarnings(stats::cor(x, y, method = "spearman")) else NA_real_
+        data.frame(sourceFeature = df$sourceFeature[1], sourceDisplay = df$sourceDisplay[1],
+                   rnaFeature = df$rnaFeature[1], spearmanPseudobulk = rho,
+                   stringsAsFactors = FALSE)
+      }
+    ))
+  } else {
+    adtCorrAvail <- FALSE
+  }
+}
+```
+
+#### Multimodal Correlation overview
+
+```{r adt-corr-match-summary, echo=FALSE, results='asis'}
+if (adtCorrAvail) {
+  n_in <- length(adtFeats)
+  n_match <- if (length(adtCorrMatchSummary) > 0) sum(adtCorrMatchSummary) else 0L
+  by_src <- if (length(adtCorrMatchSummary) > 0)
+    paste(sprintf("%s: %d", names(adtCorrMatchSummary), as.integer(adtCorrMatchSummary)),
+          collapse = ", ") else "none"
+  cat(sprintf(
+    "**ADT ↔ RNA matching:** %d / %d markers resolved (%s). Isotypes are excluded from correlations.\n\n",
+    n_match, n_in, by_src))
+}
+```
+
+```{r adt-corr-overview-barplot, echo=FALSE, fig.width=10, fig.height=6}
+if (!adtCorrAvail || nrow(adtCorrCorr) == 0) {
+  cat("No ADT/RNA correlations available.\n")
+} else {
+  pd <- adtCorrCorr[!is.na(adtCorrCorr$spearmanPseudobulk), ]
+  topC <- pd[order(pd$spearmanPseudobulk, decreasing = TRUE)[seq_len(min(20L, nrow(pd)))], ]
+  topD <- pd[order(pd$spearmanPseudobulk)[seq_len(min(20L, nrow(pd)))], ]
+  topData <- unique(rbind(topC, topD))
+  print(ggplot(topData, aes(x = reorder(sourceDisplay, spearmanPseudobulk), y = spearmanPseudobulk)) +
+    geom_col(fill = "#2C7FB8") +
+    coord_flip() +
+    labs(x = NULL, y = "Pseudobulk Spearman ρ") +
+    theme_bw())
+}
+```
+
+```{r adt-corr-overview-scatter, echo=FALSE, fig.width=6, fig.height=4}
+if (adtCorrAvail && nrow(adtCorrPseudobulk) > 0) {
+  pd <- adtCorrPseudobulk
+  pd$logRna <- log1p(pd$rnaMean)
+  pd$logSrc <- log1p(pd$sourceMean)
+  pal <- .adt_make_group_palette(pd$group)
+  pd$group <- factor(pd$group, levels = names(pal))
+  x <- pd$logRna[is.finite(pd$logRna) & is.finite(pd$logSrc)]
+  y <- pd$logSrc[is.finite(pd$logRna) & is.finite(pd$logSrc)]
+  statLbl <- if (length(x) >= 3) {
+    ct <- suppressWarnings(cor.test(x, y, method = "spearman", exact = FALSE))
+    r2 <- summary(lm(y ~ x))$r.squared
+    paste0("rho = ", sprintf("%.2f", unname(ct$estimate)),
+           "\np ", .adt_format_p(ct$p.value),
+           "\nR^2 = ", sprintf("%.2f", r2))
+  } else NA_character_
+  p <- ggplot(pd, aes(x = logRna, y = logSrc)) +
+    geom_point(aes(color = group), alpha = 0.28, size = 1.1) +
+    geom_smooth(color = "grey20", method = "lm", se = FALSE, linewidth = 0.5) +
+    scale_color_manual(values = pal, drop = FALSE) +
+    guides(color = guide_legend(nrow = 2, byrow = TRUE, override.aes = list(alpha = 1, size = 2))) +
+    labs(x = "log1p mean RNA expression", y = "log1p mean ADT signal", color = "Cluster") +
+    theme_bw() + theme(legend.position = "top")
+  if (!is.na(statLbl))
+    p <- p + annotate("text", x = -Inf, y = Inf, label = statLbl, hjust = -0.05, vjust = 1.1, size = 3)
+  print(p)
+}
+```
+
+```{r adt-corr-overview-table, echo=FALSE}
+if (adtCorrAvail && nrow(adtCorrCorr) > 0) {
+  td <- adtCorrCorr[order(abs(adtCorrCorr$spearmanPseudobulk), decreasing = TRUE, na.last = TRUE), ]
+  td$spearmanPseudobulk <- round(td$spearmanPseudobulk, 3)
+  DT::datatable(td, rownames = FALSE, filter = "top", extensions = "Buttons",
+                options = list(dom = "Bfrtip", buttons = c("copy", "csv", "excel"), pageLength = 10))
+}
+```
+
+#### Top concordant markers
+
+```{r adt-corr-concordant-scatter, echo=FALSE, fig.width=12, fig.height=8}
+if (!adtCorrAvail || nrow(adtCorrCorr) == 0) {
+  cat("No ADT/RNA correlations available.\n")
+} else {
+  topPairs <- adtCorrCorr[!is.na(adtCorrCorr$spearmanPseudobulk), ]
+  topPairs <- head(topPairs[order(topPairs$spearmanPseudobulk, decreasing = TRUE), ], 12L)
+  pd <- adtCorrPseudobulk[
+    paste(adtCorrPseudobulk$sourceFeature, adtCorrPseudobulk$rnaFeature) %in%
+    paste(topPairs$sourceFeature, topPairs$rnaFeature), ]
+  pd$plotFeature <- factor(pd$sourceDisplay, levels = unique(topPairs$sourceDisplay))
+  if (nrow(pd) > 0) print(.adt_pair_scatter(pd, "Mean ADT signal", ncol = 4, statSide = "left", aspectRatio = 1))
+}
+```
+
+```{r adt-corr-concordant-table, echo=FALSE}
+if (adtCorrAvail && nrow(adtCorrCorr) > 0) {
+  td <- adtCorrCorr[!is.na(adtCorrCorr$spearmanPseudobulk), ]
+  td <- head(td[order(td$spearmanPseudobulk, decreasing = TRUE), ], 12L)
+  td$spearmanPseudobulk <- round(td$spearmanPseudobulk, 3)
+  DT::datatable(td, rownames = FALSE, filter = "top", extensions = "Buttons",
+                options = list(dom = "Bfrtip", buttons = c("copy", "csv", "excel"), pageLength = 12))
+}
+```
+
+#### Top discordant markers
+
+```{r adt-corr-discordant-scatter, echo=FALSE, fig.width=12, fig.height=8}
+if (!adtCorrAvail || nrow(adtCorrCorr) == 0) {
+  cat("No ADT/RNA correlations available.\n")
+} else {
+  topPairs <- adtCorrCorr[!is.na(adtCorrCorr$spearmanPseudobulk), ]
+  topPairs <- head(topPairs[order(topPairs$spearmanPseudobulk), ], 10L)
+  pd <- adtCorrPseudobulk[
+    paste(adtCorrPseudobulk$sourceFeature, adtCorrPseudobulk$rnaFeature) %in%
+    paste(topPairs$sourceFeature, topPairs$rnaFeature), ]
+  pd$plotFeature <- factor(pd$sourceDisplay, levels = unique(topPairs$sourceDisplay))
+  if (nrow(pd) > 0) print(.adt_pair_scatter(pd, "Mean ADT signal", ncol = 4, statSide = "right", aspectRatio = 1))
+}
+```
+
+```{r adt-corr-discordant-table, echo=FALSE}
+if (adtCorrAvail && nrow(adtCorrCorr) > 0) {
+  td <- adtCorrCorr[!is.na(adtCorrCorr$spearmanPseudobulk), ]
+  td <- head(td[order(td$spearmanPseudobulk), ], 10L)
+  td$spearmanPseudobulk <- round(td$spearmanPseudobulk, 3)
+  DT::datatable(td, rownames = FALSE, filter = "top", extensions = "Buttons",
+                options = list(dom = "Bfrtip", buttons = c("copy", "csv", "excel"),
+                               pageLength = 10, ordering = FALSE))
+}
+```
+
+
+### QC
+
+`r format(n_adt, big.mark = ",")` ADT features, normalization: **`r adt_norm`**, mean `r mean_umi` UMI/cell, median `r median_umi` UMI/cell. Cell-type column: `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_none available_"`.
+
+```{r adt-norm-status, echo=FALSE, results='asis'}
+adtnorm_info <- scMultiData@misc$adtnorm
+if (!is.null(adtnorm_info) && adtnorm_info$method == "ADTnorm") {
+  n_failed <- length(adtnorm_info$failed_markers)
+  n_ok     <- adtnorm_info$n_ok
+  if (n_failed > 0L) {
+    cat(sprintf(
+      "\n**ADTnorm normalization status:** **%d / %d** markers were peak-aligned by ADTnorm. ",
+      n_ok, adtnorm_info$n_markers))
+    cat(sprintf(
+      "**%d** marker(s) failed (typically near-flat or zero-heavy distributions where ADTnorm's `lnsrch_morph` can't fit a peak) and **fell back to CLR for those rows only**: ",
+      n_failed))
+    cat(sprintf("`%s`\n\n", paste(adtnorm_info$failed_markers, collapse = "`, `")))
+    cat("Failed-marker rows in the DotPlots / FeaturePlots therefore use a different scale (CLR log-ratio) than the ADTnorm rows (0-1-2 landmark). Per-marker z-scoring in the DotPlots makes within-marker comparisons across cell types robust to the mixed scales.\n\n")
+  } else {
+    cat(sprintf("\n**ADTnorm normalization status:** all %d markers peak-aligned successfully.\n\n",
+                adtnorm_info$n_markers))
+  }
+} else if (!is.null(adtnorm_info) && adtnorm_info$method == "CLR") {
+  cat("\n**Normalization:** CLR was used for all markers (ADTnorm not requested or unavailable).\n\n")
+}
+```
+
+```{r adt-corr-unmatched, echo=FALSE, results='asis'}
+if (exists("adtCorrUnmatched") && length(adtCorrUnmatched) > 0) {
+  not_iso <- adtCorrUnmatched[!grepl("(?i)isotype", adtCorrUnmatched)]
+  if (length(not_iso) > 0) {
+    cat(sprintf(
+      "\n**ADT ↔ RNA matcher unmatched (excluding isotypes):** %d marker(s) had no curated lookup entry, no literal gene-symbol match, and no parenthesized-payload regex hit. Add a row to `inst/extdata/adt_to_gene_lookup.tsv` if you know the canonical gene symbol:\n\n",
+      length(not_iso)))
+    cat(sprintf("`%s`\n\n", paste(not_iso, collapse = "`, `")))
+  }
+}
+```
