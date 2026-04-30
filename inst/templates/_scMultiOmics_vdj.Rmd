@@ -77,22 +77,31 @@ if (length(plots) >= 2) {
 
 #### clonalOccupy by cluster
 
-```{r vdj-occ-cluster, echo=FALSE, fig.width=10, fig.height=10}
+```{r vdj-occ-cluster, echo=FALSE, fig.width=16, fig.height=9}
 if (!is.null(cluster_col)) {
-  p_n   <- ezRun::cloneOccupyFull(scMultiData, x.axis = cluster_col, palette = clone_pal)
+  occ_theme <- theme(axis.text  = element_text(size = 8),
+                     axis.title = element_text(size = 10),
+                     legend.text = element_text(size = 8),
+                     legend.title = element_text(size = 9))
+  p_n   <- ezRun::cloneOccupyFull(scMultiData, x.axis = cluster_col, palette = clone_pal) + occ_theme
   p_pct <- ezRun::cloneOccupyFull(scMultiData, x.axis = cluster_col,
-                                  palette = clone_pal, proportion = TRUE)
+                                  palette = clone_pal, proportion = TRUE) + occ_theme
   print(patchwork::wrap_plots(p_n, p_pct, ncol = 1, guides = "collect"))
 }
 ```
 
 #### clonalOccupy by cell type
 
-```{r vdj-occ-celltype, echo=FALSE, fig.width=10, fig.height=10}
+```{r vdj-occ-celltype, echo=FALSE, fig.width=16, fig.height=9}
 if (!is.null(celltype_col)) {
-  p_n   <- ezRun::cloneOccupyFull(scMultiData, x.axis = celltype_col, palette = clone_pal)
+  occ_theme <- theme(axis.text  = element_text(size = 8),
+                     axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
+                     axis.title = element_text(size = 10),
+                     legend.text = element_text(size = 8),
+                     legend.title = element_text(size = 9))
+  p_n   <- ezRun::cloneOccupyFull(scMultiData, x.axis = celltype_col, palette = clone_pal) + occ_theme
   p_pct <- ezRun::cloneOccupyFull(scMultiData, x.axis = celltype_col,
-                                  palette = clone_pal, proportion = TRUE)
+                                  palette = clone_pal, proportion = TRUE) + occ_theme
   print(patchwork::wrap_plots(p_n, p_pct, ncol = 1, guides = "collect"))
 } else {
   cat("No cell-type annotation column on the object.\n")
