@@ -20,6 +20,8 @@ adt_norm <- if (!is.null(param$adtNorm)) param$adtNorm else "ADTnorm"
 adt_top_per_group <- function(obj, group_col, n = 3L) {
   avg <- Seurat::AverageExpression(obj, assays = "ADT", group.by = group_col,
                                    layer = "data", verbose = FALSE)$ADT
+  # Seurat v5 may return a data.frame; coerce so t() / scale() work.
+  avg <- as.matrix(avg)
   avg <- avg[!grepl("(?i)isotype", rownames(avg)), , drop = FALSE]
   if (ncol(avg) < 2L || nrow(avg) == 0L) {
     return(rownames(avg)[seq_len(min(n, nrow(avg)))])
