@@ -68,27 +68,16 @@ EzAppScMultiOmics <-
   )
 
 ##' @title Resolve the path to the upstream ScSeurat scData.qs2.
-##' @description ScSeurat exposes its output via different column names depending
-##'   on the SUSHI dataset shape. Try the most specific link first, then fall
-##'   back to the report directory.
+##' @description The ScMultiOmics input dataset gates on `SC Seurat` (see
+##'   ScMultiOmicsApp.rb#@required_columns), so the column is guaranteed when
+##'   ScSeurat is the upstream. BD Rhapsody bypasses ScSeurat and is handled
+##'   separately by the caller.
 ##' @param input EzDataset.
-##' @return Character path to scData.qs2 (existence not guaranteed).
+##' @return Character path to scData.qs2, or "" if not present.
 ##' @keywords internal
 findScDataPath <- function(input) {
-  cols <- input$colNames
-  if ("SC Seurat" %in% cols) {
-    p <- input$getFullPaths("SC Seurat")
-    if (file.exists(p)) return(p)
-  }
-  for (cand in c("SC Cluster Report", "Report", "Static Report")) {
-    if (cand %in% cols) {
-      p <- input$getFullPaths(cand)
-      d <- if (dir.exists(p)) p else dirname(p)
-      hit <- file.path(d, "scData.qs2")
-      if (file.exists(hit)) return(hit)
-    }
-  }
-  ""
+  if (!"SC Seurat" %in% input$colNames) return("")
+  input$getFullPaths("SC Seurat")
 }
 
 ##' @title ezMethodScMultiOmics runtime.
@@ -136,10 +125,15 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
     if (is.null(obj)) stop("BD Rhapsody Seurat not found in ", bd_root)
   } else {
     if (!nzchar(scDataPath) || !file.exists(scDataPath)) {
-      stop("scData.qs2 not found in input dataset; run ScSeurat first.")
+      stop("'SC Seurat' column missing or scData.qs2 not found; ",
+           "run ScSeurat upstream of ScMultiOmics.")
     }
     if (!nzchar(countMatrixPath)) {
-      stop("CountMatrix column missing from input dataset; required to locate ADT/VDJ/ATAC siblings.")
+      # ScSeurat propagates CountMatrix in its next_dataset, so this branch
+      # only fires for hand-built dataset.tsv files that didn't include it.
+      stop("CountMatrix column missing from input dataset; required to locate ",
+           "ADT/VDJ/ATAC siblings. Re-run ScSeurat (which propagates ",
+           "CountMatrix automatically) or hand-add the column.")
     }
     message("Loading annotated scData from: ", scDataPath)
     obj <- qs2::qs_read(scDataPath, nthreads = max(1L, param$cores %||% 4L))

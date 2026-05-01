@@ -343,6 +343,113 @@ submission notes see
   inheriting `Factor` / `B-Fabric` tags fills the gap — those are user
   metadata, not pipeline-required columns.
 
+### Input dataset shape: CellRanger column-name mismatch (RESOLVED 2026-05-02)
+**Superseded by the ScSeurat-only input change below — kept for history.**
+- `ScMultiOmicsApp.@required_columns` literally required `CountMatrix`, but
+  **CellRanger Multi outputs do not emit a `CountMatrix` column** — they
+  emit only `ResultDir [File,Link]` pointing at the per-sample dir
+  (`p31662/o41361_CellRangerMulti_*/pUM07_LT1_dark`). CellRanger ARC,
+  CellRangerCount, CellBender, and BDRhapsody DO emit `CountMatrix [Link]`
+  natively, so the column gate only blocked CR Multi.
+- Consequence at the time: the single-click Multi → ScMultiOmics flow
+  never worked end-to-end; it always needed manual TSV editing to inject a
+  `CountMatrix [Link]` column.
+- Resolution: rather than patching the runtime to fall back to `ResultDir`,
+  we made `ScMultiOmics` consume **ScSeurat output** instead of raw
+  CellRanger. ScSeurat now propagates `CountMatrix [Link]` and
+  `ResultDir [File]` in its `next_dataset`, so all 10x flavors (Multi /
+  ARC / Count) end up with the canonical column shape downstream. See
+  the "ScSeurat-only input" section below.
+
+### Architectural decision (shipped 2026-05-02): ScSeurat-only input
+- `ScMultiOmicsApp` now consumes **only** ScSeurat output (or BD Rhapsody
+  directly), never raw CellRanger. Reason: ScSeurat has already filtered dead
+  cells / mito high / ribo high / SoupX-corrected ambient RNA. Layering
+  ADT/VDJ/ATAC on the raw CellRanger filtered matrix means clonotype counts,
+  ADT QC, and WNN run on cells you'd discard anyway. QC'd cells are the only
+  sensible base.
+- What landed in this patch:
+  1. **`ScSeuratApp.rb#next_dataset`** now propagates `CountMatrix [Link]` and
+     `ResultDir [File]` (mirrors the prior `refFeatureFile` fix). Both are
+     required inputs to ScSeurat (line 18 of `ScSeuratApp.rb`), so the values
+     are guaranteed present in `@dataset` and only needed forwarding.
+  2. **`ScMultiOmicsApp.@required_columns`** switched from `['Name', 'Species',
+     'refBuild', 'CountMatrix']` to `['Name', 'Species', 'refBuild',
+     'SC Seurat']`. `CountMatrix` is now propagated for free via ScSeurat.
+  3. **`findScDataPath()`** in `app-ScMultiOmics.R` simplified to a one-liner
+     gated on the `SC Seurat` column. The `SC Cluster Report` / `Report` /
+     `Static Report` fallback walking is gone (dead branch — the SUSHI gate
+     guarantees `SC Seurat`).
+  4. The CR Multi column-name mismatch (above) is now irrelevant: ScSeurat
+     normalises every 10x input (Multi, ARC, Count) to a canonical output
+     shape with `SC Seurat`, `CountMatrix`, and `ResultDir` all populated.
+- BD Rhapsody decision: BD bypasses ScSeurat at the runtime level
+  (`SCDataOrigin = BDRhapsody` branch, loads `*_Seurat.rds` directly). BD's
+  pipeline does its own cell filtering upstream, so re-QCing in ScSeurat
+  would mostly be cosmetic. The SUSHI `@required_columns` gate now enforces
+  `SC Seurat`, so BD datasets need either a hand-built `dataset.tsv` (with
+  a `SC Seurat` placeholder column) or — cleaner long-term — a thin
+  `BDRhapsodyToScSeurat` SUSHI app that wraps the BD RDS and writes a
+  SUSHI-shaped `scData.qs2`. Everything would then funnel through
+  `SC Seurat`.
+- Tradeoff: this closes the door on directly running ScMultiOmics from a
+  CR dataset (you must always go via ScSeurat). For the 99% case that's
+  correct — the QC'd object is what the multi-omics report should be built on.
+
+### Manual deployment via `scp + cp` vs git: untracked-file footgun
+- Deploying a SUSHI app file via `scp ScMultiOmicsApp.rb fgcz-h-082:/tmp/`
+  + `ssh trxcopy@fgcz-h-082 'cp /tmp/... /srv/sushi/production/master/lib/'`
+  works for an immediate hot-fix, but it leaves the file as **untracked**
+  in the production checkout. A subsequent `git pull` aborts with
+  "The following untracked working tree files would be overwritten by
+  merge: lib/ScMultiOmicsApp.rb" — even when the untracked content is
+  byte-identical to what's incoming.
+- Resolution: `rm` the untracked file before pulling. Confirm equivalence
+  first with `diff <(git show origin/master:master/lib/X.rb) lib/X.rb`.
+- Production checkout also accumulates phantom `M` flags on files whose
+  local edits eventually got upstreamed via PRs; `git diff origin/master`
+  shows zero, but `git status` still flags them. `git checkout -- <file>`
+  clears the stat cache (no content change since they're already
+  identical to origin/master).
+
+### `update_sushi_prod` script: false success on pull failure
+- The bash function in `~/.bash_aliases` on fgcz-c-053 runs:
+  `ssh trxcopy@fgcz-h-082 'cd /srv/sushi/production && git pull'`
+  followed by `ssh ... 'systemctl restart apache2'` and an unconditional
+  `echo "SUSHI production updated successfully!"`. **None of the steps
+  short-circuit on failure** — a failed `git pull` still triggers the
+  Apache restart and the success line, leaving production running on
+  whatever was on disk before the pull (which can be a stale or partial
+  state if a cleanup was in progress).
+- Patched 2026-04-30 to gate each step with `if ! ssh ...; then return 1; fi`
+  and emit a stderr error line. The next `update_sushi_prod` after a pull
+  failure now exits with code 1 *before* restarting Apache.
+- Same pattern likely affects neighboring `restart_sushi` and any
+  `update_sushi_course` / `_demo` helpers — apply the same guard.
+
+### DEPLOY.md smoke checklist references fixtures, not SUSHI datasets
+- The `[ ]` checklist lines in `ScMultiOmicsApp_DEPLOY.md` ("re-run on
+  p31662 P8_AT_PBMCs", "p39132 IC104_Plate_6217_1_ARC", "p39179
+  394581_1-CD34run1") are aspirational. P8_AT_PBMCs is a downsampled
+  smoke fixture under `/srv/GT/analysis/p31662/Analyses_Paul/scmultiomics_smoke/`,
+  not a SUSHI-registered dataset.tsv row. The IC104 / CD34 entries DO
+  correspond to real SUSHI datasets but they were never actually run
+  end-to-end through the production SUSHI submission path.
+- For real production smoke testing, pick datasets that already have
+  `CountMatrix [Link]` populated (CellRanger ARC, BDRhapsody) and a
+  paired ScSeurat output if going through the planned ScSeurat-only
+  flow. Examples that work today:
+  - BD Rhapsody (no ScSeurat needed):
+    `p39179/o39458_BDRhapsodySA_2025-09-03--15-54-00`
+  - CR ARC (multiome, needs ScSeurat first):
+    `p40259/o40270_CellRangerARCCount_2026-04-13--14-01-46` (5 mouse
+    samples, no ScSeurat output exists yet — must run ScSeurat as
+    prerequisite)
+  - CR Multi (CITE-seq + TCR, needs both ScSeurat AND a TSV edit until
+    the column-name mismatch is fixed):
+    `p31662/o41361_CellRangerMulti_2026-03-31--13-10-24` paired with
+    `p31662/o41361_ScSeurat_2026-04-28--16-11-43`
+
 ### BD Rhapsody `*_Seurat.rds` ships ATAC as `peaks`, not `ATAC`
 - BD multiome RDS objects expose chromatin under `Assays(obj)` named `peaks`,
   `gene_activity`, and (sometimes) `chromvar`. The ATAC child Rmd keys off
