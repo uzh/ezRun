@@ -184,8 +184,25 @@ seuratStandardWorkflow <- function(
     dims = 1:param$npcs,
     verbose = FALSE
   )
+  # param$resolution can arrive as: a numeric scalar (web UI), a numeric vector
+  # (param-set TSV), or a stringified Ruby array like "[0.6, 0.2, 0.4, 0.6, 0.8, 1]"
+  # (Ruby-API submissions). Normalize to a numeric vector; the FIRST parsed
+  # value is the user's selected resolution (matches the SUSHI dropdown
+  # convention where [default, ...other_options] sets the default).
+  parsedResolution <- suppressWarnings(as.numeric(unlist(strsplit(
+    gsub("\\[|\\]", "", as.character(param$resolution)),
+    "[,[:space:]]+"
+  ))))
+  parsedResolution <- parsedResolution[
+    !is.na(parsedResolution) & parsedResolution > 0
+  ]
+  if (length(parsedResolution) == 0) {
+    parsedResolution <- 0.6 # documented default
+  }
+  userResolution <- parsedResolution[1]
+
   myResolutions <- sort(unique(round(
-    c(seq(from = 0.2, to = 1, by = 0.2), param$resolution),
+    c(seq(from = 0.2, to = 1, by = 0.2), parsedResolution),
     1
   )))
   scData <- FindClusters(
@@ -193,11 +210,31 @@ seuratStandardWorkflow <- function(
     resolution = myResolutions,
     verbose = FALSE
   ) #calculate clusters for a set of resolutions
-  Idents(scData) <- scData@meta.data[, paste0(
+  selectedCol <- paste0(
     DefaultAssay(scData),
     "_snn_res.",
-    param$resolution
-  )] #but keep as the current clusters the ones obtained with the resolution set by the user
+    userResolution
+  )
+  if (!selectedCol %in% colnames(scData@meta.data)) {
+    # Fallback: pick whatever <DefaultAssay>_snn_res.<r> column FindClusters
+    # actually wrote. Defensive guard against surprise DefaultAssay values;
+    # gives a clear error instead of "undefined columns selected".
+    candidates <- grep(
+      paste0("^", DefaultAssay(scData), "_snn_res\\."),
+      colnames(scData@meta.data),
+      value = TRUE
+    )
+    if (length(candidates) == 0) {
+      stop(
+        "seuratStandardWorkflow: no <assay>_snn_res.<r> columns produced; ",
+        "DefaultAssay = '",
+        DefaultAssay(scData),
+        "' but no matching graph in meta.data."
+      )
+    }
+    selectedCol <- candidates[1]
+  }
+  Idents(scData) <- scData@meta.data[, selectedCol] #but keep as the current clusters the ones obtained with the resolution set by the user
   scData[[ident.name]] <- Idents(scData)
   return(scData)
 }

@@ -238,12 +238,30 @@ ezMethodScSeurat <- function(
     param$cellbender = FALSE
   }
   if (!param$cellbender) {
-    cts <- Read10X(cmDir, gene.column = 1)
+    # fill = TRUE: multiome (CR ARC) features.tsv.gz mixes 6-field GEX rows
+    # (id, name, "Gene Expression", chr, start, end) with 3-field Peaks rows
+    # (id, name, "Peaks"). Without fill, read.table errors at the first short
+    # row. Load featInfo first so we can detect multiome before calling Read10X.
     featInfo <- ezRead.table(
       paste0(cmDir, "/features.tsv.gz"),
       header = FALSE,
-      row.names = NULL
+      row.names = NULL,
+      fill = TRUE
     )
+    # Detect multiome (Peaks present alongside Gene Expression). Seurat's
+    # Read10X uses data.table::fread on features.tsv.gz without fill, which
+    # truncates at the first short row and crashes during dimname assignment
+    # ("length of Dimnames[[1]] (1) is not equal to Dim[1] (...)"). Side-step
+    # by reading from the sibling .h5 — Read10X_h5 handles multi-feature_type
+    # input natively (returns a named list keyed by feature_type). The
+    # subsequent `is.list(cts)` filter at line ~297 keeps only Gene Expression.
+    matrix_h5 <- paste0(cmDir, ".h5")
+    has_peaks <- "Peaks" %in% as.character(featInfo[[3]])
+    if (has_peaks && file.exists(matrix_h5)) {
+      cts <- Read10X_h5(matrix_h5, use.names = FALSE)
+    } else {
+      cts <- Read10X(cmDir, gene.column = 1)
+    }
   } else if (param$cellbender) {
     # Read the cellbender H5 file with Ensembl IDs as rownames
     cts <- Read10X_h5(cmDir, use.names = FALSE)
