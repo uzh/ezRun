@@ -100,12 +100,27 @@ addAmbientEstimateToSeurat <- function(scData, rawDir = NULL, param = NULL) {
         }
       }
     } else {
-      tod <- checkAndCleanAntibody(Seurat::Read10X(rawDir, gene.column = 1))
+      # Same multiome guard as app-ScSeurat.R: when features.tsv.gz contains
+      # Peaks rows AND a sibling .h5 exists, prefer Read10X_h5 — Seurat::Read10X
+      # via internal data.table::fread chokes on multiome features files
+      # (mixed 6-field GEX + 3-field Peaks rows).
       featInfo <- ezRead.table(
         paste0(rawDir, "/features.tsv.gz"),
         header = FALSE,
-        row.names = NULL
+        row.names = NULL,
+        fill = TRUE
       )
+      raw_h5 <- paste0(rawDir, ".h5")
+      raw_has_peaks <- ncol(featInfo) >= 3 &&
+        "Peaks" %in% as.character(featInfo[[3]])
+      if (raw_has_peaks && file.exists(raw_h5)) {
+        tod <- checkAndCleanAntibody(Seurat::Read10X_h5(
+          raw_h5,
+          use.names = FALSE
+        ))
+      } else {
+        tod <- checkAndCleanAntibody(Seurat::Read10X(rawDir, gene.column = 1))
+      }
     }
     colnames(featInfo) <- c("ensemblID", "name", "type")
     featInfo <- featInfo[featInfo$type == 'Gene Expression', ]

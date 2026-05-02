@@ -360,7 +360,28 @@ ezMethodScSeurat <- function(
         use.names = FALSE
       )
     } else {
-      rawCts <- Read10X(rawDir, gene.column = 1)
+      # Same multiome guard as the filtered-matrix branch above: when the
+      # unfiltered features.tsv.gz contains Peaks rows AND a sibling .h5
+      # exists, prefer Read10X_h5 — Seurat::Read10X chokes on multiome
+      # features.tsv.gz via internal data.table::fread without fill.
+      raw_h5 <- paste0(rawDir, ".h5")
+      raw_features <- file.path(rawDir, "features.tsv.gz")
+      raw_has_peaks <- FALSE
+      if (file.exists(raw_features)) {
+        raw_feat <- tryCatch(
+          ezRead.table(raw_features, header = FALSE, row.names = NULL,
+                       fill = TRUE),
+          error = function(e) NULL
+        )
+        if (!is.null(raw_feat) && ncol(raw_feat) >= 3) {
+          raw_has_peaks <- "Peaks" %in% as.character(raw_feat[[3]])
+        }
+      }
+      if (raw_has_peaks && file.exists(raw_h5)) {
+        rawCts <- Read10X_h5(raw_h5, use.names = FALSE)
+      } else {
+        rawCts <- Read10X(rawDir, gene.column = 1)
+      }
     }
     if (is.list(rawCts)) {
       rawCts <- rawCts$`Gene Expression`
