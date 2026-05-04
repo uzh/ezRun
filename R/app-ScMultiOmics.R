@@ -287,8 +287,16 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
 
   ## 5. WNN integration -------------------------------------------------------
   ranWNN <- FALSE
-  wnn_resolution <- param$wnnResolution %||% 0.5
-  if (isTRUE(param$runWNN %||% TRUE)) {
+  # SUSHI passes all params as quoted strings via run_RApp; coerce to numeric
+  # so FindMultiModalNeighbors / FindClusters get a real double.
+  wnn_resolution <- suppressWarnings(as.numeric(param$wnnResolution %||% 0.5))
+  if (is.na(wnn_resolution)) wnn_resolution <- 0.5
+  # param$runWNN comes in as 'true'/'false'/'TRUE' string from SUSHI; treat
+  # missing as default-on. Same pattern used elsewhere in ezRun for boolean
+  # SUSHI params.
+  runWNNFlag <- if (is.null(param$runWNN)) TRUE
+                else isTRUE(as.logical(param$runWNN))
+  if (runWNNFlag) {
     n_dim_mod <- sum(c("pca", "adt.pca", "lsi") %in% names(obj@reductions))
     if (n_dim_mod >= 2L) {
       obj <- runWNN(obj, resolution = wnn_resolution)

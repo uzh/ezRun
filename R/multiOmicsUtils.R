@@ -887,20 +887,29 @@ processATAC <- function(obj, fragmentsPath, peaksPath, refBuild = NULL,
     stop("Expected a 'Peaks' submatrix in ", h5[1], "; got: ", paste(names(cts), collapse = ", "))
   }
   peak_counts <- cts[["Peaks"]]
-  colnames(peak_counts) <- paste0(sampleName, "_", colnames(peak_counts))
+  # Match peak barcodes to obj's barcode format. ezRun's standard ScSeurat
+  # path produces bare barcodes (no <sampleName>_ prefix); BD Rhapsody and
+  # multi-sample workflows produce prefixed barcodes. Detect which format
+  # obj uses and align peak_counts accordingly.
+  obj_has_prefix <- any(startsWith(colnames(obj), paste0(sampleName, "_")))
+  if (obj_has_prefix) {
+    colnames(peak_counts) <- paste0(sampleName, "_", colnames(peak_counts))
+  }
+  # else: leave peak barcodes bare to match obj's bare colnames.
 
   shared <- intersect(colnames(peak_counts), colnames(obj))
   if (length(shared) < ncol(obj) * 0.5) {
-    warning(sprintf("Only %d/%d cells overlap ATAC barcodes - check sample prefixing.",
-                    length(shared), ncol(obj)))
+    warning(sprintf("Only %d/%d cells overlap ATAC barcodes - check sample prefixing (obj_has_prefix=%s).",
+                    length(shared), ncol(obj), obj_has_prefix))
   }
   obj <- obj[, shared]
   peak_counts <- peak_counts[, shared, drop = FALSE]
 
   ann <- getATACAnnotation(refBuild)
 
-  # Build a fragments object with bare-barcode -> sample-prefixed-barcode map
-  bare_bcs <- sub(paste0("^", sampleName, "_"), "", shared)
+  # Build a fragments object. The fragments file uses bare barcodes; map them
+  # to obj's barcode format (prefixed or bare) via the cell_map argument.
+  bare_bcs <- if (obj_has_prefix) sub(paste0("^", sampleName, "_"), "", shared) else shared
   cell_map <- setNames(bare_bcs, shared)
   frag_obj <- Signac::CreateFragmentObject(path = fragmentsPath, cells = cell_map,
                                            validate.fragments = FALSE)
