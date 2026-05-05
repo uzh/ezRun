@@ -1,6 +1,4 @@
-## RNA {.tabset}
-
-*Clustering used:* **`r if (!is.null(cluster_col)) cluster_col else "_none_"`** (Seurat Louvain on RNA SNN graph).
+## RNA (transcriptome) {.tabset}
 
 ### UMAP
 
@@ -35,5 +33,17 @@ n_clusters <- if (!is.null(cluster_col)) length(unique(scMultiData@meta.data[[cl
 n_celltypes <- if (!is.null(celltype_col)) length(unique(scMultiData@meta.data[[celltype_col]])) else NA
 ```
 
-**Sample:** `r sample_name`. `r format(n_cells, big.mark = ",")` cells, `r format(n_genes, big.mark = ",")` RNA features.
-`r if (!is.na(n_clusters)) paste0(n_clusters, " clusters") else ""``r if (!is.na(n_clusters) && !is.na(n_celltypes)) "; " else ""``r if (!is.na(n_celltypes)) paste0(n_celltypes, " annotated cell types (", celltype_col, ")") else ""`.
+**What this tab shows.** UMAP and metadata visualization of the **gene
+expression (RNA) modality only**, computed by the upstream ScSeurat run
+(SCTransform normalization → PCA → UMAP → graph-based clustering on the
+SCT SNN graph). Use this tab for the standard transcriptome-only view of
+the sample. The other tabs layer additional modalities on top of these
+same cells.
+
+**Sample:** `r sample_name`. `r format(n_cells, big.mark = ",")` cells,
+`r format(n_genes, big.mark = ",")` RNA features.
+`r if (!is.na(n_clusters)) paste0(n_clusters, " transcriptome clusters") else ""``r if (!is.na(n_clusters) && !is.na(n_celltypes)) "; " else ""``r if (!is.na(n_celltypes)) paste0(n_celltypes, " annotated cell types (column: ", celltype_col, ")") else ""`.
+
+**Clustering column used in plots:** `r if (!is.null(cluster_col)) paste0("**", cluster_col, "** (Seurat Louvain on the RNA SNN graph)") else "_none — no cluster column found on the object._"`.
+
+`r if (!is.null(celltype_col)) paste0("**Cell-type annotation column used in plots:** **", celltype_col, "** (auto-picked by ezRun::pickCellTypeColumn from the candidates available on the object).") else "_No cell-type annotation column was detected on the object - upstream ScSeurat run probably did not add one (or used a column name not in pickCellTypeColumn's candidates list)._"`

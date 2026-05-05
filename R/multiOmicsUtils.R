@@ -430,6 +430,115 @@ processVDJ <- function(obj, vdjTPath = NULL, vdjBPath = NULL,
   obj
 }
 
+##' @title Re-attach ScSeurat sibling annotation files to scData metadata.
+##' @description ScSeurat saves Azimuth tissue-ref labels, per-reference
+##'   SingleR labels and cellxgene label-transfer results in sibling files
+##'   next to `scData.qs2` (`aziResults.qs2`, `singler.results.qs2/.rds`,
+##'   `cellxgeneResults.qs2/.rds`). They are NOT written onto
+##'   `scData@meta.data` directly. This helper loads whichever sibling files
+##'   exist and merges them onto the metadata so downstream
+##'   `pickCellTypeColumn()` (and report panels) can see them.
+##'
+##'   scType, CyteTypeR and AzimuthPanHuman already write their columns
+##'   directly to `scData` — those are passed through unchanged.
+##' @param obj Seurat object loaded from scData.qs2.
+##' @param scReportDir Directory containing the scData.qs2 + sibling files
+##'   (typically `<gstore>/<run>/<sample>_SCReport`).
+##' @return The Seurat object with extra metadata columns merged in (or
+##'   unchanged when no sibling files are found).
+##' @keywords internal
+attachUpstreamAnnotations <- function(obj, scReportDir) {
+  if (!is.character(scReportDir) || length(scReportDir) != 1L ||
+      !nzchar(scReportDir) || !dir.exists(scReportDir)) {
+    return(obj)
+  }
+  load_one <- function(basename, type) {
+    qs2_path <- file.path(scReportDir, paste0(basename, ".qs2"))
+    rds_path <- file.path(scReportDir, paste0(basename, ".rds"))
+    if (file.exists(qs2_path)) {
+      tryCatch(qs2::qs_read(qs2_path), error = function(e) {
+        message(sprintf("attachUpstreamAnnotations: failed to read %s: %s",
+                        qs2_path, conditionMessage(e))); NULL
+      })
+    } else if (file.exists(rds_path)) {
+      tryCatch(readRDS(rds_path), error = function(e) {
+        message(sprintf("attachUpstreamAnnotations: failed to read %s: %s",
+                        rds_path, conditionMessage(e))); NULL
+      })
+    } else NULL
+  }
+
+  cells <- colnames(obj)
+
+  # Azimuth tissue references — data.frame keyed by cell barcode with
+  # Azimuth.celltype.l1/.l2/.l3/.l4 columns.
+  azi <- load_one("aziResults", "Azimuth")
+  if (is.data.frame(azi) && nrow(azi) > 0) {
+    keep <- intersect(cells, rownames(azi))
+    if (length(keep) > 0) {
+      for (col in colnames(azi)) {
+        vals <- rep(NA_character_, length(cells))
+        vals[match(keep, cells)] <- as.character(azi[keep, col])
+        obj <- Seurat::AddMetaData(obj, metadata = vals, col.name = col)
+      }
+      message(sprintf("attachUpstreamAnnotations: merged Azimuth (%s) -> %d/%d cells",
+                      paste(colnames(azi), collapse = ", "), length(keep), length(cells)))
+    }
+  }
+
+  # cellxgene — data.frame keyed by cell barcode with whatever columns
+  # cellxgene_annotation() emitted (typically a single label column named
+  # after param$cellxgeneLabel, e.g. "cell_type").
+  cxg <- load_one("cellxgeneResults", "cellxgene")
+  if (is.data.frame(cxg) && nrow(cxg) > 0) {
+    keep <- intersect(cells, rownames(cxg))
+    if (length(keep) > 0) {
+      for (col in colnames(cxg)) {
+        # Disambiguate from ScMultiOmics's own RNA columns.
+        target <- if (col %in% colnames(obj@meta.data))
+          paste0("cellxgene_", col) else col
+        vals <- rep(NA_character_, length(cells))
+        vals[match(keep, cells)] <- as.character(cxg[keep, col])
+        obj <- Seurat::AddMetaData(obj, metadata = vals, col.name = target)
+      }
+      message(sprintf("attachUpstreamAnnotations: merged cellxgene (%s) -> %d/%d cells",
+                      paste(colnames(cxg), collapse = ", "), length(keep), length(cells)))
+    }
+  }
+
+  # SingleR — list keyed by reference name, each element a list with
+  # $single.fine and $cluster.fine. We only fold in the fine labels.
+  singler <- load_one("singler.results", "SingleR")
+  if (is.list(singler) && length(singler) > 0) {
+    for (ref_name in names(singler)) {
+      if (!nzchar(ref_name)) next
+      single_lab <- tryCatch(
+        as.character(singler[[ref_name]]$single.fine$labels),
+        error = function(e) NULL
+      )
+      cluster_lab <- tryCatch(
+        as.character(singler[[ref_name]]$cluster.fine$labels[
+          match(as.character(Seurat::Idents(obj)),
+                rownames(singler[[ref_name]]$cluster.fine))
+        ]),
+        error = function(e) NULL
+      )
+      if (!is.null(single_lab) && length(single_lab) == length(cells)) {
+        obj <- Seurat::AddMetaData(obj, metadata = single_lab,
+                                   col.name = paste0(ref_name, "_single"))
+      }
+      if (!is.null(cluster_lab) && length(cluster_lab) == length(cells)) {
+        obj <- Seurat::AddMetaData(obj, metadata = cluster_lab,
+                                   col.name = paste0(ref_name, "_cluster"))
+      }
+    }
+    message(sprintf("attachUpstreamAnnotations: merged SingleR refs: %s",
+                    paste(names(singler), collapse = ", ")))
+  }
+
+  obj
+}
+
 ##' @title Pick the best cell-type / annotation metadata column on a Seurat object.
 ##' @description Returns the first column matching a known annotation pattern,
 ##'   or NULL if none found. Used by the report to pick a UMAP `group.by` column
@@ -442,23 +551,53 @@ pickCellTypeColumn <- function(obj) {
   # CyteType > cellxgene > AzimuthPanHuman > Azimuth > scType.
   # Other manual / experimental annotations come last so an upstream
   # CyteType column always wins when present.
+  # Priority order matches FGCZ convention:
+  # CyteTypeR > cellxgene > AzimuthPanHuman > Azimuth (tissue ref) > scType >
+  # SingleR > generic fallbacks. The leading hits in each block are the
+  # actual column names ezRun ScSeuratApp writes today (see
+  # ~/git/ezRun/R/app-ScSeurat.R + ~/git/ezRun/R/seuratUtils.R for sources);
+  # the trailing hits are legacy / generic spellings that other apps use.
   candidates <- c(
-    # CyteType (Nygen Analytics CyteTypeR)
+    # CyteTypeR (Nygen Analytics, AI-powered) — three columns from
+    # app-ScSeurat.R lines 834/842/850. Annotation is the high-level label,
+    # granular adds finer subsets, ontology gives the CL: term.
+    "CyteTypeR_annotation", "CyteTypeR_granular", "CyteTypeR_ontology",
     "CyteTypeR.annotation", "CyteType_annotation", "cytetype", "CyteType",
-    # cellxgene mapping (label-transfer from a cellxgene reference dataset)
-    "cellxgene.labels", "cellxgene_labels", "cellxgene", "cellxgene_celltype",
-    # Azimuth Pan-Human
+    # cellxgene label-transfer from a cellxgene reference dataset.
+    # ezRun's cellxgene_annotation() writes a column named after
+    # param$cellxgeneLabel (typically "cell_type"); here we list the
+    # common spellings.
+    "cellxgene.labels", "cellxgene_labels", "cellxgene_celltype", "cellxgene",
+    # Azimuth Pan-Human (CloudAzimuth) — writes predicted.celltype.l1/l2/l3
+    # directly onto scData. Same column names as Azimuth tissue refs, hence
+    # this block also catches both.
+    "predicted.celltype.l2", "predicted.celltype.l1", "predicted.celltype.l3",
     "azimuth_pan_human", "AzimuthPanHuman.labels", "panhuman.predicted.celltype",
     "PanHuman.celltype",
-    # Azimuth tissue references
-    "predicted.celltype.l2", "predicted.celltype.l1",
-    "Azimuth.labels", "azimuth.labels",
-    # scType
-    "scType.labels", "scType_label", "sctype", "scType",
-    # Manual / experimental fallbacks
+    # Azimuth tissue references — when re-attached from sibling
+    # aziResults.qs2 by attachSeuratAnnotations(); see seuratUtils.R lines
+    # 827-849 for the canonical column names.
+    "Azimuth.celltype.l2", "Azimuth.celltype.l1", "Azimuth.celltype.l3",
+    "Azimuth.celltype.l4", "Azimuth.labels", "azimuth.labels",
+    # scType (ezRun ScSeurat writes `sctype_classification` via the
+    # run_sctype() wrapper at app-ScSeurat.R line 612).
+    "sctype_classification", "scType.labels", "scType_label", "sctype", "scType",
+    # SingleR — when re-attached from sibling singler.results.qs2 by
+    # attachSeuratAnnotations(). seuratUtils.R lines 778-784 emit
+    # `<ref>_single` and `<ref>_cluster` per reference. For pickCellType
+    # we prefer the cluster-level (more stable); singletons may also exist.
+    "MonacoImmuneData_cluster", "BlueprintEncodeData_cluster",
+    "HumanPrimaryCellAtlasData_cluster", "DatabaseImmuneCellExpressionData_cluster",
+    "NovershternHematopoieticData_cluster",
+    "ImmGenData_cluster", "MouseRNAseqData_cluster",
+    "MonacoImmuneData_single", "BlueprintEncodeData_single",
+    "HumanPrimaryCellAtlasData_single", "DatabaseImmuneCellExpressionData_single",
+    "NovershternHematopoieticData_single",
+    "ImmGenData_single", "MouseRNAseqData_single",
+    "SingleR.labels",
+    # Manual / experimental fallbacks (any project-specific column).
     "manual_celltype", "celltype", "CellType", "cell_type",
-    "Cell_Type_Experimental",
-    "SingleR.labels"
+    "Cell_Type_Experimental"
   )
   hit <- intersect(candidates, colnames(obj@meta.data))
   if (length(hit) > 0) hit[1] else NULL

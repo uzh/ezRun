@@ -1,4 +1,4 @@
-## ADT {.tabset}
+## ADT (surface proteins) {.tabset}
 
 ```{r adt-prep, include=FALSE}
 n_adt   <- nrow(scMultiData[["ADT"]])
@@ -389,9 +389,31 @@ if (adtCorrAvail && nrow(adtCorrCorr) > 0) {
 ```
 
 
-### QC
+### Summary
 
-`r format(n_adt, big.mark = ",")` ADT features, normalization: **`r adt_norm`**, mean `r mean_umi` UMI/cell, median `r median_umi` UMI/cell. Cell-type column: `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_none available_"`.
+**What this tab shows.** Per-cell **antibody-derived tag (ADT)**
+quantification — surface protein levels measured by oligonucleotide-tagged
+antibodies (e.g. TotalSeq-A/B/C, BD AbSeq) and read out alongside the
+RNA library on the same cells. Use this tab to confirm cell-type
+identities at the protein level (e.g. CD4 vs CD8 T cells, B-cell
+subsets), to spot mismatches between transcript and protein expression,
+and to identify markers that distinguish the same RNA cluster.
+
+**Why look at this tab.** Surface protein is a more direct readout of
+cell state than mRNA: many cell types are defined by canonical
+markers (CD3, CD19, CD56, etc.) whose protein abundance is what
+clinicians and immunologists actually use to classify them. The
+DotPlots (by cluster, by cell type) summarise the relative protein
+levels per group; the FeaturePlots overlay the top markers on the RNA
+UMAP so you can see how the protein signal localises in transcriptome
+space. The Modality correlation subtab compares cluster identities and
+top-marker rankings between RNA and ADT — high correlation = the two
+modalities agree on cell-type structure; low correlation = surface
+protein is resolving cell types the RNA alone misses.
+
+**Panel:** `r format(n_adt, big.mark = ",")` ADT features, mean `r mean_umi` UMI/cell, median `r median_umi` UMI/cell.
+**Normalization:** `r adt_norm` (`r if (adt_norm == "ADTnorm") "marker-by-marker peak alignment to landmark distributions; recommended for marker-rich panels" else "Seurat default centred-log-ratio"`).
+**Cell-type column for grouping:** `r if (!is.null(celltype_col)) sprintf("**%s**", celltype_col) else "_no annotation column found on the object - DotPlot - by cell type subtab will fall back to clusters_"`.
 
 ```{r adt-norm-status, echo=FALSE, results='asis'}
 adtnorm_info <- scMultiData@misc$adtnorm

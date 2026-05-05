@@ -137,6 +137,14 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
     }
     message("Loading annotated scData from: ", scDataPath)
     obj <- qs2::qs_read(scDataPath, nthreads = max(1L, param$cores %||% 4L))
+    # Re-attach sibling cell-type annotations that ScSeurat saves alongside
+    # scData.qs2 (Azimuth tissue refs, SingleR per-reference labels,
+    # cellxgene label-transfer). ScSeurat doesn't write these onto
+    # scData@meta.data directly — they live in aziResults.qs2,
+    # singler.results.qs2/.rds, cellxgeneResults.qs2/.rds in the same dir.
+    # Without this, ScMultiOmics's pickCellTypeColumn() only sees scType +
+    # CyteTypeR + AzimuthPanHuman (the schemes that *do* write directly).
+    obj <- attachUpstreamAnnotations(obj, dirname(scDataPath))
   }
 
   ## 3. Detect modalities -----------------------------------------------------
@@ -307,6 +315,22 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
   mod$wnnResolution <- wnn_resolution
 
   ## 6. Save and render -------------------------------------------------------
+  # Derive the exploreSC URL from the gstore-relative output Report path so
+  # the Rmd can render a working "Single Cell Explorer" link without the
+  # cwd-stripping heuristic (which doesn't recognize SLURM scratch dirs like
+  # /scratch/p31662_..._<sample>_temp<pid>/<report_dir>).
+  if ("Report" %in% output$colNames && (is.null(param$exploreSCUrl) ||
+                                        !nzchar(param$exploreSCUrl %||% ""))) {
+    report_rel <- output$getColumn("Report")
+    if (length(report_rel) >= 1L && nzchar(report_rel[[1]])) {
+      param$exploreSCUrl <- paste0(
+        "https://fgcz-shiny.uzh.ch/app/exploreSC/?data=",
+        sub("/+$", "", report_rel[[1]]),
+        "/scMultiData.qs2"
+      )
+    }
+  }
+
   makeRmdReport(
     scMultiData = obj,
     param = param,

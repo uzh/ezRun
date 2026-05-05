@@ -1,4 +1,4 @@
-## ATAC {.tabset}
+## ATAC (chromatin accessibility) {.tabset}
 
 ```{r atac-prep, include=FALSE}
 library(Signac)
@@ -20,8 +20,6 @@ if (!"TSS.enrichment" %in% colnames(scMultiData@meta.data)) {
 DefaultAssay(scMultiData) <- "RNA"
 has_ga <- "GeneActivity" %in% Assays(scMultiData)
 ```
-
-*Clustering used:* **`r if (!is.null(cluster_col)) cluster_col else "_none_"`** — RNA-derived (no ATAC-specific clustering computed). UMAP layout is from the ATAC LSI reduction (`atac.umap`).
 
 ### UMAP
 
@@ -103,4 +101,33 @@ if ("nucleosome_signal" %in% colnames(scMultiData@meta.data)) {
 
 ### Summary
 
-`r format(n_peaks, big.mark = ",")` peaks, `r format(n_cells_atac, big.mark = ",")` cells. `r if (has_ga) paste0("GeneActivity assay: ", format(nrow(scMultiData[["GeneActivity"]]), big.mark = ","), " genes.") else "GeneActivity assay not available."`
+**What this tab shows.** Per-cell **chromatin accessibility (ATAC)**
+quantification from a CellRanger ARC multiome sample. ATAC measures
+which regions of the genome are open and accessible to transcription
+machinery — peaks are called by CellRanger ARC across the dataset, and
+each cell gets a count for how many ATAC fragments fell into each peak.
+We then build a **Signac ChromatinAssay**, run TF-IDF normalization +
+SVD (LSI) for dimensionality reduction, and compute an ATAC UMAP. A
+**GeneActivity** assay aggregates accessibility within ±2 kb of each
+gene's TSS as a proxy for "this gene is regulatorily active in this
+cell" (orthogonal to RNA, which measures transcript abundance after the
+fact).
+
+**Why look at this tab.** Open chromatin marks cells that are *poised*
+to express a program, not just cells already expressing it — useful for
+catching transitional states (e.g. progenitors priming a lineage),
+finding regulatory elements (enhancers / promoters) that distinguish
+clusters, and validating cell-type calls with an independent modality.
+The Gene activity FeaturePlots overlay key marker genes' accessibility
+on the RNA UMAP so you can compare "is the gene's locus open?" vs "is
+the gene transcribed?" side by side. The Fragment counts / TSS
+enrichment / Nucleosome signal subtabs are standard ATAC QC: low TSS
+enrichment or high nucleosome signal both flag low-quality cells whose
+ATAC libraries are dominated by noise.
+
+**Panel:** `r format(n_peaks, big.mark = ",")` peaks called over `r format(n_cells_atac, big.mark = ",")` cells.
+**Gene activity assay:** `r if (has_ga) paste0("**", format(nrow(scMultiData[["GeneActivity"]]), big.mark = ","), "** genes (Signac::GeneActivity over peak-to-gene mapping using the EnsDb annotation matched to the refBuild)") else "_not built — typically because the EnsDb package matching this refBuild was not available at runtime, so peak-to-gene mapping was skipped. The Gene activity FeaturePlots subtab will fall back to a placeholder._"`.
+
+**UMAP layout in plots:** `atac.umap` — computed on the ATAC LSI reduction (TF-IDF + SVD on the peak matrix). This is independent of the RNA UMAP; the same cells will sit in different positions in the two layouts.
+
+**Clustering column used in plots:** `r if (!is.null(cluster_col)) paste0("**", cluster_col, "** — inherited from the RNA modality (no ATAC-specific clustering is computed). For multi-modal cluster IDs that fold ATAC into the integration, see the Multi-modal integration (WNN) tab.") else "_no cluster column found on the object._"`.

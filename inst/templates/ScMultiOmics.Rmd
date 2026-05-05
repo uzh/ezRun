@@ -71,15 +71,19 @@ if (!is.null(cluster_col) && !is.null(cluster_levels) &&
 
 # Build exploreSC URL once so child Rmds don't have to re-discover the path.
 # Precedence:
-#   1. params$explore_url       — caller passes a literal URL.
+#   1. params$explore_url       — caller passes a literal URL via render().
 #   2. params$gstore_data_path  — caller passes a gstore-relative dir
 #                                 ("pXXXXX/.../<report_dir>"); we append the
 #                                 file name.
-#   3. cwd heuristic            — strip everything up to the project segment
+#   3. param$exploreSCUrl       — the SUSHI-side param channel (set by
+#                                 ezMethodScMultiOmics from output$getColumn(
+#                                 "Report")). This is the path that fires
+#                                 for SUSHI-driven runs since makeRmdReport
+#                                 doesn't forward render() params.
+#   4. cwd heuristic            — strip everything up to the project segment
 #                                 from getwd() and keep the FULL remainder.
-#                                 Replaces the previous basename()-based logic
-#                                 that dropped intermediate dirs (e.g.
-#                                 Analyses_Paul/<run>/) and 404'd in exploreSC.
+#                                 Only fires for ad-hoc renders where the
+#                                 cwd already lives on gstore.
 explore_url <- NULL
 if (!is.null(params$explore_url) && nzchar(params$explore_url)) {
   explore_url <- params$explore_url
@@ -87,6 +91,9 @@ if (!is.null(params$explore_url) && nzchar(params$explore_url)) {
   explore_url <- paste0("https://fgcz-shiny.uzh.ch/app/exploreSC/?data=",
                         sub("/+$", "", params$gstore_data_path),
                         "/scMultiData.qs2")
+} else if (exists("param") && !is.null(param$exploreSCUrl) &&
+           nzchar(param$exploreSCUrl)) {
+  explore_url <- param$exploreSCUrl
 } else {
   m <- regmatches(getwd(), regexec("/(p\\d+)/(.+)$", getwd()))[[1]]
   if (length(m) == 3 && nzchar(m[2]) && nzchar(m[3])) {

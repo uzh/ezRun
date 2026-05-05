@@ -1,4 +1,4 @@
-## VDJ {.tabset}
+## VDJ (TCR/BCR clonality) {.tabset}
 
 ```{r vdj-prep, include=FALSE}
 library(scRepertoire)
@@ -46,8 +46,6 @@ safe_print <- function(..., recolor = TRUE) {
   }
 }
 ```
-
-*VDJ data is metadata-only* — it overlays cloneSize on the RNA / ADT / WNN UMAPs but produces no clustering of its own. Bar plots below are grouped by **`r group_for_clonal`** (the active clustering column).
 
 ### cloneSize on UMAPs
 
@@ -153,14 +151,6 @@ if (!is.null(celltype_col)) {
 
 ### Repertoire statistics {.tabset}
 
-#### clonalQuant
-
-```{r vdj-quant, echo=FALSE, fig.width=8, fig.height=5}
-safe_print(bquote(clonalQuant(scMultiData, cloneCall = "strict", chain = "both",
-                              scale = TRUE, group.by = .(group_for_clonal),
-                              order.by = .(group_levels))))
-```
-
 #### clonalHomeostasis
 
 ```{r vdj-homeostasis, echo=FALSE, fig.width=8, fig.height=5}
@@ -170,17 +160,6 @@ safe_print(recolor = FALSE,
            bquote(clonalHomeostasis(scMultiData, cloneCall = "strict",
                                     group.by = .(group_for_clonal),
                                     order.by = .(group_levels))))
-```
-
-#### clonalProportion
-
-```{r vdj-proportion, echo=FALSE, fig.width=8, fig.height=5}
-# scRepertoire fills by Var2 (clonalSplit bins like [1:10], [11:100]),
-# NOT by cluster - skip the polychrome recolor.
-safe_print(recolor = FALSE,
-           bquote(clonalProportion(scMultiData, cloneCall = "strict",
-                                   group.by = .(group_for_clonal),
-                                   order.by = .(group_levels))))
 ```
 
 #### CDR3aa length
@@ -239,4 +218,27 @@ if ("CTaa" %in% colnames(scMultiData@meta.data)) {
 
 ### Summary
 
-`r format(n_with_clone, big.mark = ",")` / `r format(n_total, big.mark = ",")` (`r pct_recovery`%) cells with paired `r chain_label` clone; `r if ("CTaa" %in% colnames(scMultiData@meta.data)) format(length(unique(na.omit(scMultiData@meta.data[["CTaa"]]))), big.mark = ",") else "NA"` unique CDR3aa clonotypes.
+**What this tab shows.** Per-cell **TCR / BCR clonotype** information
+from the CellRanger Multi VDJ output, parsed by the `scRepertoire`
+package. For each cell, we record the V/J gene usage, CDR3 nucleotide
+and amino-acid sequences, and assign cells with identical (strict, V/J +
+CDR3nt) or near-identical (clonalCluster) clonotypes to the same clone.
+The `cloneSize` column bins cells by how many other cells share their
+clonotype: singletons, small (2-5), medium (6-20), large (21-100),
+hyperexpanded (>100).
+
+**Why look at this tab.** Clonal expansion is a direct readout of
+adaptive immune response: a clonotype present in many cells indicates
+the original lymphocyte was activated and proliferated (e.g. tumor-
+infiltrating T cells responding to a neoantigen, B cells in an
+ongoing germinal-center response). Overlaying cloneSize on the RNA
+UMAP shows which transcriptionally-defined cell types are
+clonally expanded; bar plots break down clonal-size composition per
+cluster / cell type; "Top clones" identifies the dominant clonotypes
+for follow-up.
+
+**VDJ is metadata-only.** It overlays `cloneSize` on the RNA / ADT /
+WNN UMAPs but produces no clustering of its own. Bar plots are grouped
+by **`r group_for_clonal`** (the active clustering column).
+
+**Recovery:** `r format(n_with_clone, big.mark = ",")` / `r format(n_total, big.mark = ",")` cells (`r pct_recovery`%) carry a paired `r chain_label` clone. `r if ("CTaa" %in% colnames(scMultiData@meta.data)) format(length(unique(na.omit(scMultiData@meta.data[["CTaa"]]))), big.mark = ",") else "NA"` unique CDR3aa clonotypes were observed.

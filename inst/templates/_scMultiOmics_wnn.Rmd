@@ -1,4 +1,4 @@
-## WNN {.tabset}
+## Multi-modal integration (WNN) {.tabset}
 
 ```{r wnn-prep, include=FALSE}
 red_used <- intersect(c("pca", "adt.pca", "lsi"), names(scMultiData@reductions))
@@ -10,8 +10,6 @@ if (!wnn_cluster_col %in% colnames(scMultiData@meta.data)) {
   wnn_cluster_col <- if (length(wsnn_hits) > 0) wsnn_hits[1] else cluster_col
 }
 ```
-
-*Clustering used:* **`r wnn_cluster_col`** — Leiden on the weighted SNN graph at resolution `r wnn_resolution`. Integrated reductions: **`r paste(red_used, collapse = ", ")`**.
 
 ### UMAP
 
@@ -133,4 +131,25 @@ if (length(weight_cols) > 0 && "wnn.umap" %in% names(scMultiData@reductions)) {
 
 ### Summary
 
-Integrated reductions: **`r paste(red_used, collapse = ", ")`**. Resolution: **`r wnn_resolution`**. Cluster column: **`r wnn_cluster_col`**.
+**What this tab shows.** A joint view of the cells that integrates **all
+available modalities** (RNA + ADT + ATAC, depending on what was detected
+on this sample). It uses Seurat's **Weighted Nearest Neighbor (WNN)**
+algorithm: each cell gets a per-modality weight that captures how
+informative each modality was locally for distinguishing it from its
+neighbors, and the weighted contributions are combined into a single
+nearest-neighbor graph (the WSNN graph). UMAP and clustering on that
+graph give a representation of the cells that no single modality could
+produce on its own.
+
+**Why look at this tab.** Use the WNN UMAP and clusters when you want
+groups defined by the combined biology — e.g. a T-cell subset that's
+distinguishable by surface markers (ADT) but only weakly resolved on the
+transcriptome alone (RNA), or chromatin-defined cell states (ATAC) that
+share an RNA program. The "Per-modality weights" subtabs show, per
+cluster and per cell, how much each modality contributed to the
+integration — high RNA weight = the cluster was mostly defined by gene
+expression; high ADT weight = surface protein drove the grouping; etc.
+
+**Integrated reductions:** `r paste(red_used, collapse = ", ")` (PCA on RNA, ADT-PCA on protein, LSI on ATAC peaks; whichever were present).
+
+**Clustering used in plots:** `r wnn_cluster_col` (Seurat Louvain on the weighted SNN graph) at resolution `r wnn_resolution`. The cluster IDs in this tab are NOT the same as the RNA tab's clusters — they're derived from the multi-modal graph.
