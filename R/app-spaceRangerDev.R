@@ -59,22 +59,36 @@ ezMethodSpaceRangerDev <- function(input = NA, output = NA, param = NA) {
       stop("unsupported slide name: ", input$getColumn("Slide"))
     )
 
-  sampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
-  sampleNameFQ <- sub('.tar', '', basename(sampleDirs))
   finalSampleName <- sampleName
   spaceRangerMainVersion <- as.numeric(sub(
     '\\..*',
     '',
     basename(param$SpaceRangerVersion)
   ))
-  # extract tar files if they are in tar format
-  if (all(grepl("\\.tar$", sampleDirs))) {
-    sampleDirs <- tarExtract(sampleDirs, prependUnique = TRUE)
+
+  # Input may be either Read1/Read2 (FASTQ) or RawDataDir (tar archive).
+  if (input$hasColumn("Read1")) {
+    sampleDirs <- link10xFastqPaths(input, param, sampleName)
+    sampleDirs <- normalizePath(sampleDirs)
+    read1Files <- strsplit(input$getColumn("Read1"), ",")[[1]]
+    sampleNameFQ <- unique(sub(
+      "_S\\d+_L\\d+_R[12]_\\d+\\.fastq\\.gz$",
+      "",
+      basename(read1Files)
+    ))
+  } else if (input$hasColumn("RawDataDir")) {
+    sampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
+    sampleNameFQ <- sub('.tar', '', basename(sampleDirs))
+    if (all(grepl("\\.tar$", sampleDirs))) {
+      sampleDirs <- tarExtract(sampleDirs, prependUnique = TRUE)
+    } else {
+      stop("Require inputs to be provided in .tar files when using RawDataDir.")
+    }
+    sampleDirs <- normalizePath(sampleDirs)
   } else {
-    stop("Require inputs to be provided in .tar files.")
+    stop("Neither Read1 nor RawDataDir is specified in the input!")
   }
 
-  sampleDirs <- normalizePath(sampleDirs)
   sampleDir <- paste(sampleDirs, collapse = ",")
   spaceRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-spaceRanger")
   spaceRangerFolder <- gsub('\\.', '_', spaceRangerFolder)
@@ -84,7 +98,11 @@ ezMethodSpaceRangerDev <- function(input = NA, output = NA, param = NA) {
       sampleName <- sampleNameFQ
     }
   } else if (any(sampleNameFQ != sampleName)) {
-    #2.1 Fix FileNames
+    #2.1 Fix FileNames (tar mode only — FASTQ symlinks already preserve their
+    # original filenames, which match the per-pool sampleNameFQ prefix).
+    if (!input$hasColumn("RawDataDir")) {
+      stop("Multi-prefix FASTQ input is not yet supported by SpaceRanger; pre-merge or use a single sample prefix.")
+    }
     cwd <- getwd()
     sampleNameFQ <- file.path(strsplit(sampleDir, ',')[[1]], sampleNameFQ)
     for (fileLevelDir in sampleNameFQ) {
@@ -271,7 +289,13 @@ ezMethodSpaceRangerDev <- function(input = NA, output = NA, param = NA) {
 
   ezSystem(cmd)
 
-  unlink(basename(sampleDirs), recursive = TRUE)
+  # FASTQ mode places symlinks under fastqs/run<N>/<sampleName>/; tar mode
+  # extracts run dirs into cwd, so cleanup paths differ.
+  if (input$hasColumn("Read1")) {
+    unlink(file.path(getwd(), "fastqs"), recursive = TRUE)
+  } else {
+    unlink(basename(sampleDirs), recursive = TRUE)
+  }
   file.rename(file.path(spaceRangerFolder, "outs"), finalSampleName)
   unlink(spaceRangerFolder, recursive = TRUE)
 
