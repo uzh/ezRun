@@ -1,0 +1,55 @@
+## ─────────────────────────────────────────────────────────────
+## FGCZ Shared Report Defaults
+## Include in individual .qmd files via:
+##   metadata-files: ["_fgcz-report.yml"]
+## ─────────────────────────────────────────────────────────────
+
+format:
+  html:
+    embed-resources: true
+    self-contained: true
+    smooth-scroll: true
+    page-layout: full
+
+    # Code
+    code-fold: true
+    code-tools: true
+
+    # Theme (minimal for now — SCSS branding comes later)
+    theme: cosmo
+
+    # Grid sizing
+    grid:
+      body-width: 1800px
+      sidebar-width: 250px
+      margin-width: 100px
+
+    # FGCZ header
+    include-in-header: fgcz_header_quarto.html
+
+    # Figure defaults
+    fig-dpi: 300
+    fig-align: left
+
+# Execution
+execute:
+  echo: false
+  warning: false
+  message: false
+
+# Knitr defaults — plots should fit on screen; click lightbox for full size
+knitr:
+  opts_chunk:
+    fig.width: 6
+    fig.height: 5
+    fig.retina: 2
+    out.width: "30%"
+
+# Cross-references
+crossref:
+  fig-title: "Figure"
+  tbl-title: "Table"
+  title-delim: ":"
+
+# Lightbox for all figures
+lightbox: true
