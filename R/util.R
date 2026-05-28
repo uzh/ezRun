@@ -924,6 +924,55 @@ makeRmdReport <- function(
 }
 
 
+#' Render a Quarto report template bundled in ezRun
+#'
+#' Saves the named objects to .qs2 files in the working directory, copies the
+#' .qmd template and shared FGCZ config files from the package, then renders
+#' the report via \code{quarto::quarto_render}.
+#'
+#' @param ... Named R objects to serialise as \file{<name>.qs2}.
+#' @param htmlFile Output HTML filename.
+#' @param qmdFile Filename of the .qmd template (inside \file{inst/templates/quarto/}).
+#' @param reportTitle Title string passed to the template via Quarto params.
+#' @param use.qs2 Serialise objects as .qs2 (default) or .rds.
+#' @param nthreads Thread count for qs2 serialisation.
+#' @export
+makeQmdReport <- function(
+  ...,
+  htmlFile = "00index.html",
+  qmdFile = "",
+  reportTitle = "SUSHI Report",
+  use.qs2 = TRUE,
+  nthreads = 4
+) {
+  require(qs2)
+
+  varList <- list(...)
+  for (nm in names(varList)) {
+    if (!is.null(varList[[nm]])) {
+      if (use.qs2) {
+        qs_save(varList[[nm]], file = paste0(nm, ".qs2"), nthreads = nthreads)
+      } else {
+        saveRDS(varList[[nm]], file = paste0(nm, ".rds"))
+      }
+    }
+  }
+
+  qSrc <- system.file("templates", "quarto", package = "ezRun", mustWork = TRUE)
+  for (f in c(qmdFile, "_fgcz-report.yml", "fgcz_header_quarto.html")) {
+    file.copy(file.path(qSrc, f), ".", overwrite = TRUE)
+  }
+
+  force(reportTitle)
+  quarto::quarto_render(
+    input = qmdFile,
+    output_file = htmlFile,
+    execute_params = list(reportTitle = reportTitle),
+    quiet = TRUE
+  )
+}
+
+
 subsampleCountMatrix <- function(counts, targetCount, seed) {
   ## inspired by subSeq package where you can provide the proportion as input
   if (!missing(seed)) {

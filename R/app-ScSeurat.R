@@ -633,7 +633,7 @@ ezMethodScSeurat <- function(
     )
   }
 
-  makeRmdReport(
+  makeQmdReport(
     param = param,
     output = output,
     scData = scData,
@@ -646,7 +646,7 @@ ezMethodScSeurat <- function(
     pathwayActivity = anno$pathwayActivity,
     TFActivity = anno$TFActivity,
     cellxgeneResults = anno$cellxgeneResults,
-    rmdFile = "ScSeurat.Rmd",
+    qmdFile = "ScSeurat.qmd",
     reportTitle = paste0(param$name, ": ", input$getNames())
   )
   #remove no longer used objects
