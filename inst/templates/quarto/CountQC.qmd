@@ -873,7 +873,7 @@ kable(enrichrTable, format = "html", escape = FALSE,
 ezInteractiveTableRmd(values = dataset, digits = 4)
 ```
 
-```{r save-rds}
+```{r save-qs2}
 #| include: false
 qs2::qs_save(rawData, "rawData_final.qs2", nthreads=param$cores)
 ```
