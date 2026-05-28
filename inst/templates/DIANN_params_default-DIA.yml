@@ -1,0 +1,40 @@
+# Default DIA-NN parameters for DIA acquisitions.
+# Derived from FGCZ workunit WU340602 (p40993, 2026-02-10) — a known-good
+# DIA-NN 2.3.2 run on Orbitrap Exploris DIA data.
+#
+# The SUSHI EzAppDIANN method reads this file and injects a `registration:`
+# block (workunit_id, container_id, storage_output_folder, ...) at run time;
+# do NOT add a registration: section here.
+params:
+  02_workflow_mode: two_step
+  03_fasta_database_path: NONE
+  03_fasta_use_custom: 'false'
+  03b_additional_fasta_database_path: NONE
+  05_diann_is_dda: 'false'
+  05b_diann_scan_window: AUTO
+  06a_diann_mods_variable: --var-mods 1 --var-mod UniMod:35,15.994915,M
+  06b_diann_mods_no_peptidoforms: 'false'
+  06c_diann_mods_unimod4: 'true'
+  06d_diann_mods_met_excision: 'true'
+  07_diann_peptide_fragment_mz_max: '1800'
+  07_diann_peptide_fragment_mz_min: '200'
+  07_diann_peptide_max_length: '30'
+  07_diann_peptide_min_length: '6'
+  07_diann_peptide_precursor_charge_max: '3'
+  07_diann_peptide_precursor_charge_min: '1'
+  07_diann_peptide_precursor_mz_max: '1500'
+  07_diann_peptide_precursor_mz_min: '350'
+  08_diann_digestion_cut: K*,R*
+  08_diann_digestion_missed_cleavages: '1'
+  09_diann_mass_acc_ms1: AUTO
+  09_diann_mass_acc_ms2: AUTO
+  10_diann_scoring_qvalue: '0.01'
+  11a_diann_protein_pg_level: protein_names_1
+  11b_diann_protein_relaxed_prot_inf: 'false'
+  12a_diann_quantification_reanalyse: 'true'
+  12b_diann_quantification_no_norm: 'false'
+  13_diann_freestyle: None
+  97_raw_converter: thermoraw
+  98_diann_binary: diann-docker
+  99_other_verbose: '1'
+  application_version: '2.3'
