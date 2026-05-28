@@ -269,7 +269,11 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
     cmd <- paste(cmd, param$cmdOptions)
   }
 
-  if (!grepl('--unknown-slide', cmd)) {
+  # When --cytaimage is present, SpaceRanger reads slide+area from the
+  # CytAssist image metadata; passing --slide separately can be rejected for
+  # slide series (e.g. H2-...) outside SpaceRanger's hardcoded regex even when
+  # the cytaimage encodes a valid slide ID.
+  if (!grepl('--unknown-slide', cmd) && !grepl('--cytaimage', cmd)) {
     cmd <- paste(
       cmd,
       paste0("--slide=", input$getColumn("Slide")),
