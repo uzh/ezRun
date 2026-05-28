@@ -153,7 +153,12 @@ ezMethodDIANN <- function(
          ". Install via fgcz-r-029 or set DIANN_RUNNER_PATH.")
   }
   file.symlink(runnerSrc, "diann-runner")
-  Sys.setenv(DIANN_RUNNER_SIF_CACHE_DIR = "/misc/ngseq12/opt/sif")
+  ## diann-runner master >= 4dd79e2 resolves .sif paths from its bundled
+  ## config/defaults_server.yml (images.apptainer.* block). The runtime is
+  ## auto-detected (apptainer wins over docker when both are present). The
+  ## canonical path is /opt/sif/; ensure the .sif files exist there before
+  ## submitting -- run `snakemake -s deploy.smk all_sif --config
+  ## sif_builder=native --config sif_output_dir=/opt/sif` once on this host.
   snakeFile <- "diann-runner/src/diann_runner/Snakefile.DIANN3step.smk"
   stopifnot(file.exists(snakeFile))
   ezSystem(paste(
