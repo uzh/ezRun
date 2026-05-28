@@ -96,7 +96,17 @@ ezMethodDIANN <- function(
   )
 
   ## 3. Stage raw files (one SCP per row of the SUSHI dataset) --------------
-  rawFiles <- input$getColumn("RAW")
+  ## FGCZ datasets use either "Thermo RAW" (B-Fabric convention) or "RAW"
+  ## (Hubert's earlier ezRun convention). Accept both transparently.
+  rawColumn <- intersect(
+    c("Thermo RAW", "RAW"),
+    colnames(input$meta)
+  )
+  if (length(rawColumn) == 0) {
+    stop("Dataset has neither a 'Thermo RAW' nor a 'RAW' column. Found: ",
+         paste(colnames(input$meta), collapse = ", "))
+  }
+  rawFiles <- input$getColumn(rawColumn[1])
   for (rf in rawFiles) {
     ezDiannStageOne(rf, rawDir)
   }
@@ -125,9 +135,11 @@ ezMethodDIANN <- function(
   }
 
   ## 5. Build work/dataset.csv from the SUSHI dataset (3-col format) --------
+  ## Snakemake reads Relative Path / Name / Grouping Var. Map whichever raw
+  ## column the user picked (RAW or Thermo RAW) to "Relative Path".
   ds <- input$meta |>
-    tibble::rownames_to_column("Name") |>
-    dplyr::rename(`Relative Path` = "RAW")
+    tibble::rownames_to_column("Name")
+  ds[["Relative Path"]] <- ds[[rawColumn[1]]]
   outCols <- intersect(c("Relative Path", "Name", "Grouping Var"), colnames(ds))
   readr::write_csv(ds[, outCols, drop = FALSE], "work/dataset.csv")
 
