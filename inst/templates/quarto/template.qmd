@@ -1,0 +1,57 @@
+---
+params:
+  reportTitle: "Analysis"
+title: "`r params$reportTitle`"
+metadata-files: ["_fgcz_report.yml"]
+---
+
+```{r setup}
+#| include: false
+library(ezRun)
+library(DT)
+library(tidyverse)
+
+.dt <- function(df, caption = NULL, pageLength = 10L,
+                filter = "none", rownames = FALSE, escape = TRUE, ...) {
+  DT::datatable(
+    data = df, caption = caption, filter = filter,
+    rownames = rownames, escape = escape,
+    class = "compact stripe",
+    options = list(
+      pageLength = pageLength,
+      scrollX = TRUE,
+      dom = "tip",
+      columnDefs = list(list(targets = "_all", className = "dt-left"))
+    ),
+    ...
+  ) |> DT::formatStyle(columns = seq_len(ncol(df)),
+                        `text-align` = "left",
+                        `white-space` = "normal",
+                        `word-wrap` = "break-word",
+                        `max-width` = "300px")
+}
+
+.save_plot <- function(plot, name, width = 6, height = 5, dpi = 300) {
+  if (!dir.exists("plots")) dir.create("plots", recursive = TRUE)
+  ggplot2::ggsave(file.path("plots", paste0(name, ".png")),
+                  plot = plot, width = width, height = height, dpi = dpi, bg = "white")
+  ggplot2::ggsave(file.path("plots", paste0(name, ".pdf")),
+                  plot = plot, width = width, height = height, device = "pdf", bg = "white")
+}
+```
+
+::: {.panel-tabset}
+
+# First
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+
+# Second
+
+# Session Info
+
+```{r session-info}
+sessionInfo()
+```
+
+:::
