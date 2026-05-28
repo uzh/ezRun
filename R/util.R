@@ -968,7 +968,7 @@ makeQmdReport <- function(
     input = qmdFile,
     output_file = htmlFile,
     execute_params = list(reportTitle = reportTitle),
-    quiet = TRUE
+    quiet = FALSE
   )
 }
 
