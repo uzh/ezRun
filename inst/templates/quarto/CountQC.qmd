@@ -875,7 +875,7 @@ ezInteractiveTableRmd(values = dataset, digits = 4)
 
 ```{r save-rds}
 #| include: false
-saveRDS(rawData, "rawData_final.rds")
+qs2::qs_save(rawData, "rawData_final.qs2", nthreads=param$cores)
 ```
 
 # Session Info
