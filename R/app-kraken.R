@@ -17,6 +17,13 @@ ezMethodKraken = function(
   dbOpt <- param$krakenDBOpt
   conOpt <- param$krakenConfidenceOpt
   phredOpt <- param$krakenPhredOpt
+  minHitGroups <- if (!is.null(param$minimum_hit_groups)) param$minimum_hit_groups else "2"
+  reportMinimizerFlag <- if (isTRUE(param$report_minimizer_data) ||
+                             identical(tolower(as.character(param$report_minimizer_data)), "yes")) {
+    "--report-minimizer-data"
+  } else {
+    ""
+  }
   if (param$paired) {
     read1 = trimmedInput$getColumn("Read1")
     read2 = trimmedInput$getColumn("Read2")
@@ -25,6 +32,9 @@ ezMethodKraken = function(
       "kraken2 -db",
       paste0("/srv/GT/databases/kraken2/", dbOpt),
       "--paired",
+      "--use-names",
+      "--minimum-hit-groups", minHitGroups,
+      reportMinimizerFlag,
       "--confidence",
       conOpt,
       "--minimum-base-quality",
@@ -54,6 +64,9 @@ ezMethodKraken = function(
     cmd = paste(
       "kraken2 -db",
       paste0("/srv/GT/databases/kraken2/", dbOpt),
+      "--use-names",
+      "--minimum-hit-groups", minHitGroups,
+      reportMinimizerFlag,
       "--confidence",
       conOpt,
       "--minimum-base-quality",
