@@ -53,6 +53,7 @@ ezMethodKraken = function(
     ezSystem(cmd)
     cmd = paste(
       "ktImportTaxonomy -q 2 -t 3",
+      "-n", shQuote(sampleName),
       paste0(sampleName, ".txt"),
       "-o",
       paste0(sampleName, ".html")
@@ -85,6 +86,7 @@ ezMethodKraken = function(
     ezSystem(cmd)
     cmd = paste(
       "ktImportTaxonomy -q 2 -t 3",
+      "-n", shQuote(sampleName),
       paste0(sampleName, ".txt"),
       "-o",
       paste0(sampleName, ".html")
