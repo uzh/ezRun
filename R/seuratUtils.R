@@ -808,10 +808,13 @@ getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
 
   # run Azimuth
   if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none") {
+    if (!requireNamespace("Azimuth", quietly = TRUE)) {
+      stop("Azimuth annotation requested, but package 'Azimuth' is not available.")
+    }
     environment(MyDietSeurat) <- asNamespace('Seurat')
     assignInNamespace("DietSeurat", MyDietSeurat, ns = "Seurat")
     scData[["RNA"]] <- JoinLayers(scData[["RNA"]]) # Required for Azimuth compatibility with Seurat v5
-    scDataAzi <- RunAzimuth(scData, param$Azimuth, assay = "RNA") ## TODO support ADT
+    scDataAzi <- Azimuth::RunAzimuth(scData, param$Azimuth, assay = "RNA") ## TODO support ADT
 
     ##Rename annotion levels if neccessary:
     colnames(scDataAzi@meta.data) <- sub(
