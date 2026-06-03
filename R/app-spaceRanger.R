@@ -121,6 +121,22 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
     paste0("--create-bam true")
   )
 
+  # SpaceRanger 4.x runs cell annotation by default and requires a 10x Cloud
+  # token. Without it the pipeline aborts before any analysis ("Could not find
+  # a 10x cloud token in the default user directory"). We supply the FGCZ
+  # token via a file path. Cell annotation itself may still degrade when used
+  # with custom genomes (10x trains models against canonical references);
+  # at least the upstream count/segmentation completes.
+  tenxTokenPath <- "/home/trxcopy/.tenx_cloud_token"
+  if (file.exists(tenxTokenPath)) {
+    cmd <- paste(cmd, paste0("--tenx-cloud-token-path=", tenxTokenPath))
+  } else {
+    futile.logger::flog.warn(
+      "10x Cloud token not found at %s — cell annotation may abort. Add the token to enable.",
+      tenxTokenPath
+    )
+  }
+
   if (
     'Image' %in%
       inputCols &&
