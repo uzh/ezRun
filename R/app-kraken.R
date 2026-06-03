@@ -11,10 +11,22 @@ ezMethodKraken = function(
   param = NA,
   htmlFile = "00index.html"
 ) {
-  opt = param$cmdOptions
-  sampleName = input$getNames()
-  trimmedInput = ezMethodFastpTrim(input = input, param = param)
-  dbOpt <- param$krakenDBOpt
+  sampleName <- input$getNames()
+  trimmedInput <- ezMethodFastpTrim(input = input, param = param)
+
+  dbVals <- as.character(param$krakenDBOpt)
+  dbVals <- dbVals[nzchar(dbVals)]
+  if (length(dbVals) == 0L) {
+    stop("krakenDBOpt is empty: no database selected.")
+  }
+  multiDB <- isTRUE(param$multiDB) ||
+             identical(tolower(as.character(param$multiDB)), "true")
+  if (!multiDB && length(dbVals) > 1L) {
+    dbVals <- dbVals[1]
+  }
+  dbPaths <- file.path("/srv/GT/databases/kraken2", dbVals)
+  dbArg <- paste(dbPaths, collapse = ",")
+
   conOpt <- param$krakenConfidenceOpt
   phredOpt <- param$krakenPhredOpt
   minHitGroups <- if (!is.null(param$minimum_hit_groups)) param$minimum_hit_groups else "2"
@@ -24,75 +36,55 @@ ezMethodKraken = function(
   } else {
     ""
   }
+
+  outTxt <- paste0(sampleName, ".txt")
+  outReport <- paste0(sampleName, ".report.txt")
+  outHtml <- paste0(sampleName, ".html")
+  outLog <- paste0(sampleName, ".log")
+
   if (param$paired) {
-    read1 = trimmedInput$getColumn("Read1")
-    read2 = trimmedInput$getColumn("Read2")
-    readOpt = paste(read1, read2)
-    cmd = paste(
-      "kraken2 -db",
-      paste0("/srv/GT/databases/kraken2/", dbOpt),
-      "--paired",
-      "--use-names",
-      "--minimum-hit-groups", minHitGroups,
-      reportMinimizerFlag,
-      "--confidence",
-      conOpt,
-      "--minimum-base-quality",
-      phredOpt,
-      "--output",
-      paste0(sampleName, ".txt"),
-      "--report",
-      paste0(sampleName, ".report.txt"),
-      "--threads",
-      ezThreads(),
-      param$cmdOptions,
-      readOpt,
-      "1> ",
-      paste0(sampleName, ".log")
-    )
-    ezSystem(cmd)
-    cmd = paste(
-      "ktImportTaxonomy -q 2 -t 3",
-      "-n", shQuote(sampleName),
-      paste0(sampleName, ".txt"),
-      "-o",
-      paste0(sampleName, ".html")
-    )
-    ezSystem(cmd)
+    read1 <- trimmedInput$getColumn("Read1")
+    read2 <- trimmedInput$getColumn("Read2")
+    readOpt <- paste(read1, read2)
+    pairedFlag <- "--paired"
   } else {
-    read1 = trimmedInput$getColumn("Read1")
-    readOpt = paste(read1)
-    cmd = paste(
-      "kraken2 -db",
-      paste0("/srv/GT/databases/kraken2/", dbOpt),
-      "--use-names",
-      "--minimum-hit-groups", minHitGroups,
-      reportMinimizerFlag,
-      "--confidence",
-      conOpt,
-      "--minimum-base-quality",
-      phredOpt,
-      "--output",
-      paste0(sampleName, ".txt"),
-      "--report",
-      paste0(sampleName, ".report.txt"),
-      "--threads",
-      ezThreads(),
-      param$cmdOptions,
-      readOpt,
-      "1> ",
-      paste0(sampleName, ".log")
-    )
-    ezSystem(cmd)
-    cmd = paste(
-      "ktImportTaxonomy -q 2 -t 3",
-      "-n", shQuote(sampleName),
-      paste0(sampleName, ".txt"),
-      "-o",
-      paste0(sampleName, ".html")
-    )
-    ezSystem(cmd)
+    read1 <- trimmedInput$getColumn("Read1")
+    readOpt <- paste(read1)
+    pairedFlag <- ""
   }
+  unclassifiedFasta <- paste0(sampleName, "_unclassified.fasta")
+
+  cmd <- paste(
+    "k2 classify",
+    "--db", dbArg,
+    pairedFlag,
+    "--use-names",
+    "--minimum-hit-groups", minHitGroups,
+    reportMinimizerFlag,
+    "--confidence", conOpt,
+    "--minimum-base-quality", phredOpt,
+    "--output", outTxt,
+    "--report", outReport,
+    "--unclassified-out", unclassifiedFasta,
+    "--threads", ezThreads(),
+    param$cmdOptions,
+    readOpt,
+    "1>", outLog
+  )
+  ezSystem(cmd)
+
+  # Krona must run on the uncompressed per-read output
+  cmd <- paste(
+    "ktImportTaxonomy -q 2 -t 3",
+    "-n", shQuote(sampleName),
+    outTxt,
+    "-o", outHtml
+  )
+  ezSystem(cmd)
+
+  ezSystem(paste("gzip -f", outTxt))
+  ezSystem(paste("gzip -f", unclassifiedFasta))
+
   return("Success")
 }
 
