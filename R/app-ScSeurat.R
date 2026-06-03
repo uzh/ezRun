@@ -214,6 +214,10 @@ ezMethodScSeurat <- function(
     ## scDblFinder fails with many cells and MulticoreParam
     BPPARAM <- SerialParam()
   }
+  ## Pin BLAS/OpenMP to one thread before forking (MulticoreParam/future) to
+  ## avoid the fork-in-multithreaded-process deadlock (e.g. AUCell labeling).
+  RhpcBLASctl::blas_set_num_threads(1)
+  RhpcBLASctl::omp_set_num_threads(1)
   register(BPPARAM)
   require(future)
   plan("multicore", workers = param$cores)
