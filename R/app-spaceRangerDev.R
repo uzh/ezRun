@@ -131,18 +131,6 @@ ezMethodSpaceRangerDev <- function(input = NA, output = NA, param = NA) {
     paste0("--create-bam true")
   )
 
-  # See app-spaceRanger.R for context: SpaceRanger 4.x requires a 10x Cloud
-  # token for default cell annotation.
-  tenxTokenPath <- "/home/trxcopy/.tenx_cloud_token"
-  if (file.exists(tenxTokenPath)) {
-    cmd <- paste(cmd, paste0("--tenx-cloud-token-path=", tenxTokenPath))
-  } else {
-    futile.logger::flog.warn(
-      "10x Cloud token not found at %s — cell annotation may abort. Add the token to enable.",
-      tenxTokenPath
-    )
-  }
-
   if (
     'Image' %in%
       inputCols &&
