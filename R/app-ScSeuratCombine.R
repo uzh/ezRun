@@ -97,9 +97,7 @@ ezMethodScSeuratCombine = function(
   library(SummarizedExperiment)
   library(SingleCellExperiment)
   library(AUCell)
-  library(enrichR)
   library(decoupleR)
-  library(Azimuth)
   library(BiocParallel)
   require(future)
 

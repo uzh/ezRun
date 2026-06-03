@@ -136,8 +136,6 @@ ezMethodSpatialSeurat <- function(
   on.exit(setwd(cwd), add = TRUE)
   library(Seurat)
   library(scater)
-  library(Azimuth)
-  library(enrichR)
   library(loupeR)
   library(future)
   library(BiocParallel)
@@ -475,6 +473,9 @@ getSpatialSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
 
   # run Azimuth
   if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none") {
+    if (!requireNamespace("Azimuth", quietly = TRUE)) {
+      stop("Azimuth annotation requested, but package 'Azimuth' is not available.")
+    }
     environment(MyDietSeurat) <- asNamespace('Seurat')
     assignInNamespace("DietSeurat", MyDietSeurat, ns = "Seurat")
     rna_assay <- CreateAssay5Object(
@@ -482,7 +483,7 @@ getSpatialSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
     )
     scData[["RNA"]] <- scData[["Spatial"]] #rna_assay
     scData[["RNA"]] <- JoinLayers(scData[["RNA"]]) # Required for Azimuth compatibility with Seurat v5
-    scDataAzi <- RunAzimuth(scData, param$Azimuth, assay = "RNA") ## TODO support ADT
+    scDataAzi <- Azimuth::RunAzimuth(scData, param$Azimuth, assay = "RNA") ## TODO support ADT
 
     ##Rename annotation levels if neccessary:
     colnames(scDataAzi@meta.data) <- sub(

@@ -66,9 +66,7 @@ ezMethodScSeuratLabelClusters <- function(
   library(BiocParallel)
   library(scuttle)
   library(DropletUtils)
-  library(enrichR)
   library(decoupleR)
-  library(Azimuth)
   library(tidyverse)
 
   if (param$cores > 1) {

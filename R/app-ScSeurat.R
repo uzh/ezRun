@@ -206,9 +206,7 @@ ezMethodScSeurat <- function(
   library(BiocParallel)
   library(scuttle)
   library(DropletUtils)
-  library(enrichR)
   library(decoupleR)
-  library(Azimuth)
 
   if (param$cores > 1) {
     BPPARAM <- MulticoreParam(workers = param$cores)
@@ -640,8 +638,8 @@ ezMethodScSeurat <- function(
       {
         futile.logger::flog.info("Starting Azimuth Pan-Human annotation...")
 
-        # Load AzimuthAPI package explicitly (CloudAzimuth is in AzimuthAPI, not Azimuth)
-        if (!require("AzimuthAPI", quietly = TRUE)) {
+        # CloudAzimuth is in AzimuthAPI, not Azimuth.
+        if (!requireNamespace("AzimuthAPI", quietly = TRUE)) {
           futile.logger::flog.error("AzimuthAPI package not available")
           stop("AzimuthAPI package required for CloudAzimuth function")
         }
@@ -658,7 +656,7 @@ ezMethodScSeurat <- function(
         }
 
         # Run CloudAzimuth - this handles everything automatically
-        scData <- CloudAzimuth(scData)
+        scData <- AzimuthAPI::CloudAzimuth(scData)
 
         # Restore original seurat_clusters as default Idents (CloudAzimuth changes this)
         Idents(scData) <- scData$seurat_clusters
@@ -1054,6 +1052,9 @@ querySignificantClusterAnnotationEnrichR <- function(
     )
     return(NULL)
   }
+  if (!requireNamespace("enrichR", quietly = TRUE)) {
+    stop("enrichR database requested, but package 'enrichR' is not available.")
+  }
 
   enrichRout <- list()
   columnsToKeep <- c(
@@ -1081,7 +1082,7 @@ querySignificantClusterAnnotationEnrichR <- function(
       next
     }
 
-    enriched <- enrichr(genes, dbs)
+    enriched <- enrichR::enrichr(genes, dbs)
 
     for (db in names(enriched)) {
       enriched_db <- enriched[[db]]
