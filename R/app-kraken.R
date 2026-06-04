@@ -55,7 +55,21 @@ ezMethodKraken = function(
     readOpt <- paste(read1)
     pairedFlag <- ""
   }
-  unclassifiedFasta <- paste0(sampleName, "_unclassified.fasta")
+
+  # --unclassified-out is optional and off by default. In paired mode kraken2
+  # requires a '#' placeholder in the filename, which it expands to _1 / _2.
+  saveUnclassified <- isTRUE(param$save_unclassified) ||
+                     identical(tolower(as.character(param$save_unclassified)), "yes")
+  if (saveUnclassified) {
+    unclassifiedPattern <- if (param$paired) {
+      paste0(sampleName, "_unclassified#.fastq")
+    } else {
+      paste0(sampleName, "_unclassified.fastq")
+    }
+    unclassifiedArg <- paste("--unclassified-out", unclassifiedPattern)
+  } else {
+    unclassifiedArg <- ""
+  }
 
   cmd <- paste(
     "k2 classify",
@@ -68,7 +82,7 @@ ezMethodKraken = function(
     "--minimum-base-quality", phredOpt,
     "--output", outTxt,
     "--report", outReport,
-    "--unclassified-out", unclassifiedFasta,
+    unclassifiedArg,
     "--threads", ezThreads(),
     param$cmdOptions,
     readOpt,
@@ -85,8 +99,17 @@ ezMethodKraken = function(
   )
   ezSystem(cmd)
 
-  ezSystem(paste("gzip -f", outTxt))
-  ezSystem(paste("gzip -f", unclassifiedFasta))
+  ezSystem(paste("pigz -f --best -p", ezThreads(), outTxt))
+  if (saveUnclassified) {
+    unclassifiedFiles <- if (param$paired) {
+      c(paste0(sampleName, "_unclassified_1.fastq"),
+        paste0(sampleName, "_unclassified_2.fastq"))
+    } else {
+      paste0(sampleName, "_unclassified.fastq")
+    }
+    ezSystem(paste("pigz -f --best -p", ezThreads(),
+                   paste(unclassifiedFiles, collapse = " ")))
+  }
 
   return("Success")
 }
