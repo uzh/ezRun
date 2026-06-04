@@ -14,7 +14,8 @@ ezMethodKraken = function(
   sampleName <- input$getNames()
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
 
-  dbVals <- as.character(param$krakenDBOpt)
+  dbVals <- unlist(strsplit(as.character(param$krakenDBOpt), ","))
+  dbVals <- trimws(dbVals)
   dbVals <- dbVals[nzchar(dbVals)]
   if (length(dbVals) == 0L) {
     stop("krakenDBOpt is empty: no database selected.")
@@ -30,12 +31,14 @@ ezMethodKraken = function(
   conOpt <- param$krakenConfidenceOpt
   phredOpt <- param$krakenPhredOpt
   minHitGroups <- if (!is.null(param$minimum_hit_groups)) param$minimum_hit_groups else "2"
-  reportMinimizerFlag <- if (isTRUE(param$report_minimizer_data) ||
-                             identical(tolower(as.character(param$report_minimizer_data)), "yes")) {
-    "--report-minimizer-data"
-  } else {
-    ""
+  wantMinimizer <- isTRUE(param$report_minimizer_data) ||
+                   identical(tolower(as.character(param$report_minimizer_data)), "yes")
+  if (wantMinimizer && length(dbVals) > 1L) {
+    # kraken2 wiki: --report-minimizer-data is unsupported in multi-DB mode.
+    message("Disabling --report-minimizer-data: not supported with multiple DBs.")
+    wantMinimizer <- FALSE
   }
+  reportMinimizerFlag <- if (wantMinimizer) "--report-minimizer-data" else ""
 
   outTxt <- paste0(sampleName, ".txt")
   outReport <- paste0(sampleName, ".report.txt")

@@ -12,7 +12,7 @@ ezMethodBracken = function(
   htmlFile = "00index.html"
 ) {
   sampleName <- input$getNames()
-  krakenReport <- input$getColumn("KrakenReport")
+  krakenReport <- input$getFullPaths("KrakenReport")
 
   # brackenDBOpt is "<DBname>/<N>mers" (one entry per kmer_distrib file)
   dbOpt <- param$brackenDBOpt
@@ -29,18 +29,19 @@ ezMethodBracken = function(
 
   outAbundance <- paste0(sampleName, ".bracken")
   outReport <- paste0(sampleName, ".bracken.report.txt")
+  outLog <- paste0(sampleName, ".bracken.log")
 
   cmd <- paste(
     "bracken",
     "-d", dbDir,
-    "-i", shQuote(krakenReport),
+    "-i", krakenReport,
     "-o", outAbundance,
     "-w", outReport,
     "-r", readLen,
     "-l", level,
     "-t", threshold,
     param$cmdOptions,
-    "2>&1 | tee", paste0(sampleName, ".bracken.log")
+    "1>", outLog, "2>&1"
   )
   ezSystem(cmd)
 
