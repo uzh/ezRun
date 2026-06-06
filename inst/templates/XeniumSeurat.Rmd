@@ -40,6 +40,13 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
                       knitr.table.format = "html")
 ```
 
+```{r css_overrides, echo=FALSE, results='asis'}
+# fgcz.css sets a global `h1 { font-size: 8px }` (to hide the markdown tabset
+# title). ezInteractiveTableRmd renders its `title` as an <h1> inside the table
+# caption, so it inherits 8px. Override caption h1 only (keeps the tabset h1 hidden).
+cat('<style>caption h1 { font-size: 14px !important; font-weight: 600; color: #2c3e50; margin: 2px 0 6px 0; }</style>\n')
+```
+
 ```{r load_data}
 # Load pre-computed data
 scData <- ezLoadRobj("scData")
@@ -259,15 +266,7 @@ plot2 <- ImageFeaturePlot(
   scale_fill_viridis_c(option = "turbo", na.value = "grey95")+
   theme(legend.position = "bottom")
 
-plot3 <- ImageDimPlot(
-  scData_unfiltered, group.by = "Sample",
-  size = 0.1, axes = TRUE, cols = "grey90"
-) +
-  labs(title = "Tissue overview") +
-  guides(color = "none")+
-  theme(legend.position = "bottom")
-
-plot1 + plot2 + plot3 + plot_layout(widths = c(1, 2, 2))
+plot1 + plot2 + plot_layout(widths = c(1, 2))
 ```
 
 ## QC {.tabset}
@@ -427,6 +426,7 @@ ggplot(scData@meta.data, aes_string(x = nCountCol, y = nFeatureCol)) +
        y = "Genes detected (log10 scale)") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 ```
+
 ### Cell morphology {.tabset}
 
 Cell and nucleus area distributions (if available from segmentation).
@@ -540,6 +540,256 @@ if (has_valid_seg) {
    labs(fill = "Method")
 } else {
  cat("Segmentation method information not available in metadata.")
+}
+```
+
+#### Nuclei per cell
+
+```{r nucleus_count_barplot, fig.width=8, fig.height=5, results='asis'}
+if ("nucleus_count" %in% colnames(scData@meta.data) &&
+    !all(is.na(scData$nucleus_count))) {
+ nc <- scData$nucleus_count
+ nc[is.na(nc)] <- 0
+ nc_cat <- ifelse(nc >= 3, "3+", as.character(nc))
+ nc_cat <- factor(nc_cat, levels = c("0", "1", "2", "3+"))
+ df_nc <- as.data.frame(table(nuclei = nc_cat))
+ df_nc$pct <- round(100 * df_nc$Freq / sum(df_nc$Freq), 1)
+
+ print(
+   ggplot(df_nc, aes(x = nuclei, y = Freq)) +
+     geom_col(fill = "#1f77b4", alpha = 0.85) +
+     geom_text(aes(label = paste0(pct, "%")), vjust = -0.3, size = 4) +
+     theme_minimal(base_size = 13) +
+     labs(title = "Number of nuclei per cell",
+          subtitle = "0 = anucleate; >1 = potential segmentation merge",
+          x = "Nuclei per cell", y = "Number of cells") +
+     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ )
+} else {
+ cat("Nucleus count information not available (older Xenium output).")
+}
+```
+
+#### Signal density
+
+```{r signal_density, fig.width=14, fig.height=5, results='asis'}
+if ("signal_density" %in% colnames(scData@meta.data) &&
+    any(is.finite(scData$signal_density))) {
+ p1 <- ggplot(scData@meta.data, aes(x = signal_density)) +
+   geom_histogram(bins = 50, fill = "#16a085", color = "white", alpha = 0.85) +
+   scale_x_log10() +
+   theme_minimal(base_size = 12) +
+   labs(title = "Signal density",
+        subtitle = "Transcripts per cell area",
+        x = expression(paste("Transcripts / ", mu, m^2, " (log10)")),
+        y = "Number of cells") +
+   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ p2 <- ImageFeaturePlot(scData, features = "signal_density",
+                        max.cutoff = "q95", size = 0.5) +
+   ggtitle("Signal density - Spatial") +
+   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ print(p1 + p2)
+} else {
+ cat("Signal density not available (requires cell_area).")
+}
+```
+
+#### Nucleus:cell ratio
+
+```{r nucleus_cell_ratio, fig.width=14, fig.height=5, results='asis'}
+if ("nucleus_cell_ratio" %in% colnames(scData@meta.data)) {
+ p1 <- ggplot(scData@meta.data, aes(x = nucleus_cell_ratio)) +
+   geom_histogram(bins = 50, fill = "#8e44ad", color = "white", alpha = 0.85) +
+   theme_minimal(base_size = 12) +
+   labs(title = "Nucleus : cell area ratio",
+        subtitle = "0 = no detected nucleus; high = nucleus fills cell",
+        x = "Nucleus area / cell area", y = "Number of cells") +
+   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ p2 <- ImageFeaturePlot(scData, features = "nucleus_cell_ratio",
+                        max.cutoff = "q95", size = 0.5) +
+   ggtitle("Nucleus:cell ratio - Spatial") +
+   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ print(p1 + p2)
+} else {
+ cat("Nucleus:cell ratio not available (requires nucleus_area + cell_area).")
+}
+```
+
+#### Negative-control fraction
+
+```{r neg_control_frac, fig.width=14, fig.height=5, results='asis'}
+ctrl_cols <- intersect(
+  c("nCount_ControlProbe", "nCount_ControlCodeword", "nCount_BlankCodeword"),
+  colnames(scData@meta.data)
+)
+if ("neg_control_frac" %in% colnames(scData@meta.data) && length(ctrl_cols) > 0) {
+ # Sample-level negative-control rate is the meaningful QC number; the per-cell
+ # fraction is ~0 for almost all cells in a healthy run.
+ total_ctrl <- sum(as.matrix(scData@meta.data[, ctrl_cols, drop = FALSE]), na.rm = TRUE)
+ total_all <- sum(scData$nCount_Xenium, na.rm = TRUE) + total_ctrl
+ sample_frac <- round(100 * total_ctrl / total_all, 4)
+ pct_any <- round(100 * mean(scData$neg_control_frac > 0, na.rm = TRUE), 1)
+ cat("\n\n**Sample-level negative-control rate:** ", sample_frac,
+     "% of all transcripts (", format(total_ctrl, big.mark = ","), " control / ",
+     format(total_all, big.mark = ","), " total). **", pct_any,
+     "%** of cells carry any negative-control transcript",
+     " (the rest are exactly 0 - expected for a clean run).\n\n", sep = "")
+
+ nz <- which(scData$neg_control_frac > 0)
+ if (length(nz) > 0) {
+   p1 <- ggplot(scData@meta.data[nz, ], aes(x = neg_control_frac)) +
+     geom_histogram(bins = 50, fill = "#c0392b", color = "white", alpha = 0.85) +
+     theme_minimal(base_size = 12) +
+     labs(title = "Negative-control fraction (cells with >0 only)",
+          subtitle = "Per-cell control / total counts",
+          x = "Negative-control fraction", y = "Number of cells") +
+     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+   p2 <- ImageFeaturePlot(scData, features = "neg_control_frac",
+                          max.cutoff = "q95", size = 0.5) +
+     ggtitle("Neg-control fraction - Spatial") +
+     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+   print(p1 + p2)
+ }
+} else {
+ cat("Negative-control fraction not available (no control assays detected).")
+}
+```
+
+### Outlier flags
+
+Cells flagged as morphological / signal outliers (`r paste0(ifelse(is.null(param$qcNmads), 3, param$qcNmads))` MADs).
+**Flagged cells are reported for inspection but are NOT removed** - only the
+transcript-count and gene-count thresholds remove cells (see Cell filtering).
+The table gives the exact criterion and threshold per flag; the spatial map below
+colours each flagged cell by its category (multi-flagged cells coloured by priority:
+cell area > signal density > negative control > nuclei per cell).
+
+```{r outlier_flags, fig.width=12, fig.height=8, results='asis'}
+obj_for_flags <- if (has_unfiltered) scData_unfiltered else scData
+nmads <- as.numeric(ifelse(is.null(param$qcNmads), 3, param$qcNmads))
+flag_labels <- c(
+  outlier.cell_area = "Cell area",
+  outlier.signal_density = "Signal density",
+  outlier.neg_control = "Negative control",
+  outlier.nucleus_count = "Nuclei per cell"
+)
+flag_cols <- intersect(names(flag_labels), colnames(obj_for_flags@meta.data))
+
+if (length(flag_cols) > 0) {
+ md <- obj_for_flags@meta.data
+ # --- per-flag criterion + actual threshold + count ---
+ crit_for <- function(fc) {
+   n <- sum(md[[fc]], na.rm = TRUE)
+   crit <- switch(fc,
+     outlier.cell_area = {
+       thr <- attr(scater::isOutlier(md$cell_area, nmads = nmads, type = "both", log = TRUE), "thresholds")
+       sprintf("%g-MAD outlier (both tails, log): cell area < %.0f or > %.0f um2", nmads, thr[1], thr[2])
+     },
+     outlier.signal_density = {
+       sd <- md$signal_density; sd[!is.finite(sd) | sd <= 0] <- NA
+       thr <- attr(scater::isOutlier(sd, nmads = nmads, type = "lower", log = TRUE), "thresholds")
+       sprintf("%g-MAD outlier (lower tail, log): transcripts/um2 < %.3f", nmads, thr[1])
+     },
+     outlier.neg_control = {
+       thr <- attr(scater::isOutlier(md$neg_control_frac, nmads = nmads, type = "higher"), "thresholds")
+       sprintf("%g-MAD outlier (upper tail): neg-control fraction > %.4f", nmads, thr[2])
+     },
+     outlier.nucleus_count = "fixed rule: nucleus_count == 0 (anucleate) OR > 1 (multinucleate / merged segmentation)",
+     fc)
+   data.frame(Flag = flag_labels[[fc]], Criterion = crit,
+              `Cells flagged` = n, `%` = round(100 * n / nrow(md), 2),
+              check.names = FALSE)
+ }
+ crit_tbl <- do.call(rbind, lapply(flag_cols, crit_for))
+ knitr::kable(crit_tbl, format = "markdown", row.names = FALSE) |> cat(sep = "\n")
+
+ any_flag <- Reduce(`|`, lapply(flag_cols, function(cc) { v <- md[[cc]]; v[is.na(v)] <- FALSE; v }))
+ cat("\n\n**", sum(any_flag), "** cells (", round(100 * sum(any_flag) / nrow(md), 2),
+     "%) flagged by >=1 metric (flagged, NOT removed).\n\n", sep = "")
+
+ # --- spatial map: one colour per flag category (multi-flagged -> by priority,
+ #     order: cell area > signal density > neg control > nuclei per cell) ---
+ fm <- md[, flag_cols, drop = FALSE]; fm[is.na(fm)] <- FALSE
+ cat_vec <- rep("none", nrow(fm))
+ for (fc in rev(flag_cols)) cat_vec[fm[[fc]]] <- flag_labels[[fc]]
+ lvl <- c(unname(flag_labels[flag_cols]), "none")
+ obj_for_flags$outlier_cat <- droplevels(factor(cat_vec, levels = lvl))
+ pal_out <- c("Cell area" = "#e74c3c", "Signal density" = "#3498db",
+              "Negative control" = "#f39c12", "Nuclei per cell" = "#9b59b6",
+              "none" = "grey88")
+ print(
+   ImageDimPlot(obj_for_flags, group.by = "outlier_cat", size = 0.5,
+                cols = pal_out[levels(obj_for_flags$outlier_cat)]) +
+     ggtitle("Outlier flags - spatial (one colour per flag category)") +
+     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ )
+} else {
+ cat("No outlier flags available in metadata.")
+}
+```
+
+### Co-expression (MECR)
+
+Mutually Exclusive Co-expression Rate: for each pair of cell-type-defining marker
+genes (one most-specific gene per RCTD cell type, so each labels a distinct cell
+type), the fraction of cells expressing **both** divided by cells expressing
+**either** (Jaccard co-detection). High values suggest transcript spill-over /
+segmentation contamination. No separate single-cell reference is used: markers
+are picked from this sample's expression within the RCTD cell types.
+
+```{r mecr, fig.width=8, fig.height=7, results='asis'}
+# MECR markers: one most-specific gene per CELL TYPE. Cell types come from the
+# RCTD annotation (defined by the single-cell reference), so markers of distinct
+# types are expected to be mutually exclusive - matching SpatialQM's
+# marker->cell-type design. Falls back to per-cluster markers without annotation.
+counts_mat <- GetAssayData(scData, assay = "Xenium", layer = "counts")
+mecr_markers <- character(0)
+mecr_source <- "cell-type markers (RCTD)"
+
+if ("RCTD_Main" %in% colnames(scData@meta.data) && !all(is.na(scData$RCTD_Main))) {
+ ct <- as.character(scData$RCTD_Main)
+ data_mat <- GetAssayData(scData, assay = "Xenium", layer = "data")
+ types <- names(which(table(ct) >= 20))
+ if (length(types) >= 2) {
+   overall <- Matrix::rowMeans(data_mat)
+   top_per_type <- vapply(types, function(tt) {
+     # which() drops NA (unannotated cells); ct == tt alone yields NA subscripts
+     m <- Matrix::rowMeans(data_mat[, which(ct == tt), drop = FALSE])
+     names(which.max(m / (overall + 1e-9)))  # most enriched gene in this type
+   }, character(1))
+   mecr_markers <- unique(unname(top_per_type))
+ }
+}
+if (length(mecr_markers) < 2 && exists("posMarkers") && nrow(posMarkers) > 0 &&
+    "gene" %in% colnames(posMarkers)) {
+ pm <- posMarkers
+ if ("avg_log2FC" %in% colnames(pm)) pm <- pm[order(pm$cluster, -pm$avg_log2FC), ]
+ mecr_markers <- pm |> dplyr::group_by(cluster) |> dplyr::slice_head(n = 1) |>
+   dplyr::pull(gene) |> as.character() |> unique() |> head(20)
+ mecr_source <- "cluster markers (no annotation)"
+}
+mecr_markers <- intersect(mecr_markers, rownames(counts_mat))
+
+if (length(mecr_markers) >= 2 && exists("computeXeniumMECR")) {
+ mecr_res <- computeXeniumMECR(counts_mat, mecr_markers)
+ cat("\n\n**Mean MECR:** ", round(mecr_res$mecr, 3), " over ", mecr_res$n_pairs,
+     " pairs of ", length(mecr_res$markers_used), " ", mecr_source, ".\n\n", sep = "")
+ pw <- mecr_res$pairwise
+ pw_df <- expand.grid(g1 = rownames(pw), g2 = colnames(pw))
+ pw_df$rate <- as.vector(pw)
+ print(
+   ggplot(pw_df, aes(x = g1, y = g2, fill = rate)) +
+     geom_tile(color = "white") +
+     scale_fill_viridis_c(option = "magma", direction = -1, na.value = "grey90",
+                          name = "Co-expr.\nrate") +
+     coord_fixed() +
+     theme_minimal(base_size = 11) +
+     labs(title = "Marker-pair co-expression (MECR)", x = NULL, y = NULL) +
+     theme(axis.text.x = element_text(angle = 45, hjust = 1),
+           plot.title = element_text(hjust = 0.5, face = "bold"))
+ )
+} else {
+ cat("Not enough markers available to compute MECR.")
 }
 ```
 
@@ -1345,7 +1595,7 @@ colnames(prop_matrix_ct) <- truncate_label(colnames(prop_matrix_ct), max_chars =
 
 ```
 
-```{r niche_celltype_heatmap plot, eval=has_banksy && has_annotation_niche}
+```{r niche_celltype_heatmap plot, fig.width=12, fig.height=9, eval=has_banksy && has_annotation_niche}
 
 # Heatmap with reduced padding
 
@@ -1364,8 +1614,8 @@ ht <- ComplexHeatmap::Heatmap(
   heatmap_legend_param = list(title = "Proportion")
 )
 
-# Draw with explicit padding
-draw(ht, padding = unit(c(2, 2, 2, 2), "cm"))  # bottom, left, top, right
+# Draw with explicit padding (extra bottom room for rotated cell-type labels)
+draw(ht, padding = unit(c(2, 0.5, 0.5, 0.5), "cm"))  # bottom, left, top, right
 ```
 
 
@@ -1684,6 +1934,172 @@ if ("rctd_max_weight" %in% colnames(scData@meta.data)) {
 }
 ```
 
+## SPLIT purification {.tabset}
+
+```{r split_check}
+has_split <- "split.purification_status" %in% colnames(scData@meta.data)
+```
+
+`r if (!has_split) "SPLIT spatial purification was not run for this sample (enable the doSPLIT parameter). SPLIT removes transcript spill-over from neighbouring cells using the RCTD fit; classification metadata and a purified object (scData.purified.qs2) are produced when enabled."`
+
+### Classification
+
+SPLIT decides, per cell, whether to replace its counts with the purified version.
+The default **neighbourhood-aware** mode marks a cell `purified` only when its
+secondary cell type is actually present in its spatial neighbourhood (15um, k=20),
+else `raw` (counts unchanged); `reject` cells are `removed`. This is conservative
+by design - it avoids decomposing real-but-unreferenced populations. ("full" mode
+purifies every cell with a secondary type, regardless of spatial context.)
+
+```{r split_class, fig.width=14, fig.height=6, eval=has_split, results='asis'}
+mode_used <- ifelse(is.null(param$splitMode), "neighborhood", as.character(param$splitMode))
+thr_used <- ifelse(is.null(param$splitNeighborThreshold), 0.05, param$splitNeighborThreshold)
+st <- as.character(scData$split.purification_status); st[is.na(st)] <- "n/a"
+scData$split_status_disp <- st
+sc_tab <- as.data.frame(table(status = st))
+sc_tab$pct <- round(100 * sc_tab$Freq / sum(sc_tab$Freq), 1)
+cat("\n\n**Mode:** ", mode_used,
+    if (mode_used == "neighborhood") paste0(" (spatial threshold ", thr_used, ", 15um / k=20)") else "",
+    ". **Purified (counts replaced):** ", round(100 * mean(st == "purified"), 1),
+    "% | kept raw: ", round(100 * mean(st == "raw"), 1),
+    "% | removed (reject): ", round(100 * mean(st == "removed"), 1), "%\n\n", sep = "")
+
+pal_st <- c(raw = "#27ae60", purified = "#e67e22", removed = "grey55", "n/a" = "grey85")
+p1 <- ggplot(sc_tab, aes(x = reorder(status, -Freq), y = Freq, fill = status)) +
+ geom_col(alpha = 0.85) +
+ geom_text(aes(label = paste0(pct, "%")), vjust = -0.2, size = 4) +
+ scale_fill_manual(values = pal_st) +
+ theme_minimal(base_size = 13) +
+ labs(title = "SPLIT purification status", x = NULL, y = "Cells") +
+ theme(legend.position = "none", plot.title = element_text(hjust = 0.5, face = "bold"))
+
+p2 <- ImageDimPlot(scData, group.by = "split_status_disp", size = 0.5,
+                   cols = pal_st[sort(unique(st))]) +
+ ggtitle("Purification status - Spatial") +
+ theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+print(p1 + p2)
+```
+
+### Purity by cell type
+
+```{r split_by_celltype, fig.width=10, fig.height=6, eval=has_split, results='asis'}
+ct_col <- if ("RCTD_Main" %in% colnames(scData@meta.data)) "RCTD_Main" else "split.first_type"
+if (ct_col %in% colnames(scData@meta.data) && !all(is.na(scData@meta.data[[ct_col]]))) {
+ pdf_pure <- scData@meta.data |>
+   dplyr::filter(!is.na(.data[[ct_col]])) |>
+   dplyr::group_by(cell_type = .data[[ct_col]]) |>
+   dplyr::summarise(n_cells = dplyr::n(),
+                    purified_rate = round(100 * mean(split.purification_status == "purified", na.rm = TRUE), 1),
+                    .groups = "drop") |>
+   dplyr::arrange(dplyr::desc(purified_rate))
+ print(
+   ggplot(pdf_pure, aes(x = reorder(cell_type, purified_rate), y = purified_rate)) +
+     geom_col(fill = "#e67e22", alpha = 0.85) +
+     geom_text(aes(label = n_cells), hjust = -0.1, size = 3) +
+     coord_flip() +
+     theme_minimal(base_size = 12) +
+     labs(title = "Purified-cell rate by cell type",
+          subtitle = "bar label = n cells; % of cells whose counts SPLIT replaced",
+          x = NULL, y = "% purified") +
+     theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ )
+} else {
+ cat("Cell type information not available for purity breakdown.")
+}
+```
+
+### Annotation: before vs after
+
+Cell types re-annotated with RCTD on the **purified** counts (after) vs the
+original annotation on raw counts (before). Because SPLIT removes contaminating
+transcripts, mixed / contaminated cells may switch label.
+
+```{r split_anno_check}
+has_split_anno <- has_split &&
+  all(c("split.celltype_after", "RCTD_Main") %in% colnames(scData@meta.data)) &&
+  any(!is.na(scData$split.celltype_after))
+
+# Load the purified Seurat object (own UMAP + re-annotation) for the UMAP panel
+has_split_umap <- FALSE
+scData_purified <- NULL
+if (has_split_anno && ezRobjExists("scData.purified")) {
+  scData_purified <- ezLoadRobj("scData.purified")
+  has_split_umap <- "umap" %in% names(scData_purified@reductions) &&
+    "RCTD_Main" %in% colnames(scData_purified@meta.data)
+}
+```
+
+`r if (has_split && !has_split_anno) "Post-purification re-annotation is not available for this sample (RCTD re-run on purified counts was skipped or failed)."`
+
+```{r split_anno_spatial, fig.width=15, fig.height=7, eval=has_split_anno, results='asis'}
+before_lab <- as.character(scData$RCTD_Main)
+after_lab <- as.character(scData$split.celltype_after)
+after_lab[is.na(after_lab)] <- "removed/NA"
+
+n_eval <- sum(!is.na(scData$split.celltype_after))
+n_changed <- sum(!is.na(scData$split.celltype_after) &
+                 before_lab != as.character(scData$split.celltype_after))
+cat("\n\n**", n_changed, "/", n_eval, " purified cells (",
+    round(100 * n_changed / max(n_eval, 1), 1),
+    "%) changed cell-type label after purification.**\n\n", sep = "")
+
+all_types <- sort(unique(c(before_lab[!is.na(before_lab)],
+                           after_lab[after_lab != "removed/NA"])))
+pal <- setNames(unname(pals::polychrome())[seq_along(all_types)], all_types)
+pal_after <- c(pal, "removed/NA" = "grey85")
+scData$split_after_lab <- after_lab
+
+p1 <- ImageDimPlot(scData, group.by = "RCTD_Main", size = 0.5, cols = pal) +
+  ggtitle("Before (raw counts)") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"), legend.position = "none")
+p2 <- ImageDimPlot(scData, group.by = "split_after_lab", size = 0.5, cols = pal_after) +
+  ggtitle("After (purified counts)") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+print(p1 + p2)
+```
+
+UMAP before (raw counts) vs after (re-clustered on purified counts), coloured by
+RCTD cell type.
+
+```{r split_anno_umap, fig.width=15, fig.height=7, eval=has_split_umap, results='asis'}
+ut <- sort(unique(c(as.character(scData$RCTD_Main),
+                    as.character(scData_purified$RCTD_Main))))
+ut <- ut[!is.na(ut)]
+palu <- setNames(unname(pals::polychrome())[seq_along(ut)], ut)
+u1 <- DimPlot(scData, reduction = "umap", group.by = "RCTD_Main",
+              cols = palu, raster = FALSE, order = TRUE) +
+  coord_fixed() + ggtitle("Before (raw counts)") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"), legend.position = "none")
+u2 <- DimPlot(scData_purified, reduction = "umap", group.by = "RCTD_Main",
+              cols = palu, raster = FALSE, order = TRUE) +
+  coord_fixed() + ggtitle("After (purified counts)") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+print(u1 + u2)
+```
+
+```{r split_anno_prop, fig.width=10, fig.height=6, eval=has_split_anno, results='asis'}
+prop_df <- dplyr::bind_rows(
+  data.frame(stage = "Before", cell_type = as.character(scData$RCTD_Main)),
+  data.frame(stage = "After", cell_type = as.character(scData$split.celltype_after))
+) |>
+  dplyr::filter(!is.na(cell_type)) |>
+  dplyr::count(stage, cell_type) |>
+  dplyr::group_by(stage) |>
+  dplyr::mutate(pct = 100 * n / sum(n)) |>
+  dplyr::ungroup()
+prop_df$stage <- factor(prop_df$stage, levels = c("Before", "After"))
+print(
+  ggplot(prop_df, aes(x = reorder(cell_type, -pct), y = pct, fill = stage)) +
+    geom_col(position = "dodge", alpha = 0.85) +
+    scale_fill_manual(values = c(Before = "#95a5a6", After = "#2980b9")) +
+    theme_minimal(base_size = 12) +
+    labs(title = "Cell-type proportions: before vs after SPLIT",
+         x = NULL, y = "% of cells") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          plot.title = element_text(hjust = 0.5, face = "bold"))
+)
+```
+
 ## Links
 
 ### Interactive Vitessce explorer
@@ -1741,10 +2157,12 @@ if (file.exists("celltypes_for_explorer.csv")) {
 param_list <- list(
  "Min counts" = ifelse(!is.null(param$minCounts), param$minCounts, 10),
  "Min features" = ifelse(!is.null(param$minFeatures), param$minFeatures, 5),
+ "Outlier MADs (flag only)" = ifelse(!is.null(param$qcNmads), param$qcNmads, 3),
  "Clustering resolution" = ifelse(!is.null(param$clusterResolution), param$clusterResolution, 0.5),
  "BANKSY lambda" = ifelse(!is.null(param$lambda), param$lambda, 0.8),
  "Niche resolution" = ifelse(!is.null(param$nicheResolution),
-                              param$nicheResolution, 0.5)
+                              param$nicheResolution, 0.5),
+ "SPLIT purification" = ifelse(isTRUE(param$doSPLIT), "yes", "no")
 )
 
 ezListAsKable(param_list, col.names = c("Parameter", "Value"),
