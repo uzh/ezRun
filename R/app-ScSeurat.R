@@ -1058,6 +1058,8 @@ querySignificantClusterAnnotationEnrichR <- function(
   }
   if (!requireNamespace("enrichR", quietly = TRUE)) {
     stop("enrichR database requested, but package 'enrichR' is not available.")
+  } else {
+      require(enrichR)
   }
 
   enrichRout <- list()
@@ -1086,7 +1088,7 @@ querySignificantClusterAnnotationEnrichR <- function(
       next
     }
 
-    enriched <- enrichR::enrichr(genes, dbs)
+    enriched <- enrichr(genes, dbs)
 
     for (db in names(enriched)) {
       enriched_db <- enriched[[db]]

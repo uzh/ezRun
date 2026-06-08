@@ -860,7 +860,12 @@ getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
   if (
     ezIsSpecified(param$cellxgeneUrl) && ezIsSpecified(param$cellxgeneLabel)
   ) {
-    cellxgeneResults <- cellxgene_annotation(scData = scData, param = param)
+    if(!requireNamespace("qs", quietly = TRUE)) {
+      warning("cellxgene annotation requested, but package 'qs' is not available. Skip annotation.")
+        cellxgeneResults <- NULL
+    } else {
+        cellxgeneResults <- cellxgene_annotation(scData = scData, param = param)
+    }
   } else {
     cellxgeneResults <- NULL
   }
