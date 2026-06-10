@@ -1623,6 +1623,104 @@ draw(ht, padding = unit(c(2, 0.5, 0.5, 0.5), "cm"))  # bottom, left, top, right
 cat("Niche x Cell type heatmap not available (no BANKSY results or no cell type annotation).")
 ```
 
+### Cell-type co-occurrence
+
+```{r cooccurrence_check}
+has_cooc_coords <- has_annotation && length(scData@images) > 0
+cooc_radius <- if (!is.null(param$coocRadius)) as.numeric(param$coocRadius) else 30
+cooc_nperm <- if (!is.null(param$coocNperm)) as.numeric(param$coocNperm) else 1000
+```
+
+```{r cooccurrence_compute, eval=has_cooc_coords}
+# Neighbourhood-enrichment co-occurrence (cached: re-render skips the permutation).
+cooc_cache <- "cooccurrence_results.qs2"
+cooc <- NULL
+if (file.exists(cooc_cache)) {
+ cached <- tryCatch(qs2::qs_read(cooc_cache), error = function(e) NULL)
+ if (!is.null(cached) && isTRUE(cached$radius == cooc_radius) &&
+     isTRUE(cached$n_perm == cooc_nperm) &&
+     identical(cached$celltype_col, celltype_col)) {
+   cooc <- cached
+ }
+}
+if (is.null(cooc)) {
+ coords_df <- Seurat::GetTissueCoordinates(scData)
+ if (!all(c("x", "y") %in% colnames(coords_df))) {
+   colnames(coords_df)[1:2] <- c("x", "y")
+ }
+ cell_ids <- if ("cell" %in% colnames(coords_df)) as.character(coords_df$cell) else rownames(coords_df)
+ ct_aligned <- scData@meta.data[cell_ids, celltype_col]
+ cooc <- computeCelltypeCooccurrence(
+   coords_df[, c("x", "y")], ct_aligned,
+   radius = cooc_radius, n_perm = cooc_nperm
+ )
+ cooc$celltype_col <- celltype_col
+ tryCatch(qs2::qs_save(cooc, cooc_cache), error = function(e) NULL)
+}
+has_cooc <- !is.null(cooc$log2enrich) && length(cooc$levels) >= 2
+```
+
+```{r cooccurrence_intro, eval=has_cooc_coords, results='asis'}
+if (isTRUE(has_cooc)) {
+ cat(sprintf(paste0(
+   "Neighbourhood enrichment between cell types on a **%g um** radius graph ",
+   "(%s cells, mean %.1f neighbours/cell), against **%d** label permutations. ",
+   "The permutation keeps the graph fixed, so it controls for cell-type abundance ",
+   "and overall density. The colour is the **log2 enrichment** of proximity ",
+   "(log2[(observed+1)/(expected+1)], Giotto-style): red = co-occur more than chance ",
+   "(attraction), blue = less (avoidance). `*` marks pairs with permutation p < 0.05. ",
+   "log2 enrichment is a bounded effect size, comparable across cell-type pairs and samples; ",
+   "the permutation z-score (computed but not shown) inflates with cell count at Xenium scale, ",
+   "so it is not used as the displayed statistic. Colour is capped at the 98th percentile of ",
+   "off-diagonal magnitude (the always-large diagonal self co-occurrence saturates).\n\n"),
+   cooc$radius, format(cooc$n_cells, big.mark = ","), cooc$mean_degree, cooc$n_perm))
+ if (length(cooc$dropped_types) > 0) {
+   cat(sprintf("Cell types with too few cells were dropped: %s.\n\n",
+               paste(cooc$dropped_types, collapse = ", ")))
+ }
+} else if (isTRUE(has_cooc_coords)) {
+ cat("Fewer than two cell types with enough cells - co-occurrence not computed.\n\n")
+}
+```
+
+```{r cooccurrence_heatmap, fig.width=8.5, fig.height=7.5, eval=has_cooc}
+trunc_ct <- function(x, n = 30) ifelse(nchar(x) > n, paste0(substr(x, 1, n - 3), "..."), x)
+lv <- trunc_ct(cooc$levels)
+L <- cooc$log2enrich
+P <- cooc$pval
+dimnames(L) <- dimnames(P) <- list(lv, lv)
+
+# Cluster once and fix the order for rows and columns (symmetric matrix).
+ord <- tryCatch(hclust(dist(L))$order, error = function(e) seq_along(lv))
+L <- L[ord, ord]; P <- P[ord, ord]
+
+# Colour scale from OFF-DIAGONAL pairs only: the diagonal (self co-occurrence) is
+# always large and would otherwise blow out the scale and hide cross-type structure.
+rlim <- function(m, q = 0.98) {
+ v <- abs(m[upper.tri(m) | lower.tri(m)])
+ l <- stats::quantile(v, q, na.rm = TRUE)
+ if (is.finite(l) && l > 0) as.numeric(l) else 1
+}
+mx <- rlim(L)
+col_l <- circlize::colorRamp2(c(-mx, 0, mx), c("#2166AC", "white", "#B2182B"))
+star <- function(j, i, x, y, w, h, fill) {
+ if (!is.na(P[i, j]) && P[i, j] < 0.05) grid.text("*", x, y, gp = gpar(fontsize = 9))
+}
+ht <- ComplexHeatmap::Heatmap(
+ L, name = "log2\nenrich", col = col_l,
+ column_title = "Cell-type co-occurrence (log2 enrichment of proximity)",
+ column_title_gp = gpar(fontsize = 12, fontface = "bold"),
+ cluster_rows = FALSE, cluster_columns = FALSE,
+ row_names_gp = gpar(fontsize = 8), column_names_gp = gpar(fontsize = 8),
+ column_names_rot = 45, rect_gp = gpar(col = "grey85", lwd = 0.5), cell_fun = star
+)
+ComplexHeatmap::draw(ht, padding = unit(c(2, 0.5, 0.5, 0.5), "cm"))
+```
+
+```{r cooccurrence_na, eval=!has_cooc_coords, results='asis'}
+cat("Cell-type co-occurrence not available (needs cell-type annotation and spatial coordinates).\n\n")
+```
+
 ### Cell type markers
 
 ```{r celltype_markers_compute, eval=has_annotation}

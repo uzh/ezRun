@@ -1105,6 +1105,16 @@ EzAppXeniumSeurat <- setRefClass(
           DefaultValue = 0.05,
           Description = "Neighbourhood-aware SPLIT: min fraction of spatial neighbours of the secondary type to purify a cell (balance_score_based threshold)"
         ),
+        coocRadius = ezFrame(
+          Type = "numeric",
+          DefaultValue = 30,
+          Description = "Cell-type co-occurrence: spatial neighbour radius in microns for the neighbourhood-enrichment graph"
+        ),
+        coocNperm = ezFrame(
+          Type = "numeric",
+          DefaultValue = 1000,
+          Description = "Cell-type co-occurrence: number of label permutations for the enrichment null (log2 enrichment + z-score)"
+        ),
         computeSC = ezFrame(
           Type = "logical",
           DefaultValue = TRUE,
