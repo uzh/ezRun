@@ -402,11 +402,12 @@ cellClustWithCorrection <- function(scDataList, param) {
       harmonyFactors <- "Condition"
     }
     # Calculate Harmony reduction
+    # harmony >= 1.0 renamed `reduction` -> `reduction.use` and removed `assay.use`
+    # (check_legacy_args() now hard-errors on assay.use); the assay is taken from the reduction.
     scData <- RunHarmony(
       scData,
       group.by.vars = harmonyFactors,
-      reduction = "pca",
-      assay.use = "SCT",
+      reduction.use = "pca",
       reduction.save = "harmony"
     )
 

@@ -448,7 +448,18 @@ EzApp <-
         "Returns URLs, that are tagged as Links, specified in the output list together with relevant metadata."
         use <- grepl("Link", output$tags)
         relUrls <- c(param$resultDir, unlist(output$meta[use])) ## always show the link to the resultdir and to all Links if available.
-        links <- paste(PROJECT_BASE_URL, relUrls, sep = "/")
+        ## Instance-aware project base URL: an explicit PROJECT_BASE_URL env var wins;
+        ## otherwise course-instance jobs (gstore under .../course_sushi/...) get the course
+        ## web host, and everything else falls back to the global PROJECT_BASE_URL (production).
+        baseUrl <- Sys.getenv("PROJECT_BASE_URL", unset = "")
+        if (!nzchar(baseUrl)) {
+          if (!is.null(param$dataRoot) && grepl("course_sushi", param$dataRoot)) {
+            baseUrl <- "https://fgcz-course1.bfabric.org/projects"
+          } else {
+            baseUrl <- PROJECT_BASE_URL
+          }
+        }
+        links <- paste(baseUrl, relUrls, sep = "/")
         links <- sub('.*\\/http:', 'http:', links) #Trim links for shinyApps
         return(links)
       },
