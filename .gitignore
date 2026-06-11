@@ -5,3 +5,5 @@ tests/testthat/run_examples/
 .Rhistory
 .Rproj.user
 .DS_Store
+graphify-out/
+test_output/

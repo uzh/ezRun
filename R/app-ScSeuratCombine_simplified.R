@@ -1,0 +1,276 @@
+###################################################################
+# Functional Genomics Center Zurich
+# This code is distributed under the terms of the GNU General
+# Public License Version 3, June 2007.
+# The terms are available here: http://www.gnu.org/licenses/gpl.html
+# www.fgcz.ch
+
+EzAppScSeuratCombine <-
+  setRefClass(
+    "EzAppScSeuratCombine",
+    contains = "EzApp",
+    methods = list(
+      initialize = function() {
+        "Initializes the application using its specific defaults."
+        runMethod <<- ezMethodScSeuratCombine
+        name <<- "EzAppScSeuratCombine"
+        appDefaults <<- rbind(
+          nfeatures = ezFrame(
+            Type = "numeric",
+            DefaultValue = 3000,
+            Description = "number of variable genes for SCT"
+          ),
+          npcs = ezFrame(
+            Type = "numeric",
+            DefaultValue = 30,
+            Description = "The maximal dimensions to use for reduction"
+          ),
+          pcGenes = ezFrame(
+            Type = "charVector",
+            DefaultValue = "",
+            Description = "The genes used in supvervised clustering"
+          ),
+          resolution = ezFrame(
+            Type = "numeric",
+            DefaultValue = 0.6,
+            Description = "Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."
+          ),
+          integrationMethod = ezFrame(
+            Type = "character",
+            DefaultValue = "Harmony",
+            Description = "Choose integration method in Seurat (Harmony, CCA, RPCA)"
+          ),
+          enrichrDatabase = ezFrame(
+            Type = "charVector",
+            DefaultValue = "",
+            Description = "enrichR databases to search"
+          ),
+          computePathwayTFActivity = ezFrame(
+            Type = "logical",
+            DefaultValue = "TRUE",
+            Description = "Whether we should compute pathway and TF activities."
+          ),
+          SCT.regress.CellCycle = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."
+          ),
+          DE.method = ezFrame(
+            Type = "charVector",
+            DefaultValue = "wilcox",
+            Description = "Method to be used when calculating gene cluster markers and differentially expressed genes between conditions. Use LR to take into account the Batch and/or CellCycle"
+          ),
+          DE.regress = ezFrame(
+            Type = "charVector",
+            DefaultValue = "Batch",
+            Description = "Variables to regress out if the test LR is chosen"
+          ),
+          min.pct = ezFrame(
+            Type = "numeric",
+            DefaultValue = 0.1,
+            Description = "Used in calculating cluster markers: The minimum fraction of cells in either of the two tested populations."
+          ),
+          min.diff.pct = ezFrame(
+            Type = "numeric",
+            DefaultValue = 0,
+            Description = "Used in filtering cluster markers"
+          ),
+          logfc.threshold = ezFrame(
+            Type = "numeric",
+            DefaultValue = 0.25,
+            Description = "Used in calculating cluster markers: Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells."
+          )
+        )
+      }
+    )
+  )
+
+ezMethodScSeuratCombine <- function(
+  input = NA,
+  output = NA,
+  param = NA,
+  htmlFile = "00index.html"
+) {
+  library(Seurat)
+  library(rlist)
+  library(HDF5Array)
+  library(SummarizedExperiment)
+  library(SingleCellExperiment)
+  library(AUCell)
+  library(enrichR)
+  library(decoupleR)
+  library(Azimuth)
+  library(BiocParallel)
+  library(future)
+
+  plan("multicore", workers = param$cores)
+  set.seed(38)
+  options(future.rng.onMisuse = "ignore")
+  options(future.globals.maxSize = param$ram * 1024^3)
+
+  BPPARAM <- MulticoreParam(workers = param$cores)
+  register(BPPARAM)
+
+  cwd <- getwd()
+  setwdNew(basename(output$getColumn("Report")))
+  on.exit(setwd(cwd), add = TRUE)
+  reportCwd <- getwd()
+  ezLog("Attempting to load Seurat data...")
+  filePath <- file.path("/srv/gstore/projects", input$getColumn("SC Seurat"))
+  filePath_course <- file.path(
+    "/srv/GT/analysis/course_sushi/public/projects",
+    input$getColumn("SC Seurat")
+  )
+  if (!file.exists(filePath[1])) {
+    filePath <- filePath_course
+  }
+  names(filePath) <- input$getNames()
+
+  if (length(filePath) < 2) {
+    stop("need at least two samples to combine.")
+  }
+
+  scDataList <- lapply(names(filePath), function(sm) {
+    scData <- ezLoadRobj(filePath[sm], nthreads = param$cores)
+    aziFilePath <- file.path(dirname(filePath[sm]), "aziResults.rds")
+    if (file.exists(aziFilePath)) {
+      scData <- AddMetaData(scData, readRDS(aziFilePath))
+    }
+    cellxgeneFilePath <- file.path(dirname(filePath[sm]), "cellxgeneResults.rds")
+    if (file.exists(cellxgeneFilePath)) {
+      scData <- AddMetaData(scData, readRDS(cellxgeneFilePath))
+    }
+    scData$Sample <- sm
+
+    # Overwrite Condition from input metadata when missing or explicitly requested
+    if (
+      all(scData$Condition == "NA" | scData$Condition == "") ||
+        (ezIsSpecified(param$overwriteCondition) && as.logical(param$overwriteCondition))
+    ) {
+      if (any(startsWith(colnames(input$meta), "Condition"))) {
+        scData$Condition <- unname(input$getColumn("Condition")[sm])
+      } else {
+        scData$Condition <- scData$Sample
+      }
+    }
+    # Harmony requires variation in Condition; fall back to Sample if all identical
+    if (
+      param$integrationMethod == "Harmony" &&
+        length(unique(input$meta$`Condition`)) == 1
+    ) {
+      scData$Condition <- scData$Sample
+    }
+    # Add any extra per-sample factors from the input metadata
+    if (ezIsSpecified(param$additionalFactors)) {
+      additionalFactors <- str_split(param$additionalFactors, ",", simplify = TRUE)[1, ]
+      metaFactorNames <- paste0("meta_", additionalFactors) |> str_replace(" ", ".")
+      names(metaFactorNames) <- additionalFactors
+      for (hf in additionalFactors) {
+        scData[[metaFactorNames[hf]]] <- unname(input$getColumn(hf)[sm])
+      }
+    }
+    # Rename cells and preserve original sample-level cluster labels
+    scData <- RenameCells(scData, new.names = paste0(scData$Sample, "-", colnames(scData)))
+    if (is.character(scData$seurat_clusters)) {
+      scData$sample_seurat_clusters <- paste0(scData$Sample, "-", scData$seurat_clusters)
+    } else {
+      scData$sample_seurat_clusters <- paste0(
+        scData$Sample, "-", sprintf("%02d", scData$seurat_clusters)
+      )
+    }
+    return(scData)
+  })
+
+  results <- seuratIntegrateDataAndAnnotate(scDataList, input, output, param, BPPARAM)
+
+  # Build per-cluster summary with top markers and (optionally) SingleR labels
+  clusterInfos <- ezFrame(
+    Samples = paste(input$getNames(), collapse = ","),
+    Cluster = levels(Idents(results$scData)),
+    ClusterLabel = ""
+  )
+  if (!is.null(results$singler.results)) {
+    clusterInfos$SinglerCellType <- results$singler.results$singler.results.cluster[
+      clusterInfos$Cluster,
+      "pruned.labels"
+    ]
+  }
+  nTopMarkers <- 10
+  topMarkers <- results$markers |>
+    group_by(cluster) |>
+    slice_max(n = nTopMarkers, order_by = avg_log2FC)
+  clusterInfos[["TopMarkers"]] <- sapply(
+    split(topMarkers$gene, topMarkers$cluster),
+    paste,
+    collapse = ", "
+  )[clusterInfos$Cluster]
+  writexl::write_xlsx(clusterInfos, path = "clusterInfos.xlsx")
+
+  writexl::write_xlsx(results$markers, path = "posMarkers.xlsx")
+  qs2::qs_save(results$scData, "scData.qs2", nthreads = param$cores)
+
+  makeRmdReport(
+    param = param,
+    output = output,
+    scData = results$scData,
+    enrichRout = results$enrichRout,
+    TFActivity = results$TFActivity,
+    pathwayActivity = results$pathwayActivity,
+    aziResults = results$aziResults,
+    cellxgeneResults = results$cellxgeneResults,
+    cells.AUC = results$cells.AUC,
+    singler.results = results$singler.results,
+    rmdFile = "ScSeuratCombine.Rmd",
+    reportTitle = "SCReport - MultipleSamples based on Seurat"
+  )
+  return("Success")
+}
+
+seuratIntegrateDataAndAnnotate <- function(
+  scDataList,
+  input,
+  output,
+  param,
+  BPPARAM = SerialParam()
+) {
+  pvalue_allMarkers <- param$pvalue_allMarkers
+
+  if (ezIsSpecified(param$chosenClusters)) {
+    for (eachSample in names(param$chosenClusters)) {
+      chosenCells <- names(Idents(scDataList[[eachSample]]))[
+        Idents(scDataList[[eachSample]]) %in% param$chosenClusters[[eachSample]]
+      ]
+      scDataList[[eachSample]] <- scDataList[[eachSample]][, chosenCells]
+    }
+  }
+
+  scData_noCorrected <- cellClustNoCorrection(scDataList, param)
+  if (param$integrationMethod != "none") {
+    scData_corrected <- cellClustWithCorrection(scDataList, param)
+    # Switch back to the original assay for marker computation
+    DefaultAssay(scData_corrected) <- "SCT"
+    scData <- scData_corrected
+  } else {
+    scData <- scData_noCorrected
+  }
+  scData@reductions$tsne_noCorrected <- Reductions(scData_noCorrected, "tsne")
+  Key(scData@reductions$tsne_noCorrected) <- "TSNEnoCorrection_"
+  scData@reductions$umap_noCorrected <- Reductions(scData_noCorrected, "umap")
+  Key(scData@reductions$umap_noCorrected) <- "UMAPnoCorrection_"
+
+  # Since Seurat v5, RNA layers are split by sample; join to avoid clutter downstream
+  scData <- JoinLayers(scData, assay = "RNA")
+
+  scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
+  scData <- PrepSCTFindMarkers(scData)
+
+  anno <- getSeuratMarkersAndAnnotate(scData, param, BPPARAM = BPPARAM)
+
+  return(c(
+    list(scData = scData),
+    anno[c(
+      "markers", "enrichRout", "pathwayActivity", "TFActivity",
+      "cells.AUC", "singler.results", "aziResults", "cellxgeneResults"
+    )]
+  ))
+}

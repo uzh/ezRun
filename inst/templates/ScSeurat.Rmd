@@ -755,8 +755,12 @@ FeaturePlot(scData, features="percent_riboprot", label = TRUE)
 VlnPlot(scData, features = "percent_hb") + ggtitle("Hemoglobin percentage vs ident") + NoLegend()
 FeaturePlot(scData, features = "percent_hb", label = TRUE)
 
-VlnPlot(scData, features ="doubletScore") + ggtitle("DoubletScore vs ident") + NoLegend()
-FeaturePlot(scData, features="doubletScore", label = TRUE)
+if (!all(is.na(scData$doubletScore))) {
+  print(VlnPlot(scData, features ="doubletScore") + ggtitle("DoubletScore vs ident") + NoLegend())
+  print(FeaturePlot(scData, features="doubletScore", label = TRUE))
+} else {
+  cat("Doublet score not available (doublet detection was skipped for this sample).\n")
+}
 ```
 
 ```{r decontx, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10)}

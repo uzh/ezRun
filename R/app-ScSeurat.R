@@ -1012,11 +1012,29 @@ addCellQcToSeurat <- function(
         )
       },
       error = function(e) {
+        ## A flaky parallel backend (broken worker socket / SIGPIPE) can crash
+        ## scDblFinder even on well-sized samples; retry serially before giving up.
         futile.logger::flog.warn(paste(
-          "scDblFinder failed (likely too few cells), skipping doublet detection:",
+          "scDblFinder failed with parallel backend, retrying with SerialParam:",
           conditionMessage(e)
         ))
-        NULL
+        tryCatch(
+          {
+            scDblFinder(
+              GetAssayData(scData, layer = "counts")[, scData$useCell],
+              returnType = "table",
+              clusters = TRUE,
+              BPPARAM = SerialParam()
+            )
+          },
+          error = function(e2) {
+            futile.logger::flog.warn(paste(
+              "scDblFinder failed (likely too few cells), skipping doublet detection:",
+              conditionMessage(e2)
+            ))
+            NULL
+          }
+        )
       }
     )
     if (!is.null(doubletsInfo)) {
