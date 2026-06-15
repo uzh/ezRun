@@ -691,8 +691,8 @@ writeSCMM <- function(x, file) {
   require(Matrix)
   stopifnot(grepl("\\.mtx$", file))
 
-  write_lines(rownames(x), path = sub("\\.mtx$", ".rowNames", file))
-  write_lines(colnames(x), path = sub("\\.mtx$", ".colNames", file))
+  write_lines(rownames(x), file = sub("\\.mtx$", ".rowNames", file))
+  write_lines(colnames(x), file = sub("\\.mtx$", ".colNames", file))
 
   writeMM(Matrix(x), file = file)
 
