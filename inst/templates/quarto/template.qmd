@@ -44,9 +44,65 @@ library(tidyverse)
 
 # First
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+<!-- PATTERN 1 — section-level callout: a full-width note that frames or
+     caveats the WHOLE sub-tab (methods summary, data source, scope). Just a
+     plain ::: callout (3 colons), no columns. -->
+
+::: {.callout-note}
+## About this section
+
+Use a full-width callout when the note applies to *everything* in the sub-tab
+rather than one figure. Swap `note` for `tip` / `warning` / `important` to
+change the colour and icon; add `collapse="true"` to fold it shut by default.
+:::
+
+Main content of the tab then runs full-width underneath.
 
 # Second
+
+<!-- PATTERN 2 — figure + side callout, with numbers pulled LIVE from the qmd.
+     Compute the values in a hidden chunk, then reference them in the callout
+     with inline R expressions so the prose can never drift from the figure.
+     Fence colon-counts MUST nest (outer > inner) or the blocks won't close:
+       11 colons = .columns wrapper · 10 = each .column · 3 = the .callout -->
+
+```{r second-demo}
+#| include: false
+demo_df   <- mtcars
+demo_n    <- nrow(demo_df)
+demo_mean <- round(mean(demo_df$mpg), 1)
+demo_plot <- ggplot(demo_df, aes(wt, mpg)) +
+  geom_point(size = 2) +
+  labs(x = "Weight (1000 lbs)", y = "Fuel economy (mpg)") +
+  theme_bw()
+```
+
+::::::::::: {.columns}
+
+:::::::::: {.column width="73%"}
+
+```{r second-plot}
+demo_plot
+```
+
+::::::::::
+
+:::::::::: {.column width="2%"}
+::::::::::
+
+:::::::::: {.column width="25%"}
+
+::: {.callout-tip collapse="true"}
+## What this shows
+
+Across the **`r demo_n`** cars, mean fuel economy is **`r demo_mean` mpg**.
+Both figures are inline R expressions reading the chunk on the left, so the
+caption stays in lock-step with the data instead of being hard-typed.
+:::
+
+::::::::::
+
+:::::::::::
 
 # Session Info
 
