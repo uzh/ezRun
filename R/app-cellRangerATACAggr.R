@@ -50,7 +50,7 @@ ezMethodCellRangerATACAggr = function(input = NA, output = NA, param = NA) {
     tmpdir = getwd(),
     fileext = ".csv"
   )
-  write_csv(aggr_input, path = aggr_input_fn)
+  write_csv(aggr_input, file = aggr_input_fn)
 
   cellRangerFolder = paste0(param$name, "-cellRanger")
 
