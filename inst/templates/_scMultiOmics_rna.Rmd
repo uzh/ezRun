@@ -1,0 +1,49 @@
+## RNA (transcriptome) {.tabset}
+
+### UMAP
+
+```{r rna-umap, echo=FALSE, fig.width=14, fig.height=7}
+plots <- list()
+if (!is.null(cluster_col)) {
+  plots[["clusters"]] <- DimPlot(scMultiData, reduction = rna_umap,
+                                 group.by = cluster_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE,
+                                 cols = cluster_pal) +
+    theme(aspect.ratio = 1) + ggtitle(paste0("RNA UMAP - clusters (", cluster_col, ")"))
+}
+if (!is.null(celltype_col)) {
+  plots[["celltype"]] <- DimPlot(scMultiData, reduction = rna_umap,
+                                 group.by = celltype_col, raster = FALSE,
+                                 label = TRUE, repel = TRUE, order = TRUE) +
+    theme(aspect.ratio = 1) + ggtitle(paste0("RNA UMAP - cell type (", celltype_col, ")"))
+}
+if (length(plots) >= 2) {
+  print(patchwork::wrap_plots(plots, ncol = 2))
+} else if (length(plots) == 1) {
+  print(plots[[1]])
+}
+```
+
+### Summary
+
+```{r rna-summary, include=FALSE}
+n_cells <- ncol(scMultiData)
+n_genes <- nrow(scMultiData[["RNA"]])
+n_clusters <- if (!is.null(cluster_col)) length(unique(scMultiData@meta.data[[cluster_col]])) else NA
+n_celltypes <- if (!is.null(celltype_col)) length(unique(scMultiData@meta.data[[celltype_col]])) else NA
+```
+
+**What this tab shows.** UMAP and metadata visualization of the **gene
+expression (RNA) modality only**, computed by the upstream ScSeurat run
+(SCTransform normalization → PCA → UMAP → graph-based clustering on the
+SCT SNN graph). Use this tab for the standard transcriptome-only view of
+the sample. The other tabs layer additional modalities on top of these
+same cells.
+
+**Sample:** `r sample_name`. `r format(n_cells, big.mark = ",")` cells,
+`r format(n_genes, big.mark = ",")` RNA features.
+`r if (!is.na(n_clusters)) paste0(n_clusters, " transcriptome clusters") else ""``r if (!is.na(n_clusters) && !is.na(n_celltypes)) "; " else ""``r if (!is.na(n_celltypes)) paste0(n_celltypes, " annotated cell types (column: ", celltype_col, ")") else ""`.
+
+**Clustering column used in plots:** `r if (!is.null(cluster_col)) paste0("**", cluster_col, "** (Seurat Louvain on the RNA SNN graph)") else "_none — no cluster column found on the object._"`.
+
+`r if (!is.null(celltype_col)) paste0("**Cell-type annotation column used in plots:** **", celltype_col, "** (auto-picked by ezRun::pickCellTypeColumn from the candidates available on the object).") else "_No cell-type annotation column was detected on the object - upstream ScSeurat run probably did not add one (or used a column name not in pickCellTypeColumn's candidates list)._"`

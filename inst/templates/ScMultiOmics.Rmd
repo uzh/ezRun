@@ -1,0 +1,133 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'ScMultiOmics Report'`"
+output:
+  html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
+    includes:
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+    code_folding: hide
+params:
+  gstore_data_path: null
+  explore_url: null
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, comment = "")
+library(ezRun)
+library(Seurat)
+library(ggplot2)
+library(qs2)
+library(knitr)
+
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
+param        <- ezLoadRobj("param")
+modalities   <- ezLoadRobj("modalities")
+scMultiData  <- ezLoadRobj("scMultiData",
+                           nthreads = max(1L, param$cores %||% 4L))
+output       <- tryCatch(ezLoadRobj("output"), error = function(e) NULL)
+
+# Pick best embedding for the RNA "primary" UMAP and a cell-type column.
+rna_umap <- if ("umap" %in% names(scMultiData@reductions)) "umap" else
+            if ("tsne" %in% names(scMultiData@reductions)) "tsne" else
+            names(scMultiData@reductions)[1]
+celltype_col <- ezRun::pickCellTypeColumn(scMultiData)
+# Prefer WNN clusters when WNN ran; fall back to RNA seurat_clusters.
+wnn_col <- scMultiData@misc$wnn_cluster_col
+cluster_col <- if (!is.null(wnn_col) && wnn_col %in% colnames(scMultiData@meta.data)) {
+  wnn_col
+} else if ("seurat_clusters" %in% colnames(scMultiData@meta.data)) {
+  "seurat_clusters"
+} else NULL
+sample_name <- if ("Sample" %in% colnames(scMultiData@meta.data)) {
+  unique(scMultiData$Sample)[1]
+} else "sample"
+
+# Canonical cluster palette + numeric ordering, shared across all child tabs
+# so DimPlots / DotPlots / scRepertoire bar plots use consistent colors and
+# numeric x-axis order (0, 1, 2, ..., 10, 11) instead of character-sort.
+cluster_levels <- if (!is.null(cluster_col) &&
+                      !is.null(scMultiData@meta.data[[cluster_col]])) {
+  lvls <- levels(as.factor(scMultiData@meta.data[[cluster_col]]))
+  num  <- suppressWarnings(as.integer(lvls))
+  if (all(!is.na(num))) as.character(sort(num)) else lvls
+} else NULL
+cluster_pal <- if (!is.null(cluster_levels)) {
+  setNames(unname(pals::polychrome())[seq_along(cluster_levels)], cluster_levels)
+} else unname(pals::polychrome())
+# Force the cluster column to the numeric-sorted factor so every chunk
+# (including scRepertoire functions that read group.by directly) sees the
+# right order.
+if (!is.null(cluster_col) && !is.null(cluster_levels) &&
+    is.factor(scMultiData@meta.data[[cluster_col]])) {
+  scMultiData@meta.data[[cluster_col]] <- factor(
+    as.character(scMultiData@meta.data[[cluster_col]]),
+    levels = cluster_levels)
+}
+
+# Build exploreSC URL once so child Rmds don't have to re-discover the path.
+# Precedence:
+#   1. params$explore_url       — caller passes a literal URL via render().
+#   2. params$gstore_data_path  — caller passes a gstore-relative dir
+#                                 ("pXXXXX/.../<report_dir>"); we append the
+#                                 file name.
+#   3. param$exploreSCUrl       — the SUSHI-side param channel (set by
+#                                 ezMethodScMultiOmics from output$getColumn(
+#                                 "Report")). This is the path that fires
+#                                 for SUSHI-driven runs since makeRmdReport
+#                                 doesn't forward render() params.
+#   4. cwd heuristic            — strip everything up to the project segment
+#                                 from getwd() and keep the FULL remainder.
+#                                 Only fires for ad-hoc renders where the
+#                                 cwd already lives on gstore.
+explore_url <- NULL
+if (!is.null(params$explore_url) && nzchar(params$explore_url)) {
+  explore_url <- params$explore_url
+} else if (!is.null(params$gstore_data_path) && nzchar(params$gstore_data_path)) {
+  explore_url <- paste0("https://fgcz-shiny.uzh.ch/app/exploreSC/?data=",
+                        sub("/+$", "", params$gstore_data_path),
+                        "/scMultiData.qs2")
+} else if (exists("param") && !is.null(param$exploreSCUrl) &&
+           nzchar(param$exploreSCUrl)) {
+  explore_url <- param$exploreSCUrl
+} else {
+  m <- regmatches(getwd(), regexec("/(p\\d+)/(.+)$", getwd()))[[1]]
+  if (length(m) == 3 && nzchar(m[2]) && nzchar(m[3])) {
+    explore_url <- paste0("https://fgcz-shiny.uzh.ch/app/exploreSC/?data=",
+                          m[2], "/", m[3], "/scMultiData.qs2")
+  }
+}
+```
+
+# {.tabset}
+
+```{r rna-child, child = system.file("templates/_scMultiOmics_rna.Rmd", package = "ezRun")}
+```
+
+```{r adt-child, eval = isTRUE(modalities$hasADT), child = system.file("templates/_scMultiOmics_adt.Rmd", package = "ezRun")}
+```
+
+```{r atac-child, eval = isTRUE(modalities$hasATAC), child = system.file("templates/_scMultiOmics_atac.Rmd", package = "ezRun")}
+```
+
+```{r wnn-child, eval = isTRUE(modalities$ranWNN), child = system.file("templates/_scMultiOmics_wnn.Rmd", package = "ezRun")}
+```
+
+```{r vdj-child, eval = isTRUE(modalities$hasVDJ_T) || isTRUE(modalities$hasVDJ_B), child = system.file("templates/_scMultiOmics_vdj.Rmd", package = "ezRun")}
+```
+
+```{r explore-child, child = system.file("templates/_scMultiOmics_explore.Rmd", package = "ezRun")}
+```
+
+```{r notes-child, child = system.file("templates/_scMultiOmics_notes.Rmd", package = "ezRun")}
+```
+
+## Session Information
+
+```{r session-info}
+sessionInfo()
+```

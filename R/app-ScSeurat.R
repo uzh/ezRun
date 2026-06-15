@@ -169,6 +169,21 @@ EzAppScSeurat <-
             Type = "numeric",
             DefaultValue = 0.5,
             Description = "Confidence threshold for Azimuth Pan-Human annotation (0.0-1.0)"
+          ),
+          CyteTypeR = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "Enable CyteTypeR AI-powered cell type annotation"
+          ),
+          CyteTypeR.apiKey = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "Nygen Analytics CyteType API key"
+          ),
+          CyteTypeR.studyContext = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "Biological context for annotation"
           )
         )
       }
@@ -191,9 +206,7 @@ ezMethodScSeurat <- function(
   library(BiocParallel)
   library(scuttle)
   library(DropletUtils)
-  library(enrichR)
   library(decoupleR)
-  library(Azimuth)
 
   if (param$cores > 1) {
     BPPARAM <- MulticoreParam(workers = param$cores)
@@ -201,6 +214,10 @@ ezMethodScSeurat <- function(
     ## scDblFinder fails with many cells and MulticoreParam
     BPPARAM <- SerialParam()
   }
+  ## Pin BLAS/OpenMP to one thread before forking (MulticoreParam/future) to
+  ## avoid the fork-in-multithreaded-process deadlock (e.g. AUCell labeling).
+  RhpcBLASctl::blas_set_num_threads(1)
+  RhpcBLASctl::omp_set_num_threads(1)
   register(BPPARAM)
   require(future)
   plan("multicore", workers = param$cores)
@@ -223,12 +240,30 @@ ezMethodScSeurat <- function(
     param$cellbender = FALSE
   }
   if (!param$cellbender) {
-    cts <- Read10X(cmDir, gene.column = 1)
+    # fill = TRUE: multiome (CR ARC) features.tsv.gz mixes 6-field GEX rows
+    # (id, name, "Gene Expression", chr, start, end) with 3-field Peaks rows
+    # (id, name, "Peaks"). Without fill, read.table errors at the first short
+    # row. Load featInfo first so we can detect multiome before calling Read10X.
     featInfo <- ezRead.table(
       paste0(cmDir, "/features.tsv.gz"),
       header = FALSE,
-      row.names = NULL
+      row.names = NULL,
+      fill = TRUE
     )
+    # Detect multiome (Peaks present alongside Gene Expression). Seurat's
+    # Read10X uses data.table::fread on features.tsv.gz without fill, which
+    # truncates at the first short row and crashes during dimname assignment
+    # ("length of Dimnames[[1]] (1) is not equal to Dim[1] (...)"). Side-step
+    # by reading from the sibling .h5 — Read10X_h5 handles multi-feature_type
+    # input natively (returns a named list keyed by feature_type). The
+    # subsequent `is.list(cts)` filter at line ~297 keeps only Gene Expression.
+    matrix_h5 <- paste0(cmDir, ".h5")
+    has_peaks <- "Peaks" %in% as.character(featInfo[[3]])
+    if (has_peaks && file.exists(matrix_h5)) {
+      cts <- Read10X_h5(matrix_h5, use.names = FALSE)
+    } else {
+      cts <- Read10X(cmDir, gene.column = 1)
+    }
   } else if (param$cellbender) {
     # Read the cellbender H5 file with Ensembl IDs as rownames
     cts <- Read10X_h5(cmDir, use.names = FALSE)
@@ -327,7 +362,28 @@ ezMethodScSeurat <- function(
         use.names = FALSE
       )
     } else {
-      rawCts <- Read10X(rawDir, gene.column = 1)
+      # Same multiome guard as the filtered-matrix branch above: when the
+      # unfiltered features.tsv.gz contains Peaks rows AND a sibling .h5
+      # exists, prefer Read10X_h5 — Seurat::Read10X chokes on multiome
+      # features.tsv.gz via internal data.table::fread without fill.
+      raw_h5 <- paste0(rawDir, ".h5")
+      raw_features <- file.path(rawDir, "features.tsv.gz")
+      raw_has_peaks <- FALSE
+      if (file.exists(raw_features)) {
+        raw_feat <- tryCatch(
+          ezRead.table(raw_features, header = FALSE, row.names = NULL,
+                       fill = TRUE),
+          error = function(e) NULL
+        )
+        if (!is.null(raw_feat) && ncol(raw_feat) >= 3) {
+          raw_has_peaks <- "Peaks" %in% as.character(raw_feat[[3]])
+        }
+      }
+      if (raw_has_peaks && file.exists(raw_h5)) {
+        rawCts <- Read10X_h5(raw_h5, use.names = FALSE)
+      } else {
+        rawCts <- Read10X(rawDir, gene.column = 1)
+      }
     }
     if (is.list(rawCts)) {
       rawCts <- rawCts$`Gene Expression`
@@ -586,8 +642,8 @@ ezMethodScSeurat <- function(
       {
         futile.logger::flog.info("Starting Azimuth Pan-Human annotation...")
 
-        # Load AzimuthAPI package explicitly (CloudAzimuth is in AzimuthAPI, not Azimuth)
-        if (!require("AzimuthAPI", quietly = TRUE)) {
+        # CloudAzimuth is in AzimuthAPI, not Azimuth.
+        if (!requireNamespace("AzimuthAPI", quietly = TRUE)) {
           futile.logger::flog.error("AzimuthAPI package not available")
           stop("AzimuthAPI package required for CloudAzimuth function")
         }
@@ -604,7 +660,7 @@ ezMethodScSeurat <- function(
         }
 
         # Run CloudAzimuth - this handles everything automatically
-        scData <- CloudAzimuth(scData)
+        scData <- AzimuthAPI::CloudAzimuth(scData)
 
         # Restore original seurat_clusters as default Idents (CloudAzimuth changes this)
         Idents(scData) <- scData$seurat_clusters
@@ -633,7 +689,206 @@ ezMethodScSeurat <- function(
     )
   }
 
-  makeQmdReport(
+  # CyteTypeR AI-powered Annotation
+  if (
+    ezIsSpecified(param$CyteTypeR) &&
+      (param$CyteTypeR == TRUE || param$CyteTypeR == "true")
+  ) {
+    tryCatch(
+      {
+        futile.logger::flog.info("Starting CyteTypeR cell type annotation...")
+
+        if (!require("CyteTypeR", quietly = TRUE)) {
+          futile.logger::flog.error("CyteTypeR package not available")
+          stop(
+            "CyteTypeR package required. ",
+            "Install from: https://github.com/NygenAnalytics/CyteTypeR"
+          )
+        }
+
+        # Resolve API key: parameter > environment variable
+        api_key <- NULL
+        if (ezIsSpecified(param$CyteTypeR.apiKey)) {
+          api_key <- param$CyteTypeR.apiKey
+        } else if (nzchar(Sys.getenv("CYTETYPE_API_KEY", ""))) {
+          api_key <- Sys.getenv("CYTETYPE_API_KEY")
+        }
+
+        # Prepare markers (reuse existing markers from getSeuratMarkersAndAnnotate)
+        cytetype_markers <- markers |>
+          dplyr::mutate(cluster = as.character(cluster)) |>
+          dplyr::filter(!is.na(cluster), p_val_adj < 0.05, avg_log2FC > 0.5) |>
+          dplyr::group_by(cluster) |>
+          dplyr::arrange(dplyr::desc(avg_log2FC), .by_group = TRUE)
+
+        # Work on a copy to avoid mutating scData before CyteTypeR succeeds
+        scData_ct <- scData
+
+        # Ensure seurat_clusters is character (local copy only)
+        scData_ct$seurat_clusters <- as.character(scData_ct$seurat_clusters)
+
+        # Remove cells with NA cluster
+        cells_with_cluster <- colnames(scData_ct)[
+          !is.na(scData_ct$seurat_clusters)
+        ]
+        if (length(cells_with_cluster) < ncol(scData_ct)) {
+          futile.logger::flog.warn(
+            "Removing %d cells with NA cluster assignment for CyteTypeR",
+            ncol(scData_ct) - length(cells_with_cluster)
+          )
+          scData_ct <- subset(scData_ct, cells = cells_with_cluster)
+        }
+
+        # Handle case-insensitive duplicate columns (DuckDB requirement)
+        cols <- colnames(scData_ct@meta.data)
+        dupes <- cols[duplicated(tolower(cols))]
+        if (length(dupes) > 0) {
+          futile.logger::flog.warn(
+            "Removing duplicate metadata columns for CyteTypeR: %s",
+            paste(dupes, collapse = ", ")
+          )
+          scData_ct@meta.data[dupes] <- NULL
+        }
+
+        # Ensure clusters have enough markers (PrepareCyteTypeR needs >= 5 per cluster)
+        marker_counts <- cytetype_markers |>
+          dplyr::count(cluster) |>
+          dplyr::filter(n >= 5)
+        valid_clusters <- marker_counts$cluster
+        seurat_clusters_all <- unique(scData_ct$seurat_clusters)
+        excluded_clusters <- setdiff(seurat_clusters_all, valid_clusters)
+        if (length(excluded_clusters) > 0) {
+          futile.logger::flog.warn(
+            "Clusters excluded from CyteTypeR (no/insufficient markers): %s",
+            paste(excluded_clusters, collapse = ", ")
+          )
+          scData_ct <- subset(
+            scData_ct,
+            seurat_clusters %in% valid_clusters
+          )
+          cytetype_markers <- cytetype_markers |>
+            dplyr::filter(cluster %in% valid_clusters)
+        }
+
+        # Prepare data for CyteTypeR
+        prepped_data <- CyteTypeR::PrepareCyteTypeR(
+          scData_ct,
+          cytetype_markers,
+          n_top_genes = 15,
+          group_key = "seurat_clusters",
+          aggregate_metadata = TRUE,
+          coordinates_key = "umap"
+        )
+
+        # Fix NA entry in clusterMetadata (known PrepareCyteTypeR bug)
+        if (any(is.na(names(prepped_data$clusterMetadata)))) {
+          prepped_data$clusterMetadata <- prepped_data$clusterMetadata[
+            !is.na(names(prepped_data$clusterMetadata))
+          ]
+        }
+
+        # Auto-generate study_context if not provided
+        species <- getSpecies(param$refBuild)
+        study_context <- if (ezIsSpecified(param$CyteTypeR.studyContext)) {
+          param$CyteTypeR.studyContext
+        } else {
+          tissue_hint <- if (
+            ezIsSpecified(param$sctype.tissue) &&
+              param$sctype.tissue != "auto"
+          ) {
+            param$sctype.tissue
+          } else {
+            "unspecified tissue"
+          }
+          paste0(
+            species, " ", tissue_hint,
+            " single-cell RNA-seq data with ",
+            length(unique(scData$seurat_clusters)), " clusters and ",
+            ncol(scData), " cells."
+          )
+        }
+
+        # Submit annotation job (use copy to avoid mutating scData on failure)
+        scData_ct <- CyteTypeR::CyteTypeR(
+          obj = scData_ct,
+          prepped_data = prepped_data,
+          study_context = study_context,
+          auth_token = api_key,
+          require_artifacts = FALSE,
+          metadata = list(
+            title = paste0("ScSeurat CyteTypeR - ", input$getNames()),
+            run_label = paste0("sushi_", format(Sys.Date(), "%Y%m%d")),
+            experiment_name = param$name
+          )
+        )
+
+        # Extract results from the copy
+        cytetype_results <- scData_ct@misc$cytetype_results
+
+        if (!is.null(cytetype_results) && nrow(cytetype_results) > 0) {
+          # Map annotations to original scData (CRITICAL: use unname() for Seurat v5)
+          ct_map <- setNames(
+            cytetype_results$annotation,
+            cytetype_results$clusterId
+          )
+          ct_vals <- unname(ct_map[as.character(scData$seurat_clusters)])
+          ct_vals[is.na(ct_vals)] <- "Unassigned"
+          scData$CyteTypeR_annotation <- ct_vals
+
+          ct_granular_map <- setNames(
+            cytetype_results$granularAnnotation,
+            cytetype_results$clusterId
+          )
+          ct_gran_vals <- unname(ct_granular_map[as.character(scData$seurat_clusters)])
+          ct_gran_vals[is.na(ct_gran_vals)] <- "Unassigned"
+          scData$CyteTypeR_granular <- ct_gran_vals
+
+          ct_onto_map <- setNames(
+            cytetype_results$ontologyTerm,
+            cytetype_results$clusterId
+          )
+          ct_onto_vals <- unname(ct_onto_map[as.character(scData$seurat_clusters)])
+          ct_onto_vals[is.na(ct_onto_vals)] <- "Unassigned"
+          scData$CyteTypeR_ontology <- ct_onto_vals
+
+          # Transfer job details for report link
+          scData@misc$cytetype_results <- cytetype_results
+          scData@misc$cytetype_jobDetails <- scData_ct@misc$cytetype_jobDetails
+
+          # Save results for Rmd template
+          saveRDS(cytetype_results, "cytetype_results.rds")
+
+          # Add CyteTypeR to clusterInfos.xlsx
+          if (file.exists(clusterInfoFile)) {
+            clusterInfos_update <- readxl::read_xlsx(clusterInfoFile)
+            clusterInfos_update$CyteTypeR <- unname(
+              ct_map[as.character(clusterInfos_update$Cluster)]
+            )
+            writexl::write_xlsx(clusterInfos_update, path = clusterInfoFile)
+          }
+
+          futile.logger::flog.info(
+            "CyteTypeR annotation completed: %d cell types identified",
+            length(unique(cytetype_results$annotation))
+          )
+        } else {
+          futile.logger::flog.warn("CyteTypeR returned no results")
+        }
+        rm(scData_ct)
+        gc()
+      },
+      error = function(e) {
+        futile.logger::flog.error(
+          "CyteTypeR annotation failed: %s",
+          e$message
+        )
+      }
+    )
+  } else {
+    futile.logger::flog.info("CyteTypeR annotation disabled, skipping...")
+  }
+
+  makeRmdReport(
     param = param,
     output = output,
     scData = scData,
@@ -646,7 +901,7 @@ ezMethodScSeurat <- function(
     pathwayActivity = anno$pathwayActivity,
     TFActivity = anno$TFActivity,
     cellxgeneResults = anno$cellxgeneResults,
-    qmdFile = "ScSeurat.qmd",
+    qmdFile = "ScSeurat.Rmd",
     reportTitle = paste0(param$name, ": ", input$getNames())
   )
   #remove no longer used objects
@@ -800,6 +1055,11 @@ querySignificantClusterAnnotationEnrichR <- function(
       "No enrichR databases specified, skipping enrichment analysis"
     )
     return(NULL)
+  }
+  if (!requireNamespace("enrichR", quietly = TRUE)) {
+    stop("enrichR database requested, but package 'enrichR' is not available.")
+  } else {
+      require(enrichR)
   }
 
   enrichRout <- list()

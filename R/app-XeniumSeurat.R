@@ -276,23 +276,31 @@ ezMethodXeniumSeurat <- function(
   # 1. Load Xenium Data
   sdata <- LoadXenium(data.dir = xeniumPath, fov = "fov")
 
-  # Load additional cell metadata not loaded by Seurat (cell_area, nucleus_area)
+  # Load additional cell metadata not loaded by Seurat (cell morphology +
+  # segmentation). Only request columns that exist - older Xenium outputs
+  # lack nucleus_count / segmentation_method.
   cells_file <- file.path(xeniumPath, "cells.csv.gz")
   if (file.exists(cells_file)) {
-    cells_meta <- data.table::fread(
-      cells_file,
-      select = c("cell_id", "cell_area", "nucleus_area")
+    avail_cols <- colnames(data.table::fread(cells_file, nrows = 0))
+    want_cols <- intersect(
+      c(
+        "cell_id", "cell_area", "nucleus_area", "nucleus_count",
+        "segmentation_method"
+      ),
+      avail_cols
     )
+    cells_meta <- data.table::fread(cells_file, select = want_cols)
     meta_idx <- match(colnames(sdata), cells_meta$cell_id)
 
     if (sum(!is.na(meta_idx)) > 0) {
-      sdata$cell_area <- cells_meta$cell_area[meta_idx]
-      sdata$nucleus_area <- cells_meta$nucleus_area[meta_idx]
+      added_cols <- setdiff(want_cols, "cell_id")
+      for (cl in added_cols) {
+        sdata[[cl]] <- cells_meta[[cl]][meta_idx]
+      }
       ezWrite(
         paste(
-          "Added cell_area and nucleus_area to",
-          sum(!is.na(meta_idx)),
-          "cells"
+          "Added", paste(added_cols, collapse = ", "), "to",
+          sum(!is.na(meta_idx)), "cells"
         ),
         "log.txt",
         append = TRUE
@@ -317,13 +325,20 @@ ezMethodXeniumSeurat <- function(
     as.numeric(param$minFeatures)
   )
 
-  # Add QC flags (matching VisiumHD style for consistent reporting)
+  # Add QC flags (matching VisiumHD style for consistent reporting).
+  # Only qc.* flags drive removal; outlier.* flags below are reported only.
   sdata$qc.lib <- sdata$nCount_Xenium < min_counts
   sdata$qc.nexprs <- sdata$nFeature_Xenium < min_features
   sdata$useCell <- !(sdata$qc.lib | sdata$qc.nexprs)
   sdata$discard <- !sdata$useCell
 
-  # Store unfiltered object for QC reporting (with QC flags)
+  # Derive extra per-cell QC metrics (signal density, nucleus:cell ratio,
+  # transcripts/nucleus, negative-control fraction) and MAD-based outlier
+  # flags (outlier.*). Cells are flagged & reported but NOT removed.
+  qc_nmads <- ifelse(is.null(param$qcNmads), 3, as.numeric(param$qcNmads))
+  sdata <- addXeniumCellQc(sdata, nmads = qc_nmads)
+
+  # Store unfiltered object for QC reporting (with QC + outlier flags)
   ezWrite(
     "Saving unfiltered object for QC reporting...",
     "log.txt",
@@ -486,14 +501,37 @@ ezMethodXeniumSeurat <- function(
         # Run RCTD
         umi_min <- ifelse(
           is.null(param$rctdUMImin),
-          20,
+          10,
           as.numeric(param$rctdUMImin)
         )
+        # Optional coarse cell-type -> class mapping (TSV with columns
+        # cell_type, class). Maximises cell retention (RCTD resolves same-class
+        # doublets to singlets instead of rejecting) and supplies the class
+        # hierarchy SPLIT-shift needs (Bilous et al. 2026 recommendation).
+        rctd_class_df <- NULL
+        if (
+          !is.null(param$rctdClassFile) && param$rctdClassFile != "" &&
+            file.exists(param$rctdClassFile)
+        ) {
+          cdf <- read.delim(param$rctdClassFile, stringsAsFactors = FALSE)
+          rctd_class_df <- data.frame(
+            class = as.character(cdf[[2]]),
+            row.names = as.character(cdf[[1]])
+          )
+          ezWrite(
+            paste(
+              "Using RCTD class mapping:", param$rctdClassFile, "(",
+              length(unique(cdf[[2]])), "classes)"
+            ),
+            "log.txt", append = TRUE
+          )
+        }
         myRCTD <- create.RCTD(
           query.puck,
           ref_obj,
           max_cores = param$cores,
-          UMI_min = umi_min
+          UMI_min = umi_min,
+          class_df = rctd_class_df
         )
         myRCTD <- run.RCTD(myRCTD, doublet_mode = 'doublet')
 
@@ -527,6 +565,225 @@ ezMethodXeniumSeurat <- function(
         }
 
         ezWrite("RCTD annotation completed", "log.txt", append = TRUE)
+
+        # --- Optional SPLIT spatial purification (opt-in side-by-side layer) ---
+        # Removes transcript spill-over using the RCTD fit. Adds split.*
+        # classification metadata to the main object and saves a separate
+        # purified object; the primary clustering/UMAP stay on raw counts.
+        if (isTRUE(param$doSPLIT)) {
+          ezWrite(
+            "Running SPLIT spatial purification...",
+            "log.txt",
+            append = TRUE
+          )
+          tryCatch(
+            {
+              # SPLIT >= 0.2.2 requires the RCTD object to be post-processed
+              # first; the deprecated purify(rctd=) path is replaced by the
+              # converter + rctd-free purify (SPLIT 0.2.3 API).
+              split_mode <- ifelse(
+                is.null(param$splitMode), "neighborhood",
+                as.character(param$splitMode)
+              )
+              split_thr <- ifelse(
+                is.null(param$splitNeighborThreshold), 0.05,
+                as.numeric(param$splitNeighborThreshold)
+              )
+
+              myRCTD <- SPLIT::run_post_process_RCTD(myRCTD)
+              qs2::qs_save(myRCTD, "rctd_results.qs2", nthreads = param$cores)
+
+              # post-processed RCTD classification onto the main object (needed
+              # by the neighbourhood balance + reporting + SPLIT-shift swap rule).
+              # first_type_class/second_type_class/weight_* exist when a class_df
+              # was supplied - they are exactly what SPLIT-shift's swap needs.
+              rdf <- myRCTD@results$results_df
+              for (cl in intersect(
+                c("spot_class", "first_type", "second_type",
+                  "weight_first_type", "weight_second_type",
+                  "first_type_class", "second_type_class"),
+                colnames(rdf)
+              )) {
+                sdata[[cl]] <- rdf[colnames(sdata), cl]
+              }
+
+              split_counts <- GetAssayData(sdata, assay = "Xenium", layer = "counts")
+              rctd_cells <- colnames(myRCTD@spatialRNA@counts)
+              split_cells <- intersect(rctd_cells, colnames(split_counts))
+
+              pin <- SPLIT::convert_rctd_result_to_purify_input(rctd = myRCTD)
+              split_res <- SPLIT::purify(
+                counts = split_counts[, split_cells, drop = FALSE],
+                primary_cell_type = pin$primary_cell_type,
+                deconvolution_weights = pin$deconvolution_weights,
+                reference = Matrix::t(pin$reference)
+              )
+              # purified object built the SPLIT way (cell_meta carries purification_status)
+              xe_purified <- CreateSeuratObject(
+                counts = split_res$purified_counts,
+                meta.data = split_res$cell_meta,
+                assay = "Xenium"
+              )
+
+              if (split_mode == "neighborhood") {
+                # Neighbourhood-aware (balance_score_based): replace a cell's counts
+                # with the purified version ONLY when its secondary cell type is
+                # actually present in its spatial neighbourhood (kNN k=20, edges
+                # > 15 um pruned; vignette/paper settings). Conservative default -
+                # avoids decomposing real-but-unreferenced populations (e.g. cycling
+                # tumour) out of existence the way "full" mode can.
+                co <- GetTissueCoordinates(sdata)
+                if ("cell" %in% colnames(co)) rownames(co) <- co$cell
+                emb <- as.matrix(co[, c("x", "y")])
+                colnames(emb) <- c("ST_1", "ST_2")
+                sdata[["spatial"]] <- CreateDimReducObject(
+                  emb[colnames(sdata), , drop = FALSE], assay = "Xenium", key = "ST_"
+                )
+                sp_nw <- SPLIT::build_spatial_network(
+                  sdata, reduction = "spatial", dims = 1:2,
+                  DO_prune = TRUE, rad_pruning = 15, k_knn = 20
+                )
+                sp_nw <- SPLIT::add_spatial_metric(spatial_neighborhood = sp_nw, rctd = myRCTD)
+                sdata <- AddMetaData(sdata, SPLIT::neighborhood_analysis_to_metadata(sp_nw))
+                spatial_purified <- SPLIT::balance_raw_and_purified_data_by_score(
+                  xe_raw = sdata, xe_purified = xe_purified,
+                  default_assay = "Xenium", spot_class_key = "spot_class",
+                  threshold = split_thr,
+                  score_name = "neighborhood_weights_second_type",
+                  DO_swap_lables = FALSE
+                )
+                ezWrite(
+                  paste0("SPLIT neighbourhood-aware balance (threshold=", split_thr,
+                         ", 15um prune, k=20)"),
+                  "log.txt", append = TRUE
+                )
+              } else if (split_mode == "shift") {
+                # SPLIT-shift: transcriptomic-neighbourhood label correction. If a
+                # cell's primary type disagrees with its transcriptomic neighbourhood
+                # (dominated by the secondary type), swap them (RCTD likely mislabelled)
+                # and keep the secondary profile. REQUIRES the RCTD class hierarchy
+                # (supply rctdClassFile) - the swap key columns are otherwise absent.
+                trnw <- SPLIT::build_transcriptomics_network(
+                  sdata, reduction = "pca", DO_prune = FALSE, k_knn = 100
+                )
+                trnw <- SPLIT::add_transcriptomics_metric(
+                  transcriptomics_neighborhood = trnw, rctd = myRCTD
+                )
+                sdata <- AddMetaData(sdata, SPLIT::neighborhood_analysis_to_metadata(trnw))
+                spatial_purified <- SPLIT::balance_raw_and_purified_data_by_score(
+                  xe_raw = sdata, xe_purified = xe_purified,
+                  default_assay = "Xenium", spot_class_key = "spot_class",
+                  threshold = split_thr,
+                  score_name = "neighborhood_weights_second_type",
+                  DO_swap_lables = TRUE
+                )
+                ezWrite("SPLIT-shift (transcriptomic neighbourhood + label swap)",
+                        "log.txt", append = TRUE)
+              } else {
+                # 'full' mode: purify every cell with a secondary type (RCTD-only)
+                spatial_purified <- xe_purified
+                ezWrite("SPLIT full purification (all cells with a secondary type)",
+                        "log.txt", append = TRUE)
+              }
+
+              # map SPLIT classification onto the main object (purification_status:
+              # raw = kept raw, purified = counts replaced, removed = reject)
+              fmeta <- spatial_purified@meta.data
+              for (cl in intersect(
+                c("purification_status", "first_type", "primary_cell_type"),
+                colnames(fmeta)
+              )) {
+                sdata[[paste0("split.", cl)]] <-
+                  unname(fmeta[[cl]][match(colnames(sdata), rownames(fmeta))])
+              }
+              if ("split.purification_status" %in% colnames(sdata@meta.data)) {
+                sdata$split.purified <- sdata[["split.purification_status"]] == "purified"
+              }
+
+              # process the purified deliverable
+              pur_counts <- GetAssayData(spatial_purified, assay = "Xenium", layer = "counts")
+              spatial_purified <- NormalizeData(spatial_purified, verbose = FALSE)
+              spatial_purified <- FindVariableFeatures(
+                spatial_purified, nfeatures = 2000, verbose = FALSE
+              )
+              spatial_purified <- ScaleData(spatial_purified, verbose = FALSE)
+              spatial_purified <- RunPCA(spatial_purified, verbose = FALSE)
+              spatial_purified <- RunUMAP(spatial_purified, dims = 1:30, verbose = FALSE)
+
+              # Re-annotate the purified counts with RCTD (same reference) so
+              # the report can show cell-type annotation BEFORE (RCTD_Main on
+              # raw counts) vs AFTER purification.
+              tryCatch(
+                {
+                  pur_cells <- colnames(pur_counts)
+                  pur_coords <- GetTissueCoordinates(sdata)
+                  if ("cell" %in% colnames(pur_coords)) {
+                    rownames(pur_coords) <- pur_coords$cell
+                  }
+                  pur_coords <- pur_coords[pur_cells, c("x", "y"), drop = FALSE]
+                  # SPLIT purified counts are fractional (transcripts are
+                  # reassigned probabilistically); RCTD's SpatialRNA requires
+                  # integer counts, so round before re-annotation.
+                  pur_counts_int <- round(pur_counts)
+                  pur_puck <- SpatialRNA(
+                    pur_coords, pur_counts_int, Matrix::colSums(pur_counts_int)
+                  )
+                  pur_rctd <- create.RCTD(
+                    pur_puck, ref_obj,
+                    max_cores = param$cores, UMI_min = umi_min,
+                    class_df = rctd_class_df
+                  )
+                  pur_rctd <- run.RCTD(pur_rctd, doublet_mode = "doublet")
+                  pur_w <- normalize_weights(pur_rctd@results$weights)
+                  pur_main <- colnames(pur_w)[max.col(pur_w, ties.method = "first")]
+                  names(pur_main) <- rownames(pur_w)
+                  # unname(): indexing a named vector by cells absent from it
+                  # yields NA names, which Seurat's [[<- / AddMetaData reject.
+                  spatial_purified <- AddMetaData(
+                    spatial_purified,
+                    metadata = unname(pur_main[colnames(spatial_purified)]),
+                    col.name = "RCTD_Main"
+                  )
+                  # map the post-purification annotation onto the main object
+                  sdata$split.celltype_after <- unname(pur_main[colnames(sdata)])
+                  ezWrite(
+                    "Re-annotated purified counts with RCTD (after-SPLIT)",
+                    "log.txt",
+                    append = TRUE
+                  )
+                },
+                error = function(e) {
+                  ezWrite(
+                    paste("Purified re-annotation failed:", e$message),
+                    "log.txt",
+                    append = TRUE
+                  )
+                }
+              )
+
+              qs2::qs_save(
+                spatial_purified,
+                "scData.purified.qs2",
+                nthreads = param$cores
+              )
+              ezWrite(
+                paste(
+                  "SPLIT purification done:",
+                  ncol(pur_counts), "purified cells"
+                ),
+                "log.txt",
+                append = TRUE
+              )
+            },
+            error = function(e) {
+              ezWrite(
+                paste("SPLIT purification failed:", e$message),
+                "log.txt",
+                append = TRUE
+              )
+            }
+          )
+        }
       }
     }
   } else if (!is.null(ref_path)) {
@@ -818,10 +1075,45 @@ EzAppXeniumSeurat <- setRefClass(
           DefaultValue = "",
           Description = "Manual override: Full path to custom RCTD reference .rds file"
         ),
+        rctdClassFile = ezFrame(
+          Type = "character",
+          DefaultValue = "",
+          Description = "Optional TSV (cell_type, class) coarse mapping for RCTD class_df: maximises cell retention + enables SPLIT-shift"
+        ),
         rctdUMImin = ezFrame(
           Type = "numeric",
-          DefaultValue = 20,
-          Description = "Minimum UMI count for RCTD annotation"
+          DefaultValue = 10,
+          Description = "Minimum UMI count for RCTD annotation (10 retains low-RNA cells - T cells/neutrophils - that spillover hits hardest)"
+        ),
+        qcNmads = ezFrame(
+          Type = "numeric",
+          DefaultValue = 3,
+          Description = "MADs for flagging cell-area / signal-density / control outliers (flagged, not removed)"
+        ),
+        doSPLIT = ezFrame(
+          Type = "logical",
+          DefaultValue = FALSE,
+          Description = "Run SPLIT spatial purification after RCTD (adds split.* metadata + purified object)"
+        ),
+        splitMode = ezFrame(
+          Type = "charVector",
+          DefaultValue = "neighborhood",
+          Description = "SPLIT mode: 'neighborhood' (balance_score_based, purify only where secondary type is locally present - conservative default), 'full' (purify every cell with a secondary type), or 'shift' (transcriptomic-neighbourhood label correction - needs rctdClassFile)"
+        ),
+        splitNeighborThreshold = ezFrame(
+          Type = "numeric",
+          DefaultValue = 0.05,
+          Description = "Neighbourhood-aware SPLIT: min fraction of spatial neighbours of the secondary type to purify a cell (balance_score_based threshold)"
+        ),
+        coocRadius = ezFrame(
+          Type = "numeric",
+          DefaultValue = 30,
+          Description = "Cell-type co-occurrence: spatial neighbour radius in microns for the neighbourhood-enrichment graph"
+        ),
+        coocNperm = ezFrame(
+          Type = "numeric",
+          DefaultValue = 1000,
+          Description = "Cell-type co-occurrence: number of label permutations for the enrichment null (log2 enrichment + z-score)"
         ),
         computeSC = ezFrame(
           Type = "logical",

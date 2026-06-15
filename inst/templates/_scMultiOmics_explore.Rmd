@@ -1,0 +1,16 @@
+## Links
+
+### Interactive Single Cell Explorer
+
+The link below will take you to an interactive Shiny app which can be used to make
+production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
+
+```{r explore-link, echo=FALSE, results='asis'}
+if (!is.null(explore_url) && nzchar(explore_url)) {
+  cat(sprintf("[Single Cell Explorer](%s){target=\"_blank\"}\n\n", explore_url))
+} else {
+  cat("Set `param$exploreSCUrl` to expose a direct link to the scExplorer Shiny app, ",
+      "or copy `scMultiData.qs2` to `/srv/gstore/projects/<project>/...` and the ",
+      "report will auto-build the URL on the next render.\n")
+}
+```

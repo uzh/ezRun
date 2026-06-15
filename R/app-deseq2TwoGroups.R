@@ -82,7 +82,13 @@ EzAppDeseq2 <-
             Type = "logical",
             DefaultValue = FALSE,
             Description = "Only show the samples from comparison groups in heatmap"
+          ),
+          useLfcShrink = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "apply lfcShrink"
           )
+          
         )
       }
     )

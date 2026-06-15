@@ -108,6 +108,15 @@ if (ezRobjExists("sctype_results")) {
 # Check Azimuth Pan-Human availability from metadata
 azimuth_available <- "final_level_labels" %in% colnames(scData@meta.data)
 
+# Check CyteTypeR availability from metadata
+cytetype_available <- "CyteTypeR_annotation" %in% colnames(scData@meta.data)
+if (cytetype_available && file.exists("cytetype_results.rds")) {
+  cytetype_results <- readRDS("cytetype_results.rds")
+} else {
+  cytetype_results <- NULL
+  cytetype_available <- FALSE
+}
+
 # Create shared color palette for all annotation methods (Azimuth, Azimuth Pan-Human, Cell x gene, scType)
 # Start with Seurat's first 12 default colors, then add palettes without black colors
 shared_colors <- c(
@@ -1292,20 +1301,116 @@ if(sctype_available && !is.null(sctype_results)){
   cat("**Detected tissue:** ", sctype_results$tissue_type, "\n\n")
 
   scData_sc <- scData
-  
+
   # 1. scType cell type classification UMAP
   if("sctype_classification" %in% colnames(scData_sc@meta.data)){
     cat("#### scType Cell Type Classification\n\n")
-    print(DimPlot(scData_sc, reduction = "umap", label = TRUE, repel = TRUE, 
+    print(DimPlot(scData_sc, reduction = "umap", label = TRUE, repel = TRUE,
                   group.by = 'sctype_classification', cols = shared_colors) +
             ggtitle(paste("scType Cell Type Annotation -", sctype_results$tissue_type)) +
             theme(legend.position = "right") +
             coord_fixed())
     cat("\n\n")
   }
-  
+
 }
 ```
+
+### CyteTypeR
+
+`r if(cytetype_available) "CyteTypeR provides AI-powered cell type annotation using large language models via the Nygen Analytics API."`
+
+```{r cytetype results, eval=cytetype_available, results='asis', fig.width=14, fig.height=10}
+if (cytetype_available && !is.null(cytetype_results)) {
+
+  # Show cloud report link if available
+  cytetype_report_url <- NULL
+
+  # Try @misc$cytetype_jobDetails (fields: job_id, report_url, api_url, group_key, cluster_labels)
+  if (!is.null(scData@misc$cytetype_jobDetails)) {
+    jd <- scData@misc$cytetype_jobDetails
+    if (!is.null(jd$report_url)) {
+      cytetype_report_url <- jd$report_url
+    } else if (!is.null(jd$job_id)) {
+      cytetype_report_url <- paste0("https://prod.cytetype.nygen.io/report/", jd$job_id)
+    } else if (!is.null(jd$jobId)) {
+      cytetype_report_url <- paste0("https://prod.cytetype.nygen.io/report/", jd$jobId)
+    }
+  }
+
+  # Fallback: check for job_details JSON files created by CyteTypeR
+  if (is.null(cytetype_report_url)) {
+    json_files <- Sys.glob("job_details_*.json")
+    if (length(json_files) > 0) {
+      job_json <- jsonlite::fromJSON(json_files[1])
+      job_id_val <- if (!is.null(job_json$job_id)) job_json$job_id else job_json$jobId
+      if (!is.null(job_id_val)) {
+        cytetype_report_url <- paste0("https://prod.cytetype.nygen.io/report/", job_id_val)
+      }
+    }
+  }
+
+  if (!is.null(cytetype_report_url)) {
+    cat(sprintf(
+      "**[CyteType Interactive Report](%s)** -- detailed annotation justifications, markers, and quality metrics\n\n",
+      cytetype_report_url
+    ))
+  }
+
+  # 1. CyteTypeR cell type annotation UMAP
+  if ("CyteTypeR_annotation" %in% colnames(scData@meta.data)) {
+    cat("#### CyteTypeR Cell Type Annotation\n\n")
+    print(DimPlot(scData, reduction = "umap", label = TRUE, repel = TRUE,
+                  group.by = "CyteTypeR_annotation", order = TRUE,
+                  cols = shared_colors, raster = FALSE) +
+            ggtitle("CyteTypeR Cell Type Annotation") +
+            theme(legend.position = "right", aspect.ratio = 1))
+    cat("\n\n")
+  }
+
+  # 2. Granular annotation UMAP (NoLegend for granular — many categories, labels sufficient)
+  if ("CyteTypeR_granular" %in% colnames(scData@meta.data)) {
+    cat("#### CyteTypeR Granular Annotation\n\n")
+    print(DimPlot(scData, reduction = "umap", label = TRUE, repel = TRUE,
+                  group.by = "CyteTypeR_granular", order = TRUE,
+                  cols = shared_colors, raster = FALSE) +
+            ggtitle("CyteTypeR Granular Cell Type Annotation") +
+            NoLegend() +
+            theme(aspect.ratio = 1))
+    cat("\n\n")
+  }
+
+  # 3. Annotation details table
+  cat("#### Annotation Details\n\n")
+  display_cols <- intersect(
+    c("clusterId", "annotation", "granularAnnotation", "ontologyTerm",
+      "supportingMarkers", "conflictingMarkers"),
+    colnames(cytetype_results)
+  )
+  knitr::kable(cytetype_results[, display_cols], row.names = FALSE) |> cat(sep = "\n")
+  cat("\n\n")
+
+  # 4. Cell type distribution
+  cat("#### Cell Type Distribution\n\n")
+  ct_counts <- as.data.frame(table(scData$CyteTypeR_annotation))
+  colnames(ct_counts) <- c("CellType", "Count")
+  ct_counts <- ct_counts[order(-ct_counts$Count), ]
+  ct_counts$Percentage <- sprintf("%.1f%%", 100 * ct_counts$Count / sum(ct_counts$Count))
+
+  p_bar <- ggplot(ct_counts, aes(x = reorder(CellType, -Count), y = Count, fill = CellType)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = Percentage), vjust = -0.5, size = 3) +
+    scale_fill_manual(values = shared_colors) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = "none") +
+    labs(x = "Cell Type", y = "Number of Cells",
+         title = "CyteTypeR Cell Type Distribution")
+  print(p_bar)
+  cat("\n\n")
+}
+```
+
 
 ## Links
 

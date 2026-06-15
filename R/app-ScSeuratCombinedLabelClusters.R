@@ -62,13 +62,15 @@ ezMethodScSeuratCombinedLabelClusters = function(
   library(SummarizedExperiment)
   library(SingleCellExperiment)
   library(AUCell)
-  library(enrichR)
   library(decoupleR)
-  library(Azimuth)
   library(qs2)
   library(BiocParallel)
 
   BPPARAM <- MulticoreParam(workers = param$cores)
+  ## Pin BLAS/OpenMP to one thread before forking (MulticoreParam/future) to
+  ## avoid the fork-in-multithreaded-process deadlock (e.g. AUCell labeling).
+  RhpcBLASctl::blas_set_num_threads(1)
+  RhpcBLASctl::omp_set_num_threads(1)
   register(BPPARAM)
 
   cwd <- getwd()

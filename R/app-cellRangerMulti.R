@@ -34,8 +34,14 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
   #5. Execute the command
   ezSystem(cmd)
 
-  #7. Delete temp files and rename the final cellranger output folder
-  unlink(basename(sampleDirs), recursive = TRUE)
+  #7. Delete temp files and rename the final cellranger output folder.
+  # FASTQ input mode places symlinks under fastqs/run<N>/<sampleName>/; tar
+  # mode extracts directly into cwd, so cleanup paths differ.
+  if (input$hasColumn("Read1")) {
+    unlink(file.path(getwd(), "fastqs"), recursive = TRUE)
+  } else {
+    unlink(basename(sampleDirs), recursive = TRUE)
+  }
   if (exists("featureDirs")) {
     unlink(basename(featureDirs))
   }
@@ -192,68 +198,78 @@ ezMethodCellRangerMulti <- function(input = NA, output = NA, param = NA) {
 prepareFastqData <- function(input, param) {
   sampleName <- input$getNames()
 
-  #1. Prepare GEX data
-  rawSampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
-
-  # Detect multi-pool case: RawDataDir contains comma-separated paths (multiple pools
-  # from one chip sequenced in separate lanes/pools, to be combined in one CellRanger run)
-  isMultiPool <- length(rawSampleDirs) > 1L
-  poolNames <- NULL
-
-  #1.1. decompress tar files if they are in tar format
-  if (all(grepl("\\.tar$", rawSampleDirs))) {
-    # Capture pool names from tarball basenames before extraction (e.g. "409691_1-A")
-    if (isMultiPool) {
-      poolNames <- gsub("\\.tar$", "", basename(rawSampleDirs))
-    }
-    sampleDirs <- tarExtract(rawSampleDirs)
-  } else {
-    sampleDirs <- rawSampleDirs
-    if (isMultiPool && is.null(poolNames)) {
-      poolNames <- basename(rawSampleDirs)
-    }
-  }
-
-  #1.2. Subsample if chosen
-  if (ezIsSpecified(param$nReads) && param$nReads > 0) {
-    sampleDirs <- sapply(sampleDirs, subsample, param)
-  }
-
-  sampleDirs <- normalizePath(sampleDirs)
-
-  if (!isMultiPool) {
-    #1.3. Fix FileNames if sampleName in dataset was changed (single-pool only)
-    fileLevelDirs <- list.files(sampleDirs)
-    if (length(fileLevelDirs) == 1L) {
-      if (fileLevelDirs != sampleName) {
-        setwd(sampleDirs)
-        ezSystem(paste('mv', fileLevelDirs, sampleName))
-        cmd <- paste(
-          'rename',
-          paste0('s/', fileLevelDirs, '/', sampleName, '/'),
-          paste0(sampleName, '/*.gz')
-        )
-        ezSystem(cmd)
-        setwd('..')
-      }
-    } else if (length(fileLevelDirs) > 1L) {
-      if (all(fileLevelDirs %in% sampleName)) {
-        #...
-      } else {
-        stop('multiple runs and renaming samples is an unsupported case')
-      }
-    }
+  #1. Prepare GEX data — input may be either Read1/Read2 (fastq) or RawDataDir (tar).
+  if (input$hasColumn("Read1")) {
+    # FASTQ input: link10xFastqPaths symlinks each unique parent dir into
+    # fastqs/run<N>/<sampleName>/. cellranger multi matches by filename prefix.
+    sampleDirs <- link10xFastqPaths(input, param, sampleName)
+    sampleDirs <- normalizePath(sampleDirs)
     dirList <- list(sampleName = sampleName, sampleDirs = sampleDirs)
+  } else if (input$hasColumn("RawDataDir")) {
+    rawSampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
+
+    # Detect multi-pool case: RawDataDir contains comma-separated paths (multiple pools
+    # from one chip sequenced in separate lanes/pools, to be combined in one CellRanger run)
+    isMultiPool <- length(rawSampleDirs) > 1L
+    poolNames <- NULL
+
+    #1.1. decompress tar files if they are in tar format
+    if (all(grepl("\\.tar$", rawSampleDirs))) {
+      # Capture pool names from tarball basenames before extraction (e.g. "409691_1-A")
+      if (isMultiPool) {
+        poolNames <- gsub("\\.tar$", "", basename(rawSampleDirs))
+      }
+      sampleDirs <- tarExtract(rawSampleDirs)
+    } else {
+      sampleDirs <- rawSampleDirs
+      if (isMultiPool && is.null(poolNames)) {
+        poolNames <- basename(rawSampleDirs)
+      }
+    }
+
+    #1.2. Subsample if chosen
+    if (ezIsSpecified(param$nReads) && param$nReads > 0) {
+      sampleDirs <- sapply(sampleDirs, subsample, param)
+    }
+
+    sampleDirs <- normalizePath(sampleDirs)
+
+    if (!isMultiPool) {
+      #1.3. Fix FileNames if sampleName in dataset was changed (single-pool only)
+      fileLevelDirs <- list.files(sampleDirs)
+      if (length(fileLevelDirs) == 1L) {
+        if (fileLevelDirs != sampleName) {
+          setwd(sampleDirs)
+          ezSystem(paste('mv', fileLevelDirs, sampleName))
+          cmd <- paste(
+            'rename',
+            paste0('s/', fileLevelDirs, '/', sampleName, '/'),
+            paste0(sampleName, '/*.gz')
+          )
+          ezSystem(cmd)
+          setwd('..')
+        }
+      } else if (length(fileLevelDirs) > 1L) {
+        if (all(fileLevelDirs %in% sampleName)) {
+          #...
+        } else {
+          stop('multiple runs and renaming samples is an unsupported case')
+        }
+      }
+      dirList <- list(sampleName = sampleName, sampleDirs = sampleDirs)
+    } else {
+      # Multi-pool: all tarballs share the same parent dir (tarExtract returns identical paths).
+      # Use per-pool names as fastq_id in the [libraries] section so CellRanger can match
+      # each pool's FASTQ files by their filename prefix.
+      message(sprintf(
+        "Multi-pool mode: combining %d pools into one CellRanger run (%s)",
+        length(poolNames),
+        paste(poolNames, collapse = ", ")
+      ))
+      dirList <- list(sampleName = poolNames, sampleDirs = sampleDirs)
+    }
   } else {
-    # Multi-pool: all tarballs share the same parent dir (tarExtract returns identical paths).
-    # Use per-pool names as fastq_id in the [libraries] section so CellRanger can match
-    # each pool's FASTQ files by their filename prefix.
-    message(sprintf(
-      "Multi-pool mode: combining %d pools into one CellRanger run (%s)",
-      length(poolNames),
-      paste(poolNames, collapse = ", ")
-    ))
-    dirList <- list(sampleName = poolNames, sampleDirs = sampleDirs)
+    stop("Neither Read1 nor RawDataDir is specified in the input!")
   }
 
   #2. Check the dataset for the other modalities and get the fastq files
@@ -266,7 +282,7 @@ prepareFastqData <- function(input, param) {
   )
   #2.1 VDJ-T
   if ("VDJ-T" %in% libraryTypes) {
-    dataInfo <- getCellRangerMultiData(input, "VdjTDataDir", sampleName)
+    dataInfo <- getCellRangerMultiData(input, "VdjTDataDir", sampleName, param)
     dirList <- c(
       dirList,
       list(
@@ -277,7 +293,7 @@ prepareFastqData <- function(input, param) {
   }
   #2.2 VDJ-B
   if ("VDJ-B" %in% libraryTypes) {
-    dataInfo <- getCellRangerMultiData(input, "VdjBDataDir", sampleName)
+    dataInfo <- getCellRangerMultiData(input, "VdjBDataDir", sampleName, param)
     dirList <- c(
       dirList,
       list(
@@ -292,7 +308,7 @@ prepareFastqData <- function(input, param) {
       libraryTypes ||
       (param$MultiplexingType == "antibody")
   ) {
-    dataInfo <- getCellRangerMultiData(input, "FeatureDataDir", sampleName)
+    dataInfo <- getCellRangerMultiData(input, "FeatureDataDir", sampleName, param)
     dirList <- c(
       dirList,
       list(
@@ -309,7 +325,7 @@ prepareFastqData <- function(input, param) {
       param$MultiplexingType != "antibody" &&
       param$MultiplexingType != "ocm"
   ) {
-    dataInfo <- getCellRangerMultiData(input, "MultiDataDir", sampleName)
+    dataInfo <- getCellRangerMultiData(input, "MultiDataDir", sampleName, param)
     dirList <- c(
       dirList,
       list(
@@ -324,11 +340,22 @@ prepareFastqData <- function(input, param) {
 
 getSampleMultiplexFiles <- function(input) {
   sampleName <- rownames(input$meta)
-  projectId <- strsplit(dirname(input$meta[['RawDataDir']]), '/')[[1]][1]
+  # projectId is the leading path segment of either RawDataDir (legacy tar
+  # input) or Read1 (FASTQ input); both live under pXXXXX/. getColumn() strips
+  # the [File]/[B-Fabric]/etc. column-name tags that meta[[...]] preserves.
+  if (input$hasColumn("RawDataDir")) {
+    inputPath <- as.character(input$getColumn("RawDataDir"))[1]
+  } else if (input$hasColumn("Read1")) {
+    inputPath <- strsplit(as.character(input$getColumn("Read1"))[1], ",")[[1]][1]
+  } else {
+    stop("Cannot locate Sample2Barcode metadata: neither RawDataDir nor Read1 is present in the dataset.")
+  }
+  projectId <- strsplit(dirname(inputPath), '/')[[1]][1]
+  orderId <- as.character(input$getColumn("Order Id"))[1]
   sampleMultiplexFolder <- file.path(
     input$dataRoot,
     projectId,
-    paste0('o', input$meta[['Order Id']], '_metaData')
+    paste0('o', orderId, '_metaData')
   )
   sampleMultiplexFiles <- list.files(sampleMultiplexFolder, full.names = TRUE)
   if (length(sampleMultiplexFiles) == 0) {
@@ -341,17 +368,37 @@ getSampleMultiplexFiles <- function(input) {
   return(sampleMultiplexFiles)
 }
 
-getCellRangerMultiData <- function(input, multiColName, sampleName) {
-  #2.1. Locate the multiplex sample
-  multiDirs <- getFastqDirs(input, multiColName, sampleName)
-  multiName <- gsub(".tar", "", basename(multiDirs))
+getCellRangerMultiData <- function(input, multiColName, sampleName, param) {
+  # multiColName is the legacy tar column (e.g. "VdjTDataDir"). The corresponding
+  # FASTQ-mode columns are "<modality> Read1" / "<modality> Read2", where
+  # modality = sub("DataDir$", "", multiColName) (e.g. "VdjT").
+  modality <- sub("DataDir$", "", multiColName)
+  read1ColName <- paste0(modality, " Read1")
 
-  #2.2. Decompress the sample that contains the antibodies reads if they are in tar format
-  if (all(grepl("\\.tar$", multiDirs))) {
-    multiDirs <- tarExtract(multiDirs)
+  if (input$hasColumn(read1ColName)) {
+    # FASTQ input: derive fastq_id from R1 filename prefix (10x naming convention
+    # <fastq_id>_S<N>_L<NNN>_R[12]_001.fastq.gz). All R1 entries for one modality
+    # share the same prefix.
+    read1Files <- strsplit(input$getColumn(read1ColName), ",")[[1]]
+    multiName <- unique(sub(
+      "_S\\d+_L\\d+_R[12]_\\d+\\.fastq\\.gz$",
+      "",
+      basename(read1Files)
+    ))
+    multiDirs <- link10xFastqPaths(input, param, sampleName, modality = modality)
+    multiDirs <- normalizePath(multiDirs)
+  } else {
+    #2.1. Legacy tar input: locate the multiplex sample
+    multiDirs <- getFastqDirs(input, multiColName, sampleName)
+    multiName <- gsub(".tar", "", basename(multiDirs))
+
+    #2.2. Decompress if in tar format
+    if (all(grepl("\\.tar$", multiDirs))) {
+      multiDirs <- tarExtract(multiDirs)
+    }
+
+    multiDirs <- normalizePath(multiDirs)
   }
-
-  multiDirs <- normalizePath(multiDirs)
   return(list(multiName = multiName, multiDirs = multiDirs))
 }
 
@@ -672,16 +719,15 @@ buildMultiConfigFile <- function(input, param, dirList) {
     sampleMultiplexFiles <- getSampleMultiplexFiles(input)
     # we match according to just the beginning ^ and the sample names as a
     # prefix, since sometimes parts of the library information are
-    # as postfixes. This may potentially cause collisions but we risk it
+    # as postfixes. Use word-boundary anchor (_|$) to avoid ^1 matching "13".
     names(sampleMultiplexFiles) <- paste0(
       '^',
-      sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles))
+      sub('_Sample2Barcode.csv', '', basename(sampleMultiplexFiles)),
+      '(_|$)'
     )
     sampleMultiplexFile <- sampleMultiplexFiles[sapply(
       names(sampleMultiplexFiles),
-      grepl,
-      pattern = sampleName,
-      ignore.case = TRUE
+      \(pat) grepl(pattern = pat, x = sampleName, ignore.case = TRUE)
     )]
     sampleMultiplexMapping <- read_csv(
       sampleMultiplexFile,

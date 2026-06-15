@@ -49,22 +49,36 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
   library(Seurat)
   sampleName <- input$getNames()
 
-  sampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
-  sampleNameFQ <- sub('.tar', '', basename(sampleDirs))
   finalSampleName <- sampleName
   spaceRangerMainVersion <- as.numeric(sub(
     '\\..*',
     '',
     basename(param$SpaceRangerVersion)
   ))
-  # extract tar files if they are in tar format
-  if (all(grepl("\\.tar$", sampleDirs))) {
-    sampleDirs <- tarExtract(sampleDirs, prependUnique = TRUE)
+
+  # Input may be either Read1/Read2 (FASTQ) or RawDataDir (tar archive).
+  if (input$hasColumn("Read1")) {
+    sampleDirs <- link10xFastqPaths(input, param, sampleName)
+    sampleDirs <- normalizePath(sampleDirs)
+    read1Files <- strsplit(input$getColumn("Read1"), ",")[[1]]
+    sampleNameFQ <- unique(sub(
+      "_S\\d+_L\\d+_R[12]_\\d+\\.fastq\\.gz$",
+      "",
+      basename(read1Files)
+    ))
+  } else if (input$hasColumn("RawDataDir")) {
+    sampleDirs <- getFastqDirs(input, "RawDataDir", sampleName)
+    sampleNameFQ <- sub('.tar', '', basename(sampleDirs))
+    if (all(grepl("\\.tar$", sampleDirs))) {
+      sampleDirs <- tarExtract(sampleDirs, prependUnique = TRUE)
+    } else {
+      stop("Require inputs to be provided in .tar files when using RawDataDir.")
+    }
+    sampleDirs <- normalizePath(sampleDirs)
   } else {
-    stop("Require inputs to be provided in .tar files.")
+    stop("Neither Read1 nor RawDataDir is specified in the input!")
   }
 
-  sampleDirs <- normalizePath(sampleDirs)
   sampleDir <- paste(sampleDirs, collapse = ",")
   spaceRangerFolder <- str_sub(sampleName, 1, 45) %>% str_c("-spaceRanger")
   spaceRangerFolder <- gsub('\\.', '_', spaceRangerFolder)
@@ -74,7 +88,11 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
       sampleName <- sampleNameFQ
     }
   } else if (any(sampleNameFQ != sampleName)) {
-    #2.1 Fix FileNames
+    #2.1 Fix FileNames (tar mode only — FASTQ symlinks already preserve their
+    # original filenames, which match the per-pool sampleNameFQ prefix).
+    if (!input$hasColumn("RawDataDir")) {
+      stop("Multi-prefix FASTQ input is not yet supported by SpaceRanger; pre-merge or use a single sample prefix.")
+    }
     cwd <- getwd()
     sampleNameFQ <- file.path(strsplit(sampleDir, ',')[[1]], sampleNameFQ)
     for (fileLevelDir in sampleNameFQ) {
@@ -251,7 +269,11 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
     cmd <- paste(cmd, param$cmdOptions)
   }
 
-  if (!grepl('--unknown-slide', cmd)) {
+  # When --cytaimage is present, SpaceRanger reads slide+area from the
+  # CytAssist image metadata; passing --slide separately can be rejected for
+  # slide series (e.g. H2-...) outside SpaceRanger's hardcoded regex even when
+  # the cytaimage encodes a valid slide ID.
+  if (!grepl('--unknown-slide', cmd) && !grepl('--cytaimage', cmd)) {
     cmd <- paste(
       cmd,
       paste0("--slide=", input$getColumn("Slide")),
@@ -261,7 +283,13 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
 
   ezSystem(cmd)
 
-  unlink(basename(sampleDirs), recursive = TRUE)
+  # FASTQ mode places symlinks under fastqs/run<N>/<sampleName>/; tar mode
+  # extracts run dirs into cwd, so cleanup paths differ.
+  if (input$hasColumn("Read1")) {
+    unlink(file.path(getwd(), "fastqs"), recursive = TRUE)
+  } else {
+    unlink(basename(sampleDirs), recursive = TRUE)
+  }
   file.rename(file.path(spaceRangerFolder, "outs"), finalSampleName)
   unlink(spaceRangerFolder, recursive = TRUE)
 
@@ -275,27 +303,33 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
     ezSystem('find . -name "*.bam" -type f -delete')
     ezSystem('find . -name "*.bam.bai" -type f -delete')
   } else {
-    if (param$secondRef == '') {
-      setwd(finalSampleName)
-      refDir <- param$ezRef["refFastaFile"]
-      bamFile <- 'possorted_genome_bam.bam'
-      out <- tryCatch(
-        ezSystem(paste(
-          'samtools view',
-          '-T',
-          refDir,
-          '-@',
-          param$cores,
-          '-o',
-          sub('.bam$', '.cram', bamFile),
-          '-C',
-          bamFile
-        )),
-        error = function(e) NULL
-      )
-      system('rm possorted_genome_bam.bam')
-      setwd('..')
+    setwd(finalSampleName)
+    refFasta <- param$ezRef["refFastaFile"]
+    bamFile <- 'possorted_genome_bam.bam'
+    cramFile <- sub('.bam$', '.cram', bamFile)
+
+    tryCatch(
+      ezSystem(paste(
+        'samtools view',
+        '-T', refFasta,
+        '-@', param$cores,
+        '-o', cramFile,
+        '-C', bamFile
+      )),
+      error = function(e) {
+        warning("BAM to CRAM conversion failed: ", e$message)
+      }
+    )
+
+    # Only delete BAM if CRAM was successfully created
+    if (file.exists(cramFile)) {
+      file.remove(bamFile)
+      baiFile <- paste0(bamFile, '.bai')
+      if (file.exists(baiFile)) file.remove(baiFile)
+    } else {
+      warning("CRAM file was not created. Keeping BAM file to prevent data loss.")
     }
+    setwd('..')
   }
 
   cmDir <- file.path(finalSampleName, 'filtered_feature_bc_matrix')
