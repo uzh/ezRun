@@ -901,7 +901,7 @@ ezMethodScSeurat <- function(
     pathwayActivity = anno$pathwayActivity,
     TFActivity = anno$TFActivity,
     cellxgeneResults = anno$cellxgeneResults,
-    qmdFile = "ScSeurat.Rmd",
+    rmdFile = "ScSeurat.Rmd",
     reportTitle = paste0(param$name, ": ", input$getNames())
   )
   #remove no longer used objects

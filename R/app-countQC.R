@@ -33,8 +33,9 @@ ezMethodCountQC = function(
   metadata(rawData)$output <- output
   makeRmdReport(
     rawData = rawData,
-    qmdFile = "CountQC.Rmd",
-    reportTitle = "CountQC"
+    rmdFile = "CountQC.Rmd",
+    reportTitle = "CountQC",
+    selfContained = TRUE
   )
 
   return("Success")
