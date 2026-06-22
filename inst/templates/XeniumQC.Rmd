@@ -214,17 +214,24 @@ if ("negative_control_probe_counts_per_control_per_cell" %in% colnames(data)) {
   print(p7)
 }
 
-# Predesigned transcripts Q20 fraction
-if ("fraction_predesigned_transcripts_q20" %in% colnames(data) &&
-    any(!is.na(data$fraction_predesigned_transcripts_q20))) {
-  p8 <- ggplot(data, aes(x = sampleName, y = fraction_predesigned_transcripts_q20)) +
+# Predesigned gene transcripts that are high quality (Q20) fraction
+# 10x reports this as "fraction_predesigned_transcripts_decoded_q20"; older
+# runs used "..._q20" -> resolve whichever column is present.
+predesigned_q20_col <- intersect(
+  c("fraction_predesigned_transcripts_decoded_q20",
+    "fraction_predesigned_transcripts_q20"),
+  colnames(data)
+)[1]
+if (!is.na(predesigned_q20_col) &&
+    any(!is.na(data[[predesigned_q20_col]]))) {
+  p8 <- ggplot(data, aes(x = sampleName, y = !!sym(predesigned_q20_col))) +
     geom_bar(stat = "identity", fill = "#27ae60") +
     geom_hline(yintercept = 0.60, linetype = "dashed", color = "orange", size = 0.8) +
     geom_hline(yintercept = 0.50, linetype = "dashed", color = "red", size = 0.8) +
     scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
     xlab('Sample') +
-    ylab('Predesigned Q20 Fraction') +
-    ggtitle('Fraction of Predesigned Gene Transcripts with Q20 (Warning <60%, Error <50%)') +
+    ylab('Predesigned High Quality Fraction') +
+    ggtitle('Percent of Predesigned Gene Transcripts that are High Quality (Q20) (Warning <60%, Error <50%)') +
     theme_bw() +
     RotatedAxis() +
     theme(
@@ -233,17 +240,24 @@ if ("fraction_predesigned_transcripts_q20" %in% colnames(data) &&
   print(p8)
 }
 
-# Custom transcripts Q20 fraction
-if ("fraction_custom_transcripts_q20" %in% colnames(data) &&
-    any(!is.na(data$fraction_custom_transcripts_q20))) {
-  p9 <- ggplot(data, aes(x = sampleName, y = fraction_custom_transcripts_q20)) +
+# Custom gene transcripts that are high quality (Q20) fraction
+# 10x reports this as "fraction_custom_transcripts_decoded_q20"; older
+# runs used "..._q20" -> resolve whichever column is present.
+custom_q20_col <- intersect(
+  c("fraction_custom_transcripts_decoded_q20",
+    "fraction_custom_transcripts_q20"),
+  colnames(data)
+)[1]
+if (!is.na(custom_q20_col) &&
+    any(!is.na(data[[custom_q20_col]]))) {
+  p9 <- ggplot(data, aes(x = sampleName, y = !!sym(custom_q20_col))) +
     geom_bar(stat = "identity", fill = "#d35400") +
     geom_hline(yintercept = 0.60, linetype = "dashed", color = "orange", size = 0.8) +
     geom_hline(yintercept = 0.50, linetype = "dashed", color = "red", size = 0.8) +
     scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
     xlab('Sample') +
-    ylab('Custom Q20 Fraction') +
-    ggtitle('Fraction of Custom Gene Transcripts with Q20 (Warning <60%, Error <50%)') +
+    ylab('Custom High Quality Fraction') +
+    ggtitle('Percent of Custom Gene Transcripts that are High Quality (Q20) (Warning <60%, Error <50%)') +
     theme_bw() +
     RotatedAxis() +
     theme(
@@ -299,8 +313,11 @@ skip_cols <- c("estimated_number_of_false_positive_transcripts_per_cell",
                "estimated_number_of_false_positive_transcripts_per_cell_including_genomic_counts",
                "negative_control_probe_counts_per_control_per_cell",
                "genomic_control_probe_counts_per_control_per_cell",
+               "fraction_transcripts_decoded_q20",
                "fraction_predesigned_transcripts_q20",
+               "fraction_predesigned_transcripts_decoded_q20",
                "fraction_custom_transcripts_q20",
+               "fraction_custom_transcripts_decoded_q20",
                "nuclear_transcripts_per_100um2")
 
 # Create barplots for key metrics
