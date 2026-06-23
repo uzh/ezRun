@@ -41,8 +41,11 @@ ezMethodScSeuratCompare = function(
   param = NA,
   htmlFile = "00index.html"
 ) {
-  # writableRPackageDir <- file.path('/srv/GT/databases/writable_R_package', strsplit(version[['version.string']], ' ')[[1]][3])
-  # .libPaths(c(writableRPackageDir, .libPaths()[length(.libPaths())]))
+  # Load sccomp (+ deps) from the shared writable package lib, where the Stan model is
+  # precompiled and world-readable. Avoids the system-lib copy whose model-cache dir is
+  # frozen to the build user's home (unwritable by trxcopy on SLURM).
+  writableRPackageDir <- file.path('/srv/GT/databases/writable_R_package', strsplit(version[['version.string']], ' ')[[1]][3])
+  .libPaths(c(writableRPackageDir, .libPaths()))
 
   library(Seurat)
   library(HDF5Array)
@@ -59,51 +62,15 @@ ezMethodScSeuratCompare = function(
     "/misc/ngseq12/src/CmdStan/cmdstan-2.36.0/cmdstan-2.36.0"
   )
 
-  # dir.create((dirname(sccomp:::sccomp_stan_models_cache_dir)), showWarnings=FALSE)
-  # ## remove the link if it is there
-  # if (file.exists(sccomp:::sccomp_stan_models_cache_dir)){
-  #   file.remove(sccomp:::sccomp_stan_models_cache_dir)
-  # }
-  # ## recreate the link to the current installed library
-  # ezSystem(paste("ln -s", system.file("stan", package="sccomp", mustWork = TRUE), sccomp:::sccomp_stan_models_cache_dir))
-
-  # ## link to the compiled sccomp models
-  # ## This workaround is needed, since we do not have a writeable library folder
-  # ## We have all compiled models in the library folder cached but because of a bug/feature
-  # ## sccomp does not let you specify that cache folder but uses instead a hardcoded folder sccomp:::sccomp_stan_models_cache_dir
-  # ## that can't be modified, so we:
-  # ## create the expected directory
-  # dir.create((dirname(sccomp:::sccomp_stan_models_cache_dir)), showWarnings=FALSE)
-  # ## remove the link if it is there
-  # if (file.exists(sccomp:::sccomp_stan_models_cache_dir)){
-  #   file.remove(sccomp:::sccomp_stan_models_cache_dir)
-  # }
-  # ## recreate the link to the current installed library
-  # ezSystem(paste("ln -s", system.file("stan", package="sccomp", mustWork = TRUE), sccomp:::sccomp_stan_models_cache_dir))
-  # library(sccomp)
-
-  # library(cmdstanr)
-  # cmdstanr::set_cmdstan_path(file.path(writableRPackageDir, 'cmdstanr/cmdstan-2.36.0'))
-
-  ## Setup sccomp
-  # You need to install first sccomp and cmdstanr R packages in '/srv/GT/databases/writable_R_package'
-  # Then you need to explicitely install cmdstan
-  # install_cmdstan(dir = "/srv/GT/databases/writable_R_package/cmdstanr")
-
-  # Create scratch directory
-  # scratch_dir <- "/scratch/sccomp_output"
-  # dir.create(scratch_dir, recursive = TRUE, mode = "0777", showWarnings = FALSE)
-  #
-  # # Load sccomp and set up cmdstan
-  # library(sccomp)
-
-  # # Load model
-  # mod <- sccomp:::load_model(
-  #   name = "glm_multi_beta_binomial",
-  #   threads = 4,
-  #   cache_dir = file.path(writableRPackageDir, "sccomp")
-  # )
-  #
+  # sccomp freezes its model-cache dir to the build user's ~/.sccomp_models (a known sccomp
+  # limitation - the path is a top-level constant baked at install time). Re-point it to the
+  # SHARED, world-readable precompiled models inside the writable package lib so every user
+  # (incl. trxcopy on SLURM) gets a cache hit and never compiles into the read-only pkg dir.
+  utils::assignInNamespace(
+    "sccomp_stan_models_cache_dir",
+    system.file("stan", package = "sccomp", mustWork = TRUE),
+    ns = "sccomp"
+  )
 
   # Determine pseudobulk mode for DEG analysis
   # Note: This is independent of sccomp (which runs based on sample counts)
