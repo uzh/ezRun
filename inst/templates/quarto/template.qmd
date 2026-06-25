@@ -112,6 +112,72 @@ ggplot(mtcars, aes(factor(cyl), mpg, fill = factor(cyl))) +
 
 :::
 
+# Three-level
+
+<!-- PATTERN 4 — three levels of nesting (tabset → tabset → tabset). The
+     tab-numbering script in fgcz-plot-finder.html labels these automatically:
+     this top tab is e.g. "4", its sub-tabs "4.1"/"4.2", and their sub-tabs
+     "4.1.1"/"4.1.2" … — no manual numbering in the .qmd.
+     Fence colons step DOWN per level so nesting is unambiguous:
+     4 colons = level-2 tabset · 3 colons = each level-3 tabset. Tabs at each
+     level are just headings: ## for level 2, ### for level 3. -->
+
+:::: {.panel-tabset}
+
+## By dimension
+
+::: {.panel-tabset}
+
+### Sepal
+
+```{r tl-sepal}
+#| fig-cap: "Sepal width versus length in the iris dataset, by species."
+ggplot(iris, aes(Sepal.Length, Sepal.Width, colour = Species)) +
+  geom_point(size = 2) +
+  labs(x = "Sepal length (cm)", y = "Sepal width (cm)", colour = "Species") +
+  theme_bw()
+```
+
+### Petal
+
+```{r tl-petal}
+#| fig-cap: "Petal width versus length in the iris dataset, by species."
+ggplot(iris, aes(Petal.Length, Petal.Width, colour = Species)) +
+  geom_point(size = 2) +
+  labs(x = "Petal length (cm)", y = "Petal width (cm)", colour = "Species") +
+  theme_bw()
+```
+
+:::
+
+## Distributions
+
+::: {.panel-tabset}
+
+### Sepal length
+
+```{r tl-sepal-hist}
+#| fig-cap: "Distribution of sepal length across species."
+ggplot(iris, aes(Sepal.Length, fill = Species)) +
+  geom_histogram(bins = 20, alpha = 0.7, position = "identity") +
+  labs(x = "Sepal length (cm)", y = "Count", fill = "Species") +
+  theme_bw()
+```
+
+### Petal length
+
+```{r tl-petal-hist}
+#| fig-cap: "Distribution of petal length across species."
+ggplot(iris, aes(Petal.Length, fill = Species)) +
+  geom_histogram(bins = 20, alpha = 0.7, position = "identity") +
+  labs(x = "Petal length (cm)", y = "Count", fill = "Species") +
+  theme_bw()
+```
+
+:::
+
+::::
+
 # Session Info
 
 ```{r session-info}

@@ -1,3 +1,15 @@
+/*-- scss:defaults --*/
+
+// ─────────────────────────────────────────────────────────────────
+// Brand typography — load Jura (Google Fonts) for the top-level tabs.
+// Setting $web-font-path makes the Bootswatch theme emit an @import for it at
+// the TOP of the compiled stylesheet (where CSS @import must live). With
+// embed-resources: true the font is fetched at render time and base64-embedded,
+// so the report stays self-contained and works offline afterwards — network is
+// only needed when RENDERING. Add/remove weights in the URL as needed.
+// ─────────────────────────────────────────────────────────────────
+$web-font-path: "https://fonts.googleapis.com/css2?family=Jura:wght@400;500;600;700&display=swap";
+
 /*-- scss:rules --*/
 
 // ─────────────────────────────────────────────────────────────────
@@ -37,6 +49,7 @@
     padding: 0;              // no inset around the button row itself
 
     .nav-link {
+      font-family: "Jura", var(--bs-body-font-family); // brand font for all tab labels (every level)
       border: 1px solid $border-color; // chip outline (colour of inactive border)
       border-radius: 0.375rem;         // button corner roundness (0 = square)
       background-color: $gray-100;     // INACTIVE tab fill
@@ -132,6 +145,17 @@
 @media (max-width: 768px) {
   .fig-row { flex-direction: column; }
   .fig-row .fig-main { flex: 1 1 auto; }
+}
+
+// Auto tab numbers (1, 1.1, 1.1.1 …) prepended by the tab-numbering script in
+// fgcz-plot-finder.html. Inherits the tab's own text colour (primary when
+// inactive, white when active); just a touch lighter + tabular so the digits
+// sit tidily before the label.
+.nav-tabs .nav-link .fgcz-tabnum {
+  font-weight: 700;                  // number weight (label weight unchanged)
+  opacity: 0.7;                      // slightly muted so it reads as a prefix
+  margin-right: 0.1rem;              // tiny gap before the label text
+  font-variant-numeric: tabular-nums;
 }
 
 // Table caption titles.

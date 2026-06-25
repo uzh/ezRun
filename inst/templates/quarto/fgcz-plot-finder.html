@@ -1,8 +1,15 @@
 <!-- ════════════════════════════════════════════════════════════════════
-     FGCZ Plot Finder + Downloader
+     FGCZ Report Enhancements (plot finder + downloader + tab numbering)
      Injected into every report via _fgcz-report.yml:
          include-after-body: fgcz-plot-finder.html
 
+     This file bundles the report-wide client-side niceties so there's a single
+     after-body include to wire up:
+       • Plot finder + downloader — the two right-edge buttons (below).
+       • Tab numbering — hierarchical section numbers on every tab label
+         (1, 1.1, 1.1.1 …); see the second <script> at the foot of the file.
+
+     ── Plot finder + downloader ──
      Two floating buttons, bottom-right:
        🔍  FIND     — searchable list of every figure & table; clicking an
                       entry opens the tab(s) it lives in (Quarto hides
@@ -499,6 +506,104 @@
     if (!probe.some(function (it) { return it.type === 'fig'; })) {
       document.getElementById('fgcz-dl-btn').style.display = 'none';
     }
+  });
+})();
+</script>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     Tab numbering
+     Prepends a hierarchical section number to every tab label:
+         top level → 1, 2, 3 …
+         nested    → 1.1, 1.2, 2.1 …
+         deeper    → 1.1.1, 1.1.2 …
+     Numbering continues across sibling tabsets at the same depth, so two
+     separate top-level tabsets read 1,2 then 3,4 (not 1,2 then 1,2).
+
+     WHY JS AND NOT CSS COUNTERS: Quarto emits ALL of a tabset's nav buttons
+     first, then all of its tab-content. By the time a CSS counter reached the
+     first nested tab row it would already have counted every outer button — so
+     pure counters give "3.1" where we want "1.1". We instead walk the real
+     tab→pane hierarchy in document order.
+
+     Idempotent: re-running updates the existing number span rather than stacking
+     a second one. The finder above reads tab labels via textContent, so its
+     breadcrumbs pick up the numbers for free.
+     ════════════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  "use strict";
+
+  // First direct child of `parent` carrying class `cls` (Quarto puts the
+  // nav-tabs <ul> and tab-content <div> as direct children of .panel-tabset).
+  function directChild(parent, cls) {
+    for (var i = 0; i < parent.children.length; i++) {
+      if (parent.children[i].classList.contains(cls)) return parent.children[i];
+    }
+    return null;
+  }
+
+  // The tab buttons of ONE tabset (this tabset's own row, not descendants').
+  function tabLinks(ts) {
+    var nav = directChild(ts, 'nav-tabs') || directChild(ts, 'nav');
+    if (!nav) return [];
+    return Array.prototype.slice.call(
+      nav.querySelectorAll(':scope > .nav-item > .nav-link, :scope > .nav-link'));
+  }
+
+  // The tab panes of ONE tabset, in the same order as its links.
+  function tabPanes(ts) {
+    var content = directChild(ts, 'tab-content');
+    if (!content) return [];
+    return Array.prototype.slice.call(content.querySelectorAll(':scope > .tab-pane'));
+  }
+
+  // The shallowest .panel-tabset(s) inside `container`: those with no other
+  // .panel-tabset between them and `container`. From document.body this yields
+  // the top-level tabsets; from a tab-pane it yields that pane's direct
+  // sub-tabsets (skipping any deeper than one level).
+  function shallowTabsets(container) {
+    return Array.prototype.filter.call(
+      container.querySelectorAll('.panel-tabset'),
+      function (ts) {
+        var p = ts.parentElement;
+        while (p && p !== container) {
+          if (p.classList.contains('panel-tabset')) return false;
+          p = p.parentElement;
+        }
+        return true;
+      });
+  }
+
+  // Prepend (or update) the number span on a tab button. The trailing space
+  // keeps the finder's textContent breadcrumb readable ("1.1 Sepal").
+  function applyNumber(link, num) {
+    var badge = link.querySelector(':scope > .fgcz-tabnum');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'fgcz-tabnum';
+      link.insertBefore(badge, link.firstChild);
+    }
+    badge.textContent = num + ' ';
+  }
+
+  // Number a GROUP of sibling tabsets sharing `prefix` (''=top level), with a
+  // single counter running across the whole group, then recurse into each tab's
+  // pane for the next level down.
+  function numberGroup(tabsets, prefix) {
+    var next = 1;
+    tabsets.forEach(function (ts) {
+      var links = tabLinks(ts), panes = tabPanes(ts);
+      links.forEach(function (link, i) {
+        var num = (prefix ? prefix + '.' : '') + next;
+        applyNumber(link, num);
+        if (panes[i]) numberGroup(shallowTabsets(panes[i]), num);
+        next++;
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    numberGroup(shallowTabsets(document.body), '');
   });
 })();
 </script>
