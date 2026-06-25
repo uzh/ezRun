@@ -957,7 +957,7 @@ makeRmdReport <- function(
 #' getQmdReportTemplate("myreport")  # scaffold a fresh ./myreport to edit
 #' @export
 getQmdReportTemplate <- function(destDir = ".", qmdFile = "template.qmd",
-                                 overwrite = TRUE, depsOnly = FALSE) {
+                                 overwrite = TRUE, depsOnly = TRUE) {
   qSrc <- system.file("templates", "quarto", package = "ezRun", mustWork = TRUE)
   assets <- c("_fgcz-report.yml", "fgcz_header_quarto.html",
               "fgcz.scss", "fgcz-plot-finder.html")
