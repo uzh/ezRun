@@ -924,6 +924,59 @@ makeRmdReport <- function(
 }
 
 
+#' Fetch the FGCZ Quarto report template for a custom analysis
+#'
+#' Copies a starting \code{.qmd} plus every accessory file it needs into
+#' \code{destDir}, giving you a self-contained, ready-to-render scaffold for a
+#' hand-written analysis report in the FGCZ house style. Alongside the template
+#' it brings the metadata config (\file{_fgcz-report.yml}), the theme
+#' (\file{fgcz.scss}) it pulls in, and the two HTML includes
+#' (\file{fgcz_header_quarto.html} as the in-header, \file{fgcz-plot-finder.html}
+#' as the after-body). The \code{.qmd} references the assets by bare relative
+#' name (\code{metadata-files: ["_fgcz-report.yml"]}, the rest via that yaml),
+#' so they must sit beside it — which is exactly how this lays them out. Edit
+#' the copied \code{.qmd} and render it in place with \code{quarto render}.
+#'
+#' This is the custom-analysis counterpart to \code{\link{makeQmdReport}}: that
+#' function is for ezRun \strong{apps}, serialising objects and rendering a
+#' bundled template into \file{00index.html} from inside a disposable dir; this
+#' one hands you editable sources to build your own report.
+#'
+#' @param destDir Directory to copy the template and assets into (default
+#'   current wd); created if it does not exist.
+#' @param qmdFile Which bundled \code{.qmd} to start from (inside
+#'   \file{inst/templates/quarto/}); defaults to the annotated
+#'   \file{template.qmd}.
+#' @param overwrite Overwrite existing files of the same name (default TRUE).
+#' @return (Invisibly) the character vector of copied destination paths.
+#' @template roxygen-template
+#' @examples
+#' getQmdReportTemplate()            # scaffold into the working directory
+#' getQmdReportTemplate("myreport")  # scaffold a fresh ./myreport to edit
+#' @export
+getQmdReportTemplate <- function(destDir = ".", qmdFile = "template.qmd",
+                                 overwrite = TRUE) {
+  qSrc <- system.file("templates", "quarto", package = "ezRun", mustWork = TRUE)
+  assets <- c(qmdFile, "_fgcz-report.yml", "fgcz_header_quarto.html",
+              "fgcz.scss", "fgcz-plot-finder.html")
+  src <- file.path(qSrc, assets)
+  missingAssets <- assets[!file.exists(src)]
+  if (length(missingAssets) > 0L) {
+    stop("Quarto report template files missing from the ezRun install: ",
+         paste(missingAssets, collapse = ", "))
+  }
+  if (!dir.exists(destDir)) {
+    dir.create(destDir, recursive = TRUE)
+  }
+  ok <- file.copy(src, destDir, overwrite = overwrite)
+  if (!all(ok)) {
+    warning("Failed to copy Quarto report template files: ",
+            paste(assets[!ok], collapse = ", "))
+  }
+  invisible(file.path(destDir, assets))
+}
+
+
 #' Render a Quarto report template bundled in ezRun
 #'
 #' Renders inside a disposable sub-directory of the working directory: the
