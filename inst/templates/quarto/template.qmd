@@ -10,34 +10,6 @@ metadata-files: ["_fgcz-report.yml"]
 library(ezRun)
 library(DT)
 library(tidyverse)
-
-.dt <- function(df, caption = NULL, pageLength = 10L,
-                filter = "none", rownames = FALSE, escape = TRUE, ...) {
-  DT::datatable(
-    data = df, caption = caption, filter = filter,
-    rownames = rownames, escape = escape,
-    class = "compact stripe",
-    options = list(
-      pageLength = pageLength,
-      scrollX = TRUE,
-      dom = "tip",
-      columnDefs = list(list(targets = "_all", className = "dt-left"))
-    ),
-    ...
-  ) |> DT::formatStyle(columns = seq_len(ncol(df)),
-                        `text-align` = "left",
-                        `white-space` = "normal",
-                        `word-wrap` = "break-word",
-                        `max-width` = "300px")
-}
-
-.save_plot <- function(plot, name, width = 6, height = 5, dpi = 300) {
-  if (!dir.exists("plots")) dir.create("plots", recursive = TRUE)
-  ggplot2::ggsave(file.path("plots", paste0(name, ".png")),
-                  plot = plot, width = width, height = height, dpi = dpi, bg = "white")
-  ggplot2::ggsave(file.path("plots", paste0(name, ".pdf")),
-                  plot = plot, width = width, height = height, device = "pdf", bg = "white")
-}
 ```
 
 ::: {.panel-tabset}
@@ -60,11 +32,17 @@ Main content of the tab then runs full-width underneath.
 
 # Second
 
-<!-- PATTERN 2 — figure + side callout, with numbers pulled LIVE from the qmd.
-     Compute the values in a hidden chunk, then reference them in the callout
-     with inline R expressions so the prose can never drift from the figure.
-     Fence colon-counts MUST nest (outer > inner) or the blocks won't close:
-       11 colons = .columns wrapper · 10 = each .column · 3 = the .callout -->
+<!-- PATTERN 2 — OPTIONAL plot + side callout (flush, same height).
+     RULE: every figure carries a native #| fig-cap caption (below the plot) —
+     that alone is the default figure style and obeys the yaml out.width (see
+     the Nested tab for a plain example).
+     EXTRA (opt-in): a green callout beside the plot for annotation, stretched
+     to the plot's height via .fig-row in fgcz.scss. In THIS side-by-side
+     layout the plot fills its column (size set by .fig-main in fgcz.scss, not
+     out.width). Keep numbers as inline R so the note can't drift from the
+     figure. The callout keeps its natural height so collapse="true" works
+     (it is NOT locked to the plot height); on narrow screens it drops below
+     the plot. Fence colons nest: 5 = .fig-row · 4 = each side · 3 = .callout. -->
 
 ```{r second-demo}
 #| include: false
@@ -77,32 +55,62 @@ demo_plot <- ggplot(demo_df, aes(wt, mpg)) +
   theme_bw()
 ```
 
-::::::::::: {.columns}
+::::: {.fig-row}
 
-:::::::::: {.column width="73%"}
+:::: {.fig-main}
 
 ```{r second-plot}
+#| fig-cap: "Fuel economy versus weight across the mtcars dataset."
 demo_plot
 ```
 
-::::::::::
+::::
 
-:::::::::: {.column width="2%"}
-::::::::::
-
-:::::::::: {.column width="25%"}
+:::: {.fig-side}
 
 ::: {.callout-tip collapse="true"}
 ## What this shows
 
-Across the **`r demo_n`** cars, mean fuel economy is **`r demo_mean` mpg**.
-Both figures are inline R expressions reading the chunk on the left, so the
-caption stays in lock-step with the data instead of being hard-typed.
+Each point is one of the **`r demo_n`** cars; mean fuel economy is
+**`r demo_mean` mpg**, and heavier cars are clearly less efficient. This green
+box is an optional annotation beside the plot — the figure's own caption sits
+underneath as usual.
 :::
 
-::::::::::
+::::
 
-:::::::::::
+:::::
+
+# Nested
+
+<!-- PATTERN 3 — nested tabset (card-in-card). The inner ::: {.panel-tabset}
+     uses ## sub-headings for its tabs, one level deeper than the # tabs of
+     the outer set. With fgcz.scss the inner set renders as a card inside the
+     outer card. Chunks call existing functions only — no template-local
+     helper defs (DT::datatable for the table, ggplot2 for the figure). -->
+
+::: {.panel-tabset}
+
+## Table
+
+```{r nested-table}
+ezRun::ezInteractiveTableRmd(
+  head(mtcars[, 1:6], 8),
+  title = "Demo table — first rows of mtcars"
+)
+```
+
+## Figure
+
+```{r nested-figure}
+#| fig-cap: "Demo figure — fuel economy by cylinder count."
+ggplot(mtcars, aes(factor(cyl), mpg, fill = factor(cyl))) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(x = "Cylinders", y = "Fuel economy (mpg)") +
+  theme_bw()
+```
+
+:::
 
 # Session Info
 

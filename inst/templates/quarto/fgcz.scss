@@ -1,0 +1,146 @@
+/*-- scss:rules --*/
+
+// ─────────────────────────────────────────────────────────────────
+// FGCZ report overrides
+// (prototype — tabset styling + table-caption fix for now)
+//
+// Colours/sizes lean on cosmo's Bootstrap variables ($primary, $gray-100,
+// $border-color, $card-bg, …) so they track the theme. Swap a variable for a
+// literal (e.g. #0b5394) any time you want a fixed colour.
+//
+// NESTED-TAB SPACING — the vertical gap between an OUTER tab-button row and the
+// INNER (nested) tab-button row is the SUM of three knobs, tagged [GAP 1/2/3]
+// below:
+//   [GAP 1] .panel-tabset > .nav-tabs   → margin-bottom   (under the buttons)
+//   [GAP 2] .panel-tabset > .tab-content → padding (top)  (inside card top)
+//   [GAP 3] .panel-tabset .panel-tabset → margin-top      (above inner tabset)
+// To close the nested gap WITHOUT touching top-level tabs, make [GAP 3]
+// negative. To tighten ALL tab rows, lower [GAP 1] and/or [GAP 2].
+// ─────────────────────────────────────────────────────────────────
+
+// Pill / segmented tabsets.
+// Tab labels read as pressable buttons sitting on the page: inactive ones are
+// light bordered chips with coloured text; the active one is filled in the
+// primary colour with white text, so the selected tab clearly stands out.
+// Content sits in a bordered card below. Direct-child (>) selectors so nested
+// tabsets get the same treatment.
+
+.panel-tabset {
+  margin-top: 0.5rem;        // space ABOVE the whole tabset (page gap before it)
+  margin-bottom: 1.25rem;    // space BELOW the whole tabset (gap after it)
+
+  // Tab labels = pill buttons
+  > .nav-tabs {
+    border-bottom: none;     // kill Bootstrap's default underline on the row
+    gap: 0.3rem;             // horizontal space BETWEEN adjacent tab buttons
+    margin-bottom: 0.5rem;   // [GAP 1] space under the button row → card below
+    padding: 0;              // no inset around the button row itself
+
+    .nav-link {
+      border: 1px solid $border-color; // chip outline (colour of inactive border)
+      border-radius: 0.375rem;         // button corner roundness (0 = square)
+      background-color: $gray-100;     // INACTIVE tab fill
+      color: $primary;                 // INACTIVE tab text colour
+      font-weight: 500;                // INACTIVE tab text weight
+      padding: 0.35rem 0.9rem;         // button size: vertical / horizontal
+
+      &:hover {
+        background-color: $gray-200;   // HOVER fill (slightly darker than idle)
+        border-color: $primary;        // HOVER outline turns primary
+      }
+
+      &.active {
+        background-color: $primary;    // ACTIVE/selected tab fill
+        border-color: $primary;        // ACTIVE outline matches fill
+        color: #fff;                   // ACTIVE text colour (white on primary)
+        font-weight: 600;              // ACTIVE text weight (a touch bolder)
+      }
+    }
+  }
+
+  // Tab content = a bordered card body
+  > .tab-content {
+    border: 1px solid $border-color;   // card outline
+    border-radius: 0.375rem;           // card corner roundness
+    padding: 1rem 1.25rem;             // [GAP 2] top/bottom (1rem) · left/right (1.25rem)
+    background-color: $card-bg;        // card fill (usually white)
+  }
+}
+
+// Nested tabsets: an inner tabset shouldn't pile its own top margin on top of
+// the parent card's padding. Set [GAP 3] negative to pull the inner tab row UP
+// into the card padding (tighter); positive to push it down (looser).
+//
+// CASCADE — signal a LEVEL DOWN two ways, with almost no extra whitespace:
+//   • a thin HORIZONTAL line above the inner tabset (the "line break")
+//   • a COLOUR cascade: each level's ACTIVE pill is a lighter tint of $primary,
+//     so depth reads as colour (outer = full primary, deeper = lighter).
+.panel-tabset .panel-tabset {
+  margin-top: -1rem;                 // [GAP 3] pull the line UP toward the outer tab row
+  margin-bottom: 0.5rem;               // space below an inner tabset before more content
+  padding-top: 0.5rem;                 // small breathing room under the divider line
+  border-top: 1px solid $border-color; // the thin horizontal line marking the sub-level
+
+  // COLOUR CASCADE — level-2 (inner) active pill: a lighter tint of primary.
+  // The mix() weight is "% primary" — lower = lighter. White label text needs
+  // the fill to stay dark enough, so don't drop too low with a bright theme.
+  > .nav-tabs .nav-link.active {
+    background-color: mix($primary, #fff, 78%);  // level-2 active fill (lighter)
+    border-color:     mix($primary, #fff, 78%);
+  }
+}
+
+// Level-3 (inner-inner) active pill: lighter still, continuing the cascade.
+.panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link.active {
+  background-color: mix($primary, #fff, 58%);
+  border-color:     mix($primary, #fff, 58%);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// OPTIONAL plot + side callout (callout to the RIGHT of the plot).
+// The DEFAULT figure style is just a plot with a #| fig-cap caption underneath
+// (no CSS needed — yaml out.width governs its size). THIS is the opt-in extra:
+// a green callout placed immediately to the RIGHT of a plot, top-aligned.
+// NOTE: the callout keeps its own natural height (so collapse="true" works) —
+// it is deliberately NOT locked to the plot's height, because a collapsible
+// box can't also be a fixed height. The plot fills its column so the callout
+// sits right beside it; column size comes from .fig-main below, not out.width.
+// Use in a .qmd as:
+//   ::::: {.fig-row}
+//   :::: {.fig-main}   <plot chunk, with #| fig-cap>   ::::
+//   :::: {.fig-side}   ::: {.callout-tip} ## … note … :::   ::::
+//   :::::
+// ─────────────────────────────────────────────────────────────────
+.fig-row {
+  display: flex;
+  align-items: flex-start;     // top-align; callout keeps its own (collapsible) height
+  gap: 1rem;                   // space between the plot and the callout on its right
+  margin: 0.5rem 0 1.25rem;
+}
+.fig-row .fig-main { flex: 0 0 60%; min-width: 0; }   // plot column width (size knob)
+// Make the plot (and its Quarto wrappers/caption) fill the column, whatever
+// out.width emitted, so the callout sits right beside it.
+.fig-row .fig-main figure,
+.fig-row .fig-main .cell-output-display,
+.fig-row .fig-main img { width: 100%; max-width: 100%; height: auto; }
+.fig-row .fig-side { flex: 1 1 auto; min-width: 0; }  // callout: to the RIGHT of the plot
+.fig-row .fig-side > :first-child { margin-top: 0; }  // line callout top up with plot top
+// Callout title emphasis.
+.fig-row .fig-side .callout-title-container { font-weight: 700; }
+
+// Narrow screens: callout drops BELOW the plot.
+@media (max-width: 768px) {
+  .fig-row { flex-direction: column; }
+  .fig-row .fig-main { flex: 1 1 auto; }
+}
+
+// Table caption titles.
+// ezInteractiveTableRmd() renders its `title` as an <h1> inside the table
+// <caption>. The legacy fgcz.css force-shrinks all h1 to 8px, but this Quarto
+// theme has no such hack (Quarto turns tabset `#` headings into tab labels),
+// so that <h1> would otherwise render full size. Tame just the caption case.
+caption h1 {
+  font-size: 1.05rem;        // caption title size (was a giant default h1)
+  font-weight: 600;          // caption title weight
+  margin: 0 0 0.4rem 0;      // top right bottom left — small gap under the title
+}

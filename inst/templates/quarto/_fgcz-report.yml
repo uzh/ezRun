@@ -15,8 +15,8 @@ format:
     code-fold: true
     code-tools: true
 
-    # Theme (minimal for now — SCSS branding comes later)
-    theme: cosmo
+    # Theme — flatly base + FGCZ overrides (tabset card styling for now)
+    theme: [spacelab, fgcz.scss]
 
     # Grid sizing
     grid:
@@ -26,6 +26,10 @@ format:
 
     # FGCZ header
     include-in-header: fgcz_header_quarto.html
+
+    # Floating "Find a plot" finder (searchable index of all figures/tables;
+    # opens the enclosing tab on click). Self-contained; see the file for knobs.
+    include-after-body: fgcz-plot-finder.html
 
     # Figure defaults
     fig-dpi: 300
@@ -43,7 +47,7 @@ knitr:
     fig.width: 6
     fig.height: 5
     fig.retina: 2
-    out.width: "30%"
+    out.width: "40%"
 
 # Cross-references
 crossref:

@@ -926,9 +926,14 @@ makeRmdReport <- function(
 
 #' Render a Quarto report template bundled in ezRun
 #'
-#' Saves the named objects to .qs2 files in the working directory, copies the
-#' .qmd template and shared FGCZ config files from the package, then renders
-#' the report via \code{quarto::quarto_render}.
+#' Renders inside a disposable sub-directory of the working directory: the
+#' named objects are serialised there, the \code{.qmd} template and all shared
+#' FGCZ assets (\file{_fgcz-report.yml}, \file{fgcz.scss},
+#' \file{fgcz_header_quarto.html}, \file{fgcz-plot-finder.html}) are copied in,
+#' \code{quarto::quarto_render} runs there, and only the finished
+#' self-contained HTML is lifted back out. The render dir (with the data and
+#' asset copies) is removed afterwards, so the working directory ends up
+#' holding just the report.
 #'
 #' @param ... Named R objects to serialise as \file{<name>.qs2}.
 #' @param htmlFile Output HTML filename.
@@ -936,6 +941,7 @@ makeRmdReport <- function(
 #' @param reportTitle Title string passed to the template via Quarto params.
 #' @param use.qs2 Serialise objects as .qs2 (default) or .rds.
 #' @param nthreads Thread count for qs2 serialisation.
+#' @return (Invisibly) the path to the rendered HTML in the working directory.
 #' @export
 makeQmdReport <- function(
   ...,
@@ -947,29 +953,51 @@ makeQmdReport <- function(
 ) {
   require(qs2)
 
+  ## Render in a disposable sub-directory so the working directory ends up
+  ## holding only the finished, self-contained HTML. Restore the wd and remove
+  ## the render dir on exit, even if the render errors.
+  oldwd <- getwd()
+  renderDir <- tempfile(pattern = "ezQmdRender_", tmpdir = oldwd)
+  dir.create(renderDir)
+  on.exit({
+    setwd(oldwd)
+    unlink(renderDir, recursive = TRUE, force = TRUE)
+  }, add = TRUE)
+
+  ## Serialise the named objects into the render dir for the template to read.
   varList <- list(...)
   for (nm in names(varList)) {
     if (!is.null(varList[[nm]])) {
       if (use.qs2) {
-        qs_save(varList[[nm]], file = paste0(nm, ".qs2"), nthreads = nthreads)
+        qs_save(varList[[nm]], file = file.path(renderDir, paste0(nm, ".qs2")),
+                nthreads = nthreads)
       } else {
-        saveRDS(varList[[nm]], file = paste0(nm, ".rds"))
+        saveRDS(varList[[nm]], file = file.path(renderDir, paste0(nm, ".rds")))
       }
     }
   }
 
+  ## Copy the template + every shared FGCZ asset into the render dir, so Quarto
+  ## resolves theme / includes / config by their bare relative names.
   qSrc <- system.file("templates", "quarto", package = "ezRun", mustWork = TRUE)
-  for (f in c(qmdFile, "_fgcz-report.yml", "fgcz_header_quarto.html")) {
-    file.copy(file.path(qSrc, f), ".", overwrite = TRUE)
-  }
+  assets <- c(qmdFile, "_fgcz-report.yml", "fgcz_header_quarto.html",
+              "fgcz.scss", "fgcz-plot-finder.html")
+  file.copy(file.path(qSrc, assets), renderDir, overwrite = TRUE)
 
+  ## Render inside the dir, then lift just the standalone HTML back out.
   force(reportTitle)
+  setwd(renderDir)
   quarto::quarto_render(
     input = qmdFile,
     output_file = htmlFile,
     execute_params = list(reportTitle = reportTitle),
     quiet = FALSE
   )
+  setwd(oldwd)
+  file.copy(file.path(renderDir, htmlFile), file.path(oldwd, htmlFile),
+            overwrite = TRUE)
+
+  invisible(file.path(oldwd, htmlFile))
 }
 
 
