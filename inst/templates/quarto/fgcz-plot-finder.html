@@ -48,6 +48,7 @@
   .fgcz-pf-toolbar button:last-child  { border-bottom-left-radius: .6rem; }
   .fgcz-pf-toolbar button:hover { filter: brightness(1.12); }
   .fgcz-pf-toolbar .ic { font-size: 1.25rem; }     /* icon size */
+  .fgcz-pf-toolbar #fgcz-code-btn .ic { font-size: 1rem; }  /* "</>" is wide; shrink a touch */
 
   /* ── Slide-out panels (off-screen until .open). Both share styling. ── */
   .fgcz-pf-panel {
@@ -118,6 +119,7 @@
 <div class="fgcz-pf-toolbar">
   <button id="fgcz-pf-btn" title="Find a plot or table" aria-label="Find a plot"><span class="ic">🔍</span>Find</button>
   <button id="fgcz-dl-btn" title="Download plots" aria-label="Download plots"><span class="ic">📥</span>Save</button>
+  <button id="fgcz-code-btn" title="View source (the .qmd)" aria-label="View source"><span class="ic">&lt;/&gt;</span><span class="fgcz-code-lbl">Code</span></button>
 </div>
 
 <!-- FIND panel -->
@@ -144,6 +146,7 @@
     <button id="fgcz-dl-go" class="fgcz-pf-dlbtn">Download ZIP</button>
     <div class="fgcz-pf-note">
       Plots download at the resolution embedded in the report (its fig-dpi).
+      Interactive (plotly) charts aren't listed — export those from their own toolbar.
     </div>
   </div>
 </div>
@@ -214,6 +217,21 @@
 
   // ─── index of figures + tables ─────────────────────────────────────
 
+  // Pull a plotly chart's title out of its embedded htmlwidget JSON
+  // (layout.title — a plain string in older plotly, {text:…} in newer). The
+  // <script> is in the static DOM at load, so this works before plotly draws.
+  function plotlyTitle(widget) {
+    try {
+      if (!widget.id) return null;
+      var s = document.querySelector(
+        'script[type="application/json"][data-for="' + widget.id + '"]');
+      if (!s) return null;
+      var t = JSON.parse(s.textContent).x.layout.title;
+      t = (t && typeof t === 'object') ? t.text : t;
+      return t ? String(t).trim() : null;
+    } catch (e) { return null; }
+  }
+
   function buildIndex() {
     var items = [], seenImgs = new Set();
 
@@ -231,7 +249,15 @@
       items.push({ type: 'fig', label: null, el: img });
     });
 
-    // 3) Interactive tables. DT / ezInteractiveTableRmd render as htmlwidgets
+    // 3) Interactive plotly charts. They render as htmlwidget <div>s with no
+    //    <img> or <figure>, so sections 1-2 miss them entirely. Label from the
+    //    embedded widget JSON's layout.title; flag interactive so the bulk
+    //    download skips them (plotly exports via its own modebar camera button).
+    document.querySelectorAll('div.plotly.html-widget').forEach(function (w) {
+      items.push({ type: 'fig', interactive: true, el: w, label: plotlyTitle(w) });
+    });
+
+    // 4) Interactive tables. DT / ezInteractiveTableRmd render as htmlwidgets
     //    that initialise via JS AFTER page load, so target the htmlwidget
     //    CONTAINER (always in the DOM); its <caption> is filled by the time
     //    the panel is opened (we rebuild the index on every open).
@@ -240,13 +266,28 @@
       items.push({ type: 'tbl', label: cap ? cap.textContent.trim() : null, el: wrap });
     });
 
+    // Collected in passes (figures, bare imgs, plotly, tables), so they're
+    // grouped by TYPE, not by where they sit on the page. Re-sort into document
+    // order so the finder list mirrors the report top-to-bottom.
+    items.sort(function (a, b) {
+      if (a.el === b.el) return 0;
+      var pos = a.el.compareDocumentPosition(b.el);
+      if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1; // a comes before b
+      if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;  // a comes after b
+      return 0;
+    });
+
     // Resolve labels (caption → innermost tab name → generic), attach a
     // breadcrumb, and de-duplicate identical labels with " (n)".
     var counts = {};
     items.forEach(function (it) {
       it.crumb = crumbFor(it.el);
       if (!it.label) {
-        it.label = it.crumb.length ? it.crumb[it.crumb.length - 1]
+        // No caption/title: fall back to the FULL tab breadcrumb (outer › inner)
+        // rather than just the innermost tab name. Same-named deep tabs (e.g.
+        // several "Sepal" panes) then stay distinguishable by their path instead
+        // of collapsing onto one label that only differs by a "(2)/(3)" suffix.
+        it.label = it.crumb.length ? it.crumb.join(' › ')
                                    : (it.type === 'tbl' ? 'Table' : 'Figure');
       }
       counts[it.label] = (counts[it.label] || 0) + 1;
@@ -306,9 +347,11 @@
 
   var dlListEl, dlPanel, dlAllEl, dlGoEl, DL_INDEX = null;
 
-  // Plots only (figures), in document order.
+  // Downloadable plots only: static rasters. Interactive (plotly) charts can't
+  // be re-rendered to a file client-side — users export those via plotly's own
+  // camera button — so they're excluded here despite being findable.
   function plotItems() {
-    return buildIndex().filter(function (it) { return it.type === 'fig'; });
+    return buildIndex().filter(function (it) { return it.type === 'fig' && !it.interactive; });
   }
 
   function renderDownloads() {
@@ -500,10 +543,32 @@
     });
     dlGoEl.addEventListener('click', doDownload);
 
+    // Code — opens Quarto's "View Source" modal (the whole .qmd as an overlay).
+    // We drive the native machinery so we don't reinvent the modal: prefer the
+    // #quarto-view-source action, fall back to showing the embedded-source modal
+    // directly, else click the native code-tools button. Quarto's exact markup
+    // varies with the code-tools options, so try each. If none exists (source
+    // disabled), drop the button.
+    (function () {
+      var codeBtn = document.getElementById('fgcz-code-btn');
+      if (!codeBtn) return;
+      var viewSrc = document.getElementById('quarto-view-source');
+      var modal   = document.getElementById('quarto-embedded-source-code-modal');
+      var native  = document.querySelector('.code-tools-button');
+      if (!viewSrc && !modal && !native) { codeBtn.style.display = 'none'; return; }
+      codeBtn.addEventListener('click', function () {
+        if (viewSrc) { viewSrc.click(); return; }
+        if (modal && window.bootstrap && window.bootstrap.Modal) {
+          window.bootstrap.Modal.getOrCreateInstance(modal).show(); return;
+        }
+        if (native) native.click();
+      });
+    })();
+
     // Show buttons only when there's something to act on.
     var probe = buildIndex();
     if (!probe.length) document.getElementById('fgcz-pf-btn').style.display = 'none';
-    if (!probe.some(function (it) { return it.type === 'fig'; })) {
+    if (!probe.some(function (it) { return it.type === 'fig' && !it.interactive; })) {
       document.getElementById('fgcz-dl-btn').style.display = 'none';
     }
   });
@@ -602,8 +667,72 @@
     });
   }
 
+  // ── Gradient tinting of TOP-level tabs ───────────────────────────────
+  // Each top-level tab gets a base colour sampled along a viridis-style L→R
+  // gradient, set as --fgcz-tab-base on the tab button AND its pane. Custom
+  // properties inherit, so nested tabsets pick up their section's hue for free,
+  // and fgcz.scss lightens it per depth via color-mix(). --fgcz-tab-fg is
+  // black/white (by luminance) so the active tab's text stays legible even at
+  // the bright/gold end. Each independent top-level tabset gets its own ramp.
+  //
+  // PALETTE = the gradient stops (blue → teal → green → gold). Swap for a
+  // 2-stop ramp like ['#1f4ea1', '#e0a106'] for a plain blue→gold fade.
+  var PALETTE = ['#3b4cc0', '#1f9e89', '#6ece58', '#f5d000'];
+
+  function hex2rgb(h) {
+    h = h.replace('#', '');
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  function rgb2hex(r) {
+    return '#' + r.map(function (v) {
+      return ('0' + Math.round(v).toString(16)).slice(-2);
+    }).join('');
+  }
+  // Sample the palette at t in [0,1] (piecewise-linear across the stops).
+  function sampleGradient(t) {
+    if (PALETTE.length === 1) return PALETTE[0];
+    var x = t * (PALETTE.length - 1);
+    var i = Math.min(Math.floor(x), PALETTE.length - 2);
+    var f = x - i;
+    var a = hex2rgb(PALETTE[i]), b = hex2rgb(PALETTE[i + 1]);
+    return rgb2hex([a[0] + (b[0] - a[0]) * f,
+                    a[1] + (b[1] - a[1]) * f,
+                    a[2] + (b[2] - a[2]) * f]);
+  }
+  // WCAG relative luminance → choose black or white text for contrast.
+  function fgFor(hex) {
+    var c = hex2rgb(hex).map(function (v) {
+      v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    var L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    return L > 0.45 ? '#000' : '#fff';
+  }
+
+  function colourTabs() {
+    shallowTabsets(document.body).forEach(function (ts) {
+      var links = tabLinks(ts), panes = tabPanes(ts), n = links.length;
+      links.forEach(function (link, i) {
+        var base = sampleGradient(n > 1 ? i / (n - 1) : 0);
+        var fg   = fgFor(base);
+        link.style.setProperty('--fgcz-tab-base', base);
+        link.style.setProperty('--fgcz-tab-fg', fg);
+        if (panes[i]) {
+          panes[i].style.setProperty('--fgcz-tab-base', base);
+          panes[i].style.setProperty('--fgcz-tab-fg', fg);
+        }
+      });
+    });
+  }
+
+  // Per-section gradient is OFF by default — every tab uses the single brand
+  // blue (the SCSS var() falls back to $primary when --fgcz-tab-base is unset),
+  // while the per-LEVEL shade cascade still works. Flip to true to switch the
+  // top tabs to the L→R PALETTE gradient above.
+  var ENABLE_GRADIENT = false;
+
   document.addEventListener('DOMContentLoaded', function () {
     numberGroup(shallowTabsets(document.body), '');
+    if (ENABLE_GRADIENT) colourTabs();
   });
 })();
 </script>

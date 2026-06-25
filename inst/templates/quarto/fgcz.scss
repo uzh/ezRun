@@ -37,6 +37,16 @@ $web-font-path: "https://fonts.googleapis.com/css2?family=Jura:wght@400;500;600;
 // Content sits in a bordered card below. Direct-child (>) selectors so nested
 // tabsets get the same treatment.
 
+// ── FINAL TAB PALETTE ─────────────────────────────────────────────
+// Fixed per-depth colours (no longer derived from $primary / JS gradient).
+// Each level: selected fill + its text, unselected fill + its text.
+// L4/L5 text wasn't specified → dark fill gets white, light fill gets the hue.
+$tab1-sel: #1B4079; $tab1-sel-fg: #ffffff; $tab1-un: #DCE6F2; $tab1-un-fg: #1B4079; // deep blue
+$tab2-sel: #3F84A6; $tab2-sel-fg: #0A3043; $tab2-un: #DBEAF1; $tab2-un-fg: #0A3043; // cyan-blue
+$tab3-sel: #9CC6DE; $tab3-sel-fg: #123A5C; $tab3-un: #EAF3F8; $tab3-un-fg: #123A5C; // sky blue
+$tab4-sel: #14697A; $tab4-sel-fg: #ffffff; $tab4-un: #D5E8EA; $tab4-un-fg: #14697A; // teal-blue
+$tab5-sel: #3D3F8F; $tab5-sel-fg: #ffffff; $tab5-un: #E0DEF2; $tab5-un-fg: #3D3F8F; // indigo
+
 .panel-tabset {
   margin-top: 0.5rem;        // space ABOVE the whole tabset (page gap before it)
   margin-bottom: 1.25rem;    // space BELOW the whole tabset (gap after it)
@@ -50,23 +60,25 @@ $web-font-path: "https://fonts.googleapis.com/css2?family=Jura:wght@400;500;600;
 
     .nav-link {
       font-family: "Jura", var(--bs-body-font-family); // brand font for all tab labels (every level)
-      border: 1px solid $border-color; // chip outline (colour of inactive border)
+      // LEVEL 1 (deep blue). Fixed palette; see $tab1-* above. Deeper levels
+      // (2–5) override these colours via the descendant rules below.
+      border: 1px solid color-mix(in srgb, #{$tab1-sel} 30%, #fff);
       border-radius: 0.375rem;         // button corner roundness (0 = square)
-      background-color: $gray-100;     // INACTIVE tab fill
-      color: $primary;                 // INACTIVE tab text colour
-      font-weight: 500;                // INACTIVE tab text weight
+      background-color: $tab1-un;       // L1 INACTIVE fill
+      color: $tab1-un-fg;               // L1 INACTIVE text
+      font-weight: 500;                // L1 INACTIVE text weight (lighter than active)
       padding: 0.35rem 0.9rem;         // button size: vertical / horizontal
 
       &:hover {
-        background-color: $gray-200;   // HOVER fill (slightly darker than idle)
-        border-color: $primary;        // HOVER outline turns primary
+        background-color: color-mix(in srgb, #{$tab1-sel} 22%, #{$tab1-un}); // deeper tint on hover
+        border-color: $tab1-sel;        // HOVER outline = full hue
       }
 
       &.active {
-        background-color: $primary;    // ACTIVE/selected tab fill
-        border-color: $primary;        // ACTIVE outline matches fill
-        color: #fff;                   // ACTIVE text colour (white on primary)
-        font-weight: 600;              // ACTIVE text weight (a touch bolder)
+        background-color: $tab1-sel;     // L1 SELECTED fill
+        border-color:     $tab1-sel;
+        color: $tab1-sel-fg;             // L1 SELECTED text
+        font-weight: 700;                // ACTIVE = bold
       }
     }
   }
@@ -94,19 +106,75 @@ $web-font-path: "https://fonts.googleapis.com/css2?family=Jura:wght@400;500;600;
   padding-top: 0.5rem;                 // small breathing room under the divider line
   border-top: 1px solid $border-color; // the thin horizontal line marking the sub-level
 
-  // COLOUR CASCADE — level-2 (inner) active pill: a lighter tint of primary.
-  // The mix() weight is "% primary" — lower = lighter. White label text needs
-  // the fill to stay dark enough, so don't drop too low with a bright theme.
+  // LEVEL 2 (cyan-blue) SELECTED pill.
   > .nav-tabs .nav-link.active {
-    background-color: mix($primary, #fff, 78%);  // level-2 active fill (lighter)
-    border-color:     mix($primary, #fff, 78%);
+    background-color: $tab2-sel;
+    border-color:     $tab2-sel;
+    color: $tab2-sel-fg;
+    font-weight: 700;                            // ACTIVE = bold
   }
 }
 
-// Level-3 (inner-inner) active pill: lighter still, continuing the cascade.
+// LEVEL 3 (sky blue) SELECTED pill.
 .panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link.active {
-  background-color: mix($primary, #fff, 58%);
-  border-color:     mix($primary, #fff, 58%);
+  background-color: $tab3-sel;
+  border-color:     $tab3-sel;
+  color: $tab3-sel-fg;
+  font-weight: 700;
+}
+// LEVEL 4 (teal-blue) SELECTED pill.
+.panel-tabset .panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link.active {
+  background-color: $tab4-sel;
+  border-color:     $tab4-sel;
+  color: $tab4-sel-fg;
+  font-weight: 700;
+}
+// LEVEL 5 (indigo) SELECTED pill.
+.panel-tabset .panel-tabset .panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link.active {
+  background-color: $tab5-sel;
+  border-color:     $tab5-sel;
+  color: $tab5-sel-fg;
+  font-weight: 700;
+}
+
+// Jura's heaviest real weight is 700 (already used by .active above). To push
+// the SELECTED tab even bolder, add a hair of same-colour text-stroke — this
+// thickens the glyphs at every level (currentColor = white on L1, black deeper).
+// Raise the px value for heavier, drop it toward 0 to back off.
+.panel-tabset .nav-tabs .nav-link.active {
+  -webkit-text-stroke: 0.4px currentColor;
+  text-stroke: 0.4px currentColor;
+}
+
+// INACTIVE CASCADE — exaggerate depth even when nothing is selected, on the
+// same "deeper = lighter / flatter" axis as the active pills above. Level 1
+// (the base .nav-link) is a blue-tinted chip; these step level 2 down to a
+// neutral grey chip, and level 3 down to nearly-flat (no fill, faint outline).
+// :not(.active) keeps the active rules above winning; :not(:hover) lets the
+// shared hover state below still fire at every level.
+.panel-tabset .panel-tabset > .nav-tabs .nav-link:not(.active):not(:hover) {
+  background-color: $tab2-un;                              // L2 UNSELECTED fill
+  border-color:     color-mix(in srgb, #{$tab2-sel} 25%, #fff);
+  color:            $tab2-un-fg;                           // L2 UNSELECTED text
+  font-weight: 500;
+}
+.panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link:not(.active):not(:hover) {
+  background-color: $tab3-un;                              // L3 UNSELECTED fill
+  border-color:     color-mix(in srgb, #{$tab3-sel} 25%, #fff);
+  color:            $tab3-un-fg;                           // L3 UNSELECTED text
+  font-weight: 500;
+}
+.panel-tabset .panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link:not(.active):not(:hover) {
+  background-color: $tab4-un;                              // L4 UNSELECTED fill
+  border-color:     color-mix(in srgb, #{$tab4-sel} 25%, #fff);
+  color:            $tab4-un-fg;                           // L4 UNSELECTED text
+  font-weight: 500;
+}
+.panel-tabset .panel-tabset .panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link:not(.active):not(:hover) {
+  background-color: $tab5-un;                              // L5 UNSELECTED fill
+  border-color:     color-mix(in srgb, #{$tab5-sel} 25%, #fff);
+  color:            $tab5-un-fg;                           // L5 UNSELECTED text
+  font-weight: 500;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -156,6 +224,19 @@ $web-font-path: "https://fonts.googleapis.com/css2?family=Jura:wght@400;500;600;
   opacity: 0.7;                      // slightly muted so it reads as a prefix
   margin-right: 0.1rem;              // tiny gap before the label text
   font-variant-numeric: tabular-nums;
+}
+
+// Hide Quarto's native title-block code-tools button — the right-edge toolbar
+// box ("Code", in fgcz-plot-finder.html) is the single control for View Source.
+// (It still works when hidden: the toolbar JS triggers it programmatically.)
+.quarto-title-block .code-tools-button { display: none; }
+
+// Document title (the report <h1> at the top of the page).
+// Not set anywhere else, so it otherwise inherits the theme's default h1 size.
+// Bump this to make the report title bigger/smaller.
+.quarto-title-block .quarto-title .title {
+  font-size: 2.5rem;         // document title size (theme default ≈ 2.1rem)
+  font-weight: 700;          // title weight
 }
 
 // Table caption titles.

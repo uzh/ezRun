@@ -178,6 +178,89 @@ ggplot(iris, aes(Petal.Length, fill = Species)) +
 
 ::::
 
+# Five-level
+
+<!-- PATTERN 5 — five levels of nesting (tabset → … → tabset), to preview the
+     full tab palette: each depth has its own colour (L1 deep blue · L2 cyan ·
+     L3 sky · L4 teal · L5 indigo; see fgcz.scss). This top tab is level 1; each
+     nested ::: {.panel-tabset} steps one level deeper. The numbering script in
+     fgcz-plot-finder.html labels them automatically (5 · 5.1 · 5.1.1 · …).
+     Fence colons step DOWN per level so nesting stays unambiguous:
+     6 = level-2 tabset · 5 = level-3 · 4 = level-4 · 3 = level-5. Tab headings
+     are ## (L2) · ### (L3) · #### (L4) · ##### (L5). -->
+
+:::::: {.panel-tabset}
+
+## Level 2 · A
+
+```{r fl-l2a}
+#| fig-cap: "Level 2 — fuel economy versus weight (mtcars)."
+ggplot(mtcars, aes(wt, mpg)) +
+  geom_point(size = 2, colour = "#1B4079") +
+  labs(x = "Weight (1000 lbs)", y = "Fuel economy (mpg)") +
+  theme_bw()
+```
+
+## Level 2 · B (go deeper)
+
+::::: {.panel-tabset}
+
+### Level 3 · A
+
+```{r fl-l3a}
+#| fig-cap: "Level 3 — fuel economy by cylinder count (mtcars)."
+ggplot(mtcars, aes(factor(cyl), mpg, fill = factor(cyl))) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(x = "Cylinders", y = "Fuel economy (mpg)") +
+  theme_bw()
+```
+
+### Level 3 · B (go deeper)
+
+:::: {.panel-tabset}
+
+#### Level 4 · A
+
+```{r fl-l4a}
+#| fig-cap: "Level 4 — sepal dimensions by species (iris)."
+ggplot(iris, aes(Sepal.Length, Sepal.Width, colour = Species)) +
+  geom_point(size = 2) +
+  labs(x = "Sepal length (cm)", y = "Sepal width (cm)", colour = "Species") +
+  theme_bw()
+```
+
+#### Level 4 · B (go deeper)
+
+::: {.panel-tabset}
+
+##### Level 5 · A
+
+```{r fl-l5a}
+#| fig-cap: "Level 5 — distribution of petal length across species (iris)."
+ggplot(iris, aes(Petal.Length, fill = Species)) +
+  geom_histogram(bins = 20, alpha = 0.7, position = "identity") +
+  labs(x = "Petal length (cm)", y = "Count", fill = "Species") +
+  theme_bw()
+```
+
+##### Level 5 · B
+
+```{r fl-l5b}
+#| fig-cap: "Level 5 — petal dimensions by species (iris)."
+ggplot(iris, aes(Petal.Length, Petal.Width, colour = Species)) +
+  geom_point(size = 2) +
+  labs(x = "Petal length (cm)", y = "Petal width (cm)", colour = "Species") +
+  theme_bw()
+```
+
+:::
+
+::::
+
+:::::
+
+::::::
+
 # Session Info
 
 ```{r session-info}
