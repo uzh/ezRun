@@ -948,6 +948,8 @@ makeRmdReport <- function(
 #'   \file{inst/templates/quarto/}); defaults to the annotated
 #'   \file{template.qmd}.
 #' @param overwrite Overwrite existing files of the same name (default TRUE).
+#' @param depsOnly Copy over only the dependencies. Useful if already working
+#'   within the Qmd.
 #' @return (Invisibly) the character vector of copied destination paths.
 #' @template roxygen-template
 #' @examples
@@ -955,10 +957,13 @@ makeRmdReport <- function(
 #' getQmdReportTemplate("myreport")  # scaffold a fresh ./myreport to edit
 #' @export
 getQmdReportTemplate <- function(destDir = ".", qmdFile = "template.qmd",
-                                 overwrite = TRUE) {
+                                 overwrite = TRUE, depsOnly = FALSE) {
   qSrc <- system.file("templates", "quarto", package = "ezRun", mustWork = TRUE)
-  assets <- c(qmdFile, "_fgcz-report.yml", "fgcz_header_quarto.html",
+  assets <- c("_fgcz-report.yml", "fgcz_header_quarto.html",
               "fgcz.scss", "fgcz-plot-finder.html")
+  if (!depsOnly) {
+    assets <- c(qmdFile, assets)
+  }
   src <- file.path(qSrc, assets)
   missingAssets <- assets[!file.exists(src)]
   if (length(missingAssets) > 0L) {
