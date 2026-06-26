@@ -502,23 +502,31 @@ run_aldex2 <- function(ps, rank) {
     mm    <- model.matrix(form, data = md)
     clr   <- aldex.clr(cnts, mm, mc.samples = 128, denom = "all", verbose = FALSE)
     glm.t <- aldex.glm(clr, mm)
-    glm.e <- tryCatch(aldex.glm.effect(clr), error = function(e) NULL)
-    grp_col <- grep(paste0("^", da_group), colnames(glm.t), value = TRUE)
-    pe_col  <- intersect(grp_col, grep("Est$",              colnames(glm.t), value = TRUE))[1]
-    p_col   <- intersect(grp_col, grep("Pr\\(>\\|t\\|\\)\\.$",
-                                       colnames(glm.t), value = TRUE))[1]
-    bh_col  <- intersect(grp_col, grep("BH$",               colnames(glm.t), value = TRUE))[1]
+    ## aldex.glm column-naming has shifted across ALDEx2 versions:
+    ##   <=1.32: "<term>:Est" / "<term>:Pr(>|t|)." / "<term>:Pr(>|t|).BH"
+    ##    >=1.34: "model.<term>:Estimate" / "model.<term>:Pr(>|t|)"
+    ##                                    / "model.<term>:Pr(>|t|).BH"
+    ## Locate columns by containment of the Group term name + a stat keyword,
+    ## not by anchored prefix. Pick the BH/padj column FIRST so the raw p match
+    ## can explicitly exclude it.
+    cn       <- colnames(glm.t)
+    grp_cols <- cn[grepl(da_group, cn, fixed = TRUE)]
+    if (length(grp_cols) == 0)
+      stop("aldex.glm produced no columns containing the Group term '",
+           da_group, "'. Columns: ", paste(head(cn, 30), collapse = ", "))
+    bh_col <- grp_cols[grepl("(BH|padj|adjust)", grp_cols)][1]
+    p_col  <- grp_cols[grepl("Pr\\(>\\|t\\|\\)", grp_cols) &
+                       !grepl("(BH|padj|adjust)", grp_cols)][1]
+    pe_col <- grp_cols[grepl("Est(imate)?", grp_cols)][1]
     if (is.na(pe_col) || is.na(p_col) || is.na(bh_col))
-      stop("aldex.glm output is missing the expected Group columns.")
-    eff_term <- sub(":Est$", "", pe_col)
-    eff_vec  <- if (!is.null(glm.e) && !is.null(glm.e[[eff_term]]) &&
-                    "effect" %in% colnames(glm.e[[eff_term]]))
-                  glm.e[[eff_term]][["effect"]][match(rownames(glm.t),
-                                                      rownames(glm.e[[eff_term]]))]
-                else rep(NA_real_, nrow(glm.t))
+      stop("aldex.glm output is missing one of (Estimate, p, BH) columns for ",
+           "the '", da_group, "' term. Matched group cols: ",
+           paste(grp_cols, collapse = ", "))
+    ## Use the GLM coefficient itself as the effect — robust across ALDEx2
+    ## versions and exactly what the volcano plots want as the x-axis.
     res <- data.frame(
       taxon  = rownames(glm.t),
-      effect = ifelse(is.finite(eff_vec), eff_vec, glm.t[[pe_col]]),
+      effect = glm.t[[pe_col]],
       wi.ep  = glm.t[[p_col]],
       wi.eBH = glm.t[[bh_col]],
       stringsAsFactors = FALSE
