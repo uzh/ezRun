@@ -502,20 +502,20 @@ run_aldex2 <- function(ps, rank) {
     mm    <- model.matrix(form, data = md)
     clr   <- aldex.clr(cnts, mm, mc.samples = 128, denom = "all", verbose = FALSE)
     glm.t <- aldex.glm(clr, mm)
-    ## aldex.glm column-naming has shifted across ALDEx2 versions:
-    ##   <=1.32: "<term>:Est" / "<term>:Pr(>|t|)." / "<term>:Pr(>|t|).BH"
-    ##    >=1.34: "model.<term>:Estimate" / "model.<term>:Pr(>|t|)"
-    ##                                    / "model.<term>:Pr(>|t|).BH"
-    ## Locate columns by containment of the Group term name + a stat keyword,
-    ## not by anchored prefix. Pick the BH/padj column FIRST so the raw p match
-    ## can explicitly exclude it.
+    ## aldex.glm column-naming has shifted across ALDEx2 versions, e.g.:
+    ##   <=1.32: "<term>:Est"      / "<term>:Pr(>|t|)."  / "<term>:Pr(>|t|).BH"
+    ##    1.42 : "<term>:Est"      / "<term>:pval"        / "<term>:pval.padj"
+    ##  alt    : "model.<term>:Estimate" / similar with .padj
+    ## Locate columns by containment of the Group term + a stat keyword. Pick the
+    ## BH/padj column FIRST so the raw-p regex can explicitly exclude it.
     cn       <- colnames(glm.t)
     grp_cols <- cn[grepl(da_group, cn, fixed = TRUE)]
     if (length(grp_cols) == 0)
       stop("aldex.glm produced no columns containing the Group term '",
            da_group, "'. Columns: ", paste(head(cn, 30), collapse = ", "))
     bh_col <- grp_cols[grepl("(BH|padj|adjust)", grp_cols)][1]
-    p_col  <- grp_cols[grepl("Pr\\(>\\|t\\|\\)", grp_cols) &
+    ## Raw p: match either "pval" (>=1.34) or "Pr(>|t|)" (older), excluding the BH variants.
+    p_col  <- grp_cols[grepl("(pval|Pr\\(>\\|t\\|\\))", grp_cols) &
                        !grepl("(BH|padj|adjust)", grp_cols)][1]
     pe_col <- grp_cols[grepl("Est(imate)?", grp_cols)][1]
     if (is.na(pe_col) || is.na(p_col) || is.na(bh_col))
