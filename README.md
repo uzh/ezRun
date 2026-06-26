@@ -51,7 +51,3 @@ Always at the conda environment `ezRun` during the development. The conda enviro
 
 ## Coding style
 Do follow the guidelines in [CodingStyle.md](CodingStyle.md)
-
-
-## ScMultiOmics extension
-For documentation and gotchas regarding the `ScMultiOmics` extension, see [ScMultiOmics.md](inst/docs/ScMultiOmics.md).
