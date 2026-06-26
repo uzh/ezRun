@@ -2,17 +2,13 @@
 title: "`r if (exists('reportTitle')) reportTitle else 'Shotgun DA'`"
 output:
   html_document:
-    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
-    self_contained: true
-    includes:
-      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
-    css: !expr system.file("templates/fgcz.css", package="ezRun")
     highlight: pygments
     theme: sand
     code_folding: hide
     toc: yes
     toc_depth: 4
     df_print: paged
+    self_contained: true
 editor_options:
   chunk_output_type: inline
 ---
@@ -326,36 +322,48 @@ dt(filt_summary, "Filtering summary", length_menu = FALSE)
 ```
 
 ```{r group_check}
-grp_tab <- as.data.frame(table(metadata$Group))
-colnames(grp_tab) <- c("Group", "n_samples")
+## Per-level sample counts for the focal grouping AND every covariate, stacked
+## into one long-format table so users can see Healthy/Asthma, Normal/Obese,
+## F/M etc. counts in a single sortable view.
+.show_cols <- c(da_group, intersect(da_covariates, colnames(metadata)))
+grp_tab <- do.call(rbind, lapply(.show_cols, function(cn) {
+  t <- as.data.frame(table(metadata[[cn]]), stringsAsFactors = FALSE)
+  data.frame(Column = cn, Level = as.character(t$Var1),
+             n_samples = as.integer(t$Freq), stringsAsFactors = FALSE)
+}))
 save_csv(grp_tab, "group_sizes.csv")
-dt(grp_tab, "Samples per Group", length_menu = FALSE)
-n_groups <- nrow(grp_tab)
-group_levels <- levels(as.factor(metadata$Group))
-comps <- if (n_groups >= 2) combn(group_levels, 2, simplify = FALSE) else list()
+dt(grp_tab,
+   "Samples per Group and per covariate level",
+   length_menu = FALSE)
 
-## Cross-tab each covariate against Group so the user can see small cells.
+## State the contrast info these depend on.
+n_groups     <- length(unique(metadata$Group))
+group_levels <- levels(as.factor(metadata$Group))
+comps        <- if (n_groups >= 2) combn(group_levels, 2, simplify = FALSE) else list()
+
+## Keep da_covariates pruned to columns actually present.
+da_covariates <- intersect(da_covariates, colnames(metadata))
+```
+
+```{r group_check_crosstabs, results='asis'}
+## Cross-tab each covariate against the focal Group; flag small cells.
+## Separate chunk with results='asis' so the kable HTML is inserted into the
+## document directly (not wrapped in '##' comment-output lines).
 if (length(da_covariates)) {
   cat("**Group × covariate cross-tabs** (cells with < 3 samples flagged).\n\n")
   for (cv in da_covariates) {
-    if (!cv %in% colnames(metadata)) {
-      cat("> :warning: covariate '", cv, "' not found in metadata - will be dropped.\n", sep = "")
-      next
-    }
     tab <- table(Group = metadata$Group, metadata[[cv]])
     cat("\n#### ", cv, "\n\n", sep = "")
-    print(knitr::kable(tab, format = "html",
-                       caption = paste0("Group x ", cv)) |>
-            kableExtra::kable_styling(full_width = FALSE, position = "left"))
-    cat("\n")
+    cat(kableExtra::kable_styling(
+          knitr::kable(tab, format = "html",
+                       caption = paste0("Group x ", cv)),
+          full_width = FALSE, position = "left"))
+    cat("\n\n")
     if (any(tab < 3))
-      cat("> :warning: Some cells have < 3 samples — covariate-adjusted models\n",
+      cat("> :warning: Some cells have < 3 samples - covariate-adjusted models\n",
           "  that include `", cv, "` may be unstable.\n\n", sep = "")
   }
 }
-
-## Drop any covariate that isn't actually in the metadata.
-da_covariates <- intersect(da_covariates, colnames(metadata))
 ```
 
 ```{r da_helpers}
@@ -446,10 +454,12 @@ show_volcano_interactive <- function(d, title, xlab, ylab = "-log10(adjusted p)"
 # Differential Abundance {.tabset}
 
 > All tests below contrast on **`r da_group`**
-> (`r paste(group_levels, collapse = ", ")`). Each method runs at the
-> **Species** and **Genus** levels (Species skipped automatically if no
-> species-level taxa survive filtering). Every table is downloadable
-> (copy / CSV / Excel) and also written to `r results_dir`/.
+> (`r paste(group_levels, collapse = ", ")`)`r if (length(da_covariates)) paste0(", adjusted for **", paste(da_covariates, collapse = "**, **"), "**") else ""`.
+> LEfSe is the one exception — it ignores covariates by construction and runs
+> unadjusted regardless of the selection above.
+> Each method runs at the **Species** and **Genus** levels (Species skipped
+> automatically if no species-level taxa survive filtering). Every table is
+> downloadable (copy / CSV / Excel) and also written to `r results_dir`/.
 
 ```{r da_runner, include=FALSE}
 ## ---------------------------------------------------------------
