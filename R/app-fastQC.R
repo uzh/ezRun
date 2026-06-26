@@ -324,6 +324,11 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
                   format(t_mqc_end, "%Y-%m-%d %H:%M:%S"), mqc_dur_s))
 
   ## ==== Post-scrub: strip endpoint from any MultiQC-written files ====
+  ## For multiqc_report.html we additionally:
+  ##   * strip the "Provider: <span>...</span>, " chunk MultiQC bakes into its
+  ##     own AI disclaimer (only the model name is meant to be public).
+  ##   * inject a sidebar nav-l1 link to multiqc_data/llms-full.txt so the user
+  ##     can open the per-section prompts MultiQC wrote.
   if (gen_ai) {
     scrub_files <- c(file.path(multiqc_dir, "multiqc_report.html"),
                      file.path(multiqc_dir, "multiqc_data", "multiqc.log"),
@@ -332,6 +337,22 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
       if (!file.exists(f)) next
       txt <- paste(readLines(f, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
       txt <- redact_string(txt)
+      if (basename(f) == "multiqc_report.html") {
+        txt <- gsub(
+          '\\s*Provider:\\s*<span[^>]*class="ai-summary-disclaimer-provider"[^>]*>[^<]*</span>\\s*,?\\s*',
+          '', txt, perl = TRUE
+        )
+        nav_li <- paste0(
+          '              <li>\n',
+          '                <a href="multiqc_data/llms-full.txt" class="nav-l1" target="_blank">AI Prompts (llms-full.txt)</a>\n',
+          '              </li>\n'
+        )
+        txt <- sub(
+          '(</ul>\\s*</div>\\s*</div>\\s*<!-- Nav Width Toggle Button -->)',
+          paste0(nav_li, '\\1'),
+          txt, perl = TRUE
+        )
+      }
       writeLines(txt, f, useBytes = TRUE)
     }
   }
@@ -501,6 +522,13 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
         )
         if (grepl(empty_div_re, html_text, perl = TRUE)) {
           html_text <- sub(empty_div_re, empty_div_replacement, html_text, perl = TRUE)
+          ## MultiQC ships the per-section AI wrapper with style="display: none;"
+          ## (it only reveals after the user clicks the toolbox button). Since we
+          ## just pre-baked the response, flip it visible.
+          wrapper_show_re <- sprintf(
+            '(id="%s_ai_summary_wrapper"[^>]*style=")display:\\s*none;', sec_id
+          )
+          html_text <- sub(wrapper_show_re, '\\1display: block;', html_text, perl = TRUE)
         } else {
           wrapper_re <- sprintf('(<div [^>]*id="mqc-section-wrapper-%s"[^>]*>)', sec_id)
           wrapper_replacement <- sprintf(
