@@ -245,12 +245,190 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
     unlink(paste0(reportDirs, ".html"), recursive = FALSE)
   }
 
-  ## generate multiQC report
-  ezSystem(paste0(
-    "multiqc --outdir ../",
-    basename(output$getColumn("MultiQC")),
-    " ."
-  ))
+  ## ==== AI feature flags ====
+  ai_mode <- all(nzchar(c(param$ai_provider, param$ai_model,
+                          param$ai_custom_endpoint, param$ai_custom_context_window)))
+  bake_sections <- isTRUE(param$bake_section_summaries) && ai_mode
+  extra_call <- isTRUE(param$extra_ai_call) && nzchar(param$extra_ai_prompt) && ai_mode
+
+  ## ==== Block 1: run multiqc (optionally with --ai-summary-full) ====
+  multiqcCmd <- paste0("multiqc --outdir ../", basename(output$getColumn("MultiQC")), " .")
+  if (ai_mode) {
+    ai_yaml <- tempfile(pattern = "multiqc_ai_", fileext = ".yaml")
+    writeLines(c(
+      paste0("ai_provider: ",              param$ai_provider),
+      paste0("ai_model: ",                 param$ai_model),
+      paste0("ai_custom_endpoint: ",       param$ai_custom_endpoint),
+      paste0("ai_custom_context_window: ", param$ai_custom_context_window)
+    ), ai_yaml)
+    Sys.setenv(OPENAI_API_KEY = "dummy")
+    multiqcCmd <- paste0(multiqcCmd, " --ai-summary-full -c ", shQuote(ai_yaml))
+  }
+
+  t_mqc_start <- Sys.time()
+  message(sprintf("[MultiQC] STARTED at %s (ai_mode=%s) -- cmd: %s",
+                  format(t_mqc_start, "%Y-%m-%d %H:%M:%S"),
+                  ai_mode, multiqcCmd))
+  ezSystem(multiqcCmd)
+  t_mqc_end <- Sys.time()
+  mqc_dur_s <- as.numeric(difftime(t_mqc_end, t_mqc_start, units = "secs"))
+  message(sprintf("[MultiQC] FINISHED at %s -- duration: %.1f s",
+                  format(t_mqc_end, "%Y-%m-%d %H:%M:%S"), mqc_dur_s))
+
+  ## ==== Block 2: extract MultiQC's global AI summary from the rendered HTML ====
+  multiqc_dir <- file.path("..", basename(output$getColumn("MultiQC")))
+  multiqc_html_path <- file.path(multiqc_dir, "multiqc_report.html")
+  llms_full_path <- file.path(multiqc_dir, "multiqc_data", "llms-full.txt")
+  mqc_global_summary_html <- ""
+  mqc_detailed_html <- ""
+  prompt_text <- ""
+  if (ai_mode && file.exists(multiqc_html_path)) {
+    html_doc <- tryCatch(xml2::read_html(multiqc_html_path), error = function(e) NULL)
+    if (!is.null(html_doc)) {
+      pull_div <- function(id) {
+        node <- xml2::xml_find_first(html_doc, sprintf('//div[@id="%s"]', id))
+        if (inherits(node, "xml_missing")) "" else as.character(node)
+      }
+      mqc_global_summary_html <- pull_div("global_ai_summary_response")
+      mqc_detailed_html       <- pull_div("global_ai_summary_detailed_analysis_response")
+    } else {
+      mqc_global_summary_html <- "[MultiQC HTML schema changed -- see multiqc_report.html directly]"
+    }
+  }
+  if (ai_mode && file.exists(llms_full_path)) {
+    prompt_text <- paste(readLines(llms_full_path, warn = FALSE), collapse = "\n")
+  }
+
+  ## ==== Block 3: per-section AI calls (bake_section_summaries) ====
+  section_summaries <- list()
+  sec_total_dur_s <- NA_real_
+  if (bake_sections) {
+    section_files <- list.files(file.path(multiqc_dir, "multiqc_data"),
+                                pattern = "_plot.*\\.txt$|.*-heatmap\\.txt$|.*_table\\.txt$",
+                                full.names = TRUE)
+    section_files <- section_files[!grepl("/multiqc_(general_stats|fastqc|sources|software_versions|citations)\\.txt$",
+                                          section_files)]
+    N <- length(section_files)
+    t_sec_total_start <- Sys.time()
+    message(sprintf("[AI-Sections] STARTED at %s (N=%d sections, model=%s)",
+                    format(t_sec_total_start, "%Y-%m-%d %H:%M:%S"), N, param$ai_model))
+    sys_prompt <- paste(
+      "You are a bioinformatics expert reviewing a single section of a MultiQC FastQC report.",
+      "In 2-3 concise bullet points, summarize the key observations from the data below and flag any concerning patterns.",
+      "Use markdown formatting. Highlight severity with directives like :span[value]{.text-red}, .text-orange, .text-green.",
+      "Highlight sample names with :sample[name]{.text-red} etc. Do not add headers.",
+      sep = "\n"
+    )
+    for (i in seq_along(section_files)) {
+      sec_path <- section_files[i]
+      sec_name <- sub("\\.txt$", "", basename(sec_path))
+      sec_data <- paste(readLines(sec_path, warn = FALSE), collapse = "\n")
+      max_chars <- as.integer(param$ai_custom_context_window) * 3L
+      if (!is.na(max_chars) && nchar(sec_data) > max_chars) {
+        sec_data <- paste0(substr(sec_data, 1, max_chars), "\n[... truncated ...]")
+      }
+      user_msg <- sprintf("Section: %s\n\nData:\n%s", sec_name, sec_data)
+      payload <- list(model = param$ai_model,
+                      messages = list(list(role = "system", content = sys_prompt),
+                                      list(role = "user",   content = user_msg)))
+      t_one_start <- Sys.time()
+      resp <- tryCatch(
+        httr2::request(param$ai_custom_endpoint) |>
+          httr2::req_method("POST") |>
+          httr2::req_headers(Authorization = "Bearer dummy") |>
+          httr2::req_body_json(payload) |>
+          httr2::req_timeout(600) |>
+          httr2::req_error(is_error = function(r) FALSE) |>
+          httr2::req_perform(),
+        error = function(e) { message("[AI-Sections] HTTP error on ", sec_name, ": ", conditionMessage(e)); NULL }
+      )
+      t_one_end <- Sys.time()
+      one_dur <- as.numeric(difftime(t_one_end, t_one_start, units = "secs"))
+      raw_body <- if (!is.null(resp)) httr2::resp_body_string(resp) else "[no response]"
+      response_text <- tryCatch({
+        parsed <- jsonlite::fromJSON(raw_body, simplifyVector = FALSE)
+        parsed$choices[[1]]$message$content
+      }, error = function(e) raw_body)
+      if (is.null(response_text) || !nzchar(response_text)) response_text <- raw_body
+      section_summaries[[sec_name]] <- list(response_text = response_text,
+                                            raw_body = raw_body,
+                                            dur_s = one_dur)
+      message(sprintf("[AI-Sections] %d/%d %s: %.1f s", i, N, sec_name, one_dur))
+    }
+    t_sec_total_end <- Sys.time()
+    sec_total_dur_s <- as.numeric(difftime(t_sec_total_end, t_sec_total_start, units = "secs"))
+    message(sprintf("[AI-Sections] FINISHED at %s -- total: %.1f s (mean %.1f s/section)",
+                    format(t_sec_total_end, "%Y-%m-%d %H:%M:%S"),
+                    sec_total_dur_s, sec_total_dur_s / max(1L, N)))
+  }
+
+  ## ==== Block 4: FGCZ follow-up AI call (extra_ai_call + prompt) ====
+  extra_response_text <- NULL
+  extra_raw_body <- NULL
+  extra_t_start <- NULL
+  extra_t_end <- NULL
+  extra_dur_s <- NA_real_
+  if (extra_call && nzchar(prompt_text)) {
+    composite_prompt <- paste0(prompt_text,
+                               "\n\n----------------------\n",
+                               "Additional instructions from the FGCZ user:\n",
+                               param$extra_ai_prompt, "\n")
+    payload <- list(model = param$ai_model,
+                    messages = list(list(role = "user", content = composite_prompt)))
+    extra_t_start <- Sys.time()
+    message(sprintf("[AI] Extra LLM call STARTED at %s (model=%s, prompt_chars=%d)",
+                    format(extra_t_start, "%Y-%m-%d %H:%M:%S"),
+                    param$ai_model, nchar(composite_prompt)))
+    resp <- tryCatch(
+      httr2::request(param$ai_custom_endpoint) |>
+        httr2::req_method("POST") |>
+        httr2::req_headers(Authorization = "Bearer dummy") |>
+        httr2::req_body_json(payload) |>
+        httr2::req_timeout(600) |>
+        httr2::req_error(is_error = function(r) FALSE) |>
+        httr2::req_perform(),
+      error = function(e) { message("[AI] HTTP error: ", conditionMessage(e)); NULL }
+    )
+    extra_t_end <- Sys.time()
+    extra_dur_s <- as.numeric(difftime(extra_t_end, extra_t_start, units = "secs"))
+    message(sprintf("[AI] Extra LLM call FINISHED at %s -- duration: %.1f s",
+                    format(extra_t_end, "%Y-%m-%d %H:%M:%S"), extra_dur_s))
+    extra_raw_body <- if (!is.null(resp)) httr2::resp_body_string(resp) else "[no response -- see SLURM log]"
+    extra_response_text <- tryCatch({
+      parsed <- jsonlite::fromJSON(extra_raw_body, simplifyVector = FALSE)
+      parsed$choices[[1]]$message$content
+    }, error = function(e) extra_raw_body)
+    if (is.null(extra_response_text) || !nzchar(extra_response_text)) extra_response_text <- extra_raw_body
+  }
+
+  ## ==== Block 5: render the consolidated AI Interpretation report (whenever ai_mode) ====
+  if (ai_mode) {
+    saveRDS(list(
+      flags = list(ai_mode = ai_mode, bake_sections = bake_sections, extra_call = extra_call),
+      endpoint = param$ai_custom_endpoint, model = param$ai_model,
+      t_mqc_start = t_mqc_start, t_mqc_end = t_mqc_end, mqc_dur_s = mqc_dur_s,
+      mqc_global_summary_html = mqc_global_summary_html,
+      mqc_detailed_html = mqc_detailed_html,
+      prompt = prompt_text,
+      section_summaries = section_summaries,
+      sec_total_dur_s = sec_total_dur_s,
+      extra_prompt = if (extra_call) param$extra_ai_prompt else "",
+      extra_response_text = extra_response_text,
+      extra_raw_body = extra_raw_body,
+      extra_t_start = extra_t_start, extra_t_end = extra_t_end, extra_dur_s = extra_dur_s
+    ), file.path(multiqc_dir, "ai_interpretation.rds"))
+
+    file.copy(system.file("templates/FastQC_AI_Interpretation.Rmd", package = "ezRun"),
+              "FastQC_AI_Interpretation.Rmd", overwrite = TRUE)
+    rmarkdown::render(
+      input       = "FastQC_AI_Interpretation.Rmd",
+      envir       = new.env(),
+      output_dir  = multiqc_dir,
+      output_file = "ai_interpretation.html",
+      quiet       = TRUE
+    )
+  }
+
   unlink(c("fastqc.out", "fastqc.err"))
 
   return("Success")
