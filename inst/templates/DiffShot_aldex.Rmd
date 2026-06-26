@@ -1,0 +1,87 @@
+## ALDEx2 {.tabset}
+
+CLR-based compositional test. `r if (length(da_covariates)) "Covariate-adjusted GLM path (aldex.glm)." else "Classic t-test path (aldex)."`
+
+### Species {.tabset}
+```{r aldex_species, eval=has_species}
+aldex_sp <- run_aldex2(physeq_Species, "Species")
+```
+```{r aldex_species_vdat, include=FALSE, eval=has_species}
+aldex_sp_vd_adj <- mk_volcano_df(aldex_sp, "effect", "wi.eBH", "Taxonomy")
+aldex_sp_vd_raw <- mk_volcano_df(aldex_sp, "effect", "wi.ep",  "Taxonomy")
+```
+
+#### Volcano — Adjusted p (Static)
+```{r aldex_species_vstat_adj, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(aldex_sp_vd_adj, "ALDEx2 Species (effect vs BH-adj p)",
+                    "ALDEx2 effect / coef",
+                    ylab = "-log10(Wilcoxon BH-adjusted p)")
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r aldex_species_vint_adj, eval=has_species}
+show_volcano_interactive(aldex_sp_vd_adj, "ALDEx2 Species (effect vs BH-adj p)",
+                         "ALDEx2 effect / coef",
+                         ylab = "-log10(Wilcoxon BH-adjusted p)")
+```
+
+#### Volcano — Raw p (Static)
+```{r aldex_species_vstat_raw, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(aldex_sp_vd_raw, "ALDEx2 Species (effect vs raw p)",
+                    "ALDEx2 effect / coef",
+                    ylab = "-log10(Wilcoxon raw p)")
+```
+
+#### Volcano — Raw p (Interactive)
+```{r aldex_species_vint_raw, eval=has_species}
+show_volcano_interactive(aldex_sp_vd_raw, "ALDEx2 Species (effect vs raw p)",
+                         "ALDEx2 effect / coef",
+                         ylab = "-log10(Wilcoxon raw p)")
+```
+
+#### Table
+```{r aldex_species_tab, eval=has_species}
+dt(aldex_sp, "ALDEx2 — Species")
+```
+
+### Genus {.tabset}
+```{r aldex_genus}
+aldex_ge <- run_aldex2(physeq_Genus, "Genus")
+```
+```{r aldex_genus_vdat, include=FALSE}
+aldex_ge_vd_adj <- mk_volcano_df(aldex_ge, "effect", "wi.eBH", "Taxonomy")
+aldex_ge_vd_raw <- mk_volcano_df(aldex_ge, "effect", "wi.ep",  "Taxonomy")
+```
+
+#### Volcano — Adjusted p (Static)
+```{r aldex_genus_vstat_adj, fig.width=11, fig.height=8}
+show_volcano_static(aldex_ge_vd_adj, "ALDEx2 Genus (effect vs BH-adj p)",
+                    "ALDEx2 effect / coef",
+                    ylab = "-log10(Wilcoxon BH-adjusted p)")
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r aldex_genus_vint_adj}
+show_volcano_interactive(aldex_ge_vd_adj, "ALDEx2 Genus (effect vs BH-adj p)",
+                         "ALDEx2 effect / coef",
+                         ylab = "-log10(Wilcoxon BH-adjusted p)")
+```
+
+#### Volcano — Raw p (Static)
+```{r aldex_genus_vstat_raw, fig.width=11, fig.height=8}
+show_volcano_static(aldex_ge_vd_raw, "ALDEx2 Genus (effect vs raw p)",
+                    "ALDEx2 effect / coef",
+                    ylab = "-log10(Wilcoxon raw p)")
+```
+
+#### Volcano — Raw p (Interactive)
+```{r aldex_genus_vint_raw}
+show_volcano_interactive(aldex_ge_vd_raw, "ALDEx2 Genus (effect vs raw p)",
+                         "ALDEx2 effect / coef",
+                         ylab = "-log10(Wilcoxon raw p)")
+```
+
+#### Table
+```{r aldex_genus_tab}
+dt(aldex_ge, "ALDEx2 — Genus")
+```

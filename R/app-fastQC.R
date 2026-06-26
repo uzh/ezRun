@@ -272,19 +272,33 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   }
 
   ## ==== Run multiqc ====
+  ## Build the invocation to mirror the manually-tested shell command:
+  ##   OPENAI_API_KEY="dummy" && multiqc . --ai-summary-full -c <(echo "
+  ##   ai_provider: custom
+  ##   ai_model: <MODEL>
+  ##   ai_custom_endpoint: <ENDPOINT>
+  ##   ai_custom_context_window: <N>
+  ##   ")
+  ## (real .yaml tempfiles via `-c <path>` were silently ignored by MultiQC 1.35
+  ##  in this setup; process substitution is the form that actually applies the
+  ##  AI keys, so we keep it.)
   multiqc_dir <- file.path("..", basename(output$getColumn("MultiQC")))
-  multiqcCmd <- paste0("multiqc --outdir ", shQuote(multiqc_dir), " .")
-  ai_yaml <- NULL
+  ## Use double-quotes (not shQuote, which emits single quotes) because the full
+  ## command will be piped to sed for redaction, and ezSystem's pipe wrapper
+  ## (bash -c '...') refuses any cmd that contains single quotes.
+  multiqcCmd <- paste0('multiqc --outdir "', multiqc_dir, '" .')
   if (gen_ai) {
-    ai_yaml <- tempfile(pattern = "multiqc_ai_", fileext = ".yaml")
-    writeLines(c(
+    yaml_body <- paste(c(
+      "",
       paste0("ai_provider: ",              AI_PROVIDER),
       paste0("ai_model: ",                 AI_MODEL),
       paste0("ai_custom_endpoint: ",       AI_ENDPOINT),
       paste0("ai_custom_context_window: ", AI_CONTEXT_WINDOW)
-    ), ai_yaml)
-    Sys.setenv(OPENAI_API_KEY = "dummy")
-    multiqcCmd <- paste0(multiqcCmd, " --ai-summary-full -c ", shQuote(ai_yaml))
+    ), collapse = "\n")
+    multiqcCmd <- paste0(
+      'OPENAI_API_KEY="dummy" && multiqc --outdir "', multiqc_dir,
+      '" . --ai-summary-full -c <(echo "', yaml_body, '")'
+    )
   }
   if (gen_ai) {
     redact_sed <- tempfile(pattern = "redact_", fileext = ".sed")
@@ -299,7 +313,8 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   message(sprintf("[MultiQC] STARTED at %s (generate_ai_summary=%s, per_section_ai_summaries=%s, model=%s)",
                   format(t_mqc_start, "%Y-%m-%d %H:%M:%S"),
                   gen_ai, per_sec, AI_MODEL))
-  ezSystem(multiqcCmdShell)
+  ## echo = FALSE so ezSystem doesn't ezLog the full command (would leak the endpoint URL).
+  ezSystem(multiqcCmdShell, echo = FALSE)
   t_mqc_end <- Sys.time()
   mqc_dur_s <- as.numeric(difftime(t_mqc_end, t_mqc_start, units = "secs"))
   message(sprintf("[MultiQC] FINISHED at %s -- duration: %.1f s",
@@ -316,7 +331,6 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
       txt <- redact_string(txt)
       writeLines(txt, f, useBytes = TRUE)
     }
-    if (!is.null(ai_yaml) && file.exists(ai_yaml)) unlink(ai_yaml)
   }
 
   ## ==== Per-section AI summaries ====

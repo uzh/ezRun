@@ -1,0 +1,156 @@
+## MaAsLin 3 {.tabset}
+
+GLMs testing **abundance** and **prevalence** associations. Formula:
+`~ Group [+ covariates] + ReadDepth`, TSS / LOG transform, max_significance =
+`r maaslin_max_sig`. MaAsLin3 writes its own `summary_plot.pdf` and per-
+association PNGs into `r results_dir`/maaslin3_*/.
+
+### Species {.tabset}
+```{r maaslin_species, eval=has_species, results='hide'}
+ml_sp <- run_maaslin3(physeq_Species, "Species")
+```
+
+#### Significant associations
+```{r maaslin_species_tab, eval=has_species}
+if (!is.null(ml_sp) && !is.null(ml_sp$res)) {
+  sig <- ml_sp$res %>% filter(.data$qval_individual <= maaslin_max_sig)
+  dt(if (nrow(sig)) sig else ml_sp$res,
+     paste0("MaAsLin3 Species — ",
+            if (nrow(sig)) paste0("significant (q<=", maaslin_max_sig, ")")
+            else "all (none significant)"))
+} else cat("MaAsLin3 Species produced no results.\n")
+```
+
+#### Coefficient plot
+```{r maaslin_species_plot, eval=has_species, fig.width=12, fig.height=8}
+if (!is.null(ml_sp) && !is.null(ml_sp$res)) {
+  d <- ml_sp$res %>%
+       filter(.data$qval_individual <= maaslin_max_sig,
+              .data$name != "ReadDepth") %>%
+       arrange(coef)
+  if (nrow(d) > 0) {
+    d$lab <- factor(paste(d$Taxonomy, d$model, sep = " | "),
+                    levels = paste(d$Taxonomy, d$model, sep = " | "))
+    print(ggplot(d, aes(coef, lab, color = model)) +
+            geom_point(size = 3) + geom_vline(xintercept = 0, linetype = 2) +
+            geom_errorbarh(aes(xmin = coef - stderr, xmax = coef + stderr), height = .2) +
+            labs(x = "Coefficient", y = NULL,
+                 title = "MaAsLin3 Species — significant") + theme_bw())
+  } else cat("No significant MaAsLin3 Species associations.\n")
+}
+```
+```{r maaslin_species_vdat, include=FALSE, eval=has_species}
+ml_sp_vd_adj <- NULL; ml_sp_vd_raw <- NULL
+if (!is.null(ml_sp) && !is.null(ml_sp$res)) {
+  .r <- ml_sp$res[!is.na(ml_sp$res$metadata) & ml_sp$res$metadata == da_group, , drop = FALSE]
+  .r <- .r[order(.r$feature, .r$model != "abundance"), , drop = FALSE]
+  .r <- .r[!duplicated(.r$feature), , drop = FALSE]
+  .pcol <- if ("pval_joint" %in% colnames(.r)) "pval_joint" else "pval_individual"
+  .qcol <- if ("qval_joint" %in% colnames(.r)) "qval_joint" else "qval_individual"
+  ml_sp_vd_adj <- mk_volcano_df(.r, "coef", .qcol, "Taxonomy")
+  ml_sp_vd_raw <- mk_volcano_df(.r, "coef", .pcol, "Taxonomy")
+}
+```
+
+#### Volcano — Adjusted p (Static)
+```{r maaslin_species_vstat_adj, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(ml_sp_vd_adj, "MaAsLin3 Species (coef vs joint q)",
+                    "MaAsLin3 coefficient",
+                    ylab = "-log10(joint BH-adjusted q)", fc = 0)
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r maaslin_species_vint_adj, eval=has_species}
+show_volcano_interactive(ml_sp_vd_adj, "MaAsLin3 Species (coef vs joint q)",
+                         "MaAsLin3 coefficient",
+                         ylab = "-log10(joint BH-adjusted q)", fc = 0)
+```
+
+#### Volcano — Raw p (Static)
+```{r maaslin_species_vstat_raw, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(ml_sp_vd_raw, "MaAsLin3 Species (coef vs joint raw p)",
+                    "MaAsLin3 coefficient",
+                    ylab = "-log10(joint raw p)", fc = 0)
+```
+
+#### Volcano — Raw p (Interactive)
+```{r maaslin_species_vint_raw, eval=has_species}
+show_volcano_interactive(ml_sp_vd_raw, "MaAsLin3 Species (coef vs joint raw p)",
+                         "MaAsLin3 coefficient",
+                         ylab = "-log10(joint raw p)", fc = 0)
+```
+
+### Genus {.tabset}
+```{r maaslin_genus, results='hide'}
+ml_ge <- run_maaslin3(physeq_Genus, "Genus")
+```
+
+#### Significant associations
+```{r maaslin_genus_tab}
+if (!is.null(ml_ge) && !is.null(ml_ge$res)) {
+  sig <- ml_ge$res %>% filter(.data$qval_individual <= maaslin_max_sig)
+  dt(if (nrow(sig)) sig else ml_ge$res,
+     paste0("MaAsLin3 Genus — ",
+            if (nrow(sig)) paste0("significant (q<=", maaslin_max_sig, ")")
+            else "all (none significant)"))
+} else cat("MaAsLin3 Genus produced no results.\n")
+```
+
+#### Coefficient plot
+```{r maaslin_genus_plot, fig.width=12, fig.height=8}
+if (!is.null(ml_ge) && !is.null(ml_ge$res)) {
+  d <- ml_ge$res %>%
+       filter(.data$qval_individual <= maaslin_max_sig,
+              .data$name != "ReadDepth") %>%
+       arrange(coef)
+  if (nrow(d) > 0) {
+    d$lab <- factor(paste(d$Taxonomy, d$model, sep = " | "),
+                    levels = paste(d$Taxonomy, d$model, sep = " | "))
+    print(ggplot(d, aes(coef, lab, color = model)) +
+            geom_point(size = 3) + geom_vline(xintercept = 0, linetype = 2) +
+            geom_errorbarh(aes(xmin = coef - stderr, xmax = coef + stderr), height = .2) +
+            labs(x = "Coefficient", y = NULL,
+                 title = "MaAsLin3 Genus — significant") + theme_bw())
+  } else cat("No significant MaAsLin3 Genus associations.\n")
+}
+```
+```{r maaslin_genus_vdat, include=FALSE}
+ml_ge_vd_adj <- NULL; ml_ge_vd_raw <- NULL
+if (!is.null(ml_ge) && !is.null(ml_ge$res)) {
+  .r <- ml_ge$res[!is.na(ml_ge$res$metadata) & ml_ge$res$metadata == da_group, , drop = FALSE]
+  .r <- .r[order(.r$feature, .r$model != "abundance"), , drop = FALSE]
+  .r <- .r[!duplicated(.r$feature), , drop = FALSE]
+  .pcol <- if ("pval_joint" %in% colnames(.r)) "pval_joint" else "pval_individual"
+  .qcol <- if ("qval_joint" %in% colnames(.r)) "qval_joint" else "qval_individual"
+  ml_ge_vd_adj <- mk_volcano_df(.r, "coef", .qcol, "Taxonomy")
+  ml_ge_vd_raw <- mk_volcano_df(.r, "coef", .pcol, "Taxonomy")
+}
+```
+
+#### Volcano — Adjusted p (Static)
+```{r maaslin_genus_vstat_adj, fig.width=11, fig.height=8}
+show_volcano_static(ml_ge_vd_adj, "MaAsLin3 Genus (coef vs joint q)",
+                    "MaAsLin3 coefficient",
+                    ylab = "-log10(joint BH-adjusted q)", fc = 0)
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r maaslin_genus_vint_adj}
+show_volcano_interactive(ml_ge_vd_adj, "MaAsLin3 Genus (coef vs joint q)",
+                         "MaAsLin3 coefficient",
+                         ylab = "-log10(joint BH-adjusted q)", fc = 0)
+```
+
+#### Volcano — Raw p (Static)
+```{r maaslin_genus_vstat_raw, fig.width=11, fig.height=8}
+show_volcano_static(ml_ge_vd_raw, "MaAsLin3 Genus (coef vs joint raw p)",
+                    "MaAsLin3 coefficient",
+                    ylab = "-log10(joint raw p)", fc = 0)
+```
+
+#### Volcano — Raw p (Interactive)
+```{r maaslin_genus_vint_raw}
+show_volcano_interactive(ml_ge_vd_raw, "MaAsLin3 Genus (coef vs joint raw p)",
+                         "MaAsLin3 coefficient",
+                         ylab = "-log10(joint raw p)", fc = 0)
+```

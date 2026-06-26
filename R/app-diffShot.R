@@ -5,6 +5,12 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+`%||%` <- function(a, b) {
+  if (is.null(a)) return(b)
+  if (is.character(a) && length(a) == 1 && nchar(a) == 0) return(b)
+  a
+}
+
 ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
   require(withr)
   cwd <- getwd()
@@ -109,15 +115,42 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
                  shQuote(biomFile), shQuote(metadataFile)))
 
   ## ---------------------------------------------------------------
-  ## 5. Hand control over to the Rmd. Paths are deterministic relative
+  ## 5. Stage the per-method child Rmd into the working dir. The main
+  ##    DiffShot.Rmd uses knitr `child=` dispatch on param$daMethod and
+  ##    makeRmdReport only copies the top-level template, so the child
+  ##    has to be alongside it before render runs.
+  ## ---------------------------------------------------------------
+  methodNorm <- toupper(gsub("[^A-Za-z0-9]", "", as.character(param$daMethod %||% "")))
+  methodChild <- switch(methodNorm,
+                        ALDEX2   = "DiffShot_aldex.Rmd",
+                        ANCOMBC  = "DiffShot_ancombc.Rmd",
+                        ANCOMBC2 = "DiffShot_ancombc.Rmd",
+                        MAASLIN3 = "DiffShot_maaslin3.Rmd",
+                        MAASLIN  = "DiffShot_maaslin3.Rmd",
+                        LEFSE    = "DiffShot_lefse.Rmd",
+                        stop("Unknown daMethod '", param$daMethod, "'; expected ",
+                             "one of ALDEx2, ANCOMBC, MaAsLin3, LEfSe."))
+  childSrc <- system.file("templates", methodChild, package = "ezRun")
+  if (!nzchar(childSrc) || !file.exists(childSrc))
+    stop("Child template '", methodChild, "' not installed in ezRun. ",
+         "Reinstall ezRun into the active R library.")
+  file.copy(childSrc, methodChild, overwrite = TRUE)
+
+  ## ---------------------------------------------------------------
+  ## 6. Hand control over to the Rmd. Paths are deterministic relative
   ##    to the working dir, so the template loads them by name.
   ## ---------------------------------------------------------------
+  methodLabel <- switch(methodNorm,
+                        ALDEX2 = "ALDEx2", ANCOMBC = "ANCOM-BC2",
+                        ANCOMBC2 = "ANCOM-BC2", MAASLIN3 = "MaAsLin3",
+                        MAASLIN = "MaAsLin3", LEFSE = "LEfSe",
+                        as.character(param$daMethod))
   comparisonLabel <- if (!is.null(param$comparison) && nzchar(param$comparison))
                        param$comparison
                      else if (!is.null(param$grouping) && nzchar(param$grouping))
                        param$grouping
                      else "Group"
-  reportTitle <- paste("Shotgun Differential Abundance -", comparisonLabel)
+  reportTitle <- paste0("Shotgun DA (", methodLabel, ") - ", comparisonLabel)
 
   makeRmdReport(
     output      = output,
@@ -133,10 +166,12 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
 ##' @templateVar method ezMethodDiffShot(input=NA, output=NA, param=NA)
 ##' @description Differential abundance analysis on Bracken/Kraken2 shotgun
 ##' metagenomics profiles. Builds a BIOM table from per-sample Bracken
-##' reports, then runs ALDEx2 (GLM), ANCOM-BC2, DESeq2, edgeR, MaAsLin3 and
-##' LEfSe with optional covariate adjustment. Produces a single self-contained
-##' HTML report (00index.html) with a per-method volcano + table tabset plus
-##' an interactive "Organisms of interest" search.
+##' reports, then runs a single DA method selected by `param$daMethod`
+##' (ALDEx2, ANCOM-BC2, MaAsLin3, or LEfSe). Each of the four SUSHI apps
+##' (DiffShotALDEx, DiffShotANCOMBC, DiffShotMaAsLin3, DiffShotLEfSe)
+##' hardcodes this parameter and dispatches to a per-method child Rmd.
+##' Produces a single self-contained HTML report (00index.html) with a
+##' volcano + table tabset for the chosen method.
 EzAppDiffShot <-
   setRefClass(
     "EzAppDiffShot",
@@ -147,6 +182,11 @@ EzAppDiffShot <-
         runMethod <<- ezMethodDiffShot
         name <<- "EzAppDiffShot"
         appDefaults <<- rbind(
+          daMethod = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "DA method to run (hardcoded by the parent SUSHI app). One of: ALDEx2, ANCOMBC, MaAsLin3, LEfSe."
+          ),
           grouping = ezFrame(
             Type = "character",
             DefaultValue = "",
@@ -165,7 +205,7 @@ EzAppDiffShot <-
           daCovariates = ezFrame(
             Type = "character",
             DefaultValue = "",
-            Description = "Comma-separated list of additional [Factor] metadata columns to include as covariates in ALDEx2/ANCOM-BC2/DESeq2/edgeR/MaAsLin3. Leave empty for the unadjusted model. LEfSe ignores covariates by design."
+            Description = "Comma-separated list of additional [Factor] metadata columns to include as covariates. Ignored by the LEfSe app (LEfSe does not accept covariates)."
           ),
           prevalenceMin = ezFrame(
             Type = "numeric",
@@ -180,12 +220,12 @@ EzAppDiffShot <-
           libCut = ezFrame(
             Type = "integer",
             DefaultValue = 1000,
-            Description = "ANCOM-BC2 minimum library size (lib_cut). Samples below are excluded by ANCOM-BC2 only."
+            Description = "ANCOM-BC2 minimum library size (lib_cut). Used only by the ANCOMBC app."
           ),
           pValueThresh = ezFrame(
             Type = "numeric",
             DefaultValue = 0.05,
-            Description = "p-value cut-off used on volcano plots and overlap counts."
+            Description = "p-value cut-off used on volcano plots."
           ),
           log2RatioThresh = ezFrame(
             Type = "numeric",
@@ -195,12 +235,7 @@ EzAppDiffShot <-
           maaslinMaxSig = ezFrame(
             Type = "numeric",
             DefaultValue = 0.1,
-            Description = "MaAsLin3 max_significance threshold (q-value cutoff for the headline plots)."
-          ),
-          runLefse = ezFrame(
-            Type = "logical",
-            DefaultValue = TRUE,
-            Description = "Run LEfSe. Note: LEfSe does NOT accept covariates; results are unadjusted even when daCovariates is set."
+            Description = "MaAsLin3 max_significance threshold (q-value cutoff for the headline plots). Used only by the MaAsLin3 app."
           ),
           samplesToDrop = ezFrame(
             Type = "character",

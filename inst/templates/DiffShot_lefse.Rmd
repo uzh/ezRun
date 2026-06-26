@@ -1,0 +1,127 @@
+## LEfSe {.tabset}
+
+> :information_source: **LEfSe runs unadjusted by design** — non-parametric
+> Kruskal–Wallis + LDA on relative abundance with no covariate term. This SUSHI
+> app therefore does not expose a covariate selector. If you need adjustment
+> for batch / age / sex, run DiffShotALDEx, DiffShotANCOMBC or DiffShotMaAsLin3
+> on the same dataset instead.
+
+Significant = Kruskal–Wallis p < `r p_thresh` AND |LDA| ≥ 2.0.
+
+### Species {.tabset}
+```{r lefse_species, eval=has_species}
+lefse_sp <- run_lefse_tab(physeq_Species, "Species")
+```
+
+#### Barplot
+```{r lefse_species_bar, eval=has_species, fig.width=14, fig.height=8}
+if (!is.null(lefse_sp)) {
+  d <- lefse_sp %>% filter(Significant) %>% arrange(ef_lda)
+  if (nrow(d) > 0) {
+    d$feature <- factor(d$feature, levels = d$feature)
+    print(ggplot(d, aes(feature, ef_lda, fill = enrich_group)) + geom_col() +
+            coord_flip() + labs(x = NULL, y = "LDA score (log10)",
+            title = "LEfSe Species — significant markers",
+            fill = "Enriched in") + theme_bw())
+  } else cat("No significant LEfSe Species markers.\n")
+}
+```
+```{r lefse_species_vdat, include=FALSE, eval=has_species}
+lefse_sp_vd_adj <- NULL; lefse_sp_vd_raw <- NULL
+if (!is.null(lefse_sp)) {
+  .lv <- sort(unique(as.character(lefse_sp$enrich_group)))
+  .d  <- lefse_sp
+  .d$eff_signed <- ifelse(.d$enrich_group == .lv[length(.lv)], .d$ef_lda, -.d$ef_lda)
+  .d$padj <- p.adjust(.d$pvalue, method = "BH")
+  lefse_sp_vd_adj <- mk_volcano_df(.d, "eff_signed", "padj",   "feature")
+  lefse_sp_vd_raw <- mk_volcano_df(.d, "eff_signed", "pvalue", "feature")
+}
+```
+
+#### Volcano — Adjusted p (Static)
+```{r lefse_species_vstat_adj, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(lefse_sp_vd_adj, "LEfSe Species (signed LDA vs BH-adj p)",
+                    "signed LDA score", ylab = "-log10(BH-adjusted p)", fc = 2)
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r lefse_species_vint_adj, eval=has_species}
+show_volcano_interactive(lefse_sp_vd_adj, "LEfSe Species (signed LDA vs BH-adj p)",
+                         "signed LDA score", ylab = "-log10(BH-adjusted p)", fc = 2)
+```
+
+#### Volcano — Raw p (Static)
+```{r lefse_species_vstat_raw, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(lefse_sp_vd_raw, "LEfSe Species (signed LDA vs raw p)",
+                    "signed LDA score", ylab = "-log10(raw KW/Wilcoxon p)", fc = 2)
+```
+
+#### Volcano — Raw p (Interactive)
+```{r lefse_species_vint_raw, eval=has_species}
+show_volcano_interactive(lefse_sp_vd_raw, "LEfSe Species (signed LDA vs raw p)",
+                         "signed LDA score", ylab = "-log10(raw KW/Wilcoxon p)", fc = 2)
+```
+
+#### Table
+```{r lefse_species_tab, eval=has_species}
+if (!is.null(lefse_sp)) dt(lefse_sp, "LEfSe — Species (all tested taxa)")
+```
+
+### Genus {.tabset}
+```{r lefse_genus}
+lefse_ge <- run_lefse_tab(physeq_Genus, "Genus")
+```
+
+#### Barplot
+```{r lefse_genus_bar, fig.width=14, fig.height=8}
+if (!is.null(lefse_ge)) {
+  d <- lefse_ge %>% filter(Significant) %>% arrange(ef_lda)
+  if (nrow(d) > 0) {
+    d$feature <- factor(d$feature, levels = d$feature)
+    print(ggplot(d, aes(feature, ef_lda, fill = enrich_group)) + geom_col() +
+            coord_flip() + labs(x = NULL, y = "LDA score (log10)",
+            title = "LEfSe Genus — significant markers",
+            fill = "Enriched in") + theme_bw())
+  } else cat("No significant LEfSe Genus markers.\n")
+}
+```
+```{r lefse_genus_vdat, include=FALSE}
+lefse_ge_vd_adj <- NULL; lefse_ge_vd_raw <- NULL
+if (!is.null(lefse_ge)) {
+  .lv <- sort(unique(as.character(lefse_ge$enrich_group)))
+  .d  <- lefse_ge
+  .d$eff_signed <- ifelse(.d$enrich_group == .lv[length(.lv)], .d$ef_lda, -.d$ef_lda)
+  .d$padj <- p.adjust(.d$pvalue, method = "BH")
+  lefse_ge_vd_adj <- mk_volcano_df(.d, "eff_signed", "padj",   "feature")
+  lefse_ge_vd_raw <- mk_volcano_df(.d, "eff_signed", "pvalue", "feature")
+}
+```
+
+#### Volcano — Adjusted p (Static)
+```{r lefse_genus_vstat_adj, fig.width=11, fig.height=8}
+show_volcano_static(lefse_ge_vd_adj, "LEfSe Genus (signed LDA vs BH-adj p)",
+                    "signed LDA score", ylab = "-log10(BH-adjusted p)", fc = 2)
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r lefse_genus_vint_adj}
+show_volcano_interactive(lefse_ge_vd_adj, "LEfSe Genus (signed LDA vs BH-adj p)",
+                         "signed LDA score", ylab = "-log10(BH-adjusted p)", fc = 2)
+```
+
+#### Volcano — Raw p (Static)
+```{r lefse_genus_vstat_raw, fig.width=11, fig.height=8}
+show_volcano_static(lefse_ge_vd_raw, "LEfSe Genus (signed LDA vs raw p)",
+                    "signed LDA score", ylab = "-log10(raw KW/Wilcoxon p)", fc = 2)
+```
+
+#### Volcano — Raw p (Interactive)
+```{r lefse_genus_vint_raw}
+show_volcano_interactive(lefse_ge_vd_raw, "LEfSe Genus (signed LDA vs raw p)",
+                         "signed LDA score", ylab = "-log10(raw KW/Wilcoxon p)", fc = 2)
+```
+
+#### Table
+```{r lefse_genus_tab}
+if (!is.null(lefse_ge)) dt(lefse_ge, "LEfSe — Genus (all tested taxa)")
+```
