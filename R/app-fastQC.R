@@ -272,36 +272,39 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   }
 
   ## ==== Run multiqc ====
-  ## Build the invocation to mirror the manually-tested shell command:
-  ##   OPENAI_API_KEY="dummy" && multiqc . --ai-summary-full -c <(echo "
-  ##   ai_provider: custom
-  ##   ai_model: <MODEL>
-  ##   ai_custom_endpoint: <ENDPOINT>
-  ##   ai_custom_context_window: <N>
-  ##   ")
-  ## (real .yaml tempfiles via `-c <path>` were silently ignored by MultiQC 1.35
-  ##  in this setup; process substitution is the form that actually applies the
-  ##  AI keys, so we keep it.)
+  ## We pass AI settings as proper CLI flags rather than via -c YAML, because:
+  ##   * -c <(echo ...) process substitution → /dev/fd/N is a FIFO → MultiQC's
+  ##     Path.is_file() check in load_config_file rejects it, so the YAML is
+  ##     silently ignored and the seqera default from config_defaults.yaml wins.
+  ##   * -c <real .yaml tempfile> loaded but didn't reliably propagate to
+  ##     config.ai_provider in our setup either.
+  ## CLI flags are applied unconditionally in update_config.py:228-235, so they
+  ## are the only path that is guaranteed to land.
+  ##
+  ## TMPDIR is pointed at the current working dir so MultiQC's tempdir
+  ## (tempfile.mkdtemp + shutil.rmtree at the end) lives somewhere we own and
+  ## can rmdir. Default /tmp on SLURM compute nodes denied rmdir with EACCES,
+  ## triggering MultiQC's quadratic-backoff retry loop (0+1+4+9+...+81 ≈ 285 s
+  ## wasted at the end of each run).
   multiqc_dir <- file.path("..", basename(output$getColumn("MultiQC")))
+  multiqc_tmpdir <- file.path(getwd(), ".multiqc_tmp")
+  dir.create(multiqc_tmpdir, showWarnings = FALSE, recursive = TRUE)
+  Sys.setenv(TMPDIR = multiqc_tmpdir)
   ## Use double-quotes (not shQuote, which emits single quotes) because the full
   ## command will be piped to sed for redaction, and ezSystem's pipe wrapper
   ## (bash -c '...') refuses any cmd that contains single quotes.
   multiqcCmd <- paste0('multiqc --outdir "', multiqc_dir, '" .')
   if (gen_ai) {
-    yaml_body <- paste(c(
-      "",
-      paste0("ai_provider: ",              AI_PROVIDER),
-      paste0("ai_model: ",                 AI_MODEL),
-      paste0("ai_custom_endpoint: ",       AI_ENDPOINT),
-      paste0("ai_custom_context_window: ", AI_CONTEXT_WINDOW)
-    ), collapse = "\n")
     multiqcCmd <- paste0(
-      'OPENAI_API_KEY="dummy" && multiqc --outdir "', multiqc_dir,
-      '" . --ai-summary-full -c <(echo "', yaml_body, '")'
+      'OPENAI_API_KEY="dummy" TMPDIR="', multiqc_tmpdir,
+      '" multiqc --outdir "', multiqc_dir, '" .',
+      ' --ai-summary-full',
+      ' --ai-provider ',              AI_PROVIDER,
+      ' --ai-model "',                AI_MODEL, '"',
+      ' --ai-custom-endpoint "',      AI_ENDPOINT, '"',
+      ' --ai-custom-context-window ', AI_CONTEXT_WINDOW
     )
-  }
-  if (gen_ai) {
-    redact_sed <- tempfile(pattern = "redact_", fileext = ".sed")
+    redact_sed <- tempfile(pattern = "redact_", fileext = ".sed", tmpdir = multiqc_tmpdir)
     writeLines(vapply(redact_pairs, function(p) sprintf("s|%s|%s|g", p[1], p[2]), character(1)),
                redact_sed)
     multiqcCmdShell <- sprintf("%s 2>&1 | sed -f %s", multiqcCmd, redact_sed)
@@ -527,6 +530,7 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   }
 
   unlink(c("fastqc.out", "fastqc.err"))
+  unlink(multiqc_tmpdir, recursive = TRUE, force = TRUE)
 
   return("Success")
 }
