@@ -448,6 +448,14 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
       message(sprintf("[AI-Sections] STARTED at %s (N=%d sections, model=%s)",
                       format(t_sec_total_start, "%Y-%m-%d %H:%M:%S"), N, AI_MODEL))
 
+      ## Accumulator for the per-section prompts file (mirror of MultiQC's
+      ## llms-full.txt convention, but for the calls SUSHI makes itself).
+      section_prompts_lines <- c(
+        sprintf("SUSHI per-section AI prompts -- model: %s -- %d sections",
+                AI_MODEL, N),
+        ""
+      )
+
       for (i in seq_along(section_files)) {
         sec_path <- section_files[i]
         sec_id   <- sec_ids[i]
@@ -545,7 +553,39 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
         message(sprintf("[AI-Sections] %d/%d %s: %.1f s, %d tokens, %s tok/s",
                         i, N, sec_id, one_dur, total_tokens,
                         if (is.na(tok_per_s)) "n/a" else sprintf("%.1f", tok_per_s)))
+
+        section_prompts_lines <- c(
+          section_prompts_lines,
+          strrep("=", 76),
+          sprintf("Section: %s", sec_id),
+          sprintf("Duration: %.1f s | Tokens: %d (%d in, %d out) | %s tok/s",
+                  one_dur, total_tokens, prompt_tokens, completion_tokens,
+                  if (is.na(tok_per_s)) "n/a" else sprintf("%.1f", tok_per_s)),
+          strrep("=", 76),
+          "",
+          "[SYSTEM PROMPT]",
+          sys_prompt,
+          "",
+          "[USER PROMPT]",
+          user_msg,
+          "",
+          ""
+        )
       }
+
+      ## Persist the per-section prompts and link them from the side nav.
+      prompts_path <- file.path(data_dir, "sushi_section_prompts.txt")
+      writeLines(section_prompts_lines, prompts_path, useBytes = TRUE)
+      nav_li_sushi <- paste0(
+        '              <li>\n',
+        '                <a href="multiqc_data/sushi_section_prompts.txt" class="nav-l1" target="_blank">AI Prompts per section (sushi_section_prompts.txt)</a>\n',
+        '              </li>\n'
+      )
+      html_text <- sub(
+        '(</ul>\\s*</div>\\s*</div>\\s*<!-- Nav Width Toggle Button -->)',
+        paste0(nav_li_sushi, '\\1'),
+        html_text, perl = TRUE
+      )
 
       writeLines(html_text, multiqc_html_path, useBytes = TRUE)
 
