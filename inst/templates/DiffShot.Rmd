@@ -646,8 +646,8 @@ if (length(csvs) == 0) cat("No CSVs written yet.\n") else {
 }
 ```
 
-## MaAsLin3 native outputs
 ```{r downloads_maaslin, results='asis', eval=(da_method == "MAASLIN3")}
+cat("## MaAsLin3 native outputs\n\n")
 mdirs <- list.dirs(results_dir, recursive = FALSE)
 mdirs <- mdirs[grepl("maaslin3_", basename(mdirs))]
 if (length(mdirs) == 0) cat("No MaAsLin3 output folders.\n") else {
