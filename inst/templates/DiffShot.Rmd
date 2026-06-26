@@ -1,0 +1,1817 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'Shotgun DA'`"
+output:
+  html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
+    includes:
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+    highlight: pygments
+    theme: sand
+    code_folding: hide
+    toc: yes
+    toc_depth: 4
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE,
+                      fig.width = 12, fig.height = 8, cache = TRUE)
+knitr::opts_knit$set(root.dir = ".")
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(stringr)
+library(phyloseq)
+library(biomformat)
+library(microbiome)
+library(vegan)
+library(reshape2)
+library(scales)
+library(RColorBrewer)
+library(patchwork)
+library(ggpubr)
+library(ggrepel)
+library(ggvenn)
+library(DT)
+library(htmlwidgets)
+library(htmltools)
+library(plotly)
+library(kableExtra)
+
+## Differential-abundance
+library(ALDEx2)
+library(ANCOMBC)
+library(DESeq2)
+library(edgeR)
+library(microbiomeMarker)   # run_lefse
+library(EnhancedVolcano)
+library(maaslin3)
+```
+
+```{r register_widget_deps, include=FALSE}
+## Force-register plotly + DT JS dependencies at the top level. Some interactive
+## widgets are produced deep inside helper functions; knit_meta does not always
+## propagate their deps back, leaving the widgets as blank containers.
+local({
+  for (d in htmltools::findDependencies(plotly::plot_ly()))
+    knitr::knit_meta_add(list(d))
+  for (d in htmltools::findDependencies(DT::datatable(data.frame(x = 1))))
+    knitr::knit_meta_add(list(d))
+})
+```
+
+```{r load_params, include=FALSE}
+## SUSHI passes its `param` list serialised to disk by makeRmdReport().
+library(ezRun)
+param  <- ezLoadRobj("param")
+output <- ezLoadRobj("output")
+
+`%||%` <- function(a, b) {
+  if (is.null(a)) return(b)
+  if (is.character(a) && length(a) == 1 && nchar(a) == 0) return(b)
+  a
+}
+.split_csv <- function(s) {
+  if (is.null(s)) return(character(0))
+  if (length(s) > 1) {
+    out <- trimws(as.character(s))
+    return(out[nzchar(out)])
+  }
+  if (is.character(s) && nchar(s) == 0) return(character(0))
+  out <- trimws(unlist(strsplit(as.character(s), "[,;]")))
+  out[nzchar(out)]
+}
+.as_logical <- function(x) {
+  if (is.logical(x)) return(x)
+  isTRUE(x) || identical(tolower(as.character(x)), "true") ||
+    identical(tolower(as.character(x)), "yes")
+}
+```
+
+# Overview {#overview}
+
+This report runs **differential abundance (DA)** analysis on **shotgun
+metagenomics** taxonomic profiles produced by **Kraken2 + Bracken** and
+converted to a BIOM table with
+[`kraken-biom`](https://github.com/smdabdoub/kraken-biom).
+
+**Methods.** Bracken outputs per-taxon read counts — a `features × samples`
+integer matrix. The following methods are applied:
+
+* **ALDEx2** — CLR + Monte-Carlo Dirichlet. With covariates uses the GLM path
+  (`aldex.glm`); without covariates the standard t-test/KW path.
+* **ANCOM-BC2** — bias-corrected log-ratios with structural-zero handling.
+  Covariates extend `fix_formula`.
+* **DESeq2 / edgeR** — negative-binomial GLMs on raw counts. Covariates are
+  added to the design matrix; the Group coefficient is the reported contrast.
+* **MaAsLin 3** — GLMs testing **abundance** and **prevalence** associations.
+  ReadDepth is always added as a covariate when present.
+* **LEfSe** — non-parametric (Kruskal–Wallis + LDA) on relative abundance.
+  **LEfSe does not accept covariates** — its results are unadjusted regardless
+  of the `daCovariates` setting.
+
+> **Caveats.** (1) Bracken counts are *re-estimated* abundances, so DESeq2/edgeR
+> dispersion assumptions are approximate — treat them as a cross-check on the
+> compositional methods. (2) Shotgun species tables are sparse; a prevalence /
+> abundance filter is applied before testing. (3) MaAsLin3 docs strongly
+> recommend including read depth as a covariate for prevalence models — it is
+> added automatically.
+
+---
+
+# Configuration
+
+```{r config}
+## -----------------------------------------------------------------
+## Inputs prepared by the SUSHI back-end in the working directory.
+## -----------------------------------------------------------------
+biom_path     <- "bracken_table.biom"
+metadata_path <- "sample-metadata.tsv"
+
+## -----------------------------------------------------------------
+## Resolved from SUSHI params.
+## -----------------------------------------------------------------
+group_cols      <- param$grouping            %||% "Group"
+sample_group    <- param$sampleGroup         %||% NA_character_
+ref_group       <- param$refGroup            %||% NA_character_
+da_group        <- "Group"                   # always the constructed col
+da_covariates   <- setdiff(.split_csv(param$daCovariates), group_cols)
+samples_to_prune <- .split_csv(param$samplesToDrop)
+
+## Reference factor levels — only the focal grouping (single column) is
+## explicitly set; covariate columns use alphabetical defaults.
+factor_reference <- setNames(ref_group, group_cols)
+group_reference  <- ref_group                # 2-level Group after subset
+
+## Filters / thresholds (defaults match the baseline ad-hoc Rmd).
+prevalence_min   <- as.numeric(param$prevalenceMin    %||% 0.10)
+relabund_min     <- as.numeric(param$relabundMin      %||% 0.10)
+lib_cut          <- as.numeric(param$libCut           %||% 1000)
+p_thresh         <- as.numeric(param$pValueThresh     %||% 0.05)
+fc_thresh        <- as.numeric(param$log2RatioThresh  %||% 1)
+maaslin_max_sig  <- as.numeric(param$maaslinMaxSig    %||% 0.1)
+run_lefse_flag   <- .as_logical(param$runLefse %||% TRUE)
+
+## -----------------------------------------------------------------
+## Output
+## -----------------------------------------------------------------
+results_dir <- "results_out"
+dir.create(results_dir, showWarnings = FALSE, recursive = TRUE)
+
+## Standard table widget.
+dt <- function(df, caption, sig = 3, length_menu = TRUE) {
+  dom <- if (length_menu) 'lftBip' else 'ftBip'
+  w <- datatable(df, caption = caption, extensions = 'Buttons', rownames = FALSE,
+                 filter = 'top',
+                 options = list(scrollX = TRUE, dom = dom,
+                                buttons = c('copy', 'csv', 'excel'),
+                                pageLength = 10, lengthMenu = c(10, 20, 100, 200)))
+  num_cols <- names(df)[vapply(df, function(x) {
+    if (!is.numeric(x)) return(FALSE)
+    xf <- x[is.finite(x)]
+    length(xf) > 0 && !isTRUE(all(xf == round(xf)))
+  }, logical(1))]
+  if (length(num_cols)) w <- formatSignif(w, columns = num_cols, digits = sig)
+  w
+}
+save_csv <- function(df, fname) {
+  fp <- file.path(results_dir, fname)
+  write.csv(df, fp, row.names = FALSE)
+  fp
+}
+gm_mean <- function(x, na.rm = TRUE) exp(sum(log(x[x > 0]), na.rm = na.rm) / length(x))
+```
+
+The DA analysis below contrasts on column **`r group_cols`**, with
+**`r sample_group`** vs **`r ref_group`** (reference). Covariates being
+adjusted for: **`r if (length(da_covariates)) paste(da_covariates, collapse=", ") else "(none)"`**.
+
+# Data Loading
+
+```{r load_data}
+biom_obj <- read_biom(biom_path)
+otu <- as(biom_data(biom_obj), "matrix")
+otu <- otu_table(otu, taxa_are_rows = TRUE)
+
+RANKS <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
+tax_raw <- observation_metadata(biom_obj)
+if (is.data.frame(tax_raw)) {
+  tax_mat <- as.matrix(tax_raw)
+} else {
+  tax_mat <- do.call(rbind, lapply(tax_raw, function(x) c(unlist(x), rep(NA, 7))[1:7]))
+  if (!is.null(names(tax_raw))) rownames(tax_mat) <- names(tax_raw)
+}
+if (ncol(tax_mat) < 7)
+  tax_mat <- cbind(tax_mat, matrix(NA_character_, nrow(tax_mat), 7 - ncol(tax_mat)))
+tax_mat <- tax_mat[, 1:7, drop = FALSE]
+tax_mat[] <- sub("^([a-z]__)+", "", tax_mat)
+tax_mat[tax_mat == ""] <- NA
+colnames(tax_mat) <- RANKS
+if (!is.null(rownames(tax_mat)) && all(rownames(otu) %in% rownames(tax_mat))) {
+  tax_mat <- tax_mat[rownames(otu), , drop = FALSE]
+} else {
+  stopifnot(nrow(tax_mat) == nrow(otu))
+  rownames(tax_mat) <- rownames(otu)
+}
+TAX <- tax_table(tax_mat)
+
+meta_df <- read.delim(metadata_path, header = TRUE, sep = "\t",
+                      stringsAsFactors = FALSE, check.names = FALSE)
+rownames(meta_df) <- meta_df[[1]]
+SAMP <- sample_data(meta_df)
+physeq <- phyloseq(otu, TAX, SAMP)
+
+## Subset to the two requested levels in the focal grouping column.
+if (!group_cols %in% colnames(sample_data(physeq)))
+  stop("grouping column '", group_cols, "' not in metadata. Available: ",
+       paste(colnames(sample_data(physeq)), collapse = ", "))
+if (is.na(sample_group) || is.na(ref_group) || sample_group == ref_group)
+  stop("sampleGroup and refGroup must be set to two DIFFERENT values of '",
+       group_cols, "'.")
+keep_smp <- as.character(sample_data(physeq)[[group_cols]]) %in%
+            c(sample_group, ref_group)
+if (!any(keep_smp))
+  stop("No samples have grouping column '", group_cols, "' in {",
+       sample_group, ", ", ref_group, "}.")
+physeq <- prune_samples(keep_smp, physeq)
+
+## Build the master Group column from the single focal column.
+sample_data(physeq)$Group <- as.character(sample_data(physeq)[[group_cols]])
+
+## Read depth (used as a MaAsLin3 covariate).
+sample_data(physeq)$ReadDepth <- sample_sums(physeq)
+
+if (length(samples_to_prune) > 0)
+  physeq <- prune_samples(!sample_names(physeq) %in% samples_to_prune, physeq)
+
+## Apply factor reference levels so every method reports sampleGroup-vs-refGroup.
+.smp_df <- data.frame(sample_data(physeq), check.names = FALSE,
+                      stringsAsFactors = FALSE)
+.set_ref <- function(x, ref, col) {
+  vals <- unique(as.character(x))
+  vals <- vals[!is.na(vals) & vals != ""]
+  if (!is.null(ref) && !is.na(ref) && ref %in% vals)
+    factor(as.character(x), levels = c(ref, setdiff(vals, ref)))
+  else {
+    if (!is.null(ref) && !is.na(ref))
+      warning("Reference level '", ref, "' for ", col,
+              "' not in data; using alphabetical default")
+    factor(as.character(x))
+  }
+}
+for (cn in names(factor_reference)) {
+  if (cn %in% colnames(.smp_df))
+    .smp_df[[cn]] <- .set_ref(.smp_df[[cn]], factor_reference[[cn]], cn)
+}
+.smp_df[["Group"]] <- .set_ref(.smp_df[["Group"]], group_reference, "Group")
+sample_data(physeq) <- sample_data(.smp_df)
+```
+
+# Filtering
+
+Three filters are applied in sequence to the raw BIOM table before any DA test
+is run. The cut-offs come from the SUSHI parameters and are shown live below.
+
+1. **Sample drop-list** (`samplesToDrop`) — explicit per-sample exclusion (e.g.
+   failed libraries). Currently dropping
+   **`r if (length(samples_to_prune) == 0) "no samples" else paste(samples_to_prune, collapse = ", ")`**.
+2. **Prevalence filter** (`prevalenceMin` = `r prevalence_min`) — keep a taxon
+   only if it has **> 1 read in at least `r round(prevalence_min*100)` % of samples**
+   (`phyloseq::genefilter_sample()`).
+3. **Relative-abundance floor** (`relabundMin` = `r relabund_min`) — among the
+   prevalence-surviving taxa, keep only those whose **total reads across all
+   samples** make up **≥ `r relabund_min` % of the pooled read sum**.
+4. **Per-rank agglomeration** uses `phyloseq::tax_glom(..., NArm = TRUE)`,
+   which **drops taxa whose lineage is unresolved at the target rank**.
+
+The library-size floor `libCut` = **`r lib_cut`** is **not** applied here;
+ANCOM-BC2 enforces it internally (`lib_cut` argument of `ancombc2`).
+
+```{r filtering}
+n_raw_taxa <- ntaxa(physeq); n_raw_samp <- nsamples(physeq)
+
+keep_prev <- genefilter_sample(physeq, filterfun_sample(function(x) x > 1),
+                               A = prevalence_min * nsamples(physeq))
+physeq_prev <- prune_taxa(keep_prev, physeq)
+
+total_reads <- sum(sample_sums(physeq_prev))
+rel <- taxa_sums(physeq_prev) / total_reads * 100
+physeq_filtered <- prune_taxa(rel >= relabund_min, physeq_prev)
+
+metadata <- data.frame(sample_data(physeq_filtered))
+metadata$SampleID <- rownames(metadata)
+
+glom_safe <- function(ps, rank) {
+  if (!rank %in% colnames(tax_table(ps))) return(NULL)
+  if (all(is.na(as.data.frame(tax_table(ps))[[rank]]))) return(NULL)
+  tryCatch(tax_glom(ps, rank, NArm = TRUE), error = function(e) NULL)
+}
+physeq_Species <- glom_safe(physeq_filtered, "Species")
+physeq_Genus   <- glom_safe(physeq_filtered, "Genus")
+has_species <- !is.null(physeq_Species)
+
+filt_summary <- data.frame(
+  Stage = c("Raw", "After prevalence filter", "After abundance filter"),
+  Taxa  = c(n_raw_taxa, ntaxa(physeq_prev), ntaxa(physeq_filtered)),
+  Samples = c(n_raw_samp, nsamples(physeq_prev), nsamples(physeq_filtered))
+)
+save_csv(filt_summary, "filtering_summary.csv")
+dt(filt_summary, "Filtering summary", length_menu = FALSE)
+```
+
+```{r group_check}
+grp_tab <- as.data.frame(table(metadata$Group))
+colnames(grp_tab) <- c("Group", "n_samples")
+save_csv(grp_tab, "group_sizes.csv")
+dt(grp_tab, "Samples per Group", length_menu = FALSE)
+n_groups <- nrow(grp_tab)
+group_levels <- levels(as.factor(metadata$Group))
+comps <- if (n_groups >= 2) combn(group_levels, 2, simplify = FALSE) else list()
+
+## Cross-tab each covariate against Group so the user can see small cells.
+if (length(da_covariates)) {
+  cat("**Group × covariate cross-tabs** (cells with < 3 samples flagged).\n\n")
+  for (cv in da_covariates) {
+    if (!cv %in% colnames(metadata)) {
+      cat("> :warning: covariate '", cv, "' not found in metadata - will be dropped.\n", sep = "")
+      next
+    }
+    tab <- table(Group = metadata$Group, metadata[[cv]])
+    cat("\n#### ", cv, "\n\n", sep = "")
+    print(knitr::kable(tab, format = "html",
+                       caption = paste0("Group x ", cv)) |>
+            kableExtra::kable_styling(full_width = FALSE, position = "left"))
+    cat("\n")
+    if (any(tab < 3))
+      cat("> :warning: Some cells have < 3 samples — covariate-adjusted models\n",
+          "  that include `", cv, "` may be unstable.\n\n", sep = "")
+  }
+}
+
+## Drop any covariate that isn't actually in the metadata.
+da_covariates <- intersect(da_covariates, colnames(metadata))
+```
+
+```{r da_helpers}
+resolve_taxon_da <- function(ids, tax_tbl) {
+  tax_df <- as.data.frame(tax_tbl)
+  prefix <- c(Species = "", Genus = "g__", Family = "f__", Phylum = "p__")
+  ids <- as.character(ids)
+  vapply(ids, function(id) {
+    if (id %in% rownames(tax_df)) {
+      tx <- tax_df[id, ]
+      for (r in c("Species", "Genus", "Family", "Phylum")) {
+        val <- tx[[r]]
+        if (!is.na(val) && val != "") {
+          if (r == "Species") return(trimws(paste(tx$Genus, val)))
+          return(paste0(prefix[[r]], val))
+        }
+      }
+    }
+    as.character(id)
+  }, character(1))
+}
+
+volcano <- function(df, x, p, lab, title, xlab = "log2 fold change",
+                    ylab = "-log10(adjusted p)", psig = p_thresh, fc = fc_thresh) {
+  df <- df[is.finite(df[[x]]) & is.finite(df[[p]]), , drop = FALSE]
+  if (nrow(df) == 0) { cat("No finite results to plot.\n"); return(invisible(NULL)) }
+  EnhancedVolcano(df, lab = df[[lab]], x = x, y = p, xlab = xlab, ylab = ylab,
+                  pCutoff = psig, FCcutoff = fc, title = title, subtitle = NULL,
+                  legendPosition = "right", drawConnectors = TRUE,
+                  maxoverlapsConnectors = Inf,
+                  labSize = 3.0, pointSize = 1.8)
+}
+
+volcano_i <- function(df, x, p, lab, title, xlab = "log2 fold change",
+                      ylab = "-log10(adjusted p)", psig = p_thresh, fc = fc_thresh) {
+  df <- df[is.finite(df[[x]]) & is.finite(df[[p]]), , drop = FALSE]
+  if (nrow(df) == 0) { cat("No finite results to plot.\n"); return(invisible(NULL)) }
+  d <- data.frame(eff = df[[x]], pval = df[[p]], lab = as.character(df[[lab]]),
+                  stringsAsFactors = FALSE)
+  d$neglog10p <- -log10(d$pval)
+  sig_p  <- d$pval < psig
+  sig_fc <- abs(d$eff) > fc
+  d$Category <- ifelse(sig_p & sig_fc & d$eff > 0, "Up & sig",
+                ifelse(sig_p & sig_fc & d$eff < 0, "Down & sig",
+                ifelse(sig_p,                      "Sig (p only)", "NS")))
+  d$Category <- factor(d$Category,
+                       levels = c("Up & sig", "Down & sig", "Sig (p only)", "NS"))
+  cols <- c("Up & sig" = "#e41a1c", "Down & sig" = "#377eb8",
+            "Sig (p only)" = "#4daf4a", "NS" = "grey70")
+  plab <- sub("^-log10\\(\\s*(.*?)\\s*\\)$", "\\1", ylab)
+  if (identical(plab, ylab)) plab <- "p"
+  g <- ggplot(d, aes(eff, neglog10p, color = Category,
+                     text = paste0(lab, "<br>", xlab, ": ", round(eff, 3),
+                                   "<br>", plab, ": ", signif(pval, 3)))) +
+    geom_point(size = 1.8, alpha = 0.8) +
+    geom_vline(xintercept = c(-fc, fc), linetype = 2, color = "grey50") +
+    geom_hline(yintercept = -log10(psig), linetype = 2, color = "grey50") +
+    scale_color_manual(values = cols, name = NULL, drop = FALSE) +
+    labs(x = xlab, y = ylab, title = title) + theme_bw()
+  ggplotly(g, tooltip = "text")
+}
+
+mk_volcano_df <- function(df, xcol, pcol, labcol) {
+  if (is.null(df) || !all(c(xcol, pcol, labcol) %in% colnames(df))) return(NULL)
+  d <- data.frame(eff = suppressWarnings(as.numeric(df[[xcol]])),
+                  pval = suppressWarnings(as.numeric(df[[pcol]])),
+                  lab = as.character(df[[labcol]]), stringsAsFactors = FALSE)
+  d <- d[is.finite(d$eff) & is.finite(d$pval), , drop = FALSE]
+  d$pval[d$pval <= 0] <- .Machine$double.xmin
+  if (nrow(d) == 0) NULL else d
+}
+show_volcano_static <- function(d, title, xlab, ylab = "-log10(adjusted p)",
+                                psig = p_thresh, fc = fc_thresh) {
+  if (is.null(d)) { cat("No finite results to plot.\n"); return(invisible(NULL)) }
+  print(volcano(d, "eff", "pval", "lab", title = title, xlab = xlab,
+                ylab = ylab, psig = psig, fc = fc))
+}
+show_volcano_interactive <- function(d, title, xlab, ylab = "-log10(adjusted p)",
+                                     psig = p_thresh, fc = fc_thresh) {
+  if (is.null(d)) { cat("No finite results to plot.\n"); return(invisible(NULL)) }
+  volcano_i(d, "eff", "pval", "lab", title = title, xlab = xlab,
+            ylab = ylab, psig = psig, fc = fc)
+}
+```
+
+---
+
+# Differential Abundance {.tabset}
+
+> All tests below contrast on **`r da_group`**
+> (`r paste(group_levels, collapse = ", ")`). Each method runs at the
+> **Species** and **Genus** levels (Species skipped automatically if no
+> species-level taxa survive filtering). Every table is downloadable
+> (copy / CSV / Excel) and also written to `r results_dir`/.
+
+```{r da_runner, include=FALSE}
+## ---------------------------------------------------------------
+## Each runner returns a data.frame with the columns the rest of
+## the document expects (effect, p / padj names per-method).
+## ---------------------------------------------------------------
+
+## Build a clean per-sample metadata DF with the chosen terms.
+## Preserves any pre-existing factor levels.
+.clean_md <- function(ps, terms) {
+  md0 <- data.frame(sample_data(ps), check.names = FALSE, stringsAsFactors = FALSE)
+  md0 <- md0[, !duplicated(colnames(md0)), drop = FALSE]
+  md  <- data.frame(lapply(terms, function(v) {
+          x <- md0[[v]]
+          if (is.numeric(x))    as.numeric(x)
+          else if (is.factor(x)) x
+          else                   factor(as.character(x))
+        }), row.names = rownames(md0), stringsAsFactors = FALSE, check.names = FALSE)
+  colnames(md) <- terms
+  md
+}
+
+.design_ok <- function(form, md) {
+  tryCatch({
+    mm <- model.matrix(as.formula(form), data = md)
+    qr(mm)$rank == ncol(mm)
+  }, error = function(e) FALSE)
+}
+
+## --- ALDEx2 ----------------------------------------------------------
+run_aldex2 <- function(ps, rank) {
+  cnts  <- as(otu_table(ps), "matrix"); if (!taxa_are_rows(ps)) cnts <- t(cnts)
+  grp   <- as.character(sample_data(ps)[[da_group]])
+  if (length(unique(grp)) != 2) {
+    ## >2 levels not expected with SUSHI-driven sampleGroup/refGroup; fall back
+    ## to KW (uncovariated) so the report still produces something.
+    clr <- aldex.clr(cnts, grp, mc.samples = 128, denom = "all", verbose = FALSE)
+    kw  <- aldex.kw(clr)
+    res <- kw %>% rownames_to_column("taxon")
+  } else if (length(da_covariates) == 0) {
+    ## No covariates -> classic t-test path (matches baseline behavior).
+    x   <- aldex(cnts, grp, mc.samples = 128, test = "t", effect = TRUE,
+                 denom = "all", verbose = FALSE)
+    res <- x %>% rownames_to_column("taxon")
+  } else {
+    ## Covariates present -> GLM path.
+    terms <- c(da_covariates, da_group)
+    md    <- .clean_md(ps, terms)
+    form  <- as.formula(paste("~", paste(terms, collapse = " + ")))
+    mm    <- model.matrix(form, data = md)
+    clr   <- aldex.clr(cnts, mm, mc.samples = 128, denom = "all", verbose = FALSE)
+    glm.t <- aldex.glm(clr, mm)
+    glm.e <- tryCatch(aldex.glm.effect(clr), error = function(e) NULL)
+    grp_col <- grep(paste0("^", da_group), colnames(glm.t), value = TRUE)
+    pe_col  <- intersect(grp_col, grep("Est$",              colnames(glm.t), value = TRUE))[1]
+    p_col   <- intersect(grp_col, grep("Pr\\(>\\|t\\|\\)\\.$",
+                                       colnames(glm.t), value = TRUE))[1]
+    bh_col  <- intersect(grp_col, grep("BH$",               colnames(glm.t), value = TRUE))[1]
+    if (is.na(pe_col) || is.na(p_col) || is.na(bh_col))
+      stop("aldex.glm output is missing the expected Group columns.")
+    eff_term <- sub(":Est$", "", pe_col)
+    eff_vec  <- if (!is.null(glm.e) && !is.null(glm.e[[eff_term]]) &&
+                    "effect" %in% colnames(glm.e[[eff_term]]))
+                  glm.e[[eff_term]][["effect"]][match(rownames(glm.t),
+                                                      rownames(glm.e[[eff_term]]))]
+                else rep(NA_real_, nrow(glm.t))
+    res <- data.frame(
+      taxon  = rownames(glm.t),
+      effect = ifelse(is.finite(eff_vec), eff_vec, glm.t[[pe_col]]),
+      wi.ep  = glm.t[[p_col]],
+      wi.eBH = glm.t[[bh_col]],
+      stringsAsFactors = FALSE
+    )
+  }
+  res$Taxonomy <- resolve_taxon_da(res$taxon, tax_table(ps))
+  save_csv(res, paste0("aldex2_", tolower(rank), ".csv"))
+  res
+}
+
+## --- ANCOM-BC2 -------------------------------------------------------
+run_ancombc2 <- function(ps, rank) {
+  set.seed(123)
+  fix_form <- paste(c(da_group, da_covariates), collapse = " + ")
+  out <- ancombc2(
+    data = ps, fix_formula = fix_form, p_adj_method = "BH",
+    prv_cut = prevalence_min, lib_cut = lib_cut, group = da_group,
+    struc_zero = TRUE, neg_lb = FALSE, pseudo_sens = FALSE,
+    global = (n_groups > 2), pairwise = (n_groups > 2),
+    dunnet = (n_groups > 2), trend = FALSE, alpha = p_thresh,
+    iter_control = list(tol = 1e-2, max_iter = 20, verbose = FALSE),
+    em_control = list(tol = 1e-5, max_iter = 100))
+  for (slot in c("res", "res_pair", "res_dunn")) {
+    if (!is.null(out[[slot]]) && "taxon" %in% colnames(out[[slot]])) {
+      out[[slot]]$Taxonomy <- resolve_taxon_da(out[[slot]]$taxon, tax_table(ps))
+      save_csv(out[[slot]], paste0("ancombc2_", tolower(rank), "_", slot, ".csv"))
+    }
+  }
+  out
+}
+
+## --- LEfSe (covariate-blind, by design) ------------------------------
+run_lefse_tab <- function(ps, rank) {
+  tryCatch({
+    mm <- run_lefse(ps, norm = "CPM", group = da_group,
+                    taxa_rank = rank, kw_cutoff = 1.0, wilcoxon_cutoff = 1.0,
+                    lda_cutoff = 0)
+    mt <- marker_table(mm)
+    if (is.null(mt) || nrow(mt) == 0) return(NULL)
+    df <- data.frame(lapply(as.data.frame(mt), as.vector), stringsAsFactors = FALSE)
+    df$ef_lda <- suppressWarnings(as.numeric(df$ef_lda))
+    df$pvalue <- suppressWarnings(as.numeric(df$pvalue))
+    df$padj <- p.adjust(df$pvalue, method = "BH")
+    df$Significant <- df$pvalue < p_thresh & abs(df$ef_lda) >= 2
+    df <- df[order(-df$Significant, -abs(df$ef_lda)), , drop = FALSE]
+    save_csv(df, paste0("lefse_", tolower(rank), ".csv"))
+    df
+  }, error = function(e) { cat("LEfSe ", rank, " skipped: ", e$message, "\n"); NULL })
+}
+
+## --- DESeq2 ----------------------------------------------------------
+run_deseq2 <- function(ps, rank) {
+  ## Order: covariates first, Group last. results(contrast=) still works.
+  terms <- c(da_covariates, da_group)
+  form  <- as.formula(paste("~", paste(terms, collapse = " + ")))
+  ds <- phyloseq_to_deseq2(ps, form)
+  gm <- apply(counts(ds), 1, gm_mean)
+  ds <- estimateSizeFactors(ds, geoMeans = gm)
+  ds <- DESeq(ds, test = "Wald", fitType = "local")
+  res <- do.call(rbind, lapply(comps, function(i) {
+    r <- as.data.frame(results(ds, contrast = c(da_group, i[1], i[2]),
+                               cooksCutoff = FALSE))
+    r <- cbind(r, as(tax_table(ps)[rownames(r), ], "matrix"))
+    r$contrast <- paste0(i[1], "-", i[2]); r$taxon <- rownames(r); r
+  }))
+  rownames(res) <- NULL
+  res <- res[order(res$padj), ]
+  save_csv(res, paste0("deseq2_", tolower(rank), ".csv"))
+  res
+}
+
+## --- edgeR -----------------------------------------------------------
+run_edger <- function(ps, rank) {
+  md <- .clean_md(ps, unique(c(da_group, da_covariates)))
+  if (length(da_covariates) == 0) {
+    design <- model.matrix(as.formula(paste("~ 0 +", da_group)), data = md)
+    dge <- DGEList(counts = as(otu_table(ps), "matrix") + 1L,
+                   group = md[[da_group]],
+                   genes = data.frame(tax_table(ps)), remove.zeros = TRUE)
+    dge <- calcNormFactors(dge, method = "RLE")
+    dge <- estimateGLMCommonDisp(dge, design)
+    dge <- estimateGLMTrendedDisp(dge, design)
+    dge <- estimateGLMTagwiseDisp(dge, design)
+    fit <- glmFit(dge, design)
+    res <- do.call(rbind, lapply(comps, function(i) {
+      args <- list(paste0(da_group, i[1], "-", da_group, i[2]), levels = design)
+      lrt  <- glmLRT(fit, contrast = do.call(makeContrasts, args))
+      r <- topTags(lrt, n = nrow(dge), adjust.method = "BH",
+                   sort.by = "PValue")@.Data[[1]]
+      r$contrast <- paste0(i[1], "-", i[2]); r %>% rownames_to_column("taxon")
+    }))
+  } else {
+    ## Covariates first, Group last; use coef = last Group column.
+    terms <- c(da_covariates, da_group)
+    form  <- as.formula(paste("~", paste(terms, collapse = " + ")))
+    if (!.design_ok(form, md))
+      stop("edgeR design matrix is rank-deficient (collinearity in covariates).")
+    design <- model.matrix(form, data = md)
+    grp_cols <- grep(paste0("^", da_group), colnames(design), value = TRUE)
+    grp_coef <- tail(grp_cols, 1)
+    dge <- DGEList(counts = as(otu_table(ps), "matrix") + 1L,
+                   group  = md[[da_group]],
+                   genes  = data.frame(tax_table(ps)), remove.zeros = TRUE)
+    dge <- calcNormFactors(dge, method = "RLE")
+    dge <- estimateGLMCommonDisp(dge, design)
+    dge <- estimateGLMTrendedDisp(dge, design)
+    dge <- estimateGLMTagwiseDisp(dge, design)
+    fit <- glmQLFit(dge, design)
+    qlf <- glmQLFTest(fit, coef = grp_coef)
+    tt  <- topTags(qlf, n = nrow(dge), adjust.method = "BH",
+                   sort.by = "none")@.Data[[1]]
+    res <- tt %>% rownames_to_column("taxon")
+    res$contrast <- grp_coef
+  }
+  res <- res[order(res$FDR), ]
+  save_csv(res, paste0("edger_", tolower(rank), ".csv"))
+  res
+}
+
+## --- MaAsLin3 --------------------------------------------------------
+run_maaslin3 <- function(ps, rank) {
+  cnts <- as(otu_table(ps), "matrix"); if (taxa_are_rows(ps)) cnts <- t(cnts)
+  feat <- data.frame(cnts, check.names = FALSE)
+  md0  <- data.frame(sample_data(ps), check.names = FALSE, stringsAsFactors = FALSE)
+  md0  <- md0[, !duplicated(colnames(md0)), drop = FALSE]
+  terms <- c(da_group, da_covariates)
+  if ("ReadDepth" %in% colnames(md0)) terms <- c(terms, "ReadDepth")
+  terms <- unique(terms)
+  md   <- data.frame(lapply(terms, function(v) {
+            x <- md0[[v]]
+            if (is.numeric(x))    as.numeric(x)
+            else if (is.factor(x)) x
+            else                   factor(as.character(x))
+          }), row.names = rownames(md0), stringsAsFactors = FALSE, check.names = FALSE)
+  colnames(md) <- terms
+  form  <- paste("~", paste(terms, collapse = " + "))
+  outd  <- file.path(results_dir, paste0("maaslin3_", tolower(rank)))
+  dir.create(outd, showWarnings = FALSE, recursive = TRUE)
+  .maaslin3_call <- function(plots_on) {
+    maaslin3(input_data = feat, input_metadata = md, output = outd,
+             formula = as.formula(form), normalization = "TSS", transform = "LOG",
+             augment = TRUE, standardize = TRUE,
+             max_significance = maaslin_max_sig,
+             median_comparison_abundance = TRUE,
+             median_comparison_prevalence = FALSE,
+             max_pngs = 100, save_models = TRUE,
+             plot_summary_plot = plots_on, plot_associations = plots_on, cores = 1)
+  }
+  fit <- tryCatch(.maaslin3_call(TRUE), error = function(e) {
+    cat("MaAsLin3 ", rank, " plotting failed (", e$message,
+        "); retrying with plots off.\n", sep = "")
+    tryCatch(.maaslin3_call(FALSE), error = function(e2) {
+      cat("MaAsLin3 ", rank, " failed without plots: ", e2$message, "\n"); NULL })
+  })
+  allf <- file.path(outd, "all_results.tsv")
+  res  <- if (file.exists(allf))
+            read.delim(allf, sep = "\t", stringsAsFactors = FALSE,
+                       colClasses = c(feature = "character"))
+          else NULL
+  if (is.null(fit) && is.null(res)) return(NULL)
+  if (!is.null(res) && "feature" %in% colnames(res))
+    res$Taxonomy <- resolve_taxon_da(res$feature, tax_table(ps))
+  if (!is.null(res)) save_csv(res, paste0("maaslin3_", tolower(rank), "_all_results.csv"))
+  list(fit = fit, res = res, outdir = outd)
+}
+```
+
+## ALDEx2 {.tabset}
+
+CLR-based compositional test. `r if (length(da_covariates)) "Covariate-adjusted GLM path (aldex.glm)." else "Classic t-test path (aldex)."`
+
+### Species {.tabset}
+```{r aldex_species, eval=has_species}
+aldex_sp <- run_aldex2(physeq_Species, "Species")
+```
+```{r aldex_species_vdat, include=FALSE, eval=has_species}
+aldex_sp_vd_adj <- mk_volcano_df(aldex_sp, "effect", "wi.eBH", "Taxonomy")
+aldex_sp_vd_raw <- mk_volcano_df(aldex_sp, "effect", "wi.ep",  "Taxonomy")
+```
+
+#### Volcano — Adjusted p (Static)
+```{r aldex_species_vstat_adj, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(aldex_sp_vd_adj, "ALDEx2 Species (effect vs BH-adj p)",
+                    "ALDEx2 effect / coef",
+                    ylab = "-log10(Wilcoxon BH-adjusted p)")
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r aldex_species_vint_adj, eval=has_species}
+show_volcano_interactive(aldex_sp_vd_adj, "ALDEx2 Species (effect vs BH-adj p)",
+                         "ALDEx2 effect / coef",
+                         ylab = "-log10(Wilcoxon BH-adjusted p)")
+```
+
+#### Volcano — Raw p (Static)
+```{r aldex_species_vstat_raw, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(aldex_sp_vd_raw, "ALDEx2 Species (effect vs raw p)",
+                    "ALDEx2 effect / coef",
+                    ylab = "-log10(Wilcoxon raw p)")
+```
+
+#### Volcano — Raw p (Interactive)
+```{r aldex_species_vint_raw, eval=has_species}
+show_volcano_interactive(aldex_sp_vd_raw, "ALDEx2 Species (effect vs raw p)",
+                         "ALDEx2 effect / coef",
+                         ylab = "-log10(Wilcoxon raw p)")
+```
+
+#### Table
+```{r aldex_species_tab, eval=has_species}
+dt(aldex_sp, "ALDEx2 — Species")
+```
+
+### Genus {.tabset}
+```{r aldex_genus}
+aldex_ge <- run_aldex2(physeq_Genus, "Genus")
+```
+```{r aldex_genus_vdat, include=FALSE}
+aldex_ge_vd_adj <- mk_volcano_df(aldex_ge, "effect", "wi.eBH", "Taxonomy")
+aldex_ge_vd_raw <- mk_volcano_df(aldex_ge, "effect", "wi.ep",  "Taxonomy")
+```
+
+#### Volcano — Adjusted p (Static)
+```{r aldex_genus_vstat_adj, fig.width=11, fig.height=8}
+show_volcano_static(aldex_ge_vd_adj, "ALDEx2 Genus (effect vs BH-adj p)",
+                    "ALDEx2 effect / coef",
+                    ylab = "-log10(Wilcoxon BH-adjusted p)")
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r aldex_genus_vint_adj}
+show_volcano_interactive(aldex_ge_vd_adj, "ALDEx2 Genus (effect vs BH-adj p)",
+                         "ALDEx2 effect / coef",
+                         ylab = "-log10(Wilcoxon BH-adjusted p)")
+```
+
+#### Volcano — Raw p (Static)
+```{r aldex_genus_vstat_raw, fig.width=11, fig.height=8}
+show_volcano_static(aldex_ge_vd_raw, "ALDEx2 Genus (effect vs raw p)",
+                    "ALDEx2 effect / coef",
+                    ylab = "-log10(Wilcoxon raw p)")
+```
+
+#### Volcano — Raw p (Interactive)
+```{r aldex_genus_vint_raw}
+show_volcano_interactive(aldex_ge_vd_raw, "ALDEx2 Genus (effect vs raw p)",
+                         "ALDEx2 effect / coef",
+                         ylab = "-log10(Wilcoxon raw p)")
+```
+
+#### Table
+```{r aldex_genus_tab}
+dt(aldex_ge, "ALDEx2 — Genus")
+```
+
+## ANCOM-BC2 {.tabset}
+
+### Species {.tabset}
+```{r ancombc2_species, eval=has_species}
+anc_sp <- run_ancombc2(physeq_Species, "Species")
+```
+
+#### Primary
+```{r ancombc2_species_primary, eval=has_species}
+dt(anc_sp$res, "ANCOM-BC2 Species — primary")
+```
+
+#### LFC plot
+```{r ancombc2_species_plot, eval=has_species, fig.width=12, fig.height=8}
+lfc_col  <- grep("^lfc_Group", colnames(anc_sp$res), value = TRUE)[1]
+diff_col <- grep("^diff_Group", colnames(anc_sp$res), value = TRUE)[1]
+if (!is.na(lfc_col)) {
+  d <- data.frame(taxon = anc_sp$res$Taxonomy, lfc = anc_sp$res[[lfc_col]],
+                  sig = anc_sp$res[[diff_col]]) %>% filter(sig) %>% arrange(desc(lfc))
+  if (nrow(d) > 0) {
+    d$taxon <- factor(d$taxon, levels = d$taxon)
+    print(ggplot(d, aes(taxon, lfc, fill = lfc > 0)) + geom_col() + coord_flip() +
+            scale_fill_manual(values = c("FALSE"="#377eb8","TRUE"="#e41a1c"), guide="none") +
+            labs(x = NULL, y = "Log fold change", title = lfc_col) + theme_bw())
+  } else cat("No significant ANCOM-BC2 Species features.\n")
+}
+```
+```{r ancombc2_species_vdat, include=FALSE, eval=has_species}
+.lfc <- grep("^lfc_Group", colnames(anc_sp$res), value = TRUE)[1]
+.p   <- grep("^p_Group",   colnames(anc_sp$res), value = TRUE)[1]
+.q   <- grep("^q_Group",   colnames(anc_sp$res), value = TRUE)[1]
+anc_sp_vd_adj <- if (!is.na(.lfc) && !is.na(.q))
+  mk_volcano_df(anc_sp$res, .lfc, .q, "Taxonomy") else NULL
+anc_sp_vd_raw <- if (!is.na(.lfc) && !is.na(.p))
+  mk_volcano_df(anc_sp$res, .lfc, .p, "Taxonomy") else NULL
+```
+
+#### Volcano — Adjusted p (Static)
+```{r ancombc2_species_vstat_adj, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(anc_sp_vd_adj, "ANCOM-BC2 Species (LFC vs q)", "log fold change",
+                    ylab = "-log10(BH-adjusted q)")
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r ancombc2_species_vint_adj, eval=has_species}
+show_volcano_interactive(anc_sp_vd_adj, "ANCOM-BC2 Species (LFC vs q)", "log fold change",
+                         ylab = "-log10(BH-adjusted q)")
+```
+
+#### Volcano — Raw p (Static)
+```{r ancombc2_species_vstat_raw, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(anc_sp_vd_raw, "ANCOM-BC2 Species (LFC vs raw p)", "log fold change",
+                    ylab = "-log10(raw p)")
+```
+
+#### Volcano — Raw p (Interactive)
+```{r ancombc2_species_vint_raw, eval=has_species}
+show_volcano_interactive(anc_sp_vd_raw, "ANCOM-BC2 Species (LFC vs raw p)", "log fold change",
+                         ylab = "-log10(raw p)")
+```
+
+### Genus {.tabset}
+```{r ancombc2_genus}
+anc_ge <- run_ancombc2(physeq_Genus, "Genus")
+```
+
+#### Primary
+```{r ancombc2_genus_primary}
+dt(anc_ge$res, "ANCOM-BC2 Genus — primary")
+```
+
+#### LFC plot
+```{r ancombc2_genus_plot, fig.width=12, fig.height=8}
+lfc_col  <- grep("^lfc_Group", colnames(anc_ge$res), value = TRUE)[1]
+diff_col <- grep("^diff_Group", colnames(anc_ge$res), value = TRUE)[1]
+if (!is.na(lfc_col)) {
+  d <- data.frame(taxon = anc_ge$res$Taxonomy, lfc = anc_ge$res[[lfc_col]],
+                  sig = anc_ge$res[[diff_col]]) %>% filter(sig) %>% arrange(desc(lfc))
+  if (nrow(d) > 0) {
+    d$taxon <- factor(d$taxon, levels = d$taxon)
+    print(ggplot(d, aes(taxon, lfc, fill = lfc > 0)) + geom_col() + coord_flip() +
+            scale_fill_manual(values = c("FALSE"="#377eb8","TRUE"="#e41a1c"), guide="none") +
+            labs(x = NULL, y = "Log fold change", title = lfc_col) + theme_bw())
+  } else cat("No significant ANCOM-BC2 Genus features.\n")
+}
+```
+```{r ancombc2_genus_vdat, include=FALSE}
+.lfc <- grep("^lfc_Group", colnames(anc_ge$res), value = TRUE)[1]
+.p   <- grep("^p_Group",   colnames(anc_ge$res), value = TRUE)[1]
+.q   <- grep("^q_Group",   colnames(anc_ge$res), value = TRUE)[1]
+anc_ge_vd_adj <- if (!is.na(.lfc) && !is.na(.q))
+  mk_volcano_df(anc_ge$res, .lfc, .q, "Taxonomy") else NULL
+anc_ge_vd_raw <- if (!is.na(.lfc) && !is.na(.p))
+  mk_volcano_df(anc_ge$res, .lfc, .p, "Taxonomy") else NULL
+```
+
+#### Volcano — Adjusted p (Static)
+```{r ancombc2_genus_vstat_adj, fig.width=11, fig.height=8}
+show_volcano_static(anc_ge_vd_adj, "ANCOM-BC2 Genus (LFC vs q)", "log fold change",
+                    ylab = "-log10(BH-adjusted q)")
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r ancombc2_genus_vint_adj}
+show_volcano_interactive(anc_ge_vd_adj, "ANCOM-BC2 Genus (LFC vs q)", "log fold change",
+                         ylab = "-log10(BH-adjusted q)")
+```
+
+#### Volcano — Raw p (Static)
+```{r ancombc2_genus_vstat_raw, fig.width=11, fig.height=8}
+show_volcano_static(anc_ge_vd_raw, "ANCOM-BC2 Genus (LFC vs raw p)", "log fold change",
+                    ylab = "-log10(raw p)")
+```
+
+#### Volcano — Raw p (Interactive)
+```{r ancombc2_genus_vint_raw}
+show_volcano_interactive(anc_ge_vd_raw, "ANCOM-BC2 Genus (LFC vs raw p)", "log fold change",
+                         ylab = "-log10(raw p)")
+```
+
+## LEfSe {.tabset}
+
+```{r lefse_banner, results='asis', echo=FALSE}
+if (!run_lefse_flag) {
+  cat("*LEfSe was disabled in the SUSHI parameters (runLefse = false). Skipping all LEfSe sub-tabs.*\n\n")
+} else if (length(da_covariates) > 0) {
+  cat("> :warning: **LEfSe does not accept covariates.** The results below are ",
+      "*unadjusted* — they reflect raw Kruskal-Wallis + LDA on the focal grouping, ",
+      "ignoring the covariates you selected (`",
+      paste(da_covariates, collapse = "`, `"),
+      "`). Use ALDEx2 / ANCOM-BC2 / DESeq2 / edgeR / MaAsLin3 for the ",
+      "covariate-adjusted contrast.\n\n", sep = "")
+}
+```
+
+Significant = Kruskal–Wallis p < `r p_thresh` AND |LDA| ≥ 2.0.
+
+### Species {.tabset}
+```{r lefse_species, eval=has_species && run_lefse_flag}
+lefse_sp <- run_lefse_tab(physeq_Species, "Species")
+```
+
+#### Barplot
+```{r lefse_species_bar, eval=has_species && run_lefse_flag, fig.width=14, fig.height=8}
+if (!is.null(lefse_sp)) {
+  d <- lefse_sp %>% filter(Significant) %>% arrange(ef_lda)
+  if (nrow(d) > 0) {
+    d$feature <- factor(d$feature, levels = d$feature)
+    print(ggplot(d, aes(feature, ef_lda, fill = enrich_group)) + geom_col() +
+            coord_flip() + labs(x = NULL, y = "LDA score (log10)",
+            title = "LEfSe Species — significant markers",
+            fill = "Enriched in") + theme_bw())
+  } else cat("No significant LEfSe Species markers.\n")
+}
+```
+```{r lefse_species_vdat, include=FALSE, eval=has_species && run_lefse_flag}
+lefse_sp_vd_adj <- NULL; lefse_sp_vd_raw <- NULL
+if (!is.null(lefse_sp)) {
+  .lv <- sort(unique(as.character(lefse_sp$enrich_group)))
+  .d  <- lefse_sp
+  .d$eff_signed <- ifelse(.d$enrich_group == .lv[length(.lv)], .d$ef_lda, -.d$ef_lda)
+  .d$padj <- p.adjust(.d$pvalue, method = "BH")
+  lefse_sp_vd_adj <- mk_volcano_df(.d, "eff_signed", "padj",   "feature")
+  lefse_sp_vd_raw <- mk_volcano_df(.d, "eff_signed", "pvalue", "feature")
+}
+```
+
+#### Volcano — Adjusted p (Static)
+```{r lefse_species_vstat_adj, eval=has_species && run_lefse_flag, fig.width=11, fig.height=8}
+show_volcano_static(lefse_sp_vd_adj, "LEfSe Species (signed LDA vs BH-adj p)",
+                    "signed LDA score", ylab = "-log10(BH-adjusted p)", fc = 2)
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r lefse_species_vint_adj, eval=has_species && run_lefse_flag}
+show_volcano_interactive(lefse_sp_vd_adj, "LEfSe Species (signed LDA vs BH-adj p)",
+                         "signed LDA score", ylab = "-log10(BH-adjusted p)", fc = 2)
+```
+
+#### Volcano — Raw p (Static)
+```{r lefse_species_vstat_raw, eval=has_species && run_lefse_flag, fig.width=11, fig.height=8}
+show_volcano_static(lefse_sp_vd_raw, "LEfSe Species (signed LDA vs raw p)",
+                    "signed LDA score", ylab = "-log10(raw KW/Wilcoxon p)", fc = 2)
+```
+
+#### Volcano — Raw p (Interactive)
+```{r lefse_species_vint_raw, eval=has_species && run_lefse_flag}
+show_volcano_interactive(lefse_sp_vd_raw, "LEfSe Species (signed LDA vs raw p)",
+                         "signed LDA score", ylab = "-log10(raw KW/Wilcoxon p)", fc = 2)
+```
+
+#### Table
+```{r lefse_species_tab, eval=has_species && run_lefse_flag}
+if (!is.null(lefse_sp)) dt(lefse_sp, "LEfSe — Species (all tested taxa)")
+```
+
+### Genus {.tabset}
+```{r lefse_genus, eval=run_lefse_flag}
+lefse_ge <- run_lefse_tab(physeq_Genus, "Genus")
+```
+
+#### Barplot
+```{r lefse_genus_bar, eval=run_lefse_flag, fig.width=14, fig.height=8}
+if (!is.null(lefse_ge)) {
+  d <- lefse_ge %>% filter(Significant) %>% arrange(ef_lda)
+  if (nrow(d) > 0) {
+    d$feature <- factor(d$feature, levels = d$feature)
+    print(ggplot(d, aes(feature, ef_lda, fill = enrich_group)) + geom_col() +
+            coord_flip() + labs(x = NULL, y = "LDA score (log10)",
+            title = "LEfSe Genus — significant markers",
+            fill = "Enriched in") + theme_bw())
+  } else cat("No significant LEfSe Genus markers.\n")
+}
+```
+```{r lefse_genus_vdat, include=FALSE, eval=run_lefse_flag}
+lefse_ge_vd_adj <- NULL; lefse_ge_vd_raw <- NULL
+if (!is.null(lefse_ge)) {
+  .lv <- sort(unique(as.character(lefse_ge$enrich_group)))
+  .d  <- lefse_ge
+  .d$eff_signed <- ifelse(.d$enrich_group == .lv[length(.lv)], .d$ef_lda, -.d$ef_lda)
+  .d$padj <- p.adjust(.d$pvalue, method = "BH")
+  lefse_ge_vd_adj <- mk_volcano_df(.d, "eff_signed", "padj",   "feature")
+  lefse_ge_vd_raw <- mk_volcano_df(.d, "eff_signed", "pvalue", "feature")
+}
+```
+
+#### Volcano — Adjusted p (Static)
+```{r lefse_genus_vstat_adj, eval=run_lefse_flag, fig.width=11, fig.height=8}
+show_volcano_static(lefse_ge_vd_adj, "LEfSe Genus (signed LDA vs BH-adj p)",
+                    "signed LDA score", ylab = "-log10(BH-adjusted p)", fc = 2)
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r lefse_genus_vint_adj, eval=run_lefse_flag}
+show_volcano_interactive(lefse_ge_vd_adj, "LEfSe Genus (signed LDA vs BH-adj p)",
+                         "signed LDA score", ylab = "-log10(BH-adjusted p)", fc = 2)
+```
+
+#### Volcano — Raw p (Static)
+```{r lefse_genus_vstat_raw, eval=run_lefse_flag, fig.width=11, fig.height=8}
+show_volcano_static(lefse_ge_vd_raw, "LEfSe Genus (signed LDA vs raw p)",
+                    "signed LDA score", ylab = "-log10(raw KW/Wilcoxon p)", fc = 2)
+```
+
+#### Volcano — Raw p (Interactive)
+```{r lefse_genus_vint_raw, eval=run_lefse_flag}
+show_volcano_interactive(lefse_ge_vd_raw, "LEfSe Genus (signed LDA vs raw p)",
+                         "signed LDA score", ylab = "-log10(raw KW/Wilcoxon p)", fc = 2)
+```
+
+#### Table
+```{r lefse_genus_tab, eval=run_lefse_flag}
+if (!is.null(lefse_ge)) dt(lefse_ge, "LEfSe — Genus (all tested taxa)")
+```
+
+## MaAsLin 3 {.tabset}
+
+GLMs testing **abundance** and **prevalence** associations. Formula:
+`~ Group [+ covariates] + ReadDepth`, TSS / LOG transform, max_significance =
+`r maaslin_max_sig`. MaAsLin3 writes its own `summary_plot.pdf` and per-
+association PNGs into `r results_dir`/maaslin3_*/.
+
+### Species {.tabset}
+```{r maaslin_species, eval=has_species, results='hide'}
+ml_sp <- run_maaslin3(physeq_Species, "Species")
+```
+
+#### Significant associations
+```{r maaslin_species_tab, eval=has_species}
+if (!is.null(ml_sp) && !is.null(ml_sp$res)) {
+  sig <- ml_sp$res %>% filter(.data$qval_individual <= maaslin_max_sig)
+  dt(if (nrow(sig)) sig else ml_sp$res,
+     paste0("MaAsLin3 Species — ",
+            if (nrow(sig)) paste0("significant (q<=", maaslin_max_sig, ")")
+            else "all (none significant)"))
+} else cat("MaAsLin3 Species produced no results.\n")
+```
+
+#### Coefficient plot
+```{r maaslin_species_plot, eval=has_species, fig.width=12, fig.height=8}
+if (!is.null(ml_sp) && !is.null(ml_sp$res)) {
+  d <- ml_sp$res %>%
+       filter(.data$qval_individual <= maaslin_max_sig,
+              .data$name != "ReadDepth") %>%
+       arrange(coef)
+  if (nrow(d) > 0) {
+    d$lab <- factor(paste(d$Taxonomy, d$model, sep = " | "),
+                    levels = paste(d$Taxonomy, d$model, sep = " | "))
+    print(ggplot(d, aes(coef, lab, color = model)) +
+            geom_point(size = 3) + geom_vline(xintercept = 0, linetype = 2) +
+            geom_errorbarh(aes(xmin = coef - stderr, xmax = coef + stderr), height = .2) +
+            labs(x = "Coefficient", y = NULL,
+                 title = "MaAsLin3 Species — significant") + theme_bw())
+  } else cat("No significant MaAsLin3 Species associations.\n")
+}
+```
+```{r maaslin_species_vdat, include=FALSE, eval=has_species}
+ml_sp_vd_adj <- NULL; ml_sp_vd_raw <- NULL
+if (!is.null(ml_sp) && !is.null(ml_sp$res)) {
+  .r <- ml_sp$res[!is.na(ml_sp$res$metadata) & ml_sp$res$metadata == da_group, , drop = FALSE]
+  .r <- .r[order(.r$feature, .r$model != "abundance"), , drop = FALSE]
+  .r <- .r[!duplicated(.r$feature), , drop = FALSE]
+  .pcol <- if ("pval_joint" %in% colnames(.r)) "pval_joint" else "pval_individual"
+  .qcol <- if ("qval_joint" %in% colnames(.r)) "qval_joint" else "qval_individual"
+  ml_sp_vd_adj <- mk_volcano_df(.r, "coef", .qcol, "Taxonomy")
+  ml_sp_vd_raw <- mk_volcano_df(.r, "coef", .pcol, "Taxonomy")
+}
+```
+
+#### Volcano — Adjusted p (Static)
+```{r maaslin_species_vstat_adj, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(ml_sp_vd_adj, "MaAsLin3 Species (coef vs joint q)",
+                    "MaAsLin3 coefficient",
+                    ylab = "-log10(joint BH-adjusted q)", fc = 0)
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r maaslin_species_vint_adj, eval=has_species}
+show_volcano_interactive(ml_sp_vd_adj, "MaAsLin3 Species (coef vs joint q)",
+                         "MaAsLin3 coefficient",
+                         ylab = "-log10(joint BH-adjusted q)", fc = 0)
+```
+
+#### Volcano — Raw p (Static)
+```{r maaslin_species_vstat_raw, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(ml_sp_vd_raw, "MaAsLin3 Species (coef vs joint raw p)",
+                    "MaAsLin3 coefficient",
+                    ylab = "-log10(joint raw p)", fc = 0)
+```
+
+#### Volcano — Raw p (Interactive)
+```{r maaslin_species_vint_raw, eval=has_species}
+show_volcano_interactive(ml_sp_vd_raw, "MaAsLin3 Species (coef vs joint raw p)",
+                         "MaAsLin3 coefficient",
+                         ylab = "-log10(joint raw p)", fc = 0)
+```
+
+### Genus {.tabset}
+```{r maaslin_genus, results='hide'}
+ml_ge <- run_maaslin3(physeq_Genus, "Genus")
+```
+
+#### Significant associations
+```{r maaslin_genus_tab}
+if (!is.null(ml_ge) && !is.null(ml_ge$res)) {
+  sig <- ml_ge$res %>% filter(.data$qval_individual <= maaslin_max_sig)
+  dt(if (nrow(sig)) sig else ml_ge$res,
+     paste0("MaAsLin3 Genus — ",
+            if (nrow(sig)) paste0("significant (q<=", maaslin_max_sig, ")")
+            else "all (none significant)"))
+} else cat("MaAsLin3 Genus produced no results.\n")
+```
+
+#### Coefficient plot
+```{r maaslin_genus_plot, fig.width=12, fig.height=8}
+if (!is.null(ml_ge) && !is.null(ml_ge$res)) {
+  d <- ml_ge$res %>%
+       filter(.data$qval_individual <= maaslin_max_sig,
+              .data$name != "ReadDepth") %>%
+       arrange(coef)
+  if (nrow(d) > 0) {
+    d$lab <- factor(paste(d$Taxonomy, d$model, sep = " | "),
+                    levels = paste(d$Taxonomy, d$model, sep = " | "))
+    print(ggplot(d, aes(coef, lab, color = model)) +
+            geom_point(size = 3) + geom_vline(xintercept = 0, linetype = 2) +
+            geom_errorbarh(aes(xmin = coef - stderr, xmax = coef + stderr), height = .2) +
+            labs(x = "Coefficient", y = NULL,
+                 title = "MaAsLin3 Genus — significant") + theme_bw())
+  } else cat("No significant MaAsLin3 Genus associations.\n")
+}
+```
+```{r maaslin_genus_vdat, include=FALSE}
+ml_ge_vd_adj <- NULL; ml_ge_vd_raw <- NULL
+if (!is.null(ml_ge) && !is.null(ml_ge$res)) {
+  .r <- ml_ge$res[!is.na(ml_ge$res$metadata) & ml_ge$res$metadata == da_group, , drop = FALSE]
+  .r <- .r[order(.r$feature, .r$model != "abundance"), , drop = FALSE]
+  .r <- .r[!duplicated(.r$feature), , drop = FALSE]
+  .pcol <- if ("pval_joint" %in% colnames(.r)) "pval_joint" else "pval_individual"
+  .qcol <- if ("qval_joint" %in% colnames(.r)) "qval_joint" else "qval_individual"
+  ml_ge_vd_adj <- mk_volcano_df(.r, "coef", .qcol, "Taxonomy")
+  ml_ge_vd_raw <- mk_volcano_df(.r, "coef", .pcol, "Taxonomy")
+}
+```
+
+#### Volcano — Adjusted p (Static)
+```{r maaslin_genus_vstat_adj, fig.width=11, fig.height=8}
+show_volcano_static(ml_ge_vd_adj, "MaAsLin3 Genus (coef vs joint q)",
+                    "MaAsLin3 coefficient",
+                    ylab = "-log10(joint BH-adjusted q)", fc = 0)
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r maaslin_genus_vint_adj}
+show_volcano_interactive(ml_ge_vd_adj, "MaAsLin3 Genus (coef vs joint q)",
+                         "MaAsLin3 coefficient",
+                         ylab = "-log10(joint BH-adjusted q)", fc = 0)
+```
+
+#### Volcano — Raw p (Static)
+```{r maaslin_genus_vstat_raw, fig.width=11, fig.height=8}
+show_volcano_static(ml_ge_vd_raw, "MaAsLin3 Genus (coef vs joint raw p)",
+                    "MaAsLin3 coefficient",
+                    ylab = "-log10(joint raw p)", fc = 0)
+```
+
+#### Volcano — Raw p (Interactive)
+```{r maaslin_genus_vint_raw}
+show_volcano_interactive(ml_ge_vd_raw, "MaAsLin3 Genus (coef vs joint raw p)",
+                         "MaAsLin3 coefficient",
+                         ylab = "-log10(joint raw p)", fc = 0)
+```
+
+## DESeq2 {.tabset}
+
+Negative-binomial GLM on raw Bracken counts. Treat as a cross-check on the
+compositional methods.
+
+### Species {.tabset}
+```{r deseq2_species, eval=has_species}
+ds_sp <- if (length(comps)) run_deseq2(physeq_Species, "Species") else NULL
+```
+
+#### Significant plot
+```{r deseq2_species_plot, eval=has_species, fig.width=12, fig.height=6}
+if (!is.null(ds_sp)) {
+  sig <- ds_sp[which(ds_sp$padj < p_thresh), ]
+  if (nrow(sig) > 0) {
+    print(ggplot(sig, aes(Species, log2FoldChange, color = Phylum)) +
+            geom_point(size = 3) + facet_wrap(~contrast) + theme_bw() +
+            theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5)) +
+            ggtitle(paste0("DESeq2 Species — significant (padj<", p_thresh, ")")))
+  } else cat("No significant DESeq2 Species results.\n")
+}
+```
+```{r deseq2_species_vdat, include=FALSE, eval=has_species}
+ds_sp_vd_adj <- NULL; ds_sp_vd_raw <- NULL
+if (!is.null(ds_sp)) {
+  .r <- ds_sp; .r$.vlab <- paste0(.r$Species, " (", .r$contrast, ")")
+  ds_sp_vd_adj <- mk_volcano_df(.r, "log2FoldChange", "padj",   ".vlab")
+  ds_sp_vd_raw <- mk_volcano_df(.r, "log2FoldChange", "pvalue", ".vlab")
+}
+```
+
+#### Volcano — Adjusted p (Static)
+```{r deseq2_species_vstat_adj, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(ds_sp_vd_adj, "DESeq2 Species (log2FC vs padj)",
+                    "log2 fold change", ylab = "-log10(BH-adjusted p)")
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r deseq2_species_vint_adj, eval=has_species}
+show_volcano_interactive(ds_sp_vd_adj, "DESeq2 Species (log2FC vs padj)",
+                         "log2 fold change", ylab = "-log10(BH-adjusted p)")
+```
+
+#### Volcano — Raw p (Static)
+```{r deseq2_species_vstat_raw, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(ds_sp_vd_raw, "DESeq2 Species (log2FC vs raw p)",
+                    "log2 fold change", ylab = "-log10(raw p)")
+```
+
+#### Volcano — Raw p (Interactive)
+```{r deseq2_species_vint_raw, eval=has_species}
+show_volcano_interactive(ds_sp_vd_raw, "DESeq2 Species (log2FC vs raw p)",
+                         "log2 fold change", ylab = "-log10(raw p)")
+```
+
+#### Table
+```{r deseq2_species_tab, eval=has_species}
+if (!is.null(ds_sp)) dt(ds_sp, "DESeq2 — Species")
+```
+
+### Genus {.tabset}
+```{r deseq2_genus}
+ds_ge <- if (length(comps)) run_deseq2(physeq_Genus, "Genus") else NULL
+```
+
+#### Significant plot
+```{r deseq2_genus_plot, fig.width=12, fig.height=6}
+if (!is.null(ds_ge)) {
+  sig <- ds_ge[which(ds_ge$padj < p_thresh), ]
+  if (nrow(sig) > 0) {
+    print(ggplot(sig, aes(Genus, log2FoldChange, color = Phylum)) +
+            geom_point(size = 3) + facet_wrap(~contrast) + theme_bw() +
+            theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5)) +
+            ggtitle(paste0("DESeq2 Genus — significant (padj<", p_thresh, ")")))
+  } else cat("No significant DESeq2 Genus results.\n")
+}
+```
+```{r deseq2_genus_vdat, include=FALSE}
+ds_ge_vd_adj <- NULL; ds_ge_vd_raw <- NULL
+if (!is.null(ds_ge)) {
+  .r <- ds_ge; .r$.vlab <- paste0(.r$Genus, " (", .r$contrast, ")")
+  ds_ge_vd_adj <- mk_volcano_df(.r, "log2FoldChange", "padj",   ".vlab")
+  ds_ge_vd_raw <- mk_volcano_df(.r, "log2FoldChange", "pvalue", ".vlab")
+}
+```
+
+#### Volcano — Adjusted p (Static)
+```{r deseq2_genus_vstat_adj, fig.width=11, fig.height=8}
+show_volcano_static(ds_ge_vd_adj, "DESeq2 Genus (log2FC vs padj)",
+                    "log2 fold change", ylab = "-log10(BH-adjusted p)")
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r deseq2_genus_vint_adj}
+show_volcano_interactive(ds_ge_vd_adj, "DESeq2 Genus (log2FC vs padj)",
+                         "log2 fold change", ylab = "-log10(BH-adjusted p)")
+```
+
+#### Volcano — Raw p (Static)
+```{r deseq2_genus_vstat_raw, fig.width=11, fig.height=8}
+show_volcano_static(ds_ge_vd_raw, "DESeq2 Genus (log2FC vs raw p)",
+                    "log2 fold change", ylab = "-log10(raw p)")
+```
+
+#### Volcano — Raw p (Interactive)
+```{r deseq2_genus_vint_raw}
+show_volcano_interactive(ds_ge_vd_raw, "DESeq2 Genus (log2FC vs raw p)",
+                         "log2 fold change", ylab = "-log10(raw p)")
+```
+
+#### Table
+```{r deseq2_genus_tab}
+if (!is.null(ds_ge)) dt(ds_ge, "DESeq2 — Genus")
+```
+
+## edgeR {.tabset}
+
+### Species {.tabset}
+```{r edger_species, eval=has_species}
+ed_sp <- if (length(comps)) run_edger(physeq_Species, "Species") else NULL
+```
+
+#### Significant plot
+```{r edger_species_plot, eval=has_species, fig.width=12, fig.height=6}
+if (!is.null(ed_sp)) {
+  sig <- ed_sp[ed_sp$FDR <= p_thresh, ]
+  if (nrow(sig) > 0) {
+    print(ggplot(sig, aes(Species, logFC, color = Phylum)) +
+            geom_point(size = 3) + facet_wrap(~contrast) + theme_bw() +
+            theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5)) +
+            ggtitle(paste0("edgeR Species — significant (FDR<=", p_thresh, ")")))
+  } else cat("No significant edgeR Species results.\n")
+}
+```
+```{r edger_species_vdat, include=FALSE, eval=has_species}
+ed_sp_vd_adj <- NULL; ed_sp_vd_raw <- NULL
+if (!is.null(ed_sp)) {
+  .r <- ed_sp; .r$.vlab <- paste0(.r$Species, " (", .r$contrast, ")")
+  ed_sp_vd_adj <- mk_volcano_df(.r, "logFC", "FDR",    ".vlab")
+  ed_sp_vd_raw <- mk_volcano_df(.r, "logFC", "PValue", ".vlab")
+}
+```
+
+#### Volcano — Adjusted p (Static)
+```{r edger_species_vstat_adj, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(ed_sp_vd_adj, "edgeR Species (logFC vs FDR)",
+                    "log2 fold change", ylab = "-log10(BH-adjusted FDR)")
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r edger_species_vint_adj, eval=has_species}
+show_volcano_interactive(ed_sp_vd_adj, "edgeR Species (logFC vs FDR)",
+                         "log2 fold change", ylab = "-log10(BH-adjusted FDR)")
+```
+
+#### Volcano — Raw p (Static)
+```{r edger_species_vstat_raw, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(ed_sp_vd_raw, "edgeR Species (logFC vs raw p)",
+                    "log2 fold change", ylab = "-log10(raw p)")
+```
+
+#### Volcano — Raw p (Interactive)
+```{r edger_species_vint_raw, eval=has_species}
+show_volcano_interactive(ed_sp_vd_raw, "edgeR Species (logFC vs raw p)",
+                         "log2 fold change", ylab = "-log10(raw p)")
+```
+
+#### Table
+```{r edger_species_tab, eval=has_species}
+if (!is.null(ed_sp)) dt(ed_sp, "edgeR — Species")
+```
+
+### Genus {.tabset}
+```{r edger_genus}
+ed_ge <- if (length(comps)) run_edger(physeq_Genus, "Genus") else NULL
+```
+
+#### Significant plot
+```{r edger_genus_plot, fig.width=12, fig.height=6}
+if (!is.null(ed_ge)) {
+  sig <- ed_ge[ed_ge$FDR <= p_thresh, ]
+  if (nrow(sig) > 0) {
+    print(ggplot(sig, aes(Genus, logFC, color = Phylum)) +
+            geom_point(size = 3) + facet_wrap(~contrast) + theme_bw() +
+            theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5)) +
+            ggtitle(paste0("edgeR Genus — significant (FDR<=", p_thresh, ")")))
+  } else cat("No significant edgeR Genus results.\n")
+}
+```
+```{r edger_genus_vdat, include=FALSE}
+ed_ge_vd_adj <- NULL; ed_ge_vd_raw <- NULL
+if (!is.null(ed_ge)) {
+  .r <- ed_ge; .r$.vlab <- paste0(.r$Genus, " (", .r$contrast, ")")
+  ed_ge_vd_adj <- mk_volcano_df(.r, "logFC", "FDR",    ".vlab")
+  ed_ge_vd_raw <- mk_volcano_df(.r, "logFC", "PValue", ".vlab")
+}
+```
+
+#### Volcano — Adjusted p (Static)
+```{r edger_genus_vstat_adj, fig.width=11, fig.height=8}
+show_volcano_static(ed_ge_vd_adj, "edgeR Genus (logFC vs FDR)",
+                    "log2 fold change", ylab = "-log10(BH-adjusted FDR)")
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r edger_genus_vint_adj}
+show_volcano_interactive(ed_ge_vd_adj, "edgeR Genus (logFC vs FDR)",
+                         "log2 fold change", ylab = "-log10(BH-adjusted FDR)")
+```
+
+#### Volcano — Raw p (Static)
+```{r edger_genus_vstat_raw, fig.width=11, fig.height=8}
+show_volcano_static(ed_ge_vd_raw, "edgeR Genus (logFC vs raw p)",
+                    "log2 fold change", ylab = "-log10(raw p)")
+```
+
+#### Volcano — Raw p (Interactive)
+```{r edger_genus_vint_raw}
+show_volcano_interactive(ed_ge_vd_raw, "edgeR Genus (logFC vs raw p)",
+                         "log2 fold change", ylab = "-log10(raw p)")
+```
+
+#### Table
+```{r edger_genus_tab}
+if (!is.null(ed_ge)) dt(ed_ge, "edgeR — Genus")
+```
+
+## Method overlap {.tabset}
+
+Overlap of taxa called significant by each method, shown at Species and Genus.
+
+```{r overlap_helpers, include=FALSE}
+build_sig_sets <- function(rank = c("sp", "ge"), mode = c("adj", "raw")) {
+  rank <- match.arg(rank); mode <- match.arg(mode)
+  ds  <- if (rank == "sp") if (exists("ds_sp"))  ds_sp  else NULL else if (exists("ds_ge"))  ds_ge  else NULL
+  ed  <- if (rank == "sp") if (exists("ed_sp"))  ed_sp  else NULL else if (exists("ed_ge"))  ed_ge  else NULL
+  al  <- if (rank == "sp") if (exists("aldex_sp")) aldex_sp else NULL else if (exists("aldex_ge")) aldex_ge else NULL
+  an  <- if (rank == "sp") if (exists("anc_sp")) anc_sp else NULL else if (exists("anc_ge")) anc_ge else NULL
+  lf  <- if (rank == "sp") if (exists("lefse_sp")) lefse_sp else NULL else if (exists("lefse_ge")) lefse_ge else NULL
+  ml  <- if (rank == "sp") if (exists("ml_sp"))  ml_sp  else NULL else if (exists("ml_ge"))  ml_ge  else NULL
+  asc <- function(x) unique(as.character(x))
+  s <- list()
+  if (!is.null(ds)) {
+    pc <- if (mode == "adj") "padj" else "pvalue"
+    if (pc %in% colnames(ds)) s$DESeq2 <- asc(ds$taxon[which(ds[[pc]] < p_thresh)])
+  }
+  if (!is.null(ed)) {
+    pc <- if (mode == "adj") "FDR" else "PValue"
+    if (pc %in% colnames(ed)) s$edgeR <- asc(ed$taxon[which(ed[[pc]] < p_thresh)])
+  }
+  if (!is.null(al)) {
+    pc <- if (mode == "adj") "wi.eBH" else "wi.ep"
+    if (all(c("effect", pc, "taxon") %in% colnames(al)))
+      s$ALDEx2 <- asc(al$taxon[which(abs(al$effect) > 1 & al[[pc]] < p_thresh)])
+  }
+  if (!is.null(an) && !is.null(an$res)) {
+    if (mode == "adj") {
+      dcol <- grep("^diff_Group", colnames(an$res), value = TRUE)[1]
+      if (!is.na(dcol)) s$ANCOMBC2 <- asc(an$res$taxon[which(an$res[[dcol]])])
+    } else {
+      pcol <- grep("^p_Group", colnames(an$res), value = TRUE)[1]
+      if (!is.na(pcol)) s$ANCOMBC2 <- asc(an$res$taxon[which(an$res[[pcol]] < p_thresh)])
+    }
+  }
+  if (!is.null(lf)) {
+    if (mode == "adj") {
+      if (all(c("padj", "ef_lda", "feature") %in% colnames(lf)))
+        s$LEfSe <- asc(lf$feature[which(lf$padj < p_thresh & abs(lf$ef_lda) >= 2)])
+    } else {
+      if (all(c("pvalue", "ef_lda", "feature") %in% colnames(lf)))
+        s$LEfSe <- asc(lf$feature[which(lf$pvalue < p_thresh & abs(lf$ef_lda) >= 2)])
+    }
+  }
+  if (!is.null(ml) && !is.null(ml$res)) {
+    r <- ml$res
+    if (all(c("metadata", "feature") %in% colnames(r))) {
+      grp <- if (exists("da_group")) da_group else "Group"
+      r <- r[!is.na(r$metadata) & r$metadata == grp, , drop = FALSE]
+      pc <- if (mode == "adj")
+              (if ("qval_joint" %in% colnames(r)) "qval_joint" else "qval_individual")
+            else
+              (if ("pval_joint" %in% colnames(r)) "pval_joint" else "pval_individual")
+      if (pc %in% colnames(r))
+        s$MaAsLin3 <- asc(r$feature[which(r[[pc]] < p_thresh)])
+    }
+  }
+  s
+}
+
+show_overlap <- function(sig_sets, rank_label, ps, tag) {
+  counts <- vapply(sig_sets, length, integer(1))
+  cat(rank_label, " - methods attempted and significant-hit counts (",
+      tag, " p):\n", sep = "")
+  w <- max(nchar(names(counts)))
+  for (m in names(counts))
+    cat("  ", formatC(m, width = w, flag = "-"), " : ", counts[[m]],
+        if (counts[[m]] == 0) "  (excluded from Venn - no hits at this threshold)" else "",
+        "\n", sep = "")
+  cat("\n")
+  sig_sets <- sig_sets[counts > 0]
+  if (length(sig_sets) < 2) {
+    cat("Not enough methods produced significant ", rank_label,
+        " results for an overlap (need >=2; got ", length(sig_sets), ").\n", sep = "")
+    if (length(sig_sets) == 1)
+      cat("Single hit set: ", names(sig_sets), " with ",
+          length(sig_sets[[1]]), " taxa.\n", sep = "")
+    return(invisible(NULL))
+  }
+  if (length(sig_sets) > 4) {
+    keep <- order(vapply(sig_sets, length, integer(1)), decreasing = TRUE)[seq_len(4)]
+    cat("Showing 4 largest sets out of ", length(sig_sets),
+        " in the Venn (membership table below covers all).\n", sep = "")
+    sig_sets_v <- sig_sets[keep]
+  } else sig_sets_v <- sig_sets
+  names(sig_sets_v) <- paste0(names(sig_sets_v),
+                              " (n=", vapply(sig_sets_v, length, integer(1)), ")")
+  mode_label <- if (tag == "adjusted")
+                  "adjusted / FDR significance (method-specific corrected cutoff)"
+                else
+                  paste0("raw p significance (uncorrected p < ", p_thresh, ")")
+  n_meth   <- length(sig_sets)
+  n_taxa   <- length(unique(unlist(sig_sets)))
+  n_shared <- sum(table(unlist(sig_sets)) > 1)
+  v <- tryCatch(ggvenn(sig_sets_v, text_size = 5, set_name_size = 5,
+                       show_percentage = FALSE),
+                error = function(e) { cat("ggvenn failed: ", e$message, "\n"); NULL })
+  if (!is.null(v)) {
+    v <- v + ggplot2::ggtitle(
+      label    = paste0(rank_label, " — overlap of significant taxa across methods"),
+      subtitle = paste0(mode_label,
+                        "  |  ", n_meth, " methods with hits  |  ",
+                        n_taxa, " unique taxa  |  ",
+                        n_shared, " shared by >=2 methods\n",
+                        "Each circle = one method; numbers in intersections = ",
+                        "taxa called significant by exactly that combination of methods.")) +
+      ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", size = 13),
+                     plot.subtitle = ggplot2::element_text(size = 10, lineheight = 1.1))
+    print(v)
+  }
+  all_t <- unique(unlist(sig_sets))
+  memb  <- data.frame(taxon = all_t,
+    Taxonomy = resolve_taxon_da(all_t, tax_table(ps)),
+    stringsAsFactors = FALSE)
+  for (m in names(sig_sets)) memb[[m]] <- memb$taxon %in% sig_sets[[m]]
+  memb$n_methods <- rowSums(memb[, names(sig_sets), drop = FALSE])
+  memb <- memb[order(-memb$n_methods), ]
+  save_csv(memb, paste0("method_overlap_", tolower(rank_label), "_", tag, ".csv"))
+  dt(memb, paste0(rank_label, " — significance by method (overlap, ", tag, " p)"))
+}
+```
+
+### Species {.tabset}
+
+#### Adjusted / FDR
+```{r overlap_species_adj, eval=has_species, fig.width=10, fig.height=8, comment=""}
+show_overlap(build_sig_sets("sp", "adj"), "Species", physeq_Species, "adjusted")
+```
+
+#### Raw p
+```{r overlap_species_raw, eval=has_species, fig.width=10, fig.height=8, comment=""}
+show_overlap(build_sig_sets("sp", "raw"), "Species", physeq_Species, "raw")
+```
+
+### Genus {.tabset}
+
+#### Adjusted / FDR
+```{r overlap_genus_adj, fig.width=10, fig.height=8, comment=""}
+show_overlap(build_sig_sets("ge", "adj"), "Genus", physeq_Genus, "adjusted")
+```
+
+#### Raw p
+```{r overlap_genus_raw, fig.width=10, fig.height=8, comment=""}
+show_overlap(build_sig_sets("ge", "raw"), "Genus", physeq_Genus, "raw")
+```
+
+---
+
+# Organisms of interest
+
+Paste one or more taxon names (one per line, or comma-separated) into the box
+below to get a per-method summary for each match. Matching is case-insensitive
+and runs in three tiers:
+
+1. **exact** on the report's `Taxonomy` label,
+2. **substring** on `Taxonomy`,
+3. **genus fallback** — first word of the query, matched against the Genus column only.
+
+The strategy that produced each hit is shown so you can see how literal the match was.
+
+```{r organism_search_data, include=FALSE}
+library(jsonlite)
+
+.fin <- function(x) {
+  x <- suppressWarnings(as.numeric(x)); x[!is.finite(x)] <- NA_real_; x
+}
+
+.gather_taxa_index <- function(ps, rank) {
+  if (is.null(ps)) return(NULL)
+  tdf <- as.data.frame(tax_table(ps))
+  tdf$taxon <- rownames(tdf)
+  tdf$rank  <- rank
+  tdf$Taxonomy <- resolve_taxon_da(tdf$taxon, tax_table(ps))
+  tdf[, intersect(c("taxon", "rank", "Phylum", "Class", "Order",
+                    "Family", "Genus", "Species", "Taxonomy"),
+                  colnames(tdf))]
+}
+.tax_index <- rbind(
+  if (has_species) .gather_taxa_index(physeq_Species, "Species") else NULL,
+  .gather_taxa_index(physeq_Genus, "Genus"))
+
+.gather_mr <- function(method, rank, obj) {
+  if (is.null(obj)) return(NULL)
+  if (method == "ALDEx2") {
+    if (!"effect" %in% colnames(obj)) return(NULL)
+    data.frame(method = method, rank = rank,
+               taxon  = as.character(obj$taxon),
+               effect = .fin(obj$effect),
+               pvalue = if ("wi.ep"  %in% colnames(obj)) .fin(obj$wi.ep)  else NA_real_,
+               padj   = if ("wi.eBH" %in% colnames(obj)) .fin(obj$wi.eBH) else NA_real_,
+               stringsAsFactors = FALSE)
+  } else if (method == "ANCOMBC2") {
+    r <- obj$res; if (is.null(r)) return(NULL)
+    lfc_c <- grep("^lfc_Group", colnames(r), value = TRUE)[1]
+    p_c   <- grep("^p_Group",   colnames(r), value = TRUE)[1]
+    q_c   <- grep("^q_Group",   colnames(r), value = TRUE)[1]
+    if (is.na(lfc_c)) return(NULL)
+    data.frame(method = method, rank = rank,
+               taxon  = as.character(r$taxon),
+               effect = .fin(r[[lfc_c]]),
+               pvalue = if (!is.na(p_c)) .fin(r[[p_c]]) else NA_real_,
+               padj   = if (!is.na(q_c)) .fin(r[[q_c]]) else NA_real_,
+               stringsAsFactors = FALSE)
+  } else if (method == "LEfSe") {
+    if (!"ef_lda" %in% colnames(obj)) return(NULL)
+    levs <- sort(unique(as.character(obj$enrich_group)))
+    sign <- ifelse(as.character(obj$enrich_group) == levs[length(levs)], 1, -1)
+    data.frame(method = method, rank = rank,
+               taxon  = as.character(obj$feature),
+               effect = sign * abs(.fin(obj$ef_lda)),
+               pvalue = .fin(obj$pvalue),
+               padj   = if ("padj" %in% colnames(obj)) .fin(obj$padj) else NA_real_,
+               stringsAsFactors = FALSE)
+  } else if (method == "MaAsLin3") {
+    r <- obj$res; if (is.null(r)) return(NULL)
+    rg <- r[!is.na(r$metadata) & r$metadata == da_group, , drop = FALSE]
+    if (nrow(rg) == 0) return(NULL)
+    rg <- rg[order(rg$feature, rg$model != "abundance"), ]
+    rg <- rg[!duplicated(rg$feature), , drop = FALSE]
+    pcol <- if ("pval_joint" %in% colnames(rg)) "pval_joint" else "pval_individual"
+    qcol <- if ("qval_joint" %in% colnames(rg)) "qval_joint" else "qval_individual"
+    data.frame(method = method, rank = rank,
+               taxon  = as.character(rg$feature),
+               effect = .fin(rg$coef),
+               pvalue = .fin(rg[[pcol]]),
+               padj   = .fin(rg[[qcol]]),
+               stringsAsFactors = FALSE)
+  } else if (method == "DESeq2") {
+    if (!"log2FoldChange" %in% colnames(obj)) return(NULL)
+    data.frame(method = method, rank = rank,
+               taxon  = as.character(obj$taxon),
+               effect = .fin(obj$log2FoldChange),
+               pvalue = .fin(obj$pvalue), padj = .fin(obj$padj),
+               stringsAsFactors = FALSE)
+  } else if (method == "edgeR") {
+    if (!"logFC" %in% colnames(obj)) return(NULL)
+    data.frame(method = method, rank = rank,
+               taxon  = as.character(obj$taxon),
+               effect = .fin(obj$logFC),
+               pvalue = .fin(obj$PValue), padj = .fin(obj$FDR),
+               stringsAsFactors = FALSE)
+  }
+}
+
+.results_long <- do.call(rbind, list(
+  .gather_mr("ALDEx2",   "Species", if (exists("aldex_sp")) aldex_sp else NULL),
+  .gather_mr("ALDEx2",   "Genus",   if (exists("aldex_ge")) aldex_ge else NULL),
+  .gather_mr("ANCOMBC2", "Species", if (exists("anc_sp"))   anc_sp   else NULL),
+  .gather_mr("ANCOMBC2", "Genus",   if (exists("anc_ge"))   anc_ge   else NULL),
+  .gather_mr("LEfSe",    "Species", if (exists("lefse_sp")) lefse_sp else NULL),
+  .gather_mr("LEfSe",    "Genus",   if (exists("lefse_ge")) lefse_ge else NULL),
+  .gather_mr("MaAsLin3", "Species", if (exists("ml_sp"))    ml_sp    else NULL),
+  .gather_mr("MaAsLin3", "Genus",   if (exists("ml_ge"))    ml_ge    else NULL),
+  .gather_mr("DESeq2",   "Species", if (exists("ds_sp"))    ds_sp    else NULL),
+  .gather_mr("DESeq2",   "Genus",   if (exists("ds_ge"))    ds_ge    else NULL),
+  .gather_mr("edgeR",    "Species", if (exists("ed_sp"))    ed_sp    else NULL),
+  .gather_mr("edgeR",    "Genus",   if (exists("ed_ge"))    ed_ge    else NULL)))
+
+.tax_index$key      <- paste(.tax_index$rank, .tax_index$taxon, sep = "::")
+.results_long$key   <- paste(.results_long$rank, .results_long$taxon, sep = "::")
+.results_long <- merge(.results_long,
+                       .tax_index[, c("key", "Phylum", "Genus", "Species", "Taxonomy")],
+                       by = "key", all.x = TRUE, sort = FALSE)
+.results_long$key <- NULL
+
+.taxa_catalog <- unique(.results_long[, c("taxon", "rank",
+                                          "Phylum", "Genus", "Species", "Taxonomy")])
+
+org_results_json <- jsonlite::toJSON(.results_long, na = "null",
+                                     auto_unbox = FALSE, dataframe = "rows")
+org_taxa_json    <- jsonlite::toJSON(.taxa_catalog, na = "null",
+                                     auto_unbox = FALSE, dataframe = "rows")
+```
+
+```{r organism_search_ui, results='asis'}
+cat('<style>
+.org-search-box { padding: 1em 0; }
+.org-search-box textarea { font-family: inherit; padding: .5em; width: 100%; max-width: 560px; }
+.org-search-box button { padding: .5em 1.2em; margin: .5em 0; cursor: pointer; }
+.org-summary { border-collapse: collapse; margin: .5em 0 1em; font-size: .9em; }
+.org-summary th, .org-summary td { border: 1px solid #ddd; padding: .3em .6em; }
+.org-summary th { background: #f5f5f5; }
+.org-summary tr.sig td { font-weight: bold; }
+.org-empty { color: #888; }
+.org-match-tag { display: inline-block; padding: 1px 6px; border-radius: 3px;
+  font-size: .8em; background: #eef; color: #335; margin-left: .5em; }
+.org-match-tag.exact     { background: #c6efce; color: #2c5934; }
+.org-match-tag.substring { background: #fff2cc; color: #7f5f00; }
+.org-match-tag.genus     { background: #ffd9c4; color: #803b00; }
+</style>
+')
+
+cat('<div class="org-search-box">
+  <textarea id="org-input" rows="4" placeholder="e.g. Bacteroides fragilis\nEscherichia coli\nFaecalibacterium"></textarea><br/>
+  <button onclick="organismSearch()">Search</button>
+  <button onclick="document.getElementById(\'org-input\').value=\'\';document.getElementById(\'org-out\').innerHTML=\'\';">Clear</button>
+  <div id="org-out"></div>
+</div>
+')
+
+cat('<script>const ORG_DATA = ', org_results_json, ';</script>\n', sep = '')
+cat('<script>const ORG_TAXA = ', org_taxa_json, ';</script>\n', sep = '')
+
+cat('<script>
+function escHTML(s){return String(s==null?"":s).replace(/[&<>"\']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\\\"":"&quot;","\'":"&#39;"}[c]));}
+function nrm(s){return (s||"").toString().toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\\s+/g," ").trim();}
+function fmt(x){if(x==null||isNaN(x))return"";const a=Math.abs(x);if(a!==0&&(a<1e-3||a>=1e4))return x.toExponential(2);return Number(x).toPrecision(3);}
+
+function findMatches(q){
+  const n=nrm(q); if(!n) return {matches:[],strategy:"empty"};
+  let m=ORG_TAXA.filter(t=>nrm(t.Taxonomy)===n);
+  if(m.length) return {matches:m,strategy:"exact"};
+  m=ORG_TAXA.filter(t=>nrm(t.Taxonomy).indexOf(n)>=0);
+  if(m.length) return {matches:m,strategy:"substring"};
+  const first=n.split(/\\s+/)[0];
+  m=ORG_TAXA.filter(t=>nrm(t.Genus).indexOf(first)>=0);
+  if(m.length) return {matches:m,strategy:"genus"};
+  return {matches:[],strategy:"none"};
+}
+
+function rowForTaxon(t){
+  const rows=ORG_DATA.filter(r=>r.taxon===t.taxon && r.rank===t.rank);
+  if(!rows.length) return "<p class=\\"org-empty\\">No results for this taxon.</p>";
+  let h=`<table class="org-summary"><thead><tr>
+    <th>Method</th><th>Rank</th><th>Effect</th><th>p-value</th><th>adj p</th><th>sig (adj &lt; 0.05)</th>
+  </tr></thead><tbody>`;
+  for(const r of rows){
+    const sig=(r.padj!=null&&r.padj<0.05);
+    h+=`<tr class="${sig?\"sig\":\"\"}">
+      <td>${escHTML(r.method)}</td><td>${escHTML(r.rank)}</td>
+      <td>${fmt(r.effect)}</td><td>${fmt(r.pvalue)}</td><td>${fmt(r.padj)}</td>
+      <td>${sig?\'<span style="color:#c00">YES</span>\':\'no\'}</td></tr>`;
+  }
+  h+="</tbody></table>";
+  return h;
+}
+
+function organismSearch(){
+  const txt=document.getElementById("org-input").value;
+  const queries=txt.split(/[,\\n]/).map(s=>s.trim()).filter(s=>s.length);
+  if(!queries.length){document.getElementById("org-out").innerHTML=
+    \'<p class="org-empty">Enter one or more names above and click Search.</p>\';return;}
+  let html="";
+  for(const q of queries){
+    const {matches,strategy}=findMatches(q);
+    html+=`<h3>Query: <code>${escHTML(q)}</code><span class="org-match-tag ${strategy}">${strategy}</span></h3>`;
+    if(!matches.length){html+=\'<p class="org-empty">No matches. Try a shorter substring or just the Genus.</p>\';continue;}
+    html+=`<p class="org-empty">${matches.length} taxon match${matches.length>1?"es":""}.</p>`;
+    for(const t of matches){
+      html+=`<h4>${escHTML(t.Taxonomy)} <small style="color:#888">(${escHTML(t.rank)} · ${escHTML(t.taxon)})</small></h4>`;
+      html+=rowForTaxon(t);
+    }
+  }
+  document.getElementById("org-out").innerHTML=html;
+}
+</script>
+')
+```
+
+---
+
+# Downloads {.tabset}
+
+## All result tables (CSV)
+```{r downloads_csv, results='asis'}
+csvs <- sort(list.files(results_dir, pattern = "\\.csv$",
+                        full.names = TRUE, recursive = TRUE))
+if (length(csvs) == 0) cat("No CSVs written yet.\n") else {
+  cat("All CSV tables written to `", results_dir, "/`:\n\n", sep = "")
+  for (f in csvs) cat(paste0("- [", basename(f), "](", f, ")\n"))
+}
+```
+
+## MaAsLin3 native outputs
+```{r downloads_maaslin, results='asis'}
+mdirs <- list.dirs(results_dir, recursive = FALSE)
+mdirs <- mdirs[grepl("maaslin3_", basename(mdirs))]
+if (length(mdirs) == 0) cat("No MaAsLin3 output folders.\n") else {
+  for (d in mdirs) {
+    cat("**", basename(d), "**\n\n", sep = "")
+    for (f in c("summary_plot.pdf", "all_results.tsv", "significant_results.tsv")) {
+      fp <- file.path(d, f)
+      if (file.exists(fp)) cat(paste0("- [", f, "](", fp, ")\n"))
+    }
+    cat("\n")
+  }
+}
+```
+
+---
+
+# Session info
+
+<details><summary>Click to expand</summary>
+
+```{r session}
+sessionInfo()
+```
+
+</details>
