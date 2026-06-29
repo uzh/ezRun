@@ -1,0 +1,152 @@
+# Unified QIIME2 16S Amplicon Workflow - paired-end
+# All mustache tokens (e.g. {{CORES}}) are whisker-rendered by R before this script runs.
+
+export PYTHONWARNINGS="ignore"
+
+CORES={{CORES}}
+
+# ----- 0. Database dispatch -----
+# DB is substituted as the literal label (silva/greengenes); resolve to absolute paths here.
+case "{{DB}}" in
+  silva)
+    DB_SEQS="/srv/GT/databases/QIIME2/silva-138.2-ssu-nr99-seqs-derep-uniq.qza"
+    DB_TAX="/srv/GT/databases/QIIME2/silva-138.2-ssu-nr99-tax-derep-uniq.qza"
+    ;;
+  greengenes)
+    DB_SEQS="/srv/GT/databases/QIIME2/greengenes2-2024.09-seqs.qza"
+    DB_TAX="/srv/GT/databases/QIIME2/greengenes2-2024.09-tax.qza"
+    ;;
+  *)
+    echo "Unknown DB label: {{DB}}" >&2
+    exit 1
+    ;;
+esac
+
+# ----- 1. Optional fastp adapter trimming -----
+if [ "{{RUN_FASTP}}" = "true" ]; then
+  mkdir -p fastp_out
+  # manifest.tsv is tab-separated; header: sample-id<TAB>forward-absolute-filepath<TAB>reverse-absolute-filepath
+  tail -n +2 manifest.tsv | while IFS=$'\t' read -r SAMPLE R1 R2; do
+    [ -z "$SAMPLE" ] && continue
+    fastp \
+      -i "$R1" \
+      -I "$R2" \
+      -o "fastp_out/${SAMPLE}_R1.fastq.gz" \
+      -O "fastp_out/${SAMPLE}_R2.fastq.gz" \
+      -j "fastp_out/${SAMPLE}.json" \
+      -h "fastp_out/${SAMPLE}.html" \
+      --detect_adapter_for_pe \
+      --disable_quality_filtering \
+      --disable_length_filtering \
+      -w $CORES
+  done
+
+  # Rebuild manifest pointing to the trimmed fastqs
+  echo -e "sample-id\tforward-absolute-filepath\treverse-absolute-filepath" > manifest.fastp.tsv
+  tail -n +2 manifest.tsv | while IFS=$'\t' read -r SAMPLE R1 R2; do
+    [ -z "$SAMPLE" ] && continue
+    echo -e "${SAMPLE}\t$(readlink -f fastp_out/${SAMPLE}_R1.fastq.gz)\t$(readlink -f fastp_out/${SAMPLE}_R2.fastq.gz)" >> manifest.fastp.tsv
+  done
+  mv manifest.tsv manifest.original.tsv
+  mv manifest.fastp.tsv manifest.tsv
+fi
+
+# ----- 2. Import & demux summary -----
+qiime tools import --type 'SampleData[PairedEndSequencesWithQuality]' --input-path manifest.tsv --output-path demux_seqs.qza --input-format PairedEndFastqManifestPhred33V2
+
+qiime demux summarize --i-data demux_seqs.qza --o-visualization demux_seqs.qzv
+
+# ----- 3. DADA2 denoise (paired) -----
+qiime dada2 denoise-paired --i-demultiplexed-seqs demux_seqs.qza --p-trim-left-f {{TRIM_LEFT_F}} --p-trim-left-r {{TRIM_LEFT_R}} --p-trunc-len-f {{TRUNC_LEN_F}} --p-trunc-len-r {{TRUNC_LEN_R}} --p-n-threads $CORES --o-table table.qza --o-representative-sequences dada2_rep_set.qza --o-denoising-stats dada2_denoising_stats.qza
+
+# ----- 4. Denoising stats summary -----
+qiime metadata tabulate --m-input-file dada2_denoising_stats.qza --o-visualization dada2_denoising_stats.qzv
+
+# ----- 5. Feature-table summary -----
+qiime feature-table summarize --i-table table.qza --o-visualization table.qzv --m-sample-metadata-file sample_metadata.tsv
+
+# ----- 6. Rep-seqs tabulation -----
+qiime feature-table tabulate-seqs --i-data dada2_rep_set.qza --o-visualization dada2_rep_set.qzv
+
+# ----- 7. Classifier (prebuilt or on-the-fly) -----
+if [ "{{CLASSIFIER_PATH}}" = "NONE" ]; then
+  qiime feature-classifier extract-reads --i-sequences $DB_SEQS --p-f-primer {{PRIMER1}} --p-r-primer {{PRIMER2}} --p-min-length {{CLASSIFIER_MIN_LEN}} --p-max-length {{CLASSIFIER_MAX_LEN}} --p-n-jobs $CORES --o-reads ref-seqs.qza
+  qiime feature-classifier fit-classifier-naive-bayes --i-reference-reads ref-seqs.qza --i-reference-taxonomy $DB_TAX --o-classifier classifier.qza
+  CLASSIFIER=classifier.qza
+else
+  CLASSIFIER="{{CLASSIFIER_PATH}}"
+fi
+
+# ----- 8. Classify-sklearn -----
+qiime feature-classifier classify-sklearn --i-classifier "$CLASSIFIER" --i-reads dada2_rep_set.qza --p-n-jobs $CORES --o-classification taxonomy.qza
+
+qiime metadata tabulate --m-input-file taxonomy.qza --o-visualization taxonomy.qzv
+
+# ----- 9. Taxonomy filtering (keep Bacteria, drop mitochondria + chloroplast) -----
+qiime taxa filter-table --i-table table.qza --i-taxonomy taxonomy.qza --p-include d__Bacteria --p-exclude mitochondria,chloroplast --o-filtered-table table-filtered.qza
+
+qiime taxa filter-seqs --i-sequences dada2_rep_set.qza --i-taxonomy taxonomy.qza --p-include d__Bacteria --p-exclude mitochondria,chloroplast --o-filtered-sequences rep-seqs-filtered.qza
+
+# ----- 10. Taxa bar plot (uses filtered table) -----
+qiime taxa barplot --i-table table-filtered.qza --i-taxonomy taxonomy.qza --m-metadata-file sample_metadata.tsv --o-visualization taxa-bar-plots.qzv
+
+# ----- 11. Phylogeny on filtered rep-seqs -----
+qiime phylogeny align-to-tree-mafft-fasttree --i-sequences rep-seqs-filtered.qza --p-n-threads $CORES --o-alignment aligned-rep-seqs.qza --o-masked-alignment masked-aligned-rep-seqs.qza --o-tree unrooted-tree.qza --o-rooted-tree rooted-tree.qza
+
+# ----- 12. Core diversity metrics (uses filtered table) -----
+qiime diversity core-metrics-phylogenetic --i-phylogeny rooted-tree.qza --i-table table-filtered.qza --p-sampling-depth {{SAMPLING_DEPTH}} --p-n-jobs-or-threads $CORES --m-metadata-file sample_metadata.tsv --output-dir core-metrics-results
+
+# ----- 13. Alpha group significance (Shannon) -----
+qiime diversity alpha-group-significance --i-alpha-diversity core-metrics-results/shannon_vector.qza --m-metadata-file sample_metadata.tsv --o-visualization shannon_group_significance.qzv
+
+# ----- 14. Beta group significance (Jaccard, Bray-Curtis, weighted UniFrac) -----
+qiime diversity beta-group-significance --i-distance-matrix core-metrics-results/jaccard_distance_matrix.qza --m-metadata-file sample_metadata.tsv --m-metadata-column Group --o-visualization jaccard_group_significance.qzv --p-pairwise
+
+qiime diversity beta-group-significance --i-distance-matrix core-metrics-results/bray_curtis_distance_matrix.qza --m-metadata-file sample_metadata.tsv --m-metadata-column Group --o-visualization bray_curtis_group_significance.qzv --p-pairwise
+
+qiime diversity beta-group-significance --i-distance-matrix core-metrics-results/weighted_unifrac_distance_matrix.qza --m-metadata-file sample_metadata.tsv --m-metadata-column Group --o-visualization weighted_unifrac_group_significance.qzv --p-pairwise
+
+# ----- 15. Emperor PCoA plots -----
+qiime emperor plot --i-pcoa core-metrics-results/jaccard_pcoa_results.qza --m-metadata-file sample_metadata.tsv --o-visualization jaccard_emperor_plot.qzv
+
+qiime emperor plot --i-pcoa core-metrics-results/bray_curtis_pcoa_results.qza --m-metadata-file sample_metadata.tsv --o-visualization bray_curtis_emperor_plot.qzv
+
+qiime emperor plot --i-pcoa core-metrics-results/weighted_unifrac_pcoa_results.qza --m-metadata-file sample_metadata.tsv --o-visualization weighted_unifrac_emperor_plot.qzv
+
+# ----- 16. Alpha rarefaction (uses filtered table) -----
+qiime diversity alpha-rarefaction --i-table table-filtered.qza --i-phylogeny rooted-tree.qza --p-max-depth {{MAX_RAREFACTION_DEPTH}} --m-metadata-file sample_metadata.tsv --o-visualization alpha-rarefaction.qzv
+
+# ----- 17. Differential-abundance pre-filter (parity with prior bash; ANCOM now in Rmd) -----
+qiime feature-table filter-features --i-table table-filtered.qza --p-min-frequency {{MIN_FREQ}} --p-min-samples {{MIN_SAMPLES}} --o-filtered-table table_abund.qza
+
+# ----- 18. Optional PICRUSt2 -----
+if [ "{{RUN_PICRUST2}}" = "true" ]; then
+  mkdir -p exports
+  qiime tools export --input-path rep-seqs-filtered.qza --output-path exports
+  qiime tools export --input-path table-filtered.qza --output-path exports
+
+  picrust2_pipeline.py \
+    -s exports/dna-sequences.fasta \
+    -i exports/feature-table.biom \
+    -o picrust2_output \
+    --processes $CORES
+
+  # Decompress the three key TSVs into the working directory root
+  if [ -f picrust2_output/KO_metagenome_out/pred_metagenome_unstrat.tsv.gz ]; then
+    gunzip -kc picrust2_output/KO_metagenome_out/pred_metagenome_unstrat.tsv.gz > ko_abundance.tsv
+  fi
+  if [ -f picrust2_output/EC_metagenome_out/pred_metagenome_unstrat.tsv.gz ]; then
+    gunzip -kc picrust2_output/EC_metagenome_out/pred_metagenome_unstrat.tsv.gz > ec_abundance.tsv
+  fi
+  if [ -f picrust2_output/pathways_out/path_abun_unstrat.tsv.gz ]; then
+    gunzip -kc picrust2_output/pathways_out/path_abun_unstrat.tsv.gz > pathway_abundance.tsv
+  fi
+fi
+
+# ----- 19. Unpack qzv archives into Results_Folder -----
+for i in $(ls *.qzv); do mv $i ${i}.zip; done
+
+for i in $(ls *.zip); do unzip $i -d $i.folder; done
+
+mkdir -p Results_Folder
+mv *.zip.folder Results_Folder/

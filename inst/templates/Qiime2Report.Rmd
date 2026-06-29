@@ -1,1570 +1,2311 @@
 ---
-title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-output: 
+title: "`r if (exists('reportTitle')) reportTitle else 'QIIME2 SUSHI Report'`"
+output:
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    highlight: pygments
+    theme: sand
+    code_folding: hide
+    toc: yes
+    toc_depth: 4
     self_contained: true
     includes:
       in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
     css: !expr system.file("templates/fgcz.css", package="ezRun")
-editor_options: 
+editor_options:
   chunk_output_type: inline
 ---
 
-# {.tabset}
-
-
-```{r include=FALSE}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(
-  comment = '', fig.width = 8, fig.height = 8, warning = FALSE, error = FALSE,
-  message = FALSE, cache = TRUE, echo = FALSE
+  comment    = '',
+  fig.width  = 12,
+  fig.height = 8,
+  warning    = FALSE,
+  error      = FALSE,
+  message    = FALSE,
+  cache      = TRUE,
+  echo       = FALSE
 )
 ```
 
-```{r setup countQC, include=FALSE}
-knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
-library(phyloseq)
-library(DESeq2)
-library(edgeR)
-library(ggplot2)
-library(plotly)
-library(ggrepel)
-library(ggpubr)
-library(grid)
-library(gridExtra)
-library(qiime2R)
-library(ezRun)
-library(reticulate)
-library(patchwork)
-library(cowplot)
-library(scales)
-library(kableExtra)
-library(rstatix)
-library(vegan)
-library(pairwiseAdonis)
-library(ggtreeExtra)
-library(ggtree)
-library(dplyr)
-library(ggvenn)
-library(microbiome)
-library(RColorBrewer)
-library(ComplexHeatmap)
-library(DT)
+```{r load_pkgs, include=FALSE}
+## Mandatory packages -- the SUSHI app already enforces these in its renv/module
+suppressMessages(suppressWarnings({
+  library(phyloseq)
+  library(qiime2R)
+  library(microbiome)
+  library(vegan)
+  library(pairwiseAdonis)
+  library(dplyr)
+  library(tidyr)
+  library(stringr)
+  library(tibble)
+  library(reshape2)
+  library(ggplot2)
+  library(ggpubr)
+  library(ggrepel)
+  library(patchwork)
+  library(cowplot)
+  library(scales)
+  library(RColorBrewer)
+  library(rstatix)
+  library(kableExtra)
+  library(DT)
+  library(plotly)
+  library(htmlwidgets)
+  library(htmltools)
+  library(ggvenn)
+  library(ComplexHeatmap)
+  library(DESeq2)
+  library(edgeR)
+}))
+
+## Optional packages -- gracefully degrade when not available
+.have_ancombc        <- requireNamespace("ANCOMBC",        quietly = TRUE)
+.have_aldex2         <- requireNamespace("ALDEx2",         quietly = TRUE)
+.have_ggpicrust2     <- requireNamespace("ggpicrust2",     quietly = TRUE)
+.have_microbiomeMrk  <- requireNamespace("microbiomeMarker", quietly = TRUE)
+.have_dada2          <- requireNamespace("dada2",          quietly = TRUE)
+.have_shortread      <- requireNamespace("ShortRead",      quietly = TRUE)
+.have_biostrings     <- requireNamespace("Biostrings",     quietly = TRUE)
+.have_biomformat     <- requireNamespace("biomformat",     quietly = TRUE)
+.have_phangorn       <- requireNamespace("phangorn",       quietly = TRUE)
+.have_picante        <- requireNamespace("picante",        quietly = TRUE)
+.have_gunifrac       <- requireNamespace("GUniFrac",       quietly = TRUE)
+.have_enhancedvolc   <- requireNamespace("EnhancedVolcano",quietly = TRUE)
+.have_scatter3d      <- requireNamespace("scatterplot3d",  quietly = TRUE)
+.have_microViz       <- requireNamespace("microViz",       quietly = TRUE)
+.have_ggtree         <- requireNamespace("ggtree",         quietly = TRUE)
+.have_ape            <- requireNamespace("ape",            quietly = TRUE)
+.have_metagenomeSeq  <- requireNamespace("metagenomeSeq",  quietly = TRUE)
+.have_car            <- requireNamespace("car",            quietly = TRUE)
+
+if (.have_biostrings) suppressMessages(suppressWarnings(library(Biostrings)))
+if (.have_shortread) suppressMessages(suppressWarnings(library(ShortRead)))
+if (.have_dada2)     suppressMessages(suppressWarnings(library(dada2)))
+if (.have_biomformat) suppressMessages(suppressWarnings(library(biomformat)))
+if (.have_phangorn)  suppressMessages(suppressWarnings(library(phangorn)))
+if (.have_picante)   suppressMessages(suppressWarnings(library(picante)))
+if (.have_gunifrac)  suppressMessages(suppressWarnings(library(GUniFrac)))
+if (.have_ape)       suppressMessages(suppressWarnings(library(ape)))
+if (.have_ggtree)    suppressMessages(suppressWarnings(library(ggtree)))
+if (.have_microViz)  suppressMessages(suppressWarnings(library(microViz)))
+
+## shiny::validate masking guard from the project memory
+## (jsonlite gets loaded transitively and masks validate)
+.qiime2_validate <- function(...) if (requireNamespace("shiny", quietly = TRUE)) shiny::validate(...) else invisible(NULL)
 ```
 
+# Configuration
 
-```{r, echo=FALSE}
-##Load the data
-physeq <- ezLoadRobj("physeq")
-#Filter samples: feature present in at least 10% of the samples
-physeq_filter = genefilter_sample(physeq, filterfun_sample(function(x) x > 1), A=0.1*nsamples(physeq))
-physeq1 = prune_taxa(physeq_filter, physeq)
-#Transform sample counts
-physeq2 = transform_sample_counts(physeq1, function(x){x / sum(x)})
-#Aggregate by species and genus
-physeq_Genus = tax_glom(physeq1, "Genus", NArm = TRUE)
-physeq_Genus2 = transform_sample_counts(physeq_Genus, function(x){x / sum(x)})
-physeq_Species = tax_glom(physeq1, "Species", NArm = TRUE)
-physeq_Species2 = transform_sample_counts(physeq_Species, function(x){x / sum(x)})
+```{r config}
+## Pull configuration from the SUSHI `param` object passed by makeRmdReport.
+## All knobs are optional: sensible defaults kick in when missing.
+if (!exists("param") || is.null(param)) param <- list()
 
-dada2 <- ezLoadRobj("dada2")
-metadata <- ezLoadRobj("metadata")
-colnames(metadata) <- c("SampleID", "Group")
-shannon <- ezLoadRobj("shannon")
-evenness <- ezLoadRobj("evenness")
-richness <- ezLoadRobj("richness")
-shannon <- shannon$data %>% rownames_to_column("SampleID")
-richness <- richness$data %>% rownames_to_column("SampleID")
-evenness <- evenness$data %>% rownames_to_column("SampleID")
-jaccard <- ezLoadRobj("jaccard")
-jaccardmatrix <- ezLoadRobj("jaccardmatrix")
-jaccardmatrix <- as.matrix(jaccardmatrix$data)
-bray <- ezLoadRobj("bray")
-braymatrix <- ezLoadRobj("braymatrix")
-braymatrix <- as.matrix(braymatrix$data)
-unifrac <- ezLoadRobj("unifrac")
-unifracmatrix <- ezLoadRobj("unifracmatrix")
-unifracmatrix <- as.matrix(unifracmatrix$data)
+.cfg <- list(
+  grouping        = if (!is.null(param$grouping) && nzchar(param$grouping)) param$grouping else "Group",
+  group_cols      = if (!is.null(param$grouping) && nzchar(param$grouping)) strsplit(param$grouping, ",")[[1]] else character(0),
+  samples_to_prune= if (!is.null(param$samples_to_prune)) param$samples_to_prune else character(0),
+  prevalence_frac = if (!is.null(param$prevalence_frac))  param$prevalence_frac  else 0.10,
+  rel_abund_pct   = if (!is.null(param$rel_abund_pct))    param$rel_abund_pct    else 0.10,
+  forward_primer  = if (!is.null(param$forward_primer))   param$forward_primer   else "CCTACGGGNGGCWGCAG",
+  reverse_primer  = if (!is.null(param$reverse_primer))   param$reverse_primer   else "GACTACHVGGGTATCTAATCC",
+  run_picrust2    = isTRUE(param$run_picrust2),
+  run_fastp       = isTRUE(param$run_fastp)
+)
 
-#Define grouping parameter
-params <- ezLoadRobj("param")
+## Resolve output directory. Prefer the SUSHI ezApp `output` object passed
+## from makeRmdReport (canonical ResultDir); fall back to the knit work dir.
+.report_dir <- NULL
+if (exists("output") && !is.null(output)) {
+  .report_dir <- tryCatch({
+    rd <- output$getColumn("ResultDir")
+    normalizePath(rd, mustWork = FALSE)
+  }, error = function(e) NULL)
+}
+if (is.null(.report_dir) || !nzchar(.report_dir)) {
+  .report_dir <- tryCatch(dirname(normalizePath(knitr::current_input(dir = TRUE), mustWork = FALSE)),
+                          error = function(e) getwd())
+}
+if (is.null(.report_dir) || !nzchar(.report_dir)) .report_dir <- getwd()
+
+## Build a final `grouping` scalar (single column carrying the Group factor inside physeq).
 grouping <- "Group"
 
-
-#Reports, all the loaded reports from QIIME2
-#comment added to check if ezRun detected this push
-demux <-"./demux_seqs.qzv.zip.folder/data/index.html"
-denoise <- "./dada2_denoising_stats.qzv.zip.folder/data/index.html"
-asv_table <- "./table.qzv.zip.folder/data/index.html"
-rep_seqs <- "./dada2_rep_set.qzv.zip.folder/data/index.html"
-taxbarplot <- "./taxa-bar-plots.qzv.zip.folder/data/index.html"
-shannon_report <- "./shannon_group_significance.qzv.zip.folder/data/index.html"
-jaccard_report <- "./jaccard_group_significance.qzv.zip.folder/data/index.html"
-bc_report <- "./bray_curtis_group_significance.qzv.zip.folder/data/index.html"
-jaccard_pca <- "./jaccard_emperor_plot.qzv.zip.folder/data/index.html"
-bc_pca <- "./bray_curtis_emperor_plot.qzv.zip.folder/data/index.html"
-alpha_raref <- "./alpha-rarefaction.qzv.zip.folder/data/index.html"
-difabundance <- "./ancom_group.qzv.zip.folder/data/index.html"
+## Verbose echo for traceability
+cat("Configuration:\n")
+cat("  Grouping column   :", .cfg$grouping, "\n")
+cat("  Group sub-columns :", paste(.cfg$group_cols, collapse = ", "), "\n")
+cat("  Prevalence filter :", .cfg$prevalence_frac * 100, "% of samples\n")
+cat("  Abundance filter  :", .cfg$rel_abund_pct, "% of total reads\n")
+cat("  Forward primer    :", .cfg$forward_primer, "\n")
+cat("  Reverse primer    :", .cfg$reverse_primer, "\n")
+cat("  PICRUSt2 enabled  :", .cfg$run_picrust2, "\n")
+cat("  fastp enabled     :", .cfg$run_fastp, "\n")
 ```
 
+```{r helpers}
+## ---------------------------------------------------------------------------
+## Helper functions used across the report (defined once, reused everywhere).
+## ---------------------------------------------------------------------------
 
-
-## Demultiplexing summary 
-`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
-
-#### Read Frequency Histogram
-
-Here is a histogram reflecting the distribution of the final number of filtered reads per sample.
-
-```{r, fig.width = 5, fig.height = 5, echo=FALSE}
-ps0_tax_plot <- ggplot(dada2$data, aes(non.chimeric)) +
-  geom_histogram() + theme_bw() + ylab("Number of samples") + xlab("Abundance of Reads")
-
-print(ps0_tax_plot)
-```
-</br>
-
-[Interactive QIIME2 Report and Visualizations](`r asv_table`){target="_blank"}
-
-#### Read filtering.  
-And here you can find the number of reads filtered at each stage and the final number of reads that remained after denoising.
-For more info look at the two QIIME2 interactive reports. 
-</br>
-[Interactive QIIME2 Report Data QC](`r demux`){target="_blank"}
-</br>
-[Interactive QIIME2 Report Denoising Stats](`r denoise`){target="_blank"}
-
-</br>
-
-```{r, echo=FALSE}
-#Show the number of reads filtered at each step
-kable(dada2$data) %>% kable_styling()
-```
-
-## Abundance summary
-
-
-### Filtering
-The original analysis has been filtered and contains only Amplicon Sequence Variants that occur in at least 10% of samples and of at least a count of 1. Lets compare how many ASVs have remained after that filtering. 
-</br>
-</br>
-
-```{r, echo=FALSE}
-knitr::knit_print(paste("Originally there were", length(rownames(otu_table(physeq))), "ASVs across", length(colnames(otu_table(physeq1))), "samples. "))
-knitr::knit_print(paste("After filtering there are", length(rownames(otu_table(physeq1))), "ASVs across", length(colnames(otu_table(physeq1))), "samples."))
-```
-
-
-### Transformation
-</br>
-The counts are then transformed into relative abundance (number of reads per taxon divided by total number of reads). Lets have a look whether the transformation changed the abundance patters for selected genera (taking top 50 ASVs).
-
-```{r, fig.height= 10, fig.width = 17, echo=FALSE}
-myTaxa = names(sort(taxa_sums(physeq1), decreasing = TRUE)[1:50])
-ex1 = prune_taxa(myTaxa, physeq1)
-ex2 = prune_taxa(myTaxa, physeq2)
-p1 <- plot_bar(ex1, "Group") + facet_wrap(~Genus, ncol=3) + ggtitle("Before transformation")
-p2 <- plot_bar(ex2, "Group") + facet_wrap(~Genus, ncol=3) + ggtitle("After transformation")
-
-plotGrob <- plot_grid(p1, p2, nrow=1, ncol=2, byrow=FALSE)
-print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
-```
-
-### Taxa prevalence
-</br>
-Also lets look at the prevalence of different taxa before and after filtering. This function allows you to have an overview of ASV prevalences along with their taxonomic affiliations. It also gives an idea about the taxonomic affiliation of rare and abundant taxa in the data. This will aid in checking if you filter ASVs based on prevalence, then what taxonomic affiliations will be lost.
-
-```{r, fig.width = 15, fig.height = 7, echo=FALSE}
-p1 <- plot_taxa_prevalence(physeq, "Phylum") + ggtitle("No prevalence filtering")
-p2 <- plot_taxa_prevalence(physeq1, "Phylum") + ggtitle("Present in at least 10% of samples")
-
-plotGrob <- plot_grid(p1, p2, nrow=1, ncol=2, byrow=FALSE)
-print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
-```
-
-### Heatmap of the top 30 features (ASVs).   
-
-</br>
-This heatmap displays the log10(% abundance) of the top 30 ASVs. Abundance is converted into percentage, a pseudocount is added and the data is log transformed. The top 30 most abundant ASVs are chosen to be displayed.
-</br>
-
-```{r, fig.width = 17, fig.height = 8, echo=FALSE}
-SVs<-as.data.frame(otu_table(physeq1))
-taxonomy<-as.data.frame(tax_table(physeq1))
-taxonomy$Feature.ID <- rownames(taxonomy)
-taxonomy$Taxon <- paste0(taxonomy$Kingdom, "_", taxonomy$Phylum, "_", taxonomy$Class, "_", taxonomy$Order, "_", taxonomy$Family, "_", taxonomy$Genus, "_", taxonomy$Species)
-metadata$SampleID <- as.character(metadata$SampleID)
-
-SVs<-apply(SVs, 2, function(x) x/sum(x)*100) #convert to percent
-
-SVsToPlot<-  
-  data.frame(MeanAbundance=rowMeans(SVs)) %>% #find the average abundance of a SV
-  rownames_to_column("Feature.ID") %>%
-  arrange(desc(MeanAbundance)) %>%
-  top_n(30, MeanAbundance) %>% #Use only top 30 taxa
-  pull(Feature.ID) #extract only the names from the table
-  
-SV1 <- SVs %>%
-  as.data.frame() %>%
-  rownames_to_column("Feature.ID") %>%
-  gather(-Feature.ID, key="SampleID", value="Abundance") %>%
-  mutate(Feature.ID=if_else(Feature.ID %in% SVsToPlot,  Feature.ID, "Remainder")) %>% #flag features to be collapsed
-  group_by(SampleID, Feature.ID) %>%
-  summarize(Abundance=sum(Abundance)) %>%
-  left_join(metadata) %>%
-  mutate(NormAbundance=log10(Abundance+0.01)) %>% # do a log10 transformation after adding a 0.01% pseudocount. Could also add 1 read before transformation to percent
-  left_join(taxonomy) %>%
-  mutate(Feature=paste(Feature.ID, Taxon)) %>%
-  mutate(Feature=gsub("[kpcofgs]__", "", Feature)) # trim out leading text from taxonomy string
-
-SV1$Genus = str_remove_all(SV1$Genus,"[\\[\\]]")
-
-p1 <- ggplot(SV1, aes(x=SampleID, y=Feature, fill=NormAbundance)) +
-  geom_tile() +
-  facet_grid(paste0('~', SV1[,grouping]), scales="free_x") +
-  theme_q2r() +
-  theme(axis.text.x=element_text(angle=45, hjust=1, size=10), text = element_text(size = 9)) +
-  scale_y_discrete(labels = function(x) stringr::str_wrap(x, width = 55)) +
-  scale_fill_viridis_c(name="log10(% Abundance)")
-
-p1
-```
-
-### Heatmap at a Genus level.
-
-</br>
-Now let's create a separate Phyloseq object where the ASVs have all been agglomerated at genus level. This will reduce the number of ASVs further and then we can investigate the abundance of the different genra across all groups. The heatmap displays the log10(% abundance) of all the genra.
-
-</br>
-
-```{r, fig.width = 12, fig.height = 8, echo=FALSE}
-SVs<-as.data.frame(otu_table(physeq_Genus))
-taxonomy<-as.data.frame(tax_table(physeq_Genus))
-taxonomy$Feature.ID <- rownames(taxonomy)
-taxonomy$Taxon <- paste0(taxonomy$Kingdom, "_", taxonomy$Phylum, "_", taxonomy$Class, "_", taxonomy$Order, "_", taxonomy$Family, "_", taxonomy$Genus)
-
-SVs<-apply(SVs, 2, function(x) x/sum(x)*100) #convert to percent
-
-SV1 <- SVs %>%
-  as.data.frame() %>%
-  rownames_to_column("Feature.ID") %>%
-  gather(-Feature.ID, key="SampleID", value="Abundance") %>%
-  group_by(SampleID, Feature.ID) %>%
-  summarize(Abundance=sum(Abundance)) %>%
-  left_join(metadata) %>%
-  mutate(NormAbundance=log10(Abundance+0.01)) %>% # do a log10 transformation after adding a 0.01% pseudocount. Could also add 1 read before transformation to percent
-  left_join(taxonomy) 
-
-p1 <- ggplot(SV1, aes(x=SampleID, y=Genus, fill=NormAbundance)) +
-  geom_tile() +
-  facet_grid(paste0('~', SV1[,grouping]), scales="free_x") +
-  theme_q2r() +
-  theme(axis.text.x=element_text(angle=45, hjust=1, size=10), text = element_text(size = 10)) +
-  scale_y_discrete(labels = function(x) stringr::str_wrap(x, width = 65)) +
-  scale_fill_viridis_c(name="log10(% Abundance)")
-
-p1
-```
-
-### Bar plot.
-
-</br>
-Lets look at the proportion of the different genra per sample. For the first plot I use the phyloseq object in which ASVs are not agglomerated at a genus level and therefore the ASVs with unassigned genus are not removed. For the second plot I use the phyloseq object in which ASVs have been agglomerated at genus level and thus the features with unassigned genus are removed. 
-
-For interactive barplots look here:
-[Interactive QIIME2 Barplots](`r taxbarplot`){target="_blank"}
-
-</br>
-
-```{r, fig.width = 15, fig.height=11, echo=FALSE}
-
-p1 = psmelt(physeq2) %>%
-    ggplot(aes(x = Sample, y = Abundance, fill = Genus)) +
-    geom_bar(stat = "identity") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-    labs(y = "Relative Abundance", title = "Genus Relative Abundance")
-
-p2 = psmelt(physeq_Genus2) %>%
-    ggplot(aes(x = Sample, y = Abundance, fill = Genus)) +
-    geom_bar(stat = "identity") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-    labs(y = "Relative Abundance", title = "Genus Relative Abundance")
-
-plotGrob <- plot_grid(p1, p2, nrow=2, ncol=1, byrow=FALSE)
-print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
-```
-
-### Phylogenetic tree.     
-
-</br>
-It would also be useful to look at how the different lineages in the sample are related. This is a phylogenetic tree of the features present in the sample. The nodes are coloured by the genus and a ring around has plotted abundance in boxplots across all samples (minimum abundance  - 50). The boxplots are coloured by phylum.
-
-```{r, fig.width = 15, echo=FALSE}
-melt_simple <- psmelt(physeq1) %>%
-               filter(Abundance < 50) %>%
-               dplyr::select(OTU, val=Abundance)
-
-p <- ggtree(physeq1, layout="fan", open.angle=10) + 
-     geom_tippoint(mapping=aes(color=Genus), 
-                   size=1.5,
-                   show.legend=TRUE)
-p <- rotate_tree(p, -90)
-p <- p + geom_fruit(data=melt_simple, geom=geom_boxplot,
-         mapping = aes(
-                     y=OTU,
-                     x=val,
-                     fill=Phylum),
-         size=.2,
-         outlier.size=0.5,
-         outlier.stroke=0.08,
-         outlier.shape=21,
-         axis.params=list(
-                         axis       = "x",
-                         text.size  = 1.8,
-                         hjust      = 1,
-                         vjust      = 0.5,
-                         nbreak     = 3),
-         grid.params=list()) 
-p <- p + scale_fill_discrete( name="Phylum", guide=guide_legend(keywidth=0.8, keyheight=0.8, ncol=1)) +
-     theme(legend.title=element_text(size=9), legend.text=element_text(size=7))
-p
-```
-
-### Venn Diagram.   
-</br>
-How are the ASVs/Genra/Phyla distributed across the groups?
-</br>
-
-```{r, echo=FALSE, fig.width=20, fig.height=9}
-SVs<-as.data.frame(otu_table(physeq1))
-taxonomy<-as.data.frame(tax_table(physeq1))
-taxonomy$Feature.ID <- rownames(taxonomy)
-
-SV1 <- SVs %>%
-  as.data.frame() %>%
-  rownames_to_column("Feature.ID") %>%
-  gather(-Feature.ID, key="SampleID", value="Abundance") %>%
-  group_by(SampleID, Feature.ID) %>%
-  left_join(metadata) %>%
-  left_join(taxonomy) 
-
-x1 <- list()
-for (group in levels(as.factor(metadata[,grouping, drop = TRUE]))) {
-  x1[[group]] <- unique(SV1$Feature.ID[SV1$Abundance >= 1 & SV1[,grouping] == group])
+## Strip square brackets, fix common SILVA quirks (UCG-, A2, group, uncultured).
+clean_taxonomy <- function(ps) {
+  tax <- as.data.frame(tax_table(ps), stringsAsFactors = FALSE)
+  if ("Genus" %in% colnames(tax)) {
+    tax$Genus <- gsub("\\[|\\]", "", tax$Genus)
+    tax$Genus[tax$Genus == "uncultured uncultured"] <- "unknown uncultured"
+    idx_grp <- grepl("group", tax$Genus)
+    tax$Genus[idx_grp] <- str_remove(tax$Genus[idx_grp], "_group")
+    tax$Genus[tax$Genus == "UCG-010"] <- "Oscillospirales UCG-010"
+    if ("Family" %in% colnames(tax)) {
+      idx <- grepl("^UCG", tax$Genus) & !grepl("^UCG", tax$Family) & !is.na(tax$Family)
+      tax$Genus[idx] <- paste0(tax$Family[idx], "_", tax$Genus[idx])
+    }
+    tax$Genus[tax$Genus == "A2"] <- "Lachnospiraceae_A2"
+  }
+  if ("Family" %in% colnames(tax)) tax$Family <- gsub("\\[|\\]", "", tax$Family)
+  tax_table(ps) <- tax_table(as.matrix(tax))
+  ps
 }
 
-x2 <- list()
-for (group in levels(as.factor(metadata[,grouping, drop = TRUE]))) {
-  x2[[group]] <- unique(SV1$Genus[SV1$Abundance >= 1 & SV1[,grouping] == group])
+## NULL if no taxa survive after pruning zero-sum taxa.
+safe_prune_nonzero <- function(physeq) {
+  if (is.null(physeq)) return(NULL)
+  keep <- taxa_sums(physeq) > 0
+  if (sum(keep) == 0) return(NULL)
+  prune_taxa(keep, physeq)
 }
 
-x3 <- list()
-for (group in levels(as.factor(metadata[,grouping, drop = TRUE]))) {
-  x3[[group]] <- unique(SV1$Phylum[SV1$Abundance >= 1 & SV1[,grouping] == group])
+## Standard DT widget matching the rest of the FGCZ reports.
+fgcz_dt <- function(x, caption = NULL, escape = TRUE, page_length = 10) {
+  datatable(x,
+            caption    = caption,
+            escape     = escape,
+            extensions = "Buttons",
+            rownames   = FALSE,
+            options    = list(scrollX    = TRUE,
+                              dom        = "lftBip",
+                              buttons    = c("copy", "csv", "excel"),
+                              pageLength = page_length,
+                              lengthMenu = c(10, 20, 100, 200)))
 }
 
-if (length(levels(as.factor(metadata$Group))) <= 5) {
-  venn1 <- ggvenn(
-    x1, 
-    set_name_size = 4, text_size = 4) + ggtitle("Shared ASVs")
-  venn2 <- ggvenn(
-    x2, 
-    set_name_size = 4, text_size = 4
-  ) + ggtitle("Shared Genra")
-  venn3 <- ggvenn(
-    x3, 
-    set_name_size = 4, text_size = 4
-  ) + ggtitle("Shared Phyla")
+## Save a ggplot/plotly widget as a self-contained HTML alongside the report.
+save_interactive_widget <- function(widget, fname) {
+  fpath <- file.path(.report_dir, fname)
+  tryCatch({
+    htmlwidgets::saveWidget(widget, fpath, selfcontained = TRUE)
+    fname
+  }, error = function(e) { message("saveWidget failed: ", e$message); "" })
 }
 
-x1 <- rapply(x1, na.omit, how = "replace")
-x2 <- rapply(x2, na.omit, how = "replace")
-x3 <- rapply(x3, na.omit, how = "replace")
-
-m1 = make_comb_mat(x1, mode = "distinct")
-m2 = make_comb_mat(x2, mode = "distinct")
-m3 = make_comb_mat(x3, mode = "distinct")
-
-if (length(levels(as.factor(metadata[,grouping, drop = TRUE]))) > 5) {
-  venn1 <- UpSet(
-    m = m1,
-    comb_order = order(comb_size(m1), decreasing = T),
-    top_annotation = upset_top_annotation(m1, add_numbers = TRUE),
-    right_annotation = upset_right_annotation(m1, add_numbers = TRUE)
-  )
-  venn2 <- UpSet(
-    m = m2,
-    comb_order = order(comb_size(m1), decreasing = T),
-    top_annotation = upset_top_annotation(m1, add_numbers = TRUE),
-    right_annotation = upset_right_annotation(m1, add_numbers = TRUE)
-  )
-  venn3 <- UpSet(
-    m = m3,
-    comb_order = order(comb_size(m1), decreasing = T),
-    top_annotation = upset_top_annotation(m1, add_numbers = TRUE),
-    right_annotation = upset_right_annotation(m1, add_numbers = TRUE)
-  )
+## Aggregate to a rank and return a long df with per-sample rel. abundance.
+taxa_aggregate_rank <- function(ps, rank) {
+  df <- psmelt(ps)
+  df <- df[!is.na(df[[rank]]), , drop = FALSE]
+  df %>%
+    dplyr::group_by(Sample, Group, !!rlang::sym(rank)) %>%
+    dplyr::summarise(Abundance = sum(Abundance, na.rm = TRUE), .groups = "drop") %>%
+    dplyr::group_by(Sample) %>%
+    dplyr::mutate(SampleTotal  = sum(Abundance, na.rm = TRUE),
+                  RelAbundance = ifelse(SampleTotal > 0, Abundance / SampleTotal, 0)) %>%
+    dplyr::select(-SampleTotal) %>%
+    dplyr::ungroup()
 }
 
-plotGrob <- plot_grid(venn1, venn2, venn3, nrow=1, ncol=3, byrow=FALSE)
-print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 15)))
-
-```
-
-## Alpha diversity
-
-### Rarefaction curve
-
-We rarified the data before calculating alpha and beta diversity. Lets see if the threshold we applied was reasonable and what we could expect from the data if we rarefied at different depth: 
-
-```{r, fig.width = 5, fig.height = 5, echo=FALSE}
-otu_tab <- t(abundances(physeq1))
-p <- rarecurve(otu_tab, step=50, cex=0.5)
-```
-</br>
-See here for QIIME2 Interactive Report:
-[Interactive QIIME2 Rarefaction](`r alpha_raref`){target="_blank"}
-
-### All measures
-
-</br>
-
-```{r, fig.width = 9, fig.height = 5, echo=FALSE}
-#Shannon diversity boxplots
-metadata <- metadata %>% left_join(shannon) %>% left_join(richness) %>% left_join(evenness)
-
-
-fig <- ggplot(metadata, aes(x=metadata[,grouping], y=shannon_entropy)) + 
-  geom_boxplot() + 
-  geom_jitter(shape=21, width=0.2, height=0) + 
-  xlab(grouping)  + theme(axis.text.x = element_text(size= 8))
-fig <- ggplotly(fig)
-
-fig2 <- ggplot(metadata, aes(x=metadata[,grouping], y=observed_features)) + 
-  geom_boxplot() + 
-  geom_jitter(shape=21, width=0.2, height=0) + 
-  xlab(grouping)  + theme(axis.text.x = element_text(size= 8))
-fig2 <- ggplotly(fig2)
-
-fig3 <- ggplot(metadata, aes(x=metadata[,grouping], y=pielou_evenness)) + 
-  geom_boxplot() + 
-  geom_jitter(shape=21, width=0.2, height=0) + 
-  xlab(grouping)  + theme(axis.text.x = element_text(size= 8))
-fig3 <- ggplotly(fig3)
-
-annotations = list( 
-  list( 
-    x = 0.1,  
-    y = 1.0,  
-    text = "Shannon Diversity",  
-    xref = "paper",  
-    yref = "paper",  
-    xanchor = "center",  
-    yanchor = "bottom",  
-    showarrow = FALSE 
-  ),  
-  list( 
-    x = 0.5,  
-    y = 1,  
-    text = "Observed Features",  
-    xref = "paper",  
-    yref = "paper",  
-    xanchor = "center",  
-    yanchor = "bottom",  
-    showarrow = FALSE 
-  ),  
-  list( 
-    x = 0.8,  
-    y = 1,  
-    text = "Pielou Evenness",  
-    xref = "paper",  
-    yref = "paper",  
-    xanchor = "center",  
-    yanchor = "bottom",  
-    showarrow = FALSE 
-  ))
-
-fig4 <- subplot(fig, fig2, fig3) %>% layout(annotations = annotations)
-fig4
-```
-
-</br>
-
-### Plots with marked significance - mean comparisons
-
-```{r, fig.width = 9, fig.height = 5, echo=FALSE}
-metadata_melt <- reshape2::melt(metadata)
-lev <- levels(as.factor(metadata_melt$Group)) # get the variables
-
-# make a pairwise list that we want to compare.
-L.pairs <- combn(seq_along(lev), 2, simplify = FALSE, FUN = function(i) lev[i])
-
-pval <- list(
-  cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 1),
-  symbols = c("****", "***", "**", "*", "n.s")
-)
-
-p <- ggboxplot(metadata_melt, x = grouping, y = "value",
-              fill = grouping, 
-              palette = "jco", 
-              legend= "right",
-              facet.by = "variable", 
-              scales = "free") + rremove("x.text")
-p2 <- p + stat_compare_means(
-  comparisons = L.pairs,
-  label = "p.signif",
-  symnum.args = list(
-    cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 1),
-    symbols = c("****", "***", "**", "*", "n.s")
-  )
-)
-
-print(p2)
-```
-
-### Shannon diversity significance - Kruskal-Wallis
-
-</br>
-
-#### Kruskal-Wallis all groups
-
-```{r, echo=FALSE}
-m <- kruskal.test(metadata$shannon_entropy ~ metadata$Group)
-knitr::knit_print(paste("Global Kruskal-Wallis Chi-squared value = ", m$statistic[[1]]))
-knitr::knit_print(paste("Global Kruskal-Wallis p-value = ", round(m$p.value,4)))
-```
-
-#### Kruskal-Wallis (pairwise)
-
-```{r, echo=FALSE}
-if (length(levels(as.factor(metadata$Group))) > 2){
-  kable(wilcox_test(data = metadata, formula = as.formula(paste("shannon_entropy", "~", "Group")), p.adjust.method = "BH")[,c("group1", "group2", "n1", "n2", "statistic", "p", "p.adj", "p.adj.signif")]) %>% kable_styling()
-} else {
-  kable(pairwise_wilcox_test(data = metadata, formula = as.formula(paste("shannon_entropy", "~", "Group")), p.adjust.method = "BH")[,c("group1", "group2", "n1", "n2", "statistic", "p", "p.adj", "p.adj.signif")]) %>% kable_styling()
+plot_taxa_bar_all <- function(ps, rank, ylab) {
+  agg <- taxa_aggregate_rank(ps, rank)
+  if (nrow(agg) == 0) return(ggplot() + theme_void() + ggtitle(paste("No", rank, "data")))
+  cols <- colorRampPalette(brewer.pal(12, "Set3"))(length(unique(agg[[rank]])))
+  ggplot(agg, aes(x = Sample, y = Abundance, fill = .data[[rank]])) +
+    facet_grid(~Group, scales = "free_x") +
+    geom_bar(stat = "identity", position = "fill") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "bottom") +
+    labs(y = ylab) +
+    scale_fill_manual(values = cols)
 }
-```
 
-</br>
-
-See here for QIIME2 Interactive Report:
-[Interactive QIIME2 Shannon](`r shannon_report`){target="_blank"}
-
-## Beta diversity 
-
-### Jaccard Diversity Index. {.tabset}
-
-See here for QIIME2 Interactive Report:       
-</br>
-[Interactive QIIME2 Jaccard](`r jaccard_report`){target="_blank"}
-</br>
-[Interactive QIIME2 3D PCA](`r jaccard_pca`){target="_blank"}
-</br>
-
-#### Bar plot 
-
-```{r, fig.height = 5, fid.width = 8, echo=FALSE}
-xy <- t(combn(colnames(jaccardmatrix),2))
-jaccard_distance <- data.frame(xy, dist=jaccardmatrix[xy])
-colnames(jaccard_distance) <- c("Sample1", "Sample2", "dist")
-jaccard_distance <- jaccard_distance %>% mutate(SampleID = Sample1) %>% left_join(metadata) %>% mutate(GroupA = Group) %>% select(c(Sample1,Sample2,dist, GroupA)) %>% mutate(SampleID=Sample2)  %>% left_join(metadata) %>% mutate(GroupB = Group) %>% select(c(Sample1,Sample2,dist, GroupA, GroupB))
-
-p1 <- ggplot(jaccard_distance, aes(x=GroupA, y=dist, fill = GroupB)) + geom_boxplot() + xlab("GroupA") + ylab("Jaccard Distance")
-
-p1
-```
-
-#### PCoA 
-
-```{r, fig.height = 5, fid.width = 5, echo=FALSE}
-jaccard <- jaccard$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% left_join(shannon) 
-
-#jaccard$data$Vectors %>%
-#  select(SampleID, PC1, PC2) %>%
-#  left_join(metadata) %>%
-#  left_join(shannon) %>%
-#  ggplot(aes(x=PC1, y=PC2, color=`Group`, shape=`Housing`, size=shannon)) +
-#  geom_point(alpha=0.5) + #alpha controls transparency and helps when points are overlapping
-#  theme_q2r() +
-#   scale_shape_manual(values=c(16,1), name="Housing") + #see http://www.sthda.com/sthda/RDoc/figure/graphs/r-plot-pch-symbols-points-in-r.png for numeric shape codes
-#  scale_size_continuous(name="Shannon Diversity") +
-#  scale_color_discrete(name="Group")
-  
-ggplot(jaccard, aes(x=PC1, y=PC2, color=jaccard[,grouping])) +
-  geom_point(alpha=0.5, size = 5) +
-  theme_q2r() +
-  scale_color_discrete(name=grouping) + stat_ellipse()
-
-```
-
-#### Permanova results 
-
-```{r, echo=FALSE}
-metadata2 <- metadata[metadata$SampleID %in% rownames(jaccardmatrix),]
-permanova <- adonis2(jaccardmatrix ~ metadata2$Group, permutations = 999, method = "jaccard")
-knitr::knit_print(paste0("Global PERMANOVA p-value = ", permanova$`Pr(>F)`[1]))
-knitr::knit_print(paste0("Global PERMANOVA F-statistic = ", round(permanova$F[1],2)))
-kable(pairwise.adonis(jaccardmatrix, metadata2$Group, perm = 999, sim.method = "jaccard")[,c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted","significance"))) %>% kable_styling()
-```
-
-### Bray Curtis Dissimilarity. {.tabset}
-
-See here for QIIME2 Interactive Report:
-</br>
-[Interactive QIIME2 BrayCurtis](`r bc_report`){target="_blank"}
-</br>
-[Interactive QIIME2 3D PCA](`r bc_pca`){target="_blank"}
-</br>
-
-#### Barplot
-
-```{r, fig.height = 5, fid.width = 8, echo=FALSE}
-bc <- t(combn(colnames(braymatrix),2))
-bray_distance <- data.frame(bc, dist=braymatrix[bc])
-colnames(bray_distance) <- c("Sample1", "Sample2", "dist")
-bray_distance <- bray_distance %>% mutate(SampleID = Sample1) %>% left_join(metadata) %>% mutate(GroupA = Group) %>% select(c(Sample1,Sample2,dist, GroupA)) %>% mutate(SampleID=Sample2)  %>% left_join(metadata) %>% mutate(GroupB = Group) %>% select(c(Sample1,Sample2,dist, GroupA, GroupB))
-
-p1 <- ggplot(bray_distance, aes(x=GroupA, y=dist, fill = GroupB)) + geom_boxplot() + xlab("GroupA") + ylab("Bray Distance")
-
-p1
-```
-
-
-#### PCoA 
-
-```{r, fig.height = 5, fid.width = 5, echo=FALSE}
-bray <- bray$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% left_join(shannon)
-
-ggplot(bray, aes(x=PC1, y=PC2, color=bray[,grouping])) +
-  geom_point(alpha=0.5, size = 5) +
-  theme_q2r() +
-  scale_color_discrete(name=grouping) + stat_ellipse()
-```
-
-#### NMDS
-```{r, fig.height = 5, fid.width = 5, echo=FALSE}
-ps1.rel <- microbiome::transform(physeq1, "compositional")
-p <- plot_landscape(ps1.rel, 
-                    "NMDS", 
-                    "bray", 
-                    col = grouping) +
-       labs(title = paste("NMDS / Bray"))
-p
-```
-
-
-#### Permanova results 
-
-```{r, echo=FALSE}
-permanova <- adonis2(braymatrix ~ metadata2$Group, permutations = 999, method = "bray")
-knitr::knit_print(paste0("Global PERMANOVA p-value = ", permanova$`Pr(>F)`[1]))
-knitr::knit_print(paste0("Global PERMANOVA F-statistic = ", round(permanova$F[1],2)))
-kable(pairwise.adonis(braymatrix, metadata2$Group, perm = 999, sim.method = "bray")[,c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted","significance"))) %>% kable_styling()
-```
-
-### Weighted UniFrac distance. {.tabset}
-
-#### Bar plot 
-
-```{r, fig.height = 5, fid.width = 8, echo=FALSE}
-bc <- t(combn(colnames(unifracmatrix),2))
-unifrac_distance <- data.frame(bc, dist=unifracmatrix[bc])
-colnames(unifrac_distance) <- c("Sample1", "Sample2", "dist")
-unifrac_distance <- unifrac_distance %>% mutate(SampleID = Sample1) %>% left_join(metadata) %>% mutate(GroupA = Group) %>% select(c(Sample1,Sample2,dist, GroupA)) %>% mutate(SampleID=Sample2)  %>% left_join(metadata) %>% mutate(GroupB = Group) %>% select(c(Sample1,Sample2,dist, GroupA, GroupB))
-
-p1 <- ggplot(unifrac_distance, aes(x=GroupA, y=dist, fill = GroupB)) + geom_boxplot() + xlab("GroupA") + ylab("Weighted UniFrac Distance")
-
-p1
-```
-
-
-#### PCoA 
-
-```{r, fig.height = 5, fid.width = 5, echo=FALSE}
-unifrac <- unifrac$data$Vectors %>% select(SampleID, PC1, PC2) %>% left_join(metadata) %>% left_join(shannon)
-
-ggplot(unifrac, aes(x=PC1, y=PC2, color=unifrac[,grouping])) +
-  geom_point(alpha=0.5, size = 5) +
-  theme_q2r() +
-  scale_color_discrete(name=grouping) + stat_ellipse()
-```
-
-#### Permanova results 
-
-```{r, echo=FALSE}
-permanova <- adonis2(unifracmatrix ~ metadata2$Group, permutations = 999, method = "uni")
-knitr::knit_print(paste0("Global PERMANOVA p-value = ", permanova$`Pr(>F)`[1]))
-knitr::knit_print(paste0("Global PERMANOVA F-statistic = ", round(permanova$F[1],2)))
-kable(pairwise.adonis(unifracmatrix, metadata2$Group, perm = 999, sim.method = "bray")[,c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted", "sig")] %>% mutate(significance = sig) %>% select(c("pairs", "SumsOfSqs", "F.Model", "R2", "p.value", "p.adjusted","significance"))) %>% kable_styling()
-```
-
-#### Homogeneity of variance 
-
-```{r, echo=FALSE}
-dispersion <- betadisper(as.dist(unifracmatrix), metadata2$Group)
-permutest(dispersion, pairwise = TRUE)
-```
-
-## Differential abundance tests {.tabset}
-
-### Properties of taxonomic profiling data
-
-#### Overdispersion
-</br>
-Let's check if the variance exceeds the mean over all samples for each taxon.
-
-```{r, fig.width = 5, fig.height = 5, echo=FALSE}
-means <- apply(otu_table(physeq1),1,mean)
-variances <- apply(otu_table(physeq1),1,var)
-df <- reshape2::melt(otu_table(physeq1))
-names(df) <- c("Taxon", "Sample", "Reads")
-df <- df %>% group_by(Taxon) %>%
-             summarise(mean = mean(Reads),
-                   variance = var(Reads))
-
-# Illustrate overdispersion
-library(scales)
-p <- ggplot(df, aes(x = mean, y = variance)) +
-       geom_point() +
-       geom_abline(aes(intercept = 0, slope = 1)) +
-       scale_x_log10(labels = scales::scientific) +
-       scale_y_log10(labels = scales::scientific) +
-       labs(title = "Overdispersion (variance > mean)")
-p
-```
-
-#### Sparsity.  
-</br>
-Is the data sparsely distributed?
-
-```{r, fig.width = 5, fig.height = 5, echo=FALSE}
-log10abundance <- reshape2::melt(log10(1 + otu_table(physeq1)))$value
-hist(log10abundance, 100)
-```
-
-
-#### Rarity.      
-</br>
-Do we see a lot of rare taxa?
-
-```{r, fig.width = 5, fig.height = 5, echo=FALSE}
-medians <- apply(otu_table(physeq1),1,median)/1e3
-A <- reshape2::melt(otu_table(physeq1))
-A = A %>% arrange(desc(value))
-A$Var1 = factor(A$Var1, levels = unique(A$Var1))
-p <- ggplot(A, aes(x = Var1, y = value)) +
-        geom_boxplot() + theme(axis.text.x = element_blank()) +
-    labs(y = "Abundance (reads)", x = "Taxonomic Group") +
-    scale_y_log10()
-    
-print(p)
-```
-
-#### Rareify or not to rareify
-
-We do not rareify the data as there have been arguments in the literature against doing so. 
-Rarefiying:     
-+ requires an arbitrary selection of a library size minimum threshold,    
-+ implies getting rid of informative data and       
-+ has been shown to cause adds artificial uncertainty      
-+ as well as an increase in Type-I and Type-II error.     
-
-If you would like to know more, read the following publication:
-</br>
-+[Waste Not, Want Not: Why Rarefying Microbiome Data Is Inadmissible](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003531)
-
-#### Differential abundance testing.      
-</br>
-Advanced methods of differential abundance testing based on linear regression are applied because sequencing data sets deviate from symmetric, continuous, Gaussian assumptions in many ways. Types of tests that could be applied:
-
-- ANCOMBC (Analysis of Microbial Composition with Bias Correction).   
-- DESeq2
-- EdgeR
-- Combination of EdgeR and DESeq2
-- LEFse (LDA Effect Size)
-You can also run:
-
-
-
-
-</br>
-
-### ANCOM-BC {.tabset}
-
-ANCOM is claimed to produce the most consistent results and is probably a conservative approach. See +[here](https://www.nature.com/articles/s41467-022-28034-z) for more information. The method incorporates sampling fraction into the model which is estimated as the ratio of the library size to the microbial load. It also controls for the false discovery rate. For the analysis we will agglomerate features by Genus, we will eliminate any taxa that appear in below 10% of samples and we will correct the p-value with Bonferroni Hochberg correction method.  We will consider as significant only the taxa for which the q-value is below 0.05.
-
-See here for QIIME2 ANCOM Interactive Report run on ASV level, not on Genus level:
-[Interactive QIIME2 ANCOM](`r difabundance`){target="_blank"}
-
-</br> 
-
-#### ANCOM-BC Primary Test Results Genus
-
-Result from the ANCOM-BC log-linear model to determine taxa that are differentially abundant according to the covariate of interest. It contains: 1) log fold changes; 2) standard errors; 3) test statistics; 4) p-values; 5) adjusted p-values; 6) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
-
-```{r, echo=FALSE}
-res<- ANCOMBC::ancombc2(data = physeq1,
-                 fix_formula = grouping, 
-                 tax_level = "Genus",
-                 p_adj_method = "BH", 
-                 lib_cut = 0, 
-                 prv_cut = 0.1,
-                 group = grouping, 
-                 struc_zero = TRUE, 
-                 neg_lb = TRUE, 
-                 iter_control = list(tol = 1e-5, max_iter = 100, verbose = TRUE), 
-                 alpha = 0.05, 
-                 global = TRUE)
-```
-
-</br> 
-Lets look at table 6).Each group is compared to reference group and if the difference is significant the output is TRUE.
-
-```{r, echo=FALSE}
-res$res %>%
-  select(taxon, starts_with("diff_") & !starts_with("diff_robust_")) %>%
-  rename_with(~ gsub("diff_Group|diff_", "", .x), starts_with("diff_")) %>%
-  datatable()
-```
-</br> 
-Lets look at table 1): the Log Fold Changes from the Primary Result.
-</br> 
-
-```{r, echo=FALSE}
-tab_lfc <- res$res %>% select(taxon, starts_with("lfc_"))
-tab_lfc %>% 
-  datatable(caption = "Log Fold Changes from the Primary Result") %>% 
-  formatRound(colnames(tab_lfc)[-1], digits = 2)
-```
-</br> 
-Lets look at table 5): the adjusted p-values.
-</br> 
-
-```{r, echo=FALSE}
-tab_q <- res$res %>% select(taxon, starts_with("q_"))
-tab_q %>% 
-  datatable(caption = "Adjusted p-values from the Primary Result") %>%
-  formatRound(colnames(tab_q)[-1], digits = 2)
-```
-</br> 
-Lets obtain bias-corrected abundances.    
-Step 1: obtain estimated sample-specific sampling fractions (in log scale).     
-Step 2: correct the log observed abundances by subtracting the estimated sampling fraction from log observed abundances of each sample.    
-</br> 
-Note that we are only able to estimate sampling fractions up to an additive constant. Thus, only the difference between bias-corrected abundances are meaningful.    
-</br> 
-```{r, echo=FALSE}
-samp_frac = res$samp_frac
-# Replace NA with 0
-samp_frac[is.na(samp_frac)] = 0
-# Add pesudo-count (1) to avoid taking the log of 0
-log_obs_abn = log(res$feature_table + 1)
-# Adjust the log observed abundances
-log_corr_abn = t(t(log_obs_abn) - samp_frac)
-# Show the first 6 samples
-round(log_corr_abn[, 1:6], 2) %>% 
-  datatable(caption = "Bias-corrected log observed abundances")
-```
-</br> 
-Lets visualise log fold changes per grouping factor.
-</br> 
-```{r, fig.width = 8, fig.height=6, echo=FALSE}
-# Build lfc and se tables masked by diff_ significance
-diff_cols <- res$res %>% select(starts_with("diff_") & !starts_with("diff_robust_"))
-lfc_cols  <- res$res %>% select(starts_with("lfc_"))
-se_cols   <- res$res %>% select(starts_with("se_"))
-
-# Align column names
-colnames(diff_cols) <- gsub("diff_", "", colnames(diff_cols))
-colnames(lfc_cols)  <- gsub("lfc_",  "", colnames(lfc_cols))
-colnames(se_cols)   <- gsub("se_",   "", colnames(se_cols))
-
-tab_lfc <- data.frame(lfc_cols * diff_cols, check.names = FALSE) %>%
-  mutate(taxon_id = res$res$taxon) %>%
-  select(taxon_id, everything())
-
-tab_se <- data.frame(se_cols * diff_cols, check.names = FALSE) %>%
-  mutate(taxon_id = res$res$taxon) %>%
-  select(taxon_id, everything())
-colnames(tab_se)[-1] <- paste0(colnames(tab_se)[-1], "_SE")
-
-group_cols <- colnames(tab_lfc)[grepl("Group", colnames(tab_lfc))]
-
-for (i in group_cols) {
-  se_col <- paste0(i, "_SE")
-  
-  tab_for_plot <- tab_lfc %>%
-    left_join(tab_se, by = "taxon_id") %>%
-    transmute(taxon_id, fold_change = .data[[i]], SE = .data[[se_col]]) %>%
-    filter(fold_change != 0) %>%
-    arrange(desc(fold_change)) %>%
-    mutate(direct = ifelse(fold_change > 0, "Positive LFC", "Negative LFC"))
-  
-  tab_for_plot$taxon_id <- factor(tab_for_plot$taxon_id, levels = tab_for_plot$taxon_id)
-  tab_for_plot$direct   <- factor(tab_for_plot$direct, levels = c("Positive LFC", "Negative LFC"))
-  
-  print(ggplot(data = tab_for_plot,
-         aes(x = taxon_id, y = fold_change, fill = direct, color = direct)) +
-    geom_bar(stat = "identity", width = 0.7, position = position_dodge(width = 0.4)) +
-    geom_errorbar(aes(ymin = fold_change - SE, ymax = fold_change + SE), width = 0.2,
-                  position = position_dodge(0.05), color = "black") +
-    labs(x = NULL, y = "Log fold change",
-         title = paste("Log fold changes as one unit increase of", i)) +
-    scale_fill_discrete(name = NULL) +
-    scale_color_discrete(name = NULL) +
+plot_taxa_bar_topN <- function(ps, rank, N, ylab) {
+  agg <- taxa_aggregate_rank(ps, rank)
+  if (nrow(agg) == 0) return(ggplot() + theme_void() + ggtitle(paste("No", rank, "data")))
+  ranking <- agg %>%
+    dplyr::group_by(.data[[rank]]) %>%
+    dplyr::summarise(MeanRel = mean(RelAbundance, na.rm = TRUE), .groups = "drop") %>%
+    dplyr::arrange(dplyr::desc(MeanRel))
+  top <- as.character(ranking[[rank]][seq_len(min(N, nrow(ranking)))])
+  agg$TaxonDisp <- ifelse(as.character(agg[[rank]]) %in% top,
+                          as.character(agg[[rank]]), "Other")
+  agg <- agg %>%
+    dplyr::group_by(Sample, Group, TaxonDisp) %>%
+    dplyr::summarise(Abundance = sum(Abundance, na.rm = TRUE), .groups = "drop")
+  lvls <- c(top, "Other")
+  lvls <- lvls[lvls %in% unique(agg$TaxonDisp)]
+  agg$TaxonDisp <- factor(agg$TaxonDisp, levels = lvls)
+  cols <- colorRampPalette(brewer.pal(12, "Set3"))(length(lvls))
+  if ("Other" %in% lvls) cols[length(lvls)] <- "grey70"
+  ggplot(agg, aes(x = Sample, y = Abundance, fill = TaxonDisp)) +
+    facet_grid(~Group, scales = "free_x") +
+    geom_bar(stat = "identity", position = "fill") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "bottom") +
+    labs(y = ylab, fill = NULL) +
+    scale_fill_manual(values = cols)
+}
+
+make_taxa_wide_table <- function(ps, rank) {
+  agg <- taxa_aggregate_rank(ps, rank) %>%
+    dplyr::mutate(RelAbundancePct = round(RelAbundance * 100, 3)) %>%
+    dplyr::select(Sample, !!rlang::sym(rank), RelAbundancePct)
+  wide <- tidyr::pivot_wider(agg, names_from = Sample,
+                             values_from = RelAbundancePct, values_fill = 0)
+  sample_cols <- setdiff(colnames(wide), rank)
+  mat <- as.matrix(wide[, sample_cols, drop = FALSE]); mode(mat) <- "numeric"
+  wide$`Mean%`       <- round(rowMeans(mat, na.rm = TRUE), 3)
+  wide$`Prevalence%` <- round(rowSums(mat > 0, na.rm = TRUE) / length(sample_cols) * 100, 1)
+  wide <- wide[, c(rank, "Mean%", "Prevalence%", sample_cols), drop = FALSE]
+  wide[order(-wide$`Mean%`), , drop = FALSE]
+}
+
+## Per-sample relative abundance transform that doesn't divide by zero.
+to_rel <- function(ps) {
+  transform_sample_counts(ps, function(x) {
+    s <- sum(x, na.rm = TRUE)
+    if (s == 0) return(x)
+    x / s * 100
+  })
+}
+
+plot_level_heatmap <- function(ps, level = "Genus", title = "") {
+  df <- psmelt(to_rel(ps))
+  df <- df[!is.na(df[[level]]), , drop = FALSE]
+  if (nrow(df) == 0) return(ggplot() + theme_void() + ggtitle(paste("No", level, "data")))
+  df <- df %>%
+    dplyr::group_by(Sample, Group, .data[[level]]) %>%
+    dplyr::summarise(Abundance = sum(Abundance, na.rm = TRUE), .groups = "drop") %>%
+    dplyr::mutate(NormAbundance = log10(Abundance + 0.01))
+  ggplot(df, aes(x = Sample, y = .data[[level]], fill = NormAbundance)) +
+    geom_tile() +
+    facet_grid(~Group, scales = "free_x") +
+    scale_fill_viridis_c(name = "Log10 Abundance") +
     theme_bw() +
-    theme(plot.title = element_text(hjust = 0.5),
-          panel.grid.minor.y = element_blank(),
-          axis.text.x = element_text(size = 6, angle = 60, hjust = 1)))
-}
-```
-
-
-```{r, echo=FALSE}
-# 1. Table of structural zero taxa
-res$zero_ind %>%
-  filter(rowSums(.[,-1]) > 0) %>%
-  datatable(caption = "Taxa excluded from model due to structural zeros (absent in at least one group)")
-
-# 2. Agglomerate to genus and fix names
-physeq_genus <- tax_glom(physeq1, taxrank = "Genus", NArm = FALSE)
-tax_df <- as.data.frame(tax_table(physeq_genus))
-genus_names <- ifelse(is.na(tax_df$Genus), paste0("Unknown_", seq_len(nrow(tax_df))), tax_df$Genus)
-genus_names <- make.unique(genus_names)
-taxa_names(physeq_genus) <- genus_names
-
-# 3. Compute observed lfc from physeq_genus (ALL taxa)
-log_obs_abn <- as(otu_table(physeq_genus), "matrix")
-
-# Robustly ensure Taxa are rows and Samples are columns
-if (!taxa_are_rows(physeq_genus)) {
-  log_obs_abn <- t(log_obs_abn)
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) +
+    labs(y = level, x = "Sample ID", title = title)
 }
 
-# Apply log transformation
-log_obs_abn <- log(log_obs_abn + 1)
-
-# Bias correction using samp_frac from the model (only for the 3 modelled taxa)
-# For all taxa we just use raw log abundances as observed lfc
-group_info   <- factor(sample_data(physeq_genus)[[grouping]])
-ref_group    <- levels(group_info)[1]
-other_groups <- levels(group_info)[-1]
-
-group_means <- sapply(levels(group_info), function(g) {
-  rowMeans(log_obs_abn[, group_info == g, drop = FALSE])
-})
-
-obs_lfc <- as.data.frame(group_means[, other_groups, drop = FALSE] - group_means[, ref_group])
-obs_lfc$taxon <- rownames(obs_lfc)
-
-# 4. Significance from model (Keeping your original logic)
-sig_df <- res$res %>%
-  select(taxon, starts_with("diff_") & !starts_with("diff_robust_")) %>%
-  rename_with(~ gsub("diff_Group", "", .x), starts_with("diff_"))
-
-# 5. Structural zero taxa
-struc_zero_taxa <- res$zero_ind$taxon
-
-# 6. Plot per group
-for (grp in other_groups) {
-  tab_for_plot <- obs_lfc %>%
-    select(taxon, fold_change = all_of(grp)) %>%
-    left_join(sig_df %>% select(taxon, significant = all_of(grp)), by = "taxon") %>%
-    mutate(
-      significant = ifelse(is.na(significant), FALSE, significant),
-      status = case_when(
-        significant                ~ "Significant (modelled)",
-        taxon %in% struc_zero_taxa ~ "Structural zero",
-        TRUE                       ~ "Not significant"
-      )
+plot_topN_heatmap <- function(ps, N = 30, title = "") {
+  ps_rel <- to_rel(ps)
+  taxa_means <- taxa_sums(ps_rel) / nsamples(ps_rel)
+  N <- min(N, length(taxa_means))
+  topN <- names(sort(taxa_means, decreasing = TRUE)[seq_len(N)])
+  df <- psmelt(ps_rel) %>%
+    dplyr::mutate(
+      CleanGenus  = dplyr::case_when(
+        !is.na(Genus)  & Genus  != "" ~ as.character(Genus),
+        !is.na(Family) & Family != "" ~ paste0("f__", Family),
+        TRUE ~ as.character(OTU)
+      ),
+      UniqueTaxa  = paste0(CleanGenus, "_", substr(OTU, 1, 6)),
+      DisplayTaxa = dplyr::if_else(OTU %in% topN, UniqueTaxa, "Remainder")
     ) %>%
-    arrange(desc(fold_change)) %>%
-    mutate(taxon = factor(taxon, levels = taxon))
+    dplyr::group_by(Sample, Group, DisplayTaxa) %>%
+    dplyr::summarise(Abundance = sum(Abundance, na.rm = TRUE), .groups = "drop") %>%
+    dplyr::mutate(NormAbundance = log10(Abundance + 0.01))
+  ggplot(df, aes(x = Sample, y = DisplayTaxa, fill = NormAbundance)) +
+    geom_tile() +
+    facet_grid(~Group, scales = "free_x") +
+    scale_fill_viridis_c(name = "Log10 Abundance") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(y = paste("Top", N, "Taxa"), x = "Sample ID", title = title)
+}
 
-  print(
-    ggplot(tab_for_plot, aes(x = taxon, y = fold_change, fill = status, color = status)) +
-      geom_bar(stat = "identity", width = 0.7) +
-      scale_fill_manual(values = c(
-        "Significant (modelled)" = "#E41A1C",
-        "Not significant"        = "#999999",
-        "Structural zero"        = "#377EB8"
-      )) +
-      scale_color_manual(values = c(
-        "Significant (modelled)" = "#E41A1C",
-        "Not significant"        = "#999999",
-        "Structural zero"        = "#377EB8"
-      )) +
-      labs(x = NULL, y = "Log fold change (observed)",
-           title = paste("Log fold changes vs", ref_group, ":", grp),
-           fill = NULL, color = NULL,
-           caption = "Red = significant in ANCOMBC2 model | Blue = structural zeros | Grey = not significant") +
-      theme_bw() +
-      theme(plot.title = element_text(hjust = 0.5),
-            panel.grid.minor.y = element_blank(),
-            axis.text.x = element_text(size = 6, angle = 60, hjust = 1))
-  )
+## CLR transform helper: works column-wise (per sample) on a feature×sample matrix.
+clr_transform_matrix <- function(mat) {
+  mat <- as.matrix(mat) + 0.5  # pseudocount
+  apply(mat, 2, function(col) log(col) - mean(log(col)))
+}
+
+## Geometric mean for DESeq2 size factor estimation on sparse OTU tables.
+gm_mean <- function(x, na.rm = TRUE) exp(sum(log(x[x > 0]), na.rm = na.rm) / length(x))
+
+## Resolve an ANCOM-BC taxon row id to a readable taxonomy.
+resolve_taxon_da <- function(ids, tax_tbl) {
+  tax_df <- as.data.frame(tax_tbl)
+  sapply(ids, function(id) {
+    if (id %in% rownames(tax_df)) {
+      tx <- tax_df[id, ]
+      if (!is.null(tx$Species) && !is.na(tx$Species) && tx$Species != "")
+        return(paste0(tx$Genus, " ", tx$Species))
+      if (!is.null(tx$Genus)   && !is.na(tx$Genus)   && tx$Genus != "")   return(tx$Genus)
+      if (!is.null(tx$Family)  && !is.na(tx$Family)  && tx$Family != "")  return(paste0("f__", tx$Family))
+      if (!is.null(tx$Phylum)  && !is.na(tx$Phylum)  && tx$Phylum != "")  return(paste0("p__", tx$Phylum))
+    }
+    id
+  })
 }
 ```
 
-#### ANCOM-BC Global Test Results Genus
+# Data Loading
 
-If you have more than 2 groups this will also be relevant to you. Result from the ANCOM-BC global test to determine taxa that are differentially abundant between at least two groups across three or more different groups. The result contains: 1) test statistics; 2) p-values; 3) adjusted p-values; 4) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
+```{r load_data}
+## physeq is supplied by the R backend via makeRmdReport.
+## Apply prevalence + relative abundance filters and glom up the standard ranks.
 
-</br> 
-Lets look at table 1): the Test Statistic
+if (!exists("physeq")) stop("`physeq` was not passed to the Rmd by makeRmdReport.")
 
-```{r, echo=FALSE}
-if (length(levels(as.factor(metadata$Group))) > 2){
-  tab_w = res$res_global[, c("taxon", "W")]
-tab_w %>% datatable(caption = "Test Statistics 
-                    from the Global Test Result") %>%
-      formatRound(c("W"), digits = 2)
-} else { print("You only have 2 Groups")}
-```
-</br> 
-Lets look at table 3): the Adjusted P-values.
-</br> 
-
-```{r, echo=FALSE}
-if (length(levels(as.factor(metadata$Group))) > 2){
-  tab_q = res$res_global[, c("taxon", "q_val")]
-tab_q %>% datatable(caption = "Adjusted p-values 
-                    from the Global Test Result") %>%
-      formatRound(c("q_val"), digits = 2)
-} else { print("You only have 2 Groups")}
-```
-</br> 
-Lets look at table 4): the differentially abundant taxa.
-</br> 
-
-```{r, echo=FALSE}
-if (length(levels(as.factor(metadata$Group))) > 2){
-tab_diff = res$res_global[, c("taxon", "diff_abn")]
-tab_diff %>% datatable(caption = "Differentially Abundant Taxa 
-                       from the Global Test Result")
-} else { print("You only have 2 Groups")}
-```
-
-</br> 
-Let's visualise the log fold changes of sample groups to reference group of globally significant taxa. 
-```{r, fig.width = 8, fig.height=10, echo=FALSE}
-if (length(levels(as.factor(metadata$Group))) > 2){
-sig_taxa = res$res_global %>%
-  dplyr::filter(diff_abn == TRUE) %>%
-  .$taxon
-
-df_sig = tab_lfc %>%
-    dplyr::select(-2) %>% rename_with(~str_remove(., 'Group')) %>%
-    filter(taxon_id %in% sig_taxa)
-
-df_sig2 = df_sig %>%
-    pivot_longer(cols = -one_of("taxon_id"),
-                 names_to = "region", values_to = "value") %>%
-    mutate(value = round(value, 2))
-df_sig2$taxon_id = factor(df_sig2$taxon_id, levels = sort(sig_taxa))
-
-lo = floor(min(df_sig2$value))
-up = ceiling(max(df_sig2$value))
-mid = (lo + up)/2
-p_sig = df_sig2 %>%
-  ggplot(aes(x = region, y = taxon_id, fill = value)) + 
-  geom_tile(color = "black") +
-  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
-                       na.value = "white", midpoint = mid, limit = c(lo, up),
-                       name = NULL) +
-  geom_text(aes(region, taxon_id, label = value), color = "black", size = 4) +
-  labs(x = NULL, y = NULL, 
-       title = "Log fold changes for globally significant taxa") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
-p_sig
-} else { print("You only have 2 Groups")}
-```
-
-</br> 
-
-
-#### ANCOM-BC Primary Test Results Family
-
-Result from the ANCOM-BC log-linear model to determine taxa that are differentially abundant according to the covariate of interest. It contains: 1) log fold changes; 2) standard errors; 3) test statistics; 4) p-values; 5) adjusted p-values; 6) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
-
-```{r, echo=FALSE}
-res<- ANCOMBC::ancombc2(data = physeq1,
-                        fix_formula = grouping, 
-                        tax_level = "Family",
-                        p_adj_method = "BH", 
-                        lib_cut = 0, 
-                        prv_cut = 0.1,
-                        group = grouping, 
-                        struc_zero = TRUE, 
-                        neg_lb = TRUE, 
-                        iter_control = list(tol = 1e-5, max_iter = 100, verbose = TRUE), 
-                        alpha = 0.05, 
-                        global = TRUE)
-```
-
-</br> 
-  Lets look at table 6).Each group is compared to reference group and if the difference is significant the output is TRUE.
-
-```{r, echo=FALSE}
-res$res %>%
-  select(taxon, starts_with("diff_") & !starts_with("diff_robust_")) %>%
-  rename_with(~ gsub("diff_Group|diff_", "", .x), starts_with("diff_")) %>%
-  datatable()
-```
-</br> 
-  Lets look at table 1): the Log Fold Changes from the Primary Result.
-</br> 
-  
-```{r, echo=FALSE}
-tab_lfc <- res$res %>% select(taxon, starts_with("lfc_"))
-tab_lfc %>% 
-  datatable(caption = "Log Fold Changes from the Primary Result") %>% 
-  formatRound(colnames(tab_lfc)[-1], digits = 2)
-```
-</br> 
-  Lets look at table 5): the adjusted p-values.
-</br> 
-  
-```{r, echo=FALSE}
-tab_q <- res$res %>% select(taxon, starts_with("q_"))
-tab_q %>% 
-  datatable(caption = "Adjusted p-values from the Primary Result") %>%
-  formatRound(colnames(tab_q)[-1], digits = 2)
-```
-</br> 
-  Lets obtain bias-corrected abundances.    
-Step 1: obtain estimated sample-specific sampling fractions (in log scale).     
-Step 2: correct the log observed abundances by subtracting the estimated sampling fraction from log observed abundances of each sample.    
-</br> 
-  Note that we are only able to estimate sampling fractions up to an additive constant. Thus, only the difference between bias-corrected abundances are meaningful.    
-</br> 
-```{r, echo=FALSE}
-samp_frac = res$samp_frac
-# Replace NA with 0
-samp_frac[is.na(samp_frac)] = 0
-# Add pesudo-count (1) to avoid taking the log of 0
-log_obs_abn = log(res$feature_table + 1)
-# Adjust the log observed abundances
-log_corr_abn = t(t(log_obs_abn) - samp_frac)
-# Show the first 6 samples
-round(log_corr_abn[, 1:6], 2) %>% 
-  datatable(caption = "Bias-corrected log observed abundances")
-```
-</br> 
-  Lets visualise log fold changes per grouping factor.
-</br> 
-```{r, fig.width = 8, fig.height=6, echo=FALSE}
-# Build lfc and se tables masked by diff_ significance
-diff_cols <- res$res %>% select(starts_with("diff_") & !starts_with("diff_robust_"))
-lfc_cols  <- res$res %>% select(starts_with("lfc_"))
-se_cols   <- res$res %>% select(starts_with("se_"))
-
-# Align column names
-colnames(diff_cols) <- gsub("diff_", "", colnames(diff_cols))
-colnames(lfc_cols)  <- gsub("lfc_",  "", colnames(lfc_cols))
-colnames(se_cols)   <- gsub("se_",   "", colnames(se_cols))
-
-tab_lfc <- data.frame(lfc_cols * diff_cols, check.names = FALSE) %>%
-  mutate(taxon_id = res$res$taxon) %>%
-  select(taxon_id, everything())
-
-tab_se <- data.frame(se_cols * diff_cols, check.names = FALSE) %>%
-  mutate(taxon_id = res$res$taxon) %>%
-  select(taxon_id, everything())
-colnames(tab_se)[-1] <- paste0(colnames(tab_se)[-1], "_SE")
-
-group_cols <- colnames(tab_lfc)[grepl("Group", colnames(tab_lfc))]
-
-for (i in group_cols) {
-  se_col <- paste0(i, "_SE")
-  
-  tab_for_plot <- tab_lfc %>%
-    left_join(tab_se, by = "taxon_id") %>%
-    transmute(taxon_id, fold_change = .data[[i]], SE = .data[[se_col]]) %>%
-    filter(fold_change != 0) %>%
-    arrange(desc(fold_change)) %>%
-    mutate(direct = ifelse(fold_change > 0, "Positive LFC", "Negative LFC"))
-  
-  tab_for_plot$taxon_id <- factor(tab_for_plot$taxon_id, levels = tab_for_plot$taxon_id)
-  tab_for_plot$direct   <- factor(tab_for_plot$direct, levels = c("Positive LFC", "Negative LFC"))
-  
-  print(ggplot(data = tab_for_plot,
-               aes(x = taxon_id, y = fold_change, fill = direct, color = direct)) +
-          geom_bar(stat = "identity", width = 0.7, position = position_dodge(width = 0.4)) +
-          geom_errorbar(aes(ymin = fold_change - SE, ymax = fold_change + SE), width = 0.2,
-                        position = position_dodge(0.05), color = "black") +
-          labs(x = NULL, y = "Log fold change",
-               title = paste("Log fold changes as one unit increase of", i)) +
-          scale_fill_discrete(name = NULL) +
-          scale_color_discrete(name = NULL) +
-          theme_bw() +
-          theme(plot.title = element_text(hjust = 0.5),
-                panel.grid.minor.y = element_blank(),
-                axis.text.x = element_text(size = 6, angle = 60, hjust = 1)))
-}
-```
-
-
-```{r, echo=FALSE}
-# 1. Table of structural zero taxa
-res$zero_ind %>%
-  filter(rowSums(.[,-1]) > 0) %>%
-  datatable(caption = "Taxa excluded from model due to structural zeros (absent in at least one group)")
-
-# 2. Agglomerate to family and fix names
-physeq_family <- tax_glom(physeq1, taxrank = "Family", NArm = FALSE)
-tax_df <- as.data.frame(tax_table(physeq_family))
-family_names <- ifelse(is.na(tax_df$Family), paste0("Unknown_", seq_len(nrow(tax_df))), tax_df$Family)
-family_names <- make.unique(family_names)
-taxa_names(physeq_family) <- family_names
-
-# 3. Compute observed lfc from physeq_family (ALL taxa)
-log_obs_abn <- as(otu_table(physeq_family), "matrix")
-
-# Robustly ensure Taxa are rows and Samples are columns
-if (!taxa_are_rows(physeq_family)) {
-  log_obs_abn <- t(log_obs_abn)
+## Inject combined Group factor if grouping columns are supplied.
+if (length(.cfg$group_cols) > 0) {
+  sd <- as(sample_data(physeq), "data.frame")
+  present <- intersect(.cfg$group_cols, colnames(sd))
+  if (length(present) > 0) {
+    sd$Group <- do.call(paste, c(lapply(present, function(col) sd[[col]]), sep = "-"))
+    sample_data(physeq) <- sample_data(sd)
+  } else if (!"Group" %in% colnames(sd)) {
+    ## Fall back: pretend everything is one group so the rest of the report still renders.
+    sd$Group <- "all"
+    sample_data(physeq) <- sample_data(sd)
+  }
 }
 
-# Apply log transformation
-log_obs_abn <- log(log_obs_abn + 1)
+physeq <- clean_taxonomy(physeq)
 
-# Bias correction using samp_frac from the model (only for the 3 modelled taxa)
-# For all taxa we just use raw log abundances as observed lfc
-group_info   <- factor(sample_data(physeq_family)[[grouping]])
-ref_group    <- levels(group_info)[1]
-other_groups <- levels(group_info)[-1]
+## Filter 1: prevalence — keep ASVs present (count > 1) in at least N% of samples.
+physeq_filter <- genefilter_sample(physeq,
+                                   filterfun_sample(function(x) x > 1),
+                                   A = .cfg$prevalence_frac * nsamples(physeq))
+physeq_prev <- prune_taxa(physeq_filter, physeq)
 
-group_means <- sapply(levels(group_info), function(g) {
-  rowMeans(log_obs_abn[, group_info == g, drop = FALSE])
-})
-
-obs_lfc <- as.data.frame(group_means[, other_groups, drop = FALSE] - group_means[, ref_group])
-obs_lfc$taxon <- rownames(obs_lfc)
-
-# 4. Significance from model (Keeping your original logic)
-sig_df <- res$res %>%
-  select(taxon, starts_with("diff_") & !starts_with("diff_robust_")) %>%
-  rename_with(~ gsub("diff_Group", "", .x), starts_with("diff_"))
-
-# 5. Structural zero taxa
-struc_zero_taxa <- res$zero_ind$taxon
-
-# 6. Plot per group
-for (grp in other_groups) {
-  tab_for_plot <- obs_lfc %>%
-    select(taxon, fold_change = all_of(grp)) %>%
-    left_join(sig_df %>% select(taxon, significant = all_of(grp)), by = "taxon") %>%
-    mutate(
-      significant = ifelse(is.na(significant), FALSE, significant),
-      status = case_when(
-        significant                ~ "Significant (modelled)",
-        taxon %in% struc_zero_taxa ~ "Structural zero",
-        TRUE                       ~ "Not significant"
-      )
-    ) %>%
-    arrange(desc(fold_change)) %>%
-    mutate(taxon = factor(taxon, levels = taxon))
-  
-  print(
-    ggplot(tab_for_plot, aes(x = taxon, y = fold_change, fill = status, color = status)) +
-      geom_bar(stat = "identity", width = 0.7) +
-      scale_fill_manual(values = c(
-        "Significant (modelled)" = "#E41A1C",
-        "Not significant"        = "#999999",
-        "Structural zero"        = "#377EB8"
-      )) +
-      scale_color_manual(values = c(
-        "Significant (modelled)" = "#E41A1C",
-        "Not significant"        = "#999999",
-        "Structural zero"        = "#377EB8"
-      )) +
-      labs(x = NULL, y = "Log fold change (observed)",
-           title = paste("Log fold changes vs", ref_group, ":", grp),
-           fill = NULL, color = NULL,
-           caption = "Red = significant in ANCOMBC2 model | Blue = structural zeros | Grey = not significant") +
-      theme_bw() +
-      theme(plot.title = element_text(hjust = 0.5),
-            panel.grid.minor.y = element_blank(),
-            axis.text.x = element_text(size = 6, angle = 60, hjust = 1))
-  )
-}
-```
-
-#### ANCOM-BC Global Test Results Family
-
-If you have more than 2 groups this will also be relevant to you. Result from the ANCOM-BC global test to determine taxa that are differentially abundant between at least two groups across three or more different groups. The result contains: 1) test statistics; 2) p-values; 3) adjusted p-values; 4) indicators whether the taxon is differentially abundant (TRUE) or not (FALSE).
-
-</br> 
-Lets look at table 1): the Test Statistic
-
-```{r, echo=FALSE}
-if (length(levels(as.factor(metadata$Group))) > 2){
-  tab_w = res$res_global[, c("taxon", "W")]
-tab_w %>% datatable(caption = "Test Statistics 
-                    from the Global Test Result") %>%
-      formatRound(c("W"), digits = 2)
-} else { print("You only have 2 Groups")}
-```
-</br> 
-Lets look at table 3): the Adjusted P-values.
-</br> 
-
-```{r, echo=FALSE}
-if (length(levels(as.factor(metadata$Group))) > 2){
-  tab_q = res$res_global[, c("taxon", "q_val")]
-tab_q %>% datatable(caption = "Adjusted p-values 
-                    from the Global Test Result") %>%
-      formatRound(c("q_val"), digits = 2)
-} else { print("You only have 2 Groups")}
-```
-</br> 
-Lets look at table 4): the differentially abundant taxa.
-</br> 
-
-```{r, echo=FALSE}
-if (length(levels(as.factor(metadata$Group))) > 2){
-tab_diff = res$res_global[, c("taxon", "diff_abn")]
-tab_diff %>% datatable(caption = "Differentially Abundant Taxa 
-                       from the Global Test Result")
-} else { print("You only have 2 Groups")}
-```
-
-</br> 
-Let's visualise the log fold changes of sample groups to reference group of globally significant taxa. 
-```{r, fig.width = 8, fig.height=10, echo=FALSE}
-if (length(levels(as.factor(metadata$Group))) > 2){
-sig_taxa = res$res_global %>%
-  dplyr::filter(diff_abn == TRUE) %>%
-  .$taxon
-
-df_sig = tab_lfc %>%
-    dplyr::select(-2) %>% rename_with(~str_remove(., 'Group')) %>%
-    filter(taxon_id %in% sig_taxa)
-
-df_sig2 = df_sig %>%
-    pivot_longer(cols = -one_of("taxon_id"),
-                 names_to = "region", values_to = "value") %>%
-    mutate(value = round(value, 2))
-df_sig2$taxon_id = factor(df_sig2$taxon_id, levels = sort(sig_taxa))
-
-lo = floor(min(df_sig2$value))
-up = ceiling(max(df_sig2$value))
-mid = (lo + up)/2
-p_sig = df_sig2 %>%
-  ggplot(aes(x = region, y = taxon_id, fill = value)) + 
-  geom_tile(color = "black") +
-  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
-                       na.value = "white", midpoint = mid, limit = c(lo, up),
-                       name = NULL) +
-  geom_text(aes(region, taxon_id, label = value), color = "black", size = 4) +
-  labs(x = NULL, y = NULL, 
-       title = "Log fold changes for globally significant taxa") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
-p_sig
-} else { print("You only have 2 Groups")}
-```
-
-</br> 
-
-
-### DESeq2/EdgeR results {.tabset}
-
-Differential abundance on microbiome data can also be done using DESeq2 or EdgeR. First we convert the filtered phyloseq object into a deseq2 object. phyloseq_to_deseq2() no longer adds pseudocount to the data and a lot of sparsely sampled OTUs can lead to errors. Therefore we first calculate geometric means, then we estimate size factors and then run DESeq2. The significance test for DESeq2 is Wald, p-values are corrected using Bonferroni correction, significance threshold used is 0.05. For edgeR, "Relative Log Expression” normalization is applied to the data and a GLM model is fit, p-values are corrected using Bonferroni correction, significance threshold used is 0.01. For final results I combine both analyses.
-
-#### DESeq2 by Group.  
-
-P-value and LogFC distribution. 
-
-```{r, echo=FALSE}
-Group = get_variable(physeq1, grouping)
-ds2 = phyloseq_to_deseq2(physeq1, ~0 + Group)
-#phyloseq_to_deseq2() no longer adds pseudocount to the data a lot of sparsely sampled OTUs can lead to errors. I therefore implement this solution: https://github.com/joey711/phyloseq/issues/387
-# calculate geometric means prior to estimate size factors
-gm_mean = function(x, na.rm=TRUE){
-  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
-}
-geoMeans = apply(counts(ds2), 1, gm_mean)
-# estimate size factors
-ds2 = estimateSizeFactors(ds2, geoMeans = geoMeans)
-#run deseq
-ds2 = DESeq(ds2, test="Wald", fitType="local")
-
-contrasts = length(unique(metadata[,grouping]))*(length(unique(metadata[,grouping])) - 1)/2
-levels = c(unique(metadata[,grouping]))    
-comparisons = combn(levels,2, simplify = FALSE)
-
-reses = list()
-for (i in comparisons){
-  a = as.character(i[1])
-  b = as.character(i[2])
-  con = c(grouping, a, b)
-  res <- as.data.frame(results(ds2, contrast = c(grouping, a, b), cooksCutoff = FALSE))
-  res$log10p <- -(log10(res$pvalue))
-  res = cbind(as(res, "data.frame"), as(tax_table(physeq1)[rownames(res), ], "matrix")) 
-  res$contrast = paste0(a,"-", b)
-  reses = rbind(reses,res)
-}
-reses <- reses[!duplicated(reses),]
-sigtab = reses[which(reses$padj < 0.01), ]
-
-#Plot a scatterplot summary of significant taxa 
-theme_set(theme_bw())
-scale_fill_discrete <- function(palname = "Set1", ...) {
-  scale_fill_brewer(palette = palname, ...)
-}
-# Phylum order
-x = tapply(sigtab$log2FoldChange, sigtab$Phylum, function(x) max(x))
-x = sort(x, TRUE)
-sigtab$Phylum = factor(as.character(sigtab$Phylum), levels=names(x))
-
-# Genus order
-x = tapply(sigtab$log2FoldChange, sigtab$Genus, function(x) max(x))
-x = sort(x, TRUE)
-sigtab$Genus = factor(as.character(sigtab$Genus), levels=names(x))
-
-p2 <- ggplot(reses, aes(x=log2FoldChange)) + geom_histogram() + facet_wrap(~ reses$contrast, ncol = 3)
-p3 <- ggplot(reses, aes(x=pvalue)) + geom_histogram() + facet_wrap(~ reses$contrast, ncol = 3)
-
-plotGrob <- plot_grid(p2, p3, nrow=2, ncol=1, byrow=FALSE)
-print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 25)))
-
-```
-
-#### EdgeR by Group. 
-
-P-value and LogFC distribution. 
-
-```{r, echo=FALSE}
-# Let's see how edgeR compares/overlaps
-Group = get_variable(physeq1, grouping)
-design = model.matrix(~ 0 + Group)
-dge = as(otu_table(physeq1), "matrix") + 1L
-taxonomy = data.frame(as.data.frame(tax_table(physeq1)), "matrix")
-dge = DGEList(counts = dge, group = Group, genes = taxonomy, remove.zeros = TRUE)
-dge = calcNormFactors(dge, method="RLE")
-dge = estimateGLMCommonDisp(dge, design)
-dge = estimateGLMTrendedDisp(dge, design)
-dge = estimateGLMTagwiseDisp(dge, design)
-fit <- glmFit(dge, design)
-
-levels = c(unique(metadata[,grouping]))    
-comparisons = combn(levels,2, simplify = FALSE)
-
-resEdgeRall <- data.frame()
-
-for (i in comparisons){
-  myargs = list(
-  paste0(paste0("Group", i[1]), "-" ,paste0("Group", i[2])),
-  levels = design)
-  my.contrasts <- do.call(makeContrasts, myargs)
-  lrt <- glmLRT(fit, contrast = my.contrasts) #fit the model
-  resEdgeR = topTags(lrt, n = nrow(dge), adjust.method="BH", sort.by="PValue") #correct pvalue with BH
-  resEdgeR = resEdgeR@.Data[[1]]
-  resEdgeR <- rownames_to_column(resEdgeR, "ASV")
-  resEdgeR$log10p <- -(log10(resEdgeR$PValue))
-  resEdgeR$contrast <- paste0(as.character(i[1]),"-", as.character(i[2]))
-  resEdgeRall <- rbind(resEdgeRall, resEdgeR)
-}
-
-resEdgeRall <- resEdgeRall[!duplicated(resEdgeRall),]
-resEdgeRallsig <- resEdgeRall[which(resEdgeRall$FDR <= 0.01), ]
-
-p2 <- ggplot(resEdgeRall, aes(x=logFC)) + geom_histogram() + facet_wrap(~ resEdgeRall$contrast, ncol = 3)
-p3 <- ggplot(resEdgeRall, aes(x=PValue)) + geom_histogram() + facet_wrap(~ resEdgeRall$contrast, ncol = 3)
-
-plotGrob <- plot_grid(p2, p3, nrow=2, ncol=1, byrow=FALSE)
-print(plot_grid(plotGrob, nrow=1, ncol=1, rel_heights=c(1, 25)))
-
-```
-
-
-#### Combined DESeq2 and EdgeR results.
-
-</br>
-How much do the two analyses overlap?
-</br>
-
-```{r, echo=FALSE}
-ggs <- lapply(sort(unique(sigtab$contrast)), function(crb) {
-  ggvenn::ggvenn(data = list("DESeq2" = rownames(filter(sigtab, contrast == crb)), "edgeR" = filter(resEdgeRallsig, contrast == crb)$ASV), text_size = 2) + theme(text = element_text(size=10,  family="Comic Sans MS")) + ggtitle(crb)
-})
-
-if (length(comparisons) > 1) {
-  print(ggarrange(plotlist = ggs, nrow=(length(comparisons)/2), ncol=2))
+## Filter 2: relative abundance — drop ASVs below .cfg$rel_abund_pct of total reads.
+total_reads <- sum(sample_sums(physeq_prev))
+if (total_reads > 0) {
+  asv_rel_abund <- taxa_sums(physeq_prev) / total_reads * 100
+  physeq_filtered <- prune_taxa(asv_rel_abund >= .cfg$rel_abund_pct, physeq_prev)
 } else {
-   print(ggarrange(plotlist = ggs, nrow=1, ncol=1))
+  physeq_filtered <- physeq_prev
 }
 
+## Optional manual sample drop list.
+if (length(.cfg$samples_to_prune) > 0) {
+  drop <- intersect(sample_names(physeq_filtered), .cfg$samples_to_prune)
+  if (length(drop) > 0) {
+    physeq_filtered <- prune_samples(!sample_names(physeq_filtered) %in% drop, physeq_filtered)
+  }
+}
+
+## Relative abundance transform of the post-filter object.
+physeq_transformed <- to_rel(physeq_filtered)
+
+## Glom to standard ranks (Species optional).
+has_species <- "Species" %in% colnames(tax_table(physeq_filtered)) &&
+  any(!is.na(tax_table(physeq_filtered)[, "Species"]) &
+        tax_table(physeq_filtered)[, "Species"] != "")
+physeq_Species <- if (has_species) tax_glom(physeq_filtered, "Species", NArm = TRUE) else NULL
+physeq_Genus   <- tax_glom(physeq_filtered, "Genus",   NArm = TRUE)
+physeq_Family  <- tax_glom(physeq_filtered, "Family",  NArm = TRUE)
+physeq_Phylum  <- tax_glom(physeq_filtered, "Phylum",  NArm = TRUE)
+
+## Build a metadata data.frame to use across the report.
+if (!exists("metadata") || is.null(metadata)) {
+  metadata <- data.frame(sample_data(physeq_filtered))
+  metadata$SampleID <- rownames(metadata)
+} else {
+  metadata <- as.data.frame(metadata)
+  if (!"SampleID" %in% colnames(metadata)) {
+    if (!is.null(rownames(metadata))) metadata$SampleID <- rownames(metadata)
+    else metadata$SampleID <- as.character(metadata[[1]])
+  }
+  if (!"Group" %in% colnames(metadata)) {
+    metadata$Group <- as.character(sample_data(physeq_filtered)$Group[match(metadata$SampleID, sample_names(physeq_filtered))])
+  }
+}
+
+## Levels of the grouping factor — drives all per-subgroup tabsets.
+group_levels <- levels(factor(sample_data(physeq_filtered)$Group))
 ```
-</br>
-- Scatter plots showing the significant (p<0.01) log2 fold change in abundance of different taxa between the reference group and sample group. If sample groups are missing, that means there are no significant differentially abundant taxa between them.   
-- Volcano plots showing under- (negative log fold change) and over- (positive log fold change) represented taxa between reference group and sample group. Only the taxa shared between EdgeR and DESeq2 analysis are marked in red and labelled (if Genus information available)
-The results are interpreted as (refgroup-samplegroup): negative log fold change means its higher in sample group than reference group (under-represented in reference group), positive log fold change - lower in sample group than in reference group (over-represented in refence group).
 
+# Filtering Summary
 
-</br>
+```{r filtering_summary}
+filt_tbl <- data.frame(
+  Stage  = c("Raw input",
+             paste0("After ", .cfg$prevalence_frac * 100, "% prevalence filter"),
+             paste0("After ", .cfg$rel_abund_pct, "% abundance filter"),
+             "Species-level glom",
+             "Genus-level glom",
+             "Family-level glom",
+             "Phylum-level glom"),
+  ASVs   = c(ntaxa(physeq), ntaxa(physeq_prev), ntaxa(physeq_filtered),
+             if (!is.null(physeq_Species)) ntaxa(physeq_Species) else NA_integer_,
+             ntaxa(physeq_Genus), ntaxa(physeq_Family), ntaxa(physeq_Phylum)),
+  Samples = c(nsamples(physeq), nsamples(physeq_prev), nsamples(physeq_filtered),
+              if (!is.null(physeq_Species)) nsamples(physeq_Species) else NA_integer_,
+              nsamples(physeq_Genus), nsamples(physeq_Family), nsamples(physeq_Phylum))
+)
+kable(filt_tbl, caption = "Filtering pipeline summary") %>% kable_styling()
 
-```{r, fig.height=5, fig.width=10, echo=FALSE}
-theme_set(theme_bw())
-scale_fill_discrete <- function(palname = "Set1", ...) {
-  scale_fill_brewer(palette = palname, ...)
+if (!has_species) {
+  cat("\nNote: no Species-level annotations survive filtering -- all Species sub-tabs are skipped.\n")
+}
+```
+
+# QC {.tabset}
+
+## Library sizes (pre-filter) {.tabset}
+
+### Plot
+
+```{r lib_sizes_pre, fig.width=12, fig.height=8}
+## Prefer the pre-computed `library_sizes_pre` object from the R backend
+## (single source of truth) and fall back to local recomputation if missing.
+.asvs_detected_pre <- colSums(as(otu_table(physeq), "matrix") > 0)[sample_names(physeq)]
+if (exists("library_sizes_pre") && !is.null(library_sizes_pre)) {
+  .lp <- if (is.data.frame(library_sizes_pre)) {
+    if ("SampleID" %in% colnames(library_sizes_pre)) {
+      stats::setNames(library_sizes_pre[[setdiff(colnames(library_sizes_pre), "SampleID")[1]]],
+                      as.character(library_sizes_pre$SampleID))
+    } else stats::setNames(library_sizes_pre[[1]], rownames(library_sizes_pre))
+  } else library_sizes_pre
+  samp_ids_pre <- intersect(names(.lp), sample_names(physeq))
+  if (length(samp_ids_pre) == 0) samp_ids_pre <- sample_names(physeq)
+  lib_size_pre_df <- data.frame(
+    Sample = samp_ids_pre,
+    Reads  = as.numeric(.lp[samp_ids_pre]),
+    ASVs_detected = as.integer(.asvs_detected_pre[samp_ids_pre])
+  )
+} else {
+  lib_size_pre_df <- data.frame(
+    Sample = sample_names(physeq),
+    Reads  = sample_sums(physeq),
+    ASVs_detected = .asvs_detected_pre
+  )
+}
+lib_size_pre_df$Sample <- factor(lib_size_pre_df$Sample,
+                                 levels = lib_size_pre_df$Sample[order(lib_size_pre_df$Reads)])
+p_lib_pre <- ggplot(lib_size_pre_df,
+                    aes(x = Reads, y = Sample,
+                        text = paste("Sample:", Sample, "<br>Reads:", scales::comma(Reads)))) +
+  geom_col(fill = "#00A6A6") +
+  geom_text(aes(label = scales::comma(Reads)), hjust = -0.1, size = 3) +
+  geom_vline(xintercept = 10000, color = "red", linetype = "dashed") +
+  labs(x = "Read Count", y = "", title = "Library Sizes (before filtering)") +
+  theme_bw() +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15)))
+ggplotly(p_lib_pre, tooltip = "text")
+```
+
+### Table
+
+```{r lib_sizes_pre_table}
+lib_pre_out <- data.frame(
+  SampleID = as.character(lib_size_pre_df$Sample),
+  Reads    = lib_size_pre_df$Reads,
+  ASVs_detected = lib_size_pre_df$ASVs_detected
+)
+write.csv(lib_pre_out, file.path(.report_dir, "library_sizes_pre.csv"), row.names = FALSE)
+fgcz_dt(lib_pre_out, "Library sizes (pre-filtering)")
+```
+
+## Library sizes (post-filter) {.tabset}
+
+### Plot
+
+```{r lib_sizes_post, fig.width=12, fig.height=8}
+## Prefer the pre-computed `library_sizes_post` object from the R backend
+## (single source of truth) and fall back to local recomputation if missing.
+.asvs_detected_post <- colSums(as(otu_table(physeq_filtered), "matrix") > 0)[sample_names(physeq_filtered)]
+if (exists("library_sizes_post") && !is.null(library_sizes_post)) {
+  .lpo <- if (is.data.frame(library_sizes_post)) {
+    if ("SampleID" %in% colnames(library_sizes_post)) {
+      stats::setNames(library_sizes_post[[setdiff(colnames(library_sizes_post), "SampleID")[1]]],
+                      as.character(library_sizes_post$SampleID))
+    } else stats::setNames(library_sizes_post[[1]], rownames(library_sizes_post))
+  } else library_sizes_post
+  samp_ids_post <- intersect(names(.lpo), sample_names(physeq_filtered))
+  if (length(samp_ids_post) == 0) samp_ids_post <- sample_names(physeq_filtered)
+  lib_size_df <- data.frame(
+    Sample = samp_ids_post,
+    Reads  = as.numeric(.lpo[samp_ids_post]),
+    ASVs_detected = as.integer(.asvs_detected_post[samp_ids_post])
+  )
+} else {
+  lib_size_df <- data.frame(
+    Sample = sample_names(physeq_filtered),
+    Reads  = sample_sums(physeq_filtered),
+    ASVs_detected = .asvs_detected_post
+  )
+}
+lib_size_df$Sample <- factor(lib_size_df$Sample,
+                             levels = lib_size_df$Sample[order(lib_size_df$Reads)])
+p_lib <- ggplot(lib_size_df,
+                aes(x = Reads, y = Sample,
+                    text = paste("Sample:", Sample, "<br>Reads:", scales::comma(Reads)))) +
+  geom_col(fill = "#00A6A6") +
+  geom_text(aes(label = scales::comma(Reads)), hjust = -0.1, size = 3) +
+  geom_vline(xintercept = 10000, color = "red", linetype = "dashed") +
+  labs(x = "Read Count", y = "", title = "Library Sizes (after filtering)") +
+  theme_bw() +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15)))
+ggplotly(p_lib, tooltip = "text")
+```
+
+### Table
+
+```{r lib_sizes_post_table}
+lib_post_out <- data.frame(
+  SampleID = as.character(lib_size_df$Sample),
+  Reads    = lib_size_df$Reads,
+  ASVs_detected = lib_size_df$ASVs_detected
+)
+write.csv(lib_post_out, file.path(.report_dir, "library_sizes_post.csv"), row.names = FALSE)
+fgcz_dt(lib_post_out, "Library sizes (after filtering)")
+```
+
+## Read quality profiles
+
+### Forward reads
+
+```{r qc_forward, fig.width=9, fig.height=4.5}
+.fnFs <- character(0)
+if (exists("raw_reads_path") && length(raw_reads_path) > 0 && nzchar(raw_reads_path[1]) && dir.exists(raw_reads_path[1])) {
+  .fnFs <- sort(list.files(raw_reads_path[1],
+                           pattern = "_R1\\.fastq\\.gz$|_R1_001\\.fastq\\.gz$",
+                           full.names = TRUE))
+}
+if (length(.fnFs) > 0 && .have_dada2) {
+  qc_F <- dada2::plotQualityProfile(.fnFs, aggregate = TRUE) +
+    ggtitle("Forward Reads -- Aggregated Quality Profile")
+  print(qc_F)
+} else {
+  cat("Forward-read FASTQs not available -- skipping quality profile.\n")
+}
+```
+
+### Reverse reads
+
+```{r qc_reverse, fig.width=9, fig.height=4.5}
+.fnRs <- character(0)
+if (exists("raw_reads_path") && length(raw_reads_path) > 0 && nzchar(raw_reads_path[1]) && dir.exists(raw_reads_path[1])) {
+  .fnRs <- sort(list.files(raw_reads_path[1],
+                           pattern = "_R2\\.fastq\\.gz$|_R2_001\\.fastq\\.gz$",
+                           full.names = TRUE))
+}
+if (length(.fnRs) > 0 && .have_dada2) {
+  qc_R <- dada2::plotQualityProfile(.fnRs, aggregate = TRUE) +
+    ggtitle("Reverse Reads -- Aggregated Quality Profile")
+  print(qc_R)
+} else {
+  cat("Reverse-read FASTQs not available -- skipping quality profile.\n")
+}
+```
+
+## Primer presence check
+
+```{r primer_check}
+.primer_check_df <- NULL
+if (exists("primer_check") && !is.null(primer_check) && is.data.frame(primer_check)) {
+  .primer_check_df <- primer_check
+} else if (exists("dada2_rep_seqs_fasta") &&
+           length(dada2_rep_seqs_fasta) > 0 && nzchar(dada2_rep_seqs_fasta[1]) &&
+           file.exists(dada2_rep_seqs_fasta[1]) && .have_shortread) {
+  seqs <- ShortRead::sread(ShortRead::readFasta(dada2_rep_seqs_fasta[1]))
+  n_seqs <- length(seqs)
+  fwd_hits <- Biostrings::vcountPattern(.cfg$forward_primer, seqs, fixed = FALSE)
+  rev_hits <- Biostrings::vcountPattern(.cfg$reverse_primer, seqs, fixed = FALSE)
+  rev_comp_r <- as.character(Biostrings::reverseComplement(Biostrings::DNAString(.cfg$reverse_primer)))
+  rev_comp_hits <- Biostrings::vcountPattern(rev_comp_r, seqs, fixed = FALSE)
+  .primer_check_df <- data.frame(
+    Primer        = c("Forward (5')", "Reverse (3')", "Reverse complement"),
+    Sequence      = c(.cfg$forward_primer, .cfg$reverse_primer, rev_comp_r),
+    Seqs_with_hit = c(sum(fwd_hits > 0), sum(rev_hits > 0), sum(rev_comp_hits > 0)),
+    Percent       = c(round(sum(fwd_hits > 0) / n_seqs * 100, 2),
+                      round(sum(rev_hits > 0) / n_seqs * 100, 2),
+                      round(sum(rev_comp_hits > 0) / n_seqs * 100, 2))
+  )
 }
 
-res_deseq_edger_sig = data.frame()
-for (i in unique(sigtab$contrast)) {
-  df = filter(sigtab[sigtab$contrast == i,], rownames(sigtab[sigtab$contrast == i,]) %in% resEdgeRallsig[resEdgeRallsig$contrast == i,]$ASV)
-  res_deseq_edger_sig=rbind(res_deseq_edger_sig, df)
+if (!is.null(.primer_check_df)) {
+  kable(.primer_check_df, caption = "Primer presence in representative sequences") %>% kable_styling()
+  if (any(.primer_check_df$Percent > 5, na.rm = TRUE)) {
+    cat("\nWARNING: primers detected in >5% of sequences -- consider revising trim parameters.\n")
+  } else if (all(.primer_check_df$Percent < 1, na.rm = TRUE)) {
+    cat("\nPrimers successfully removed (<1% residual).\n")
+  }
+} else {
+  cat("No representative-sequence FASTA available -- skipping primer check.\n")
+}
+```
+
+## DADA2 denoise stats
+
+```{r dada_denoise_table}
+.denoise_df <- NULL
+if (exists("denoise_stats_raw") && !is.null(denoise_stats_raw)) {
+  .denoise_df <- as.data.frame(denoise_stats_raw)
+} else if (exists("dada2") && !is.null(dada2)) {
+  .denoise_df <- tryCatch({
+    if (is.list(dada2) && !is.null(dada2$data)) as.data.frame(dada2$data) else as.data.frame(dada2)
+  }, error = function(e) NULL)
+}
+if (!is.null(.denoise_df)) {
+  if (!"SampleID" %in% colnames(.denoise_df)) {
+    .denoise_df <- tibble::rownames_to_column(.denoise_df, "SampleID")
+  }
+  write.csv(.denoise_df, file.path(.report_dir, "denoise_stats.csv"), row.names = FALSE)
+  fgcz_dt(.denoise_df, "DADA2 denoising stats per sample")
+} else {
+  cat("DADA2 denoise stats not available.\n")
+}
+```
+
+```{r dada_denoise_plot, fig.width=12, fig.height=6}
+if (!is.null(.denoise_df) && "non-chimeric" %in% colnames(.denoise_df) ||
+    !is.null(.denoise_df) && "non.chimeric" %in% colnames(.denoise_df) ||
+    !is.null(.denoise_df) && "non_chimeric" %in% colnames(.denoise_df)) {
+  ncol_name <- intersect(c("non-chimeric", "non.chimeric", "non_chimeric"), colnames(.denoise_df))[1]
+  d2 <- .denoise_df
+  d2$.nonchim <- suppressWarnings(as.numeric(as.character(d2[[ncol_name]])))
+  d2 <- d2[!is.na(d2$.nonchim), , drop = FALSE]
+  if (nrow(d2) > 0) {
+    p_reads <- ggplot(d2, aes(x = SampleID, y = .nonchim, fill = SampleID)) +
+      geom_col() +
+      theme_bw() +
+      geom_text(aes(label = scales::comma(.nonchim)), vjust = -0.3, size = 3) +
+      labs(title = "Reads retained after DADA2", x = NULL, y = "Non-chimeric reads") +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
+    print(p_reads)
+  }
+}
+```
+
+## fastp QC
+
+```{r fastp_qc, results='asis'}
+## Only rendered when the R backend wired in `fastp_reports`.
+## Accepts either a character vector / list of paths or a data.frame with a
+## path-like column. Tries to summarise per-sample reads-before/after from any
+## fastp JSON it can find; otherwise falls back to a link-only table.
+.fastp_ok <- exists("fastp_reports") && !is.null(fastp_reports) && length(fastp_reports) > 0
+if (.fastp_ok) {
+  .fastp_paths <- if (is.data.frame(fastp_reports)) {
+    path_col <- intersect(c("path", "Path", "report", "Report", "html", "HTML",
+                            "json", "JSON", "file", "File"),
+                          colnames(fastp_reports))
+    if (length(path_col) > 0) as.character(fastp_reports[[path_col[1]]])
+    else as.character(fastp_reports[[ncol(fastp_reports)]])
+  } else {
+    as.character(unlist(fastp_reports))
+  }
+  .fastp_paths <- .fastp_paths[nzchar(.fastp_paths)]
+
+  ## Split HTML vs JSON reports.
+  .fastp_html <- .fastp_paths[grepl("\\.html?$", .fastp_paths, ignore.case = TRUE)]
+  .fastp_json <- .fastp_paths[grepl("\\.json$",  .fastp_paths, ignore.case = TRUE)]
+
+  ## Best-effort sample naming -- strip the common fastp suffix patterns.
+  derive_sample <- function(p) {
+    bn <- basename(p)
+    bn <- sub("\\.fastp\\.(html|json)$", "", bn, ignore.case = TRUE)
+    bn <- sub("_fastp\\.(html|json)$",  "", bn, ignore.case = TRUE)
+    bn <- sub("\\.(html|json)$",         "", bn, ignore.case = TRUE)
+    bn
+  }
+
+  ## Try to summarise reads before/after from JSON, defensively.
+  .fastp_summary <- NULL
+  if (length(.fastp_json) > 0 && requireNamespace("jsonlite", quietly = TRUE)) {
+    rows <- lapply(.fastp_json, function(jp) {
+      js <- tryCatch(jsonlite::fromJSON(jp, simplifyVector = TRUE),
+                     error = function(e) NULL)
+      if (is.null(js)) return(NULL)
+      rb <- tryCatch(js$summary$before_filtering$total_reads, error = function(e) NA)
+      ra <- tryCatch(js$summary$after_filtering$total_reads,  error = function(e) NA)
+      if (is.null(rb)) rb <- NA
+      if (is.null(ra)) ra <- NA
+      data.frame(Sample      = derive_sample(jp),
+                 Reads_before = suppressWarnings(as.numeric(rb)),
+                 Reads_after  = suppressWarnings(as.numeric(ra)),
+                 stringsAsFactors = FALSE)
+    })
+    rows <- rows[!sapply(rows, is.null)]
+    if (length(rows) > 0) {
+      .fastp_summary <- do.call(rbind, rows)
+      .fastp_summary$Pct_kept <- ifelse(
+        is.na(.fastp_summary$Reads_before) | .fastp_summary$Reads_before == 0, NA,
+        round(.fastp_summary$Reads_after / .fastp_summary$Reads_before * 100, 2)
+      )
+    }
+  }
+
+  if (!is.null(.fastp_summary) && nrow(.fastp_summary) > 0) {
+    cat("Per-sample reads before and after fastp filtering:\n\n")
+    write.csv(.fastp_summary,
+              file.path(.report_dir, "fastp_summary.csv"), row.names = FALSE)
+    print(fgcz_dt(.fastp_summary, "fastp summary (per sample)"))
+  } else {
+    cat("Per-sample fastp JSON summaries unavailable (JSON shape unfamiliar or jsonlite missing). ",
+        "Showing report links only.\n\n", sep = "")
+  }
+
+  ## HTML report links table.
+  if (length(.fastp_html) > 0) {
+    .fastp_links_df <- data.frame(
+      Sample = derive_sample(.fastp_html),
+      Report = sprintf('<a href="%s" target="_blank" rel="noopener">view</a>',
+                       .fastp_html),
+      Path   = .fastp_html,
+      stringsAsFactors = FALSE
+    )
+    print(DT::datatable(
+      .fastp_links_df,
+      caption = "fastp HTML reports",
+      escape  = FALSE,
+      rownames = FALSE,
+      extensions = "Buttons",
+      options = list(scrollX = TRUE, dom = "lftBip",
+                     buttons = c("copy", "csv", "excel"),
+                     pageLength = 10, lengthMenu = c(10, 20, 100, 200))
+    ))
+  } else if (length(.fastp_json) > 0) {
+    ## No HTML present -- still expose the JSON paths for traceability.
+    print(fgcz_dt(data.frame(Sample = derive_sample(.fastp_json),
+                             JSON   = .fastp_json,
+                             stringsAsFactors = FALSE),
+                  "fastp JSON reports"))
+  }
+} else {
+  cat("fastp not run (run_fastp = false) or no reports available -- skipping fastp QC.\n")
+}
+```
+
+# ASV table with BLAST links
+
+```{r asv_table_blast}
+## Fast-path: if the R backend already passed a fully-built `asv_taxonomy_df`
+## (with ASV_ID + per-sample counts + BLAST link), use it directly.
+.use_passed_asv_df <- exists("asv_taxonomy_df") && !is.null(asv_taxonomy_df) &&
+  is.data.frame(asv_taxonomy_df) &&
+  any(c("ASV_ID", "Feature.ID", "Feature ID", "FeatureID") %in% colnames(asv_taxonomy_df))
+
+## physeq_all is needed for downstream chunks too -- compute once here.
+physeq_all <- if (exists("physeq_unfiltered") && !is.null(physeq_unfiltered)) {
+  clean_taxonomy(physeq_unfiltered)
+} else if (exists("table_unfiltered") && !is.null(table_unfiltered)) {
+  clean_taxonomy(table_unfiltered)
+} else {
+  physeq
 }
 
+if (.use_passed_asv_df &&
+    "ASV_ID" %in% colnames(asv_taxonomy_df) &&
+    "BLAST"  %in% colnames(asv_taxonomy_df) &&
+    any(sample_names(physeq) %in% colnames(asv_taxonomy_df))) {
+  ## Backend provided a complete, render-ready table. Just emit it.
+  asv_tax_df <- as.data.frame(asv_taxonomy_df, stringsAsFactors = FALSE)
+  write.csv(asv_tax_df[, setdiff(colnames(asv_tax_df), "BLAST"), drop = FALSE],
+            file.path(.report_dir, "asv_ids_taxonomy.csv"), row.names = FALSE)
+  print(DT::datatable(asv_tax_df,
+    caption = paste0("All ASVs (", nrow(asv_tax_df), " total)."),
+    escape  = FALSE,
+    extensions = "Buttons", rownames = FALSE,
+    options = list(scrollX = TRUE, dom = "lftBip",
+                   buttons = c("copy", "csv", "excel"),
+                   pageLength = 10, lengthMenu = c(10, 20, 100, 200))))
+} else {
 
-#plot
-ggplot(res_deseq_edger_sig, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=3) + facet_wrap(~ res_deseq_edger_sig$contrast, ncol = 3) +
-  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5)) + ggtitle("Plots per group")
+asv_tax_df <- data.frame(
+  ASV_ID = taxa_names(physeq_all),
+  as.data.frame(tax_table(physeq_all)),
+  stringsAsFactors = FALSE
+)
 
-#reses <- reses %>% mutate(Significant=if_else(reses$padj < 0.01, TRUE, FALSE)) %>%
-#  mutate(TaxonToPrint=if_else(reses$padj < 0.01, as.character(Genus), ""))
-
-res_deseq_edger = data.frame()
-for (i in unique(reses$contrast)) {
-  df = filter(reses[reses$contrast == i,], rownames(reses[reses$contrast == i,]) %in% resEdgeRall[resEdgeRall$contrast == i,]$ASV)
-  res_deseq_edger=rbind(res_deseq_edger, df)
+## Merge in any extra columns from the backend-provided asv_taxonomy_df
+## (e.g. the QIIME2 raw Taxon string / Confidence) so users can still see
+## the source taxonomy alongside the cleaned phyloseq tax_table.
+if (.use_passed_asv_df) {
+  extra <- as.data.frame(asv_taxonomy_df, stringsAsFactors = FALSE)
+  id_col <- intersect(c("ASV_ID", "Feature.ID", "Feature ID", "FeatureID"),
+                      colnames(extra))[1]
+  if (!is.null(id_col) && id_col != "ASV_ID") {
+    extra$ASV_ID <- as.character(extra[[id_col]])
+  }
+  keep_cols <- setdiff(colnames(extra),
+                       c(colnames(asv_tax_df), id_col))
+  if (length(keep_cols) > 0) {
+    extra <- extra[, c("ASV_ID", keep_cols), drop = FALSE]
+    asv_tax_df <- dplyr::left_join(asv_tax_df, extra, by = "ASV_ID")
+  }
 }
 
-res_deseq_edger <- res_deseq_edger %>% mutate(Significant=if_else(rownames(res_deseq_edger) %in% rownames(res_deseq_edger_sig), TRUE, FALSE)) %>%
-  mutate(TaxonToPrint=if_else(rownames(res_deseq_edger) %in% rownames(res_deseq_edger_sig), as.character(Genus), ""))
+otu_pre_mat <- as(otu_table(physeq_all), "matrix")
+if (!taxa_are_rows(physeq_all)) otu_pre_mat <- t(otu_pre_mat)
+otu_pre_mat <- otu_pre_mat[asv_tax_df$ASV_ID, , drop = FALSE]
+sample_cols <- colnames(otu_pre_mat)
+asv_tax_df$Total_reads <- as.integer(rowSums(otu_pre_mat))
+asv_tax_df$N_samples   <- as.integer(rowSums(otu_pre_mat > 0))
+asv_tax_df$In_filtered <- asv_tax_df$ASV_ID %in% taxa_names(physeq_filtered)
 
-
-p1 <- ggplot(res_deseq_edger, aes(x=log2FoldChange, y=log10p, color=Significant, label=TaxonToPrint)) +
-  geom_text_repel(size=4, nudge_y=0.05) +
-  geom_point(alpha=0.6, shape=16) +
-  theme_q2r() +
-  facet_wrap(~ res_deseq_edger$contrast, ncol = 3) +
-  xlab("log2(fold change)") +
-  ylab("-log10(P-value)") +
-  theme(legend.position="none") +
-  scale_color_manual(values=c("black","red")) + ggtitle("Vulcano plots per group - DESeq2")
-
-res_deseq_edger = data.frame()
-for (i in unique(reses$contrast)) {
-    df = filter(resEdgeRall[resEdgeRall$contrast == i,], resEdgeRall[resEdgeRall$contrast == i,]$ASV %in% rownames(reses[reses$contrast == i,]))
-    res_deseq_edger=rbind(res_deseq_edger, df)
+## Attach representative sequences + BLAST link if available.
+.rep_seqs <- NULL
+if (exists("rep_seqs") && !is.null(rep_seqs)) {
+  .rep_seqs <- if (inherits(rep_seqs, "DNAStringSet")) rep_seqs
+               else if (is.list(rep_seqs) && !is.null(rep_seqs$data)) rep_seqs$data
+               else NULL
+} else if (exists("dada2_rep_seqs_fasta") &&
+           length(dada2_rep_seqs_fasta) > 0 && file.exists(dada2_rep_seqs_fasta[1]) &&
+           .have_biostrings) {
+  .rep_seqs <- tryCatch(Biostrings::readDNAStringSet(dada2_rep_seqs_fasta[1]),
+                        error = function(e) NULL)
+}
+if (!is.null(.rep_seqs) && length(.rep_seqs) > 0) {
+  seq_lookup <- setNames(as.character(.rep_seqs), names(.rep_seqs))
+  asv_tax_df$Sequence <- seq_lookup[asv_tax_df$ASV_ID]
+  asv_tax_df$Length   <- nchar(asv_tax_df$Sequence)
+  asv_tax_df$BLAST    <- ifelse(
+    is.na(asv_tax_df$Sequence), "",
+    sprintf('<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?PROGRAM=blastn&PAGE_TYPE=BlastSearch&DATABASE=nt&QUERY=%s" target="_blank" rel="noopener">BLAST</a>',
+            asv_tax_df$Sequence)
+  )
 }
 
-res_deseq_edger <- res_deseq_edger %>% mutate(Significant=if_else(res_deseq_edger$ASV %in% rownames(res_deseq_edger_sig), TRUE, FALSE)) %>%
-    mutate(TaxonToPrint=if_else(res_deseq_edger$ASV %in% rownames(res_deseq_edger_sig), as.character(Genus), ""))
+## Per-sample read counts at the end so BLAST stays visible.
+asv_tax_df[, sample_cols] <- as.data.frame(otu_pre_mat, stringsAsFactors = FALSE)
 
+## CSV without the HTML BLAST column.
+write.csv(asv_tax_df[, setdiff(colnames(asv_tax_df), "BLAST")],
+          file.path(.report_dir, "asv_ids_taxonomy.csv"), row.names = FALSE)
 
-p2 <- ggplot(res_deseq_edger, aes(x=logFC, y=log10p, color=Significant, label=TaxonToPrint)) +
-    geom_text_repel(size=4, nudge_y=0.05) +
-    geom_point(alpha=0.6, shape=16) +
-    theme_q2r() +
-    facet_wrap(~ res_deseq_edger$contrast, ncol = 3) +
-    xlab("log2(fold change)") +
-    ylab("-log10(P-value)") +
-    theme(legend.position="none") +
-    scale_color_manual(values=c("black","red")) + ggtitle("Vulcano plots per group - EdgeR")
+print(datatable(asv_tax_df,
+  caption = paste0("All ASVs (", nrow(asv_tax_df),
+                   " total). In_filtered=TRUE marks the ",
+                   sum(asv_tax_df$In_filtered),
+                   " ASVs that survived the prevalence + abundance filter."),
+  escape = FALSE,
+  extensions = "Buttons", rownames = FALSE,
+  options = list(scrollX = TRUE, dom = "lftBip",
+                 buttons = c("copy", "csv", "excel"),
+                 pageLength = 10, lengthMenu = c(10, 20, 100, 200))))
+}
+```
 
-p1 + p2
+# Taxa ASVs abundance per sample {.tabset}
+
+## Pre-filtering
+
+```{r prevalence_pre, fig.width=15, fig.height=7}
+otu_full <- as(otu_table(physeq_all), "matrix")
+if (!taxa_are_rows(physeq_all)) otu_full <- t(otu_full)
+asv_per_sample <- colSums(otu_full)
+asv_df <- data.frame(
+  SampleID      = names(asv_per_sample),
+  Total_reads   = asv_per_sample,
+  ASVs_detected = colSums(otu_full > 0)
+)
+p_pre <- ggplot(asv_df, aes(x = SampleID, y = Total_reads, fill = SampleID)) +
+  geom_col() +
+  theme_bw() +
+  geom_text(aes(label = scales::comma(Total_reads)), vjust = -0.3, size = 3) +
+  labs(title = "Total ASV abundance per sample (pre-filter)",
+       x = NULL, y = "Total ASV abundance") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
+print(p_pre)
+write.csv(asv_df, file.path(.report_dir, "asv_per_sample_pre.csv"), row.names = FALSE)
+fgcz_dt(asv_df, "Per-sample read totals and ASV richness (pre-filter)")
+```
+
+## After filtering
+
+```{r prevalence_post, fig.width=15, fig.height=7}
+otu_filt <- as(otu_table(physeq_filtered), "matrix")
+if (!taxa_are_rows(physeq_filtered)) otu_filt <- t(otu_filt)
+asv_df_filt <- data.frame(
+  SampleID      = colnames(otu_filt),
+  Total_reads   = colSums(otu_filt),
+  ASVs_detected = colSums(otu_filt > 0)
+)
+p_post <- ggplot(asv_df_filt, aes(x = SampleID, y = Total_reads, fill = SampleID)) +
+  geom_col() +
+  theme_bw() +
+  geom_text(aes(label = scales::comma(Total_reads)), vjust = -0.3, size = 3) +
+  labs(title = "Total ASV abundance per sample (after filtering)",
+       x = NULL, y = "Total ASV abundance") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
+print(p_post)
+write.csv(asv_df_filt, file.path(.report_dir, "asv_per_sample_post.csv"), row.names = FALSE)
+fgcz_dt(asv_df_filt, "Per-sample read totals and ASV richness (after filter)")
+```
+
+# Taxa prevalence {.tabset}
+
+Taxa prevalence is how widespread a taxon is across samples (independent of abundance).
+The All samples tabset shows the global view; per-group sub-tabsets are generated
+automatically for every level of the grouping factor.
+
+```{r prevalence_helpers}
+remove_na_rank <- function(ps, rank) {
+  tax <- as.data.frame(tax_table(ps))
+  keep <- !is.na(tax[[rank]])
+  if (sum(keep) == 0) return(NULL)
+  prune_taxa(rownames(tax)[keep], ps)
+}
+
+safe_prev_plot <- function(ps, rank, title) {
+  if (is.null(ps)) { cat(title, "-- no data\n"); return(invisible(NULL)) }
+  tryCatch({
+    if (rank %in% c("Genus", "Species")) {
+      ps_clean <- remove_na_rank(ps, rank)
+      if (is.null(ps_clean)) { cat(title, "-- no data after NA removal\n"); return(invisible(NULL)) }
+      p <- plot_taxa_prevalence(ps_clean, rank) + ggtitle(title) + theme(legend.position = "none")
+    } else {
+      p <- plot_taxa_prevalence(ps, rank) + ggtitle(title) + theme(legend.position = "none")
+    }
+    print(p)
+  }, error = function(e) cat(title, "skipped: ", e$message, "\n"))
+}
+```
+
+## Pre-filtering (all samples) {.tabset}
+
+### Genus
+```{r prev_pre_genus_all, fig.width=15, fig.height=7}
+safe_prev_plot(physeq, "Genus", "Genus -- All samples (pre)")
+```
+
+### Family
+```{r prev_pre_family_all, fig.width=15, fig.height=7}
+safe_prev_plot(physeq, "Family", "Family -- All samples (pre)")
+```
+
+### Phylum
+```{r prev_pre_phylum_all, fig.width=15, fig.height=7}
+safe_prev_plot(physeq, "Phylum", "Phylum -- All samples (pre)")
+```
+
+### Species
+```{r prev_pre_species_all, fig.width=15, fig.height=7, eval=has_species}
+safe_prev_plot(physeq, "Species", "Species -- All samples (pre)")
+```
+
+## After filtering (all samples) {.tabset}
+
+### Genus
+```{r prev_post_genus_all, fig.width=15, fig.height=7}
+safe_prev_plot(physeq_filtered, "Genus", "Genus -- All samples (post)")
+```
+
+### Family
+```{r prev_post_family_all, fig.width=15, fig.height=7}
+safe_prev_plot(physeq_filtered, "Family", "Family -- All samples (post)")
+```
+
+### Phylum
+```{r prev_post_phylum_all, fig.width=15, fig.height=7}
+safe_prev_plot(physeq_filtered, "Phylum", "Phylum -- All samples (post)")
+```
+
+### Species
+```{r prev_post_species_all, fig.width=15, fig.height=7, eval=has_species}
+safe_prev_plot(physeq_filtered, "Species", "Species -- All samples (post)")
+```
+
+## Per-group tabsets (post-filter) {.tabset}
+
+```{r prev_per_group_dynamic, results='asis', fig.width=15, fig.height=7}
+for (grp in group_levels) {
+  ps_grp <- safe_prune_nonzero(subset_samples(physeq_filtered, Group == grp))
+  if (is.null(ps_grp)) {
+    cat(sprintf("### %s\n\n_No data in this group._\n\n", grp))
+    next
+  }
+  cat(sprintf("### %s {.tabset}\n\n", grp))
+  for (rank in c("Genus", "Family", "Phylum", "Species")) {
+    if (rank == "Species" && !has_species) next
+    cat(sprintf("#### %s\n\n", rank))
+    cat("```{r prev_grp_", make.names(grp), "_", rank, ", fig.width=15, fig.height=7}\n", sep = "")
+    cat(sprintf("safe_prev_plot(safe_prune_nonzero(subset_samples(physeq_filtered, Group == \"%s\")), \"%s\", \"%s -- %s\")\n",
+                grp, rank, rank, grp))
+    cat("```\n\n")
+  }
+}
+```
+
+# Heatmaps {.tabset}
+
+Log10-transformed relative abundance heatmaps. Each value is `log10(rel% + 0.01)`; absent taxa render at `-2`.
+
+## Genus level (pre-filter)
+```{r heatmap_genus_pre, fig.width=20, fig.height=12}
+plot_level_heatmap(physeq, level = "Genus", title = "Genus -- Pre-filter")
+```
+
+## Genus level (post-filter)
+```{r heatmap_genus_post, fig.width=20, fig.height=12}
+plot_level_heatmap(physeq_filtered, level = "Genus", title = "Genus -- Post-filter")
+```
+
+## Family level (post-filter)
+```{r heatmap_family_post, fig.width=20, fig.height=12}
+plot_level_heatmap(physeq_filtered, level = "Family", title = "Family -- Post-filter")
+```
+
+## Phylum level (post-filter)
+```{r heatmap_phylum_post, fig.width=20, fig.height=12}
+plot_level_heatmap(physeq_filtered, level = "Phylum", title = "Phylum -- Post-filter")
+```
+
+## Species level (post-filter)
+```{r heatmap_species_post, fig.width=20, fig.height=12, eval=has_species}
+plot_level_heatmap(physeq_filtered, level = "Species", title = "Species -- Post-filter")
+```
+
+## Top 30 ASVs (post-filter)
+```{r heatmap_top30_post, fig.width=20, fig.height=14}
+plot_topN_heatmap(physeq_filtered, N = 30, title = "Top 30 ASVs -- Post-filter")
+```
+
+## Interactive heatmaps (HTML files)
+
+```{r heatmap_interactive, results='asis'}
+items <- list(
+  list("Genus -- Pre",  function() plot_level_heatmap(physeq, "Genus", "Genus -- Pre"),  "interactive_heatmap_genus_pre.html",  TRUE),
+  list("Genus -- Post", function() plot_level_heatmap(physeq_filtered, "Genus", "Genus -- Post"), "interactive_heatmap_genus_post.html", TRUE),
+  list("Family -- Post",function() plot_level_heatmap(physeq_filtered, "Family", "Family -- Post"), "interactive_heatmap_family_post.html", TRUE),
+  list("Phylum -- Post",function() plot_level_heatmap(physeq_filtered, "Phylum", "Phylum -- Post"), "interactive_heatmap_phylum_post.html", TRUE),
+  list("Top 30 -- Post",function() plot_topN_heatmap(physeq_filtered, 30, "Top 30 ASVs -- Post"), "interactive_heatmap_top30_post.html", TRUE),
+  list("Species -- Post",function() plot_level_heatmap(physeq_filtered, "Species", "Species -- Post"), "interactive_heatmap_species_post.html", has_species)
+)
+for (it in items) {
+  if (!it[[4]]) next
+  tryCatch({
+    widget <- ggplotly(it[[2]]())
+    fn <- save_interactive_widget(widget, it[[3]])
+    if (nzchar(fn)) cat(sprintf("- [%s](%s)\n", it[[1]], fn))
+  }, error = function(e) cat(sprintf("- %s skipped: %s\n", it[[1]], e$message)))
+}
+```
+
+# Composition barplots {.tabset}
+
+Relative abundance per sample, faceted by Group. The All tab shows every taxon at the rank;
+Top 20 / Top 50 lump the rest into "Other".
+
+```{r barplots_setup}
+.do_bar_rank <- function(rank) {
+  cat(sprintf("\n### %s {.tabset}\n\n", rank))
+  cat("#### All\n\n")
+  print(plot_taxa_bar_all(physeq, rank, paste("Relative Abundance", rank, "(pre)")))
+  print(plot_taxa_bar_all(physeq_filtered, rank, paste("Relative Abundance", rank, "(post)")))
+  cat("\n\n#### Top 20\n\n")
+  print(plot_taxa_bar_topN(physeq, rank, 20, paste("Top 20", rank, "(pre)")))
+  print(plot_taxa_bar_topN(physeq_filtered, rank, 20, paste("Top 20", rank, "(post)")))
+  cat("\n\n#### Top 50\n\n")
+  print(plot_taxa_bar_topN(physeq, rank, 50, paste("Top 50", rank, "(pre)")))
+  print(plot_taxa_bar_topN(physeq_filtered, rank, 50, paste("Top 50", rank, "(post)")))
+}
+```
+
+## Genus
+```{r barplot_genus, fig.width=20, fig.height=12}
+print(plot_taxa_bar_all(physeq_filtered, "Genus", "Relative Abundance Genus (post)"))
+print(plot_taxa_bar_topN(physeq_filtered, "Genus", 20, "Top 20 Genus (post)"))
+print(plot_taxa_bar_topN(physeq_filtered, "Genus", 50, "Top 50 Genus (post)"))
+genus_tbl_post <- make_taxa_wide_table(physeq_filtered, "Genus")
+write.csv(genus_tbl_post, file.path(.report_dir, "taxa_abundance_genus_post.csv"), row.names = FALSE)
+fgcz_dt(genus_tbl_post, "Genus -- Relative abundance (%) per sample, post-filter")
+```
+
+## Family
+```{r barplot_family, fig.width=20, fig.height=12}
+print(plot_taxa_bar_all(physeq_filtered, "Family", "Relative Abundance Family (post)"))
+print(plot_taxa_bar_topN(physeq_filtered, "Family", 20, "Top 20 Family (post)"))
+print(plot_taxa_bar_topN(physeq_filtered, "Family", 50, "Top 50 Family (post)"))
+family_tbl_post <- make_taxa_wide_table(physeq_filtered, "Family")
+write.csv(family_tbl_post, file.path(.report_dir, "taxa_abundance_family_post.csv"), row.names = FALSE)
+fgcz_dt(family_tbl_post, "Family -- Relative abundance (%) per sample, post-filter")
+```
+
+## Phylum
+```{r barplot_phylum, fig.width=20, fig.height=12}
+print(plot_taxa_bar_all(physeq_filtered, "Phylum", "Relative Abundance Phylum (post)"))
+print(plot_taxa_bar_topN(physeq_filtered, "Phylum", 20, "Top 20 Phylum (post)"))
+phylum_tbl_post <- make_taxa_wide_table(physeq_filtered, "Phylum")
+write.csv(phylum_tbl_post, file.path(.report_dir, "taxa_abundance_phylum_post.csv"), row.names = FALSE)
+fgcz_dt(phylum_tbl_post, "Phylum -- Relative abundance (%) per sample, post-filter")
+```
+
+## Species
+```{r barplot_species, fig.width=20, fig.height=12, eval=has_species}
+print(plot_taxa_bar_all(physeq_filtered, "Species", "Relative Abundance Species (post)"))
+print(plot_taxa_bar_topN(physeq_filtered, "Species", 20, "Top 20 Species (post)"))
+print(plot_taxa_bar_topN(physeq_filtered, "Species", 50, "Top 50 Species (post)"))
+species_tbl_post <- make_taxa_wide_table(physeq_filtered, "Species")
+write.csv(species_tbl_post, file.path(.report_dir, "taxa_abundance_species_post.csv"), row.names = FALSE)
+fgcz_dt(species_tbl_post, "Species -- Relative abundance (%) per sample, post-filter")
+```
+
+## Interactive (HTML files)
+
+```{r barplot_interactive, results='asis'}
+ranks_iv <- c("Phylum", "Family", "Genus")
+if (has_species) ranks_iv <- c("Species", ranks_iv)
+for (rank in ranks_iv) {
+  for (state in c("pre", "post")) {
+    ps_use <- if (state == "pre") physeq else physeq_filtered
+    tryCatch({
+      p <- plot_taxa_bar_all(ps_use, rank, paste("Relative Abundance", rank, "(", state, ")"))
+      widget <- ggplotly(p)
+      fn <- save_interactive_widget(widget,
+                                    paste0("interactive_barplot_", tolower(rank), "_", state, ".html"))
+      if (nzchar(fn)) cat(sprintf("- [%s -- %s-filter](%s)\n", rank, state, fn))
+    }, error = function(e) cat(sprintf("- %s %s skipped: %s\n", rank, state, e$message)))
+  }
+}
+```
+
+# Phylogenetic tree
+
+```{r phylo_tree, fig.width=15, fig.height=10}
+.tree_obj <- NULL
+if (exists("tree") && !is.null(tree)) {
+  .tree_obj <- tree
+} else if (!is.null(phy_tree(physeq_filtered, errorIfNULL = FALSE))) {
+  .tree_obj <- phy_tree(physeq_filtered)
+}
+
+if (!is.null(.tree_obj)) {
+  if (.have_ggtree) {
+    tryCatch({
+      melt_simple <- psmelt(physeq_filtered) %>%
+        dplyr::filter(Abundance < 50) %>%
+        dplyr::select(OTU, val = Abundance)
+      p <- ggtree::ggtree(physeq_filtered, layout = "fan", open.angle = 10) +
+        ggtree::geom_tippoint(mapping = aes(color = Genus), size = 1.5, show.legend = TRUE)
+      print(p + ggtitle("Phylogenetic tree (ggtree)"))
+    }, error = function(e) {
+      cat("ggtree plot failed: ", e$message, "\n")
+      if (.have_ape) ape::plot.phylo(.tree_obj, type = "fan", show.tip.label = FALSE,
+                                     main = "Phylogenetic tree (ape fallback)")
+    })
+  } else if (.have_ape) {
+    ape::plot.phylo(.tree_obj, type = "fan", show.tip.label = FALSE,
+                    main = "Phylogenetic tree")
+  } else {
+    cat("Neither ggtree nor ape available -- skipping phylogenetic tree.\n")
+  }
+} else {
+  cat("No tree object available -- skipping phylogenetic tree.\n")
+}
+```
+
+# Venn diagram across grouping levels
+
+```{r venn, fig.width=20, fig.height=9}
+otu_pre  <- as(otu_table(physeq), "matrix")
+if (!taxa_are_rows(physeq)) otu_pre <- t(otu_pre)
+otu_post <- as(otu_table(physeq_filtered), "matrix")
+if (!taxa_are_rows(physeq_filtered)) otu_post <- t(otu_post)
+
+groups_post <- as.character(sample_data(physeq_filtered)$Group)
+names(groups_post) <- sample_names(physeq_filtered)
+
+make_group_sets <- function(otu_mat, samp_groups) {
+  setNames(lapply(unique(samp_groups), function(g) {
+    samp_in <- names(samp_groups)[samp_groups == g]
+    samp_in <- intersect(samp_in, colnames(otu_mat))
+    if (length(samp_in) == 0) return(character(0))
+    asvs <- rowSums(otu_mat[, samp_in, drop = FALSE] >= 1) > 0
+    rownames(otu_mat)[asvs]
+  }), unique(samp_groups))
+}
+
+sets_post <- make_group_sets(otu_post, groups_post)
+
+if (length(sets_post) >= 2 && length(sets_post) <= 5) {
+  print(ggvenn(sets_post, set_name_size = 4, text_size = 4) +
+          ggtitle(paste("Shared ASVs across", length(sets_post), "groups")))
+} else if (length(sets_post) > 5) {
+  m <- make_comb_mat(rapply(sets_post, na.omit, how = "replace"), mode = "distinct")
+  print(UpSet(m,
+              comb_order = order(comb_size(m), decreasing = TRUE),
+              top_annotation = upset_top_annotation(m, add_numbers = TRUE),
+              right_annotation = upset_right_annotation(m, add_numbers = TRUE)))
+}
+
+## Membership table
+membership <- as.data.frame(
+  do.call(cbind, lapply(sets_post, function(asvs) as.integer(rownames(otu_post) %in% asvs))),
+  stringsAsFactors = FALSE
+)
+membership$ASV_ID    <- rownames(otu_post)
+membership$N_groups  <- rowSums(membership[, names(sets_post), drop = FALSE])
+write.csv(membership, file.path(.report_dir, "venn_membership_post.csv"), row.names = FALSE)
+fgcz_dt(head(membership[order(-membership$N_groups), ], 200),
+        "Top 200 ASVs by group-membership count (post-filter)")
+```
+
+# Alpha diversity {.tabset}
+
+Shannon -- richness + evenness combined. Observed -- raw ASV count. Faith's PD -- phylogenetic
+breadth (summed branch lengths). Rarefaction equalises sequencing depth across samples.
+
+## Rarefaction curve
+
+```{r rarecurve, fig.width=6, fig.height=6}
+otu_tab <- t(as(otu_table(physeq_filtered), "matrix"))
+if (taxa_are_rows(physeq_filtered)) otu_tab <- as(otu_table(physeq_filtered), "matrix") %>% t()
+tryCatch(rarecurve(otu_tab, step = 50, cex = 0.5),
+         error = function(e) cat("rarecurve failed: ", e$message, "\n"))
+```
+
+## All measures (rarefied)
+
+```{r alpha_div_rarefied, fig.width=14, fig.height=10}
+set.seed(123)
+ps_clean <- prune_samples(sample_sums(physeq_filtered) > 0, physeq_filtered)
+ps_clean <- prune_taxa(taxa_sums(ps_clean) > 0, ps_clean)
+min_lib  <- min(sample_sums(ps_clean))
+
+ps_rarefied <- tryCatch(rarefy_even_depth(ps_clean, sample.size = min_lib, rngseed = 123,
+                                          replace = FALSE, verbose = FALSE),
+                        error = function(e) NULL)
+
+richness_rar <- NULL
+if (!is.null(ps_rarefied)) {
+  richness_rar <- estimate_richness(ps_rarefied,
+                                    measures = c("Observed", "Chao1", "Shannon", "Simpson")) %>%
+    tibble::rownames_to_column("SampleID")
+  richness_rar$SampleID <- str_remove(richness_rar$SampleID, "^X")
+
+  ## Prefer QIIME2-supplied evenness vector (Pielou's) from `evenness$data`
+  ## over re-computing with microbiome::evenness.
+  pielou_rar <- NULL
+  if (exists("evenness") && !is.null(evenness)) {
+    .ev_df <- if (is.list(evenness) && !is.null(evenness$data)) evenness$data else evenness
+    .ev_df <- as.data.frame(.ev_df, stringsAsFactors = FALSE)
+    if (!"SampleID" %in% colnames(.ev_df)) {
+      .ev_df <- tibble::rownames_to_column(.ev_df, "SampleID")
+    }
+    ## QIIME2 column is usually `pielou_evenness`; rename to `pielou` to match
+    ## downstream alpha_metrics intersect().
+    ev_val_col <- setdiff(colnames(.ev_df), "SampleID")[1]
+    if (!is.null(ev_val_col) && ev_val_col != "pielou") {
+      names(.ev_df)[names(.ev_df) == ev_val_col] <- "pielou"
+    }
+    pielou_rar <- .ev_df[, c("SampleID", "pielou"), drop = FALSE]
+  } else {
+    pielou_rar <- microbiome::evenness(ps_rarefied, index = "pielou") %>%
+      tibble::rownames_to_column("SampleID")
+  }
+
+  ## Prefer QIIME2-supplied observed-features vector from `richness$data` over
+  ## the locally-estimated Observed column (overwrite when available).
+  if (exists("richness") && !is.null(richness)) {
+    .rich_df <- if (is.list(richness) && !is.null(richness$data)) richness$data else richness
+    .rich_df <- as.data.frame(.rich_df, stringsAsFactors = FALSE)
+    if (!"SampleID" %in% colnames(.rich_df)) {
+      .rich_df <- tibble::rownames_to_column(.rich_df, "SampleID")
+    }
+    rich_val_col <- setdiff(colnames(.rich_df), "SampleID")[1]
+    if (!is.null(rich_val_col)) {
+      names(.rich_df)[names(.rich_df) == rich_val_col] <- "Observed.qiime2"
+      richness_rar <- dplyr::left_join(richness_rar, .rich_df[, c("SampleID", "Observed.qiime2")],
+                                       by = "SampleID")
+      ## Replace Observed with QIIME2's value where available.
+      ok <- !is.na(richness_rar$Observed.qiime2)
+      richness_rar$Observed[ok] <- richness_rar$Observed.qiime2[ok]
+      richness_rar$Observed.qiime2 <- NULL
+    }
+  }
+
+  meta_rar   <- as(sample_data(ps_rarefied), "data.frame") %>%
+    tibble::rownames_to_column("SampleID")
+  richness_rar <- richness_rar %>%
+    dplyr::left_join(pielou_rar, by = "SampleID") %>%
+    dplyr::left_join(meta_rar,   by = "SampleID")
+  richness_rar$Shannon.Effective <- round(exp(richness_rar$Shannon), 2)
+
+  ## Prefer QIIME2-supplied Faith's PD vector over the picante recomputation.
+  if (exists("faith_pd") && !is.null(faith_pd)) {
+    .fp_df <- if (is.list(faith_pd) && !is.null(faith_pd$data)) faith_pd$data else faith_pd
+    .fp_df <- as.data.frame(.fp_df, stringsAsFactors = FALSE)
+    if (!"SampleID" %in% colnames(.fp_df)) {
+      .fp_df <- tibble::rownames_to_column(.fp_df, "SampleID")
+    }
+    fp_val_col <- setdiff(colnames(.fp_df), "SampleID")[1]
+    if (!is.null(fp_val_col) && fp_val_col != "Faiths.PD") {
+      names(.fp_df)[names(.fp_df) == fp_val_col] <- "Faiths.PD"
+    }
+    richness_rar <- dplyr::left_join(richness_rar,
+                                     .fp_df[, c("SampleID", "Faiths.PD")],
+                                     by = "SampleID")
+  } else if (.have_phangorn && !is.null(phy_tree(ps_rarefied, errorIfNULL = FALSE)) && .have_picante) {
+    my_tree <- phy_tree(ps_rarefied)
+    if (!ape::is.rooted(my_tree)) my_tree <- phangorn::midpoint(my_tree)
+    faith_rar <- tryCatch(picante::pd(t(as.data.frame(otu_table(ps_rarefied))),
+                                      my_tree, include.root = TRUE),
+                          error = function(e) NULL)
+    if (!is.null(faith_rar)) {
+      faith_rar$SampleID <- rownames(faith_rar)
+      richness_rar <- richness_rar %>%
+        dplyr::left_join(faith_rar[, c("SampleID", "PD")], by = "SampleID") %>%
+        dplyr::rename(Faiths.PD = PD)
+    }
+  }
+
+  lev <- levels(as.factor(richness_rar$Group))
+  L.pairs <- if (length(lev) >= 2) combn(seq_along(lev), 2, simplify = FALSE, FUN = function(i) lev[i]) else list()
+  alpha_metrics <- intersect(c("Observed", "Chao1", "Shannon", "Simpson", "pielou", "Shannon.Effective", "Faiths.PD"),
+                             colnames(richness_rar))
+  alpha_plots <- lapply(alpha_metrics, function(metric) {
+    p <- ggviolin(richness_rar, x = "Group", y = metric, fill = "Group",
+                  add = "boxplot", add.params = list(fill = "white", outlier.shape = NA)) +
+      theme_bw() + ggtitle(paste(metric, "-- Rarefied")) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    if (length(L.pairs) > 0) {
+      p <- p + stat_compare_means(comparisons = L.pairs, method = "wilcox.test", label = "p.format")
+    }
+    p
+  })
+  if (length(alpha_plots) > 0) print(wrap_plots(alpha_plots, ncol = 3))
+} else {
+  cat("Rarefaction failed -- skipping rarefied alpha diversity.\n")
+}
+```
+
+## Shannon Kruskal-Wallis
+
+```{r kw_test}
+.use_alpha <- NULL
+if (!is.null(richness_rar) && "Shannon" %in% colnames(richness_rar)) {
+  .use_alpha <- richness_rar
+} else if (exists("shannon") && !is.null(shannon)) {
+  s <- if (is.list(shannon) && !is.null(shannon$data)) shannon$data else as.data.frame(shannon)
+  .use_alpha <- s %>% tibble::rownames_to_column("SampleID")
+  if (!"Shannon" %in% colnames(.use_alpha) && "shannon_entropy" %in% colnames(.use_alpha)) {
+    .use_alpha$Shannon <- .use_alpha$shannon_entropy
+  }
+  .use_alpha <- dplyr::left_join(.use_alpha, metadata, by = "SampleID")
+}
+
+if (!is.null(.use_alpha) && "Shannon" %in% colnames(.use_alpha) && "Group" %in% colnames(.use_alpha)) {
+  if (length(unique(.use_alpha$Group)) >= 2) {
+    kw <- kruskal.test(Shannon ~ as.factor(Group), data = .use_alpha)
+    cat("Global Kruskal-Wallis chi-squared = ", round(kw$statistic, 3), "\n")
+    cat("Global Kruskal-Wallis p-value     = ", signif(kw$p.value, 4), "\n\n")
+
+    pw <- tryCatch(pairwise_wilcox_test(data = .use_alpha,
+                                        formula = Shannon ~ Group,
+                                        p.adjust.method = "BH"),
+                   error = function(e) NULL)
+    if (!is.null(pw)) {
+      write.csv(pw, file.path(.report_dir, "alpha_diversity_pairwise_wilcoxon.csv"), row.names = FALSE)
+      fgcz_dt(pw[, intersect(c("group1", "group2", "n1", "n2", "statistic", "p", "p.adj", "p.adj.signif"),
+                              colnames(pw))],
+              "Pairwise Wilcoxon (Shannon)")
+    }
+  } else {
+    cat("Only one group level present -- skipping KW test.\n")
+  }
+} else {
+  cat("Shannon values not available -- skipping KW test.\n")
+}
+```
+
+## Faith's PD
+
+```{r faith_pd_tab, fig.width=8, fig.height=6}
+## Render a Faith's PD violin/boxplot by Group with Kruskal-Wallis, using the
+## QIIME2-supplied `faith_pd` vector. Guarded so the section disappears when
+## the input is missing (e.g. older runs without faith_pd_vector.qza).
+if (exists("faith_pd") && !is.null(faith_pd)) {
+  .fp_df_tab <- if (is.list(faith_pd) && !is.null(faith_pd$data)) faith_pd$data else faith_pd
+  .fp_df_tab <- as.data.frame(.fp_df_tab, stringsAsFactors = FALSE)
+  if (!"SampleID" %in% colnames(.fp_df_tab)) {
+    .fp_df_tab <- tibble::rownames_to_column(.fp_df_tab, "SampleID")
+  }
+  fp_val_col <- setdiff(colnames(.fp_df_tab), "SampleID")[1]
+  if (!is.null(fp_val_col) && fp_val_col != "Faiths.PD") {
+    names(.fp_df_tab)[names(.fp_df_tab) == fp_val_col] <- "Faiths.PD"
+  }
+  .fp_df_tab <- dplyr::left_join(.fp_df_tab, metadata[, intersect(c("SampleID", "Group"),
+                                                                 colnames(metadata)), drop = FALSE],
+                                 by = "SampleID")
+  .fp_df_tab <- .fp_df_tab[!is.na(.fp_df_tab$Faiths.PD) & !is.na(.fp_df_tab$Group), , drop = FALSE]
+
+  if (nrow(.fp_df_tab) > 0 && length(unique(.fp_df_tab$Group)) >= 2) {
+    write.csv(.fp_df_tab, file.path(.report_dir, "alpha_diversity_faith_pd.csv"),
+              row.names = FALSE)
+    lev_fp <- levels(as.factor(.fp_df_tab$Group))
+    L.pairs.fp <- combn(seq_along(lev_fp), 2, simplify = FALSE,
+                        FUN = function(i) lev_fp[i])
+    p_fp <- ggviolin(.fp_df_tab, x = "Group", y = "Faiths.PD", fill = "Group",
+                     add = "boxplot",
+                     add.params = list(fill = "white", outlier.shape = NA)) +
+      theme_bw() + ggtitle("Faith's PD by Group") +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+      ylab("Faith's PD")
+    if (length(L.pairs.fp) > 0) {
+      p_fp <- p_fp + stat_compare_means(comparisons = L.pairs.fp,
+                                        method = "wilcox.test",
+                                        label = "p.format")
+    }
+    print(p_fp)
+
+    kw_fp <- kruskal.test(Faiths.PD ~ as.factor(Group), data = .fp_df_tab)
+    cat("\nKruskal-Wallis (Faith's PD) chi-squared =", round(kw_fp$statistic, 3), "\n")
+    cat("Kruskal-Wallis (Faith's PD) p-value     =", signif(kw_fp$p.value, 4), "\n")
+
+    pw_fp <- tryCatch(pairwise_wilcox_test(data = .fp_df_tab,
+                                           formula = Faiths.PD ~ Group,
+                                           p.adjust.method = "BH"),
+                      error = function(e) NULL)
+    if (!is.null(pw_fp)) {
+      write.csv(pw_fp,
+                file.path(.report_dir, "alpha_diversity_faith_pd_pairwise_wilcoxon.csv"),
+                row.names = FALSE)
+      fgcz_dt(pw_fp[, intersect(c("group1", "group2", "n1", "n2", "statistic",
+                                  "p", "p.adj", "p.adj.signif"), colnames(pw_fp))],
+              "Pairwise Wilcoxon (Faith's PD)")
+    }
+  } else {
+    cat("Faith's PD vector available but not enough groups -- skipping comparison.\n")
+  }
+} else {
+  cat("Faith's PD vector not provided -- skipping (older runs without faith_pd_vector.qza).\n")
+}
+```
+
+# Beta diversity {.tabset}
+
+PERMANOVA R^2 = fraction of community variation explained by Group. Betadisper checks
+homogeneity of group dispersions; significant betadisper means PERMANOVA differences may
+partly reflect dispersion rather than location.
+
+## Jaccard {.tabset}
+
+```{r beta_jaccard_prep}
+.jaccard_data <- NULL
+.jaccard_mat  <- NULL
+if (exists("jaccard") && !is.null(jaccard)) {
+  .jaccard_data <- if (is.list(jaccard) && !is.null(jaccard$data)) jaccard$data else jaccard
+}
+if (exists("jaccardmatrix") && !is.null(jaccardmatrix)) {
+  .jaccard_mat <- if (is.list(jaccardmatrix) && !is.null(jaccardmatrix$data)) as.matrix(jaccardmatrix$data) else as.matrix(jaccardmatrix)
+}
+if (is.null(.jaccard_mat)) {
+  .jaccard_mat <- tryCatch(as.matrix(phyloseq::distance(physeq_filtered, method = "jaccard")),
+                           error = function(e) NULL)
+}
+```
+
+### PCoA
+
+```{r jaccard_pcoa, fig.width=7, fig.height=6}
+if (!is.null(.jaccard_mat)) {
+  ord_j <- ordinate(physeq_filtered, "PCoA", as.dist(.jaccard_mat))
+  print(plot_ordination(physeq_filtered, ord_j, color = "Group") +
+          geom_point(size = 3, alpha = 0.6) + stat_ellipse() + theme_bw() +
+          ggtitle("Jaccard PCoA"))
+} else {
+  cat("No Jaccard matrix available.\n")
+}
+```
+
+### PERMANOVA
+
+```{r jaccard_permanova}
+if (!is.null(.jaccard_mat)) {
+  meta2 <- metadata[metadata$SampleID %in% rownames(.jaccard_mat), , drop = FALSE]
+  perm  <- vegan::adonis2(.jaccard_mat ~ meta2$Group, permutations = 999, method = "jaccard")
+  cat("Global PERMANOVA p-value =", signif(perm$`Pr(>F)`[1], 3), "\n")
+  cat("Global PERMANOVA F        =", round(perm$F[1], 2), "\n")
+  if (length(unique(meta2$Group)) >= 3) {
+    pw_jac <- pairwise.adonis(.jaccard_mat, meta2$Group, perm = 999, sim.method = "jaccard")
+    fgcz_dt(pw_jac, "Pairwise PERMANOVA -- Jaccard")
+  }
+}
+```
+
+### Betadispersion
+
+```{r jaccard_betadisper}
+if (!is.null(.jaccard_mat)) {
+  meta2 <- metadata[metadata$SampleID %in% rownames(.jaccard_mat), , drop = FALSE]
+  bd <- vegan::betadisper(as.dist(.jaccard_mat), meta2$Group)
+  print(anova(bd))
+  print(vegan::permutest(bd, pairwise = TRUE))
+}
+```
+
+## Bray-Curtis {.tabset}
+
+```{r beta_bray_prep}
+.bray_data <- NULL
+.bray_mat  <- NULL
+if (exists("bray") && !is.null(bray)) {
+  .bray_data <- if (is.list(bray) && !is.null(bray$data)) bray$data else bray
+}
+if (exists("braymatrix") && !is.null(braymatrix)) {
+  .bray_mat <- if (is.list(braymatrix) && !is.null(braymatrix$data)) as.matrix(braymatrix$data) else as.matrix(braymatrix)
+}
+if (is.null(.bray_mat)) {
+  .bray_mat <- tryCatch(as.matrix(phyloseq::distance(physeq_filtered, method = "bray")),
+                        error = function(e) NULL)
+}
+```
+
+### PCoA
+
+```{r bray_pcoa, fig.width=7, fig.height=6}
+if (!is.null(.bray_mat)) {
+  ord_b <- ordinate(physeq_filtered, "PCoA", as.dist(.bray_mat))
+  print(plot_ordination(physeq_filtered, ord_b, color = "Group") +
+          geom_point(size = 3, alpha = 0.6) + stat_ellipse() + theme_bw() +
+          ggtitle("Bray-Curtis PCoA"))
+}
+```
+
+### NMDS
+
+```{r bray_nmds, fig.width=7, fig.height=6}
+if (!is.null(.bray_mat)) {
+  tryCatch({
+    ps_rel <- microbiome::transform(physeq_filtered, "compositional")
+    p <- plot_landscape(ps_rel, "NMDS", "bray", col = grouping) +
+           labs(title = "NMDS / Bray")
+    print(p)
+  }, error = function(e) cat("NMDS failed: ", e$message, "\n"))
+}
+```
+
+### PERMANOVA
+
+```{r bray_permanova}
+if (!is.null(.bray_mat)) {
+  meta2 <- metadata[metadata$SampleID %in% rownames(.bray_mat), , drop = FALSE]
+  perm  <- vegan::adonis2(.bray_mat ~ meta2$Group, permutations = 999, method = "bray")
+  cat("Global PERMANOVA p-value =", signif(perm$`Pr(>F)`[1], 3), "\n")
+  cat("Global PERMANOVA F        =", round(perm$F[1], 2), "\n")
+  if (length(unique(meta2$Group)) >= 3) {
+    pw_bc <- pairwise.adonis(.bray_mat, meta2$Group, perm = 999, sim.method = "bray")
+    fgcz_dt(pw_bc, "Pairwise PERMANOVA -- Bray-Curtis")
+  }
+}
+```
+
+### Betadispersion
+
+```{r bray_betadisper}
+if (!is.null(.bray_mat)) {
+  meta2 <- metadata[metadata$SampleID %in% rownames(.bray_mat), , drop = FALSE]
+  bd <- vegan::betadisper(as.dist(.bray_mat), meta2$Group)
+  print(anova(bd))
+  print(vegan::permutest(bd, pairwise = TRUE))
+}
+```
+
+## Weighted UniFrac {.tabset}
+
+```{r beta_unifrac_prep}
+.uf_mat <- NULL
+if (exists("unifracmatrix") && !is.null(unifracmatrix)) {
+  .uf_mat <- if (is.list(unifracmatrix) && !is.null(unifracmatrix$data)) as.matrix(unifracmatrix$data) else as.matrix(unifracmatrix)
+}
+if (is.null(.uf_mat) && !is.null(phy_tree(physeq_filtered, errorIfNULL = FALSE))) {
+  .uf_mat <- tryCatch(as.matrix(phyloseq::distance(physeq_filtered, method = "wunifrac")),
+                      error = function(e) NULL)
+}
+
+## Prefer the QIIME2-computed PCoA vectors from `unifrac$data$Vectors` for the
+## scatter plot (matches the Jaccard/Bray pcoa_results pattern). Falls back to
+## the local ordinate() call if the full unifrac QZA was not supplied.
+.uf_vectors <- NULL
+if (exists("unifrac") && !is.null(unifrac)) {
+  .uf_vectors <- tryCatch({
+    v <- if (is.list(unifrac) && !is.null(unifrac$data) &&
+             !is.null(unifrac$data$Vectors)) unifrac$data$Vectors else NULL
+    if (!is.null(v)) as.data.frame(v, stringsAsFactors = FALSE) else NULL
+  }, error = function(e) NULL)
+}
+```
+
+### PCoA
+
+```{r uf_pcoa, fig.width=7, fig.height=6}
+if (!is.null(.uf_vectors) && nrow(.uf_vectors) > 0) {
+  ## QIIME2 pcoa_results -> Vectors: SampleID + Axis.1 + Axis.2 + ...
+  uf_v <- .uf_vectors
+  id_col <- intersect(c("SampleID", "Sample.ID", "Sample-ID", "sample-id",
+                        "SampleId", "sample_id"), colnames(uf_v))
+  if (length(id_col) == 0) {
+    ## Some qiime2R versions put the id in the first column; coerce to SampleID.
+    uf_v$SampleID <- as.character(uf_v[[1]])
+    id_col <- "SampleID"
+  } else {
+    names(uf_v)[names(uf_v) == id_col[1]] <- "SampleID"
+    id_col <- "SampleID"
+  }
+  ax_cols <- grep("^(PC|Axis\\.?)\\s*\\d+$", colnames(uf_v), value = TRUE)
+  if (length(ax_cols) < 2) ax_cols <- setdiff(colnames(uf_v), "SampleID")[1:2]
+  pc1 <- ax_cols[1]; pc2 <- ax_cols[2]
+  uf_v <- dplyr::left_join(uf_v, metadata[, intersect(c("SampleID", "Group"),
+                                                     colnames(metadata)), drop = FALSE],
+                           by = "SampleID")
+  print(ggplot(uf_v, aes(x = .data[[pc1]], y = .data[[pc2]], color = Group)) +
+          geom_point(size = 3, alpha = 0.6) +
+          stat_ellipse() +
+          theme_bw() +
+          labs(x = pc1, y = pc2, title = "Weighted UniFrac PCoA (QIIME2)"))
+} else if (!is.null(.uf_mat)) {
+  ord_u <- ordinate(physeq_filtered, "PCoA", as.dist(.uf_mat))
+  print(plot_ordination(physeq_filtered, ord_u, color = "Group") +
+          geom_point(size = 3, alpha = 0.6) + stat_ellipse() + theme_bw() +
+          ggtitle("Weighted UniFrac PCoA"))
+}
+```
+
+### PERMANOVA
+
+```{r uf_permanova}
+if (!is.null(.uf_mat)) {
+  meta2 <- metadata[metadata$SampleID %in% rownames(.uf_mat), , drop = FALSE]
+  perm  <- vegan::adonis2(.uf_mat ~ meta2$Group, permutations = 999)
+  cat("Global PERMANOVA p-value =", signif(perm$`Pr(>F)`[1], 3), "\n")
+  cat("Global PERMANOVA F        =", round(perm$F[1], 2), "\n")
+  if (length(unique(meta2$Group)) >= 3) {
+    pw_uf <- pairwise.adonis(.uf_mat, meta2$Group, perm = 999)
+    fgcz_dt(pw_uf, "Pairwise PERMANOVA -- Weighted UniFrac")
+  }
+}
+```
+
+### Betadispersion
+
+```{r uf_betadisper}
+if (!is.null(.uf_mat)) {
+  meta2 <- metadata[metadata$SampleID %in% rownames(.uf_mat), , drop = FALSE]
+  bd <- vegan::betadisper(as.dist(.uf_mat), meta2$Group)
+  print(anova(bd))
+  print(vegan::permutest(bd, pairwise = TRUE))
+}
+```
+
+# Differential abundance {.tabset}
+
+## Properties of taxonomic profiling data
+
+```{r da_props, fig.width=12, fig.height=4}
+otu_mat_f <- as(otu_table(physeq_filtered), "matrix")
+if (!taxa_are_rows(physeq_filtered)) otu_mat_f <- t(otu_mat_f)
+
+## Overdispersion: variance > mean
+df_disp <- reshape2::melt(otu_mat_f, varnames = c("Taxon", "Sample"), value.name = "Reads") %>%
+  dplyr::group_by(Taxon) %>%
+  dplyr::summarise(mean = mean(Reads), variance = var(Reads), .groups = "drop")
+p_disp <- ggplot(df_disp, aes(x = mean, y = variance)) +
+  geom_point(alpha = 0.5) + geom_abline(intercept = 0, slope = 1) +
+  scale_x_log10() + scale_y_log10() +
+  labs(title = "Overdispersion (variance > mean)") + theme_bw()
+
+## Sparsity
+log10ab <- reshape2::melt(log10(1 + otu_mat_f))$value
+p_sparse <- ggplot(data.frame(v = log10ab), aes(x = v)) +
+  geom_histogram(bins = 80) + theme_bw() +
+  labs(title = "Sparsity (log10 abundance distribution)", x = "log10(1 + reads)")
+
+## Rarity
+df_rare <- reshape2::melt(otu_mat_f) %>% dplyr::arrange(dplyr::desc(value))
+df_rare$Var1 <- factor(df_rare$Var1, levels = unique(df_rare$Var1))
+p_rare <- ggplot(df_rare, aes(x = Var1, y = value)) +
+  geom_boxplot(outlier.size = 0.5) + theme_bw() +
+  theme(axis.text.x = element_blank()) +
+  labs(title = "Rarity (per-taxon abundance)",
+       x = "Taxonomic group", y = "Reads") +
+  scale_y_log10()
+
+print(p_disp + p_sparse + p_rare + plot_layout(ncol = 3))
+
+cat("\n**Rarefy or not?**\n\n",
+    "We do *not* rarefy the count table for differential abundance because rarefaction throws away data ",
+    "and introduces artificial uncertainty. See ",
+    "[Waste Not, Want Not](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003531) ",
+    "for the canonical argument.\n")
+```
+
+## ANCOM-BC {.tabset}
+
+ANCOM-BC fits a log-linear model with bias correction and reports per-taxon log-fold-changes,
+adjusted p-values, and a structural-zero flag for taxa absent in entire groups.
+
+```{r ancombc_genus, fig.width=12, fig.height=8}
+.ancombc_res_genus <- NULL
+if (.have_ancombc && length(group_levels) >= 2 && ntaxa(physeq_Genus) > 0) {
+  .ancombc_res_genus <- tryCatch(
+    ANCOMBC::ancombc2(data = physeq_filtered,
+                      fix_formula = "Group",
+                      tax_level    = "Genus",
+                      p_adj_method = "BH",
+                      lib_cut      = 0,
+                      prv_cut      = .cfg$prevalence_frac,
+                      group        = "Group",
+                      struc_zero   = TRUE,
+                      neg_lb       = TRUE,
+                      iter_control = list(tol = 1e-5, max_iter = 100, verbose = FALSE),
+                      alpha        = 0.05,
+                      global       = TRUE),
+    error = function(e) { cat("ANCOM-BC Genus failed: ", e$message, "\n"); NULL }
+  )
+}
+```
+
+### Primary Results -- Genus
+
+```{r ancombc_genus_primary}
+if (!is.null(.ancombc_res_genus)) {
+  res <- .ancombc_res_genus$res
+  if (!is.null(res) && nrow(res) > 0) {
+    write.csv(res, file.path(.report_dir, "ancombc2_genus_primary.csv"), row.names = FALSE)
+    fgcz_dt(res, "ANCOM-BC2 -- primary results (Genus)")
+  }
+}
+```
+
+### Global test -- Genus
+
+```{r ancombc_genus_global}
+if (!is.null(.ancombc_res_genus) && length(group_levels) > 2 &&
+    !is.null(.ancombc_res_genus$res_global)) {
+  res_g <- .ancombc_res_genus$res_global
+  write.csv(res_g, file.path(.report_dir, "ancombc2_genus_global.csv"), row.names = FALSE)
+  fgcz_dt(res_g, "ANCOM-BC2 -- global test results (Genus)")
+} else if (length(group_levels) <= 2) {
+  cat("Only two groups present -- ANCOM-BC global test not applicable.\n")
+}
+```
+
+```{r ancombc_family, fig.width=12, fig.height=8}
+.ancombc_res_family <- NULL
+if (.have_ancombc && length(group_levels) >= 2 && ntaxa(physeq_Family) > 0) {
+  .ancombc_res_family <- tryCatch(
+    ANCOMBC::ancombc2(data = physeq_filtered,
+                      fix_formula = "Group",
+                      tax_level    = "Family",
+                      p_adj_method = "BH",
+                      lib_cut      = 0,
+                      prv_cut      = .cfg$prevalence_frac,
+                      group        = "Group",
+                      struc_zero   = TRUE,
+                      neg_lb       = TRUE,
+                      iter_control = list(tol = 1e-5, max_iter = 100, verbose = FALSE),
+                      alpha        = 0.05,
+                      global       = TRUE),
+    error = function(e) { cat("ANCOM-BC Family failed: ", e$message, "\n"); NULL }
+  )
+}
+```
+
+### Primary Results -- Family
+
+```{r ancombc_family_primary}
+if (!is.null(.ancombc_res_family)) {
+  res <- .ancombc_res_family$res
+  if (!is.null(res) && nrow(res) > 0) {
+    write.csv(res, file.path(.report_dir, "ancombc2_family_primary.csv"), row.names = FALSE)
+    fgcz_dt(res, "ANCOM-BC2 -- primary results (Family)")
+  }
+}
+```
+
+### Global test -- Family
+
+```{r ancombc_family_global}
+if (!is.null(.ancombc_res_family) && length(group_levels) > 2 &&
+    !is.null(.ancombc_res_family$res_global)) {
+  res_g <- .ancombc_res_family$res_global
+  write.csv(res_g, file.path(.report_dir, "ancombc2_family_global.csv"), row.names = FALSE)
+  fgcz_dt(res_g, "ANCOM-BC2 -- global test results (Family)")
+}
+```
+
+## DESeq2 + edgeR {.tabset}
+
+### DESeq2 (per-contrast)
+
+```{r deseq2_run}
+.deseq_reses <- NULL
+.sigtab      <- NULL
+tryCatch({
+  Group <- get_variable(physeq_filtered, grouping)
+  ds2   <- phyloseq_to_deseq2(physeq_filtered, ~ 0 + Group)
+  geoMeans <- apply(counts(ds2), 1, gm_mean)
+  ds2 <- estimateSizeFactors(ds2, geoMeans = geoMeans)
+  ds2 <- DESeq(ds2, test = "Wald", fitType = "local")
+
+  if (length(group_levels) >= 2) {
+    comps <- combn(group_levels, 2, simplify = FALSE)
+    reses <- do.call(rbind, lapply(comps, function(i) {
+      a <- as.character(i[1]); b <- as.character(i[2])
+      r <- as.data.frame(results(ds2, contrast = c(grouping, a, b), cooksCutoff = FALSE))
+      r$log10p   <- -log10(r$pvalue)
+      r$contrast <- paste0(a, "-", b)
+      cbind(r, as(tax_table(physeq_filtered)[rownames(r), ], "matrix"))
+    }))
+    .deseq_reses <- reses[!duplicated(reses), ]
+    .sigtab      <- .deseq_reses[which(.deseq_reses$padj < 0.01), ]
+    write.csv(.deseq_reses, file.path(.report_dir, "deseq2_all.csv"), row.names = FALSE)
+  }
+}, error = function(e) cat("DESeq2 failed: ", e$message, "\n"))
+```
+
+```{r deseq2_plots, fig.width=12, fig.height=6}
+if (!is.null(.deseq_reses)) {
+  p2 <- ggplot(.deseq_reses, aes(x = log2FoldChange)) + geom_histogram(bins = 60) +
+          facet_wrap(~contrast, ncol = 3) + theme_bw()
+  p3 <- ggplot(.deseq_reses, aes(x = pvalue)) + geom_histogram(bins = 60) +
+          facet_wrap(~contrast, ncol = 3) + theme_bw()
+  print(p2 / p3)
+}
+```
+
+### edgeR (per-contrast)
+
+```{r edger_run}
+.edger_all <- NULL
+.edger_sig <- NULL
+tryCatch({
+  Group <- get_variable(physeq_filtered, grouping)
+  design <- model.matrix(~ 0 + Group)
+  dge <- as(otu_table(physeq_filtered), "matrix") + 1L
+  taxonomy <- data.frame(as.data.frame(tax_table(physeq_filtered)), "matrix")
+  dge <- DGEList(counts = dge, group = Group, genes = taxonomy, remove.zeros = TRUE)
+  dge <- calcNormFactors(dge, method = "RLE")
+  dge <- estimateGLMCommonDisp(dge, design)
+  dge <- estimateGLMTrendedDisp(dge, design)
+  dge <- estimateGLMTagwiseDisp(dge, design)
+  fit <- glmFit(dge, design)
+  comps <- combn(group_levels, 2, simplify = FALSE)
+  resAll <- do.call(rbind, lapply(comps, function(i) {
+    myargs <- list(paste0("Group", i[1], "-Group", i[2]), levels = design)
+    my.con <- do.call(makeContrasts, myargs)
+    lrt <- glmLRT(fit, contrast = my.con)
+    res <- topTags(lrt, n = nrow(dge), adjust.method = "BH", sort.by = "PValue")@.Data[[1]]
+    res <- tibble::rownames_to_column(res, "ASV")
+    res$log10p   <- -log10(res$PValue)
+    res$contrast <- paste0(i[1], "-", i[2])
+    res
+  }))
+  .edger_all <- resAll[!duplicated(resAll), ]
+  .edger_sig <- .edger_all[.edger_all$FDR <= 0.01, ]
+  write.csv(.edger_all, file.path(.report_dir, "edger_all.csv"), row.names = FALSE)
+}, error = function(e) cat("edgeR failed: ", e$message, "\n"))
+```
+
+```{r edger_plots, fig.width=12, fig.height=6}
+if (!is.null(.edger_all)) {
+  p2 <- ggplot(.edger_all, aes(x = logFC)) + geom_histogram(bins = 60) +
+          facet_wrap(~contrast, ncol = 3) + theme_bw()
+  p3 <- ggplot(.edger_all, aes(x = PValue)) + geom_histogram(bins = 60) +
+          facet_wrap(~contrast, ncol = 3) + theme_bw()
+  print(p2 / p3)
+}
+```
+
+### Combined DESeq2 + edgeR
+
+```{r combined_venn, fig.width=12, fig.height=6}
+if (!is.null(.sigtab) && !is.null(.edger_sig)) {
+  contrasts <- intersect(unique(.sigtab$contrast), unique(.edger_sig$contrast))
+  if (length(contrasts) > 0) {
+    ggs <- lapply(contrasts, function(crb) {
+      ggvenn(list(DESeq2 = rownames(.sigtab[.sigtab$contrast == crb, ]),
+                  edgeR  = .edger_sig$ASV[.edger_sig$contrast == crb]),
+             text_size = 4) + ggtitle(crb)
+    })
+    print(ggarrange(plotlist = ggs, ncol = min(length(ggs), 3)))
+  }
+
+  ## Overlap table
+  res_overlap <- do.call(rbind, lapply(contrasts, function(crb) {
+    a <- rownames(.sigtab[.sigtab$contrast == crb, ])
+    b <- .edger_sig$ASV[.edger_sig$contrast == crb]
+    ov <- intersect(a, b)
+    if (length(ov) == 0) return(NULL)
+    data.frame(contrast = crb, ASV = ov, stringsAsFactors = FALSE)
+  }))
+  if (!is.null(res_overlap)) {
+    write.csv(res_overlap, file.path(.report_dir, "deseq2_edger_overlap.csv"), row.names = FALSE)
+    fgcz_dt(res_overlap, "ASVs significant in both DESeq2 and edgeR")
+  }
+} else {
+  cat("Not enough significant results to build the overlap.\n")
+}
+```
+
+# PICRUSt2 {.tabset}
+
+```{r picrust_gate}
+.picrust_enabled <- isTRUE(.cfg$run_picrust2) &&
+                    ((exists("ko_abundance") && !is.null(ko_abundance)) ||
+                     (exists("ec_abundance") && !is.null(ec_abundance)) ||
+                     (exists("pathway_abundance") && !is.null(pathway_abundance)) ||
+                     (exists("picrust2_ko") && !is.null(picrust2_ko)) ||
+                     (exists("picrust2_ec") && !is.null(picrust2_ec)) ||
+                     (exists("picrust2_pathway") && !is.null(picrust2_pathway)))
+if (!.picrust_enabled) {
+  cat("PICRUSt2 not requested or input objects not present -- section skipped.\n")
+}
+
+## Normalise input names to picrust2_ko / picrust2_ec / picrust2_pathway.
+.pi_ko   <- if (exists("picrust2_ko")      && !is.null(picrust2_ko))      picrust2_ko
+            else if (exists("ko_abundance") && !is.null(ko_abundance))    ko_abundance else NULL
+.pi_ec   <- if (exists("picrust2_ec")      && !is.null(picrust2_ec))      picrust2_ec
+            else if (exists("ec_abundance") && !is.null(ec_abundance))    ec_abundance else NULL
+.pi_path <- if (exists("picrust2_pathway") && !is.null(picrust2_pathway)) picrust2_pathway
+            else if (exists("pathway_abundance") && !is.null(pathway_abundance)) pathway_abundance else NULL
+```
+
+```{r picrust_helpers}
+.daa_aldex2 <- function(mat, groups) {
+  if (!.have_aldex2) return(NULL)
+  tryCatch({
+    aldex_res <- ALDEx2::aldex(round(as.matrix(mat)), conditions = groups,
+                               mc.samples = 64, test = "kw", effect = TRUE,
+                               include.sample.summary = FALSE, denom = "all", verbose = FALSE)
+    aldex_res <- tibble::rownames_to_column(as.data.frame(aldex_res), "feature")
+    aldex_res
+  }, error = function(e) { cat("ALDEx2 failed: ", e$message, "\n"); NULL })
+}
+
+.daa_metagenomeSeq <- function(mat, groups) {
+  if (!.have_metagenomeSeq) return(NULL)
+  tryCatch({
+    pairs <- combn(unique(groups), 2, simplify = FALSE)
+    results_list <- lapply(pairs, function(p) {
+      keep <- groups %in% p
+      m2   <- mat[, keep, drop = FALSE]
+      g2   <- groups[keep]
+      m2   <- m2[rowSums(m2) > 0, , drop = FALSE]
+      if (ncol(m2) < 4) return(NULL)
+      pheno <- metagenomeSeq::AnnotatedDataFrame(data.frame(Group = g2,
+                                                           row.names = colnames(m2)))
+      mr <- metagenomeSeq::newMRexperiment(round(m2), phenoData = pheno)
+      mr <- metagenomeSeq::cumNorm(mr, p = metagenomeSeq::cumNormStat(mr))
+      design <- model.matrix(~ Group, data = pData(mr))
+      fit    <- metagenomeSeq::fitFeatureModel(mr, design)
+      res    <- metagenomeSeq::MRcoefs(fit, number = nrow(m2))
+      res$feature  <- rownames(res)
+      res$contrast <- paste(p[2], "vs", p[1])
+      res
+    })
+    do.call(rbind, results_list[!sapply(results_list, is.null)])
+  }, error = function(e) { cat("metagenomeSeq failed: ", e$message, "\n"); NULL })
+}
+
+.render_picrust_panel <- function(mat, label) {
+  if (is.null(mat)) { cat("No ", label, " input.\n"); return(invisible(NULL)) }
+  mat <- as.matrix(mat)
+  if (ncol(mat) < 4 || nrow(mat) < 2) {
+    cat("Insufficient ", label, " data (", nrow(mat), " features x ", ncol(mat), " samples).\n", sep = "")
+    return(invisible(NULL))
+  }
+  samp_ids <- intersect(colnames(mat), metadata$SampleID)
+  if (length(samp_ids) < 4) {
+    cat("Not enough samples shared with metadata for ", label, ".\n")
+    return(invisible(NULL))
+  }
+  mat <- mat[, samp_ids, drop = FALSE]
+  groups <- metadata$Group[match(samp_ids, metadata$SampleID)]
+
+  cat("#### ALDEx2 (global, all groups)\n\n")
+  ald <- .daa_aldex2(mat, groups)
+  if (!is.null(ald)) {
+    write.csv(ald, file.path(.report_dir, paste0("picrust2_aldex2_", label, ".csv")), row.names = FALSE)
+    print(fgcz_dt(head(ald[order(ald$kw.eBH), ], 200),
+                  paste("ALDEx2 -- ", label, " (top 200 by KW eBH p)")))
+  }
+
+  cat("\n\n#### metagenomeSeq (pairwise)\n\n")
+  mg <- .daa_metagenomeSeq(mat, groups)
+  if (!is.null(mg) && nrow(mg) > 0) {
+    write.csv(mg, file.path(.report_dir, paste0("picrust2_metagenomeSeq_", label, ".csv")), row.names = FALSE)
+    print(fgcz_dt(head(mg[order(mg$adjPvalues), ], 200),
+                  paste("metagenomeSeq -- ", label, " (top 200 by adjusted p)")))
+  }
+}
+```
+
+## MetaCyc Pathways
+
+```{r picrust_pathway, eval=.picrust_enabled, results='asis'}
+.render_picrust_panel(.pi_path, "pathway")
+```
+
+## KEGG Orthologs (KO)
+
+```{r picrust_ko, eval=.picrust_enabled, results='asis'}
+.render_picrust_panel(.pi_ko, "ko")
+```
+
+## Enzyme Commission (EC)
+
+```{r picrust_ec, eval=.picrust_enabled, results='asis'}
+.render_picrust_panel(.pi_ec, "ec")
+```
+
+## ASV contributors
+
+```{r picrust_contributors, eval=.picrust_enabled, results='asis'}
+.contrib_path <- NULL
+if (exists("picrust2_contrib") && !is.null(picrust2_contrib)) {
+  .contrib_path <- picrust2_contrib
+}
+if (!is.null(.contrib_path) && length(.contrib_path) > 0 && file.exists(.contrib_path[1])) {
+  contrib <- tryCatch(read.delim(.contrib_path[1], sep = "\t", check.names = FALSE),
+                      error = function(e) NULL)
+  if (!is.null(contrib) && nrow(contrib) > 0) {
+    cat("Top 200 (function, ASV) contributors by mean abundance:\n\n")
+    top <- contrib %>%
+      dplyr::group_by(`function`, taxon) %>%
+      dplyr::summarise(mean_taxon_function_abun = mean(taxon_function_abun, na.rm = TRUE), .groups = "drop") %>%
+      dplyr::arrange(dplyr::desc(mean_taxon_function_abun)) %>%
+      head(200)
+    write.csv(top, file.path(.report_dir, "picrust2_top_contributors.csv"), row.names = FALSE)
+    print(fgcz_dt(top, "Top 200 ASV-to-function contributors"))
+  }
+} else {
+  cat("No stratified PICRUSt2 contribution file provided -- skipping.\n")
+}
+```
+
+# Taxon-level CLR analysis {.tabset}
+
+CLR (centered log-ratio) transforms each sample's count vector into log-ratios relative to
+the geometric mean -- the natural representation for compositional sequencing data.
+Per-taxon Wilcoxon tests are run on the CLR values; violin plots show the top 5 by
+mean(|CLR|).
+
+```{r clr_helpers}
+clr_wilcoxon_level <- function(ps, level) {
+  if (is.null(ps) || ntaxa(ps) == 0) return(NULL)
+  ps_lvl <- tryCatch(tax_glom(ps, taxrank = level, NArm = TRUE), error = function(e) NULL)
+  if (is.null(ps_lvl) || ntaxa(ps_lvl) == 0) return(NULL)
+  mat <- as(otu_table(ps_lvl), "matrix")
+  if (!taxa_are_rows(ps_lvl)) mat <- t(mat)
+  tax_df <- as.data.frame(tax_table(ps_lvl), stringsAsFactors = FALSE)
+  taxon_label <- tax_df[[level]]
+  if (any(is.na(taxon_label) | taxon_label == "")) {
+    bad <- which(is.na(taxon_label) | taxon_label == "")
+    taxon_label[bad] <- paste0("unknown_", bad)
+  }
+  taxon_label <- make.unique(taxon_label)
+  rownames(mat) <- taxon_label
+  clr_mat <- clr_transform_matrix(mat)
+  samp_groups <- sample_data(ps_lvl)$Group
+  samp_groups <- as.character(samp_groups)
+  group_pairs <- combn(unique(samp_groups), 2, simplify = FALSE)
+  results <- do.call(rbind, lapply(rownames(clr_mat), function(tx) {
+    do.call(rbind, lapply(group_pairs, function(p) {
+      x <- clr_mat[tx, samp_groups == p[1]]
+      y <- clr_mat[tx, samp_groups == p[2]]
+      if (length(x) < 2 || length(y) < 2) return(NULL)
+      w <- suppressWarnings(wilcox.test(x, y))
+      data.frame(taxon = tx, group1 = p[1], group2 = p[2],
+                 mean_clr_g1 = mean(x, na.rm = TRUE),
+                 mean_clr_g2 = mean(y, na.rm = TRUE),
+                 W = w$statistic, p = w$p.value,
+                 stringsAsFactors = FALSE)
+    }))
+  }))
+  if (is.null(results) || nrow(results) == 0) return(NULL)
+  results$p.adj <- p.adjust(results$p, method = "BH")
+  results <- results[order(results$p.adj), ]
+  attr(results, "clr_matrix") <- clr_mat
+  results
+}
+
+clr_top5_violin <- function(clr_mat, samp_groups, level_name, top_n = 5) {
+  if (is.null(clr_mat)) return(NULL)
+  mean_abs <- rowMeans(abs(clr_mat), na.rm = TRUE)
+  top <- names(sort(mean_abs, decreasing = TRUE)[seq_len(min(top_n, length(mean_abs)))])
+  long <- reshape2::melt(clr_mat[top, , drop = FALSE], varnames = c("Taxon", "Sample"),
+                         value.name = "CLR")
+  long$Group <- samp_groups[long$Sample]
+  ggplot(long, aes(x = Group, y = CLR, fill = Group)) +
+    geom_violin(scale = "width") +
+    geom_jitter(width = 0.1, height = 0, size = 0.7, alpha = 0.6) +
+    facet_wrap(~Taxon, scales = "free_y") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") +
+    labs(title = paste("Top", length(top), level_name, "by mean(|CLR|)"))
+}
+
+render_clr_section <- function(ps, ps_label) {
+  if (is.null(ps)) return(invisible(NULL))
+  samp_groups <- setNames(as.character(sample_data(ps)$Group), sample_names(ps))
+  for (rank in c("Species", "Genus", "Family", "Phylum")) {
+    if (rank == "Species" && !has_species) next
+    cat(sprintf("\n## CLR Wilcoxon -- %s (%s) {.tabset}\n\n", rank, ps_label))
+    res <- clr_wilcoxon_level(ps, rank)
+    if (is.null(res) || nrow(res) == 0) {
+      cat("_No CLR Wilcoxon results at this rank._\n")
+      next
+    }
+    write.csv(res, file.path(.report_dir, paste0("CLR_Wilcoxon_", rank, "_", ps_label, ".csv")),
+              row.names = FALSE)
+    cat("\n### Pairwise Wilcoxon\n\n")
+    print(fgcz_dt(head(res, 200), paste(rank, "-- CLR Wilcoxon (", ps_label, ", top 200 by BH p)")))
+    cat("\n\n### Top 5 by mean(|CLR|)\n\n")
+    p <- clr_top5_violin(attr(res, "clr_matrix"), samp_groups, rank, top_n = 5)
+    if (!is.null(p)) print(p)
+  }
+}
+```
+
+## Pre-filter CLR
+
+```{r clr_pre, fig.width=14, fig.height=8, results='asis'}
+render_clr_section(physeq, "pre")
+```
+
+## Post-filter CLR
+
+```{r clr_post, fig.width=14, fig.height=8, results='asis'}
+render_clr_section(physeq_filtered, "post")
+```
+
+# CLR composition barplots {.tabset}
+
+```{r clr_barplots, fig.width=20, fig.height=10, results='asis'}
+clr_barplot <- function(ps, level, label) {
+  ps_lvl <- tryCatch(tax_glom(ps, level, NArm = TRUE), error = function(e) NULL)
+  if (is.null(ps_lvl) || ntaxa(ps_lvl) == 0) return(NULL)
+  mat <- as(otu_table(ps_lvl), "matrix")
+  if (!taxa_are_rows(ps_lvl)) mat <- t(mat)
+  rownames(mat) <- make.unique(as.character(tax_table(ps_lvl)[, level]))
+  clr_mat <- clr_transform_matrix(mat)
+  long <- reshape2::melt(clr_mat, varnames = c("Taxon", "Sample"), value.name = "CLR")
+  long$Group <- as.character(sample_data(ps_lvl)$Group[match(long$Sample, sample_names(ps_lvl))])
+  ggplot(long, aes(x = Sample, y = CLR, fill = Taxon)) +
+    geom_bar(stat = "identity") +
+    facet_grid(~Group, scales = "free_x") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 7), legend.position = "none") +
+    labs(title = paste("CLR composition --", level, "(", label, ")"),
+         y = "CLR contribution")
+}
+
+for (lvl in c("Phylum", "Family", "Genus")) {
+  cat(sprintf("\n## %s {.tabset}\n\n", lvl))
+  cat("### Pre-filter\n\n")
+  p_pre <- clr_barplot(physeq, lvl, "pre")
+  if (!is.null(p_pre)) print(p_pre)
+  cat("\n\n### Post-filter\n\n")
+  p_post <- clr_barplot(physeq_filtered, lvl, "post")
+  if (!is.null(p_post)) print(p_post)
+}
+if (has_species) {
+  cat("\n## Species {.tabset}\n\n### Pre-filter\n\n")
+  p <- clr_barplot(physeq, "Species", "pre")
+  if (!is.null(p)) print(p)
+  cat("\n\n### Post-filter\n\n")
+  p <- clr_barplot(physeq_filtered, "Species", "post")
+  if (!is.null(p)) print(p)
+}
+```
+
+# CLR abundance tables export
+
+```{r clr_export}
+export_clr_for_level <- function(ps, level, label) {
+  if (is.null(ps)) return(invisible(NULL))
+  ps_lvl <- tryCatch(tax_glom(ps, level, NArm = TRUE), error = function(e) NULL)
+  if (is.null(ps_lvl) || ntaxa(ps_lvl) == 0) return(invisible(NULL))
+  mat <- as(otu_table(ps_lvl), "matrix")
+  if (!taxa_are_rows(ps_lvl)) mat <- t(mat)
+  rownames(mat) <- make.unique(as.character(tax_table(ps_lvl)[, level]))
+  clr_mat <- clr_transform_matrix(mat)
+  write.csv(as.data.frame(mat),
+            file.path(.report_dir, paste0("raw_abundance_table_", tolower(level), "_", label, ".csv")))
+  write.csv(as.data.frame(clr_mat),
+            file.path(.report_dir, paste0("CLR_abundance_table_", tolower(level), "_", label, ".csv")))
+}
+
+for (lvl in c("Phylum", "Family", "Genus")) {
+  export_clr_for_level(physeq,         lvl, "pre")
+  export_clr_for_level(physeq_filtered, lvl, "post")
+}
+if (has_species) {
+  export_clr_for_level(physeq,         "Species", "pre")
+  export_clr_for_level(physeq_filtered, "Species", "post")
+}
+cat("Exported raw + CLR tables for Phylum, Family, Genus",
+    if (has_species) ", Species" else "",
+    " (pre and post) to the report directory.\n", sep = "")
+```
+
+# General taxonomic composition barplots {.tabset}
+
+Plots include reads whose label is missing at the current rank by relabelling them with
+their parent rank (e.g. `unknown Family (Phylum=Bacteroidota)`). Useful for cross-checking
+against the main barplot section, which drops `NA` rows.
+
+```{r general_barplots, fig.width=20, fig.height=12, results='asis'}
+relabel_for_general <- function(ps, rank) {
+  tax <- as.data.frame(tax_table(ps), stringsAsFactors = FALSE)
+  parent_ranks <- switch(rank,
+    "Species" = c("Genus", "Family", "Order", "Class", "Phylum", "Kingdom"),
+    "Genus"   = c("Family", "Order", "Class", "Phylum", "Kingdom"),
+    "Family"  = c("Order", "Class", "Phylum", "Kingdom"),
+    "Phylum"  = c("Kingdom"),
+    character(0))
+  lab <- tax[[rank]]
+  bad <- is.na(lab) | lab == ""
+  if (any(bad) && length(parent_ranks) > 0) {
+    for (pr in parent_ranks) {
+      if (pr %in% colnames(tax)) {
+        lab[bad] <- paste0("unknown ", rank, " (", pr, "=", tax[bad, pr], ")")
+        bad <- is.na(lab) | lab == "" | grepl("=NA", lab)
+        if (!any(bad)) break
+      }
+    }
+  }
+  tax[[rank]] <- lab
+  tax_table(ps) <- tax_table(as.matrix(tax))
+  ps
+}
+
+for (rank in c("Phylum", "Family", "Genus")) {
+  cat(sprintf("\n## %s (Top 20) {.tabset}\n\n### Plot\n\n", rank))
+  ps_lab <- relabel_for_general(physeq_filtered, rank)
+  print(plot_taxa_bar_topN(ps_lab, rank, 20, paste("General Top 20", rank)))
+  cat(sprintf("\n\n## %s (Top 50) {.tabset}\n\n### Plot\n\n", rank))
+  print(plot_taxa_bar_topN(ps_lab, rank, 50, paste("General Top 50", rank)))
+}
+if (has_species) {
+  cat("\n## Species (Top 20) {.tabset}\n\n### Plot\n\n")
+  ps_lab <- relabel_for_general(physeq_filtered, "Species")
+  print(plot_taxa_bar_topN(ps_lab, "Species", 20, "General Top 20 Species"))
+  cat("\n\n## Species (Top 50) {.tabset}\n\n### Plot\n\n")
+  print(plot_taxa_bar_topN(ps_lab, "Species", 50, "General Top 50 Species"))
+}
+```
+
+# Interactive widgets
+
+The following widgets were saved next to this report; download or click to open in a browser:
+
+```{r widgets_summary, results='asis'}
+widget_files <- list.files(.report_dir, pattern = "^interactive_.*\\.html$", full.names = FALSE)
+if (length(widget_files) > 0) {
+  for (wf in sort(widget_files)) cat(sprintf("- [%s](%s)\n", wf, wf))
+} else {
+  cat("_No interactive widgets were generated._\n")
+}
+```
+
+# Session info
+
+```{r session_info}
+sessionInfo()
 ```

@@ -342,6 +342,13 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
           '\\s*Provider:\\s*<span[^>]*class="ai-summary-disclaimer-provider"[^>]*>[^<]*</span>\\s*,?\\s*',
           '', txt, perl = TRUE
         )
+        ## Capitalise "model:" -> "Model:" and append total MultiQC wall-clock
+        ## (matches the log line "[MultiQC] FINISHED ... duration: X.Y s")
+        txt <- gsub(
+          '(?<![A-Za-z])model:\\s*(<span[^>]*class="ai-summary-disclaimer-model"[^>]*>[^<]*</span>)',
+          sprintf('Model: \\1 &middot; %.1f s', mqc_dur_s),
+          txt, perl = TRUE
+        )
         nav_li <- paste0(
           '              <li>\n',
           '                <a href="multiqc_data/llms-full.txt" class="nav-l1" target="_blank">AI Prompts (llms-full.txt)</a>\n',
