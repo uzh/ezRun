@@ -120,18 +120,50 @@ source_label <- switch(source_type,
                        bracken   = "Kraken2 + Bracken",
                        metaphlan = "MetaPhlAn",
                        source_type)
+
+## Pre-baked Markdown fragments. Constructed here (not as inline R) so the
+## backticks used for code formatting do not collide with the `r ... ` syntax.
+biom_sentence <- if (source_type == "bracken") {
+  "The BIOM table is built from the per-sample Bracken reports with [`kraken-biom`](https://github.com/smdabdoub/kraken-biom)."
+} else {
+  "The BIOM table is built directly from the per-sample MetaPhlAn profiles via `biomformat::make_biom`, keeping only species-resolved rows."
+}
+
+values_sentence <- if (source_type == "bracken") {
+  "Bracken outputs per-taxon read counts — a `features x samples` integer matrix."
+} else if (da_method %in% c("ALDEX2","ANCOMBC","ANCOMBC2")) {
+  "MetaPhlAn outputs were run with `-t rel_ab_w_read_stats`; the `estimated_number_of_reads_from_the_clade` column is used as the per-taxon count matrix that the count-based DA method requires."
+} else {
+  "MetaPhlAn outputs the per-taxon relative abundance (% per sample). Values are scaled to integer pseudo-counts (relab x 1e4) so the count-shaped pipeline (sample sums, prevalence filter, CPM / TSS normalisation) keeps working unchanged; the chosen method internally normalises this back to a relative scale."
+}
+
+method_sentence <- if (da_method == "ALDEX2") {
+  "**ALDEx2** - CLR + Monte-Carlo Dirichlet. With covariates uses the GLM path (aldex.glm); without covariates the standard t-test path."
+} else if (da_method %in% c("ANCOMBC","ANCOMBC2")) {
+  "**ANCOM-BC2** - bias-corrected log-ratios with structural-zero handling. Covariates extend fix_formula."
+} else if (da_method == "MAASLIN3") {
+  "**MaAsLin 3** - GLMs testing abundance and prevalence associations. ReadDepth is added automatically as a covariate."
+} else if (da_method == "LEFSE") {
+  "**LEfSe** - non-parametric (Kruskal-Wallis + LDA) on relative abundance. Does NOT accept covariates by construction; results are unadjusted."
+} else ""
+
+caveat_origin <- if (source_type == "bracken") {
+  "Bracken counts are *re-estimated* abundances"
+} else {
+  "MetaPhlAn counts are *estimated* from marker-gene coverage"
+}
 ```
 
 This report runs **`r da_method_label`** differential abundance (DA) analysis on
 **shotgun metagenomics** taxonomic profiles produced by **`r source_label`**.
-The BIOM table is built `r if (source_type == "bracken") "from the per-sample Bracken reports with [\`kraken-biom\`](https://github.com/smdabdoub/kraken-biom)" else "directly from the per-sample MetaPhlAn profiles via \`biomformat::make_biom\`, keeping only species-resolved rows"`.
+`r biom_sentence`
 
-`r if (source_type == "bracken") "Bracken outputs per-taxon read counts — a \`features × samples\` integer matrix." else if (da_method %in% c("ALDEX2","ANCOMBC","ANCOMBC2")) "MetaPhlAn outputs were run with \`-t rel_ab_w_read_stats\`; the \`estimated_number_of_reads_from_the_clade\` column is used as the per-taxon count matrix that the count-based DA method requires." else "MetaPhlAn outputs the per-taxon relative abundance (% per sample). Values are scaled to integer pseudo-counts (relab × 1e4) so the count-shaped pipeline (sample sums, prevalence filter, CPM / TSS normalisation) keeps working unchanged; the chosen method internally normalises this back to a relative scale."`
+`r values_sentence`
 The single test applied here is:
 
-`r if (da_method == "ALDEX2") "**ALDEx2** — CLR + Monte-Carlo Dirichlet. With covariates uses the GLM path (aldex.glm); without covariates the standard t-test path." else if (da_method %in% c("ANCOMBC","ANCOMBC2")) "**ANCOM-BC2** — bias-corrected log-ratios with structural-zero handling. Covariates extend fix_formula." else if (da_method == "MAASLIN3") "**MaAsLin 3** — GLMs testing abundance and prevalence associations. ReadDepth is added automatically as a covariate." else if (da_method == "LEFSE") "**LEfSe** — non-parametric (Kruskal-Wallis + LDA) on relative abundance. Does NOT accept covariates by construction; results are unadjusted." else ""`
+`r method_sentence`
 
-> **Caveats.** (1) `r if (source_type == "bracken") "Bracken counts are *re-estimated* abundances" else "MetaPhlAn counts are *estimated* from marker-gene coverage"` — methods like ANCOM-BC2 and MaAsLin3 model that compositional shape natively. (2) Shotgun
+> **Caveats.** (1) `r caveat_origin` — methods like ANCOM-BC2 and MaAsLin3 model that compositional shape natively. (2) Shotgun
 > species tables are sparse; a prevalence / abundance filter is applied before
 > testing. (3) MaAsLin3 docs strongly recommend including read depth as a
 > covariate for prevalence models — it is added automatically.
@@ -629,9 +661,18 @@ run_maaslin3 <- function(ps, rank) {
 
 # Abundance {.tabset}
 
+```{r abund_section_setup, include=FALSE}
+abundance_units <- if (source_type == "bracken") {
+  "per-taxon read counts as written by Bracken (integers)"
+} else if (da_method %in% c("ALDEX2","ANCOMBC","ANCOMBC2")) {
+  "the MetaPhlAn `estimated_number_of_reads_from_the_clade` column (integers)"
+} else {
+  "MetaPhlAn relative abundance scaled to integer pseudo-counts (relab% x 1e4)"
+}
+```
+
 The wide-format **taxon × sample** matrix that feeds the DA test below — i.e.
-the post-filter input the method actually sees. Values are
-`r if (source_type == "bracken") "per-taxon read counts as written by Bracken (integers)" else if (da_method %in% c("ALDEX2","ANCOMBC","ANCOMBC2")) paste0("the MetaPhlAn ", "`estimated_number_of_reads_from_the_clade` column (integers)") else "MetaPhlAn relative abundance scaled to integer pseudo-counts (relab% × 1e4)"`.
+the post-filter input the method actually sees. Values are `r abundance_units`.
 Tables are downloadable (copy / CSV / Excel) and saved to `r results_dir`/.
 
 ```{r abund_helpers, include=FALSE}
