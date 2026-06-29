@@ -134,7 +134,9 @@ ezMethodQIIME2 = function(
   tmpl <- paste(readLines(tmpl_path), collapse = "\n")
   rendered <- whisker::whisker.render(tmpl, placeholder_values)
   writeLines(rendered, out_batch)
-  ezSystem(paste("sh", out_batch))
+  # Use bash, not sh: the fastp block needs ANSI-C $'\t' tab and `echo -e`,
+  # neither supported by dash (Debian's /bin/sh).
+  ezSystem(paste("bash", out_batch))
 
   physeq <- qza_to_phyloseq(
     features = "table-filtered.qza",

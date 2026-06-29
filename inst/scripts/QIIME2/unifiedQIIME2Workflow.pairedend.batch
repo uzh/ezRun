@@ -1,5 +1,8 @@
+#!/bin/bash
 # Unified QIIME2 16S Amplicon Workflow - paired-end
 # All mustache tokens (e.g. {{CORES}}) are whisker-rendered by R before this script runs.
+# Shebang is bash on purpose: the fastp block uses $'\t' ANSI-C quoting and
+# `echo -e`, both of which dash (/bin/sh on Debian) does not implement.
 
 export PYTHONWARNINGS="ignore"
 
