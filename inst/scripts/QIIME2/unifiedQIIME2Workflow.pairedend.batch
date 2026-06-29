@@ -74,9 +74,9 @@ qiime feature-classifier classify-sklearn --i-classifier "$CLASSIFIER" --i-reads
 qiime metadata tabulate --m-input-file taxonomy.qza --o-visualization taxonomy.qzv
 
 # ----- 9. Taxonomy filtering (keep Bacteria, drop mitochondria + chloroplast) -----
-qiime taxa filter-table --i-table table.qza --i-taxonomy taxonomy.qza --p-include d__Bacteria --p-exclude mitochondria,chloroplast --o-filtered-table table-filtered.qza
+qiime taxa filter-table --i-table table.qza --i-taxonomy taxonomy.qza --p-include "k__Bacteria,d__Bacteria" --p-exclude mitochondria,chloroplast --o-filtered-table table-filtered.qza
 
-qiime taxa filter-seqs --i-sequences dada2_rep_set.qza --i-taxonomy taxonomy.qza --p-include d__Bacteria --p-exclude mitochondria,chloroplast --o-filtered-sequences rep-seqs-filtered.qza
+qiime taxa filter-seqs --i-sequences dada2_rep_set.qza --i-taxonomy taxonomy.qza --p-include "k__Bacteria,d__Bacteria" --p-exclude mitochondria,chloroplast --o-filtered-sequences rep-seqs-filtered.qza
 
 # ----- 10. Taxa bar plot (uses filtered table) -----
 qiime taxa barplot --i-table table-filtered.qza --i-taxonomy taxonomy.qza --m-metadata-file sample_metadata.tsv --o-visualization taxa-bar-plots.qzv
