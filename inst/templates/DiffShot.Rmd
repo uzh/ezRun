@@ -114,18 +114,24 @@ if (!file.exists(method_child))
 
 # Overview {#overview}
 
-This report runs **`r da_method_label`** differential abundance (DA) analysis on
-**shotgun metagenomics** taxonomic profiles produced by **Kraken2 + Bracken**
-and converted to a BIOM table with
-[`kraken-biom`](https://github.com/smdabdoub/kraken-biom).
+```{r source_type_setup, include=FALSE}
+source_type <- tolower(as.character(param$sourceType %||% "bracken"))
+source_label <- switch(source_type,
+                       bracken   = "Kraken2 + Bracken",
+                       metaphlan = "MetaPhlAn",
+                       source_type)
+```
 
-Bracken outputs per-taxon read counts — a `features × samples` integer matrix.
+This report runs **`r da_method_label`** differential abundance (DA) analysis on
+**shotgun metagenomics** taxonomic profiles produced by **`r source_label`**.
+The BIOM table is built `r if (source_type == "bracken") "from the per-sample Bracken reports with [\`kraken-biom\`](https://github.com/smdabdoub/kraken-biom)" else "directly from the per-sample MetaPhlAn profiles via \`biomformat::make_biom\`, keeping only species-resolved rows"`.
+
+`r if (source_type == "bracken") "Bracken outputs per-taxon read counts — a \`features × samples\` integer matrix." else if (da_method %in% c("ALDEX2","ANCOMBC","ANCOMBC2")) "MetaPhlAn outputs were run with \`-t rel_ab_w_read_stats\`; the \`estimated_number_of_reads_from_the_clade\` column is used as the per-taxon count matrix that the count-based DA method requires." else "MetaPhlAn outputs the per-taxon relative abundance (% per sample). Values are scaled to integer pseudo-counts (relab × 1e4) so the count-shaped pipeline (sample sums, prevalence filter, CPM / TSS normalisation) keeps working unchanged; the chosen method internally normalises this back to a relative scale."`
 The single test applied here is:
 
 `r if (da_method == "ALDEX2") "**ALDEx2** — CLR + Monte-Carlo Dirichlet. With covariates uses the GLM path (aldex.glm); without covariates the standard t-test path." else if (da_method %in% c("ANCOMBC","ANCOMBC2")) "**ANCOM-BC2** — bias-corrected log-ratios with structural-zero handling. Covariates extend fix_formula." else if (da_method == "MAASLIN3") "**MaAsLin 3** — GLMs testing abundance and prevalence associations. ReadDepth is added automatically as a covariate." else if (da_method == "LEFSE") "**LEfSe** — non-parametric (Kruskal-Wallis + LDA) on relative abundance. Does NOT accept covariates by construction; results are unadjusted." else ""`
 
-> **Caveats.** (1) Bracken counts are *re-estimated* abundances — methods like
-> ANCOM-BC2 and MaAsLin3 model that compositional shape natively. (2) Shotgun
+> **Caveats.** (1) `r if (source_type == "bracken") "Bracken counts are *re-estimated* abundances" else "MetaPhlAn counts are *estimated* from marker-gene coverage"` — methods like ANCOM-BC2 and MaAsLin3 model that compositional shape natively. (2) Shotgun
 > species tables are sparse; a prevalence / abundance filter is applied before
 > testing. (3) MaAsLin3 docs strongly recommend including read depth as a
 > covariate for prevalence models — it is added automatically.
@@ -617,6 +623,54 @@ run_maaslin3 <- function(ps, rank) {
   if (!is.null(res)) save_csv(res, paste0("maaslin3_", tolower(rank), "_all_results.csv"))
   list(fit = fit, res = res, outdir = outd)
 }
+```
+
+---
+
+# Abundance {.tabset}
+
+The wide-format **taxon × sample** matrix that feeds the DA test below — i.e.
+the post-filter input the method actually sees. Values are
+`r if (source_type == "bracken") "per-taxon read counts as written by Bracken (integers)" else if (da_method %in% c("ALDEX2","ANCOMBC","ANCOMBC2")) paste0("the MetaPhlAn ", "`estimated_number_of_reads_from_the_clade` column (integers)") else "MetaPhlAn relative abundance scaled to integer pseudo-counts (relab% × 1e4)"`.
+Tables are downloadable (copy / CSV / Excel) and saved to `r results_dir`/.
+
+```{r abund_helpers, include=FALSE}
+make_abund_table <- function(ps) {
+  if (is.null(ps)) return(NULL)
+  otu <- as(otu_table(ps), "matrix")
+  if (!taxa_are_rows(ps)) otu <- t(otu)
+  if (nrow(otu) == 0) return(NULL)
+  taxa_lab <- resolve_taxon_da(rownames(otu), tax_table(ps))
+  ## De-dupe collisions by appending a counter (rare with tax_glom output).
+  if (anyDuplicated(taxa_lab)) {
+    dup <- duplicated(taxa_lab) | duplicated(taxa_lab, fromLast = TRUE)
+    taxa_lab[dup] <- paste0(taxa_lab[dup], " (", rownames(otu)[dup], ")")
+  }
+  df <- data.frame(Taxon = taxa_lab, otu,
+                   check.names = FALSE, stringsAsFactors = FALSE)
+  ord <- order(-rowSums(otu, na.rm = TRUE))
+  df[ord, , drop = FALSE]
+}
+```
+
+## Species
+```{r abund_species_tab, eval=has_species}
+abund_sp_df <- make_abund_table(physeq_Species)
+if (!is.null(abund_sp_df)) {
+  save_csv(abund_sp_df, "abundance_species.csv")
+  dt(abund_sp_df, paste0("Species — ", nrow(abund_sp_df), " taxa × ",
+                         ncol(abund_sp_df) - 1, " samples"))
+} else cat("No Species-level taxa survived filtering.\n")
+```
+
+## Genus
+```{r abund_genus_tab}
+abund_ge_df <- make_abund_table(physeq_Genus)
+if (!is.null(abund_ge_df)) {
+  save_csv(abund_ge_df, "abundance_genus.csv")
+  dt(abund_ge_df, paste0("Genus — ", nrow(abund_ge_df), " taxa × ",
+                         ncol(abund_ge_df) - 1, " samples"))
+} else cat("No Genus-level taxa survived filtering.\n")
 ```
 
 ---

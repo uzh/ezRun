@@ -35,12 +35,19 @@ ezMethodMetaPhlAn = function(
     readArg <- trimmedInput$getColumn("Read1")
   }
 
+  ## Backwards-compatible: missing param is treated as TRUE so existing
+  ## dataset definitions keep producing count-augmented profiles.
+  estimateCounts <- if (is.null(param$estimateReadCounts)) TRUE
+                    else isTRUE(as.logical(param$estimateReadCounts))
+  analysisType   <- if (estimateCounts) "-t rel_ab_w_read_stats" else ""
+
   cmd <- paste(
     "metaphlan",
     readArg,
     "--db_dir", dbDir,
     "--index", indexName,
     "--input_type fastq",
+    analysisType,
     "--nproc", ezThreads(),
     "--tmp_dir .",
     "--mapout", outMapout,
@@ -71,6 +78,11 @@ EzAppMetaPhlAn <-
             Type = "character",
             DefaultValue = "",
             Description = "MetaPhlAn bowtie2 index basename under /srv/GT/databases/metaphlan_databases/ (e.g. mpa_vJan25_CHOCOPhlAnSGB_202503)."
+          ),
+          estimateReadCounts = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "When TRUE, pass -t rel_ab_w_read_stats so the profile carries the estimated_number_of_reads_from_the_clade column. Required by count-based downstream DA (ALDEx2 / ANCOM-BC2)."
           )
         )
       }

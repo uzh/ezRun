@@ -48,13 +48,13 @@ qiime tools import --type 'SampleData[PairedEndSequencesWithQuality]' --input-pa
 qiime demux summarize --i-data demux_seqs.qza --o-visualization demux_seqs.qzv
 
 # ----- 3. DADA2 denoise (paired) -----
-qiime dada2 denoise-paired --i-demultiplexed-seqs demux_seqs.qza --p-trim-left-f {{TRIM_LEFT_F}} --p-trim-left-r {{TRIM_LEFT_R}} --p-trunc-len-f {{TRUNC_LEN_F}} --p-trunc-len-r {{TRUNC_LEN_R}} --p-n-threads $CORES --o-table table.qza --o-representative-sequences dada2_rep_set.qza --o-denoising-stats dada2_denoising_stats.qza
+qiime dada2 denoise-paired --i-demultiplexed-seqs demux_seqs.qza --p-trim-left-f {{TRIM_LEFT_F}} --p-trim-left-r {{TRIM_LEFT_R}} --p-trunc-len-f {{TRUNC_LEN_F}} --p-trunc-len-r {{TRUNC_LEN_R}} --p-n-threads $CORES --o-table table.qza --o-representative-sequences dada2_rep_set.qza --o-denoising-stats dada2_denoising_stats.qza --o-base-transition-stats dada2_base_transition_stats.qza
 
 # ----- 4. Denoising stats summary -----
 qiime metadata tabulate --m-input-file dada2_denoising_stats.qza --o-visualization dada2_denoising_stats.qzv
 
 # ----- 5. Feature-table summary -----
-qiime feature-table summarize --i-table table.qza --o-visualization table.qzv --m-sample-metadata-file sample_metadata.tsv
+qiime feature-table summarize --i-table table.qza --o-feature-frequencies feature_frequencies.qza --o-sample-frequencies sample_frequencies.qza --o-summary table.qzv --m-metadata-file sample_metadata.tsv
 
 # ----- 6. Rep-seqs tabulation -----
 qiime feature-table tabulate-seqs --i-data dada2_rep_set.qza --o-visualization dada2_rep_set.qzv
