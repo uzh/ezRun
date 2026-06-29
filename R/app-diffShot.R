@@ -140,17 +140,38 @@ build_biom_from_metaphlan <- function(profilePaths, sampleNames,
     setNames(as.numeric(d[[valueCol]][keep]), d[["clade_name"]][keep])
   })
 
-  allTaxa <- sort(unique(unlist(lapply(perSampleVals, names),
-                                use.names = FALSE)))
-  if (length(allTaxa) == 0)
+  allLineages <- sort(unique(unlist(lapply(perSampleVals, names),
+                                    use.names = FALSE)))
+  if (length(allLineages) == 0)
     stop("No species-level rows found across the supplied MetaPhlAn profiles.")
+
+  ## OTU ids must NOT contain "|". microbiomeMarker (LEfSe) and several other
+  ## downstream packages treat "|" as the LEfSe hierarchical-name separator
+  ## and reparse rownames, which throws cryptic indexing errors when the
+  ## rownames already look like a LEfSe path. We collapse each lineage to its
+  ## species token (the "|s__..." tail), disambiguating any same-name
+  ## collisions across distinct lineages. The full hierarchy is still
+  ## available via the embedded tax_table.
+  speciesLabels <- sub("^.*\\|s__", "", allLineages)
+  speciesLabels <- gsub("[^A-Za-z0-9_.-]", "_", speciesLabels)  # belt-and-braces
+  dup <- duplicated(speciesLabels) | duplicated(speciesLabels, fromLast = TRUE)
+  if (any(dup)) {
+    counter <- ave(seq_along(speciesLabels), speciesLabels, FUN = seq_along)
+    speciesLabels[dup] <- paste0(speciesLabels[dup], "_", counter[dup])
+  }
+  ## Build a lineage -> short-id map so we can rewrite the per-sample value
+  ## vectors before stacking into the matrix.
+  idMap <- setNames(speciesLabels, allLineages)
+  allTaxa <- unname(speciesLabels)
 
   mat <- matrix(0, nrow = length(allTaxa), ncol = length(sampleNames),
                 dimnames = list(allTaxa, sampleNames))
   for (i in seq_along(perSampleVals)) {
     v <- perSampleVals[[i]]
-    if (length(v) > 0)
-      mat[names(v), sampleNames[i]] <- v
+    if (length(v) > 0) {
+      vIds <- idMap[names(v)]
+      mat[vIds, sampleNames[i]] <- as.numeric(v)
+    }
   }
 
   ## Scale relab (0-100 %) to integer pseudo-counts so the count-shaped
@@ -163,8 +184,9 @@ build_biom_from_metaphlan <- function(profilePaths, sampleNames,
   }
   storage.mode(mat) <- "integer"
 
-  ## 7-rank taxonomy
-  taxList <- lapply(allTaxa, .parse_metaphlan_lineage)
+  ## 7-rank taxonomy parsed from the ORIGINAL lineage strings, but indexed by
+  ## the new short ids so it lines up with the matrix rownames.
+  taxList <- lapply(allLineages, .parse_metaphlan_lineage)
   taxMat  <- do.call(rbind, taxList)
   rownames(taxMat) <- allTaxa
   taxDf <- as.data.frame(taxMat, stringsAsFactors = FALSE)

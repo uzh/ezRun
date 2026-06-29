@@ -592,6 +592,31 @@ run_ancombc2 <- function(ps, rank) {
 
 ## --- LEfSe (covariate-blind, by design) ------------------------------
 run_lefse_tab <- function(ps, rank) {
+  ## Surface useful diagnostics on error rather than just e$message.
+  ## microbiomeMarker often throws cryptic indexing errors ("In index: N")
+  ## from its C++ helpers when phyloseq inputs have unexpected shapes
+  ## (rownames containing "|", empty groups, all-zero features, etc.).
+  diag_dump <- function() {
+    n_taxa <- tryCatch(ntaxa(ps),    error = function(e) NA)
+    n_smp  <- tryCatch(nsamples(ps), error = function(e) NA)
+    grp_levels <- tryCatch(table(as.character(sample_data(ps)[[da_group]]),
+                                 useNA = "ifany"),
+                           error = function(e) NULL)
+    head_ids <- tryCatch(head(taxa_names(ps), 3), error = function(e) NULL)
+    cat("  [LEfSe diag] taxa = ", n_taxa, ", samples = ", n_smp,
+        ", rank = ", rank, "\n", sep = "")
+    if (!is.null(grp_levels))
+      cat("  [LEfSe diag] group sizes: ",
+          paste(names(grp_levels), grp_levels, sep = "=", collapse = ", "),
+          "\n", sep = "")
+    if (!is.null(head_ids))
+      cat("  [LEfSe diag] first taxa_names: ",
+          paste(head_ids, collapse = " | "), "\n", sep = "")
+    if (!is.null(head_ids) && any(grepl("|", head_ids, fixed = TRUE)))
+      cat("  [LEfSe diag] WARN: taxa_names contain '|' which microbiomeMarker ",
+          "uses as its LEfSe hierarchical separator - this is a known trigger ",
+          "of indexing errors.\n", sep = "")
+  }
   tryCatch({
     mm <- run_lefse(ps, norm = "CPM", group = da_group,
                     taxa_rank = rank, kw_cutoff = 1.0, wilcoxon_cutoff = 1.0,
@@ -606,7 +631,12 @@ run_lefse_tab <- function(ps, rank) {
     df <- df[order(-df$Significant, -abs(df$ef_lda)), , drop = FALSE]
     save_csv(df, paste0("lefse_", tolower(rank), ".csv"))
     df
-  }, error = function(e) { cat("LEfSe ", rank, " skipped: ", e$message, "\n"); NULL })
+  }, error = function(e) {
+    cat("LEfSe ", rank, " skipped: ", conditionMessage(e),
+        " (error class: ", paste(class(e), collapse = "/"), ")\n", sep = "")
+    diag_dump()
+    NULL
+  })
 }
 
 ## --- MaAsLin3 --------------------------------------------------------
