@@ -5,22 +5,10 @@ export PYTHONWARNINGS="ignore"
 
 CORES={{CORES}}
 
-# ----- 0. Database dispatch -----
-# DB is substituted as the literal label (silva/greengenes); resolve to absolute paths here.
-case "{{DB}}" in
-  silva)
-    DB_SEQS="/srv/GT/databases/QIIME2/silva-138.2-ssu-nr99-seqs-derep-uniq.qza"
-    DB_TAX="/srv/GT/databases/QIIME2/silva-138.2-ssu-nr99-tax-derep-uniq.qza"
-    ;;
-  greengenes)
-    DB_SEQS="/srv/GT/databases/QIIME2/greengenes2-2024.09-seqs.qza"
-    DB_TAX="/srv/GT/databases/QIIME2/greengenes2-2024.09-tax.qza"
-    ;;
-  *)
-    echo "Unknown DB label: {{DB}}" >&2
-    exit 1
-    ;;
-esac
+# ----- 0. Reference database -----
+# Absolute paths resolved by R from the auto-detected dropdown value.
+DB_SEQS="{{DB_SEQS}}"
+DB_TAX="{{DB_TAX}}"
 
 # ----- 1. Optional fastp adapter trimming (single-end) -----
 if [ "{{RUN_FASTP}}" = "true" ]; then

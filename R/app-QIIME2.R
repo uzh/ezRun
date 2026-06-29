@@ -72,11 +72,20 @@ ezMethodQIIME2 = function(
     print("The file exists")
   }
 
-  # Resolve database dropdown -> reference seq/tax artifacts. The QIIME2 root
-  # /srv/GT/databases/QIIME2/ holds dereplicated SILVA + Greengenes2 .qza
-  # files; convention is <db>-<release>-{seqs,tax}*.qza. The batch script
-  # consumes DB (e.g. "silva") and dispatches the right paths inside a
-  # case statement, so we only need to pass the short label here.
+  # Resolve database dropdown -> reference seq/tax artifacts. The dropdown
+  # value is the bare <name> of a (<name>-seqs.qza, <name>-tax.qza) pair under
+  # QIIME2_DB_ROOT, auto-detected by QIIME2App.rb#qiime2_db_choices. We resolve
+  # both paths here and pass them straight to the batch as DB_SEQS / DB_TAX.
+  db_seqs <- file.path(QIIME2_DB_ROOT, paste0(param$database, "-seqs.qza"))
+  db_tax  <- file.path(QIIME2_DB_ROOT, paste0(param$database, "-tax.qza"))
+  if (!file.exists(db_seqs) || !file.exists(db_tax)) {
+    stop(
+      "Reference DB pair not found for label '", param$database, "'.\n",
+      "  expected: ", db_seqs, "\n",
+      "  expected: ", db_tax
+    )
+  }
+
   classifier_path <- if (is.null(param$classifier_path) ||
     !nzchar(param$classifier_path)) {
     # NONE sentinel keeps `if [ "$CLASSIFIER_PATH" = "NONE" ]` simple in bash
@@ -96,7 +105,8 @@ ezMethodQIIME2 = function(
     MAX_RAREFACTION_DEPTH = param$max_rarefaction_depth,
     MIN_FREQ = param$min_freq,
     MIN_SAMPLES = param$min_samples,
-    DB = param$database,
+    DB_SEQS = db_seqs,
+    DB_TAX  = db_tax,
     PRIMER1 = param$forward_primer,
     PRIMER2 = param$reverse_primer,
     CLASSIFIER_MIN_LEN = param$classifier_min_len,
@@ -317,8 +327,8 @@ EzAppQIIME2 <-
           ),
           database = ezFrame(
             Type = "character",
-            DefaultValue = "silva",
-            Description = "Marker-gene reference database: 'silva' or 'greengenes'. Resolves to DB_SEQS/DB_TAX in the batch"
+            DefaultValue = "",
+            Description = "Reference database label — bare <name> of a (<name>-seqs.qza, <name>-tax.qza) pair under QIIME2_DB_ROOT. Resolved to DB_SEQS/DB_TAX paths and passed to the batch"
           ),
           primer = ezFrame(
             Type = "character",
