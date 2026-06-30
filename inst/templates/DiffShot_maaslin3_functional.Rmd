@@ -1,0 +1,278 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'Shotgun Functional DA (MaAsLin3)'`"
+output:
+  html_document:
+    highlight: pygments
+    theme: sand
+    code_folding: hide
+    toc: yes
+    toc_depth: 4
+    df_print: paged
+    self_contained: true
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE,
+                      fig.width = 12, fig.height = 8, cache = FALSE)
+knitr::opts_knit$set(root.dir = ".")
+
+library(ggplot2)
+library(dplyr)
+library(tibble)
+library(stringr)
+library(DT)
+library(kableExtra)
+library(maaslin3)
+```
+
+```{r load_params, include=FALSE}
+library(ezRun)
+param  <- ezLoadRobj("param")
+output <- ezLoadRobj("output")
+
+`%||%` <- function(a, b) {
+  if (is.null(a)) return(b)
+  if (is.character(a) && length(a) == 1 && nchar(a) == 0) return(b)
+  a
+}
+.split_csv <- function(s) {
+  if (is.null(s)) return(character(0))
+  if (length(s) > 1) {
+    out <- trimws(as.character(s)); return(out[nzchar(out)])
+  }
+  if (is.character(s) && nchar(s) == 0) return(character(0))
+  out <- trimws(unlist(strsplit(as.character(s), "[,;]")))
+  out[nzchar(out)]
+}
+.as_num <- function(x, default) {
+  v <- suppressWarnings(as.numeric(x))
+  if (length(v) == 0 || is.na(v)) default else v
+}
+
+## --- params --------------------------------------------------------
+funcTables   <- param$functionalTables       # named char: tag -> joined TSV
+grouping     <- as.character(param$grouping %||% "")
+sampleGroup  <- as.character(param$sampleGroup %||% "")
+refGroup     <- as.character(param$refGroup %||% "")
+covariates   <- .split_csv(param$daCovariates %||% "")
+samplesDrop  <- .split_csv(param$samplesToDrop %||% "")
+prevMin      <- .as_num(param$prevalenceMin   %||% 0.10, 0.10)
+relabMin     <- .as_num(param$relabundMin     %||% 0.10, 0.10)
+maaslinMaxSig <- .as_num(param$maaslinMaxSig  %||% 0.10, 0.10)
+pValueThresh  <- .as_num(param$pValueThresh   %||% 0.05, 0.05)
+
+if (!nzchar(grouping) || !nzchar(sampleGroup) || !nzchar(refGroup))
+  stop("grouping, sampleGroup and refGroup are required.")
+if (sampleGroup == refGroup)
+  stop("sampleGroup must differ from refGroup.")
+```
+
+```{r load_metadata, include=FALSE}
+metadataFile <- "sample-metadata.tsv"
+if (!file.exists(metadataFile))
+  stop("sample-metadata.tsv missing - ezMethodDiffShot should have produced it.")
+md <- read.table(metadataFile, header = TRUE, sep = "\t",
+                 stringsAsFactors = FALSE, check.names = FALSE,
+                 quote = "", na.strings = c("", "NA"))
+rownames(md) <- md$SampleID
+md$SampleID  <- NULL
+if (length(samplesDrop) > 0) md <- md[!rownames(md) %in% samplesDrop, , drop = FALSE]
+if (!(grouping %in% colnames(md)))
+  stop(sprintf("grouping column '%s' not found in sample metadata. ",
+               "Available [Factor] columns: %s",
+               grouping, paste(colnames(md), collapse = ", ")))
+keepGroup <- md[[grouping]] %in% c(sampleGroup, refGroup)
+md <- md[keepGroup, , drop = FALSE]
+md[[grouping]] <- factor(md[[grouping]], levels = c(refGroup, sampleGroup))
+```
+
+# Input
+
+- Source type: **HUMAnN functional tables**
+- Grouping: **`r grouping`** (contrast: `r sampleGroup` vs `r refGroup`)
+- Covariates: `r if (length(covariates)) paste(covariates, collapse = ", ") else "(none beyond ReadDepth)"`
+- Samples after filters: `r nrow(md)`
+- Feature tables available: `r paste(sprintf("`%s`", names(funcTables)), collapse = ", ")`
+
+# Per-table MaAsLin3 {.tabset}
+
+```{r helpers, include=FALSE}
+## Read a humann_join_tables output, recover bare sample IDs.
+load_joined <- function(path) {
+  m <- read.table(path, header = TRUE, sep = "\t", check.names = FALSE,
+                  comment.char = "", quote = "", row.names = 1)
+  ## humann_join_tables column names look like "<sample>_concat_<N>_<tag>"
+  ## or "<sample>_concat_Abundance" - strip from "_concat" onward.
+  colnames(m) <- sub("_concat.*$", "", colnames(m))
+  ## Belt-and-suspenders: drop common HUMAnN suffixes too
+  colnames(m) <- sub("_(Abundance|Abundance-CPM|Coverage|Abundance-RPKs).*$",
+                    "", colnames(m))
+  ## Drop HUMAnN special rows and SGB-stratified rows.
+  drop <- c("UNMAPPED", "UNINTEGRATED", "UNGROUPED", "READS_UNMAPPED")
+  m <- m[!rownames(m) %in% drop, , drop = FALSE]
+  m <- m[!grepl("\\|", rownames(m)), , drop = FALSE]
+  as.matrix(m)
+}
+
+## Prevalence + pooled-abundance filter.
+filter_features <- function(mat, prevMin, relabMin) {
+  if (nrow(mat) == 0 || ncol(mat) == 0) return(mat)
+  prev  <- rowSums(mat > 0) / ncol(mat)
+  total <- sum(mat)
+  if (total == 0) return(mat[FALSE, , drop = FALSE])
+  ra    <- rowSums(mat) / total * 100
+  keep  <- (prev >= prevMin) & (ra >= relabMin)
+  mat[keep, , drop = FALSE]
+}
+
+## One-shot MaAsLin3 + return tidy result.
+run_one <- function(mat, md, tableTag) {
+  shared <- intersect(colnames(mat), rownames(md))
+  if (length(shared) < 3) return(list(err = sprintf(
+    "Only %d samples shared between feature table and metadata; skip.",
+    length(shared))))
+  mat <- mat[, shared, drop = FALSE]
+  md_sub <- md[shared, , drop = FALSE]
+  md_sub$ReadDepth <- as.numeric(colSums(mat))
+
+  fixedEffects <- c(grouping, intersect(covariates, colnames(md_sub)), "ReadDepth")
+  reference    <- sprintf("%s,%s", grouping, refGroup)
+
+  outDir <- sprintf("maaslin3_%s", tableTag)
+  unlink(outDir, recursive = TRUE, force = TRUE)
+  dir.create(outDir, showWarnings = FALSE)
+
+  res <- tryCatch(
+    maaslin3::maaslin3(
+      input_data        = t(mat),
+      input_metadata    = md_sub,
+      output            = outDir,
+      fixed_effects     = fixedEffects,
+      reference         = reference,
+      normalization     = "NONE",      # HUMAnN already CPM
+      transform         = "LOG",
+      standardize       = TRUE,
+      max_significance  = maaslinMaxSig,
+      plot_summary_plot = TRUE,
+      plot_associations = TRUE
+    ),
+    error = function(e) list(error = conditionMessage(e))
+  )
+  if (!is.null(res$error)) return(list(err = res$error))
+
+  ## MaAsLin3 writes all_results.tsv into outDir.
+  resPath <- file.path(outDir, "all_results.tsv")
+  if (!file.exists(resPath)) return(list(err = "all_results.tsv missing"))
+  resDf <- read.table(resPath, header = TRUE, sep = "\t", quote = "",
+                      comment.char = "", check.names = FALSE,
+                      stringsAsFactors = FALSE)
+  list(res = resDf, outDir = outDir, nFeatures = nrow(mat), nSamples = ncol(mat))
+}
+
+volcano_plot <- function(resDf, title) {
+  if (is.null(resDf) || nrow(resDf) == 0) return(NULL)
+  sub <- resDf[resDf$metadata == grouping &
+               is.finite(resDf$coef) &
+               !is.na(resDf$qval_individual), , drop = FALSE]
+  if (nrow(sub) == 0) return(NULL)
+  sub$nlog10q <- -log10(pmax(sub$qval_individual, 1e-300))
+  sub$signif  <- sub$qval_individual < maaslinMaxSig
+  top <- head(sub[order(sub$qval_individual), ], 10)
+  ggplot(sub, aes(x = coef, y = nlog10q, color = signif)) +
+    geom_point(alpha = 0.6, size = 1.8) +
+    geom_text(data = top, aes(label = feature),
+              size = 2.6, vjust = -0.6, check_overlap = TRUE) +
+    geom_hline(yintercept = -log10(maaslinMaxSig),
+               linetype = "dashed", color = "grey50") +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "grey80") +
+    scale_color_manual(values = c(`FALSE` = "grey60", `TRUE` = "firebrick"),
+                       guide = "none") +
+    labs(title = title, x = "MaAsLin3 coefficient",
+         y = expression(-log[10](q[ind]))) +
+    theme_minimal(base_size = 12)
+}
+
+coef_plot <- function(resDf, title) {
+  if (is.null(resDf) || nrow(resDf) == 0) return(NULL)
+  d <- resDf[resDf$metadata == grouping &
+             !is.na(resDf$qval_individual) &
+             resDf$qval_individual <= maaslinMaxSig, , drop = FALSE]
+  if (nrow(d) == 0) return(NULL)
+  d <- d[order(d$coef), , drop = FALSE]
+  d$feature <- factor(d$feature, levels = unique(d$feature))
+  modelCol  <- if ("model" %in% colnames(d)) d$model else "fit"
+  ggplot(d, aes(x = coef, y = feature, color = modelCol)) +
+    geom_point(size = 3) +
+    geom_vline(xintercept = 0, linetype = 2) +
+    geom_errorbarh(aes(xmin = coef - stderr, xmax = coef + stderr), height = 0.2) +
+    labs(x = "MaAsLin3 coefficient", y = NULL,
+         title = title, color = "model") +
+    theme_bw(base_size = 11)
+}
+
+label_for <- function(tag) {
+  switch(tag,
+         pathabundance     = "MetaCyc pathways",
+         reactions         = "MetaCyc reactions",
+         genefamilies_ko   = "KEGG KO",
+         genefamilies      = "UniRef90-EC gene families",
+         tag)
+}
+```
+
+```{r per_table_loop, results='asis'}
+for (tag in names(funcTables)) {
+  cat(sprintf("\n## %s\n\n", label_for(tag)))
+  mat_raw <- load_joined(funcTables[[tag]])
+  mat <- filter_features(mat_raw, prevMin, relabMin)
+  cat(sprintf("- Features (raw / after filter): **%d / %d**\n",
+              nrow(mat_raw), nrow(mat)))
+  cat(sprintf("- Samples (in joined table): %d\n\n", ncol(mat_raw)))
+  if (nrow(mat) == 0 || ncol(mat) < 3) {
+    cat("Too few features/samples after filtering — skipping MaAsLin3.\n\n")
+    next
+  }
+  r <- run_one(mat, md, tag)
+  if (!is.null(r$err)) {
+    cat(sprintf("**MaAsLin3 error:** %s\n\n", r$err)); next
+  }
+
+  cat(sprintf("- MaAsLin3 input: %d features × %d samples\n", r$nFeatures, r$nSamples))
+  cat(sprintf("- Native output dir: `%s/`\n\n", r$outDir))
+
+  resDf <- r$res
+  sig <- resDf[!is.na(resDf$qval_individual) &
+               resDf$qval_individual <= maaslinMaxSig &
+               resDf$metadata == grouping, , drop = FALSE]
+  cat(sprintf("- Significant associations (q ≤ %g): **%d**\n\n",
+              maaslinMaxSig, nrow(sig)))
+
+  ## Inline table
+  showTbl <- if (nrow(sig) > 0) sig else
+             head(resDf[order(resDf$qval_individual), ], 30)
+  print(DT::datatable(showTbl, rownames = FALSE,
+                      options = list(pageLength = 10, scrollX = TRUE),
+                      caption = sprintf("MaAsLin3 results — %s", label_for(tag))))
+  cat("\n\n")
+
+  ## Coefficient plot
+  cp <- coef_plot(resDf, sprintf("%s — significant associations", label_for(tag)))
+  if (!is.null(cp)) print(cp)
+  cat("\n\n")
+
+  ## Volcano plot
+  vp <- volcano_plot(resDf, sprintf("%s — volcano (coef vs q)", label_for(tag)))
+  if (!is.null(vp)) print(vp)
+  cat("\n\n")
+}
+```
+
+# Method notes
+
+- Input: HUMAnN 4 alpha per-sample outputs joined via `humann_join_tables` (substring match on `genefamilies` / `reactions` / `pathabundance`). Stratified rows (`|s__`, `|t__SGB`) and HUMAnN special rows (`UNMAPPED` / `UNINTEGRATED` / `UNGROUPED` / `READS_UNMAPPED`) are dropped.
+- Filter: prevalence ≥ `r prevMin` AND pooled relative abundance ≥ `r relabMin`%.
+- Model: `~ grouping + covariates + ReadDepth` (ReadDepth = column sum, always added).
+- MaAsLin3 options: `normalization = "NONE"` (HUMAnN tables are already CPM-normalised), `transform = "LOG"`, `standardize = TRUE`, `max_significance = `r maaslinMaxSig``.
+- One MaAsLin3 run per available functional table; results dirs sit at `maaslin3_<tag>/`.

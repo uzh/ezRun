@@ -221,21 +221,46 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
   ## downstream ezSystem() calls find them on PATH.
 
   ## ---------------------------------------------------------------
-  ## 0. Decide input profile type (Bracken vs MetaPhlAn) from the
-  ##    dataset columns. The four DiffShot SUSHI apps advertise an
-  ##    XOR-of-AND on @required_columns, so exactly one of the two
-  ##    will be present.
+  ## 0. Decide input source type from the dataset columns. The XOR-of-AND
+  ##    on @required_columns (SUSHI side) ensures exactly one shape lands
+  ##    here. Three valid source types:
+  ##      bracken     — Kraken/Bracken report (taxonomic)
+  ##      metaphlan   — MetaPhlAn profile     (taxonomic)
+  ##      functional  — HUMAnN output table(s) — only MaAsLin3 supports this
   ## ---------------------------------------------------------------
   sampleNames <- input$getNames()
-  hasBracken    <- "BrackenReport"   %in% input$colNames
-  hasMetaPhlAn  <- "MetaPhlAnProfile" %in% input$colNames
-  if (!hasBracken && !hasMetaPhlAn)
-    stop("Input dataset has neither a BrackenReport nor a MetaPhlAnProfile column.")
-  if (hasBracken && hasMetaPhlAn)
-    stop("Input dataset carries both BrackenReport and MetaPhlAnProfile columns; ",
-         "ambiguous - keep only one.")
-  sourceType <- if (hasBracken) "bracken" else "metaphlan"
-  param$sourceType <- sourceType   # exposed to the Rmd via param
+  hasBracken      <- "BrackenReport"    %in% input$colNames
+  hasMetaPhlAn    <- "MetaPhlAnProfile" %in% input$colNames
+  functionalCols  <- c("PathAbundance"     = "pathabundance",
+                       "ReactionsCPM"      = "reactions",
+                       "KEGGKO_CPM"        = "genefamilies_ko",
+                       "GeneFamiliesCPM"   = "genefamilies")
+  presentFunc     <- functionalCols[names(functionalCols) %in% input$colNames]
+  hasFunctional   <- length(presentFunc) > 0
+  if (sum(c(hasBracken, hasMetaPhlAn, hasFunctional)) == 0) {
+    stop("Input dataset has none of: BrackenReport, MetaPhlAnProfile, ",
+         "or any HUMAnN functional columns (PathAbundance, ReactionsCPM, ",
+         "KEGGKO_CPM, GeneFamiliesCPM).")
+  }
+  if (sum(c(hasBracken, hasMetaPhlAn, hasFunctional)) > 1) {
+    stop("Input dataset carries multiple incompatible profile columns ",
+         "(taxonomic AND functional); keep only one shape.")
+  }
+  sourceType <- if (hasBracken) "bracken" else
+                if (hasMetaPhlAn) "metaphlan" else
+                "functional"
+  param$sourceType <- sourceType  # exposed to the Rmd via param
+
+  ## Guard: only MaAsLin3 supports the functional path (HUMAnN tables are
+  ## CPM-normalised; count-based methods would mis-model them).
+  if (sourceType == "functional") {
+    methodNorm <- toupper(gsub("[^A-Za-z0-9]", "",
+                               as.character(param$daMethod %||% "")))
+    if (!methodNorm %in% c("MAASLIN3", "MAASLIN")) {
+      stop("Functional (HUMAnN) input is only supported by the MaAsLin3 ",
+           "DiffShot app. Use DiffShotMaAsLin3 instead of ", param$daMethod, ".")
+    }
+  }
 
   ## ---------------------------------------------------------------
   ## 1. Build sample-metadata.tsv from the Factor-tagged columns only.
@@ -262,7 +287,76 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
   biomFile <- "bracken_table.biom"   # kept regardless of source so the Rmd
                                      # path doesn't have to switch on it.
 
-  if (sourceType == "bracken") {
+  if (sourceType == "functional") {
+
+    ## -------------------------------------------------------------
+    ## 2f. Functional path: join per-sample HUMAnN TSVs for every
+    ##     available functional column, then hand off to the dedicated
+    ##     functional MaAsLin3 Rmd. No BIOM is built.
+    ##     `presentFunc` is named char vector: SUSHI-column -> table-tag.
+    ## -------------------------------------------------------------
+    funcStage <- "humann_per_sample"
+    dir.create(funcStage, showWarnings = FALSE)
+    funcTables <- character()                 # tag -> joined TSV path
+    for (col in names(presentFunc)) {
+      tag <- presentFunc[[col]]               # e.g. "pathabundance"
+      tagDir <- file.path(funcStage, tag)
+      dir.create(tagDir, showWarnings = FALSE)
+      paths <- input$getFullPaths(col)
+      for (i in seq_along(sampleNames)) {
+        if (!is.na(paths[i]) && nzchar(paths[i]) && file.exists(paths[i])) {
+          file.copy(paths[i],
+                    file.path(tagDir,
+                              sprintf("%s_%s.tsv", sampleNames[i], tag)),
+                    overwrite = TRUE)
+        }
+      }
+      joined <- sprintf("functional_%s.tsv", tag)
+      ## humann_join_tables substring-matches --file_name across input dir
+      ok <- tryCatch({
+        ezSystem(paste("humann_join_tables",
+                       "-i", shQuote(tagDir),
+                       "-o", shQuote(joined),
+                       "--file_name", shQuote(tag)))
+        TRUE
+      }, error = function(e) {
+        message(sprintf("Join failed for %s: %s", tag, conditionMessage(e)))
+        FALSE
+      })
+      if (ok && file.exists(joined) && file.size(joined) > 0) {
+        funcTables[tag] <- joined
+      }
+    }
+    if (length(funcTables) == 0)
+      stop("Functional path: no joinable feature tables produced. ",
+           "Check the upstream HUMAnNApp outputs.")
+    param$functionalTables <- funcTables
+
+    ## Stage the functional MaAsLin3 Rmd alongside the working dir.
+    funcRmd <- system.file("templates", "DiffShot_maaslin3_functional.Rmd",
+                           package = "ezRun")
+    if (!nzchar(funcRmd) || !file.exists(funcRmd)) {
+      stop("DiffShot_maaslin3_functional.Rmd not installed in ezRun. ",
+           "Reinstall the package.")
+    }
+    file.copy(funcRmd, "DiffShot_maaslin3_functional.Rmd", overwrite = TRUE)
+
+    comparisonLabel <- if (!is.null(param$comparison) && nzchar(param$comparison))
+                         param$comparison
+                       else if (!is.null(param$grouping) && nzchar(param$grouping))
+                         param$grouping
+                       else "Group"
+    reportTitle <- paste0("Shotgun Functional DA (MaAsLin3) - ", comparisonLabel)
+
+    makeRmdReport(
+      output      = output,
+      param       = param,
+      rmdFile     = "DiffShot_maaslin3_functional.Rmd",
+      reportTitle = reportTitle
+    )
+    return("Success")
+
+  } else if (sourceType == "bracken") {
 
     ## -------------------------------------------------------------
     ## 2a. Stage Bracken reports under deterministic filenames so the

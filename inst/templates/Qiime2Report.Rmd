@@ -133,20 +133,12 @@ if (!exists("param") || is.null(param)) param <- list()
   run_fastp       = isTRUE(param$run_fastp)
 )
 
-## Resolve output directory. Prefer the SUSHI ezApp `output` object passed
-## from makeRmdReport (canonical ResultDir); fall back to the knit work dir.
-.report_dir <- NULL
-if (exists("output") && !is.null(output)) {
-  .report_dir <- tryCatch({
-    rd <- output$getColumn("ResultDir")
-    normalizePath(rd, mustWork = FALSE)
-  }, error = function(e) NULL)
-}
-if (is.null(.report_dir) || !nzchar(.report_dir)) {
-  .report_dir <- tryCatch(dirname(normalizePath(knitr::current_input(dir = TRUE), mustWork = FALSE)),
-                          error = function(e) getwd())
-}
-if (is.null(.report_dir) || !nzchar(.report_dir)) .report_dir <- getwd()
+## Resolve output directory. The R backend calls setwdNew(basename(ResultDir))
+## and renders the Rmd from inside that working directory, so getwd() is the
+## canonical place to drop CSV exports. Do NOT use output$getColumn("ResultDir")
+## here -- that returns the gstore destination path that doesn't exist yet at
+## render time (SUSHI copies results there only after the job finishes).
+.report_dir <- getwd()
 
 ## Build a final `grouping` scalar (single column carrying the Group factor inside physeq).
 grouping <- "Group"
