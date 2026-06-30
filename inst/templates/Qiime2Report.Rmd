@@ -97,6 +97,23 @@ if (.have_microViz)  suppressMessages(suppressWarnings(library(microViz)))
 .qiime2_validate <- function(...) if (requireNamespace("shiny", quietly = TRUE)) shiny::validate(...) else invisible(NULL)
 ```
 
+```{r load_passed_objects, include=FALSE}
+## makeRmdReport() in ezRun (util.R) serialises every named argument it
+## receives to <name>.qs2 in the working directory and then renders the Rmd
+## in a fresh env. The Rmd must read those objects back in -- nothing is
+## auto-bound. Pull in every .qs2 sitting next to the report.
+suppressMessages(suppressWarnings(library(qs2)))
+.passed_files <- list.files(".", pattern = "\\.qs2$", full.names = FALSE)
+for (.f in .passed_files) {
+  .nm <- sub("\\.qs2$", "", .f)
+  tryCatch(
+    assign(.nm, qs_read(.f), envir = knitr::knit_global()),
+    error = function(e) message("Failed to qs_read ", .f, ": ", conditionMessage(e))
+  )
+}
+suppressWarnings(rm(list = intersect(c(".passed_files", ".f", ".nm"), ls())))
+```
+
 # Configuration
 
 ```{r config}
