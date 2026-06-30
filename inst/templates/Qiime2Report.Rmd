@@ -1022,7 +1022,12 @@ safe_prev_plot(physeq_filtered, "Species", "Species -- All samples (post)")
 
 ```{r prev_per_group_dynamic, results='asis', fig.width=15, fig.height=7}
 for (grp in group_levels) {
-  ps_grp <- safe_prune_nonzero(subset_samples(physeq_filtered, Group == grp))
+  ## Use prune_samples (no NSE) instead of subset_samples to avoid the
+  ## loop-variable scope issue: phyloseq::subset_samples evaluates the
+  ## predicate inside sample_data first, and knitr's chunk env hides the
+  ## loop var on the parent-frame fallback.
+  .keep <- as.character(sample_data(physeq_filtered)$Group) == grp
+  ps_grp <- safe_prune_nonzero(prune_samples(.keep, physeq_filtered))
   if (is.null(ps_grp)) {
     cat(sprintf("### %s\n\n_No data in this group._\n\n", grp))
     next
