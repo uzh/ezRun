@@ -184,6 +184,11 @@ ezMethodHUMAnN <- function(input = NA, output = NA, param = NA,
     })
   }
 
+  ## Write a tiny mode marker so the SUSHI Ruby wrapper can surface the
+  ## detected mode in dataset.tsv (Mode [Characteristic] column).
+  modeFile <- sprintf("%s.mode.txt", sampleName)
+  writeLines(mode, modeFile)
+
   ## ---- 7. Render the per-sample HTML report ------------------------------
   rmdSrc <- system.file("templates/HUMAnNReport.Rmd", package = "ezRun")
   if (!nzchar(rmdSrc) || !file.exists(rmdSrc)) {
