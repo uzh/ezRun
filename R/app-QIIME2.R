@@ -168,7 +168,9 @@ ezMethodQIIME2 = function(
   unifracmatrix <- read_qza(
     "core-metrics-results/weighted_unifrac_distance_matrix.qza"
   )
-  metadata <- read.table("sample_metadata.tsv", header = TRUE)
+  # check.names = FALSE keeps "sample-id" as-is (else it becomes "sample.id")
+  metadata <- read.table("sample_metadata.tsv", header = TRUE, sep = "\t",
+                         check.names = FALSE, stringsAsFactors = FALSE)
 
   # Export rep-seqs FASTA so the Rmd can run a primer-orientation check
   rep_seqs_fasta <- "dada2_rep_seqs_filtered.fasta"

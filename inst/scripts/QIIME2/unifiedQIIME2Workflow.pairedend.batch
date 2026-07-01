@@ -8,6 +8,15 @@ export PYTHONWARNINGS="ignore"
 
 CORES={{CORES}}
 
+# Cap CORES to actually-available CPUs. QIIME2 2026.4's
+# core-metrics-phylogenetic enforces n_jobs <= os.cpu_count(), and SLURM
+# allocations can be smaller than the SUSHI-requested cores.
+NPROC=$(nproc 2>/dev/null || echo "$CORES")
+if [ "$CORES" -gt "$NPROC" ]; then
+  echo "Requested CORES=$CORES exceeds nproc=$NPROC; capping to $NPROC." 1>&2
+  CORES=$NPROC
+fi
+
 # ----- 0. Reference database -----
 # Absolute paths resolved by R from the auto-detected dropdown value.
 DB_SEQS="{{DB_SEQS}}"
