@@ -114,10 +114,9 @@ ggplot(mtcars, aes(factor(cyl), mpg, fill = factor(cyl))) +
 
 # Three-level
 
-<!-- PATTERN 4 — three levels of nesting (tabset → tabset → tabset). The
-     tab-numbering script in fgcz-plot-finder.html labels these automatically:
-     this top tab is e.g. "4", its sub-tabs "4.1"/"4.2", and their sub-tabs
-     "4.1.1"/"4.1.2" … — no manual numbering in the .qmd.
+<!-- PATTERN 4 — three levels of nesting (tabset → tabset → tabset). Every
+     depth renders as the IDENTICAL folder-tab card (no per-level colour; see
+     fgcz.scss) — depth reads from the nested card borders alone.
      Fence colons step DOWN per level so nesting is unambiguous:
      4 colons = level-2 tabset · 3 colons = each level-3 tabset. Tabs at each
      level are just headings: ## for level 2, ### for level 3. -->
@@ -180,11 +179,11 @@ ggplot(iris, aes(Petal.Length, fill = Species)) +
 
 # Five-level
 
-<!-- PATTERN 5 — five levels of nesting (tabset → … → tabset), to preview the
-     full tab palette: each depth has its own colour (L1 deep blue · L2 cyan ·
-     L3 sky · L4 teal · L5 indigo; see fgcz.scss). This top tab is level 1; each
-     nested ::: {.panel-tabset} steps one level deeper. The numbering script in
-     fgcz-plot-finder.html labels them automatically (5 · 5.1 · 5.1.1 · …).
+<!-- PATTERN 5 — five levels of nesting (tabset → … → tabset), the deepest
+     nesting the template demonstrates. Every depth renders as the IDENTICAL
+     folder-tab card (no per-level colour; see fgcz.scss) — depth reads from the
+     nested card borders alone. This top tab is level 1; each nested
+     ::: {.panel-tabset} steps one level deeper.
      Fence colons step DOWN per level so nesting stays unambiguous:
      6 = level-2 tabset · 5 = level-3 · 4 = level-4 · 3 = level-5. Tab headings
      are ## (L2) · ### (L3) · #### (L4) · ##### (L5). -->

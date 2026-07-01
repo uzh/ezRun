@@ -30,151 +30,71 @@ $web-font-path: "https://fonts.googleapis.com/css2?family=Jura:wght@400;500;600;
 // negative. To tighten ALL tab rows, lower [GAP 1] and/or [GAP 2].
 // ─────────────────────────────────────────────────────────────────
 
-// Pill / segmented tabsets.
-// Tab labels read as pressable buttons sitting on the page: inactive ones are
-// light bordered chips with coloured text; the active one is filled in the
-// primary colour with white text, so the selected tab clearly stands out.
-// Content sits in a bordered card below. Direct-child (>) selectors so nested
-// tabsets get the same treatment.
-
-// ── FINAL TAB PALETTE ─────────────────────────────────────────────
-// Fixed per-depth colours (no longer derived from $primary / JS gradient).
-// Each level: selected fill + its text, unselected fill + its text.
-// L4/L5 text wasn't specified → dark fill gets white, light fill gets the hue.
-$tab1-sel: #1B4079; $tab1-sel-fg: #ffffff; $tab1-un: #DCE6F2; $tab1-un-fg: #1B4079; // deep blue
-$tab2-sel: #3F84A6; $tab2-sel-fg: #0A3043; $tab2-un: #DBEAF1; $tab2-un-fg: #0A3043; // cyan-blue
-$tab3-sel: #9CC6DE; $tab3-sel-fg: #123A5C; $tab3-un: #EAF3F8; $tab3-un-fg: #123A5C; // sky blue
-$tab4-sel: #14697A; $tab4-sel-fg: #ffffff; $tab4-un: #D5E8EA; $tab4-un-fg: #14697A; // teal-blue
-$tab5-sel: #3D3F8F; $tab5-sel-fg: #ffffff; $tab5-un: #E0DEF2; $tab5-un-fg: #3D3F8F; // indigo
+// Classic folder tabs.
+// Each tab is a box with rounded top corners sitting ON the row's bottom line.
+// The ACTIVE tab is filled with the card colour (white) and its bottom border is
+// punched out (margin-bottom: -1px + bottom border = card bg), so it visually
+// fuses into the content card below — the manila-folder metaphor. Inactive tabs
+// are flat grey chips resting on the line. Direct-child (>) selectors so EVERY
+// nesting level gets the IDENTICAL look (no per-level colour cascade).
 
 .panel-tabset {
   margin-top: 0.5rem;        // space ABOVE the whole tabset (page gap before it)
   margin-bottom: 1.25rem;    // space BELOW the whole tabset (gap after it)
 
-  // Tab labels = pill buttons
+  // Tab row = a strip with a single bottom line; the active tab merges into it.
   > .nav-tabs {
-    border-bottom: none;     // kill Bootstrap's default underline on the row
-    gap: 0.3rem;             // horizontal space BETWEEN adjacent tab buttons
-    margin-bottom: 0.5rem;   // [GAP 1] space under the button row → card below
-    padding: 0;              // no inset around the button row itself
+    border-bottom: 2px solid $border-color; // thicker line the tabs sit on / card's top edge
+    gap: 0.15rem;            // tiny horizontal space BETWEEN adjacent tabs
+    margin-bottom: 0;        // no gap — content card abuts the tab-row line
+    padding: 0;
 
     .nav-link {
       font-family: "Jura", var(--bs-body-font-family); // brand font for all tab labels (every level)
-      // LEVEL 1 (deep blue). Fixed palette; see $tab1-* above. Deeper levels
-      // (2–5) override these colours via the descendant rules below.
-      border: 1px solid color-mix(in srgb, #{$tab1-sel} 30%, #fff);
-      border-radius: 0.375rem;         // button corner roundness (0 = square)
-      background-color: $tab1-un;       // L1 INACTIVE fill
-      color: $tab1-un-fg;               // L1 INACTIVE text
-      font-weight: 500;                // L1 INACTIVE text weight (lighter than active)
-      padding: 0.35rem 0.9rem;         // button size: vertical / horizontal
+      margin-bottom: -2px;             // overlap the row's 2px line (so active can punch it)
+      border: 2px solid transparent;   // 2px on EVERY state → no width shift, just thicker outline
+      border-top-left-radius: 0.375rem;  // rounded TOP corners only (folder-tab shape)
+      border-top-right-radius: 0.375rem;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      background-color: $gray-200;     // INACTIVE tab fill (clearly grey, so active white pops)
+      color: $gray-700;                // INACTIVE text (muted → active primary text stands out)
+      font-weight: 500;                // INACTIVE tab text weight
+      padding: 0.4rem 0.9rem;          // tab size: vertical / horizontal
 
       &:hover {
-        background-color: color-mix(in srgb, #{$tab1-sel} 22%, #{$tab1-un}); // deeper tint on hover
-        border-color: $tab1-sel;        // HOVER outline = full hue
+        background-color: $gray-300;                          // HOVER fill (darker still)
+        color: $primary;                                      // HOVER text brightens
+        border-color: $border-color $border-color transparent; // outline top/sides, not bottom
       }
 
       &.active {
-        background-color: $tab1-sel;     // L1 SELECTED fill
-        border-color:     $tab1-sel;
-        color: $tab1-sel-fg;             // L1 SELECTED text
-        font-weight: 700;                // ACTIVE = bold
+        background-color: $card-bg;    // ACTIVE fill = card colour (white) — lifts off the grey row
+        color: $primary;               // ACTIVE text = primary (vs muted grey inactive)
+        // Weight stays 500 (NOT bolder) — bolding widens the label and can nudge a
+        // tab row onto a second line. Contrast comes from fill + the top accent bar.
+        border-color: $primary $border-color $card-bg; // primary TOP accent; sides grey; bottom merges into card
       }
     }
   }
 
-  // Tab content = a bordered card body
+  // Tab content = a bordered card body whose TOP edge is the tab-row line above.
   > .tab-content {
-    border: 1px solid $border-color;   // card outline
-    border-radius: 0.375rem;           // card corner roundness
-    padding: 1rem 1.25rem;             // [GAP 2] top/bottom (1rem) · left/right (1.25rem)
+    border: 2px solid $border-color;   // card outline (matches the thicker tab-row line)
+    border-top: none;                  // the nav-tabs bottom line serves as the top edge
+    border-bottom-left-radius: 0.375rem;  // round only the BOTTOM corners
+    border-bottom-right-radius: 0.375rem;
+    padding: 1rem 1.25rem;             // top/bottom (1rem) · left/right (1.25rem)
     background-color: $card-bg;        // card fill (usually white)
   }
 }
 
-// Nested tabsets: an inner tabset shouldn't pile its own top margin on top of
-// the parent card's padding. Set [GAP 3] negative to pull the inner tab row UP
-// into the card padding (tighter); positive to push it down (looser).
-//
-// CASCADE — signal a LEVEL DOWN two ways, with almost no extra whitespace:
-//   • a thin HORIZONTAL line above the inner tabset (the "line break")
-//   • a COLOUR cascade: each level's ACTIVE pill is a lighter tint of $primary,
-//     so depth reads as colour (outer = full primary, deeper = lighter).
+// Nested tabsets: identical folder-tab look at every level (NO colour cascade).
+// Folder tabs already signal depth by their own card border, so an inner tabset
+// only needs a little vertical breathing room from the content above it.
 .panel-tabset .panel-tabset {
-  margin-top: -1rem;                 // [GAP 3] pull the line UP toward the outer tab row
-  margin-bottom: 0.5rem;               // space below an inner tabset before more content
-  padding-top: 0.5rem;                 // small breathing room under the divider line
-  border-top: 1px solid $border-color; // the thin horizontal line marking the sub-level
-
-  // LEVEL 2 (cyan-blue) SELECTED pill.
-  > .nav-tabs .nav-link.active {
-    background-color: $tab2-sel;
-    border-color:     $tab2-sel;
-    color: $tab2-sel-fg;
-    font-weight: 700;                            // ACTIVE = bold
-  }
-}
-
-// LEVEL 3 (sky blue) SELECTED pill.
-.panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link.active {
-  background-color: $tab3-sel;
-  border-color:     $tab3-sel;
-  color: $tab3-sel-fg;
-  font-weight: 700;
-}
-// LEVEL 4 (teal-blue) SELECTED pill.
-.panel-tabset .panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link.active {
-  background-color: $tab4-sel;
-  border-color:     $tab4-sel;
-  color: $tab4-sel-fg;
-  font-weight: 700;
-}
-// LEVEL 5 (indigo) SELECTED pill.
-.panel-tabset .panel-tabset .panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link.active {
-  background-color: $tab5-sel;
-  border-color:     $tab5-sel;
-  color: $tab5-sel-fg;
-  font-weight: 700;
-}
-
-// Jura's heaviest real weight is 700 (already used by .active above). To push
-// the SELECTED tab even bolder, add a hair of same-colour text-stroke — this
-// thickens the glyphs at every level (currentColor = white on L1, black deeper).
-// Raise the px value for heavier, drop it toward 0 to back off.
-.panel-tabset .nav-tabs .nav-link.active {
-  -webkit-text-stroke: 0.4px currentColor;
-  text-stroke: 0.4px currentColor;
-}
-
-// INACTIVE CASCADE — exaggerate depth even when nothing is selected, on the
-// same "deeper = lighter / flatter" axis as the active pills above. Level 1
-// (the base .nav-link) is a blue-tinted chip; these step level 2 down to a
-// neutral grey chip, and level 3 down to nearly-flat (no fill, faint outline).
-// :not(.active) keeps the active rules above winning; :not(:hover) lets the
-// shared hover state below still fire at every level.
-.panel-tabset .panel-tabset > .nav-tabs .nav-link:not(.active):not(:hover) {
-  background-color: $tab2-un;                              // L2 UNSELECTED fill
-  border-color:     color-mix(in srgb, #{$tab2-sel} 25%, #fff);
-  color:            $tab2-un-fg;                           // L2 UNSELECTED text
-  font-weight: 500;
-}
-.panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link:not(.active):not(:hover) {
-  background-color: $tab3-un;                              // L3 UNSELECTED fill
-  border-color:     color-mix(in srgb, #{$tab3-sel} 25%, #fff);
-  color:            $tab3-un-fg;                           // L3 UNSELECTED text
-  font-weight: 500;
-}
-.panel-tabset .panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link:not(.active):not(:hover) {
-  background-color: $tab4-un;                              // L4 UNSELECTED fill
-  border-color:     color-mix(in srgb, #{$tab4-sel} 25%, #fff);
-  color:            $tab4-un-fg;                           // L4 UNSELECTED text
-  font-weight: 500;
-}
-.panel-tabset .panel-tabset .panel-tabset .panel-tabset .panel-tabset > .nav-tabs .nav-link:not(.active):not(:hover) {
-  background-color: $tab5-un;                              // L5 UNSELECTED fill
-  border-color:     color-mix(in srgb, #{$tab5-sel} 25%, #fff);
-  color:            $tab5-un-fg;                           // L5 UNSELECTED text
-  font-weight: 500;
+  margin-top: 0.75rem;       // space above an inner tabset
+  margin-bottom: 0.5rem;     // space below an inner tabset before more content
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -224,19 +144,6 @@ $tab5-sel: #3D3F8F; $tab5-sel-fg: #ffffff; $tab5-un: #E0DEF2; $tab5-un-fg: #3D3F
   opacity: 0.7;                      // slightly muted so it reads as a prefix
   margin-right: 0.1rem;              // tiny gap before the label text
   font-variant-numeric: tabular-nums;
-}
-
-// Hide Quarto's native title-block code-tools button — the right-edge toolbar
-// box ("Code", in fgcz-plot-finder.html) is the single control for View Source.
-// (It still works when hidden: the toolbar JS triggers it programmatically.)
-.quarto-title-block .code-tools-button { display: none; }
-
-// Document title (the report <h1> at the top of the page).
-// Not set anywhere else, so it otherwise inherits the theme's default h1 size.
-// Bump this to make the report title bigger/smaller.
-.quarto-title-block .quarto-title .title {
-  font-size: 2.5rem;         // document title size (theme default ≈ 2.1rem)
-  font-weight: 700;          // title weight
 }
 
 // Table caption titles.

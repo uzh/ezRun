@@ -11,13 +11,9 @@ format:
     smooth-scroll: true
     page-layout: full
 
-    # Code — no inline or folded code in the body; just a "View Source" action
-    # (the whole .qmd in a modal overlay), fired from the right-edge toolbar box
-    # in fgcz-plot-finder.html. Source is embedded, so it works offline
-    # (embed-resources). toggle:false drops Show/Hide-all-code.
-    code-tools:
-      source: true
-      toggle: false
+    # Code
+    code-fold: true
+    code-tools: true
 
     # Theme — flatly base + FGCZ overrides (tabset card styling for now)
     theme: [spacelab, fgcz.scss]
@@ -30,10 +26,6 @@ format:
 
     # FGCZ header
     include-in-header: fgcz_header_quarto.html
-
-    # Floating "Find a plot" finder (searchable index of all figures/tables;
-    # opens the enclosing tab on click). Self-contained; see the file for knobs.
-    include-after-body: fgcz-plot-finder.html
 
     # Figure defaults
     fig-dpi: 300
