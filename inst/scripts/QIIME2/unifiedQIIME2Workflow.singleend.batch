@@ -122,13 +122,17 @@ if [ "{{RUN_PICRUST2}}" = "true" ]; then
   qiime tools export --input-path rep-seqs-filtered.qza --output-path exports
   qiime tools export --input-path table-filtered.qza --output-path exports
 
+  # --stratified emits per-ASV contribution tables (pred_metagenome_contrib.tsv.gz),
+  # needed by the Rmd's "ASV contributors" tab. Adds compute time, but on typical
+  # 16S datasets is acceptable; disable at picrust2_pipeline.py level if too slow.
   picrust2_pipeline.py \
     -s exports/dna-sequences.fasta \
     -i exports/feature-table.biom \
     -o picrust2_output \
+    --stratified \
     --processes $CORES
 
-  # Decompress the three key TSVs into the working directory root
+  # Decompress the four key TSVs into the working directory root
   if [ -f picrust2_output/KO_metagenome_out/pred_metagenome_unstrat.tsv.gz ]; then
     gunzip -kc picrust2_output/KO_metagenome_out/pred_metagenome_unstrat.tsv.gz > ko_abundance.tsv
   fi
@@ -138,12 +142,29 @@ if [ "{{RUN_PICRUST2}}" = "true" ]; then
   if [ -f picrust2_output/pathways_out/path_abun_unstrat.tsv.gz ]; then
     gunzip -kc picrust2_output/pathways_out/path_abun_unstrat.tsv.gz > pathway_abundance.tsv
   fi
+  # Per-ASV contribution table (from --stratified). Prefer KO-level; fall back to EC.
+  if [ -f picrust2_output/KO_metagenome_out/pred_metagenome_contrib.tsv.gz ]; then
+    gunzip -kc picrust2_output/KO_metagenome_out/pred_metagenome_contrib.tsv.gz > picrust2_contrib.tsv
+  elif [ -f picrust2_output/EC_metagenome_out/pred_metagenome_contrib.tsv.gz ]; then
+    gunzip -kc picrust2_output/EC_metagenome_out/pred_metagenome_contrib.tsv.gz > picrust2_contrib.tsv
+  fi
 fi
 
 # ----- 19. Unpack qzv archives into Results_Folder -----
+# QZV archives inflate as <name>.qzv.zip.folder/<UUID>/data/... , but the
+# SUSHI Ruby app links to <name>.qzv.zip.folder/data/... . Hoist the single
+# UUID subdir's contents up one level so those static links resolve.
 for i in $(ls *.qzv); do mv $i ${i}.zip; done
 
-for i in $(ls *.zip); do unzip $i -d $i.folder; done
+for i in $(ls *.zip); do
+  unzip -q "$i" -d "${i}.folder"
+  ( shopt -s dotglob nullglob
+    for uuid_dir in "${i}.folder"/*/; do
+      mv "${uuid_dir}"* "${i}.folder/" 2>/dev/null || true
+      rmdir "${uuid_dir}" 2>/dev/null || true
+    done
+  )
+done
 
 mkdir -p Results_Folder
 mv *.zip.folder Results_Folder/

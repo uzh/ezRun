@@ -16,6 +16,17 @@ editor_options:
   chunk_output_type: inline
 ---
 
+<style>
+/* fgcz.css sets h1 to 8px (used across FGCZ reports where sections start at
+   h2). This report's sections are h1, so restore readable header sizes
+   without touching the shared CSS. */
+h1 { font-size: 1.9em; font-weight: 700; margin-top: 1.2em; }
+h2 { font-size: 1.5em; font-weight: 700; margin-top: 1.0em; }
+h3 { font-size: 1.2em; font-weight: 700; }
+h4 { font-size: 1.05em; font-weight: 700; }
+details > summary { cursor: pointer; }
+</style>
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   comment    = '',
@@ -2063,7 +2074,16 @@ if (!.picrust_enabled) {
 
 .render_picrust_panel <- function(mat, label) {
   if (is.null(mat)) { cat("No ", label, " input.\n"); return(invisible(NULL)) }
+  ## Defensive: if the input still has a non-numeric first column (e.g. the
+  ## "function" / "pathway" ID column from a naive read.table), hoist it to
+  ## rownames so as.matrix() doesn't force everything to character.
+  if (is.data.frame(mat) && ncol(mat) >= 2 && !is.numeric(mat[[1]])) {
+    .ids <- as.character(mat[[1]])
+    mat  <- mat[, -1, drop = FALSE]
+    rownames(mat) <- make.unique(.ids)
+  }
   mat <- as.matrix(mat)
+  storage.mode(mat) <- "numeric"
   if (ncol(mat) < 4 || nrow(mat) < 2) {
     cat("Insufficient ", label, " data (", nrow(mat), " features x ", ncol(mat), " samples).\n", sep = "")
     return(invisible(NULL))
@@ -2365,6 +2385,9 @@ if (length(widget_files) > 0) {
 
 # Session info
 
+<details>
+<summary>Click to expand session info</summary>
 ```{r session_info}
 sessionInfo()
 ```
+</details>

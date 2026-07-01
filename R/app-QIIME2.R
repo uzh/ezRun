@@ -186,21 +186,32 @@ ezMethodQIIME2 = function(
   }
 
   if (isTRUE(param$run_picrust2)) {
+    # row.names = 1 puts the non-numeric feature-id column (e.g. "function"
+    # with "ko:K00001") into rownames, so the returned data.frame is purely
+    # numeric. Without this, as.matrix() downstream coerces everything to
+    # character and ALDEx2/metagenomeSeq fail with "non-numeric argument".
     picrust2_ko <- if (file.exists("ko_abundance.tsv")) {
       read.table("ko_abundance.tsv", header = TRUE, sep = "\t",
-                 check.names = FALSE)
+                 check.names = FALSE, row.names = 1)
     } else {
       NULL
     }
     picrust2_ec <- if (file.exists("ec_abundance.tsv")) {
       read.table("ec_abundance.tsv", header = TRUE, sep = "\t",
-                 check.names = FALSE)
+                 check.names = FALSE, row.names = 1)
     } else {
       NULL
     }
     picrust2_pathway <- if (file.exists("pathway_abundance.tsv")) {
       read.table("pathway_abundance.tsv", header = TRUE, sep = "\t",
-                 check.names = FALSE)
+                 check.names = FALSE, row.names = 1)
+    } else {
+      NULL
+    }
+    # Path to the stratified per-ASV contribution table (from --stratified).
+    # The Rmd's "ASV contributors" tab reads this to show top contributors.
+    picrust2_contrib <- if (file.exists("picrust2_contrib.tsv")) {
+      "picrust2_contrib.tsv"
     } else {
       NULL
     }
@@ -208,6 +219,7 @@ ezMethodQIIME2 = function(
     picrust2_ko <- NULL
     picrust2_ec <- NULL
     picrust2_pathway <- NULL
+    picrust2_contrib <- NULL
   }
 
   fastp_reports <- if (isTRUE(param$run_fastp) && dir.exists("fastp_reports")) {
@@ -263,6 +275,7 @@ ezMethodQIIME2 = function(
     ko_abundance = picrust2_ko,
     ec_abundance = picrust2_ec,
     pathway_abundance = picrust2_pathway,
+    picrust2_contrib = picrust2_contrib,
     run_picrust2 = isTRUE(param$run_picrust2),
     run_fastp = isTRUE(param$run_fastp),
     grouping = param$grouping,
