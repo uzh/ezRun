@@ -2015,12 +2015,13 @@ if (!.picrust_enabled) {
 }
 
 ## Normalise input names to picrust2_ko / picrust2_ec / picrust2_pathway.
-.pi_ko   <- if (exists("picrust2_ko")      && !is.null(picrust2_ko))      picrust2_ko
-            else if (exists("ko_abundance") && !is.null(ko_abundance))    ko_abundance else NULL
-.pi_ec   <- if (exists("picrust2_ec")      && !is.null(picrust2_ec))      picrust2_ec
-            else if (exists("ec_abundance") && !is.null(ec_abundance))    ec_abundance else NULL
-.pi_path <- if (exists("picrust2_pathway") && !is.null(picrust2_pathway)) picrust2_pathway
-            else if (exists("pathway_abundance") && !is.null(pathway_abundance)) pathway_abundance else NULL
+## Parentheses required so R sees the whole if/else-if/else as one expression.
+.pi_ko   <- (if (exists("picrust2_ko")      && !is.null(picrust2_ko))      picrust2_ko
+             else if (exists("ko_abundance") && !is.null(ko_abundance))    ko_abundance else NULL)
+.pi_ec   <- (if (exists("picrust2_ec")      && !is.null(picrust2_ec))      picrust2_ec
+             else if (exists("ec_abundance") && !is.null(ec_abundance))    ec_abundance else NULL)
+.pi_path <- (if (exists("picrust2_pathway") && !is.null(picrust2_pathway)) picrust2_pathway
+             else if (exists("pathway_abundance") && !is.null(pathway_abundance)) pathway_abundance else NULL)
 ```
 
 ```{r picrust_helpers}

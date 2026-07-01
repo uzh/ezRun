@@ -61,9 +61,12 @@ ezMethodHUMAnN <- function(input = NA, output = NA, param = NA,
   detectedDb <- NA_character_
   profileSrc <- NA_character_
 
+  # getFullPaths() prepends the gstore root (e.g. /srv/gstore/projects); the
+  # raw column value from dataset.tsv is a gstore-relative path that will
+  # not resolve on the compute node otherwise.
   if (hasMpa) {
     profileSrc <- "MetaPhlAnProfile"
-    srcFile <- input$getColumn("MetaPhlAnProfile")
+    srcFile <- input$getFullPaths("MetaPhlAnProfile")
     detectedDb <- readLines(srcFile, n = 1, warn = FALSE)
     if (grepl("vOct22_CHOCOPhlAnSGB_202403", detectedDb, fixed = TRUE)) {
       mode <- "full"
@@ -75,7 +78,7 @@ ezMethodHUMAnN <- function(input = NA, output = NA, param = NA,
     }
   } else {
     profileSrc <- if (hasBracken) "BrackenReport" else "KrakenReport"
-    srcFile <- input$getColumn(profileSrc)
+    srcFile <- input$getFullPaths(profileSrc)
     detectedDb <- sprintf("(converted from %s)", profileSrc)
     converter <- system.file("python/bracken_to_mpa.py", package = "ezRun")
     if (!nzchar(converter) || !file.exists(converter)) {
