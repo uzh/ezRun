@@ -222,8 +222,9 @@ ezMethodQIIME2 = function(
     picrust2_contrib <- NULL
   }
 
-  fastp_reports <- if (isTRUE(param$run_fastp) && dir.exists("fastp_reports")) {
-    list.files("fastp_reports", full.names = TRUE)
+  fastp_reports <- if (isTRUE(param$run_fastp) && dir.exists("fastp_out")) {
+    list.files("fastp_out", pattern = "\\.(json|html)$",
+               full.names = TRUE, ignore.case = TRUE)
   } else {
     NULL
   }

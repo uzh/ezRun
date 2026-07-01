@@ -977,29 +977,43 @@ The All samples tabset shows the global view; per-group sub-tabsets are generate
 automatically for every level of the grouping factor.
 
 ```{r prevalence_helpers}
+## Drop rows where the target rank is missing/blank/prefix-only.
+## SILVA-cleaned tax_tables often carry `""`, `"NA"`, or bare `"g__"` strings,
+## none of which is.na() would catch — we filter all of those.
 remove_na_rank <- function(ps, rank) {
-  tax <- as.data.frame(tax_table(ps))
-  keep <- !is.na(tax[[rank]])
+  tax <- as.data.frame(tax_table(ps), stringsAsFactors = FALSE)
+  vals <- as.character(tax[[rank]])
+  keep <- !is.na(vals) & nzchar(vals) & vals != "NA" &
+          !grepl("^[a-z]__$", vals)
   if (sum(keep) == 0) return(NULL)
   prune_taxa(rownames(tax)[keep], ps)
 }
 
 safe_prev_plot <- function(ps, rank, title) {
-  if (is.null(ps)) { cat(title, "-- no data\n"); return(invisible(NULL)) }
-  tryCatch({
-    if (rank %in% c("Genus", "Species")) {
-      ps_clean <- remove_na_rank(ps, rank)
-      if (is.null(ps_clean)) { cat(title, "-- no data after NA removal\n"); return(invisible(NULL)) }
-      p <- plot_taxa_prevalence(ps_clean, rank) + ggtitle(title) + theme(legend.position = "none")
+  if (is.null(ps)) { cat("_", title, " -- no data_\n\n", sep = ""); return(invisible(NULL)) }
+  ps_try <- ps
+  if (rank %in% c("Genus", "Species")) {
+    ps_clean <- remove_na_rank(ps, rank)
+    if (is.null(ps_clean)) {
+      cat("_", title, " -- every ASV is unclassified at ", rank,
+          "; plotting with raw labels instead._\n\n", sep = "")
     } else {
-      p <- plot_taxa_prevalence(ps, rank) + ggtitle(title) + theme(legend.position = "none")
+      ps_try <- ps_clean
     }
+  }
+  tryCatch({
+    p <- plot_taxa_prevalence(ps_try, rank) + ggtitle(title) + theme(legend.position = "none")
     print(p)
-  }, error = function(e) cat(title, "skipped: ", e$message, "\n"))
+  }, error = function(e) cat("_", title, " skipped: ", e$message, "_\n\n", sep = ""))
 }
 ```
 
 ## Pre-filtering (all samples) {.tabset}
+
+### Species
+```{r prev_pre_species_all, fig.width=15, fig.height=7, eval=has_species}
+safe_prev_plot(physeq, "Species", "Species -- All samples (pre)")
+```
 
 ### Genus
 ```{r prev_pre_genus_all, fig.width=15, fig.height=7}
@@ -1016,12 +1030,12 @@ safe_prev_plot(physeq, "Family", "Family -- All samples (pre)")
 safe_prev_plot(physeq, "Phylum", "Phylum -- All samples (pre)")
 ```
 
-### Species
-```{r prev_pre_species_all, fig.width=15, fig.height=7, eval=has_species}
-safe_prev_plot(physeq, "Species", "Species -- All samples (pre)")
-```
-
 ## After filtering (all samples) {.tabset}
+
+### Species
+```{r prev_post_species_all, fig.width=15, fig.height=7, eval=has_species}
+safe_prev_plot(physeq_filtered, "Species", "Species -- All samples (post)")
+```
 
 ### Genus
 ```{r prev_post_genus_all, fig.width=15, fig.height=7}
@@ -1038,33 +1052,43 @@ safe_prev_plot(physeq_filtered, "Family", "Family -- All samples (post)")
 safe_prev_plot(physeq_filtered, "Phylum", "Phylum -- All samples (post)")
 ```
 
-### Species
-```{r prev_post_species_all, fig.width=15, fig.height=7, eval=has_species}
-safe_prev_plot(physeq_filtered, "Species", "Species -- All samples (post)")
-```
-
 ## Per-group tabsets (post-filter) {.tabset}
 
 ```{r prev_per_group_dynamic, results='asis', fig.width=15, fig.height=7}
+## `results='asis'` routes chunk text output straight to the .md — knitr
+## does NOT re-invoke its own parser on cat("```{r ...}```", ...), so the
+## fenced code block would appear literally. Instead call plot_taxa_prevalence
+## inline; the outer chunk's fig.width/fig.height control the figure size.
 for (grp in group_levels) {
-  ## Use prune_samples (no NSE) instead of subset_samples to avoid the
-  ## loop-variable scope issue: phyloseq::subset_samples evaluates the
-  ## predicate inside sample_data first, and knitr's chunk env hides the
-  ## loop var on the parent-frame fallback.
   .keep <- as.character(sample_data(physeq_filtered)$Group) == grp
   ps_grp <- safe_prune_nonzero(prune_samples(.keep, physeq_filtered))
   if (is.null(ps_grp)) {
-    cat(sprintf("### %s\n\n_No data in this group._\n\n", grp))
+    cat(sprintf("\n\n### %s\n\n_No data in this group._\n\n", grp))
     next
   }
-  cat(sprintf("### %s {.tabset}\n\n", grp))
-  for (rank in c("Genus", "Family", "Phylum", "Species")) {
+  cat(sprintf("\n\n### %s {.tabset}\n\n", grp))
+  for (rank in c("Species", "Genus", "Family", "Phylum")) {
     if (rank == "Species" && !has_species) next
-    cat(sprintf("#### %s\n\n", rank))
-    cat("```{r prev_grp_", make.names(grp), "_", rank, ", fig.width=15, fig.height=7}\n", sep = "")
-    cat(sprintf("safe_prev_plot(safe_prune_nonzero(subset_samples(physeq_filtered, Group == \"%s\")), \"%s\", \"%s -- %s\")\n",
-                grp, rank, rank, grp))
-    cat("```\n\n")
+    cat(sprintf("\n\n#### %s\n\n", rank))
+    p <- tryCatch(
+      {
+        ps_use <- ps_grp
+        if (rank %in% c("Genus", "Species")) {
+          ps_use <- remove_na_rank(ps_grp, rank)
+        }
+        if (is.null(ps_use)) NULL
+        else plot_taxa_prevalence(ps_use, rank) +
+             ggtitle(sprintf("%s -- %s", rank, grp)) +
+             theme(legend.position = "none")
+      },
+      error = function(e) { cat("_skipped: ", e$message, "_\n\n", sep = ""); NULL }
+    )
+    if (!is.null(p)) {
+      print(p)
+      cat("\n\n")
+    } else {
+      cat("_No data at this rank._\n\n")
+    }
   }
 }
 ```
@@ -1072,6 +1096,11 @@ for (grp in group_levels) {
 # Heatmaps {.tabset}
 
 Log10-transformed relative abundance heatmaps. Each value is `log10(rel% + 0.01)`; absent taxa render at `-2`.
+
+## Species level (post-filter)
+```{r heatmap_species_post, fig.width=20, fig.height=12, eval=has_species}
+plot_level_heatmap(physeq_filtered, level = "Species", title = "Species -- Post-filter")
+```
 
 ## Genus level (pre-filter)
 ```{r heatmap_genus_pre, fig.width=20, fig.height=12}
@@ -1091,11 +1120,6 @@ plot_level_heatmap(physeq_filtered, level = "Family", title = "Family -- Post-fi
 ## Phylum level (post-filter)
 ```{r heatmap_phylum_post, fig.width=20, fig.height=12}
 plot_level_heatmap(physeq_filtered, level = "Phylum", title = "Phylum -- Post-filter")
-```
-
-## Species level (post-filter)
-```{r heatmap_species_post, fig.width=20, fig.height=12, eval=has_species}
-plot_level_heatmap(physeq_filtered, level = "Species", title = "Species -- Post-filter")
 ```
 
 ## Top 30 ASVs (post-filter)
@@ -1144,6 +1168,16 @@ Top 20 / Top 50 lump the rest into "Other".
 }
 ```
 
+## Species
+```{r barplot_species, fig.width=20, fig.height=12, eval=has_species}
+print(plot_taxa_bar_all(physeq_filtered, "Species", "Relative Abundance Species (post)"))
+print(plot_taxa_bar_topN(physeq_filtered, "Species", 20, "Top 20 Species (post)"))
+print(plot_taxa_bar_topN(physeq_filtered, "Species", 50, "Top 50 Species (post)"))
+species_tbl_post <- make_taxa_wide_table(physeq_filtered, "Species")
+write.csv(species_tbl_post, file.path(.report_dir, "taxa_abundance_species_post.csv"), row.names = FALSE)
+fgcz_dt(species_tbl_post, "Species -- Relative abundance (%) per sample, post-filter")
+```
+
 ## Genus
 ```{r barplot_genus, fig.width=20, fig.height=12}
 print(plot_taxa_bar_all(physeq_filtered, "Genus", "Relative Abundance Genus (post)"))
@@ -1171,16 +1205,6 @@ print(plot_taxa_bar_topN(physeq_filtered, "Phylum", 20, "Top 20 Phylum (post)"))
 phylum_tbl_post <- make_taxa_wide_table(physeq_filtered, "Phylum")
 write.csv(phylum_tbl_post, file.path(.report_dir, "taxa_abundance_phylum_post.csv"), row.names = FALSE)
 fgcz_dt(phylum_tbl_post, "Phylum -- Relative abundance (%) per sample, post-filter")
-```
-
-## Species
-```{r barplot_species, fig.width=20, fig.height=12, eval=has_species}
-print(plot_taxa_bar_all(physeq_filtered, "Species", "Relative Abundance Species (post)"))
-print(plot_taxa_bar_topN(physeq_filtered, "Species", 20, "Top 20 Species (post)"))
-print(plot_taxa_bar_topN(physeq_filtered, "Species", 50, "Top 50 Species (post)"))
-species_tbl_post <- make_taxa_wide_table(physeq_filtered, "Species")
-write.csv(species_tbl_post, file.path(.report_dir, "taxa_abundance_species_post.csv"), row.names = FALSE)
-fgcz_dt(species_tbl_post, "Species -- Relative abundance (%) per sample, post-filter")
 ```
 
 ## Interactive (HTML files)
@@ -2096,7 +2120,7 @@ if (!.picrust_enabled) {
   mat <- mat[, samp_ids, drop = FALSE]
   groups <- metadata$Group[match(samp_ids, metadata$SampleID)]
 
-  cat("#### ALDEx2 (global, all groups)\n\n")
+  cat("\n\n#### ALDEx2 (global, all groups)\n\n")
   ald <- .daa_aldex2(mat, groups)
   if (!is.null(ald)) {
     write.csv(ald, file.path(.report_dir, paste0("picrust2_aldex2_", label, ".csv")), row.names = FALSE)
@@ -2111,6 +2135,7 @@ if (!.picrust_enabled) {
     print(fgcz_dt(head(mg[order(mg$adjPvalues), ], 200),
                   paste("metagenomeSeq -- ", label, " (top 200 by adjusted p)")))
   }
+  cat("\n\n")
 }
 ```
 
@@ -2224,30 +2249,36 @@ render_clr_section <- function(ps, ps_label) {
   samp_groups <- setNames(as.character(sample_data(ps)$Group), sample_names(ps))
   for (rank in c("Species", "Genus", "Family", "Phylum")) {
     if (rank == "Species" && !has_species) next
-    cat(sprintf("\n## CLR Wilcoxon -- %s (%s) {.tabset}\n\n", rank, ps_label))
+    ## Leading double-newlines are required for pandoc to detect headers after
+    ## the previous rank's plot output (knitr's plot hook does not always
+    ## emit a trailing blank line, so `\n### Foo` alone would be treated as a
+    ## continuation of the image line, not a new header).
+    cat(sprintf("\n\n## CLR Wilcoxon -- %s (%s) {.tabset}\n\n", rank, ps_label))
     res <- clr_wilcoxon_level(ps, rank)
     if (is.null(res) || nrow(res) == 0) {
-      cat("_No CLR Wilcoxon results at this rank._\n")
+      cat("_No CLR Wilcoxon results at this rank._\n\n")
       next
     }
     write.csv(res, file.path(.report_dir, paste0("CLR_Wilcoxon_", rank, "_", ps_label, ".csv")),
               row.names = FALSE)
-    cat("\n### Pairwise Wilcoxon\n\n")
+    cat("\n\n### Pairwise Wilcoxon\n\n")
     print(fgcz_dt(head(res, 200), paste(rank, "-- CLR Wilcoxon (", ps_label, ", top 200 by BH p)")))
     cat("\n\n### Top 5 by mean(|CLR|)\n\n")
     p <- clr_top5_violin(attr(res, "clr_matrix"), samp_groups, rank, top_n = 5)
     if (!is.null(p)) print(p)
+    cat("\n\n")
   }
 }
 ```
 
-## Pre-filter CLR
-
 ```{r clr_pre, fig.width=14, fig.height=8, results='asis'}
+## No `## Pre-filter CLR` wrapper here: the outer `# Taxon-level CLR analysis
+## {.tabset}` treats every level-2 header as a tab, and render_clr_section
+## emits `## CLR Wilcoxon -- Rank (pre/post) {.tabset}` directly — those are
+## the real tabs. A `## Pre-filter CLR` wrapper would appear as an empty
+## sibling tab because content moves under its own emitted h2s.
 render_clr_section(physeq, "pre")
 ```
-
-## Post-filter CLR
 
 ```{r clr_post, fig.width=14, fig.height=8, results='asis'}
 render_clr_section(physeq_filtered, "post")
@@ -2274,53 +2305,52 @@ clr_barplot <- function(ps, level, label) {
          y = "CLR contribution")
 }
 
-for (lvl in c("Phylum", "Family", "Genus")) {
-  cat(sprintf("\n## %s {.tabset}\n\n", lvl))
-  cat("### Pre-filter\n\n")
+ranks_clr_bar <- c(if (has_species) "Species" else NULL, "Genus", "Family", "Phylum")
+for (lvl in ranks_clr_bar) {
+  cat(sprintf("\n\n## %s {.tabset}\n\n", lvl))
+  cat("\n### Pre-filter\n\n")
   p_pre <- clr_barplot(physeq, lvl, "pre")
   if (!is.null(p_pre)) print(p_pre)
   cat("\n\n### Post-filter\n\n")
   p_post <- clr_barplot(physeq_filtered, lvl, "post")
   if (!is.null(p_post)) print(p_post)
-}
-if (has_species) {
-  cat("\n## Species {.tabset}\n\n### Pre-filter\n\n")
-  p <- clr_barplot(physeq, "Species", "pre")
-  if (!is.null(p)) print(p)
-  cat("\n\n### Post-filter\n\n")
-  p <- clr_barplot(physeq_filtered, "Species", "post")
-  if (!is.null(p)) print(p)
+  cat("\n\n")
 }
 ```
 
-# CLR abundance tables export
+# CLR abundance tables export {.tabset}
 
-```{r clr_export}
-export_clr_for_level <- function(ps, level, label) {
+```{r clr_export, results='asis'}
+render_clr_table <- function(ps, level, label) {
   if (is.null(ps)) return(invisible(NULL))
   ps_lvl <- tryCatch(tax_glom(ps, level, NArm = TRUE), error = function(e) NULL)
-  if (is.null(ps_lvl) || ntaxa(ps_lvl) == 0) return(invisible(NULL))
+  if (is.null(ps_lvl) || ntaxa(ps_lvl) == 0) {
+    cat("_No taxa at this rank._\n\n"); return(invisible(NULL))
+  }
   mat <- as(otu_table(ps_lvl), "matrix")
   if (!taxa_are_rows(ps_lvl)) mat <- t(mat)
   rownames(mat) <- make.unique(as.character(tax_table(ps_lvl)[, level]))
   clr_mat <- clr_transform_matrix(mat)
-  write.csv(as.data.frame(mat),
-            file.path(.report_dir, paste0("raw_abundance_table_", tolower(level), "_", label, ".csv")))
-  write.csv(as.data.frame(clr_mat),
-            file.path(.report_dir, paste0("CLR_abundance_table_", tolower(level), "_", label, ".csv")))
+  raw_path <- file.path(.report_dir, paste0("raw_abundance_table_", tolower(level), "_", label, ".csv"))
+  clr_path <- file.path(.report_dir, paste0("CLR_abundance_table_", tolower(level), "_", label, ".csv"))
+  write.csv(as.data.frame(mat), raw_path)
+  write.csv(as.data.frame(clr_mat), clr_path)
+  clr_df <- data.frame(Taxon = rownames(clr_mat),
+                       round(clr_mat, 3),
+                       check.names = FALSE,
+                       stringsAsFactors = FALSE)
+  print(fgcz_dt(clr_df, sprintf("CLR abundance -- %s (%s)", level, label)))
+  cat("\n\n")
 }
 
-for (lvl in c("Phylum", "Family", "Genus")) {
-  export_clr_for_level(physeq,         lvl, "pre")
-  export_clr_for_level(physeq_filtered, lvl, "post")
+ranks_clr <- c(if (has_species) "Species" else NULL, "Genus", "Family", "Phylum")
+for (lvl in ranks_clr) {
+  cat(sprintf("\n\n## %s {.tabset}\n\n", lvl))
+  cat("\n### Pre-filter\n\n")
+  render_clr_table(physeq, lvl, "pre")
+  cat("\n### Post-filter\n\n")
+  render_clr_table(physeq_filtered, lvl, "post")
 }
-if (has_species) {
-  export_clr_for_level(physeq,         "Species", "pre")
-  export_clr_for_level(physeq_filtered, "Species", "post")
-}
-cat("Exported raw + CLR tables for Phylum, Family, Genus",
-    if (has_species) ", Species" else "",
-    " (pre and post) to the report directory.\n", sep = "")
 ```
 
 # General taxonomic composition barplots {.tabset}
@@ -2354,19 +2384,20 @@ relabel_for_general <- function(ps, rank) {
   ps
 }
 
-for (rank in c("Phylum", "Family", "Genus")) {
-  cat(sprintf("\n## %s (Top 20) {.tabset}\n\n### Plot\n\n", rank))
+## One tabset per rank with Top 20 / Top 50 as sub-tabs. Emitting two
+## sibling `## Rank (Top 20)` / `## Rank (Top 50)` tabsets in a row without
+## proper blank-line separation caused the next iteration's `### Plot` to
+## land as a second sub-tab of the previous rank's Top 50 tabset — hence
+## "Genus top 20 showing up under Family (Top 50)".
+ranks_gen <- c(if (has_species) "Species" else NULL, "Genus", "Family", "Phylum")
+for (rank in ranks_gen) {
   ps_lab <- relabel_for_general(physeq_filtered, rank)
+  cat(sprintf("\n\n## %s {.tabset}\n\n", rank))
+  cat("\n### Top 20\n\n")
   print(plot_taxa_bar_topN(ps_lab, rank, 20, paste("General Top 20", rank)))
-  cat(sprintf("\n\n## %s (Top 50) {.tabset}\n\n### Plot\n\n", rank))
+  cat("\n\n### Top 50\n\n")
   print(plot_taxa_bar_topN(ps_lab, rank, 50, paste("General Top 50", rank)))
-}
-if (has_species) {
-  cat("\n## Species (Top 20) {.tabset}\n\n### Plot\n\n")
-  ps_lab <- relabel_for_general(physeq_filtered, "Species")
-  print(plot_taxa_bar_topN(ps_lab, "Species", 20, "General Top 20 Species"))
-  cat("\n\n## Species (Top 50) {.tabset}\n\n### Plot\n\n")
-  print(plot_taxa_bar_topN(ps_lab, "Species", 50, "General Top 50 Species"))
+  cat("\n\n")
 }
 ```
 
