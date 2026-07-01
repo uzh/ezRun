@@ -815,7 +815,7 @@ if (.fastp_ok) {
 
 # ASV table with BLAST links
 
-```{r asv_table_blast}
+```{r asv_table_blast, results='asis'}
 ## Fast-path: if the R backend already passed a fully-built `asv_taxonomy_df`
 ## (with ASV_ID + per-sample counts + BLAST link), use it directly.
 .use_passed_asv_df <- exists("asv_taxonomy_df") && !is.null(asv_taxonomy_df) &&
