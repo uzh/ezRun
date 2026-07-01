@@ -20,6 +20,7 @@
     left: 0;
     padding: 4px 20px;
     color: #fff;
+    font-family: "Jura", system-ui, -apple-system, "Segoe UI", sans-serif; /* match the tab-label font */
     font-size: 1.1em;
     font-weight: 700;
     letter-spacing: 0.02em;
@@ -29,28 +30,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  /* Hide Quarto's default title block */
+  /* Hide Quarto's default title block (the title is overlaid on the banner) */
   .quarto-title-block {
     display: none !important;
   }
-  /* Remove borders from nested tab panels */
-  .tab-content {
-    border: none !important;
-    padding-left: 0 !important;
-  }
-  .tab-content .tab-content {
-    border: none !important;
-    padding: 0 !important;
-  }
-  .tab-pane {
-    border: none !important;
-  }
-  .nav-tabs {
-    border-bottom: 1px solid #dee2e6;
-  }
-  .tab-content > .tab-pane {
-    padding: 8px 0 0 0;
-  }
+  /* Tab styling (folder tabs) is owned entirely by fgcz.scss — no overrides here. */
 </style>
 
 <div class="fgcz-banner">
