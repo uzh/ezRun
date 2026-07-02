@@ -150,21 +150,30 @@ run_one <- function(mat, md, tableTag) {
   unlink(outDir, recursive = TRUE, force = TRUE)
   dir.create(outDir, showWarnings = FALSE)
 
+  ## MaAsLin3 emits a chatty INFO::/WARN:: log stream via cat() (one
+  ## line per feature fitted). In a results='asis' chunk those lines
+  ## leak into the report body and pandoc turns "INFO::Fitting" into a
+  ## bogus <a href="INFO::..."> link. Sink stdout for the duration of
+  ## the call to keep the report layout clean.
+  sink(tempfile())
   res <- tryCatch(
-    maaslin3::maaslin3(
-      input_data        = t(mat),
-      input_metadata    = md_sub,
-      output            = outDir,
-      fixed_effects     = fixedEffects,
-      reference         = reference,
-      normalization     = "NONE",      # HUMAnN already CPM
-      transform         = "LOG",
-      standardize       = TRUE,
-      max_significance  = maaslinMaxSig,
-      plot_summary_plot = TRUE,
-      plot_associations = TRUE
-    ),
-    error = function(e) list(error = conditionMessage(e))
+    suppressMessages(suppressWarnings(
+      maaslin3::maaslin3(
+        input_data        = t(mat),
+        input_metadata    = md_sub,
+        output            = outDir,
+        fixed_effects     = fixedEffects,
+        reference         = reference,
+        normalization     = "NONE",      # HUMAnN already CPM
+        transform         = "LOG",
+        standardize       = TRUE,
+        max_significance  = maaslinMaxSig,
+        plot_summary_plot = TRUE,
+        plot_associations = TRUE
+      )
+    )),
+    error   = function(e) list(error = conditionMessage(e)),
+    finally = sink()
   )
   if (!is.null(res$error)) return(list(err = res$error))
 
