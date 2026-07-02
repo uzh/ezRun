@@ -46,30 +46,40 @@ ezMethodHUMAnN <- function(input = NA, output = NA, param = NA,
     concatFq <- read1
   }
 
-  ## ---- 2. Detect upstream profile column (exactly one) -------------------
+  ## ---- 2. Pick upstream profile column by priority -----------------------
+  ## Bracken outputs carry both BrackenReport AND (inherited) KrakenReport,
+  ## and merged datasets could carry all three. Priority order:
+  ##   MetaPhlAn > Bracken > Kraken
+  ## MetaPhlAn wins because HUMAnN was designed against MetaPhlAn profiles.
+  ## Bracken wins over Kraken because Bracken's abundance re-estimation
+  ## is the level you'd actually want to hand to HUMAnN.
   hasMpa     <- "MetaPhlAnProfile" %in% input$colNames
   hasBracken <- "BrackenReport"    %in% input$colNames
   hasKraken  <- "KrakenReport"     %in% input$colNames
-  nSources   <- sum(c(hasMpa, hasBracken, hasKraken))
-  if (nSources == 0) {
+  if (!(hasMpa || hasBracken || hasKraken)) {
     stop("Input dataset has none of: MetaPhlAnProfile, BrackenReport, KrakenReport.")
   }
-  if (nSources > 1) {
-    stop("Input dataset carries multiple profile columns; ambiguous. ",
-         "Pick a single-source dataset and re-run.")
+  profileSrc <- if (hasMpa)     "MetaPhlAnProfile"
+                else if (hasBracken) "BrackenReport"
+                else                 "KrakenReport"
+  present <- c(if (hasMpa) "MetaPhlAnProfile",
+               if (hasBracken) "BrackenReport",
+               if (hasKraken) "KrakenReport")
+  if (length(present) > 1) {
+    message(sprintf(
+      "Multiple profile columns present (%s); using %s per priority MetaPhlAn > Bracken > Kraken.",
+      paste(present, collapse = ", "), profileSrc))
   }
 
   ## ---- 3. Prepare HUMAnN-compatible profile + determine mode -------------
   humannProfile <- paste0(sampleName, "_humann_profile.tsv")
   mode <- "translated"
   detectedDb <- NA_character_
-  profileSrc <- NA_character_
 
   # getFullPaths() prepends the gstore root (e.g. /srv/gstore/projects); the
   # raw column value from dataset.tsv is a gstore-relative path that will
   # not resolve on the compute node otherwise.
-  if (hasMpa) {
-    profileSrc <- "MetaPhlAnProfile"
+  if (identical(profileSrc, "MetaPhlAnProfile")) {
     srcFile <- input$getFullPaths("MetaPhlAnProfile")
     detectedDb <- readLines(srcFile, n = 1, warn = FALSE)
     if (grepl("vOct22_CHOCOPhlAnSGB_202403", detectedDb, fixed = TRUE)) {
@@ -81,7 +91,6 @@ ezMethodHUMAnN <- function(input = NA, output = NA, param = NA,
                        shQuote(srcFile), shQuote(humannProfile)))
     }
   } else {
-    profileSrc <- if (hasBracken) "BrackenReport" else "KrakenReport"
     srcFile <- input$getFullPaths(profileSrc)
     detectedDb <- sprintf("(converted from %s)", profileSrc)
     converter <- system.file("python/bracken_to_mpa.py", package = "ezRun")
