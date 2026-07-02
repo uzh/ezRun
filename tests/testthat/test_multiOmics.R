@@ -126,3 +126,25 @@ test_that("processADT attaches ADT assay and adt.umap reduction to a Seurat obje
   expect_true("ADT" %in% Seurat::Assays(obj))
   expect_true("adt.umap" %in% names(obj@reductions))
 })
+
+test_that("prefixVDJBarcodes leaves contig barcodes bare when the target object is bare", {
+  # Reproduces the ScSeurat/ScMultiOmics barcode-prefix mismatch found on p31662
+  # (2026-07): a fresh ScSeurat run produces bare Seurat colnames
+  # (no <Sample>_ prefix), but prefixVDJBarcodes unconditionally prepended the
+  # sample name to CellRanger's bare contig barcodes anyway, so combineTCR/BCR
+  # then failed to match >99% of barcodes against the (bare) Seurat object.
+  bare_bcs <- c("AAACCTGCATTCTCAT-1", "AAACCTGAGTACGCCC-1")
+  contigs <- data.frame(barcode = bare_bcs, chain = c("TRA", "TRB"), stringsAsFactors = FALSE)
+
+  result <- prefixVDJBarcodes(contigs, sample = "S1", objBarcodes = bare_bcs)
+  expect_setequal(result$barcode, bare_bcs)
+})
+
+test_that("prefixVDJBarcodes prefixes contig barcodes when the target object is sample-prefixed", {
+  bare_bcs <- c("AAACCTGCATTCTCAT-1", "AAACCTGAGTACGCCC-1")
+  prefixed_bcs <- paste0("S1_", bare_bcs)
+  contigs <- data.frame(barcode = bare_bcs, chain = c("TRA", "TRB"), stringsAsFactors = FALSE)
+
+  result <- prefixVDJBarcodes(contigs, sample = "S1", objBarcodes = prefixed_bcs)
+  expect_setequal(result$barcode, prefixed_bcs)
+})

@@ -267,17 +267,35 @@ loadBDContigs <- function(resultDir) {
 
 ##' @title Prefix VDJ contig barcodes with a sample name to match Seurat colnames.
 ##' @description CellRanger VDJ contig CSVs report bare cell barcodes
-##'   (`AAACCTGCATTCTCAT-1`); ScSeurat prefixes barcodes with the sample
-##'   (`<Sample>_<barcode>`). This helper rewrites the `barcode` column so
-##'   downstream `combineTCR/BCR` outputs join cleanly with the Seurat object.
+##'   (`AAACCTGCATTCTCAT-1`). Whether the target Seurat object's own colnames
+##'   are sample-prefixed (`<Sample>_<barcode>`) or bare depends on which
+##'   ScSeurat version produced it (this changed over time - see the ATAC
+##'   path's `obj_has_prefix` detection in this same file for the same
+##'   situation). This helper only prefixes the contig barcodes when
+##'   `objBarcodes` is itself prefixed, so the two always end up in the same
+##'   format regardless of which ScSeurat convention produced the object.
 ##' @param df data.frame loaded from filtered_contig_annotations.csv.
 ##' @param sample Character sample name to prepend.
-##' @return data.frame with `barcode` and (if present) `contig_id` rewritten.
+##' @param objBarcodes Character vector of the target Seurat object's
+##'   `colnames(obj)`, used to detect whether it uses the `<Sample>_` prefix.
+##' @return data.frame with `barcode` and (if present) `contig_id` rewritten
+##'   to match `objBarcodes`'s format.
 ##' @keywords internal
-prefixVDJBarcodes <- function(df, sample) {
+prefixVDJBarcodes <- function(df, sample, objBarcodes) {
   stopifnot("barcode" %in% colnames(df))
-  if (any(grepl(paste0("^", sample, "_"), df$barcode))) {
-    return(df)  # already prefixed
+  obj_has_prefix <- any(startsWith(objBarcodes, paste0(sample, "_")))
+  already_prefixed <- any(grepl(paste0("^", sample, "_"), df$barcode))
+  if (!obj_has_prefix) {
+    if (already_prefixed) {
+      df$barcode <- sub(paste0("^", sample, "_"), "", df$barcode)
+      if ("contig_id" %in% colnames(df)) {
+        df$contig_id <- sub(paste0("^", sample, "_"), "", df$contig_id)
+      }
+    }
+    return(df)
+  }
+  if (already_prefixed) {
+    return(df)
   }
   df$barcode <- paste0(sample, "_", df$barcode)
   if ("contig_id" %in% colnames(df)) {
@@ -337,19 +355,19 @@ processVDJ <- function(obj, vdjTPath = NULL, vdjBPath = NULL,
   contigs <- list()
   chains <- character()
   if (!is.null(contigsT) && is.data.frame(contigsT) && nrow(contigsT) > 0) {
-    contigs[[sampleName]] <- prefixVDJBarcodes(contigsT, sampleName)
+    contigs[[sampleName]] <- prefixVDJBarcodes(contigsT, sampleName, colnames(obj))
     chains <- "T"
   } else if (!is.null(vdjTPath) && nzchar(vdjTPath) && file.exists(vdjTPath)) {
     contigs[[sampleName]] <- prefixVDJBarcodes(
-      utils::read.csv(vdjTPath, stringsAsFactors = FALSE), sampleName
+      utils::read.csv(vdjTPath, stringsAsFactors = FALSE), sampleName, colnames(obj)
     )
     chains <- "T"
   } else if (!is.null(contigsB) && is.data.frame(contigsB) && nrow(contigsB) > 0) {
-    contigs[[sampleName]] <- prefixVDJBarcodes(contigsB, sampleName)
+    contigs[[sampleName]] <- prefixVDJBarcodes(contigsB, sampleName, colnames(obj))
     chains <- "B"
   } else if (!is.null(vdjBPath) && nzchar(vdjBPath) && file.exists(vdjBPath)) {
     contigs[[sampleName]] <- prefixVDJBarcodes(
-      utils::read.csv(vdjBPath, stringsAsFactors = FALSE), sampleName
+      utils::read.csv(vdjBPath, stringsAsFactors = FALSE), sampleName, colnames(obj)
     )
     chains <- "B"
   } else {
@@ -368,13 +386,21 @@ processVDJ <- function(obj, vdjTPath = NULL, vdjBPath = NULL,
                              filterMulti = FALSE)
   }
 
-  # combineTCR/BCR prefixes barcodes again as <sample>_<barcode>; collapse the
-  # double prefix back to the Seurat-style single prefix so combineExpression
-  # finds the cells.
+  # combineTCR/BCR unconditionally prefixes barcodes with <sample>_ again on
+  # top of whatever prefixVDJBarcodes() already did, so the result is always
+  # single-prefixed (if the contigs went in bare, matching a bare obj) or
+  # double-prefixed (if the contigs went in already prefixed, matching a
+  # prefixed obj). Collapse to whatever format obj actually uses so
+  # combineExpression finds the cells either way.
+  obj_has_prefix <- any(startsWith(colnames(obj), paste0(sampleName, "_")))
   for (i in seq_along(combined)) {
     bc <- combined[[i]]$barcode
-    dup <- paste0(sampleName, "_", sampleName, "_")
-    bc <- sub(dup, paste0(sampleName, "_"), bc, fixed = TRUE)
+    if (obj_has_prefix) {
+      dup <- paste0(sampleName, "_", sampleName, "_")
+      bc <- sub(dup, paste0(sampleName, "_"), bc, fixed = TRUE)
+    } else {
+      bc <- sub(paste0("^", sampleName, "_"), "", bc)
+    }
     combined[[i]]$barcode <- bc
   }
 
