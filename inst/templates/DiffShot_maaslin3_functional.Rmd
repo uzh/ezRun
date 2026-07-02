@@ -171,7 +171,7 @@ run_one <- function(mat, md, tableTag) {
   ## MaAsLin3 writes all_results.tsv into outDir.
   resPath <- file.path(outDir, "all_results.tsv")
   if (!file.exists(resPath)) return(list(err = "all_results.tsv missing"))
-  resDf <- read.table(resPath, header = TRUE, sep = "\t", quote = "",
+  resDf <- read.table(resPath, header = TRUE, sep = "\t", quote = "\"",
                       comment.char = "", check.names = FALSE,
                       stringsAsFactors = FALSE)
   list(res = resDf, outDir = outDir, nFeatures = nrow(mat), nSamples = ncol(mat))
