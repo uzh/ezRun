@@ -90,7 +90,7 @@ qiime taxa filter-seqs --i-sequences dada2_rep_set.qza --i-taxonomy taxonomy.qza
 # ----- 9b. Filtered feature-table summary -----
 # The Ruby app links its "Feature Table" column to table-filtered.qzv; without
 # this step that visualization never exists and the link goes RED.
-qiime feature-table summarize --i-table table-filtered.qza --o-visualization table-filtered.qzv --m-metadata-file sample_metadata.tsv
+qiime feature-table summarize --i-table table-filtered.qza --o-feature-frequencies table_filtered_feature_frequencies.qza --o-sample-frequencies table_filtered_sample_frequencies.qza --o-summary table-filtered.qzv --m-metadata-file sample_metadata.tsv
 
 # ----- 10. Taxa bar plot (uses filtered table) -----
 qiime taxa barplot --i-table table-filtered.qza --i-taxonomy taxonomy.qza --m-metadata-file sample_metadata.tsv --o-visualization taxa-bar-plots.qzv

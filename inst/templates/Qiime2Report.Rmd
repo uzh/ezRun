@@ -210,7 +210,8 @@ fgcz_dt <- function(x, caption = NULL, escape = TRUE, page_length = 10) {
                               dom        = "lftBip",
                               buttons    = c("copy", "csv", "excel"),
                               pageLength = page_length,
-                              lengthMenu = c(10, 20, 100, 200)))
+                              lengthMenu = list(c(10, 20, 100, 500, -1),
+                                                c("10", "20", "100", "500", "All"))))
 }
 
 ## ---------------------------------------------------------------------------
@@ -1059,7 +1060,14 @@ custom_prevalence_plot <- function(ps, rank, title) {
   )
   df <- df[df$TotalAbundance > 0, , drop = FALSE]
   if (nrow(df) == 0) return(NULL)
-  ggplot(df, aes(x = TotalAbundance, y = Prevalence, color = Phylum)) +
+  ## `text` is not a real ggplot aesthetic, but plotly::ggplotly(tooltip="text")
+  ## reads it to build the hover label -- taxon name, prevalence, abundance.
+  df$text <- paste0(rank, ": ", df$Taxon,
+                    "<br>Prevalence: ", round(df$Prevalence, 3),
+                    " (", round(df$Prevalence * nsamp), "/", nsamp, " samples)",
+                    "<br>Total abundance: ", df$TotalAbundance,
+                    "<br>Phylum: ", df$Phylum)
+  ggplot(df, aes(x = TotalAbundance, y = Prevalence, color = Phylum, text = text)) +
     geom_point(size = 2.5, alpha = 0.75) +
     scale_x_log10() +
     scale_y_continuous(limits = c(0, 1)) +
@@ -1069,92 +1077,61 @@ custom_prevalence_plot <- function(ps, rank, title) {
     theme(legend.position = "none")
 }
 
-safe_prev_plot <- function(ps, rank, title) {
-  if (is.null(ps)) { cat("_", title, " -- no data_\n\n", sep = ""); return(invisible(NULL)) }
-  tryCatch({
-    p <- custom_prevalence_plot(ps, rank, title)
-    if (is.null(p)) {
-      cat("_", title, " -- no taxa classified at ", rank, "._\n\n", sep = "")
-    } else {
-      print(p)
-    }
-  }, error = function(e) cat("_", title, " skipped: ", e$message, "_\n\n", sep = ""))
+## Build Rmd source lines for one prevalence panel: an interactive plotly widget
+## (hover shows taxon/prevalence/abundance) wrapped in kc_block so it renders
+## inside a dynamically generated tabset, or an italic note when there is no
+## data / no taxa classified at the rank. Returns a character vector to splice
+## into a knit_child() document.
+prev_lines <- function(ps, rank, title) {
+  if (is.null(ps)) return(paste0("_", title, " -- no data_\n"))
+  p <- tryCatch(custom_prevalence_plot(ps, rank, title), error = function(e) NULL)
+  if (is.null(p)) return(paste0("_", title, " -- no taxa classified at ", rank, "._\n"))
+  w <- tryCatch(
+    plotly::ggplotly(p, tooltip = "text") %>% plotly::layout(showlegend = FALSE),
+    error = function(e) NULL)
+  ## Fall back to the static ggplot if ggplotly ever fails, so a panel is never blank.
+  kc_block(if (is.null(w)) p else w, chunk_opts = "fig.width=12, fig.height=6")
 }
 ```
 
-## Pre-filtering (all samples) {.tabset}
+```{r prev_all_dynamic, results='asis'}
+## Every prevalence panel is an interactive plotly widget (hover a point to read
+## its taxon, prevalence and total abundance). plotly/DT widgets do NOT auto-print
+## under results='asis', so we build the whole section as Rmd source (markdown
+## headers + kc_block widget chunks) and knit_child it -- the same pattern used by
+## the CLR and PICRUSt2 sections. Ranks ordered Species -> Genus -> Family -> Phylum.
+.prev_ranks <- c("Species", "Genus", "Family", "Phylum")
 
-### Species
-```{r prev_pre_species_all, fig.width=15, fig.height=7, eval=has_species}
-safe_prev_plot(physeq, "Species", "Species -- All samples (pre)")
-```
+.prev_all_lines <- function(ps, stage) {
+  unlist(lapply(.prev_ranks, function(rk) {
+    if (rk == "Species" && !has_species) return(character(0))
+    c(sprintf("### %s", rk), "",
+      prev_lines(ps, rk, sprintf("%s -- All samples (%s)", rk, stage)), "")
+  }))
+}
 
-### Genus
-```{r prev_pre_genus_all, fig.width=15, fig.height=7}
-safe_prev_plot(physeq, "Genus", "Genus -- All samples (pre)")
-```
+kc_render(c("## Pre-filtering (all samples) {.tabset}", "",
+            .prev_all_lines(physeq, "pre")))
+kc_render(c("## After filtering (all samples) {.tabset}", "",
+            .prev_all_lines(physeq_filtered, "post")))
 
-### Family
-```{r prev_pre_family_all, fig.width=15, fig.height=7}
-safe_prev_plot(physeq, "Family", "Family -- All samples (pre)")
-```
-
-### Phylum
-```{r prev_pre_phylum_all, fig.width=15, fig.height=7}
-safe_prev_plot(physeq, "Phylum", "Phylum -- All samples (pre)")
-```
-
-## After filtering (all samples) {.tabset}
-
-### Species
-```{r prev_post_species_all, fig.width=15, fig.height=7, eval=has_species}
-safe_prev_plot(physeq_filtered, "Species", "Species -- All samples (post)")
-```
-
-### Genus
-```{r prev_post_genus_all, fig.width=15, fig.height=7}
-safe_prev_plot(physeq_filtered, "Genus", "Genus -- All samples (post)")
-```
-
-### Family
-```{r prev_post_family_all, fig.width=15, fig.height=7}
-safe_prev_plot(physeq_filtered, "Family", "Family -- All samples (post)")
-```
-
-### Phylum
-```{r prev_post_phylum_all, fig.width=15, fig.height=7}
-safe_prev_plot(physeq_filtered, "Phylum", "Phylum -- All samples (post)")
-```
-
-## Per-group tabsets (post-filter) {.tabset}
-
-```{r prev_per_group_dynamic, results='asis', fig.width=15, fig.height=7}
-## ggplots DO render under results='asis' via knitr's plot hook (unlike DT
-## widgets), so we build the plot inline with custom_prevalence_plot and print
-## it directly. The outer chunk's fig.width/fig.height set the figure size.
+## Per-group tabsets (post-filter)
+.prev_grp_lines <- c("## Per-group tabsets (post-filter) {.tabset}", "")
 for (grp in group_levels) {
   .keep <- as.character(sample_data(physeq_filtered)$Group) == grp
   ps_grp <- safe_prune_nonzero(prune_samples(.keep, physeq_filtered))
   if (is.null(ps_grp)) {
-    cat(sprintf("\n\n### %s\n\n_No data in this group._\n\n", grp))
+    .prev_grp_lines <- c(.prev_grp_lines, sprintf("### %s", grp), "", "_No data in this group._", "")
     next
   }
-  cat(sprintf("\n\n### %s {.tabset}\n\n", grp))
-  for (rank in c("Species", "Genus", "Family", "Phylum")) {
-    if (rank == "Species" && !has_species) next
-    cat(sprintf("\n\n#### %s\n\n", rank))
-    p <- tryCatch(
-      custom_prevalence_plot(ps_grp, rank, sprintf("%s -- %s", rank, grp)),
-      error = function(e) { cat("_skipped: ", e$message, "_\n\n", sep = ""); NULL }
-    )
-    if (!is.null(p)) {
-      print(p)
-      cat("\n\n")
-    } else {
-      cat("_No taxa classified at this rank._\n\n")
-    }
+  .prev_grp_lines <- c(.prev_grp_lines, sprintf("### %s {.tabset}", grp), "")
+  for (rk in .prev_ranks) {
+    if (rk == "Species" && !has_species) next
+    .prev_grp_lines <- c(.prev_grp_lines, sprintf("#### %s", rk), "",
+                         prev_lines(ps_grp, rk, sprintf("%s -- %s", rk, grp)), "")
   }
 }
+kc_render(.prev_grp_lines)
 ```
 
 # Heatmaps {.tabset}
@@ -1890,99 +1867,98 @@ cat("\n**Rarefy or not?**\n\n",
     "for the canonical argument.\n")
 ```
 
-## ANCOM-BC {.tabset}
+## ANCOM-BC2 {.tabset}
 
-ANCOM-BC fits a log-linear model with bias correction and reports per-taxon log-fold-changes,
-adjusted p-values, and a structural-zero flag for taxa absent in entire groups.
+ANCOM-BC2 (`ANCOMBC::ancombc2`) fits a log-linear model with bias correction and reports
+per-taxon log-fold-changes, adjusted p-values, and a structural-zero flag for taxa absent
+in entire groups. It is run at Species (when available), Genus and Family. With more than two
+groups it also reports the Global test, all Pairwise contrasts, and Dunnett-type contrasts
+against the reference level.
 
-```{r ancombc_genus, fig.width=12, fig.height=8}
-.ancombc_res_genus <- NULL
-if (.have_ancombc && length(group_levels) >= 2 && ntaxa(physeq_Genus) > 0) {
-  .ancombc_res_genus <- tryCatch(
-    ANCOMBC::ancombc2(data = physeq_filtered,
-                      fix_formula = "Group",
-                      tax_level    = "Genus",
-                      p_adj_method = "BH",
-                      lib_cut      = 0,
-                      prv_cut      = .cfg$prevalence_frac,
-                      group        = "Group",
-                      struc_zero   = TRUE,
-                      neg_lb       = TRUE,
-                      iter_control = list(tol = 1e-5, max_iter = 100, verbose = FALSE),
-                      alpha        = 0.05,
-                      global       = TRUE),
-    error = function(e) { cat("ANCOM-BC Genus failed: ", e$message, "\n"); NULL }
-  )
+```{r ancombc2_run, message=FALSE, warning=FALSE}
+## Robust ANCOM-BC2 runner. On sparse multi-group data (e.g. distinct body sites)
+## every taxon can be flagged as a structural zero, which makes ancombc2 abort with
+## "All taxa contain structural zeros". We use the conservative structural-zero
+## definition (neg_lb = FALSE) and, if the call still fails, transparently retry with
+## struc_zero = FALSE so the section is never empty. lib_cut is kept at 0 because this
+## workflow supports shallow libraries -- a non-zero lib_cut could drop every sample.
+.ancombc2_msg <- list()
+.ancombc2_run <- function(tax_level) {
+  if (!.have_ancombc || length(group_levels) < 2) return(NULL)
+  ps_ok <- switch(tax_level,
+                  Species = !is.null(physeq_Species) && ntaxa(physeq_Species) > 0,
+                  Genus   = ntaxa(physeq_Genus)  > 0,
+                  Family  = ntaxa(physeq_Family) > 0,
+                  FALSE)
+  if (!isTRUE(ps_ok)) return(NULL)
+  multi <- length(group_levels) > 2
+  base_args <- list(
+    data = physeq_filtered, fix_formula = "Group", tax_level = tax_level,
+    p_adj_method = "BH", lib_cut = 0, prv_cut = .cfg$prevalence_frac,
+    group = "Group", neg_lb = FALSE, alpha = 0.05, pseudo_sens = FALSE,
+    global = multi, pairwise = multi, dunnet = multi,
+    iter_control = list(tol = 1e-2, max_iter = 20, verbose = FALSE),
+    em_control   = list(tol = 1e-5, max_iter = 100))
+  res <- tryCatch(do.call(ANCOMBC::ancombc2, c(base_args, list(struc_zero = TRUE))),
+                  error = function(e) { .ancombc2_msg[[tax_level]] <<- e$message; NULL })
+  if (is.null(res)) {
+    res <- tryCatch(do.call(ANCOMBC::ancombc2, c(base_args, list(struc_zero = FALSE))),
+                    error = function(e) { .ancombc2_msg[[tax_level]] <<- e$message; NULL })
+    if (!is.null(res)) attr(res, "sz_fallback") <- TRUE
+  }
+  res
 }
+.ancombc2_res <- list(
+  Species = if (has_species) .ancombc2_run("Species") else NULL,
+  Genus   = .ancombc2_run("Genus"),
+  Family  = .ancombc2_run("Family"))
 ```
 
-### Primary Results -- Genus
-
-```{r ancombc_genus_primary}
-if (!is.null(.ancombc_res_genus)) {
-  res <- .ancombc_res_genus$res
-  if (!is.null(res) && nrow(res) > 0) {
-    write.csv(res, file.path(.report_dir, "ancombc2_genus_primary.csv"), row.names = FALSE)
-    fgcz_dt(res, "ANCOM-BC2 -- primary results (Genus)")
+```{r ancombc2_render, results='asis'}
+## DT widgets do not auto-print under results='asis', so build the whole ANCOM-BC2
+## tabset as Rmd source (headers + kc_block tables) and knit_child it.
+.ancombc2_dt <- function(df, cap, csv) {
+  if (is.null(df) || !is.data.frame(df) || nrow(df) == 0)
+    return(paste0("_", cap, " -- no results at this rank._\n"))
+  write.csv(df, file.path(.report_dir, csv), row.names = FALSE)
+  kc_block(fgcz_dt(df, cap))
+}
+.ancombc2_lines <- character(0)
+for (rk in c("Species", "Genus", "Family")) {
+  if (rk == "Species" && !has_species) next
+  res <- .ancombc2_res[[rk]]
+  .ancombc2_lines <- c(.ancombc2_lines, sprintf("### %s {.tabset}", rk), "")
+  if (is.null(res)) {
+    msg <- .ancombc2_msg[[rk]]
+    .ancombc2_lines <- c(.ancombc2_lines,
+      paste0("_ANCOM-BC2 could not be computed at ", rk,
+             if (!is.null(msg)) paste0(": ", msg) else " (insufficient data or ANCOMBC unavailable)", "._"), "")
+    next
+  }
+  if (isTRUE(attr(res, "sz_fallback")))
+    .ancombc2_lines <- c(.ancombc2_lines,
+      paste0("_Note: all taxa were flagged as structural zeros at ", rk,
+             ", so results below were recomputed with `struc_zero = FALSE`._"), "")
+  lrk <- tolower(rk)
+  .ancombc2_lines <- c(.ancombc2_lines, "#### Primary", "",
+    .ancombc2_dt(res$res, paste0("ANCOM-BC2 -- primary results (", rk, ")"),
+                 paste0("ancombc2_", lrk, "_primary.csv")))
+  if (length(group_levels) > 2) {
+    .ancombc2_lines <- c(.ancombc2_lines, "#### Global", "",
+      .ancombc2_dt(res$res_global, paste0("ANCOM-BC2 -- global test (", rk, ")"),
+                   paste0("ancombc2_", lrk, "_global.csv")))
+    .ancombc2_lines <- c(.ancombc2_lines, "#### Pairwise", "",
+      .ancombc2_dt(res$res_pair, paste0("ANCOM-BC2 -- pairwise contrasts (", rk, ")"),
+                   paste0("ancombc2_", lrk, "_pairwise.csv")))
+    .ancombc2_lines <- c(.ancombc2_lines, "#### Dunnett", "",
+      .ancombc2_dt(res$res_dunn, paste0("ANCOM-BC2 -- Dunnett vs reference (", rk, ")"),
+                   paste0("ancombc2_", lrk, "_dunnett.csv")))
+  } else {
+    .ancombc2_lines <- c(.ancombc2_lines, "#### Contrast note", "",
+      "_Only two groups present: the primary contrast already covers the single pairwise comparison; the Global test and Dunnett contrasts are not applicable._", "")
   }
 }
-```
-
-### Global test -- Genus
-
-```{r ancombc_genus_global}
-if (!is.null(.ancombc_res_genus) && length(group_levels) > 2 &&
-    !is.null(.ancombc_res_genus$res_global)) {
-  res_g <- .ancombc_res_genus$res_global
-  write.csv(res_g, file.path(.report_dir, "ancombc2_genus_global.csv"), row.names = FALSE)
-  fgcz_dt(res_g, "ANCOM-BC2 -- global test results (Genus)")
-} else if (length(group_levels) <= 2) {
-  cat("Only two groups present -- ANCOM-BC global test not applicable.\n")
-}
-```
-
-```{r ancombc_family, fig.width=12, fig.height=8}
-.ancombc_res_family <- NULL
-if (.have_ancombc && length(group_levels) >= 2 && ntaxa(physeq_Family) > 0) {
-  .ancombc_res_family <- tryCatch(
-    ANCOMBC::ancombc2(data = physeq_filtered,
-                      fix_formula = "Group",
-                      tax_level    = "Family",
-                      p_adj_method = "BH",
-                      lib_cut      = 0,
-                      prv_cut      = .cfg$prevalence_frac,
-                      group        = "Group",
-                      struc_zero   = TRUE,
-                      neg_lb       = TRUE,
-                      iter_control = list(tol = 1e-5, max_iter = 100, verbose = FALSE),
-                      alpha        = 0.05,
-                      global       = TRUE),
-    error = function(e) { cat("ANCOM-BC Family failed: ", e$message, "\n"); NULL }
-  )
-}
-```
-
-### Primary Results -- Family
-
-```{r ancombc_family_primary}
-if (!is.null(.ancombc_res_family)) {
-  res <- .ancombc_res_family$res
-  if (!is.null(res) && nrow(res) > 0) {
-    write.csv(res, file.path(.report_dir, "ancombc2_family_primary.csv"), row.names = FALSE)
-    fgcz_dt(res, "ANCOM-BC2 -- primary results (Family)")
-  }
-}
-```
-
-### Global test -- Family
-
-```{r ancombc_family_global}
-if (!is.null(.ancombc_res_family) && length(group_levels) > 2 &&
-    !is.null(.ancombc_res_family$res_global)) {
-  res_g <- .ancombc_res_family$res_global
-  write.csv(res_g, file.path(.report_dir, "ancombc2_family_global.csv"), row.names = FALSE)
-  fgcz_dt(res_g, "ANCOM-BC2 -- global test results (Family)")
-}
+kc_render(.ancombc2_lines)
 ```
 
 ## DESeq2 + edgeR {.tabset}
@@ -2099,6 +2075,132 @@ if (!is.null(.sigtab) && !is.null(.edger_sig)) {
 }
 ```
 
+## LEfSe {.tabset}
+
+LEfSe (Linear discriminant analysis Effect Size, via `microbiomeMarker::run_lefse`) combines a
+Kruskal-Wallis test across groups with an LDA effect-size estimate to find taxa that best
+characterise each group. Run at Species (when available), Genus and Family.
+
+```{r lefse_helpers}
+.lefse_msg <- list()
+.run_lefse_rank <- function(rank) {
+  if (!.have_microbiomeMrk || is.null(physeq_filtered) || length(group_levels) < 2) return(NULL)
+  if (rank == "Species" && !has_species) return(NULL)
+  tryCatch(
+    microbiomeMarker::run_lefse(physeq_filtered, group = "Group", taxa_rank = rank,
+                                norm = "CPM", kw_cutoff = 0.05,
+                                wilcoxon_cutoff = 0.05, lda_cutoff = 2),
+    error = function(e) { .lefse_msg[[rank]] <<- e$message; NULL })
+}
+```
+
+```{r lefse_render, results='asis'}
+.lefse_lines <- character(0)
+for (rk in c("Species", "Genus", "Family")) {
+  if (rk == "Species" && !has_species) next
+  mm  <- .run_lefse_rank(rk)
+  ## marker_table is an S4 class that *contains* data.frame -- coerce via as(.,"data.frame").
+  mt  <- if (!is.null(mm)) tryCatch(as(microbiomeMarker::marker_table(mm), "data.frame"),
+                                    error = function(e) NULL) else NULL
+  if (is.null(mt) || nrow(mt) == 0) {
+    msg <- .lefse_msg[[rk]]
+    .lefse_lines <- c(.lefse_lines, sprintf("### %s", rk), "",
+      paste0("_No significant LEfSe markers at ", rk,
+             if (!is.null(msg)) paste0(" (", msg, ")") else "", "._"), "")
+    next
+  }
+  write.csv(mt, file.path(.report_dir, paste0("lefse_", tolower(rk), ".csv")), row.names = FALSE)
+  p <- tryCatch(microbiomeMarker::plot_ef_bar(mm), error = function(e) NULL)
+  .lefse_lines <- c(.lefse_lines, sprintf("### %s {.tabset}", rk), "")
+  if (!is.null(p))
+    .lefse_lines <- c(.lefse_lines, "#### Effect size (LDA)", "",
+                      kc_block(p, chunk_opts = "fig.width=10, fig.height=7"))
+  .lefse_lines <- c(.lefse_lines, "#### Marker table", "",
+                    kc_block(fgcz_dt(mt, paste0("LEfSe markers (", rk, ")"))))
+}
+if (!.have_microbiomeMrk)
+  .lefse_lines <- "_microbiomeMarker package not available -- LEfSe skipped._"
+kc_render(.lefse_lines)
+```
+
+## ALDEx2 (taxonomic) {.tabset}
+
+ALDEx2 on the taxonomic count tables (in addition to its use on the PICRUSt2 functional
+profiles). For more than two groups it uses the Kruskal-Wallis / GLM test; for two groups the
+Welch/Wilcoxon test with effect sizes. Run at Species (when available), Genus and Family.
+
+```{r aldex_taxa_helpers}
+.da_rank_ps      <- list(Species = physeq_Species, Genus = physeq_Genus, Family = physeq_Family)
+.aldex_taxa_msg  <- list()
+
+## Readable per-taxon labels for an agglomerated phyloseq at `rank`.
+.rank_labels <- function(ps, rank) {
+  tax <- as.data.frame(tax_table(ps), stringsAsFactors = FALSE)
+  lab <- as.character(tax[[rank]])
+  blank <- is.na(lab) | !nzchar(lab)
+  lab[blank] <- rownames(tax)[blank]
+  make.unique(lab)
+}
+
+.aldex_taxa_df <- function(rank) {
+  ps <- .da_rank_ps[[rank]]
+  if (!.have_aldex2 || is.null(ps) || ntaxa(ps) < 2 || length(group_levels) < 2) return(NULL)
+  otu <- as(otu_table(ps), "matrix"); if (!taxa_are_rows(ps)) otu <- t(otu)
+  groups <- as.character(sample_data(ps)$Group)
+  test <- if (length(unique(groups)) > 2) "kw" else "t"
+  res <- tryCatch(
+    ALDEx2::aldex(round(otu), conditions = groups, mc.samples = 128,
+                  test = test, effect = (test == "t"), denom = "all", verbose = FALSE),
+    error = function(e) { .aldex_taxa_msg[[rank]] <<- e$message; NULL })
+  if (is.null(res)) return(NULL)
+  res <- as.data.frame(res)
+  lab <- .rank_labels(ps, rank)
+  res$Taxon <- lab[match(rownames(res), rownames(otu))]
+  res[, c("Taxon", setdiff(colnames(res), "Taxon")), drop = FALSE]
+}
+
+## Bar chart of the top features by ALDEx2 significance (works for kw and t tests).
+.aldex_taxa_plot <- function(df) {
+  pcol <- intersect(c("kw.eBH", "we.eBH", "wi.eBH", "glm.eBH"), colnames(df))
+  if (length(pcol) == 0) return(NULL)
+  pcol <- pcol[1]
+  d <- df[order(df[[pcol]]), , drop = FALSE]
+  d <- head(d, 20)
+  d$score <- -log10(pmax(d[[pcol]], .Machine$double.xmin))
+  d$Taxon <- factor(d$Taxon, levels = rev(unique(d$Taxon)))
+  ggplot(d, aes(x = Taxon, y = score)) +
+    geom_col(fill = "steelblue") + coord_flip() +
+    labs(x = NULL, y = paste0("-log10(", pcol, ")"),
+         title = "Top 20 features by ALDEx2 significance") + theme_bw()
+}
+```
+
+```{r aldex_taxa_render, results='asis'}
+.aldex_taxa_lines <- character(0)
+for (rk in c("Species", "Genus", "Family")) {
+  if (rk == "Species" && !has_species) next
+  df <- .aldex_taxa_df(rk)
+  if (is.null(df) || nrow(df) == 0) {
+    msg <- .aldex_taxa_msg[[rk]]
+    .aldex_taxa_lines <- c(.aldex_taxa_lines, sprintf("### %s", rk), "",
+      paste0("_ALDEx2 produced no result at ", rk,
+             if (!is.null(msg)) paste0(" (", msg, ")") else "", "._"), "")
+    next
+  }
+  write.csv(df, file.path(.report_dir, paste0("aldex2_taxa_", tolower(rk), ".csv")), row.names = FALSE)
+  .aldex_taxa_lines <- c(.aldex_taxa_lines, sprintf("### %s {.tabset}", rk), "")
+  p <- .aldex_taxa_plot(df)
+  if (!is.null(p))
+    .aldex_taxa_lines <- c(.aldex_taxa_lines, "#### Significance plot", "",
+                           kc_block(p, chunk_opts = "fig.width=10, fig.height=7"))
+  .aldex_taxa_lines <- c(.aldex_taxa_lines, "#### Table", "",
+                         kc_block(fgcz_dt(df, paste0("ALDEx2 (", rk, ")"))))
+}
+if (!.have_aldex2)
+  .aldex_taxa_lines <- "_ALDEx2 package not available -- taxonomic ALDEx2 skipped._"
+kc_render(.aldex_taxa_lines)
+```
+
 # PICRUSt2 {.tabset}
 
 ```{r picrust_gate}
@@ -2161,6 +2263,87 @@ if (!.picrust_enabled) {
   }, error = function(e) { cat("metagenomeSeq failed: ", e$message, "\n"); NULL })
 }
 
+## ---- Functional abundance heatmap (top-N features) ----
+## Per-sample CLR (features x samples): log(x+1) minus the per-sample mean-log.
+.picrust_clr <- function(m) {
+  m <- m + 1
+  sweep(log(m), 2, colMeans(log(m)), "-")
+}
+## Clustered-ish abundance heatmap: pick the top-N features by total abundance,
+## then colour by per-feature Z-score (RAW) or per-sample CLR, faceted by group.
+.picrust_heatmap <- function(mat, groups, topN, mode = c("raw", "clr"), label = "") {
+  mode <- match.arg(mode)
+  if (nrow(mat) < 2 || ncol(mat) < 2) return(NULL)
+  keep <- head(order(rowSums(mat, na.rm = TRUE), decreasing = TRUE), min(topN, nrow(mat)))
+  m <- mat[keep, , drop = FALSE]
+  if (mode == "clr") {
+    m <- .picrust_clr(m); fillname <- "CLR"
+  } else {
+    m <- t(scale(t(m))); m[is.na(m)] <- 0; fillname <- "Z-score"
+  }
+  ord <- rownames(m)                              # keep abundance ordering
+  df  <- reshape2::melt(as.matrix(m), varnames = c("feature", "SampleID"), value.name = "val")
+  df$feature  <- factor(df$feature, levels = rev(ord))
+  df$Group    <- groups[match(as.character(df$SampleID), colnames(mat))]
+  ggplot(df, aes(x = SampleID, y = feature, fill = val)) +
+    geom_tile() +
+    facet_grid(. ~ Group, scales = "free_x", space = "free_x") +
+    scale_fill_gradient2(low = "navy", mid = "white", high = "firebrick",
+                         midpoint = 0, name = fillname) +
+    labs(x = NULL, y = NULL,
+         title = paste0(label, " -- top ", nrow(m), " features (", toupper(mode), ")")) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 6),
+          axis.text.y = element_text(size = 6),
+          panel.grid  = element_blank())
+}
+
+## Top-feature significance bar chart from an ALDEx2 result frame.
+.picrust_aldex_bar <- function(ald, label) {
+  pcol <- intersect(c("kw.eBH", "we.eBH", "wi.eBH", "glm.eBH"), colnames(ald))
+  if (length(pcol) == 0) return(NULL)
+  pcol <- pcol[1]
+  d <- head(ald[order(ald[[pcol]]), , drop = FALSE], 20)
+  if (nrow(d) == 0) return(NULL)
+  d$score <- -log10(pmax(d[[pcol]], .Machine$double.xmin))
+  d$feature <- factor(d$feature, levels = rev(unique(d$feature)))
+  ggplot(d, aes(x = feature, y = score)) +
+    geom_col(fill = "steelblue") + coord_flip() +
+    labs(x = NULL, y = paste0("-log10(", pcol, ")"),
+         title = paste("ALDEx2 top features --", label)) + theme_bw()
+}
+## ALDEx2 volcano (effect vs significance); only defined for the 2-group case.
+.picrust_aldex_volcano <- function(ald, label) {
+  if (!("effect" %in% colnames(ald))) return(NULL)
+  pcol <- intersect(c("we.eBH", "wi.eBH"), colnames(ald))
+  if (length(pcol) == 0) return(NULL)
+  pcol <- pcol[1]
+  d <- ald
+  d$sig <- d[[pcol]] < 0.05
+  ggplot(d, aes(x = effect, y = -log10(pmax(d[[pcol]], .Machine$double.xmin)), color = sig)) +
+    geom_point(alpha = 0.7) +
+    scale_color_manual(values = c(`FALSE` = "grey60", `TRUE` = "firebrick"), guide = "none") +
+    labs(x = "ALDEx2 effect size", y = paste0("-log10(", pcol, ")"),
+         title = paste("ALDEx2 volcano --", label)) + theme_bw()
+}
+## metagenomeSeq per-contrast top-feature bar chart.
+.picrust_mgseq_bar <- function(mg, label) {
+  if (is.null(mg) || nrow(mg) == 0 || !("adjPvalues" %in% colnames(mg))) return(NULL)
+  d <- mg %>%
+    dplyr::group_by(contrast) %>%
+    dplyr::arrange(adjPvalues, .by_group = TRUE) %>%
+    dplyr::slice_head(n = 15) %>%
+    dplyr::ungroup()
+  if (nrow(d) == 0) return(NULL)
+  d$score <- -log10(pmax(d$adjPvalues, .Machine$double.xmin))
+  d$feature <- factor(d$feature, levels = rev(unique(d$feature)))
+  ggplot(d, aes(x = feature, y = score)) +
+    geom_col(fill = "darkorange") + coord_flip() +
+    facet_wrap(~contrast, scales = "free_y", ncol = 2) +
+    labs(x = NULL, y = "-log10(adjusted p)",
+         title = paste("metagenomeSeq top features --", label)) + theme_bw()
+}
+
 .render_picrust_panel <- function(mat, label) {
   if (is.null(mat)) { cat("No ", label, " input.\n"); return(invisible(NULL)) }
   ## Defensive: if the input still has a non-numeric first column (e.g. the
@@ -2185,25 +2368,56 @@ if (!.picrust_enabled) {
   mat <- mat[, samp_ids, drop = FALSE]
   groups <- metadata$Group[match(samp_ids, metadata$SampleID)]
 
-  ## Compute first (these may cat a specific failure message), then emit the
-  ## sub-sections + tables through knit_child so the DT widgets actually render.
+  ## Compute DAA first (these may cat a specific failure message), then emit all
+  ## sub-sections (headers + tables + plots) through knit_child so the DT/plot
+  ## widgets actually render. Tables are shown in full (DT length-menu handles rows).
   ald <- .daa_aldex2(mat, groups)
   mg  <- .daa_metagenomeSeq(mat, groups)
 
-  lines <- c("\n\n#### ALDEx2 (global, all groups)\n")
+  ## ---- Abundance heatmaps ----
+  lines <- c("### Abundance heatmaps {.tabset}", "")
+  hm <- list(
+    c("#### Top 15 (RAW)",  "raw", 15L), c("#### Top 30 (RAW)",  "raw", 30L),
+    c("#### Top 15 (CLR)",  "clr", 15L), c("#### Top 30 (CLR)",  "clr", 30L))
+  for (h in hm) {
+    p <- tryCatch(.picrust_heatmap(mat, groups, as.integer(h[3]), h[2], label),
+                  error = function(e) NULL)
+    lines <- c(lines, h[1], "",
+               if (is.null(p)) "_Heatmap unavailable for this level._\n"
+               else kc_block(p, chunk_opts = "fig.width=12, fig.height=8"))
+  }
+
+  ## ---- ALDEx2 ----
+  lines <- c(lines, "### ALDEx2 (global, all groups) {.tabset}", "")
   if (!is.null(ald)) {
     write.csv(ald, file.path(.report_dir, paste0("picrust2_aldex2_", label, ".csv")), row.names = FALSE)
-    lines <- c(lines, kc_block(fgcz_dt(head(ald[order(ald$kw.eBH), ], 200),
-                                       paste("ALDEx2 --", label, "(top 200 by KW eBH p)"))))
+    lines <- c(lines, "#### Table", "",
+               kc_block(fgcz_dt(ald[order(ald$kw.eBH), ],
+                                paste("ALDEx2 --", label, "(sorted by KW eBH p)"))))
+    pbar <- .picrust_aldex_bar(ald, label)
+    lines <- c(lines, "#### Top features", "",
+               if (is.null(pbar)) "_No significance column for a bar chart._\n"
+               else kc_block(pbar, chunk_opts = "fig.width=10, fig.height=7"))
+    pvol <- .picrust_aldex_volcano(ald, label)
+    lines <- c(lines, "#### Volcano", "",
+               if (is.null(pvol))
+                 "_Volcano (effect size) is only available for two-group comparisons; with >2 groups ALDEx2 uses the Kruskal-Wallis/GLM test, which has no single effect size._\n"
+               else kc_block(pvol, chunk_opts = "fig.width=9, fig.height=7"))
   } else {
     lines <- c(lines, "_No ALDEx2 result for this level._\n")
   }
 
-  lines <- c(lines, "\n\n#### metagenomeSeq (pairwise)\n")
+  ## ---- metagenomeSeq ----
+  lines <- c(lines, "### metagenomeSeq (pairwise) {.tabset}", "")
   if (!is.null(mg) && nrow(mg) > 0) {
     write.csv(mg, file.path(.report_dir, paste0("picrust2_metagenomeSeq_", label, ".csv")), row.names = FALSE)
-    lines <- c(lines, kc_block(fgcz_dt(head(mg[order(mg$adjPvalues), ], 200),
-                                       paste("metagenomeSeq --", label, "(top 200 by adjusted p)"))))
+    lines <- c(lines, "#### Table", "",
+               kc_block(fgcz_dt(mg[order(mg$adjPvalues), ],
+                                paste("metagenomeSeq --", label, "(sorted by adjusted p)"))))
+    pmg <- .picrust_mgseq_bar(mg, label)
+    lines <- c(lines, "#### Top features", "",
+               if (is.null(pmg)) "_No significance column for a bar chart._\n"
+               else kc_block(pmg, chunk_opts = "fig.width=12, fig.height=8"))
   } else {
     lines <- c(lines, "_No metagenomeSeq result for this level._\n")
   }
@@ -2211,19 +2425,19 @@ if (!.picrust_enabled) {
 }
 ```
 
-## MetaCyc Pathways
+## MetaCyc Pathways {.tabset}
 
 ```{r picrust_pathway, eval=.picrust_enabled, results='asis'}
 .render_picrust_panel(.pi_path, "pathway")
 ```
 
-## KEGG Orthologs (KO)
+## KEGG Orthologs (KO) {.tabset}
 
 ```{r picrust_ko, eval=.picrust_enabled, results='asis'}
 .render_picrust_panel(.pi_ko, "ko")
 ```
 
-## Enzyme Commission (EC)
+## Enzyme Commission (EC) {.tabset}
 
 ```{r picrust_ec, eval=.picrust_enabled, results='asis'}
 .render_picrust_panel(.pi_ec, "ec")
@@ -2247,8 +2461,7 @@ if (!is.null(.contrib_path) && length(.contrib_path) > 0 && file.exists(.contrib
         dplyr::group_by(`function`, taxon) %>%
         dplyr::summarise(mean_taxon_function_abun = mean(taxon_function_abun, na.rm = TRUE),
                          .groups = "drop") %>%
-        dplyr::arrange(dplyr::desc(mean_taxon_function_abun)) %>%
-        head(200)
+        dplyr::arrange(dplyr::desc(mean_taxon_function_abun))
     } else {
       ## Wide "strat" format (--stratified --wide_table): function + sequence
       ## id columns, then one numeric column per sample. Sum across samples.
@@ -2259,7 +2472,6 @@ if (!is.null(.contrib_path) && length(.contrib_path) > 0 && file.exists(.contrib
         contrib$total_abun <- rowSums(contrib[, samp_cols, drop = FALSE], na.rm = TRUE)
         top <- contrib[, c(id_cols, "total_abun"), drop = FALSE]
         top <- top[order(-top$total_abun), , drop = FALSE]
-        top <- head(top, 200)
       }
     }
     if (is.null(top) || nrow(top) == 0) {
@@ -2267,8 +2479,8 @@ if (!is.null(.contrib_path) && length(.contrib_path) > 0 && file.exists(.contrib
           "(saw: ", paste(head(cn, 10), collapse = ", "), "). Skipping.\n\n", sep = "")
     } else {
       write.csv(top, file.path(.report_dir, "picrust2_top_contributors.csv"), row.names = FALSE)
-      cat("Top 200 (function, ASV) contributors by abundance:\n\n")
-      kc_render(kc_block(fgcz_dt(top, "Top 200 ASV-to-function contributors")))
+      cat("All (function, ASV) contributors by abundance (use the length menu to page through):\n\n")
+      kc_render(kc_block(fgcz_dt(top, "ASV-to-function contributors")))
     }
   }
 } else {
