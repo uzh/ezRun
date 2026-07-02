@@ -27,6 +27,17 @@ library(kableExtra)
 library(maaslin3)
 ```
 
+```{r register_widget_deps, include=FALSE}
+## Force-register DT JS dependencies at top level. DT tables produced deep
+## inside a results='asis' loop don't propagate their deps back through
+## knit_meta, leaving the widgets as blank containers.
+local({
+  for (d in htmltools::findDependencies(DT::datatable(data.frame(x = 1),
+                                                      extensions = "Buttons")))
+    knitr::knit_meta_add(list(d))
+})
+```
+
 ```{r load_params, include=FALSE}
 library(ezRun)
 param  <- ezLoadRobj("param")
@@ -105,6 +116,37 @@ covariatesLabel <- if (length(covariates)) paste(covariates, collapse = ", ") el
 # Per-table MaAsLin3 {.tabset}
 
 ```{r helpers, include=FALSE}
+## Persisted CSV outputs live here so users can download them
+## alongside the report (mirrors DiffShot.Rmd/results_out).
+results_dir <- "results_out"
+dir.create(results_dir, showWarnings = FALSE, recursive = TRUE)
+
+## Standard interactive table widget with copy/CSV/Excel download
+## buttons, column filters, and significant-digit formatting on
+## non-integer numeric columns. Same shape as DiffShot.Rmd::dt().
+dt <- function(df, caption, sig = 3, length_menu = TRUE) {
+  dom <- if (length_menu) "lftBip" else "ftBip"
+  w <- DT::datatable(df, caption = caption, extensions = "Buttons",
+                     rownames = FALSE, filter = "top",
+                     options = list(scrollX = TRUE, dom = dom,
+                                    buttons = c("copy", "csv", "excel"),
+                                    pageLength = 10,
+                                    lengthMenu = c(10, 20, 100, 200)))
+  num_cols <- names(df)[vapply(df, function(x) {
+    if (!is.numeric(x)) return(FALSE)
+    xf <- x[is.finite(x)]
+    length(xf) > 0 && !isTRUE(all(xf == round(xf)))
+  }, logical(1))]
+  if (length(num_cols)) w <- DT::formatSignif(w, columns = num_cols, digits = sig)
+  w
+}
+
+save_csv <- function(df, fname) {
+  fp <- file.path(results_dir, fname)
+  write.csv(df, fp, row.names = FALSE)
+  fp
+}
+
 ## Read a humann_join_tables output, recover bare sample IDs.
 load_joined <- function(path) {
   m <- read.table(path, header = TRUE, sep = "\t", check.names = FALSE,
@@ -264,12 +306,24 @@ for (tag in names(funcTables)) {
   cat(sprintf("- Significant associations (q ≤ %g): **%d**\n\n",
               maaslinMaxSig, nrow(sig)))
 
-  ## Inline table
+  ## Persist per-tag CSVs (all results + significant subset) so the
+  ## tables are downloadable from the report folder without opening the
+  ## report first.
+  allCsv <- save_csv(resDf, sprintf("maaslin3_%s_all_results.csv", tag))
+  sigCsv <- save_csv(sig,   sprintf("maaslin3_%s_significant.csv", tag))
+  cat(sprintf("- Downloads: [all results](%s), [significant only](%s)\n\n",
+              allCsv, sigCsv))
+
+  ## Interactive table with copy/CSV/Excel buttons and column filters.
   showTbl <- if (nrow(sig) > 0) sig else
              head(resDf[order(resDf$qval_individual), ], 30)
-  print(DT::datatable(showTbl, rownames = FALSE,
-                      options = list(pageLength = 10, scrollX = TRUE),
-                      caption = sprintf("MaAsLin3 results — %s", label_for(tag))))
+  showCaption <- if (nrow(sig) > 0)
+    sprintf("MaAsLin3 significant associations - %s (q <= %g)",
+            label_for(tag), maaslinMaxSig)
+  else
+    sprintf("MaAsLin3 top 30 by q-value - %s (no association passed q <= %g)",
+            label_for(tag), maaslinMaxSig)
+  print(htmltools::tagList(dt(showTbl, caption = showCaption)))
   cat("\n\n")
 
   ## Coefficient plot
