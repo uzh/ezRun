@@ -29,6 +29,10 @@
 ezMethodHUMAnN <- function(input = NA, output = NA, param = NA,
                            htmlFile = "00index.html") {
   sampleName <- input$getNames()
+  # Per-sample HTML report basename. SAMPLE-mode SUSHI jobs all copy into
+  # the same gstore folder, so a shared "00index.html" would collide (only
+  # the first to finish sticks; the rest fail g-req "destination exists").
+  htmlFile <- sprintf("%s_report.html", sampleName)
 
   ## ---- 1. Trim + (if paired) concat reads --------------------------------
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
@@ -210,7 +214,9 @@ ezMethodHUMAnN <- function(input = NA, output = NA, param = NA,
       profileSource = profileSrc,
       detectedDb    = detectedDb,
       forced        = forced,
-      humannLog     = file.path(outDir, logFile),
+      # HUMAnN's --o-log <basename> writes the log to CWD (scratch top-
+      # level), NOT into outDir. Pass basename so the Rmd finds it.
+      humannLog     = logFile,
       gfCpmFile     = gfCpm,
       rxCpmFile     = rxCpm,
       paFile        = paOut,

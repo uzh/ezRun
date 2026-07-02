@@ -213,6 +213,36 @@ fgcz_dt <- function(x, caption = NULL, escape = TRUE, page_length = 10) {
                               lengthMenu = c(10, 20, 100, 200)))
 }
 
+## ---------------------------------------------------------------------------
+## knit_child machinery for emitting htmlwidgets (DT/plotly) inside dynamically
+## generated tabsets. A print(datatable(...)) inside a results='asis' chunk
+## emits NOTHING (auto-print via knit_print.htmlwidget only fires for a normal
+## chunk's last expression). The reliable way to interleave markdown headers
+## with widgets is to build Rmd source text and knit_child() it: the child is
+## re-parsed, so headers become sections AND widgets auto-print with their JS
+## dependencies. Widgets/plots are stashed in .kc_registry so the generated
+## child chunks can reference them by name (avoids recomputation / quoting).
+.kc_registry <- new.env(parent = emptyenv())
+.kc_counter  <- 0L
+## Return Rmd source lines that, when knit, auto-print `obj` in a child chunk.
+## Each block gets a UNIQUE label (kc<n>) so multiple knit_child() calls don't
+## collide on auto-generated "unnamed-chunk-*" labels, and cache=FALSE so the
+## global cache=TRUE doesn't stale these dynamically generated chunks.
+kc_block <- function(obj, chunk_opts = "fig.width=8, fig.height=6") {
+  .kc_counter <<- .kc_counter + 1L
+  nm <- paste0("obj", .kc_counter)
+  assign(nm, obj, envir = .kc_registry)
+  c(sprintf("```{r kc%d, echo=FALSE, cache=FALSE, %s}", .kc_counter, chunk_opts),
+    sprintf(".kc_registry$%s", nm),
+    "```", "")
+}
+## Render a character vector of Rmd source (markdown + kc_block output) as a
+## child document and write it straight into the report.
+kc_render <- function(lines) {
+  cat(knitr::knit_child(text = paste(lines, collapse = "\n"), quiet = TRUE))
+  cat("\n\n")
+}
+
 ## Save a ggplot/plotly widget as a self-contained HTML alongside the report.
 save_interactive_widget <- function(widget, fname) {
   fpath <- file.path(.report_dir, fname)
@@ -715,12 +745,16 @@ if (!is.null(.denoise_df) && "non-chimeric" %in% colnames(.denoise_df) ||
 
 ## fastp QC
 
-```{r fastp_qc, results='asis'}
-## Only rendered when the R backend wired in `fastp_reports`.
-## Accepts either a character vector / list of paths or a data.frame with a
-## path-like column. Tries to summarise per-sample reads-before/after from any
-## fastp JSON it can find; otherwise falls back to a link-only table.
+```{r fastp_qc_build, results='asis'}
+## Split into a text (asis) chunk + a widget chunk: DT widgets are only emitted
+## into the report when auto-printed from a NORMAL chunk (see asv_table_blast
+## note). Here we build the data frames and emit only prose; the next chunk
+## auto-prints the tables via an htmltools::tagList.
+## `fastp_reports` may be a character vector / list of paths or a data.frame.
 .fastp_ok <- exists("fastp_reports") && !is.null(fastp_reports) && length(fastp_reports) > 0
+.fastp_summary   <- NULL
+.fastp_links_df  <- NULL
+.fastp_json_df   <- NULL
 if (.fastp_ok) {
   .fastp_paths <- if (is.data.frame(fastp_reports)) {
     path_col <- intersect(c("path", "Path", "report", "Report", "html", "HTML",
@@ -746,11 +780,20 @@ if (.fastp_ok) {
     bn
   }
 
-  ## Try to summarise reads before/after from JSON, defensively.
-  .fastp_summary <- NULL
+  ## Try to summarise reads before/after from JSON, defensively. Paths that do
+  ## not resolve (e.g. relative paths after a setwd) are skipped, so we resolve
+  ## against the report dir as a fallback.
+  .resolve_fastp <- function(p) {
+    if (file.exists(p)) return(p)
+    alt <- file.path(.report_dir, p)
+    if (file.exists(alt)) return(alt)
+    alt2 <- file.path(.report_dir, basename(dirname(p)), basename(p))
+    if (file.exists(alt2)) return(alt2)
+    p
+  }
   if (length(.fastp_json) > 0 && requireNamespace("jsonlite", quietly = TRUE)) {
     rows <- lapply(.fastp_json, function(jp) {
-      js <- tryCatch(jsonlite::fromJSON(jp, simplifyVector = TRUE),
+      js <- tryCatch(jsonlite::fromJSON(.resolve_fastp(jp), simplifyVector = TRUE),
                      error = function(e) NULL)
       if (is.null(js)) return(NULL)
       rb <- tryCatch(js$summary$before_filtering$total_reads, error = function(e) NA)
@@ -776,46 +819,55 @@ if (.fastp_ok) {
     cat("Per-sample reads before and after fastp filtering:\n\n")
     write.csv(.fastp_summary,
               file.path(.report_dir, "fastp_summary.csv"), row.names = FALSE)
-    print(fgcz_dt(.fastp_summary, "fastp summary (per sample)"))
   } else {
     cat("Per-sample fastp JSON summaries unavailable (JSON shape unfamiliar or jsonlite missing). ",
         "Showing report links only.\n\n", sep = "")
   }
 
-  ## HTML report links table.
   if (length(.fastp_html) > 0) {
     .fastp_links_df <- data.frame(
       Sample = derive_sample(.fastp_html),
-      Report = sprintf('<a href="%s" target="_blank" rel="noopener">view</a>',
-                       .fastp_html),
+      Report = sprintf('<a href="%s" target="_blank" rel="noopener">view</a>', .fastp_html),
       Path   = .fastp_html,
       stringsAsFactors = FALSE
     )
-    print(DT::datatable(
-      .fastp_links_df,
-      caption = "fastp HTML reports",
-      escape  = FALSE,
-      rownames = FALSE,
-      extensions = "Buttons",
-      options = list(scrollX = TRUE, dom = "lftBip",
-                     buttons = c("copy", "csv", "excel"),
-                     pageLength = 10, lengthMenu = c(10, 20, 100, 200))
-    ))
   } else if (length(.fastp_json) > 0) {
-    ## No HTML present -- still expose the JSON paths for traceability.
-    print(fgcz_dt(data.frame(Sample = derive_sample(.fastp_json),
-                             JSON   = .fastp_json,
-                             stringsAsFactors = FALSE),
-                  "fastp JSON reports"))
+    .fastp_json_df <- data.frame(Sample = derive_sample(.fastp_json),
+                                 JSON   = .fastp_json,
+                                 stringsAsFactors = FALSE)
   }
 } else {
   cat("fastp not run (run_fastp = false) or no reports available -- skipping fastp QC.\n")
 }
 ```
 
+```{r fastp_qc_tables}
+## Auto-printed htmlwidgets (normal chunk). tagList emits every widget it holds
+## together with their JS/CSS dependencies.
+.fastp_widgets <- list()
+if (!is.null(.fastp_summary) && nrow(.fastp_summary) > 0) {
+  .fastp_widgets[[length(.fastp_widgets) + 1]] <- fgcz_dt(.fastp_summary, "fastp summary (per sample)")
+}
+if (!is.null(.fastp_links_df)) {
+  .fastp_widgets[[length(.fastp_widgets) + 1]] <- DT::datatable(
+    .fastp_links_df, caption = "fastp HTML reports", escape = FALSE, rownames = FALSE,
+    extensions = "Buttons",
+    options = list(scrollX = TRUE, dom = "lftBip", buttons = c("copy", "csv", "excel"),
+                   pageLength = 10, lengthMenu = c(10, 20, 100, 200)))
+} else if (!is.null(.fastp_json_df)) {
+  .fastp_widgets[[length(.fastp_widgets) + 1]] <- fgcz_dt(.fastp_json_df, "fastp JSON reports")
+}
+if (length(.fastp_widgets) > 0) htmltools::tagList(.fastp_widgets) else invisible(NULL)
+```
+
 # ASV table with BLAST links
 
-```{r asv_table_blast, results='asis'}
+```{r asv_table_blast}
+## NOTE: this is a NORMAL chunk (no results='asis'). An htmlwidget (DT) is only
+## emitted into the report when knitr auto-prints it via knit_print.htmlwidget,
+## which happens for the LAST top-level expression of a normal chunk. Under
+## results='asis' a print(datatable(...)) silently produces nothing. So we
+## build `asv_tax_df` here and leave the datatable as the final expression.
 ## Fast-path: if the R backend already passed a fully-built `asv_taxonomy_df`
 ## (with ASV_ID + per-sample counts + BLAST link), use it directly.
 .use_passed_asv_df <- exists("asv_taxonomy_df") && !is.null(asv_taxonomy_df) &&
@@ -835,92 +887,88 @@ if (.use_passed_asv_df &&
     "ASV_ID" %in% colnames(asv_taxonomy_df) &&
     "BLAST"  %in% colnames(asv_taxonomy_df) &&
     any(sample_names(physeq) %in% colnames(asv_taxonomy_df))) {
-  ## Backend provided a complete, render-ready table. Just emit it.
+  ## Backend provided a complete, render-ready table.
   asv_tax_df <- as.data.frame(asv_taxonomy_df, stringsAsFactors = FALSE)
   write.csv(asv_tax_df[, setdiff(colnames(asv_tax_df), "BLAST"), drop = FALSE],
             file.path(.report_dir, "asv_ids_taxonomy.csv"), row.names = FALSE)
-  print(DT::datatable(asv_tax_df,
-    caption = paste0("All ASVs (", nrow(asv_tax_df), " total)."),
-    escape  = FALSE,
-    extensions = "Buttons", rownames = FALSE,
-    options = list(scrollX = TRUE, dom = "lftBip",
-                   buttons = c("copy", "csv", "excel"),
-                   pageLength = 10, lengthMenu = c(10, 20, 100, 200))))
+  .asv_caption <- paste0("All ASVs (", nrow(asv_tax_df), " total).")
 } else {
-
-asv_tax_df <- data.frame(
-  ASV_ID = taxa_names(physeq_all),
-  as.data.frame(tax_table(physeq_all)),
-  stringsAsFactors = FALSE
-)
-
-## Merge in any extra columns from the backend-provided asv_taxonomy_df
-## (e.g. the QIIME2 raw Taxon string / Confidence) so users can still see
-## the source taxonomy alongside the cleaned phyloseq tax_table.
-if (.use_passed_asv_df) {
-  extra <- as.data.frame(asv_taxonomy_df, stringsAsFactors = FALSE)
-  id_col <- intersect(c("ASV_ID", "Feature.ID", "Feature ID", "FeatureID"),
-                      colnames(extra))[1]
-  if (!is.null(id_col) && id_col != "ASV_ID") {
-    extra$ASV_ID <- as.character(extra[[id_col]])
-  }
-  keep_cols <- setdiff(colnames(extra),
-                       c(colnames(asv_tax_df), id_col))
-  if (length(keep_cols) > 0) {
-    extra <- extra[, c("ASV_ID", keep_cols), drop = FALSE]
-    asv_tax_df <- dplyr::left_join(asv_tax_df, extra, by = "ASV_ID")
-  }
-}
-
-otu_pre_mat <- as(otu_table(physeq_all), "matrix")
-if (!taxa_are_rows(physeq_all)) otu_pre_mat <- t(otu_pre_mat)
-otu_pre_mat <- otu_pre_mat[asv_tax_df$ASV_ID, , drop = FALSE]
-sample_cols <- colnames(otu_pre_mat)
-asv_tax_df$Total_reads <- as.integer(rowSums(otu_pre_mat))
-asv_tax_df$N_samples   <- as.integer(rowSums(otu_pre_mat > 0))
-asv_tax_df$In_filtered <- asv_tax_df$ASV_ID %in% taxa_names(physeq_filtered)
-
-## Attach representative sequences + BLAST link if available.
-.rep_seqs <- NULL
-if (exists("rep_seqs") && !is.null(rep_seqs)) {
-  .rep_seqs <- if (inherits(rep_seqs, "DNAStringSet")) rep_seqs
-               else if (is.list(rep_seqs) && !is.null(rep_seqs$data)) rep_seqs$data
-               else NULL
-} else if (exists("dada2_rep_seqs_fasta") &&
-           length(dada2_rep_seqs_fasta) > 0 && file.exists(dada2_rep_seqs_fasta[1]) &&
-           .have_biostrings) {
-  .rep_seqs <- tryCatch(Biostrings::readDNAStringSet(dada2_rep_seqs_fasta[1]),
-                        error = function(e) NULL)
-}
-if (!is.null(.rep_seqs) && length(.rep_seqs) > 0) {
-  seq_lookup <- setNames(as.character(.rep_seqs), names(.rep_seqs))
-  asv_tax_df$Sequence <- seq_lookup[asv_tax_df$ASV_ID]
-  asv_tax_df$Length   <- nchar(asv_tax_df$Sequence)
-  asv_tax_df$BLAST    <- ifelse(
-    is.na(asv_tax_df$Sequence), "",
-    sprintf('<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?PROGRAM=blastn&PAGE_TYPE=BlastSearch&DATABASE=nt&QUERY=%s" target="_blank" rel="noopener">BLAST</a>',
-            asv_tax_df$Sequence)
+  asv_tax_df <- data.frame(
+    ASV_ID = taxa_names(physeq_all),
+    as.data.frame(tax_table(physeq_all)),
+    stringsAsFactors = FALSE
   )
+
+  ## Merge in any extra columns from the backend-provided asv_taxonomy_df
+  ## (e.g. the QIIME2 raw Taxon string / Confidence) so users can still see
+  ## the source taxonomy alongside the cleaned phyloseq tax_table.
+  if (.use_passed_asv_df) {
+    extra <- as.data.frame(asv_taxonomy_df, stringsAsFactors = FALSE)
+    id_col <- intersect(c("ASV_ID", "Feature.ID", "Feature ID", "FeatureID"),
+                        colnames(extra))[1]
+    if (!is.null(id_col) && id_col != "ASV_ID") {
+      extra$ASV_ID <- as.character(extra[[id_col]])
+    }
+    keep_cols <- setdiff(colnames(extra),
+                         c(colnames(asv_tax_df), id_col))
+    if (length(keep_cols) > 0) {
+      extra <- extra[, c("ASV_ID", keep_cols), drop = FALSE]
+      asv_tax_df <- dplyr::left_join(asv_tax_df, extra, by = "ASV_ID")
+    }
+  }
+
+  otu_pre_mat <- as(otu_table(physeq_all), "matrix")
+  if (!taxa_are_rows(physeq_all)) otu_pre_mat <- t(otu_pre_mat)
+  otu_pre_mat <- otu_pre_mat[asv_tax_df$ASV_ID, , drop = FALSE]
+  sample_cols <- colnames(otu_pre_mat)
+  asv_tax_df$Total_reads <- as.integer(rowSums(otu_pre_mat))
+  asv_tax_df$N_samples   <- as.integer(rowSums(otu_pre_mat > 0))
+  asv_tax_df$In_filtered <- asv_tax_df$ASV_ID %in% taxa_names(physeq_filtered)
+
+  ## Attach representative sequences + BLAST link if available.
+  .rep_seqs <- NULL
+  if (exists("rep_seqs") && !is.null(rep_seqs)) {
+    .rep_seqs <- if (inherits(rep_seqs, "DNAStringSet")) rep_seqs
+                 else if (is.list(rep_seqs) && !is.null(rep_seqs$data)) rep_seqs$data
+                 else NULL
+  } else if (exists("dada2_rep_seqs_fasta") &&
+             length(dada2_rep_seqs_fasta) > 0 && file.exists(dada2_rep_seqs_fasta[1]) &&
+             .have_biostrings) {
+    .rep_seqs <- tryCatch(Biostrings::readDNAStringSet(dada2_rep_seqs_fasta[1]),
+                          error = function(e) NULL)
+  }
+  if (!is.null(.rep_seqs) && length(.rep_seqs) > 0) {
+    seq_lookup <- setNames(as.character(.rep_seqs), names(.rep_seqs))
+    asv_tax_df$Sequence <- seq_lookup[asv_tax_df$ASV_ID]
+    asv_tax_df$Length   <- nchar(asv_tax_df$Sequence)
+    asv_tax_df$BLAST    <- ifelse(
+      is.na(asv_tax_df$Sequence), "",
+      sprintf('<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?PROGRAM=blastn&PAGE_TYPE=BlastSearch&DATABASE=nt&QUERY=%s" target="_blank" rel="noopener">BLAST</a>',
+              asv_tax_df$Sequence)
+    )
+  }
+
+  ## Per-sample read counts at the end so BLAST stays visible.
+  asv_tax_df[, sample_cols] <- as.data.frame(otu_pre_mat, stringsAsFactors = FALSE)
+
+  ## CSV without the HTML BLAST column.
+  write.csv(asv_tax_df[, setdiff(colnames(asv_tax_df), "BLAST")],
+            file.path(.report_dir, "asv_ids_taxonomy.csv"), row.names = FALSE)
+
+  .asv_caption <- paste0("All ASVs (", nrow(asv_tax_df),
+                         " total). In_filtered=TRUE marks the ",
+                         sum(asv_tax_df$In_filtered),
+                         " ASVs that survived the prevalence + abundance filter.")
 }
 
-## Per-sample read counts at the end so BLAST stays visible.
-asv_tax_df[, sample_cols] <- as.data.frame(otu_pre_mat, stringsAsFactors = FALSE)
-
-## CSV without the HTML BLAST column.
-write.csv(asv_tax_df[, setdiff(colnames(asv_tax_df), "BLAST")],
-          file.path(.report_dir, "asv_ids_taxonomy.csv"), row.names = FALSE)
-
-print(datatable(asv_tax_df,
-  caption = paste0("All ASVs (", nrow(asv_tax_df),
-                   " total). In_filtered=TRUE marks the ",
-                   sum(asv_tax_df$In_filtered),
-                   " ASVs that survived the prevalence + abundance filter."),
-  escape = FALSE,
+## Final expression: auto-printed as an htmlwidget (do NOT wrap in print()).
+DT::datatable(asv_tax_df,
+  caption = .asv_caption,
+  escape  = FALSE,
   extensions = "Buttons", rownames = FALSE,
   options = list(scrollX = TRUE, dom = "lftBip",
                  buttons = c("copy", "csv", "excel"),
-                 pageLength = 10, lengthMenu = c(10, 20, 100, 200))))
-}
+                 pageLength = 10, lengthMenu = c(10, 20, 100, 200)))
 ```
 
 # Taxa ASVs abundance per sample {.tabset}
@@ -989,21 +1037,47 @@ remove_na_rank <- function(ps, rank) {
   prune_taxa(rownames(tax)[keep], ps)
 }
 
+## Custom prevalence plot: agglomerate to `rank` (dropping taxa unclassified at
+## that rank), then plot prevalence (fraction of samples in which the taxon
+## occurs) vs total abundance, coloured by Phylum. Returns NULL only when no
+## taxon is classified at the rank (e.g. Species with empty s__ everywhere) --
+## replaces microbiome::plot_taxa_prevalence, which drew sparse/empty panels.
+custom_prevalence_plot <- function(ps, rank, title) {
+  ps_r <- tryCatch(tax_glom(ps, rank, NArm = TRUE), error = function(e) NULL)
+  if (is.null(ps_r) || ntaxa(ps_r) == 0) return(NULL)
+  otu <- as(otu_table(ps_r), "matrix")
+  if (!taxa_are_rows(ps_r)) otu <- t(otu)
+  nsamp <- ncol(otu)
+  if (nsamp == 0) return(NULL)
+  tax <- as.data.frame(tax_table(ps_r), stringsAsFactors = FALSE)
+  df <- data.frame(
+    Taxon          = tax[[rank]],
+    Phylum         = if ("Phylum" %in% colnames(tax)) tax[["Phylum"]] else NA_character_,
+    Prevalence     = rowSums(otu > 0) / nsamp,
+    TotalAbundance = rowSums(otu),
+    stringsAsFactors = FALSE
+  )
+  df <- df[df$TotalAbundance > 0, , drop = FALSE]
+  if (nrow(df) == 0) return(NULL)
+  ggplot(df, aes(x = TotalAbundance, y = Prevalence, color = Phylum)) +
+    geom_point(size = 2.5, alpha = 0.75) +
+    scale_x_log10() +
+    scale_y_continuous(limits = c(0, 1)) +
+    labs(x = "Total abundance (reads, log10)",
+         y = "Prevalence (fraction of samples)", title = title) +
+    theme_bw() +
+    theme(legend.position = "none")
+}
+
 safe_prev_plot <- function(ps, rank, title) {
   if (is.null(ps)) { cat("_", title, " -- no data_\n\n", sep = ""); return(invisible(NULL)) }
-  ps_try <- ps
-  if (rank %in% c("Genus", "Species")) {
-    ps_clean <- remove_na_rank(ps, rank)
-    if (is.null(ps_clean)) {
-      cat("_", title, " -- every ASV is unclassified at ", rank,
-          "; plotting with raw labels instead._\n\n", sep = "")
-    } else {
-      ps_try <- ps_clean
-    }
-  }
   tryCatch({
-    p <- plot_taxa_prevalence(ps_try, rank) + ggtitle(title) + theme(legend.position = "none")
-    print(p)
+    p <- custom_prevalence_plot(ps, rank, title)
+    if (is.null(p)) {
+      cat("_", title, " -- no taxa classified at ", rank, "._\n\n", sep = "")
+    } else {
+      print(p)
+    }
   }, error = function(e) cat("_", title, " skipped: ", e$message, "_\n\n", sep = ""))
 }
 ```
@@ -1055,10 +1129,9 @@ safe_prev_plot(physeq_filtered, "Phylum", "Phylum -- All samples (post)")
 ## Per-group tabsets (post-filter) {.tabset}
 
 ```{r prev_per_group_dynamic, results='asis', fig.width=15, fig.height=7}
-## `results='asis'` routes chunk text output straight to the .md — knitr
-## does NOT re-invoke its own parser on cat("```{r ...}```", ...), so the
-## fenced code block would appear literally. Instead call plot_taxa_prevalence
-## inline; the outer chunk's fig.width/fig.height control the figure size.
+## ggplots DO render under results='asis' via knitr's plot hook (unlike DT
+## widgets), so we build the plot inline with custom_prevalence_plot and print
+## it directly. The outer chunk's fig.width/fig.height set the figure size.
 for (grp in group_levels) {
   .keep <- as.character(sample_data(physeq_filtered)$Group) == grp
   ps_grp <- safe_prune_nonzero(prune_samples(.keep, physeq_filtered))
@@ -1071,23 +1144,14 @@ for (grp in group_levels) {
     if (rank == "Species" && !has_species) next
     cat(sprintf("\n\n#### %s\n\n", rank))
     p <- tryCatch(
-      {
-        ps_use <- ps_grp
-        if (rank %in% c("Genus", "Species")) {
-          ps_use <- remove_na_rank(ps_grp, rank)
-        }
-        if (is.null(ps_use)) NULL
-        else plot_taxa_prevalence(ps_use, rank) +
-             ggtitle(sprintf("%s -- %s", rank, grp)) +
-             theme(legend.position = "none")
-      },
+      custom_prevalence_plot(ps_grp, rank, sprintf("%s -- %s", rank, grp)),
       error = function(e) { cat("_skipped: ", e$message, "_\n\n", sep = ""); NULL }
     )
     if (!is.null(p)) {
       print(p)
       cat("\n\n")
     } else {
-      cat("_No data at this rank._\n\n")
+      cat("_No taxa classified at this rank._\n\n")
     }
   }
 }
@@ -2081,11 +2145,12 @@ if (!.picrust_enabled) {
       g2   <- groups[keep]
       m2   <- m2[rowSums(m2) > 0, , drop = FALSE]
       if (ncol(m2) < 4) return(NULL)
-      pheno <- metagenomeSeq::AnnotatedDataFrame(data.frame(Group = g2,
-                                                           row.names = colnames(m2)))
+      ## AnnotatedDataFrame / pData are exported by Biobase, not metagenomeSeq.
+      pheno <- Biobase::AnnotatedDataFrame(data.frame(Group = g2,
+                                                      row.names = colnames(m2)))
       mr <- metagenomeSeq::newMRexperiment(round(m2), phenoData = pheno)
       mr <- metagenomeSeq::cumNorm(mr, p = metagenomeSeq::cumNormStat(mr))
-      design <- model.matrix(~ Group, data = pData(mr))
+      design <- model.matrix(~ Group, data = Biobase::pData(mr))
       fit    <- metagenomeSeq::fitFeatureModel(mr, design)
       res    <- metagenomeSeq::MRcoefs(fit, number = nrow(m2))
       res$feature  <- rownames(res)
@@ -2120,22 +2185,29 @@ if (!.picrust_enabled) {
   mat <- mat[, samp_ids, drop = FALSE]
   groups <- metadata$Group[match(samp_ids, metadata$SampleID)]
 
-  cat("\n\n#### ALDEx2 (global, all groups)\n\n")
+  ## Compute first (these may cat a specific failure message), then emit the
+  ## sub-sections + tables through knit_child so the DT widgets actually render.
   ald <- .daa_aldex2(mat, groups)
+  mg  <- .daa_metagenomeSeq(mat, groups)
+
+  lines <- c("\n\n#### ALDEx2 (global, all groups)\n")
   if (!is.null(ald)) {
     write.csv(ald, file.path(.report_dir, paste0("picrust2_aldex2_", label, ".csv")), row.names = FALSE)
-    print(fgcz_dt(head(ald[order(ald$kw.eBH), ], 200),
-                  paste("ALDEx2 -- ", label, " (top 200 by KW eBH p)")))
+    lines <- c(lines, kc_block(fgcz_dt(head(ald[order(ald$kw.eBH), ], 200),
+                                       paste("ALDEx2 --", label, "(top 200 by KW eBH p)"))))
+  } else {
+    lines <- c(lines, "_No ALDEx2 result for this level._\n")
   }
 
-  cat("\n\n#### metagenomeSeq (pairwise)\n\n")
-  mg <- .daa_metagenomeSeq(mat, groups)
+  lines <- c(lines, "\n\n#### metagenomeSeq (pairwise)\n")
   if (!is.null(mg) && nrow(mg) > 0) {
     write.csv(mg, file.path(.report_dir, paste0("picrust2_metagenomeSeq_", label, ".csv")), row.names = FALSE)
-    print(fgcz_dt(head(mg[order(mg$adjPvalues), ], 200),
-                  paste("metagenomeSeq -- ", label, " (top 200 by adjusted p)")))
+    lines <- c(lines, kc_block(fgcz_dt(head(mg[order(mg$adjPvalues), ], 200),
+                                       paste("metagenomeSeq --", label, "(top 200 by adjusted p)"))))
+  } else {
+    lines <- c(lines, "_No metagenomeSeq result for this level._\n")
   }
-  cat("\n\n")
+  kc_render(lines)
 }
 ```
 
@@ -2160,25 +2232,47 @@ if (!.picrust_enabled) {
 ## ASV contributors
 
 ```{r picrust_contributors, eval=.picrust_enabled, results='asis'}
-.contrib_path <- NULL
-if (exists("picrust2_contrib") && !is.null(picrust2_contrib)) {
-  .contrib_path <- picrust2_contrib
-}
+.contrib_path <- if (exists("picrust2_contrib") && !is.null(picrust2_contrib)) picrust2_contrib else NULL
 if (!is.null(.contrib_path) && length(.contrib_path) > 0 && file.exists(.contrib_path[1])) {
   contrib <- tryCatch(read.delim(.contrib_path[1], sep = "\t", check.names = FALSE),
                       error = function(e) NULL)
-  if (!is.null(contrib) && nrow(contrib) > 0) {
-    cat("Top 200 (function, ASV) contributors by mean abundance:\n\n")
-    top <- contrib %>%
-      dplyr::group_by(`function`, taxon) %>%
-      dplyr::summarise(mean_taxon_function_abun = mean(taxon_function_abun, na.rm = TRUE), .groups = "drop") %>%
-      dplyr::arrange(dplyr::desc(mean_taxon_function_abun)) %>%
-      head(200)
-    write.csv(top, file.path(.report_dir, "picrust2_top_contributors.csv"), row.names = FALSE)
-    print(fgcz_dt(top, "Top 200 ASV-to-function contributors"))
+  if (is.null(contrib) || nrow(contrib) == 0) {
+    cat("Stratified PICRUSt2 file was present but empty or unreadable -- skipping.\n\n")
+  } else {
+    cn <- colnames(contrib)
+    top <- NULL
+    if (all(c("function", "taxon", "taxon_function_abun") %in% cn)) {
+      ## Long "contrib" format (default --stratified output).
+      top <- contrib %>%
+        dplyr::group_by(`function`, taxon) %>%
+        dplyr::summarise(mean_taxon_function_abun = mean(taxon_function_abun, na.rm = TRUE),
+                         .groups = "drop") %>%
+        dplyr::arrange(dplyr::desc(mean_taxon_function_abun)) %>%
+        head(200)
+    } else {
+      ## Wide "strat" format (--stratified --wide_table): function + sequence
+      ## id columns, then one numeric column per sample. Sum across samples.
+      id_cols   <- intersect(c("function", "sequence", "taxon", "pathway", "OTU_ID"), cn)
+      samp_cols <- setdiff(cn, id_cols)
+      samp_cols <- samp_cols[sapply(contrib[samp_cols], is.numeric)]
+      if (length(id_cols) >= 1 && length(samp_cols) >= 1) {
+        contrib$total_abun <- rowSums(contrib[, samp_cols, drop = FALSE], na.rm = TRUE)
+        top <- contrib[, c(id_cols, "total_abun"), drop = FALSE]
+        top <- top[order(-top$total_abun), , drop = FALSE]
+        top <- head(top, 200)
+      }
+    }
+    if (is.null(top) || nrow(top) == 0) {
+      cat("Stratified PICRUSt2 file present but its columns were not recognised ",
+          "(saw: ", paste(head(cn, 10), collapse = ", "), "). Skipping.\n\n", sep = "")
+    } else {
+      write.csv(top, file.path(.report_dir, "picrust2_top_contributors.csv"), row.names = FALSE)
+      cat("Top 200 (function, ASV) contributors by abundance:\n\n")
+      kc_render(kc_block(fgcz_dt(top, "Top 200 ASV-to-function contributors")))
+    }
   }
 } else {
-  cat("No stratified PICRUSt2 contribution file provided -- skipping.\n")
+  cat("No stratified PICRUSt2 contribution file provided -- skipping.\n\n")
 }
 ```
 
@@ -2247,27 +2341,32 @@ clr_top5_violin <- function(clr_mat, samp_groups, level_name, top_n = 5) {
 render_clr_section <- function(ps, ps_label) {
   if (is.null(ps)) return(invisible(NULL))
   samp_groups <- setNames(as.character(sample_data(ps)$Group), sample_names(ps))
+  ## Build the whole section as Rmd source and knit_child it, so the Pairwise
+  ## Wilcoxon DT (an htmlwidget) actually renders. A print(fgcz_dt(...)) inside
+  ## a results='asis' chunk emits nothing.
+  lines <- character(0)
   for (rank in c("Species", "Genus", "Family", "Phylum")) {
     if (rank == "Species" && !has_species) next
-    ## Leading double-newlines are required for pandoc to detect headers after
-    ## the previous rank's plot output (knitr's plot hook does not always
-    ## emit a trailing blank line, so `\n### Foo` alone would be treated as a
-    ## continuation of the image line, not a new header).
-    cat(sprintf("\n\n## CLR Wilcoxon -- %s (%s) {.tabset}\n\n", rank, ps_label))
+    lines <- c(lines, sprintf("\n\n## CLR Wilcoxon -- %s (%s) {.tabset}\n", rank, ps_label))
     res <- clr_wilcoxon_level(ps, rank)
     if (is.null(res) || nrow(res) == 0) {
-      cat("_No CLR Wilcoxon results at this rank._\n\n")
+      lines <- c(lines, "_No CLR Wilcoxon results at this rank._\n")
       next
     }
     write.csv(res, file.path(.report_dir, paste0("CLR_Wilcoxon_", rank, "_", ps_label, ".csv")),
               row.names = FALSE)
-    cat("\n\n### Pairwise Wilcoxon\n\n")
-    print(fgcz_dt(head(res, 200), paste(rank, "-- CLR Wilcoxon (", ps_label, ", top 200 by BH p)")))
-    cat("\n\n### Top 5 by mean(|CLR|)\n\n")
+    lines <- c(lines, "\n### Pairwise Wilcoxon\n",
+               kc_block(fgcz_dt(head(res, 200),
+                                paste(rank, "-- CLR Wilcoxon (", ps_label, ", top 200 by BH p)"))))
     p <- clr_top5_violin(attr(res, "clr_matrix"), samp_groups, rank, top_n = 5)
-    if (!is.null(p)) print(p)
-    cat("\n\n")
+    lines <- c(lines, "\n### Top 5 by mean(|CLR|)\n")
+    if (!is.null(p)) {
+      lines <- c(lines, kc_block(p, chunk_opts = "fig.width=14, fig.height=8"))
+    } else {
+      lines <- c(lines, "_Not enough taxa for a violin plot._\n")
+    }
   }
+  kc_render(lines)
 }
 ```
 
@@ -2321,12 +2420,12 @@ for (lvl in ranks_clr_bar) {
 # CLR abundance tables export {.tabset}
 
 ```{r clr_export, results='asis'}
+## Returns the DT widget (or NULL); emission is done via knit_child below so
+## the widget actually renders inside the tabset.
 render_clr_table <- function(ps, level, label) {
-  if (is.null(ps)) return(invisible(NULL))
+  if (is.null(ps)) return(NULL)
   ps_lvl <- tryCatch(tax_glom(ps, level, NArm = TRUE), error = function(e) NULL)
-  if (is.null(ps_lvl) || ntaxa(ps_lvl) == 0) {
-    cat("_No taxa at this rank._\n\n"); return(invisible(NULL))
-  }
+  if (is.null(ps_lvl) || ntaxa(ps_lvl) == 0) return(NULL)
   mat <- as(otu_table(ps_lvl), "matrix")
   if (!taxa_are_rows(ps_lvl)) mat <- t(mat)
   rownames(mat) <- make.unique(as.character(tax_table(ps_lvl)[, level]))
@@ -2339,18 +2438,21 @@ render_clr_table <- function(ps, level, label) {
                        round(clr_mat, 3),
                        check.names = FALSE,
                        stringsAsFactors = FALSE)
-  print(fgcz_dt(clr_df, sprintf("CLR abundance -- %s (%s)", level, label)))
-  cat("\n\n")
+  fgcz_dt(clr_df, sprintf("CLR abundance -- %s (%s)", level, label))
 }
 
 ranks_clr <- c(if (has_species) "Species" else NULL, "Genus", "Family", "Phylum")
+.clr_export_lines <- character(0)
 for (lvl in ranks_clr) {
-  cat(sprintf("\n\n## %s {.tabset}\n\n", lvl))
-  cat("\n### Pre-filter\n\n")
-  render_clr_table(physeq, lvl, "pre")
-  cat("\n### Post-filter\n\n")
-  render_clr_table(physeq_filtered, lvl, "post")
+  .clr_export_lines <- c(.clr_export_lines, sprintf("\n\n## %s {.tabset}\n", lvl))
+  dt_pre <- render_clr_table(physeq, lvl, "pre")
+  .clr_export_lines <- c(.clr_export_lines, "\n### Pre-filter\n",
+                         if (!is.null(dt_pre)) kc_block(dt_pre) else "_No taxa at this rank._\n")
+  dt_post <- render_clr_table(physeq_filtered, lvl, "post")
+  .clr_export_lines <- c(.clr_export_lines, "\n### Post-filter\n",
+                         if (!is.null(dt_post)) kc_block(dt_post) else "_No taxa at this rank._\n")
 }
+kc_render(.clr_export_lines)
 ```
 
 # General taxonomic composition barplots {.tabset}

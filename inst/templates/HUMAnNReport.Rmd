@@ -143,6 +143,204 @@ if (!is.null(ko)) print(bar_top(ko, "Top 20 KEGG KOs"))
 if (!is.null(gf)) print(bar_top(gf, "Top 20 gene families"))
 ```
 
+## Stratification per organism
+
+```{r strat_helpers, include = FALSE}
+# Read a HUMAnN CPM TSV keeping stratified rows (feature|species).
+# Community-level rows and specials are dropped so the section shows only
+# per-organism contributions.
+read_humann_strat <- function(path) {
+  if (is.na(path) || !nzchar(path) || !file.exists(path)) return(NULL)
+  m <- read.table(path, header = TRUE, sep = "\t", check.names = FALSE,
+                  comment.char = "", quote = "", row.names = 1)
+  colnames(m) <- sub("_(Abundance|Abundance-CPM|Coverage|Abundance-RPKs).*$",
+                     "", colnames(m))
+  strat <- m[grepl("\\|", rownames(m)), , drop = FALSE]
+  if (nrow(strat) == 0) return(NULL)
+  parts <- strsplit(rownames(strat), "|", fixed = TRUE)
+  base    <- vapply(parts, `[`, character(1), 1)
+  species <- vapply(parts, function(x)
+                     if (length(x) >= 2) x[[2]] else NA_character_,
+                     character(1))
+  data.frame(BaseFeature = base,
+             Species     = species,
+             SpeciesLabel = gsub("_", " ", sub("^[a-z]__", "", species, perl = TRUE)),
+             Value       = as.numeric(strat[, 1]),
+             stringsAsFactors = FALSE)
+}
+
+top_organisms <- function(df, n = 20) {
+  if (is.null(df) || nrow(df) == 0) return(NULL)
+  agg <- aggregate(Value ~ SpeciesLabel, data = df, FUN = sum)
+  agg <- agg[order(agg$Value, decreasing = TRUE), , drop = FALSE]
+  head(agg, n)
+}
+
+per_feature_top_org <- function(df, top_features = 5, top_org_per = 5) {
+  if (is.null(df) || nrow(df) == 0) return(NULL)
+  # Top features by summed stratified CPM
+  feat_totals <- aggregate(Value ~ BaseFeature, data = df, FUN = sum)
+  feat_totals <- feat_totals[order(feat_totals$Value, decreasing = TRUE), ]
+  top_feats <- head(feat_totals$BaseFeature, top_features)
+  sub <- df[df$BaseFeature %in% top_feats, , drop = FALSE]
+  # Keep only top organisms per feature
+  do.call(rbind, lapply(top_feats, function(f) {
+    r <- sub[sub$BaseFeature == f, ]
+    r <- r[order(r$Value, decreasing = TRUE), ]
+    head(r, top_org_per)
+  }))
+}
+
+pa_strat <- read_humann_strat(params$paFile)
+rx_strat <- read_humann_strat(params$rxCpmFile)
+gf_strat <- read_humann_strat(params$gfCpmFile)
+ko_strat <- read_humann_strat(params$koFile)
+
+any_strat <- any(!vapply(list(pa_strat, rx_strat, gf_strat, ko_strat),
+                         is.null, logical(1)))
+```
+
+`r if (!any_strat) sprintf("No stratified rows detected. Full HUMAnN mode (tier-1 + tier-2, vOct22 upstream) is required to see per-organism contributions; this sample ran in **%s** mode.", params$mode)`
+
+```{r strat_summary, results = "asis", eval = any_strat}
+tbls <- list(Pathways = pa_strat, Reactions = rx_strat,
+             `Gene families` = gf_strat, `KEGG KOs` = ko_strat)
+tbls <- Filter(Negate(is.null), tbls)
+summary_df <- do.call(rbind, lapply(names(tbls), function(nm) {
+  d <- tbls[[nm]]
+  data.frame(Table = nm,
+             `Stratified rows` = nrow(d),
+             `Unique organisms` = length(unique(d$SpeciesLabel)),
+             check.names = FALSE)
+}))
+cat("**Overall:**\n\n")
+print(knitr::kable(summary_df, row.names = FALSE))
+```
+
+### Top organisms overall (pathways)
+
+```{r strat_bar_pa, fig.height = 6, eval = !is.null(pa_strat)}
+top_pa <- top_organisms(pa_strat, n = 20)
+if (!is.null(top_pa) && nrow(top_pa) > 0) {
+  top_pa$SpeciesLabel <- factor(top_pa$SpeciesLabel, levels = rev(top_pa$SpeciesLabel))
+  ggplot(top_pa, aes(x = SpeciesLabel, y = Value)) +
+    geom_col(fill = "#527085") +
+    coord_flip() +
+    labs(title = "Top 20 organisms (summed CPM across all pathways)",
+         x = NULL, y = "Summed CPM") +
+    theme_minimal(base_size = 11) +
+    theme(axis.text.y = element_text(size = 8, face = "italic"))
+}
+```
+
+`r if (is.null(pa_strat)) "(no stratified pathway data)"`
+
+### Top organism contributions to top pathways
+
+```{r strat_per_feat_pa, eval = !is.null(pa_strat)}
+pf <- per_feature_top_org(pa_strat, top_features = 5, top_org_per = 5)
+if (!is.null(pf) && nrow(pf) > 0) {
+  disp <- data.frame(Pathway = pf$BaseFeature,
+                     Organism = pf$SpeciesLabel,
+                     `CPM` = round(pf$Value, 2),
+                     check.names = FALSE)
+  knitr::kable(disp, row.names = FALSE)
+}
+```
+
+### Top organism contributions to top reactions
+
+```{r strat_per_feat_rx, eval = !is.null(rx_strat)}
+pf <- per_feature_top_org(rx_strat, top_features = 5, top_org_per = 5)
+if (!is.null(pf) && nrow(pf) > 0) {
+  disp <- data.frame(Reaction = pf$BaseFeature,
+                     Organism = pf$SpeciesLabel,
+                     `CPM` = round(pf$Value, 2),
+                     check.names = FALSE)
+  knitr::kable(disp, row.names = FALSE)
+}
+```
+
+### Top organisms overall (reactions)
+
+```{r strat_bar_rx, fig.height = 6, eval = !is.null(rx_strat)}
+top_rx <- top_organisms(rx_strat, n = 20)
+if (!is.null(top_rx) && nrow(top_rx) > 0) {
+  top_rx$SpeciesLabel <- factor(top_rx$SpeciesLabel, levels = rev(top_rx$SpeciesLabel))
+  ggplot(top_rx, aes(x = SpeciesLabel, y = Value)) +
+    geom_col(fill = "#8FA9B8") +
+    coord_flip() +
+    labs(title = "Top 20 organisms (summed CPM across all reactions)",
+         x = NULL, y = "Summed CPM") +
+    theme_minimal(base_size = 11) +
+    theme(axis.text.y = element_text(size = 8, face = "italic"))
+}
+```
+
+`r if (is.null(rx_strat)) "(no stratified reactions data)"`
+
+### Top organisms overall (gene families)
+
+```{r strat_bar_gf, fig.height = 6, eval = !is.null(gf_strat)}
+top_gf <- top_organisms(gf_strat, n = 20)
+if (!is.null(top_gf) && nrow(top_gf) > 0) {
+  top_gf$SpeciesLabel <- factor(top_gf$SpeciesLabel, levels = rev(top_gf$SpeciesLabel))
+  ggplot(top_gf, aes(x = SpeciesLabel, y = Value)) +
+    geom_col(fill = "#3A5060") +
+    coord_flip() +
+    labs(title = "Top 20 organisms (summed CPM across all gene families)",
+         x = NULL, y = "Summed CPM") +
+    theme_minimal(base_size = 11) +
+    theme(axis.text.y = element_text(size = 8, face = "italic"))
+}
+```
+
+`r if (is.null(gf_strat)) "(no stratified gene families data)"`
+
+### Top organism contributions to top gene families
+
+```{r strat_per_feat_gf, eval = !is.null(gf_strat)}
+pf <- per_feature_top_org(gf_strat, top_features = 5, top_org_per = 5)
+if (!is.null(pf) && nrow(pf) > 0) {
+  disp <- data.frame(`Gene family` = pf$BaseFeature,
+                     Organism = pf$SpeciesLabel,
+                     `CPM` = round(pf$Value, 2),
+                     check.names = FALSE)
+  knitr::kable(disp, row.names = FALSE)
+}
+```
+
+### Top organisms overall (KEGG KOs)
+
+```{r strat_bar_ko, fig.height = 6, eval = !is.null(ko_strat)}
+top_ko <- top_organisms(ko_strat, n = 20)
+if (!is.null(top_ko) && nrow(top_ko) > 0) {
+  top_ko$SpeciesLabel <- factor(top_ko$SpeciesLabel, levels = rev(top_ko$SpeciesLabel))
+  ggplot(top_ko, aes(x = SpeciesLabel, y = Value)) +
+    geom_col(fill = "#6E8D9E") +
+    coord_flip() +
+    labs(title = "Top 20 organisms (summed CPM across all KEGG KOs)",
+         x = NULL, y = "Summed CPM") +
+    theme_minimal(base_size = 11) +
+    theme(axis.text.y = element_text(size = 8, face = "italic"))
+}
+```
+
+`r if (is.null(ko_strat)) "(no stratified KEGG KO data — KO regroup may not have been run, or the run was translated-only)"`
+
+### Top organism contributions to top KEGG KOs
+
+```{r strat_per_feat_ko, eval = !is.null(ko_strat)}
+pf <- per_feature_top_org(ko_strat, top_features = 5, top_org_per = 5)
+if (!is.null(pf) && nrow(pf) > 0) {
+  disp <- data.frame(`KEGG KO` = pf$BaseFeature,
+                     Organism = pf$SpeciesLabel,
+                     `CPM` = round(pf$Value, 2),
+                     check.names = FALSE)
+  knitr::kable(disp, row.names = FALSE)
+}
+```
+
 ## Output files
 
 ```{r files_table}

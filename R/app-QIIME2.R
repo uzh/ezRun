@@ -208,10 +208,13 @@ ezMethodQIIME2 = function(
     } else {
       NULL
     }
-    # Path to the stratified per-ASV contribution table (from --stratified).
-    # The Rmd's "ASV contributors" tab reads this to show top contributors.
+    # Absolute path to the stratified per-ASV contribution table. Must be
+    # absolute: fastp_reports/contrib are resolved at render time, when the CWD
+    # has moved into Results_Folder (setwdNew below), so a relative name would
+    # no longer point at the scratch-root file. The Rmd reads this at render
+    # time (scratch still alive) to build the "ASV contributors" table.
     picrust2_contrib <- if (file.exists("picrust2_contrib.tsv")) {
-      "picrust2_contrib.tsv"
+      normalizePath("picrust2_contrib.tsv")
     } else {
       NULL
     }
