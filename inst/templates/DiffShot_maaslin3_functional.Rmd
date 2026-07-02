@@ -86,15 +86,21 @@ if (!(grouping %in% colnames(md)))
 keepGroup <- md[[grouping]] %in% c(sampleGroup, refGroup)
 md <- md[keepGroup, , drop = FALSE]
 md[[grouping]] <- factor(md[[grouping]], levels = c(refGroup, sampleGroup))
+
+## Rendered as a markdown snippet by the Input section below. Kept out of
+## the inline `r ...` expression on purpose: backticks inside inline R
+## terminate the expression early and break knitr's parser.
+funcTablesLabel <- paste(sprintf("`%s`", names(funcTables)), collapse = ", ")
+covariatesLabel <- if (length(covariates)) paste(covariates, collapse = ", ") else "(none beyond ReadDepth)"
 ```
 
 # Input
 
 - Source type: **HUMAnN functional tables**
 - Grouping: **`r grouping`** (contrast: `r sampleGroup` vs `r refGroup`)
-- Covariates: `r if (length(covariates)) paste(covariates, collapse = ", ") else "(none beyond ReadDepth)"`
+- Covariates: `r covariatesLabel`
 - Samples after filters: `r nrow(md)`
-- Feature tables available: `r paste(sprintf("`%s`", names(funcTables)), collapse = ", ")`
+- Feature tables available: `r funcTablesLabel`
 
 # Per-table MaAsLin3 {.tabset}
 
