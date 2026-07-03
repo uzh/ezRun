@@ -23,7 +23,6 @@ library(dplyr)
 library(tibble)
 library(stringr)
 library(DT)
-library(kableExtra)
 library(maaslin3)
 ```
 
@@ -91,8 +90,7 @@ rownames(md) <- md$SampleID
 md$SampleID  <- NULL
 if (length(samplesDrop) > 0) md <- md[!rownames(md) %in% samplesDrop, , drop = FALSE]
 if (!(grouping %in% colnames(md)))
-  stop(sprintf("grouping column '%s' not found in sample metadata. ",
-               "Available [Factor] columns: %s",
+  stop(sprintf("grouping column '%s' not found in sample metadata. Available [Factor] columns: %s",
                grouping, paste(colnames(md), collapse = ", ")))
 keepGroup <- md[[grouping]] %in% c(sampleGroup, refGroup)
 md <- md[keepGroup, , drop = FALSE]
@@ -113,7 +111,7 @@ covariatesLabel <- if (length(covariates)) paste(covariates, collapse = ", ") el
 - Samples after filters: `r nrow(md)`
 - Feature tables available: `r funcTablesLabel`
 
-# Per-table MaAsLin3 {.tabset}
+# MaAsLin3 output {.tabset}
 
 ```{r helpers, include=FALSE}
 ## Persisted CSV outputs live here so users can download them
@@ -145,6 +143,23 @@ save_csv <- function(df, fname) {
   fp <- file.path(results_dir, fname)
   write.csv(df, fp, row.names = FALSE)
   fp
+}
+
+## Emit a ggplot as an inline <img> with a base64 data URI. Written as
+## cat() output so the plot lands exactly where it is called in a
+## results='asis' chunk - avoids the async ordering issue where
+## print(ggplot) and print(htmlwidget) go through different knitr
+## output queues and reshuffle the DOM (plot leaking into the wrong
+## tab, plots landing before their table, etc.).
+plot_to_html <- function(g, width_in = 10, height_in = 6, dpi = 100) {
+  if (is.null(g)) return(invisible(NULL))
+  tf <- tempfile(fileext = ".png")
+  on.exit(unlink(tf), add = TRUE)
+  ggplot2::ggsave(tf, plot = g, width = width_in, height = height_in,
+                  dpi = dpi, units = "in")
+  uri <- knitr::image_uri(tf)
+  cat(sprintf('<img src="%s" style="max-width:100%%;height:auto;" />\n\n', uri))
+  invisible(NULL)
 }
 
 ## Read a humann_join_tables output, recover bare sample IDs.
@@ -215,7 +230,7 @@ run_one <- function(mat, md, tableTag) {
       )
     )),
     error   = function(e) list(error = conditionMessage(e)),
-    finally = sink()
+    finally = if (sink.number() > 0) sink()
   )
   if (!is.null(res$error)) return(list(err = res$error))
 
@@ -315,6 +330,9 @@ for (tag in names(funcTables)) {
               allCsv, sigCsv))
 
   ## Interactive table with copy/CSV/Excel buttons and column filters.
+  ## Emit via renderTags + cat so it lands in the same output stream as
+  ## the surrounding cat()/plot HTML - print(tagList(widget)) in a
+  ## results='asis' loop reorders widgets against plot images.
   showTbl <- if (nrow(sig) > 0) sig else
              head(resDf[order(resDf$qval_individual), ], 30)
   showCaption <- if (nrow(sig) > 0)
@@ -323,18 +341,30 @@ for (tag in names(funcTables)) {
   else
     sprintf("MaAsLin3 top 30 by q-value - %s (no association passed q <= %g)",
             label_for(tag), maaslinMaxSig)
-  print(htmltools::tagList(dt(showTbl, caption = showCaption)))
-  cat("\n\n")
+  cat("\n### Results table\n\n")
+  tblTags <- htmltools::renderTags(dt(showTbl, caption = showCaption))
+  knitr::knit_meta_add(tblTags$dependencies)
+  cat(tblTags$html, "\n\n")
 
-  ## Coefficient plot
+  ## Coefficient plot (only when at least one significant association).
+  cat("\n### Coefficient plot\n\n")
   cp <- coef_plot(resDf, sprintf("%s — significant associations", label_for(tag)))
-  if (!is.null(cp)) print(cp)
-  cat("\n\n")
+  if (!is.null(cp)) {
+    plot_to_html(cp, width_in = 10, height_in = 6)
+  } else {
+    cat(sprintf("*No associations passed q <= %g for %s — coefficient plot omitted.*\n\n",
+                maaslinMaxSig, label_for(tag)))
+  }
 
-  ## Volcano plot
+  ## Volcano plot (rendered whenever there are plottable rows).
+  cat("\n### Volcano\n\n")
   vp <- volcano_plot(resDf, sprintf("%s — volcano (coef vs q)", label_for(tag)))
-  if (!is.null(vp)) print(vp)
-  cat("\n\n")
+  if (!is.null(vp)) {
+    plot_to_html(vp, width_in = 10, height_in = 6)
+  } else {
+    cat(sprintf("*No finite (coef, qval) pairs for metadata `%s` — volcano omitted.*\n\n",
+                grouping))
+  }
 }
 ```
 
@@ -343,5 +373,5 @@ for (tag in names(funcTables)) {
 - Input: HUMAnN 4 alpha per-sample outputs joined via `humann_join_tables` (substring match on `genefamilies` / `reactions` / `pathabundance`). Stratified rows (`|s__`, `|t__SGB`) and HUMAnN special rows (`UNMAPPED` / `UNINTEGRATED` / `UNGROUPED` / `READS_UNMAPPED`) are dropped.
 - Filter: prevalence ≥ `r prevMin` AND pooled relative abundance ≥ `r relabMin`%.
 - Model: `~ grouping + covariates + ReadDepth` (ReadDepth = column sum, always added).
-- MaAsLin3 options: `normalization = "NONE"` (HUMAnN tables are already CPM-normalised), `transform = "LOG"`, `standardize = TRUE`, `max_significance = `r maaslinMaxSig``.
+- MaAsLin3 options: `normalization = "NONE"` (HUMAnN tables are already CPM-normalised), `transform = "LOG"`, `standardize = TRUE`, max_significance = `r maaslinMaxSig`.
 - One MaAsLin3 run per available functional table; results dirs sit at `maaslin3_<tag>/`.

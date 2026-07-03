@@ -47,19 +47,36 @@ if (isTRUE(params$forced)) {
 log_path <- params$humannLog
 if (nzchar(log_path) && file.exists(log_path)) {
   ln <- readLines(log_path, warn = FALSE)
+  ## HUMAnN log lines look like
+  ##   07/02/2026 08:58:12 PM - humann.humann - INFO: <metric>: <value>
+  ## The value is always the tail after the LAST colon; the metric name
+  ## itself contains colons (in the timestamp and after "INFO"), so
+  ## anchoring the strip to the first colon leaks the timestamp/level
+  ## prefix into the value cell.
   pick <- function(pat) {
     m <- grep(pat, ln, value = TRUE)
     if (length(m) == 0) return("(not found in log)")
-    sub("^[^:]*:\\s*", "", tail(m, 1))
+    trimws(sub(".*:\\s*", "", tail(m, 1)))
+  }
+  ## Turn "66.44 %" into "33.56 % aligned"; return the raw value if it
+  ## isn't a percentage (e.g. HUMAnN didn't log this metric this run).
+  as_aligned_pct <- function(v) {
+    if (identical(v, "(not found in log)")) return(v)
+    m <- regmatches(v, regexpr("[0-9.]+", v))
+    if (length(m) == 0) return(v)
+    n <- suppressWarnings(as.numeric(m))
+    if (is.na(n)) return(v)
+    sprintf("%.2f %% aligned", 100 - n)
   }
   rows <- list(
-    c("Total reads (input)",                          pick("Total reads")),
-    c("Reads aligned (nucleotide tier-1, full only)", pick("Unaligned reads after nucleotide alignment")),
-    c("Reads aligned (after translated tier-2)",      pick("Unaligned reads after translated alignment")),
-    c("Total gene families",                          pick("^Total gene families"))
+    c("Reads aligned (nucleotide tier-1, full only)",
+      as_aligned_pct(pick("Unaligned reads after nucleotide alignment"))),
+    c("Reads aligned (after translated tier-2)",
+      as_aligned_pct(pick("Unaligned reads after translated alignment"))),
+    c("Total gene families", pick("^Total gene families"))
   )
   tbl <- do.call(rbind, lapply(rows, function(x) data.frame(Metric = x[1], Value = x[2])))
-  knitr::kable(tbl, row.names = FALSE)
+  print(knitr::kable(tbl, row.names = FALSE))
 } else {
   cat("HUMAnN log not found at `", log_path, "`\n", sep = "")
 }

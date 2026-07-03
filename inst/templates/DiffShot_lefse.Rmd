@@ -1,6 +1,6 @@
 ## LEfSe {.tabset}
 
-> :information_source: **LEfSe runs unadjusted by design** — non-parametric
+> **Note — LEfSe runs unadjusted by design.** Non-parametric
 > Kruskal–Wallis + LDA on relative abundance with no covariate term. This SUSHI
 > app therefore does not expose a covariate selector. If you need adjustment
 > for batch / age / sex, run DiffShotALDEx, DiffShotANCOMBC or DiffShotMaAsLin3

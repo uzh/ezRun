@@ -415,8 +415,8 @@ if (length(da_covariates)) {
           full_width = FALSE, position = "left"))
     cat("\n\n")
     if (any(tab < 3))
-      cat("> :warning: Some cells have < 3 samples - covariate-adjusted models\n",
-          "  that include `", cv, "` may be unstable.\n\n", sep = "")
+      cat("> **Warning:** some cells have < 3 samples - covariate-adjusted models\n",
+          "> that include `", cv, "` may be unstable.\n\n", sep = "")
   }
 }
 ```
