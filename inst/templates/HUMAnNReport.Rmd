@@ -125,39 +125,40 @@ gf <- read_humann(params$gfCpmFile)
 
 ### MetaCyc pathways
 
-`r if (is.null(pa)) "(no pathway abundance table)" else sprintf("%d community-level pathways detected.", nrow(pa))`
+`r if (is.null(pa)) "(no pathway abundance table)" else if (nrow(pa) == 0) "(no community-level pathways detected)" else sprintf("%d community-level pathways detected.", nrow(pa))`
 
 ```{r pathway_plot, fig.height = 6}
-if (!is.null(pa)) print(bar_top(pa, "Top 20 MetaCyc pathways"))
+if (!is.null(pa) && nrow(pa) > 0) print(bar_top(pa, "Top 20 MetaCyc pathways"))
 ```
 
 ```{r pathway_table}
-if (!is.null(pa)) knitr::kable(top_n_table(pa, 20), row.names = FALSE,
-                                col.names = c("Pathway", "Abundance"))
+pa_tbl <- top_n_table(pa, 20)
+if (!is.null(pa_tbl)) knitr::kable(pa_tbl, row.names = FALSE,
+                                    col.names = c("Pathway", "Abundance"))
 ```
 
 ### MetaCyc reactions
 
-`r if (is.null(rx)) "(no reactions table)" else sprintf("%d community-level reactions detected.", nrow(rx))`
+`r if (is.null(rx)) "(no reactions table)" else if (nrow(rx) == 0) "(no community-level reactions detected)" else sprintf("%d community-level reactions detected.", nrow(rx))`
 
 ```{r reactions_plot, fig.height = 6}
-if (!is.null(rx)) print(bar_top(rx, "Top 20 MetaCyc reactions"))
+if (!is.null(rx) && nrow(rx) > 0) print(bar_top(rx, "Top 20 MetaCyc reactions"))
 ```
 
 ### KEGG KO
 
-`r if (is.null(ko)) "(KEGG KO regroup not run or failed; HUMAnN 4 alpha utility_mapping covers EC-annotated KOs only.)" else sprintf("%d community-level KOs detected (EC-mapped subset only).", nrow(ko))`
+`r if (is.null(ko)) "(KEGG KO regroup not run or failed; HUMAnN 4 alpha utility_mapping covers EC-annotated KOs only.)" else if (nrow(ko) == 0) "(no community-level KOs detected)" else sprintf("%d community-level KOs detected (EC-mapped subset only).", nrow(ko))`
 
 ```{r ko_plot, fig.height = 6}
-if (!is.null(ko)) print(bar_top(ko, "Top 20 KEGG KOs"))
+if (!is.null(ko) && nrow(ko) > 0) print(bar_top(ko, "Top 20 KEGG KOs"))
 ```
 
 ### Gene families (community level)
 
-`r if (is.null(gf)) "(no gene families table)" else sprintf("%d community-level UniRef90-EC + UniClust90 gene families detected.", nrow(gf))`
+`r if (is.null(gf)) "(no gene families table)" else if (nrow(gf) == 0) "(no community-level gene families detected)" else sprintf("%d community-level UniRef90-EC + UniClust90 gene families detected.", nrow(gf))`
 
 ```{r gf_plot, fig.height = 6}
-if (!is.null(gf)) print(bar_top(gf, "Top 20 gene families"))
+if (!is.null(gf) && nrow(gf) > 0) print(bar_top(gf, "Top 20 gene families"))
 ```
 
 ## Stratification per organism
