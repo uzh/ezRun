@@ -407,35 +407,6 @@ for (i in seq_len(nrow(qcThresholds))) {
 }
 ```
 
-```{r quick view flag summary, echo=FALSE, eval=nrow(flagSummaryTable) > 0}
-maxAffected <- max(flagSummaryTable$SamplesAffected, 0, na.rm = TRUE)
-yDtick <- max(1, ceiling(maxAffected / 8))
-plot_ly(
-  data = flagSummaryTable,
-  x = ~Flag,
-  y = ~SamplesAffected,
-  type = "bar",
-  marker = list(color = "#4c78a8"),
-  hovertemplate = paste(
-    "Flag: %{x}",
-    "<br>Samples affected: %{y}",
-    "<extra></extra>"
-  )
-) %>%
-  layout(
-    title = "Samples affected per QC flag",
-    xaxis = list(title = "", tickangle = 45),
-    yaxis = list(
-      title = "Samples affected",
-      tickmode = "linear",
-      tick0 = 0,
-      dtick = yDtick,
-      tickformat = "d",
-      range = c(0, maxAffected + 2)
-    )
-  )
-```
-
 ## Alignment & Coverage
 
 Review-priority ordering is shared across plots in this tab. Dashed line marks the review threshold.
