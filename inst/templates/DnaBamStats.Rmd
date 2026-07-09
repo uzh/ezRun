@@ -565,8 +565,14 @@ if (hasMultiMatch) {
 ```
 
 ```{r multi-matching plot, echo=FALSE, eval=hasMmCounts}
+# Two columns for small cohorts; stack to one column once the per-sample bars
+# would get too narrow side by side.
+mmGridCols <- if (length(reviewOrder) > 10) "1fr" else "1fr 1fr"
 htmltools::div(
-  style = "display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;",
+  style = paste0(
+    "display:grid;grid-template-columns:", mmGridCols,
+    ";gap:16px;align-items:start;"
+  ),
   alignmentCountBarPlotDna(mmCounts, relative = FALSE),
   alignmentCountBarPlotDna(mmCounts, relative = TRUE)
 )
