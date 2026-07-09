@@ -128,18 +128,30 @@ render_sample_image_gallery <- function(colName, emptyMsg) {
     return(invisible(NULL))
   }
   pathBySample <- setNames(resourceTable[[colName]], resourceTable$Sample)
-  shown <- 0
+  items <- character(0)
   for (sm in reviewOrder) {
     p <- pathBySample[[sm]]
     if (!is.null(p) && !is.na(p) && p != "" && file.exists(p)) {
-      cat("**", sm, "**\n\n", sep = "")
-      cat("![](", p, "){width=470px}\n\n", sep = "")
-      shown <- shown + 1
+      items <- c(
+        items,
+        paste0(
+          '<figure style="margin:0;">',
+          '<figcaption style="font-weight:500;font-size:13px;margin-bottom:4px;word-break:break-all;">',
+          sm,
+          '</figcaption>',
+          '<img src="', p, '" style="width:100%;height:auto;">',
+          '</figure>'
+        )
+      )
     }
   }
-  if (shown == 0) {
+  if (length(items) == 0) {
     cat(emptyMsg, "\n\n")
+    return(invisible(NULL))
   }
+  cat('\n<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start;">\n')
+  cat(paste(items, collapse = "\n"))
+  cat("\n</div>\n\n")
   invisible(NULL)
 }
 
