@@ -139,8 +139,6 @@ get_dna_bamstats_skeleton <- function(
     pctCov1x = NA_real_,
     pctCov10x = NA_real_,
     pctCov20x = NA_real_,
-    coverageSD = NA_real_,
-    coverageCV = NA_real_,
     meanInsertSize = NA_real_,
     medianInsertSize = NA_real_,
     meanMapQuality = NA_real_,
@@ -324,8 +322,6 @@ get_dna_bamstats_overview_table <- function(samples, resultList) {
     PctCov1x = "pctCov1x",
     PctCov10x = "pctCov10x",
     PctCov20x = "pctCov20x",
-    CoverageSD = "coverageSD",
-    CoverageCV = "coverageCV",
     MeanInsertSize = "meanInsertSize",
     MedianInsertSize = "medianInsertSize",
     MeanMapQuality = "meanMapQuality",
@@ -439,8 +435,6 @@ get_dna_bamstats_full_summary_table <- function(overviewTable, qcThresholds) {
     "PctCov1x",
     "PctCov10x",
     "PctCov20x",
-    "CoverageSD",
-    "CoverageCV",
     "MeanInsertSize",
     "MedianInsertSize",
     "MeanMapQuality",
@@ -862,10 +856,6 @@ get_dna_qualimap_stats <- function(
       allData,
       "mean coverageData = "
     ),
-    coverageSD = get_qualimap_coverage(
-      allData,
-      "std coverageData = "
-    ),
     pctCov1x = get_dna_qualimap_coverage_breadth(allData, 1),
     pctCov10x = get_dna_qualimap_coverage_breadth(allData, 10),
     pctCov20x = get_dna_qualimap_coverage_breadth(allData, 20),
@@ -916,16 +906,6 @@ get_dna_qualimap_stats <- function(
     if (!is.na(dupReads) && !is.na(qualimapReads) && qualimapReads > 0) {
       parsed$dupRate <- 100 * dupReads / qualimapReads
     }
-  }
-
-  parsed$coverageCV <- if (
-    !is.na(parsed$coverageSD) &&
-      !is.na(parsed$avgCoverage) &&
-      parsed$avgCoverage > 0
-  ) {
-    parsed$coverageSD / parsed$avgCoverage
-  } else {
-    NA_real_
   }
 
   parsed$notes <- paste(
