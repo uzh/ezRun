@@ -447,6 +447,71 @@ subplot(
 )
 ```
 
+### Coverage depth & breadth
+
+Descriptive in v1 (no QC flags). Percent of reference at ≥1x / ≥20x is in the Full Sample Summary.
+
+```{r coverage breadth plots, echo=FALSE}
+subplot(
+  make_metric_plot(
+    metricName = "PctCov10x",
+    title = "Reference covered ≥ 10x",
+    unit = "%",
+    showLabels = TRUE,
+    thresholded = FALSE
+  ),
+  make_metric_plot(
+    metricName = "CoverageCV",
+    title = "Coverage evenness (CV = SD / mean)",
+    unit = "",
+    showLabels = FALSE,
+    thresholded = FALSE
+  ),
+  nrows = 1,
+  shareY = TRUE,
+  margin = 0.04,
+  widths = c(0.5, 0.5),
+  titleX = TRUE,
+  titleY = TRUE
+)
+```
+
+### Library metrics
+
+Descriptive in v1 (no QC flags). Insert-size metrics are shown for paired-end data only.
+
+```{r library metric plots, echo=FALSE}
+subplot(
+  make_metric_plot(
+    metricName = "MeanInsertSize",
+    title = "Mean insert size",
+    unit = " bp",
+    showLabels = TRUE,
+    thresholded = FALSE
+  ),
+  make_metric_plot(
+    metricName = "GcContent",
+    title = "GC content",
+    unit = "%",
+    showLabels = FALSE,
+    thresholded = FALSE
+  ),
+  make_metric_plot(
+    metricName = "MeanMapQuality",
+    title = "Mean mapping quality",
+    unit = "",
+    showLabels = FALSE,
+    thresholded = FALSE
+  ),
+  nrows = 1,
+  shareY = TRUE,
+  margin = 0.04,
+  widths = c(0.34, 0.33, 0.33),
+  titleX = TRUE,
+  titleY = TRUE
+)
+```
+
 ### Multi-Matching Reported In BAM File
 
 ```{r multi-matching data, echo=FALSE}

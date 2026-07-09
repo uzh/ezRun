@@ -136,6 +136,15 @@ get_dna_bamstats_skeleton <- function(
     optDuplicates = NA_real_,
     readPairs = NA_real_,
     opticalDupRate = NA_real_,
+    pctCov1x = NA_real_,
+    pctCov10x = NA_real_,
+    pctCov20x = NA_real_,
+    coverageSD = NA_real_,
+    coverageCV = NA_real_,
+    meanInsertSize = NA_real_,
+    medianInsertSize = NA_real_,
+    meanMapQuality = NA_real_,
+    gcContent = NA_real_,
     fragmentSizePlot = NULL,
     libComplexityPlot = NULL,
     notes = "Dataset-level DNA BAM QC metrics collected for cohort reporting.",
@@ -306,60 +315,44 @@ build_dna_bamstats_report_data <- function(dataset, resultList) {
 ##' @return Data frame with one row per sample and one column per metric.
 ##' @template roxygen-template
 get_dna_bamstats_overview_table <- function(samples, resultList) {
-  overviewTable <- data.frame(
-    Sample = samples,
-    MappingRate = vapply(
-      samples,
-      function(sm) resultList[[sm]]$mappingRate,
-      numeric(1)
-    ),
-    DuplicationRate = vapply(
-      samples,
-      function(sm) resultList[[sm]]$dupRate,
-      numeric(1)
-    ),
-    OpticalDupRate = vapply(
-      samples,
-      function(sm) resultList[[sm]]$opticalDupRate,
-      numeric(1)
-    ),
-    AverageCoverage = vapply(
-      samples,
-      function(sm) resultList[[sm]]$avgCoverage,
-      numeric(1)
-    ),
-    ErrorRate = vapply(
-      samples,
-      function(sm) resultList[[sm]]$errorRate,
-      numeric(1)
-    ),
-    InsertionRate = vapply(
-      samples,
-      function(sm) resultList[[sm]]$insertRate,
-      numeric(1)
-    ),
-    DeletionRate = vapply(
-      samples,
-      function(sm) resultList[[sm]]$delRate,
-      numeric(1)
-    ),
-    AllDuplicates = vapply(
-      samples,
-      function(sm) resultList[[sm]]$allDuplicates,
-      numeric(1)
-    ),
-    OpticalDuplicates = vapply(
-      samples,
-      function(sm) resultList[[sm]]$optDuplicates,
-      numeric(1)
-    ),
-    ReadPairs = vapply(
-      samples,
-      function(sm) resultList[[sm]]$readPairs,
-      numeric(1)
-    ),
-    stringsAsFactors = FALSE
+  ## Display column -> per-sample result field. Extend this map to add metrics.
+  metricFields <- c(
+    MappingRate = "mappingRate",
+    DuplicationRate = "dupRate",
+    OpticalDupRate = "opticalDupRate",
+    AverageCoverage = "avgCoverage",
+    PctCov1x = "pctCov1x",
+    PctCov10x = "pctCov10x",
+    PctCov20x = "pctCov20x",
+    CoverageSD = "coverageSD",
+    CoverageCV = "coverageCV",
+    MeanInsertSize = "meanInsertSize",
+    MedianInsertSize = "medianInsertSize",
+    MeanMapQuality = "meanMapQuality",
+    GcContent = "gcContent",
+    ErrorRate = "errorRate",
+    InsertionRate = "insertRate",
+    DeletionRate = "delRate",
+    AllDuplicates = "allDuplicates",
+    OpticalDuplicates = "optDuplicates",
+    ReadPairs = "readPairs"
   )
+
+  overviewTable <- data.frame(Sample = samples, stringsAsFactors = FALSE)
+  for (colName in names(metricFields)) {
+    field <- metricFields[[colName]]
+    overviewTable[[colName]] <- vapply(
+      samples,
+      function(sm) {
+        value <- resultList[[sm]][[field]]
+        if (is.null(value) || length(value) != 1) {
+          return(NA_real_)
+        }
+        as.numeric(value)
+      },
+      numeric(1)
+    )
+  }
 
   return(overviewTable)
 }
@@ -443,6 +436,15 @@ get_dna_bamstats_full_summary_table <- function(overviewTable, qcThresholds) {
     "DuplicationRate",
     "OpticalDupRate",
     "AverageCoverage",
+    "PctCov1x",
+    "PctCov10x",
+    "PctCov20x",
+    "CoverageSD",
+    "CoverageCV",
+    "MeanInsertSize",
+    "MedianInsertSize",
+    "MeanMapQuality",
+    "GcContent",
     "ErrorRate",
     "InsertionRate",
     "DeletionRate",
@@ -860,6 +862,32 @@ get_dna_qualimap_stats <- function(
       allData,
       "mean coverageData = "
     ),
+    coverageSD = get_qualimap_coverage(
+      allData,
+      "std coverageData = "
+    ),
+    pctCov1x = get_dna_qualimap_coverage_breadth(allData, 1),
+    pctCov10x = get_dna_qualimap_coverage_breadth(allData, 10),
+    pctCov20x = get_dna_qualimap_coverage_breadth(allData, 20),
+    meanInsertSize = get_qualimap_value(
+      allData,
+      "mean insert size = ",
+      strip = ","
+    ),
+    medianInsertSize = get_qualimap_value(
+      allData,
+      "median insert size = ",
+      strip = ","
+    ),
+    meanMapQuality = get_qualimap_value(
+      allData,
+      "mean mapping quality = "
+    ),
+    gcContent = get_qualimap_value(
+      allData,
+      "GC percentage = ",
+      strip = "%"
+    ),
     qualimapDir = qualimapDir
   )
 
@@ -888,6 +916,16 @@ get_dna_qualimap_stats <- function(
     if (!is.na(dupReads) && !is.na(qualimapReads) && qualimapReads > 0) {
       parsed$dupRate <- 100 * dupReads / qualimapReads
     }
+  }
+
+  parsed$coverageCV <- if (
+    !is.na(parsed$coverageSD) &&
+      !is.na(parsed$avgCoverage) &&
+      parsed$avgCoverage > 0
+  ) {
+    parsed$coverageSD / parsed$avgCoverage
+  } else {
+    NA_real_
   }
 
   parsed$notes <- paste(
@@ -1176,6 +1214,29 @@ get_qualimap_read_count <- function(lines, prefix) {
     prefix = prefix,
     strip = c(",", "%")
   )
+}
+
+##' @title Parse coverage breadth from Qualimap text output
+##' @description Extract the percent of reference covered at >= x-fold depth
+##' from a `There is a N% of reference with a coverageData >= xX` line.
+##' @param lines Character vector read from `genome_results.txt`.
+##' @param xThreshold Integer coverage-depth threshold.
+##' @return Numeric percent or `NA_real_`.
+##' @template roxygen-template
+get_dna_qualimap_coverage_breadth <- function(lines, xThreshold) {
+  pattern <- paste0("coverageData >= ", xThreshold, "X")
+  idx <- grep(pattern, lines, fixed = TRUE)
+  if (length(idx) == 0) {
+    return(NA_real_)
+  }
+  matched <- regmatches(
+    lines[idx[1]],
+    regexpr("[0-9.]+% of reference", lines[idx[1]])
+  )
+  if (length(matched) == 0) {
+    return(NA_real_)
+  }
+  suppressWarnings(as.numeric(sub("% of reference", "", matched)))
 }
 
 ##' @title Coerce a scalar legacy metric to numeric
