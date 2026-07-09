@@ -564,9 +564,12 @@ if (hasMultiMatch) {
 }
 ```
 
-```{r multi-matching plot, echo=FALSE, eval=hasMmCounts, fig.height=8, fig.width=mmPlotWidth}
-alignmentCountBarPlotDna(mmCounts, relative = FALSE)
-alignmentCountBarPlotDna(mmCounts, relative = TRUE)
+```{r multi-matching plot, echo=FALSE, eval=hasMmCounts}
+htmltools::div(
+  style = "display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;",
+  alignmentCountBarPlotDna(mmCounts, relative = FALSE),
+  alignmentCountBarPlotDna(mmCounts, relative = TRUE)
+)
 ```
 
 ```{r multi-matching fallback, echo=FALSE, results='asis', eval=!hasMmCounts}
