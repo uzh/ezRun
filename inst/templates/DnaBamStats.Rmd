@@ -194,7 +194,8 @@ make_metric_plot <- function(
   title,
   unit = "",
   showLabels = FALSE,
-  thresholded = TRUE
+  thresholded = TRUE,
+  xMax = NULL
 ) {
   plotData <- plotDataBase
 
@@ -253,9 +254,13 @@ make_metric_plot <- function(
   ) %>%
     layout(
       height = metricPlotHeight,
-      xaxis = list(
-        title = if (nzchar(unit)) paste0(title, " (", trimws(unit), ")") else title,
-        rangemode = "tozero"
+      xaxis = c(
+        list(title = if (nzchar(unit)) paste0(title, " (", trimws(unit), ")") else title),
+        if (is.null(xMax)) {
+          list(rangemode = "tozero")
+        } else {
+          list(range = c(0, xMax))
+        }
       ),
       yaxis = list(
         title = "",
@@ -450,7 +455,8 @@ subplot(
     title = "Mapping rate",
     unit = "%",
     showLabels = TRUE,
-    thresholded = TRUE
+    thresholded = TRUE,
+    xMax = 100
   ),
   make_metric_plot(
     metricName = "AverageCoverage",
@@ -464,7 +470,8 @@ subplot(
     title = "Reference covered ≥ 10x",
     unit = "%",
     showLabels = FALSE,
-    thresholded = FALSE
+    thresholded = FALSE,
+    xMax = 100
   ),
   nrows = 1,
   shareY = TRUE,
@@ -584,14 +591,16 @@ subplot(
     title = "Duplication rate",
     unit = "%",
     showLabels = TRUE,
-    thresholded = TRUE
+    thresholded = TRUE,
+    xMax = 100
   ),
   make_metric_plot(
     metricName = "OpticalDupRate",
     title = "Optical duplication rate",
     unit = "%",
     showLabels = FALSE,
-    thresholded = TRUE
+    thresholded = TRUE,
+    xMax = 100
   ),
   nrows = 1,
   shareY = TRUE,
