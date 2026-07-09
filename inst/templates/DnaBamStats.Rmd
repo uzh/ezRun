@@ -423,6 +423,8 @@ for (noteText in legacyAvailabilityNotes$alignment) {
 }
 ```
 
+### Mapping & coverage
+
 ```{r alignment and coverage plots, echo=FALSE}
 subplot(
   make_metric_plot(
