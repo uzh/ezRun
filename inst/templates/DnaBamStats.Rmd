@@ -385,7 +385,8 @@ for (i in seq_len(nrow(qcThresholds))) {
 ```
 
 ```{r quick view flag summary, echo=FALSE, eval=nrow(flagSummaryTable) > 0}
-yDtick <- max(1, ceiling(max(flagSummaryTable$SamplesAffected, 0, na.rm = TRUE) / 8))
+maxAffected <- max(flagSummaryTable$SamplesAffected, 0, na.rm = TRUE)
+yDtick <- max(1, ceiling(maxAffected / 8))
 plot_ly(
   data = flagSummaryTable,
   x = ~Flag,
@@ -407,7 +408,7 @@ plot_ly(
       tick0 = 0,
       dtick = yDtick,
       tickformat = "d",
-      rangemode = "tozero"
+      range = c(0, maxAffected + 2)
     )
   )
 ```
