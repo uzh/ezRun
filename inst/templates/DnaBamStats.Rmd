@@ -331,73 +331,58 @@ if ("TriggeredFlags" %in% colnames(fullSummaryTableDisplay)) {
 ## Quick View
 `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
 
-```{r quick view table, echo=FALSE}
-htmltools::div(
-  class = "dna-bamstats-table",
-  DT::datatable(
-    quickViewTable,
-    rownames = FALSE,
-    options = list(
-      dom = "ftip",
-      pageLength = min(max(nrow(quickViewTable), 5), 25),
-      order = list(list(1, "desc"), list(0, "asc")),
-      autoWidth = TRUE,
-      columnDefs = list(
-        list(
-          targets = 2,
-          render = JS(
-            "function(data, type, row, meta) {",
-            "  if (type !== 'display') { return data; }",
-            "  if (data === null || data === '' || isNaN(data)) { return 'NA'; }",
-            "  return Number(data).toFixed(1) + '%';",
-            "}"
-          )
-        ),
-        list(
-          targets = 3,
-          render = JS(
-            "function(data, type, row, meta) {",
-            "  if (type !== 'display') { return data; }",
-            "  if (data === null || data === '' || isNaN(data)) { return 'NA'; }",
-            "  return Number(data).toFixed(1) + '%';",
-            "}"
-          )
-        ),
-        list(
-          targets = 4,
-          render = JS(
-            "function(data, type, row, meta) {",
-            "  if (type !== 'display') { return data; }",
-            "  if (data === null || data === '' || isNaN(data)) { return 'NA'; }",
-            "  return Number(data).toFixed(1) + '%';",
-            "}"
-          )
-        ),
-        list(
-          targets = 5,
-          render = JS(
-            "function(data, type, row, meta) {",
-            "  if (type !== 'display') { return data; }",
-            "  if (data === null || data === '' || isNaN(data)) { return 'NA'; }",
-            "  return Number(data).toFixed(1) + 'x';",
-            "}"
-          )
-        )
-      )
-    ),
-    callback = JS(
-      "var container = $(table.table().container());",
-      "container.css({'width':'auto','display':'inline-block'});",
-      "table.rows().every(function(){",
-      "  var row = this.node();",
-      "  var data = this.data();",
-      "  if (parseFloat(data[1]) > 0) {",
-      "    $('td', row).css('background-color', 'rgba(178, 34, 34, 0.08)');",
-      "  }",
-      "});"
-    )
-  )
+Per-sample QC status: grey = passed, red = failed. Each cell shows the metric value; rows are ordered worst-first.
+
+```{r quick view heatmap, echo=FALSE, fig.height=min(max(2.4, 0.42 * length(reviewOrder) + 1.3), 16)}
+qcChecks <- list(
+  list(name = "Mapping rate",     val = "MappingRate",     flag = "LowMappingRate",            unit = "%"),
+  list(name = "Average coverage", val = "AverageCoverage", flag = "LowAverageCoverage",         unit = "x"),
+  list(name = "Duplication rate", val = "DuplicationRate", flag = "HighDuplicationRate",        unit = "%"),
+  list(name = "Optical dup rate", val = "OpticalDupRate",  flag = "HighOpticalDuplicationRate", unit = "%")
 )
+
+hmData <- do.call(rbind, lapply(qcChecks, function(chk) {
+  values <- fullSummaryTable[[chk$val]]
+  failed <- if (!is.null(fullSummaryTable[[chk$flag]])) {
+    fullSummaryTable[[chk$flag]]
+  } else {
+    rep(FALSE, nrow(fullSummaryTable))
+  }
+  label <- format_dna_bamstats_metric(values, unit = chk$unit)
+  label[is.na(label)] <- "NA"
+  data.frame(
+    Sample = fullSummaryTable$Sample,
+    Check = chk$name,
+    Label = label,
+    Status = ifelse(is.na(values), "na", ifelse(failed, "fail", "pass")),
+    stringsAsFactors = FALSE
+  )
+}))
+hmData$Sample <- factor(hmData$Sample, levels = rev(reviewOrder))
+hmData$Check <- factor(hmData$Check, levels = vapply(qcChecks, function(x) x$name, character(1)))
+hmData$Status <- factor(hmData$Status, levels = c("pass", "fail", "na"))
+
+ggplot(hmData, aes(x = Check, y = Sample, fill = Status)) +
+  geom_tile(color = "black", linewidth = 0.6) +
+  geom_text(aes(label = Label, color = Status), size = 3.4) +
+  scale_fill_manual(
+    values = c(pass = "#bdbdbd", fail = "#c0392b", na = "#ffffff"),
+    labels = c(pass = "QC passed", fail = "QC failed", na = "not available"),
+    drop = FALSE, name = NULL
+  ) +
+  scale_color_manual(
+    values = c(pass = "#222222", fail = "#ffffff", na = "#888888"),
+    guide = "none"
+  ) +
+  scale_x_discrete(position = "top") +
+  labs(x = NULL, y = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_text(face = "bold"),
+    axis.ticks = element_blank(),
+    legend.position = "bottom"
+  )
 ```
 
 ### Flag thresholds
