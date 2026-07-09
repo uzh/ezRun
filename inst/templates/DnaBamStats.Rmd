@@ -122,6 +122,27 @@ make_qualimap_link <- function(path) {
   paste0('<a href="', path, '">', basename(dirname(path)), "/qualimapReport.html</a>")
 }
 
+render_sample_image_gallery <- function(colName, emptyMsg) {
+  if (is.null(resourceTable[[colName]])) {
+    cat(emptyMsg, "\n\n")
+    return(invisible(NULL))
+  }
+  pathBySample <- setNames(resourceTable[[colName]], resourceTable$Sample)
+  shown <- 0
+  for (sm in reviewOrder) {
+    p <- pathBySample[[sm]]
+    if (!is.null(p) && !is.na(p) && p != "" && file.exists(p)) {
+      cat("**", sm, "**\n\n", sep = "")
+      cat("![](", p, "){width=470px}\n\n", sep = "")
+      shown <- shown + 1
+    }
+  }
+  if (shown == 0) {
+    cat(emptyMsg, "\n\n")
+  }
+  invisible(NULL)
+}
+
 get_threshold_row <- function(metricName) {
   idx <- which(qcThresholds$Metric == metricName)
   if (length(idx) == 0) {
@@ -493,6 +514,17 @@ subplot(
 )
 ```
 
+### Insert-size distributions (per sample)
+
+Paired-end fragment-size distributions (ATACseqQC), in review-priority order.
+
+```{r insert size gallery, echo=FALSE, results='asis'}
+render_sample_image_gallery(
+  "FragmentSizePlot",
+  "No per-sample fragment-size plots available (paired-end only)."
+)
+```
+
 ### Multi-Matching Reported In BAM File
 
 ```{r multi-matching data, echo=FALSE}
@@ -564,7 +596,16 @@ subplot(
 )
 ```
 
-Library complexity drilldowns are available in the `Resources` tab.
+### Library complexity (per sample)
+
+Observed and extrapolated library complexity (ATACseqQC), in review-priority order. Direct file links are also in the `Resources` tab.
+
+```{r library complexity gallery, echo=FALSE, results='asis'}
+render_sample_image_gallery(
+  "LibraryComplexityPlot",
+  "No per-sample library-complexity plots available (paired-end only)."
+)
+```
 
 ## Error Profile
 
