@@ -1,0 +1,664 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+output:
+  html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
+    includes:
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options:
+  chunk_output_type: inline
+---
+
+# {.tabset}
+
+```{r setup DnaBamStats, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+library(DT)
+library(htmltools)
+library(knitr)
+library(plotly)
+library(tidyverse)
+library(ezRun)
+```
+
+```{r style DnaBamStats, include=FALSE, results='asis'}
+cat(
+  "<style>",
+  ".dna-bamstats-table { display: inline-block; width: auto; max-width: 100%; }",
+  "</style>",
+  sep = ""
+)
+```
+
+```{r prepare data DnaBamStats, include=FALSE}
+if (!exists("dataset")) {
+  dataset <- ezLoadRobj("dataset")
+}
+if (!exists("param")) {
+  param <- ezLoadRobj("param")
+}
+if (!exists("resultList")) {
+  resultList <- ezLoadRobj("resultList")
+}
+if (!exists("reportData") && file.exists("reportData.qs2")) {
+  reportData <- ezLoadRobj("reportData")
+}
+if (!exists("reportData")) {
+  reportData <- list()
+}
+
+samples <- rownames(dataset)
+if (is.null(reportData$reviewOrder)) {
+  reportData$reviewOrder <- samples
+}
+if (is.null(reportData$fullSummaryTable)) {
+  reportData$fullSummaryTable <- reportData$overviewTable
+}
+if (is.null(reportData$quickViewTable)) {
+  reportData$quickViewTable <- reportData$fullSummaryTable
+}
+if (is.null(reportData$resourceTable)) {
+  reportData$resourceTable <- data.frame(Sample = samples, stringsAsFactors = FALSE)
+}
+if (is.null(reportData$inputDatasetTable)) {
+  reportData$inputDatasetTable <- data.frame(Sample = samples, stringsAsFactors = FALSE)
+}
+if (is.null(reportData$flagSummaryTable)) {
+  reportData$flagSummaryTable <- data.frame(
+    Flag = character(),
+    SamplesAffected = numeric()
+  )
+}
+if (is.null(reportData$qcThresholds)) {
+  reportData$qcThresholds <- data.frame(
+    Flag = character(),
+    Metric = character(),
+    Direction = character(),
+    Threshold = numeric(),
+    Unit = character()
+  )
+}
+if (is.null(reportData$legacyAvailabilityNotes)) {
+  reportData$legacyAvailabilityNotes <- list(
+    alignment = character(),
+    duplicates = character(),
+    resources = character()
+  )
+}
+
+fullSummaryTable <- reportData$fullSummaryTable
+quickViewTable <- reportData$quickViewTable
+resourceTable <- reportData$resourceTable
+inputDatasetTable <- reportData$inputDatasetTable
+flagSummaryTable <- reportData$flagSummaryTable
+qcThresholds <- reportData$qcThresholds
+reviewOrder <- reportData$reviewOrder
+legacyAvailabilityNotes <- reportData$legacyAvailabilityNotes
+
+metricPlotHeight <- min(max(420, 80 + 20 * length(reviewOrder)), 1200)
+hasMmCounts <- FALSE
+mmPlotWidth <- 8
+```
+
+```{r helper functions DnaBamStats, include=FALSE}
+make_resource_link <- function(path) {
+  if (is.null(path) || is.na(path) || path == "" || !file.exists(path)) {
+    return("")
+  }
+  paste0('<a href="', path, '">', basename(path), "</a>")
+}
+
+make_qualimap_link <- function(path) {
+  if (is.null(path) || is.na(path) || path == "" || !file.exists(path)) {
+    return("")
+  }
+  paste0('<a href="', path, '">', basename(dirname(path)), "/qualimapReport.html</a>")
+}
+
+get_threshold_row <- function(metricName) {
+  idx <- which(qcThresholds$Metric == metricName)
+  if (length(idx) == 0) {
+    return(NULL)
+  }
+  qcThresholds[idx[1], , drop = FALSE]
+}
+
+alignmentCountBarPlotDna <- function(mmCounts, relative = FALSE, file = NULL) {
+  multiCountColors <- c(
+    "0 hit(s)" = "#9e9e9e",
+    "1 hit(s)" = "#1f77b4",
+    "2 hit(s)" = "#ff7f0e",
+    "3 hit(s)" = "#2ca02c",
+    ">3 hit(s)" = "#d62728"
+  )
+  alignmentCountBarPlot(
+    mmCounts = mmCounts,
+    relative = relative,
+    file = file,
+    multiCountColors = multiCountColors
+  )
+}
+
+plotDataBase <- fullSummaryTable[
+  match(reviewOrder, fullSummaryTable$Sample),
+  ,
+  drop = FALSE
+]
+plotDataBase$SampleFactor <- factor(
+  plotDataBase$Sample,
+  levels = rev(reviewOrder)
+)
+
+make_metric_plot <- function(
+  metricName,
+  title,
+  unit = "",
+  showLabels = FALSE,
+  thresholded = TRUE
+) {
+  plotData <- plotDataBase
+
+  thresholdRow <- if (thresholded) {
+    get_threshold_row(metricName)
+  } else {
+    NULL
+  }
+  if (!is.null(thresholdRow)) {
+    flagName <- thresholdRow$Flag[1]
+    plotData$PointColor <- ifelse(plotData[[flagName]], "#b22222", "#7f7f7f")
+    thresholdText <- paste0(
+      ifelse(thresholdRow$Direction[1] == "below", "< ", "> "),
+      sprintf("%.1f", thresholdRow$Threshold[1]),
+      thresholdRow$Unit[1]
+    )
+  } else {
+    plotData$PointColor <- "#7f7f7f"
+    thresholdText <- NULL
+  }
+
+  metricValues <- plotData[[metricName]]
+  metricLabels <- format_dna_bamstats_metric(metricValues, unit = unit)
+  hoverText <- if (!is.null(thresholdText)) {
+    paste(
+      "Sample:", plotData$Sample,
+      "<br>Value:", metricLabels,
+      "<br>Threshold:", thresholdText
+    )
+  } else {
+    paste(
+      "Sample:", plotData$Sample,
+      "<br>Value:", metricLabels
+    )
+  }
+
+  plotObj <- plot_ly(
+    data = plotData,
+    x = metricValues,
+    y = ~SampleFactor,
+    type = "scatter",
+    mode = "markers",
+    text = hoverText,
+    hovertemplate = "%{text}<extra></extra>",
+    marker = list(
+      size = 10,
+      color = plotData$PointColor,
+      line = list(color = "#333333", width = 0.7)
+    ),
+    hoverlabel = list(
+      bgcolor = "rgba(255,255,255,0.78)",
+      bordercolor = "#666666",
+      font = list(color = "#222222")
+    ),
+    showlegend = FALSE
+  ) %>%
+    layout(
+      title = title,
+      height = metricPlotHeight,
+      xaxis = list(
+        title = metricName,
+        rangemode = "tozero"
+      ),
+      yaxis = list(
+        title = "",
+        showticklabels = showLabels
+      ),
+      margin = list(l = if (showLabels) 130 else 40, r = 20, t = 60, b = 50)
+    )
+
+  if (!is.null(thresholdRow)) {
+    plotObj <- plotObj %>%
+      layout(
+        shapes = list(
+          list(
+            type = "line",
+            x0 = thresholdRow$Threshold[1],
+            x1 = thresholdRow$Threshold[1],
+            y0 = 0,
+            y1 = 1,
+            yref = "paper",
+            line = list(color = "#333333", dash = "dash", width = 1.2)
+          )
+        )
+      )
+  }
+
+  plotObj
+}
+
+resourceTableDisplay <- resourceTable
+if (nrow(resourceTableDisplay) > 0) {
+  resourceTableDisplay$QualimapReport <- vapply(
+    resourceTable$QualimapReport,
+    make_qualimap_link,
+    character(1)
+  )
+  resourceTableDisplay$PicardMetrics <- vapply(
+    resourceTable$PicardMetrics,
+    make_resource_link,
+    character(1)
+  )
+  resourceTableDisplay$FragmentSizePlot <- vapply(
+    resourceTable$FragmentSizePlot,
+    make_resource_link,
+    character(1)
+  )
+  resourceTableDisplay$LibraryComplexityPlot <- vapply(
+    resourceTable$LibraryComplexityPlot,
+    make_resource_link,
+    character(1)
+  )
+}
+
+fullSummaryTableDisplay <- fullSummaryTable
+if ("TriggeredFlags" %in% colnames(fullSummaryTableDisplay)) {
+  fullSummaryTableDisplay$TriggeredFlags <- vapply(
+    seq_len(nrow(fullSummaryTableDisplay)),
+    function(i) {
+      flagText <- get_dna_bamstats_triggered_flags_text(
+        sampleRow = fullSummaryTableDisplay[i, , drop = FALSE],
+        qcThresholds = qcThresholds,
+        formatted = TRUE
+      )
+      if (is.na(flagText) || flagText == "") {
+        return("NoFlags")
+      }
+      gsub("; ", "<br>", flagText, fixed = TRUE)
+    },
+    character(1)
+  )
+}
+```
+
+## Quick View
+`r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`
+
+```{r quick view table, echo=FALSE}
+htmltools::div(
+  class = "dna-bamstats-table",
+  DT::datatable(
+    quickViewTable,
+    rownames = FALSE,
+    options = list(
+      dom = "ftip",
+      pageLength = min(max(nrow(quickViewTable), 5), 25),
+      order = list(list(1, "desc"), list(0, "asc")),
+      autoWidth = TRUE,
+      columnDefs = list(
+        list(
+          targets = 2,
+          render = JS(
+            "function(data, type, row, meta) {",
+            "  if (type !== 'display') { return data; }",
+            "  if (data === null || data === '' || isNaN(data)) { return 'NA'; }",
+            "  return Number(data).toFixed(1) + '%';",
+            "}"
+          )
+        ),
+        list(
+          targets = 3,
+          render = JS(
+            "function(data, type, row, meta) {",
+            "  if (type !== 'display') { return data; }",
+            "  if (data === null || data === '' || isNaN(data)) { return 'NA'; }",
+            "  return Number(data).toFixed(1) + '%';",
+            "}"
+          )
+        ),
+        list(
+          targets = 4,
+          render = JS(
+            "function(data, type, row, meta) {",
+            "  if (type !== 'display') { return data; }",
+            "  if (data === null || data === '' || isNaN(data)) { return 'NA'; }",
+            "  return Number(data).toFixed(1) + '%';",
+            "}"
+          )
+        ),
+        list(
+          targets = 5,
+          render = JS(
+            "function(data, type, row, meta) {",
+            "  if (type !== 'display') { return data; }",
+            "  if (data === null || data === '' || isNaN(data)) { return 'NA'; }",
+            "  return Number(data).toFixed(1) + 'x';",
+            "}"
+          )
+        )
+      )
+    ),
+    callback = JS(
+      "var container = $(table.table().container());",
+      "container.css({'width':'auto','display':'inline-block'});",
+      "table.rows().every(function(){",
+      "  var row = this.node();",
+      "  var data = this.data();",
+      "  if (parseFloat(data[1]) > 0) {",
+      "    $('td', row).css('background-color', 'rgba(178, 34, 34, 0.08)');",
+      "  }",
+      "});"
+    )
+  )
+)
+```
+
+### Flag thresholds
+
+```{r quick view threshold bullets, echo=FALSE, results='asis'}
+for (i in seq_len(nrow(qcThresholds))) {
+  cat(
+    "- `",
+    qcThresholds$Flag[i],
+    "`: ",
+    ifelse(qcThresholds$Direction[i] == "below", "< ", "> "),
+    sprintf("%.1f", qcThresholds$Threshold[i]),
+    qcThresholds$Unit[i],
+    "\n",
+    sep = ""
+  )
+}
+```
+
+```{r quick view flag summary, echo=FALSE, eval=nrow(flagSummaryTable) > 0}
+yDtick <- max(1, ceiling(max(flagSummaryTable$SamplesAffected, 0, na.rm = TRUE) / 8))
+plot_ly(
+  data = flagSummaryTable,
+  x = ~Flag,
+  y = ~SamplesAffected,
+  type = "bar",
+  marker = list(color = "#4c78a8"),
+  hovertemplate = paste(
+    "Flag: %{x}",
+    "<br>Samples affected: %{y}",
+    "<extra></extra>"
+  )
+) %>%
+  layout(
+    title = "Samples affected per QC flag",
+    xaxis = list(title = "", tickangle = 45),
+    yaxis = list(
+      title = "Samples affected",
+      tickmode = "linear",
+      tick0 = 0,
+      dtick = yDtick,
+      tickformat = "d",
+      rangemode = "tozero"
+    )
+  )
+```
+
+## Alignment & Coverage
+
+Review-priority ordering is shared across plots in this tab. Dashed line marks the review threshold.
+
+```{r alignment legacy notes, echo=FALSE, results='asis', eval=length(legacyAvailabilityNotes$alignment) > 0}
+for (noteText in legacyAvailabilityNotes$alignment) {
+  cat("Note:", noteText, "\n\n")
+}
+```
+
+```{r alignment and coverage plots, echo=FALSE}
+subplot(
+  make_metric_plot(
+    metricName = "MappingRate",
+    title = "Mapping rate",
+    unit = "%",
+    showLabels = TRUE,
+    thresholded = TRUE
+  ),
+  make_metric_plot(
+    metricName = "AverageCoverage",
+    title = "Average coverage",
+    unit = "x",
+    showLabels = FALSE,
+    thresholded = TRUE
+  ),
+  nrows = 1,
+  shareY = TRUE,
+  margin = 0.04,
+  widths = c(0.5, 0.5),
+  titleX = TRUE,
+  titleY = TRUE
+)
+```
+
+### Multi-Matching Reported In BAM File
+
+```{r multi-matching data, echo=FALSE}
+multiMatchList <- lapply(resultList, function(x) x$multiMatchInFileTable)
+hasMultiMatch <- any(!vapply(multiMatchList, is.null, logical(1)))
+
+if (hasMultiMatch) {
+  mmValues <- integer()
+  for (sm in samples) {
+    mm <- multiMatchList[[sm]]
+    if (!is.null(mm)) {
+      mmValues <- union(mmValues, as.integer(names(mm)))
+    }
+  }
+
+  mmCounts <- ezMatrix(0, rows = reviewOrder, cols = sort(mmValues))
+  for (sm in reviewOrder) {
+    mm <- multiMatchList[[sm]]
+    if (!is.null(mm)) {
+      mmCounts[sm, names(mm)] <- mm
+    }
+  }
+  hasMmCounts <- TRUE
+  mmPlotWidth <- min(max(8, 8 + (nrow(mmCounts) - 20) * 0.3), 30)
+}
+```
+
+```{r multi-matching plot, echo=FALSE, eval=hasMmCounts, fig.height=8, fig.width=mmPlotWidth}
+alignmentCountBarPlotDna(mmCounts, relative = FALSE)
+alignmentCountBarPlotDna(mmCounts, relative = TRUE)
+```
+
+```{r multi-matching fallback, echo=FALSE, results='asis', eval=!hasMmCounts}
+cat("Multi-matching counts are not yet available for this dataset.")
+```
+
+## Duplicates
+
+Review-priority ordering is shared across plots in this tab. Dashed line marks the review threshold.
+
+```{r duplicate legacy notes, echo=FALSE, results='asis', eval=length(legacyAvailabilityNotes$duplicates) > 0}
+for (noteText in legacyAvailabilityNotes$duplicates) {
+  cat("Note:", noteText, "\n\n")
+}
+```
+
+```{r duplicates plots, echo=FALSE}
+subplot(
+  make_metric_plot(
+    metricName = "DuplicationRate",
+    title = "Duplication rate",
+    unit = "%",
+    showLabels = TRUE,
+    thresholded = TRUE
+  ),
+  make_metric_plot(
+    metricName = "OpticalDupRate",
+    title = "Optical duplication rate",
+    unit = "%",
+    showLabels = FALSE,
+    thresholded = TRUE
+  ),
+  nrows = 1,
+  shareY = TRUE,
+  margin = 0.04,
+  widths = c(0.5, 0.5),
+  titleX = TRUE,
+  titleY = TRUE
+)
+```
+
+Library complexity drilldowns are available in the `Resources` tab.
+
+## Error Profile
+
+These metrics are descriptive in v1 and do not currently trigger QC review flags. Review-priority ordering is shared across plots in this tab.
+
+```{r error profile row, echo=FALSE}
+subplot(
+  make_metric_plot(
+    metricName = "ErrorRate",
+    title = "Error rate",
+    unit = "%",
+    showLabels = TRUE,
+    thresholded = FALSE
+  ),
+  make_metric_plot(
+    metricName = "InsertionRate",
+    title = "Insertion rate",
+    unit = "%",
+    showLabels = FALSE,
+    thresholded = FALSE
+  ),
+  make_metric_plot(
+    metricName = "DeletionRate",
+    title = "Deletion rate",
+    unit = "%",
+    showLabels = FALSE,
+    thresholded = FALSE
+  ),
+  nrows = 1,
+  shareY = TRUE,
+  margin = 0.04,
+  widths = c(0.34, 0.33, 0.33),
+  titleX = TRUE,
+  titleY = TRUE
+)
+```
+
+## Tables
+
+### Input Dataset
+
+```{r input dataset table, echo=FALSE}
+htmltools::div(
+  class = "dna-bamstats-table",
+  DT::datatable(
+    inputDatasetTable,
+    rownames = FALSE,
+    options = list(
+      dom = "ftip",
+      pageLength = min(max(nrow(inputDatasetTable), 5), 25),
+      autoWidth = TRUE
+    ),
+    callback = JS(
+      "var container = $(table.table().container());",
+      "container.css({'width':'auto','display':'inline-block'});"
+    )
+  )
+)
+```
+
+### Full Sample Summary
+
+```{r full summary table, echo=FALSE}
+htmltools::div(
+  class = "dna-bamstats-table",
+  DT::datatable(
+    fullSummaryTableDisplay,
+    rownames = FALSE,
+    extensions = "Buttons",
+    escape = FALSE,
+    options = list(
+      dom = "Bfrtip",
+      buttons = c("excel"),
+      pageLength = min(max(nrow(fullSummaryTable), 5), 25),
+      order = list(list(1, "desc"), list(0, "asc")),
+      autoWidth = TRUE
+    ),
+    callback = JS(
+      "var container = $(table.table().container());",
+      "container.css({'width':'auto','display':'inline-block'});"
+    )
+  ) %>%
+    DT::formatRound(
+      columns = c(
+        "MappingRate",
+        "DuplicationRate",
+        "OpticalDupRate",
+        "AverageCoverage"
+      ),
+      digits = 1
+    )
+)
+```
+
+Canonical machine-readable summary: `metrics_summary.tsv`
+
+## Resources
+
+Qualimap report: per-sample alignment and coverage drilldown.
+
+Picard metrics: duplicate metrics used in the summary tables.
+
+Fragment size plot: per-sample insert-size distribution.
+
+Library complexity plot: per-sample duplication complexity diagnostic.
+
+```{r resources legacy notes, echo=FALSE, results='asis', eval=length(legacyAvailabilityNotes$resources) > 0}
+for (noteText in legacyAvailabilityNotes$resources) {
+  cat("Note:", noteText, "\n\n")
+}
+```
+
+```{r multi-sample qualimap link, echo=FALSE, results='asis'}
+if (!is.null(reportData$qualimapMulti$reportFile)) {
+  cat(
+    '[Multi-sample Qualimap report](',
+    reportData$qualimapMulti$reportFile,
+    ')',
+    sep = ""
+  )
+}
+```
+
+```{r resource table, echo=FALSE}
+DT::datatable(
+  resourceTableDisplay,
+  escape = FALSE,
+  rownames = FALSE,
+  options = list(
+    dom = "ftip",
+    pageLength = min(max(nrow(resourceTableDisplay), 5), 25),
+    autoWidth = TRUE
+  )
+)
+```
+
+Summary artifact: `metrics_summary.tsv`. Drilldown artifacts: Qualimap, Picard, fragment size, and library complexity outputs.
+
+## SessionInfo
+
+```{r session info, echo=FALSE}
+ezSessionInfo()
+```
