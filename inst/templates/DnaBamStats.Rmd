@@ -497,8 +497,8 @@ Descriptive in v1 (no QC flags). Insert-size metrics are shown for paired-end da
 ```{r library metric plots, echo=FALSE}
 subplot(
   make_metric_plot(
-    metricName = "MeanInsertSize",
-    title = "Mean insert size",
+    metricName = "MedianInsertSize",
+    title = "Median insert size",
     unit = " bp",
     showLabels = TRUE,
     thresholded = FALSE
