@@ -25,8 +25,13 @@ getTypeCoverageTable = function(resultList, name) {
   return(tbl)
 }
 
-alignmentCountBarPlot <- function(mmCounts, relative = FALSE, file = NULL) {
-  require(plotly)
+alignmentCountBarPlot <- function(
+  mmCounts,
+  relative = FALSE,
+  file = NULL,
+  multiCountColors = NULL
+) {
+  library(plotly)
   title <- ifelse(relative, "alignment proportions", "total alignments")
   multiCount = as.integer(colnames(mmCounts))
   isSmall = multiCount <= 3
@@ -41,14 +46,16 @@ alignmentCountBarPlot <- function(mmCounts, relative = FALSE, file = NULL) {
     ezWrite.table(mmCounts, file = file)
   }
 
-  multiCountColors = c(
-    "0 hit(s)" = "gray",
-    "1 hit(s)" = "blue",
-    "2 hit(s)" = "cyan",
-    "3 hit(s)" = "green",
-    ">3 hit(s)" = "orange"
-  )
   colnames(mmCounts) = paste(colnames(mmCounts), "hit(s)")
+  if (is.null(multiCountColors)) {
+    multiCountColors = c(
+      "0 hit(s)" = "gray",
+      "1 hit(s)" = "blue",
+      "2 hit(s)" = "cyan",
+      "3 hit(s)" = "green",
+      ">3 hit(s)" = "orange"
+    )
+  }
   stopifnot(colnames(mmCounts) %in% names(multiCountColors))
 
   x = mmCounts[, rev(colnames(mmCounts)), drop = F]
@@ -83,7 +90,7 @@ alignmentCountBarPlot <- function(mmCounts, relative = FALSE, file = NULL) {
   }
   p <- p %>%
     plotly::layout(
-      yaxis = list(title = 'Count'),
+      yaxis = list(title = ifelse(relative, "Percentage of reads", "Count")),
       barmode = 'stack',
       title = title,
       margin = m
