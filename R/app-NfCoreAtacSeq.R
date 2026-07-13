@@ -21,7 +21,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   prepNFCoreEnv()
   configFile <- writeNextflowLimits(param)
   cmd = paste(
-    "nextflow run nf-core/atacseq",
+    "/usr/local/ngseq/src/nextflow/nextflow run nf-core/atacseq",
     ## i/o
     "--input",
     nfSampleFile,
