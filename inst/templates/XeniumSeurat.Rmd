@@ -1627,6 +1627,11 @@ cat("Niche x Cell type heatmap not available (no BANKSY results or no cell type 
 
 ```{r cooccurrence_check}
 has_cooc_coords <- has_annotation && length(scData@images) > 0
+# has_cooc is really assigned in cooccurrence_compute below, but that chunk is itself gated on
+# has_cooc_coords. Without a default here, running with no cell-type annotation (the SUSHI default
+# rctdReference='None') leaves has_cooc undefined, and knitr aborts the WHOLE render when it
+# evaluates eval=has_cooc on the heatmap chunk -> no HTML is produced at all.
+has_cooc <- FALSE
 cooc_radius <- if (!is.null(param$coocRadius)) as.numeric(param$coocRadius) else 30
 cooc_nperm <- if (!is.null(param$coocNperm)) as.numeric(param$coocNperm) else 1000
 ```
