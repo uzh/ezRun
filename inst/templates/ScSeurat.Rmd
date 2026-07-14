@@ -842,7 +842,19 @@ genesToPlot <- intersect(genesToPlot, rownames(scData))
 #### Heatmap & DotPlot
 
 ```{r marker heatmap, fig.width=12, fig.height=length(levels(Idents(scData)))}
-DoHeatmap(scData, features=unique(genesToPlot))
+## DoHeatmap crashes the whole report when `features` is empty: Seurat only
+## errors on *some* features missing (`any(!features %in% possible)` is FALSE
+## for character(0)), so a 0-feature matrix reaches SingleRasterMap -> Melt(),
+## which collapses to 1 column, and `colnames<-` then fails with
+##   'names' attribute [3] must be the same length as the vector [1]
+## genesToPlot is empty whenever no markers were found (e.g. a low-cell sample
+## that yields a single cluster). Skip the heatmap, keep the rest of the report.
+tryCatch(
+  print(DoHeatmap(scData, features = unique(genesToPlot))),
+  error = function(e) {
+    message("Skipping marker heatmap (DoHeatmap failed): ", conditionMessage(e))
+  }
+)
 DotPlot(scData, features=genesToPlot) + coord_flip() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 ```
@@ -861,7 +873,12 @@ do_GroupwiseDEHeatmap(sample = scData,
 genesToPlot <- intersect(param$controlSeqs, rownames(scData))
 
 if (length(genesToPlot) > 0){
-  DoHeatmap(scData, features=unique(genesToPlot))
+  tryCatch(
+    print(DoHeatmap(scData, features = unique(genesToPlot))),
+    error = function(e) {
+      message("Skipping controlSeqs heatmap (DoHeatmap failed): ", conditionMessage(e))
+    }
+  )
   DotPlot(scData, features=genesToPlot) + coord_flip() +
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 } else { 
