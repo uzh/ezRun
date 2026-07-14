@@ -1,0 +1,22 @@
+# MultiQC config for EzAppTargetedSeqQC (tuned for MultiQC v1.3x).
+title: "Targeted / Exome Sequencing QC"
+subtitle: "Picard HsMetrics · mosdepth · samtools · VerifyBamID2"
+module_order:
+  - picard
+  - mosdepth
+  - samtools
+  - verifybamid
+table_columns_visible:
+  picard_hsmetrics:
+    FOLD_ENRICHMENT: True
+    MEDIAN_TARGET_COVERAGE: True
+    picard_target_bases_30X: True
+  verifybamid:
+    FREEMIX: True
+table_columns_placement:
+  picard_hsmetrics:
+    MEDIAN_TARGET_COVERAGE: 900
+    picard_target_bases_30X: 910
+    FOLD_ENRICHMENT: 920
+  verifybamid:
+    FREEMIX: 930
