@@ -62,6 +62,39 @@ test_that("cell area outliers are flagged via MAD on a clear outlier", {
   expect_false(any(out$outlier.cell_area[1:20]))
 })
 
+test_that("neg_control outliers do not degenerate when most cells have zero controls", {
+  # Realistic shape: ~90% of cells carry NO negative-control transcript, so the median and
+  # the MAD of neg_control_frac are both 0. isOutlier(type="higher") then flags every cell
+  # with any control count at all (on real Atera data that was 41.8% of the tissue).
+  n <- 100
+  ctrl <- c(rep(0, 90), rep(1, 9), 60)     # 9 innocuous cells + 1 genuinely bad cell
+  df <- data.frame(
+    nCount_Xenium = c(rep(100, 99), 40),
+    cell_area = rep(50, n), nucleus_area = rep(25, n), nucleus_count = rep(1, n),
+    nCount_ControlProbe = ctrl
+  )
+  out <- computeXeniumQcMetrics(df, nmads = 3)
+  expect_equal(stats::mad(out$neg_control_frac), 0)   # the degenerate condition itself
+
+  expect_true(out$outlier.neg_control[100])           # 60/(40+60) = 60% controls -> junk
+  expect_false(any(out$outlier.neg_control[91:99]))   # 1/101 ~ 1% controls -> fine
+  expect_lt(mean(out$outlier.neg_control), 0.05)      # must NOT flag every nonzero cell
+})
+
+test_that("segmentation health reports the ratio and the segmentation_method mix", {
+  df <- data.frame(
+    nCount_Xenium = rep(100, 4), cell_area = c(100, 100, 100, 100),
+    nucleus_area = c(50, 50, 5, 0),   # 2 healthy, 1 ballooned, 1 with no nucleus called
+    segmentation_method = c(rep("Segmented by interior stain (18S)", 3),
+                            "Segmented by nucleus expansion of 5.0um")
+  )
+  h <- xeniumSegmentationHealth(computeXeniumQcMetrics(df))
+  expect_equal(h$median_nucleus_cell_ratio, 0.5)   # ratio == 0 (no nucleus) excluded, not counted as ballooned
+  expect_equal(h$frac_ratio_below_0.1, 1 / 3)      # only the genuinely ballooned cell
+  expect_equal(nrow(h$segmentation_mix), 2)
+  expect_equal(h$segmentation_mix$n_cells[1], 3)
+})
+
 test_that("missing optional columns are handled gracefully", {
   df <- data.frame(
     nCount_Xenium = c(100, 200),
