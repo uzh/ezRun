@@ -317,10 +317,19 @@ ezMethodTargetedSeqQC <- function(input = NA, output = NA, param = NA,
     ezSystem(paste("samtools flagstat -@", threads, shQuote(useBam),
                    ">", paste0(shQuote(prefix), ".flagstat.txt")))
   } else {
-    ## flagstat has no region option -> stream a region-limited view
-    ezSystem(paste("samtools view -u -@", threads, shQuote(useBam), regionArg,
-                   "| samtools flagstat -@", threads, "-",
-                   ">", paste0(shQuote(prefix), ".flagstat.txt")))
+    ## flagstat has no region option -> stream a region-limited view. The pipe
+    ## goes into a small shell script because ezSystem() refuses a command that
+    ## contains both a '|' and single quotes; running `bash <script>` sidesteps
+    ## that (no pipe in the ezSystem command itself).
+    flagstatScript <- paste0(prefix, ".flagstat.sh")
+    writeLines(c(
+      "#!/bin/bash",
+      "set -euo pipefail",
+      paste("samtools view -u -@", threads, shQuote(useBam), regionArg,
+            "| samtools flagstat -@", threads, "-",
+            ">", paste0(shQuote(prefix), ".flagstat.txt"))
+    ), flagstatScript)
+    ezSystem(paste("bash", shQuote(flagstatScript)))
   }
   idxOut <- paste0(prefix, ".idxstats.txt")
   ezSystem(paste("samtools idxstats", shQuote(useBam), ">", shQuote(idxOut)))
