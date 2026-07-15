@@ -274,7 +274,11 @@ ezMethodXeniumSeurat <- function(
   }
 
   # 1. Load Xenium Data
-  sdata <- LoadXenium(data.dir = xeniumPath, fov = "fov")
+  # molecule.coordinates = FALSE: nothing in the app or report uses the per-molecule
+  # transcript coordinates (hundreds of millions of rows on a 5K panel), and loading them
+  # is a large, needless memory hit. Load them in a scoped block if per-molecule plots are
+  # ever added.
+  sdata <- LoadXenium(data.dir = xeniumPath, fov = "fov", molecule.coordinates = FALSE)
 
   # Load additional cell metadata not loaded by Seurat (cell morphology +
   # segmentation). Only request columns that exist - older Xenium outputs
@@ -497,6 +501,21 @@ ezMethodXeniumSeurat <- function(
 
         # Create SpatialRNA object
         query.puck <- SpatialRNA(coords, counts, Matrix::colSums(counts))
+
+        # Fail fast on an incompatible reference (most often a wrong-species atlas): if the
+        # reference and the Xenium panel share almost no gene symbols, RCTD would otherwise die
+        # deep inside create.RCTD with a cryptic error. Report the actionable cause instead.
+        ref_gene_overlap <- length(intersect(rownames(ref_obj@counts), rownames(counts)))
+        if (ref_gene_overlap < 10) {
+          stop(sprintf(
+            "RCTD reference '%s' shares only %d genes with the Xenium panel (%d panel genes) - wrong species or ID type?",
+            basename(ref_path), ref_gene_overlap, nrow(counts)
+          ))
+        }
+        ezWrite(
+          paste("RCTD reference shares", ref_gene_overlap, "genes with the panel"),
+          "log.txt", append = TRUE
+        )
 
         # Run RCTD
         umi_min <- ifelse(
@@ -904,6 +923,12 @@ ezMethodXeniumSeurat <- function(
       writexl::write_xlsx(data.frame(), "posMarkersBanksy.xlsx")
     }
   )
+  # Restore the working assay/idents UNCONDITIONALLY. The in-body reset above only runs on the
+  # BANKSY success path; if RunPCA/FindClusters throws after DefaultAssay was switched to
+  # "BANKSY", the saved+reported object would otherwise keep BANKSY (lambda-scaled) as default,
+  # silently making every assay-implicit call in the report read the wrong assay.
+  if ("Xenium" %in% SeuratObject::Assays(scData)) DefaultAssay(scData) <- "Xenium"
+  if ("seurat_clusters" %in% colnames(scData[[]])) Idents(scData) <- "seurat_clusters"
 
   # Export Xenium Explorer compatible CSV files
   # Cell IDs in Seurat match original Xenium format (e.g., "aaaddlda-1")
@@ -1002,7 +1027,11 @@ ezMethodXeniumSeurat <- function(
     )
   }
 
-  # Save final analyzed object and parameters for Rmd report
+  # Save final analyzed object and parameters for Rmd report.
+  # Record the reference RCTD ACTUALLY used (ref_path resolves rctdFile OR the dropdown, with
+  # rctdFile taking precedence) so the report names the real provenance, not the dropdown value
+  # that rctdFile may have silently overridden. NULL when no annotation was run.
+  param$rctdRefUsed <- if (exists("ref_path")) ref_path else NULL
   ezWrite("Saving final analyzed object...", "log.txt", append = TRUE)
   qs2::qs_save(scData, "scData.qs2", nthreads = param$cores)
   qs2::qs_save(param, "param.qs2")
