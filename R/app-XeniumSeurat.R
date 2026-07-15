@@ -539,12 +539,22 @@ ezMethodXeniumSeurat <- function(
         results <- myRCTD@results
         norm_weights <- normalize_weights(results$weights)
 
-        # Add to Seurat metadata - Primary cell type assignment
-        max_type <- colnames(norm_weights)[max.col(
-          norm_weights,
-          ties.method = "first"
-        )]
-        names(max_type) <- rownames(norm_weights)
+        # Add to Seurat metadata - Primary cell type assignment.
+        # Use RCTD's doublet-mode call (results_df$first_type), NOT argmax of the full-mode
+        # weights: argmax labels EVERY cell, including spot_class == "reject" cells that RCTD
+        # declined to classify, which silently biases every downstream composition number, the
+        # cell-type maps, marker DE and the Xenium Explorer CSV. rejects -> NA (the report
+        # na.omit()s RCTD_Main, so they drop out of maps and proportions cleanly).
+        rdf <- results$results_df
+        if (!is.null(rdf)) {
+          max_type <- as.character(rdf$first_type)
+          max_type[rdf$spot_class == "reject"] <- NA
+          names(max_type) <- rownames(rdf)
+        } else {
+          # fallback (should not happen in doublet mode): full-mode argmax
+          max_type <- colnames(norm_weights)[max.col(norm_weights, ties.method = "first")]
+          names(max_type) <- rownames(norm_weights)
+        }
         sdata <- AddMetaData(sdata, metadata = max_type, col.name = "RCTD_Main")
 
         # Add normalized weights as metadata columns
@@ -734,9 +744,11 @@ ezMethodXeniumSeurat <- function(
                     class_df = rctd_class_df
                   )
                   pur_rctd <- run.RCTD(pur_rctd, doublet_mode = "doublet")
-                  pur_w <- normalize_weights(pur_rctd@results$weights)
-                  pur_main <- colnames(pur_w)[max.col(pur_w, ties.method = "first")]
-                  names(pur_main) <- rownames(pur_w)
+                  # doublet-mode call + reject-gating, same as the primary RCTD_Main (not argmax)
+                  pur_rdf <- pur_rctd@results$results_df
+                  pur_main <- as.character(pur_rdf$first_type)
+                  pur_main[pur_rdf$spot_class == "reject"] <- NA
+                  names(pur_main) <- rownames(pur_rdf)
                   # unname(): indexing a named vector by cells absent from it
                   # yields NA names, which Seurat's [[<- / AddMetaData reject.
                   spatial_purified <- AddMetaData(
