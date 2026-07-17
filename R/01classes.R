@@ -500,6 +500,18 @@ EzApp <-
           }
         }
         return()
+      },
+      # ... absorbs extra named args (e.g. dataset_id) passed by callers so that
+      # subclass overrides with richer signatures don't break the base-class call.
+      # ⚠ DEV: python binary and llm_script_writer.py path are hardcoded below.
+      #   python must point to the conda env that has openai + agents installed.
+      #   llm_script_writer.py must move to inst/python/ before production.
+      generate_mm = function(script_paths = c(), log_paths = c(), output_dir = ".", dataset_id = NULL, ...) {
+        python     <- "/home/rdomi/.conda/envs/gi_sushi_jobmanager_2024/bin/python"
+        llm_script <- system.file("python/llm_script_writer.py", package = "ezRun")
+        ret <- system2(python, args = c(llm_script, as.integer(dataset_id), output_dir))
+        if (ret != 0) stop("llm_script_writer.py failed with exit code ", ret)
+        invisible(NULL)
       }
     )
   )
