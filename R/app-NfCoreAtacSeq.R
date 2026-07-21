@@ -93,45 +93,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     htmlFileName = paste0(outFolder, "/igv_session.html")
   )
 
-  if (param[['runTwoGroupAnalysis']]) {
-    library(DESeq2)
-    nfCoreOutDir <- paste0(
-      param$name,
-      '_results',
-      '/bwa/merged_replicate/macs2/',
-      param$peakStyle,
-      '_peak/consensus'
-    )
-    peakAnno <- vroom::vroom(
-      paste0(nfCoreOutDir, '/consensus_peaks.mRp.clN.annotatePeaks.txt'),
-      delim = "\t",
-      col_types = cols()
-    ) %>%
-      rename(c("PeakID" = 1))
-
-    grouping <- input$getColumn(param$grouping)
-    dds <- getDdsFromConcensusPeaks(output, param, grouping)
-    outDir <- file.path(
-      basename(output$getColumn('Result')),
-      'diffpeak_analysis'
-    )
-    cd = getwd()
-    setwdNew(outDir)
-    makeRmdReport(
-      output = output,
-      param = param,
-      peakAnno = peakAnno,
-      dds = dds,
-      selfContained = TRUE,
-      rmdFile = "DiffPeak.Rmd",
-      htmlFile = "DifferentialPeakAnalysisReport.html",
-      reportTitle = 'Differential Peak Analysis',
-      use.qs2 = TRUE
-    )
-    setwd(cd)
-  }
-
-  dirsToRemove <- c("genome", "trimgalore", "fastqc", "igv")
+    dirsToRemove <- c("genome", "trimgalore", "fastqc", "igv")
   if (ezIsSpecified(param$keepBams)) {
     keepBams <- param$keepBams
   } else {
@@ -309,7 +271,7 @@ cleanupAtacOutFolder <- function(outFolder, dirsToRemove, keepBams = TRUE) {
   }
   absolutePaths <- paste(outFolder, dirsToRemove, sep = "/")
   unlink(absolutePaths, recursive = TRUE)
-  ezLog(paste0("Deleted subdirectory: ", dirsToRemove))
+  ezLog(paste0("Deleted subdirectory: ", paste(dirsToRemove, collapse = ',')))
 }
 
 ##' @description write IGV session in json format
