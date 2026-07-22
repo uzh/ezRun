@@ -33,9 +33,12 @@
 ##'   \code{nCount_BlankCodeword}.
 ##' @param nmads numeric, MAD multiple for outlier detection (default 3).
 ##' @param count_col optional explicit transcript-count column name.
+##' @param negControlMax numeric, absolute \code{neg_control_frac} cutoff used when the
+##'   MAD is 0 (which it is whenever most cells carry no control transcripts, i.e. almost
+##'   always). Default 0.05.
 ##' @return The input data.frame with added metric and \code{outlier.*} columns.
 ##' @export
-computeXeniumQcMetrics <- function(df, nmads = 3, count_col = NULL) {
+computeXeniumQcMetrics <- function(df, nmads = 3, count_col = NULL, negControlMax = 0.05) {
   if (is.null(count_col)) {
     hit <- grep("^nCount_Xenium", colnames(df), value = TRUE)
     count_col <- if (length(hit) > 0) hit[1] else NULL
@@ -86,10 +89,19 @@ computeXeniumQcMetrics <- function(df, nmads = 3, count_col = NULL) {
     ))
   }
   if ("neg_control_frac" %in% colnames(df)) {
-    df$outlier.neg_control <- .flagFalseNA(scater::isOutlier(
-      df$neg_control_frac,
-      type = "higher", nmads = nmads
-    ))
+    frac <- df$neg_control_frac
+    # Most cells have zero negative-control counts (90% on Xenium, 58% on Atera), so the
+    # median AND the MAD are both 0. isOutlier() then degenerates from an outlier test into
+    # "flag every cell carrying any control transcript at all" - 9.6% of cells on Xenium,
+    # 41.8% on Atera. Fall back to an absolute cutoff when the MAD is not usable.
+    if (stats::mad(frac, na.rm = TRUE) > 0) {
+      df$outlier.neg_control <- .flagFalseNA(scater::isOutlier(
+        frac,
+        type = "higher", nmads = nmads
+      ))
+    } else {
+      df$outlier.neg_control <- .flagFalseNA(frac > negControlMax)
+    }
   }
   if ("nucleus_count" %in% colnames(df)) {
     # anucleate (0) or multinucleate (>1) cells are segmentation concerns
@@ -111,6 +123,45 @@ addXeniumCellQc <- function(object, nmads = 3) {
     object[[cl]] <- md[[cl]]
   }
   object
+}
+
+##' @title Xenium segmentation-health summary (sample level)
+##' @description Two absolute, sample-level readouts of how well the cell boundaries were
+##'   drawn. Deliberately NOT another per-cell MAD flag: a MAD-based score flags a roughly
+##'   fixed slice of any dataset, good or bad, so it cannot tell you a sample is clean.
+##'
+##'   \strong{nucleus:cell area ratio.} A nucleus-seeded boundary that had nothing to stop it
+##'   inflates into empty tissue ("ballooning"), so the nucleus ends up occupying an
+##'   implausibly small share of the cell. Across 7 datasets the median ratio is ~0.41-0.50
+##'   for stain-segmented runs but 0.32 for DAPI-nucleus + 15um expansion (Xenium 1.x).
+##'
+##'   \strong{segmentation_method mix.} Present from Xenium Onboard Analysis 3.0. Cells that
+##'   fell back to nucleus expansion because no stain boundary could be found are the ones
+##'   most likely to be ballooned - they carry 4-9x the quality-flag rate of stain-segmented
+##'   cells in the same section (checked in Prime 5K, Atera, lung 5K, pan-tissue 5K).
+##' @param df per-cell metadata carrying \code{nucleus_cell_ratio} (see
+##'   \code{computeXeniumQcMetrics}) and, when available, \code{segmentation_method}.
+##' @return list with \code{median_nucleus_cell_ratio}, \code{frac_ratio_below_0.1}
+##'   (candidate ballooned cells) and \code{segmentation_mix} (a data.frame, or NULL when the
+##'   run predates XOA 3.0).
+##' @export
+xeniumSegmentationHealth <- function(df) {
+  ratio <- df$nucleus_cell_ratio
+  ratio <- ratio[is.finite(ratio) & ratio > 0] # ratio == 0 means "no nucleus called", not "ballooned"
+  mix <- NULL
+  if ("segmentation_method" %in% colnames(df)) {
+    tb <- table(df$segmentation_method)
+    mix <- data.frame(
+      method = names(tb), n_cells = as.integer(tb),
+      pct = 100 * as.integer(tb) / sum(tb), row.names = NULL
+    )
+    mix <- mix[order(-mix$n_cells), ]
+  }
+  list(
+    median_nucleus_cell_ratio = if (length(ratio)) stats::median(ratio) else NA_real_,
+    frac_ratio_below_0.1 = if (length(ratio)) mean(ratio < 0.1) else NA_real_,
+    segmentation_mix = mix
+  )
 }
 
 ##' @title Mutually Exclusive Co-expression Rate (MECR)

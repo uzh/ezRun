@@ -108,10 +108,12 @@ spe <- Seurat_to_SPE(scData_unfiltered, coords)
 
 qcFrame <- colData(spe) |> data.frame() |> dplyr::select(starts_with("qc."))
 qcFrame[is.na(qcFrame)] <- FALSE
+## rename by ORIGINAL column name BEFORE dropping empty flags, so the name vector always matches
+## the frame. (Renaming after the drop assigned 2 names to a 1-col frame -> render halted whenever
+## a flag had zero TRUEs, e.g. minCounts=0 or minFeatures=0.)
+names(qcFrame) <- c(qc.lib = "Transcript_Counts", qc.nexprs = "nGenes")[names(qcFrame)]
 ## select only columns that have at least one flag
-useColumn <- apply(qcFrame, 2, any)
-qcFrame <- qcFrame[ , useColumn, drop=FALSE]
-colnames(qcFrame) <- c("Transcript_Counts", "nGenes")
+qcFrame <- qcFrame[ , apply(qcFrame, 2, any), drop=FALSE]
 
 
 if (ncol(qcFrame) > 1) {
@@ -1055,6 +1057,10 @@ if (nrow(posMarkers) > 0) {
 ### Marker plots
 
 ```{r dotplot_setup}
+# Define the eval guard UNCONDITIONALLY (an eval= flag assigned only inside an if-block would be
+# undefined when that block is skipped and abort the whole render).
+genesToPlot <- character(0)
+has_genes_to_plot_clusters <- FALSE
 if (nrow(posMarkers) > 0) {
  # Sort by diff_pct if available, otherwise by avg_log2FC
  if ("diff_pct" %in% colnames(posMarkers)) {
@@ -1072,6 +1078,7 @@ if (nrow(posMarkers) > 0) {
  genesToPlot <- unique(as.character(top5$gene))
  genesToPlot <- gsub("_", "-", genesToPlot)
  genesToPlot <- intersect(genesToPlot, rownames(scData))
+ has_genes_to_plot_clusters <- length(genesToPlot) > 0
 }
 ```
 
@@ -1079,11 +1086,15 @@ if (nrow(posMarkers) > 0) {
 
 Visualization of the top 5 markers in each cluster.
 
-```{r dotplot, fig.width=15, fig.height=20, eval=nrow(posMarkers) > 0}
+```{r dotplot, fig.width=15, fig.height=20, eval=has_genes_to_plot_clusters}
 DotPlot(scData, features = rev(genesToPlot)) +
  coord_flip() +
  scale_y_discrete(limits = as.character(sort(as.integer(levels(Idents(scData)))))) +
  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+```{r dotplot_none, results='asis', echo=FALSE, eval=nrow(posMarkers) > 0 && !has_genes_to_plot_clusters}
+cat("_No matching genes found for the cluster-marker dotplot (top markers absent from the assay)._\n")
 ```
 
 ### EnrichR
@@ -1412,8 +1423,15 @@ if (has_rctd) {
 
 has_annotation <- !is.null(celltype_col)
 
-# Get RCTD reference information from param
-rctd_ref_name <- if (!is.null(param$rctdReference) && param$rctdReference != "" && param$rctdReference != "None") {
+# Report the reference RCTD ACTUALLY used, with the app's precedence (rctdFile overrides the
+# dropdown). Prefer param$rctdRefUsed (recorded by the app); fall back to rctdFile / dropdown for
+# objects analysed before that field existed. This stops the tab from (a) naming the dropdown atlas
+# when a custom file replaced it, and (b) claiming "not performed" when only rctdFile was set.
+rctd_ref_name <- if (!is.null(param$rctdRefUsed) && param$rctdRefUsed != "") {
+ param$rctdRefUsed
+} else if (!is.null(param$rctdFile) && param$rctdFile != "") {
+ param$rctdFile
+} else if (!is.null(param$rctdReference) && param$rctdReference != "" && param$rctdReference != "None") {
  param$rctdReference
 } else {
  NULL
@@ -1627,6 +1645,11 @@ cat("Niche x Cell type heatmap not available (no BANKSY results or no cell type 
 
 ```{r cooccurrence_check}
 has_cooc_coords <- has_annotation && length(scData@images) > 0
+# has_cooc is really assigned in cooccurrence_compute below, but that chunk is itself gated on
+# has_cooc_coords. Without a default here, running with no cell-type annotation (the SUSHI default
+# rctdReference='None') leaves has_cooc undefined, and knitr aborts the WHOLE render when it
+# evaluates eval=has_cooc on the heatmap chunk -> no HTML is produced at all.
+has_cooc <- FALSE
 cooc_radius <- if (!is.null(param$coocRadius)) as.numeric(param$coocRadius) else 30
 cooc_nperm <- if (!is.null(param$coocNperm)) as.numeric(param$coocNperm) else 1000
 ```

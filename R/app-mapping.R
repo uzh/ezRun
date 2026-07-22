@@ -1307,6 +1307,24 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
   ezSystem(cmd)
   cmd <- paste("samtools", "view -S -b ", bamFileNameBismark, " > bismark.bam")
   ezSystem(cmd)
+  
+  ## Add read group tags so downstream tools (e.g. Picard MarkDuplicates) don't crash
+  sampleName <- names(bamFile)
+  rgHeader <- paste0(
+      "@RG\tID:", sampleName,
+      "\tSM:", sampleName,
+      "\tLB:", sampleName,
+      "\tPL:ILLUMINA",
+      "\tPU:", sampleName
+  )
+  cmd <- paste(
+      "samtools addreplacerg",
+      "-r", shQuote(rgHeader),
+      "-o bismark_rg.bam bismark.bam"
+  )
+  ezSystem(cmd)
+  ezSystem("mv bismark_rg.bam bismark.bam")
+  
   ezSortIndexBam(
     "bismark.bam",
     basename(bamFile),
@@ -1472,6 +1490,11 @@ EzAppBismark <-
             Type = "logical",
             DefaultValue = "FALSE",
             Description = "should a bigwig coverage file be generated"
+          ),
+          nReads = ezFrame(
+              Type = "numeric",
+              DefaultValue = 0,
+              Description = "subsampling before mapping"
           )
         )
       }

@@ -164,4 +164,4 @@ pvalue_allMarkers	numeric	0.05	adj pVal cutoff
 min.pct	numeric	0.1	minimal fraction of expressed cells
 logfc.threshold	numeric	0.25	minimal log2 ratio
 markDuplicates	logical	TRUE	should duplicates be marked
-dupDistance	numeric	100	The maximum offset between two duplicate clusters in order to consider them optical duplicates. 
+dupDistance	numeric	2500	The maximum offset between two duplicate clusters in order to consider them optical duplicates. 

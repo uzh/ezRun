@@ -1,0 +1,385 @@
+---
+title: "HUMAnN 4 Functional Profiling Report"
+params:
+  sample: "Sample"
+  mode: "translated"
+  profileSource: "MetaPhlAnProfile"
+  detectedDb: ""
+  forced: FALSE
+  humannLog: ""
+  gfCpmFile: ""
+  rxCpmFile: ""
+  paFile: ""
+  koFile: NA
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+    self_contained: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.width = 9, fig.height = 6, dev = "png")
+library(ggplot2)
+```
+
+## Sample: `r params$sample`
+
+```{r mode_box, results = "asis"}
+mode_label <- if (identical(params$mode, "full")) {
+  "**Full HUMAnN** — tier-1 (ChocoPhlAn pangenomes, SGB-stratified) + tier-2 (UniRef90-EC DIAMOND)."
+} else {
+  "**Translated-only HUMAnN** — tier-2 only (UniRef90-EC DIAMOND), community-level output."
+}
+cat("- Mode: ", mode_label, "\n", sep = "")
+cat("- Upstream profile source: `", params$profileSource, "`\n", sep = "")
+cat("- Detected DB tag: `", params$detectedDb, "`\n", sep = "")
+if (isTRUE(params$forced)) {
+  cat("- **Note:** `forceTranslatedOnly` parameter was TRUE — any vOct22 input was downgraded.\n")
+}
+```
+
+## Run summary
+
+```{r log_summary, results = "asis"}
+log_path <- params$humannLog
+if (nzchar(log_path) && file.exists(log_path)) {
+  ln <- readLines(log_path, warn = FALSE)
+  ## HUMAnN log lines look like
+  ##   07/02/2026 08:58:12 PM - humann.humann - INFO: <metric>: <value>
+  ## The value is always the tail after the LAST colon; the metric name
+  ## itself contains colons (in the timestamp and after "INFO"), so
+  ## anchoring the strip to the first colon leaks the timestamp/level
+  ## prefix into the value cell.
+  pick <- function(pat) {
+    m <- grep(pat, ln, value = TRUE)
+    if (length(m) == 0) return("(not found in log)")
+    trimws(sub(".*:\\s*", "", tail(m, 1)))
+  }
+  ## Turn "66.44 %" into "33.56 % aligned"; return the raw value if it
+  ## isn't a percentage (e.g. HUMAnN didn't log this metric this run).
+  as_aligned_pct <- function(v) {
+    if (identical(v, "(not found in log)")) return(v)
+    m <- regmatches(v, regexpr("[0-9.]+", v))
+    if (length(m) == 0) return(v)
+    n <- suppressWarnings(as.numeric(m))
+    if (is.na(n)) return(v)
+    sprintf("%.2f %% aligned", 100 - n)
+  }
+  rows <- list(
+    c("Reads aligned (nucleotide tier-1, full only)",
+      as_aligned_pct(pick("Unaligned reads after nucleotide alignment"))),
+    c("Reads aligned (after translated tier-2)",
+      as_aligned_pct(pick("Unaligned reads after translated alignment"))),
+    c("Total gene families", pick("^Total gene families"))
+  )
+  tbl <- do.call(rbind, lapply(rows, function(x) data.frame(Metric = x[1], Value = x[2])))
+  print(knitr::kable(tbl, row.names = FALSE))
+} else {
+  cat("HUMAnN log not found at `", log_path, "`\n", sep = "")
+}
+```
+
+## Top features
+
+```{r helpers, include = FALSE}
+read_humann <- function(path) {
+  if (is.na(path) || !nzchar(path) || !file.exists(path)) return(NULL)
+  m <- read.table(path, header = TRUE, sep = "\t", check.names = FALSE,
+                  comment.char = "", quote = "", row.names = 1)
+  colnames(m) <- sub("_(Abundance|Abundance-CPM|Coverage|Abundance-RPKs).*$", "",
+                    colnames(m))
+  m <- m[!rownames(m) %in% c("UNMAPPED", "UNINTEGRATED", "UNGROUPED",
+                             "READS_UNMAPPED"), , drop = FALSE]
+  m <- m[!grepl("\\|", rownames(m)), , drop = FALSE]   # community-level only
+  m
+}
+
+top_n_table <- function(m, n = 20) {
+  if (is.null(m) || nrow(m) == 0) return(NULL)
+  v <- m[, 1]
+  ord <- order(v, decreasing = TRUE)
+  head(data.frame(Feature = rownames(m)[ord], Value = v[ord],
+                  stringsAsFactors = FALSE), n)
+}
+
+bar_top <- function(m, title, n = 20) {
+  d <- top_n_table(m, n = n)
+  if (is.null(d)) return(NULL)
+  d$Feature <- factor(d$Feature, levels = rev(d$Feature))
+  ggplot(d, aes(x = Feature, y = Value)) +
+    geom_col(fill = "steelblue") +
+    coord_flip() +
+    labs(title = title, x = NULL, y = "CPM") +
+    theme_minimal(base_size = 11) +
+    theme(axis.text.y = element_text(size = 8))
+}
+
+pa <- read_humann(params$paFile)
+rx <- read_humann(params$rxCpmFile)
+ko <- read_humann(params$koFile)
+gf <- read_humann(params$gfCpmFile)
+```
+
+### MetaCyc pathways
+
+`r if (is.null(pa)) "(no pathway abundance table)" else if (nrow(pa) == 0) "(no community-level pathways detected)" else sprintf("%d community-level pathways detected.", nrow(pa))`
+
+```{r pathway_plot, fig.height = 6}
+if (!is.null(pa) && nrow(pa) > 0) print(bar_top(pa, "Top 20 MetaCyc pathways"))
+```
+
+```{r pathway_table}
+pa_tbl <- top_n_table(pa, 20)
+if (!is.null(pa_tbl)) knitr::kable(pa_tbl, row.names = FALSE,
+                                    col.names = c("Pathway", "Abundance"))
+```
+
+### MetaCyc reactions
+
+`r if (is.null(rx)) "(no reactions table)" else if (nrow(rx) == 0) "(no community-level reactions detected)" else sprintf("%d community-level reactions detected.", nrow(rx))`
+
+```{r reactions_plot, fig.height = 6}
+if (!is.null(rx) && nrow(rx) > 0) print(bar_top(rx, "Top 20 MetaCyc reactions"))
+```
+
+### KEGG KO
+
+`r if (is.null(ko)) "(KEGG KO regroup not run or failed; HUMAnN 4 alpha utility_mapping covers EC-annotated KOs only.)" else if (nrow(ko) == 0) "(no community-level KOs detected)" else sprintf("%d community-level KOs detected (EC-mapped subset only).", nrow(ko))`
+
+```{r ko_plot, fig.height = 6}
+if (!is.null(ko) && nrow(ko) > 0) print(bar_top(ko, "Top 20 KEGG KOs"))
+```
+
+### Gene families (community level)
+
+`r if (is.null(gf)) "(no gene families table)" else if (nrow(gf) == 0) "(no community-level gene families detected)" else sprintf("%d community-level UniRef90-EC + UniClust90 gene families detected.", nrow(gf))`
+
+```{r gf_plot, fig.height = 6}
+if (!is.null(gf) && nrow(gf) > 0) print(bar_top(gf, "Top 20 gene families"))
+```
+
+## Stratification per organism
+
+```{r strat_helpers, include = FALSE}
+# Read a HUMAnN CPM TSV keeping stratified rows (feature|species).
+# Community-level rows and specials are dropped so the section shows only
+# per-organism contributions.
+read_humann_strat <- function(path) {
+  if (is.na(path) || !nzchar(path) || !file.exists(path)) return(NULL)
+  m <- read.table(path, header = TRUE, sep = "\t", check.names = FALSE,
+                  comment.char = "", quote = "", row.names = 1)
+  colnames(m) <- sub("_(Abundance|Abundance-CPM|Coverage|Abundance-RPKs).*$",
+                     "", colnames(m))
+  strat <- m[grepl("\\|", rownames(m)), , drop = FALSE]
+  if (nrow(strat) == 0) return(NULL)
+  parts <- strsplit(rownames(strat), "|", fixed = TRUE)
+  base    <- vapply(parts, `[`, character(1), 1)
+  species <- vapply(parts, function(x)
+                     if (length(x) >= 2) x[[2]] else NA_character_,
+                     character(1))
+  data.frame(BaseFeature = base,
+             Species     = species,
+             SpeciesLabel = gsub("_", " ", sub("^[a-z]__", "", species, perl = TRUE)),
+             Value       = as.numeric(strat[, 1]),
+             stringsAsFactors = FALSE)
+}
+
+top_organisms <- function(df, n = 20) {
+  if (is.null(df) || nrow(df) == 0) return(NULL)
+  agg <- aggregate(Value ~ SpeciesLabel, data = df, FUN = sum)
+  agg <- agg[order(agg$Value, decreasing = TRUE), , drop = FALSE]
+  head(agg, n)
+}
+
+per_feature_top_org <- function(df, top_features = 5, top_org_per = 5) {
+  if (is.null(df) || nrow(df) == 0) return(NULL)
+  # Top features by summed stratified CPM
+  feat_totals <- aggregate(Value ~ BaseFeature, data = df, FUN = sum)
+  feat_totals <- feat_totals[order(feat_totals$Value, decreasing = TRUE), ]
+  top_feats <- head(feat_totals$BaseFeature, top_features)
+  sub <- df[df$BaseFeature %in% top_feats, , drop = FALSE]
+  # Keep only top organisms per feature
+  do.call(rbind, lapply(top_feats, function(f) {
+    r <- sub[sub$BaseFeature == f, ]
+    r <- r[order(r$Value, decreasing = TRUE), ]
+    head(r, top_org_per)
+  }))
+}
+
+pa_strat <- read_humann_strat(params$paFile)
+rx_strat <- read_humann_strat(params$rxCpmFile)
+gf_strat <- read_humann_strat(params$gfCpmFile)
+ko_strat <- read_humann_strat(params$koFile)
+
+any_strat <- any(!vapply(list(pa_strat, rx_strat, gf_strat, ko_strat),
+                         is.null, logical(1)))
+```
+
+`r if (!any_strat) sprintf("No stratified rows detected. Full HUMAnN mode (tier-1 + tier-2, vOct22 upstream) is required to see per-organism contributions; this sample ran in **%s** mode.", params$mode)`
+
+```{r strat_summary, results = "asis", eval = any_strat}
+tbls <- list(Pathways = pa_strat, Reactions = rx_strat,
+             `Gene families` = gf_strat, `KEGG KOs` = ko_strat)
+tbls <- Filter(Negate(is.null), tbls)
+summary_df <- do.call(rbind, lapply(names(tbls), function(nm) {
+  d <- tbls[[nm]]
+  data.frame(Table = nm,
+             `Stratified rows` = nrow(d),
+             `Unique organisms` = length(unique(d$SpeciesLabel)),
+             check.names = FALSE)
+}))
+cat("**Overall:**\n\n")
+print(knitr::kable(summary_df, row.names = FALSE))
+```
+
+### Top organisms overall (pathways)
+
+```{r strat_bar_pa, fig.height = 6, eval = !is.null(pa_strat)}
+top_pa <- top_organisms(pa_strat, n = 20)
+if (!is.null(top_pa) && nrow(top_pa) > 0) {
+  top_pa$SpeciesLabel <- factor(top_pa$SpeciesLabel, levels = rev(top_pa$SpeciesLabel))
+  ggplot(top_pa, aes(x = SpeciesLabel, y = Value)) +
+    geom_col(fill = "#527085") +
+    coord_flip() +
+    labs(title = "Top 20 organisms (summed CPM across all pathways)",
+         x = NULL, y = "Summed CPM") +
+    theme_minimal(base_size = 11) +
+    theme(axis.text.y = element_text(size = 8, face = "italic"))
+}
+```
+
+`r if (is.null(pa_strat)) "(no stratified pathway data)"`
+
+### Top organism contributions to top pathways
+
+```{r strat_per_feat_pa, eval = !is.null(pa_strat)}
+pf <- per_feature_top_org(pa_strat, top_features = 5, top_org_per = 5)
+if (!is.null(pf) && nrow(pf) > 0) {
+  disp <- data.frame(Pathway = pf$BaseFeature,
+                     Organism = pf$SpeciesLabel,
+                     `CPM` = round(pf$Value, 2),
+                     check.names = FALSE)
+  knitr::kable(disp, row.names = FALSE)
+}
+```
+
+### Top organism contributions to top reactions
+
+```{r strat_per_feat_rx, eval = !is.null(rx_strat)}
+pf <- per_feature_top_org(rx_strat, top_features = 5, top_org_per = 5)
+if (!is.null(pf) && nrow(pf) > 0) {
+  disp <- data.frame(Reaction = pf$BaseFeature,
+                     Organism = pf$SpeciesLabel,
+                     `CPM` = round(pf$Value, 2),
+                     check.names = FALSE)
+  knitr::kable(disp, row.names = FALSE)
+}
+```
+
+### Top organisms overall (reactions)
+
+```{r strat_bar_rx, fig.height = 6, eval = !is.null(rx_strat)}
+top_rx <- top_organisms(rx_strat, n = 20)
+if (!is.null(top_rx) && nrow(top_rx) > 0) {
+  top_rx$SpeciesLabel <- factor(top_rx$SpeciesLabel, levels = rev(top_rx$SpeciesLabel))
+  ggplot(top_rx, aes(x = SpeciesLabel, y = Value)) +
+    geom_col(fill = "#8FA9B8") +
+    coord_flip() +
+    labs(title = "Top 20 organisms (summed CPM across all reactions)",
+         x = NULL, y = "Summed CPM") +
+    theme_minimal(base_size = 11) +
+    theme(axis.text.y = element_text(size = 8, face = "italic"))
+}
+```
+
+`r if (is.null(rx_strat)) "(no stratified reactions data)"`
+
+### Top organisms overall (gene families)
+
+```{r strat_bar_gf, fig.height = 6, eval = !is.null(gf_strat)}
+top_gf <- top_organisms(gf_strat, n = 20)
+if (!is.null(top_gf) && nrow(top_gf) > 0) {
+  top_gf$SpeciesLabel <- factor(top_gf$SpeciesLabel, levels = rev(top_gf$SpeciesLabel))
+  ggplot(top_gf, aes(x = SpeciesLabel, y = Value)) +
+    geom_col(fill = "#3A5060") +
+    coord_flip() +
+    labs(title = "Top 20 organisms (summed CPM across all gene families)",
+         x = NULL, y = "Summed CPM") +
+    theme_minimal(base_size = 11) +
+    theme(axis.text.y = element_text(size = 8, face = "italic"))
+}
+```
+
+`r if (is.null(gf_strat)) "(no stratified gene families data)"`
+
+### Top organism contributions to top gene families
+
+```{r strat_per_feat_gf, eval = !is.null(gf_strat)}
+pf <- per_feature_top_org(gf_strat, top_features = 5, top_org_per = 5)
+if (!is.null(pf) && nrow(pf) > 0) {
+  disp <- data.frame(`Gene family` = pf$BaseFeature,
+                     Organism = pf$SpeciesLabel,
+                     `CPM` = round(pf$Value, 2),
+                     check.names = FALSE)
+  knitr::kable(disp, row.names = FALSE)
+}
+```
+
+### Top organisms overall (KEGG KOs)
+
+```{r strat_bar_ko, fig.height = 6, eval = !is.null(ko_strat)}
+top_ko <- top_organisms(ko_strat, n = 20)
+if (!is.null(top_ko) && nrow(top_ko) > 0) {
+  top_ko$SpeciesLabel <- factor(top_ko$SpeciesLabel, levels = rev(top_ko$SpeciesLabel))
+  ggplot(top_ko, aes(x = SpeciesLabel, y = Value)) +
+    geom_col(fill = "#6E8D9E") +
+    coord_flip() +
+    labs(title = "Top 20 organisms (summed CPM across all KEGG KOs)",
+         x = NULL, y = "Summed CPM") +
+    theme_minimal(base_size = 11) +
+    theme(axis.text.y = element_text(size = 8, face = "italic"))
+}
+```
+
+`r if (is.null(ko_strat)) "(no stratified KEGG KO data — KO regroup may not have been run, or the run was translated-only)"`
+
+### Top organism contributions to top KEGG KOs
+
+```{r strat_per_feat_ko, eval = !is.null(ko_strat)}
+pf <- per_feature_top_org(ko_strat, top_features = 5, top_org_per = 5)
+if (!is.null(pf) && nrow(pf) > 0) {
+  disp <- data.frame(`KEGG KO` = pf$BaseFeature,
+                     Organism = pf$SpeciesLabel,
+                     `CPM` = round(pf$Value, 2),
+                     check.names = FALSE)
+  knitr::kable(disp, row.names = FALSE)
+}
+```
+
+## Output files
+
+```{r files_table}
+fs <- c(params$gfCpmFile, params$rxCpmFile, params$paFile, params$koFile)
+fs <- fs[!is.na(fs) & nzchar(fs)]
+fs <- fs[file.exists(fs)]
+if (length(fs) > 0) {
+  info <- file.info(fs)
+  knitr::kable(data.frame(File = basename(fs),
+                          Size_KB = round(info$size / 1024, 1)),
+               row.names = FALSE)
+}
+```
+
+## Method notes
+
+HUMAnN **v4.0.0.alpha.2** with these caveats:
+
+- **DB compatibility.** ChocoPhlAn pangenomes are pinned to `mpa_vOct22_CHOCOPhlAnSGB_202403`. MetaPhlAn profiles from newer DBs (e.g. `mpa_vJan25_CHOCOPhlAnSGB_202503`) can only drive translated-only mode — SGB IDs don't align across vintages.
+- **Profile is always supplied externally.** MetaPhlAn ≥ 4.2 has an API change HUMAnN 4 alpha cannot drive itself; this app passes `--taxonomic-profile` so the MetaPhlAn binary version is irrelevant.
+- **EC-filtered UniRef DB only.** Gene-family quantitation is restricted to enzymes. MetaCyc pathways work as designed; KEGG KO regroup covers the EC-mapped subset only (no transporters / regulators / structural).
+- **`READS_UNMAPPED` strip.** HUMAnN 4 renamed `UNMAPPED` → `READS_UNMAPPED` in gene families; `humann_renorm_table --special n` doesn't know the new name. We strip it before CPM-renorm so it doesn't dominate the denominator.
+
+See [biobakery forum #8523](https://forum.biobakery.org/t/metaphlan-4-humann-4-compatibility/8523) for compatibility background.

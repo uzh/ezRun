@@ -214,6 +214,10 @@ ezMethodScSeurat <- function(
     ## scDblFinder fails with many cells and MulticoreParam
     BPPARAM <- SerialParam()
   }
+  ## Pin BLAS/OpenMP to one thread before forking (MulticoreParam/future) to
+  ## avoid the fork-in-multithreaded-process deadlock (e.g. AUCell labeling).
+  RhpcBLASctl::blas_set_num_threads(1)
+  RhpcBLASctl::omp_set_num_threads(1)
   register(BPPARAM)
   require(future)
   plan("multicore", workers = param$cores)
@@ -1072,6 +1076,8 @@ querySignificantClusterAnnotationEnrichR <- function(
   }
   if (!requireNamespace("enrichR", quietly = TRUE)) {
     stop("enrichR database requested, but package 'enrichR' is not available.")
+  } else {
+      require(enrichR)
   }
 
   enrichRout <- list()
@@ -1100,7 +1106,7 @@ querySignificantClusterAnnotationEnrichR <- function(
       next
     }
 
-    enriched <- enrichR::enrichr(genes, dbs)
+    enriched <- enrichr(genes, dbs)
 
     for (db in names(enriched)) {
       enriched_db <- enriched[[db]]
@@ -1121,33 +1127,50 @@ querySignificantClusterAnnotationEnrichR <- function(
 
 
 computeTFActivityAnalysis <- function(cells, species) {
-  species <- tolower(species)
-  # Retrieve prior knowledge network.
-  network <- decoupleR::get_dorothea(
-    organism = species,
-    levels = c("A", "B", "C")
-  )
-
-  # Run weighted means algorithm.
-  activities <- decoupleR::run_wmean(
-    mat = as.matrix(GetAssayData(cells)),
-    network = network,
-    .source = "source",
-    .targe = "target",
-    .mor = "mor",
-    times = 100,
-    minsize = 5
-  )
-
-  return(activities)
+    species <- tolower(species)
+    # Retrieve prior knowledge network.
+    if (species == 'mouse') {
+        data("dorothea_mm", package = "dorothea")
+        network <- dorothea_mm |>
+            dplyr::filter(confidence %in% c("A", "B", "C")) |>
+            dplyr::rename(source = tf) |>
+            dplyr::select(source, target, mor)
+    } else if (species == 'human') {
+        data("dorothea_hs", package = "dorothea")
+        network <- dorothea_hs |>
+            dplyr::filter(confidence %in% c("A", "B", "C")) |>
+            dplyr::rename(source = tf) |>
+            dplyr::select(source, target, mor)
+    }
+    # Run weighted means algorithm.
+    activities <- decoupleR::run_wmean(
+        mat = as.matrix(GetAssayData(cells)),
+        network = network,
+        .source = "source",
+        .targe = "target",
+        .mor = "mor",
+        times = 100,
+        minsize = 5
+    )
+    
+    return(activities)
 }
 
 
 computePathwayActivityAnalysis <- function(cells, species) {
   species <- tolower(species)
   # Retrieve prior knowledge network.
+  if(species == 'human'){
   network <- decoupleR::get_progeny(organism = species)
-
+  } else if(species == 'mouse'){
+      network <- progeny::getModel(organism = "Mouse") |>
+          as.data.frame() |>
+          tibble::rownames_to_column("target") |>
+          tidyr::pivot_longer(-target, names_to = "source", values_to = "weight") |>
+          dplyr::filter(weight != 0) |>
+          dplyr::select(source, target, weight)
+    }
+  
   # Run weighted means algorithm.
   activities <- decoupleR::run_wmean(
     mat = as.matrix(GetAssayData(cells)),

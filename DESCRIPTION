@@ -1,8 +1,8 @@
 Package: ezRun
 Type: Package
 Title: An R meta-package for the analysis of Next Generation Sequencing Data
-Version: 3.21.1
-Date: 2025-05-30
+Version: 3.23.1
+Date: 2026-07-21
 Author: Hubert Rehrauer and others
 Maintainer: sequencing <sequencing@fgcz.ethz.ch>
 Description: An environment that makes it easy to process data by using R
@@ -13,6 +13,7 @@ Depends:
     R (>= 4.5.0),stats,methods,utils,data.table,Biostrings,GenomicRanges,
     tidyverse,logger
 Imports:
+    RhpcBLASctl
 Suggests:
     testthat, knitr, gage, goseq, ChIPpeakAnno, DESeq2, TEQC,
     pathview, reshape2, vsn, Rsubread, preprocessCore, wesanderson,
@@ -22,7 +23,7 @@ Suggests:
     GenomicRanges, ShortRead, Gviz, gplots, GO.db, GOstats, annotate,
     bitops, edgeR, limma, S4Vectors, VariantAnnotation, rmarkdown, plotly,
     kableExtra, htmlwidgets, RSelenium, webshot, clusterProfiler, dupRadar,
-    scran, writexl, zip, httr2
+    scran, writexl, zip, httr2, quarto
 SystemRequirements:
 VignetteBuilder: knitr
 RoxygenNote: 7.3.2

@@ -1,0 +1,825 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'Shotgun DA'`"
+output:
+  html_document:
+    highlight: pygments
+    theme: sand
+    code_folding: hide
+    toc: yes
+    toc_depth: 4
+    df_print: paged
+    self_contained: true
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE,
+                      fig.width = 12, fig.height = 8, cache = TRUE)
+knitr::opts_knit$set(root.dir = ".")
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(stringr)
+library(phyloseq)
+library(biomformat)
+library(microbiome)
+library(vegan)
+library(reshape2)
+library(scales)
+library(RColorBrewer)
+library(patchwork)
+library(ggpubr)
+library(ggrepel)
+library(DT)
+library(htmlwidgets)
+library(htmltools)
+library(plotly)
+library(kableExtra)
+library(EnhancedVolcano)
+```
+
+```{r register_widget_deps, include=FALSE}
+## Force-register plotly + DT JS dependencies at the top level. Some interactive
+## widgets are produced deep inside helper functions; knit_meta does not always
+## propagate their deps back, leaving the widgets as blank containers.
+local({
+  for (d in htmltools::findDependencies(plotly::plot_ly()))
+    knitr::knit_meta_add(list(d))
+  for (d in htmltools::findDependencies(DT::datatable(data.frame(x = 1))))
+    knitr::knit_meta_add(list(d))
+})
+```
+
+```{r load_params, include=FALSE}
+## SUSHI passes its `param` list serialised to disk by makeRmdReport().
+library(ezRun)
+param  <- ezLoadRobj("param")
+output <- ezLoadRobj("output")
+
+`%||%` <- function(a, b) {
+  if (is.null(a)) return(b)
+  if (is.character(a) && length(a) == 1 && nchar(a) == 0) return(b)
+  a
+}
+.split_csv <- function(s) {
+  if (is.null(s)) return(character(0))
+  if (length(s) > 1) {
+    out <- trimws(as.character(s))
+    return(out[nzchar(out)])
+  }
+  if (is.character(s) && nchar(s) == 0) return(character(0))
+  out <- trimws(unlist(strsplit(as.character(s), "[,;]")))
+  out[nzchar(out)]
+}
+.as_logical <- function(x) {
+  if (is.logical(x)) return(x)
+  isTRUE(x) || identical(tolower(as.character(x)), "true") ||
+    identical(tolower(as.character(x)), "yes")
+}
+
+## Each DiffShot* SUSHI app hardcodes daMethod; the report runs and shows only
+## that one method's section. Recognised values: ALDEx2, ANCOMBC, MaAsLin3, LEfSe.
+da_method_raw <- as.character(param$daMethod %||% "")
+da_method     <- toupper(gsub("[^A-Za-z0-9]", "", da_method_raw))
+if (!nzchar(da_method))
+  stop("param$daMethod is empty - this Rmd is meant to be invoked by one of ",
+       "the DiffShot{ALDEx,ANCOMBC,MaAsLin3,LEfSe}App apps.")
+.method_map <- c(ALDEX2 = "ALDEx2", ANCOMBC = "ANCOMBC2", ANCOMBC2 = "ANCOMBC2",
+                 MAASLIN3 = "MaAsLin3", MAASLIN = "MaAsLin3", LEFSE = "LEfSe")
+if (!da_method %in% names(.method_map))
+  stop("Unknown daMethod '", da_method_raw, "'. Accepted: ",
+       paste(names(.method_map), collapse = ", "))
+da_method_label <- .method_map[[da_method]]
+```
+
+```{r child_dispatch_setup, include=FALSE}
+## The per-method child Rmd is staged into the working dir by ezMethodDiffShot
+## before makeRmdReport runs. The dispatcher chunk further down loads it.
+.method_child_map <- c(
+  ALDEX2   = "DiffShot_aldex.Rmd",
+  ANCOMBC  = "DiffShot_ancombc.Rmd",
+  ANCOMBC2 = "DiffShot_ancombc.Rmd",
+  MAASLIN3 = "DiffShot_maaslin3.Rmd",
+  MAASLIN  = "DiffShot_maaslin3.Rmd",
+  LEFSE    = "DiffShot_lefse.Rmd"
+)
+method_child <- .method_child_map[[da_method]]
+if (!file.exists(method_child))
+  stop("Child Rmd '", method_child, "' not in working dir. ",
+       "Check that ezMethodDiffShot staged it before knitting.")
+```
+
+# Overview & Consideration {#overview}
+
+```{r source_type_setup, include=FALSE}
+source_type <- tolower(as.character(param$sourceType %||% "bracken"))
+source_label <- switch(source_type,
+                       bracken   = "Kraken2 + Bracken",
+                       metaphlan = "MetaPhlAn",
+                       source_type)
+
+## Pre-baked Markdown fragments. Constructed here (not as inline R) so the
+## backticks used for code formatting do not collide with the `r ... ` syntax.
+biom_sentence <- if (source_type == "bracken") {
+  "The BIOM table is built from the per-sample Bracken reports with [`kraken-biom`](https://github.com/smdabdoub/kraken-biom)."
+} else {
+  "The BIOM table is built directly from the per-sample MetaPhlAn profiles via `biomformat::make_biom`, keeping only species-resolved rows."
+}
+
+values_sentence <- if (source_type == "bracken") {
+  "Bracken outputs per-taxon read counts — a `features x samples` integer matrix."
+} else if (da_method %in% c("ALDEX2","ANCOMBC","ANCOMBC2")) {
+  "MetaPhlAn outputs were run with `-t rel_ab_w_read_stats`; the `estimated_number_of_reads_from_the_clade` column is used as the per-taxon count matrix that the count-based DA method requires."
+} else {
+  "MetaPhlAn outputs the per-taxon relative abundance (% per sample). Values are scaled to integer pseudo-counts (relab x 1e4) so the count-shaped pipeline (sample sums, prevalence filter, CPM / TSS normalisation) keeps working unchanged; the chosen method internally normalises this back to a relative scale."
+}
+
+method_sentence <- if (da_method == "ALDEX2") {
+  "**ALDEx2** - CLR + Monte-Carlo Dirichlet. With covariates uses the GLM path (aldex.glm); without covariates the standard t-test path."
+} else if (da_method %in% c("ANCOMBC","ANCOMBC2")) {
+  "**ANCOM-BC2** - bias-corrected log-ratios with structural-zero handling. Covariates extend fix_formula."
+} else if (da_method == "MAASLIN3") {
+  "**MaAsLin 3** - GLMs testing abundance and prevalence associations. ReadDepth is added automatically as a covariate."
+} else if (da_method == "LEFSE") {
+  "**LEfSe** - non-parametric (Kruskal-Wallis + LDA) on relative abundance. Does NOT accept covariates by construction; results are unadjusted."
+} else ""
+
+caveat_origin <- if (source_type == "bracken") {
+  "Bracken counts are *re-estimated* abundances"
+} else {
+  "MetaPhlAn counts are *estimated* from marker-gene coverage"
+}
+
+## MaAsLin3-only note on which q-value to interpret. Built here (not inline)
+## so the backtick-quoted column names do not collide with `r ... ` syntax.
+maaslin_qval_note <- if (da_method == "MAASLIN3") {
+  paste0(
+    "> **Choosing a significance value — `qval_individual` vs `qval_joint`.** ",
+    "MaAsLin3 reports two q-values and which one to use depends on the question ",
+    "you care about. `qval_individual` is attached to a *specific* association ",
+    "(the abundance association or the prevalence association on its own): it ",
+    "answers \"is there a significant abundance association?\" or \"is there a ",
+    "significant prevalence association?\". `qval_joint` is attached to the ",
+    "*combined* abundance-and-prevalence association: it answers \"is there ",
+    "*either* a significant abundance or prevalence association?\". If you have ",
+    "no preference, use `qval_individual` — it lets you say whether the ",
+    "association was with abundance or with prevalence."
+  )
+} else ""
+```
+
+This report runs **`r da_method_label`** differential abundance (DA) analysis on
+**shotgun metagenomics** taxonomic profiles produced by **`r source_label`**.
+`r biom_sentence`
+
+`r values_sentence`
+The single test applied here is:
+
+`r method_sentence`
+
+> **Caveats.** (1) `r caveat_origin` — methods like ANCOM-BC2 and MaAsLin3 model that compositional shape natively. (2) Shotgun
+> species tables are sparse; a prevalence / abundance filter is applied before
+> testing. (3) MaAsLin3 docs strongly recommend including read depth as a
+> covariate for prevalence models — it is added automatically.
+
+`r maaslin_qval_note`
+
+---
+
+# Configuration
+
+```{r config}
+## -----------------------------------------------------------------
+## Inputs prepared by the SUSHI back-end in the working directory.
+## -----------------------------------------------------------------
+biom_path     <- "bracken_table.biom"
+metadata_path <- "sample-metadata.tsv"
+
+## -----------------------------------------------------------------
+## Resolved from SUSHI params.
+## -----------------------------------------------------------------
+group_cols      <- param$grouping            %||% "Group"
+sample_group    <- param$sampleGroup         %||% NA_character_
+ref_group       <- param$refGroup            %||% NA_character_
+da_group        <- "Group"                   # always the constructed col
+da_covariates   <- setdiff(.split_csv(param$daCovariates), group_cols)
+samples_to_prune <- .split_csv(param$samplesToDrop)
+
+## LEfSe does not accept covariates; drop them if the LEfSe app somehow received
+## any (its SUSHI form does not expose daCovariates, so this is belt-and-braces).
+if (da_method == "LEFSE" && length(da_covariates) > 0) {
+  message("LEfSe app: ignoring stray daCovariates (", paste(da_covariates, collapse = ", "), ").")
+  da_covariates <- character(0)
+}
+
+## Reference factor levels - only the focal grouping (single column) is
+## explicitly set; covariate columns use alphabetical defaults.
+factor_reference <- setNames(ref_group, group_cols)
+group_reference  <- ref_group                # 2-level Group after subset
+
+## Filters / thresholds (defaults match the baseline ad-hoc Rmd).
+prevalence_min   <- as.numeric(param$prevalenceMin    %||% 0.10)
+relabund_min     <- as.numeric(param$relabundMin      %||% 0.10)
+lib_cut          <- as.numeric(param$libCut           %||% 1000)
+p_thresh         <- as.numeric(param$pValueThresh     %||% 0.05)
+fc_thresh        <- as.numeric(param$log2RatioThresh  %||% 1)
+maaslin_max_sig  <- as.numeric(param$maaslinMaxSig    %||% 0.1)
+
+## -----------------------------------------------------------------
+## Output
+## -----------------------------------------------------------------
+results_dir <- "results_out"
+dir.create(results_dir, showWarnings = FALSE, recursive = TRUE)
+
+## Standard table widget.
+dt <- function(df, caption, sig = 3, length_menu = TRUE) {
+  dom <- if (length_menu) 'lftBip' else 'ftBip'
+  w <- datatable(df, caption = caption, extensions = 'Buttons', rownames = FALSE,
+                 filter = 'top',
+                 options = list(scrollX = TRUE, dom = dom,
+                                buttons = c('copy', 'csv', 'excel'),
+                                pageLength = 10, lengthMenu = c(10, 20, 100, 200)))
+  num_cols <- names(df)[vapply(df, function(x) {
+    if (!is.numeric(x)) return(FALSE)
+    xf <- x[is.finite(x)]
+    length(xf) > 0 && !isTRUE(all(xf == round(xf)))
+  }, logical(1))]
+  if (length(num_cols)) w <- formatSignif(w, columns = num_cols, digits = sig)
+  w
+}
+save_csv <- function(df, fname) {
+  fp <- file.path(results_dir, fname)
+  write.csv(df, fp, row.names = FALSE)
+  fp
+}
+gm_mean <- function(x, na.rm = TRUE) exp(sum(log(x[x > 0]), na.rm = na.rm) / length(x))
+```
+
+The DA analysis below contrasts on column **`r group_cols`**, with
+**`r sample_group`** vs **`r ref_group`** (reference). Covariates being
+adjusted for: **`r if (length(da_covariates)) paste(da_covariates, collapse=", ") else "(none)"`**.
+
+# Data Loading
+
+```{r load_data}
+biom_obj <- read_biom(biom_path)
+otu <- as(biom_data(biom_obj), "matrix")
+otu <- otu_table(otu, taxa_are_rows = TRUE)
+
+RANKS <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
+tax_raw <- observation_metadata(biom_obj)
+if (is.data.frame(tax_raw)) {
+  tax_mat <- as.matrix(tax_raw)
+} else {
+  tax_mat <- do.call(rbind, lapply(tax_raw, function(x) c(unlist(x), rep(NA, 7))[1:7]))
+  if (!is.null(names(tax_raw))) rownames(tax_mat) <- names(tax_raw)
+}
+if (ncol(tax_mat) < 7)
+  tax_mat <- cbind(tax_mat, matrix(NA_character_, nrow(tax_mat), 7 - ncol(tax_mat)))
+tax_mat <- tax_mat[, 1:7, drop = FALSE]
+tax_mat[] <- sub("^([a-z]__)+", "", tax_mat)
+tax_mat[tax_mat == ""] <- NA
+colnames(tax_mat) <- RANKS
+if (!is.null(rownames(tax_mat)) && all(rownames(otu) %in% rownames(tax_mat))) {
+  tax_mat <- tax_mat[rownames(otu), , drop = FALSE]
+} else {
+  stopifnot(nrow(tax_mat) == nrow(otu))
+  rownames(tax_mat) <- rownames(otu)
+}
+TAX <- tax_table(tax_mat)
+
+meta_df <- read.delim(metadata_path, header = TRUE, sep = "\t",
+                      stringsAsFactors = FALSE, check.names = FALSE)
+rownames(meta_df) <- meta_df[[1]]
+SAMP <- sample_data(meta_df)
+physeq <- phyloseq(otu, TAX, SAMP)
+
+## Subset to the two requested levels in the focal grouping column.
+if (!group_cols %in% colnames(sample_data(physeq)))
+  stop("grouping column '", group_cols, "' not in metadata. Available: ",
+       paste(colnames(sample_data(physeq)), collapse = ", "))
+if (is.na(sample_group) || is.na(ref_group) || sample_group == ref_group)
+  stop("sampleGroup and refGroup must be set to two DIFFERENT values of '",
+       group_cols, "'.")
+keep_smp <- as.character(sample_data(physeq)[[group_cols]]) %in%
+            c(sample_group, ref_group)
+if (!any(keep_smp))
+  stop("No samples have grouping column '", group_cols, "' in {",
+       sample_group, ", ", ref_group, "}.")
+physeq <- prune_samples(keep_smp, physeq)
+
+## Build the master Group column from the single focal column.
+sample_data(physeq)$Group <- as.character(sample_data(physeq)[[group_cols]])
+
+## Read depth (used as a MaAsLin3 covariate).
+sample_data(physeq)$ReadDepth <- sample_sums(physeq)
+
+if (length(samples_to_prune) > 0)
+  physeq <- prune_samples(!sample_names(physeq) %in% samples_to_prune, physeq)
+
+## Apply factor reference levels so every method reports sampleGroup-vs-refGroup.
+.smp_df <- data.frame(sample_data(physeq), check.names = FALSE,
+                      stringsAsFactors = FALSE)
+.set_ref <- function(x, ref, col) {
+  vals <- unique(as.character(x))
+  vals <- vals[!is.na(vals) & vals != ""]
+  if (!is.null(ref) && !is.na(ref) && ref %in% vals)
+    factor(as.character(x), levels = c(ref, setdiff(vals, ref)))
+  else {
+    if (!is.null(ref) && !is.na(ref))
+      warning("Reference level '", ref, "' for ", col,
+              "' not in data; using alphabetical default")
+    factor(as.character(x))
+  }
+}
+for (cn in names(factor_reference)) {
+  if (cn %in% colnames(.smp_df))
+    .smp_df[[cn]] <- .set_ref(.smp_df[[cn]], factor_reference[[cn]], cn)
+}
+.smp_df[["Group"]] <- .set_ref(.smp_df[["Group"]], group_reference, "Group")
+sample_data(physeq) <- sample_data(.smp_df)
+```
+
+# Filtering
+
+Three filters are applied in sequence to the raw BIOM table before any DA test
+is run. The cut-offs come from the SUSHI parameters and are shown live below.
+
+1. **Sample drop-list** (`samplesToDrop`) — explicit per-sample exclusion (e.g.
+   failed libraries). Currently dropping
+   **`r if (length(samples_to_prune) == 0) "no samples" else paste(samples_to_prune, collapse = ", ")`**.
+2. **Prevalence filter** (`prevalenceMin` = `r prevalence_min`) — keep a taxon
+   only if it has **> 1 read in at least `r round(prevalence_min*100)` % of samples**
+   (`phyloseq::genefilter_sample()`).
+3. **Relative-abundance floor** (`relabundMin` = `r relabund_min`) — among the
+   prevalence-surviving taxa, keep only those whose **total reads across all
+   samples** make up **≥ `r relabund_min` % of the pooled read sum**.
+4. **Per-rank agglomeration** uses `phyloseq::tax_glom(..., NArm = TRUE)`,
+   which **drops taxa whose lineage is unresolved at the target rank**.
+
+The library-size floor `libCut` = **`r lib_cut`** is **not** applied here;
+ANCOM-BC2 enforces it internally (`lib_cut` argument of `ancombc2`).
+
+```{r filtering}
+n_raw_taxa <- ntaxa(physeq); n_raw_samp <- nsamples(physeq)
+
+keep_prev <- genefilter_sample(physeq, filterfun_sample(function(x) x > 1),
+                               A = prevalence_min * nsamples(physeq))
+physeq_prev <- prune_taxa(keep_prev, physeq)
+
+total_reads <- sum(sample_sums(physeq_prev))
+rel <- taxa_sums(physeq_prev) / total_reads * 100
+physeq_filtered <- prune_taxa(rel >= relabund_min, physeq_prev)
+
+metadata <- data.frame(sample_data(physeq_filtered))
+metadata$SampleID <- rownames(metadata)
+
+glom_safe <- function(ps, rank) {
+  if (!rank %in% colnames(tax_table(ps))) return(NULL)
+  if (all(is.na(as.data.frame(tax_table(ps))[[rank]]))) return(NULL)
+  tryCatch(tax_glom(ps, rank, NArm = TRUE), error = function(e) NULL)
+}
+physeq_Species <- glom_safe(physeq_filtered, "Species")
+physeq_Genus   <- glom_safe(physeq_filtered, "Genus")
+has_species <- !is.null(physeq_Species)
+
+filt_summary <- data.frame(
+  Stage = c("Raw", "After prevalence filter", "After abundance filter"),
+  Taxa  = c(n_raw_taxa, ntaxa(physeq_prev), ntaxa(physeq_filtered)),
+  Samples = c(n_raw_samp, nsamples(physeq_prev), nsamples(physeq_filtered))
+)
+save_csv(filt_summary, "filtering_summary.csv")
+dt(filt_summary, "Filtering summary", length_menu = FALSE)
+```
+
+```{r group_check}
+## Per-level sample counts for the focal grouping AND every covariate, stacked
+## into one long-format table so users can see Healthy/Asthma, Normal/Obese,
+## F/M etc. counts in a single sortable view.
+.show_cols <- c(da_group, intersect(da_covariates, colnames(metadata)))
+grp_tab <- do.call(rbind, lapply(.show_cols, function(cn) {
+  t    <- as.data.frame(table(metadata[[cn]]), stringsAsFactors = FALSE)
+  lv   <- as.character(t$Var1)
+  vals <- as.character(metadata[[cn]])
+  ids  <- metadata$SampleID
+  samples <- vapply(lv, function(l)
+    paste(ids[!is.na(vals) & vals == l], collapse = " /// "), character(1))
+  data.frame(Column = cn, Level = lv,
+             n_samples = as.integer(t$Freq),
+             Samples = samples, stringsAsFactors = FALSE)
+}))
+save_csv(grp_tab, "group_sizes.csv")
+dt(grp_tab,
+   "Samples per Group and per covariate level",
+   length_menu = FALSE)
+
+## State the contrast info these depend on.
+n_groups     <- length(unique(metadata$Group))
+group_levels <- levels(as.factor(metadata$Group))
+comps        <- if (n_groups >= 2) combn(group_levels, 2, simplify = FALSE) else list()
+
+## Keep da_covariates pruned to columns actually present.
+da_covariates <- intersect(da_covariates, colnames(metadata))
+```
+
+```{r group_check_crosstabs, results='asis'}
+## Cross-tab each covariate against the focal Group; flag small cells.
+## Separate chunk with results='asis' so the kable HTML is inserted into the
+## document directly (not wrapped in '##' comment-output lines).
+if (length(da_covariates)) {
+  cat("**Group × covariate cross-tabs** (cells with < 3 samples flagged).\n\n")
+  for (cv in da_covariates) {
+    tab <- table(Group = metadata$Group, metadata[[cv]])
+    cat("\n#### ", cv, "\n\n", sep = "")
+    cat(kableExtra::kable_styling(
+          knitr::kable(tab, format = "html",
+                       caption = paste0("Group x ", cv)),
+          full_width = FALSE, position = "left"))
+    cat("\n\n")
+    if (any(tab < 3))
+      cat("> **Warning:** some cells have < 3 samples - covariate-adjusted models\n",
+          "> that include `", cv, "` may be unstable.\n\n", sep = "")
+  }
+}
+```
+
+```{r da_helpers}
+resolve_taxon_da <- function(ids, tax_tbl) {
+  tax_df <- as.data.frame(tax_tbl)
+  prefix <- c(Species = "", Genus = "g__", Family = "f__", Phylum = "p__")
+  ids <- as.character(ids)
+  vapply(ids, function(id) {
+    if (id %in% rownames(tax_df)) {
+      tx <- tax_df[id, ]
+      for (r in c("Species", "Genus", "Family", "Phylum")) {
+        val <- tx[[r]]
+        if (!is.na(val) && val != "") {
+          if (r == "Species") return(trimws(paste(tx$Genus, val)))
+          return(paste0(prefix[[r]], val))
+        }
+      }
+    }
+    as.character(id)
+  }, character(1))
+}
+
+volcano <- function(df, x, p, lab, title, xlab = "log2 fold change",
+                    ylab = "-log10(adjusted p)", psig = p_thresh, fc = fc_thresh) {
+  df <- df[is.finite(df[[x]]) & is.finite(df[[p]]), , drop = FALSE]
+  if (nrow(df) == 0) { cat("No finite results to plot.\n"); return(invisible(NULL)) }
+  EnhancedVolcano(df, lab = df[[lab]], x = x, y = p, xlab = xlab, ylab = ylab,
+                  pCutoff = psig, FCcutoff = fc, title = title, subtitle = NULL,
+                  legendPosition = "right", drawConnectors = TRUE,
+                  maxoverlapsConnectors = Inf,
+                  labSize = 3.0, pointSize = 1.8)
+}
+
+volcano_i <- function(df, x, p, lab, title, xlab = "log2 fold change",
+                      ylab = "-log10(adjusted p)", psig = p_thresh, fc = fc_thresh) {
+  df <- df[is.finite(df[[x]]) & is.finite(df[[p]]), , drop = FALSE]
+  if (nrow(df) == 0) { cat("No finite results to plot.\n"); return(invisible(NULL)) }
+  d <- data.frame(eff = df[[x]], pval = df[[p]], lab = as.character(df[[lab]]),
+                  stringsAsFactors = FALSE)
+  d$neglog10p <- -log10(d$pval)
+  sig_p  <- d$pval < psig
+  sig_fc <- abs(d$eff) > fc
+  d$Category <- ifelse(sig_p & sig_fc & d$eff > 0, "Up & sig",
+                ifelse(sig_p & sig_fc & d$eff < 0, "Down & sig",
+                ifelse(sig_p,                      "Sig (p only)", "NS")))
+  d$Category <- factor(d$Category,
+                       levels = c("Up & sig", "Down & sig", "Sig (p only)", "NS"))
+  cols <- c("Up & sig" = "#e41a1c", "Down & sig" = "#377eb8",
+            "Sig (p only)" = "#4daf4a", "NS" = "grey70")
+  plab <- sub("^-log10\\(\\s*(.*?)\\s*\\)$", "\\1", ylab)
+  if (identical(plab, ylab)) plab <- "p"
+  g <- ggplot(d, aes(eff, neglog10p, color = Category,
+                     text = paste0(lab, "<br>", xlab, ": ", round(eff, 3),
+                                   "<br>", plab, ": ", signif(pval, 3)))) +
+    geom_point(size = 1.8, alpha = 0.8) +
+    geom_vline(xintercept = c(-fc, fc), linetype = 2, color = "grey50") +
+    geom_hline(yintercept = -log10(psig), linetype = 2, color = "grey50") +
+    scale_color_manual(values = cols, name = NULL, drop = FALSE) +
+    labs(x = xlab, y = ylab, title = title) + theme_bw()
+  ggplotly(g, tooltip = "text")
+}
+
+mk_volcano_df <- function(df, xcol, pcol, labcol) {
+  if (is.null(df) || !all(c(xcol, pcol, labcol) %in% colnames(df))) return(NULL)
+  d <- data.frame(eff = suppressWarnings(as.numeric(df[[xcol]])),
+                  pval = suppressWarnings(as.numeric(df[[pcol]])),
+                  lab = as.character(df[[labcol]]), stringsAsFactors = FALSE)
+  d <- d[is.finite(d$eff) & is.finite(d$pval), , drop = FALSE]
+  d$pval[d$pval <= 0] <- .Machine$double.xmin
+  if (nrow(d) == 0) NULL else d
+}
+show_volcano_static <- function(d, title, xlab, ylab = "-log10(adjusted p)",
+                                psig = p_thresh, fc = fc_thresh) {
+  if (is.null(d)) { cat("No finite results to plot.\n"); return(invisible(NULL)) }
+  print(volcano(d, "eff", "pval", "lab", title = title, xlab = xlab,
+                ylab = ylab, psig = psig, fc = fc))
+}
+show_volcano_interactive <- function(d, title, xlab, ylab = "-log10(adjusted p)",
+                                     psig = p_thresh, fc = fc_thresh) {
+  if (is.null(d)) { cat("No finite results to plot.\n"); return(invisible(NULL)) }
+  volcano_i(d, "eff", "pval", "lab", title = title, xlab = xlab,
+            ylab = ylab, psig = psig, fc = fc)
+}
+```
+
+```{r da_runner_libs, include=FALSE}
+## Load only the package(s) the active method needs.
+if (da_method == "ALDEX2")            library(ALDEx2)
+if (da_method %in% c("ANCOMBC","ANCOMBC2")) library(ANCOMBC)
+if (da_method == "LEFSE")             library(microbiomeMarker)
+if (da_method == "MAASLIN3")          library(maaslin3)
+```
+
+```{r da_runner}
+## --- ALDEx2 ----------------------------------------------------------
+run_aldex2 <- function(ps, rank) {
+  cnts  <- as(otu_table(ps), "matrix"); if (!taxa_are_rows(ps)) cnts <- t(cnts)
+  grp   <- as.character(sample_data(ps)[[da_group]])
+  if (length(unique(grp)) != 2) {
+    clr <- aldex.clr(cnts, grp, mc.samples = 128, denom = "all", verbose = FALSE)
+    kw  <- aldex.kw(clr)
+    res <- kw %>% rownames_to_column("taxon")
+  } else if (length(da_covariates) == 0) {
+    x   <- aldex(cnts, grp, mc.samples = 128, test = "t", effect = TRUE,
+                 denom = "all", verbose = FALSE)
+    res <- x %>% rownames_to_column("taxon")
+  } else {
+    terms <- c(da_covariates, da_group)
+    md    <- data.frame(sample_data(ps), check.names = FALSE, stringsAsFactors = FALSE)
+    md    <- md[, !duplicated(colnames(md)), drop = FALSE]
+    md    <- data.frame(lapply(terms, function(v) {
+              x <- md[[v]]
+              if (is.numeric(x))    as.numeric(x)
+              else if (is.factor(x)) x
+              else                   factor(as.character(x))
+            }), row.names = rownames(md), stringsAsFactors = FALSE, check.names = FALSE)
+    colnames(md) <- terms
+    form  <- as.formula(paste("~", paste(terms, collapse = " + ")))
+    mm    <- model.matrix(form, data = md)
+    clr   <- aldex.clr(cnts, mm, mc.samples = 128, denom = "all", verbose = FALSE)
+    glm.t <- aldex.glm(clr, mm)
+    ## aldex.glm column-naming has shifted across ALDEx2 versions, e.g.:
+    ##   <=1.32: "<term>:Est"      / "<term>:Pr(>|t|)."  / "<term>:Pr(>|t|).BH"
+    ##    1.42 : "<term>:Est"      / "<term>:pval"        / "<term>:pval.padj"
+    cn       <- colnames(glm.t)
+    grp_cols <- cn[grepl(da_group, cn, fixed = TRUE)]
+    if (length(grp_cols) == 0)
+      stop("aldex.glm produced no columns containing the Group term '",
+           da_group, "'. Columns: ", paste(head(cn, 30), collapse = ", "))
+    bh_col <- grp_cols[grepl("(BH|padj|adjust)", grp_cols)][1]
+    p_col  <- grp_cols[grepl("(pval|Pr\\(>\\|t\\|\\))", grp_cols) &
+                       !grepl("(BH|padj|adjust)", grp_cols)][1]
+    pe_col <- grp_cols[grepl("Est(imate)?", grp_cols)][1]
+    if (is.na(pe_col) || is.na(p_col) || is.na(bh_col))
+      stop("aldex.glm output is missing one of (Estimate, p, BH) columns for ",
+           "the '", da_group, "' term. Matched group cols: ",
+           paste(grp_cols, collapse = ", "))
+    res <- data.frame(
+      taxon  = rownames(glm.t),
+      effect = glm.t[[pe_col]],
+      wi.ep  = glm.t[[p_col]],
+      wi.eBH = glm.t[[bh_col]],
+      stringsAsFactors = FALSE
+    )
+  }
+  res$Taxonomy <- resolve_taxon_da(res$taxon, tax_table(ps))
+  save_csv(res, paste0("aldex2_", tolower(rank), ".csv"))
+  res
+}
+
+## --- ANCOM-BC2 -------------------------------------------------------
+run_ancombc2 <- function(ps, rank) {
+  set.seed(123)
+  fix_form <- paste(c(da_group, da_covariates), collapse = " + ")
+  out <- ancombc2(
+    data = ps, fix_formula = fix_form, p_adj_method = "BH",
+    prv_cut = prevalence_min, lib_cut = lib_cut, group = da_group,
+    struc_zero = TRUE, neg_lb = FALSE, pseudo_sens = FALSE,
+    global = (n_groups > 2), pairwise = (n_groups > 2),
+    dunnet = (n_groups > 2), trend = FALSE, alpha = p_thresh,
+    iter_control = list(tol = 1e-2, max_iter = 20, verbose = FALSE),
+    em_control = list(tol = 1e-5, max_iter = 100))
+  for (slot in c("res", "res_pair", "res_dunn")) {
+    if (!is.null(out[[slot]]) && "taxon" %in% colnames(out[[slot]])) {
+      out[[slot]]$Taxonomy <- resolve_taxon_da(out[[slot]]$taxon, tax_table(ps))
+      save_csv(out[[slot]], paste0("ancombc2_", tolower(rank), "_", slot, ".csv"))
+    }
+  }
+  out
+}
+
+## --- LEfSe (covariate-blind, by design) ------------------------------
+run_lefse_tab <- function(ps, rank) {
+  ## Surface useful diagnostics on error rather than just e$message.
+  ## microbiomeMarker often throws cryptic indexing errors ("In index: N")
+  ## from its C++ helpers when phyloseq inputs have unexpected shapes
+  ## (rownames containing "|", empty groups, all-zero features, etc.).
+  diag_dump <- function() {
+    n_taxa <- tryCatch(ntaxa(ps),    error = function(e) NA)
+    n_smp  <- tryCatch(nsamples(ps), error = function(e) NA)
+    grp_levels <- tryCatch(table(as.character(sample_data(ps)[[da_group]]),
+                                 useNA = "ifany"),
+                           error = function(e) NULL)
+    head_ids <- tryCatch(head(taxa_names(ps), 3), error = function(e) NULL)
+    cat("  [LEfSe diag] taxa = ", n_taxa, ", samples = ", n_smp,
+        ", rank = ", rank, "\n", sep = "")
+    if (!is.null(grp_levels))
+      cat("  [LEfSe diag] group sizes: ",
+          paste(names(grp_levels), grp_levels, sep = "=", collapse = ", "),
+          "\n", sep = "")
+    if (!is.null(head_ids))
+      cat("  [LEfSe diag] first taxa_names: ",
+          paste(head_ids, collapse = " | "), "\n", sep = "")
+    if (!is.null(head_ids) && any(grepl("|", head_ids, fixed = TRUE)))
+      cat("  [LEfSe diag] WARN: taxa_names contain '|' which microbiomeMarker ",
+          "uses as its LEfSe hierarchical separator - this is a known trigger ",
+          "of indexing errors.\n", sep = "")
+  }
+  tryCatch({
+    mm <- run_lefse(ps, norm = "CPM", group = da_group,
+                    taxa_rank = rank, kw_cutoff = 1.0, wilcoxon_cutoff = 1.0,
+                    lda_cutoff = 0)
+    mt <- marker_table(mm)
+    if (is.null(mt) || nrow(mt) == 0) return(NULL)
+    df <- data.frame(lapply(as.data.frame(mt), as.vector), stringsAsFactors = FALSE)
+    df$ef_lda <- suppressWarnings(as.numeric(df$ef_lda))
+    df$pvalue <- suppressWarnings(as.numeric(df$pvalue))
+    df$padj <- p.adjust(df$pvalue, method = "BH")
+    df$Significant <- df$pvalue < p_thresh & abs(df$ef_lda) >= 2
+    df <- df[order(-df$Significant, -abs(df$ef_lda)), , drop = FALSE]
+    save_csv(df, paste0("lefse_", tolower(rank), ".csv"))
+    df
+  }, error = function(e) {
+    cat("LEfSe ", rank, " skipped: ", conditionMessage(e),
+        " (error class: ", paste(class(e), collapse = "/"), ")\n", sep = "")
+    diag_dump()
+    NULL
+  })
+}
+
+## --- MaAsLin3 --------------------------------------------------------
+run_maaslin3 <- function(ps, rank) {
+  cnts <- as(otu_table(ps), "matrix"); if (taxa_are_rows(ps)) cnts <- t(cnts)
+  feat <- data.frame(cnts, check.names = FALSE)
+  md0  <- data.frame(sample_data(ps), check.names = FALSE, stringsAsFactors = FALSE)
+  md0  <- md0[, !duplicated(colnames(md0)), drop = FALSE]
+  terms <- c(da_group, da_covariates)
+  if ("ReadDepth" %in% colnames(md0)) terms <- c(terms, "ReadDepth")
+  terms <- unique(terms)
+  md   <- data.frame(lapply(terms, function(v) {
+            x <- md0[[v]]
+            if (is.numeric(x))    as.numeric(x)
+            else if (is.factor(x)) x
+            else                   factor(as.character(x))
+          }), row.names = rownames(md0), stringsAsFactors = FALSE, check.names = FALSE)
+  colnames(md) <- terms
+  form  <- paste("~", paste(terms, collapse = " + "))
+  outd  <- file.path(results_dir, paste0("maaslin3_", tolower(rank)))
+  dir.create(outd, showWarnings = FALSE, recursive = TRUE)
+  .maaslin3_call <- function(plots_on) {
+    maaslin3(input_data = feat, input_metadata = md, output = outd,
+             formula = as.formula(form), normalization = "TSS", transform = "LOG",
+             augment = TRUE, standardize = TRUE,
+             max_significance = maaslin_max_sig,
+             median_comparison_abundance = TRUE,
+             median_comparison_prevalence = FALSE,
+             max_pngs = 100, save_models = TRUE,
+             plot_summary_plot = plots_on, plot_associations = plots_on, cores = 1)
+  }
+  fit <- tryCatch(.maaslin3_call(TRUE), error = function(e) {
+    cat("MaAsLin3 ", rank, " plotting failed (", e$message,
+        "); retrying with plots off.\n", sep = "")
+    tryCatch(.maaslin3_call(FALSE), error = function(e2) {
+      cat("MaAsLin3 ", rank, " failed without plots: ", e2$message, "\n"); NULL })
+  })
+  allf <- file.path(outd, "all_results.tsv")
+  res  <- if (file.exists(allf))
+            read.delim(allf, sep = "\t", stringsAsFactors = FALSE,
+                       colClasses = c(feature = "character"))
+          else NULL
+  if (is.null(fit) && is.null(res)) return(NULL)
+  if (!is.null(res) && "feature" %in% colnames(res))
+    res$Taxonomy <- resolve_taxon_da(res$feature, tax_table(ps))
+  if (!is.null(res)) save_csv(res, paste0("maaslin3_", tolower(rank), "_all_results.csv"))
+  list(fit = fit, res = res, outdir = outd)
+}
+```
+
+---
+
+# Abundance {.tabset}
+
+```{r abund_section_setup, include=FALSE}
+abundance_units <- if (source_type == "bracken") {
+  "per-taxon read counts as written by Bracken (integers)"
+} else if (da_method %in% c("ALDEX2","ANCOMBC","ANCOMBC2")) {
+  "the MetaPhlAn `estimated_number_of_reads_from_the_clade` column (integers)"
+} else {
+  "MetaPhlAn relative abundance scaled to integer pseudo-counts (relab% x 1e4)"
+}
+```
+
+The wide-format **taxon × sample** matrix that feeds the DA test below — i.e.
+the post-filter input the method actually sees. Values are `r abundance_units`.
+Tables are downloadable (copy / CSV / Excel) and saved to `r results_dir`/.
+
+```{r abund_helpers, include=FALSE}
+make_abund_table <- function(ps) {
+  if (is.null(ps)) return(NULL)
+  otu <- as(otu_table(ps), "matrix")
+  if (!taxa_are_rows(ps)) otu <- t(otu)
+  if (nrow(otu) == 0) return(NULL)
+  taxa_lab <- resolve_taxon_da(rownames(otu), tax_table(ps))
+  ## De-dupe collisions by appending a counter (rare with tax_glom output).
+  if (anyDuplicated(taxa_lab)) {
+    dup <- duplicated(taxa_lab) | duplicated(taxa_lab, fromLast = TRUE)
+    taxa_lab[dup] <- paste0(taxa_lab[dup], " (", rownames(otu)[dup], ")")
+  }
+  df <- data.frame(Taxon = taxa_lab, otu,
+                   check.names = FALSE, stringsAsFactors = FALSE)
+  ord <- order(-rowSums(otu, na.rm = TRUE))
+  df[ord, , drop = FALSE]
+}
+```
+
+## Species
+```{r abund_species_tab, eval=has_species}
+abund_sp_df <- make_abund_table(physeq_Species)
+if (!is.null(abund_sp_df)) {
+  save_csv(abund_sp_df, "abundance_species.csv")
+  dt(abund_sp_df, paste0("Species — ", nrow(abund_sp_df), " taxa × ",
+                         ncol(abund_sp_df) - 1, " samples"))
+} else cat("No Species-level taxa survived filtering.\n")
+```
+
+## Genus
+```{r abund_genus_tab}
+abund_ge_df <- make_abund_table(physeq_Genus)
+if (!is.null(abund_ge_df)) {
+  save_csv(abund_ge_df, "abundance_genus.csv")
+  dt(abund_ge_df, paste0("Genus — ", nrow(abund_ge_df), " taxa × ",
+                         ncol(abund_ge_df) - 1, " samples"))
+} else cat("No Genus-level taxa survived filtering.\n")
+```
+
+---
+
+# Differential Abundance {.tabset}
+
+> Contrast on **`r da_group`**
+> (`r paste(group_levels, collapse = ", ")`)`r if (length(da_covariates)) paste0(", adjusted for **", paste(da_covariates, collapse = "**, **"), "**") else ""`.
+> Method runs at the **Species** and **Genus** levels (Species skipped
+> automatically if no species-level taxa survive filtering). Tables are
+> downloadable (copy / CSV / Excel) and also written to `r results_dir`/.
+
+```{r run_method_section, child=method_child}
+```
+
+---
+
+# Downloads {.tabset}
+
+## All result tables (CSV)
+```{r downloads_csv, results='asis'}
+csvs <- sort(list.files(results_dir, pattern = "\\.csv$",
+                        full.names = TRUE, recursive = TRUE))
+if (length(csvs) == 0) cat("No CSVs written yet.\n") else {
+  cat("All CSV tables written to `", results_dir, "/`:\n\n", sep = "")
+  for (f in csvs) cat(paste0("- [", basename(f), "](", f, ")\n"))
+}
+```
+
+```{r downloads_maaslin, results='asis', eval=(da_method == "MAASLIN3")}
+cat("## MaAsLin3 native outputs\n\n")
+mdirs <- list.dirs(results_dir, recursive = FALSE)
+mdirs <- mdirs[grepl("maaslin3_", basename(mdirs))]
+if (length(mdirs) == 0) cat("No MaAsLin3 output folders.\n") else {
+  for (d in mdirs) {
+    cat("**", basename(d), "**\n\n", sep = "")
+    for (f in c("summary_plot.pdf", "all_results.tsv", "significant_results.tsv")) {
+      fp <- file.path(d, f)
+      if (file.exists(fp)) cat(paste0("- [", f, "](", fp, ")\n"))
+    }
+    cat("\n")
+  }
+}
+```
+
+---
+
+# Session info
+
+<details><summary>Click to expand</summary>
+
+```{r session}
+sessionInfo()
+```
+
+</details>

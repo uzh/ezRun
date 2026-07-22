@@ -245,13 +245,367 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
     unlink(paste0(reportDirs, ".html"), recursive = FALSE)
   }
 
-  ## generate multiQC report
-  ezSystem(paste0(
-    "multiqc --outdir ../",
-    basename(output$getColumn("MultiQC")),
-    " ."
-  ))
+  ## ==== AI feature flags + hardcoded LLM config ====
+  ## The endpoint is sensitive: it is hardcoded here, kept out of all SLURM logs,
+  ## stripped from MultiQC's stdout/log/HTML/JSON outputs, and never echoed by
+  ## any message() call below. Only the model name is exposed publicly.
+  AI_PROVIDER       <- "custom"
+  AI_MODEL          <- "Qwen3.6-27B-FP8"
+  AI_ENDPOINT       <- "http://fgcz-c-056:8081/v1/chat/completions"
+  AI_CONTEXT_WINDOW <- 128000L
+
+  gen_ai  <- isTRUE(as.logical(param$generate_ai_summary))
+  per_sec <- isTRUE(as.logical(param$per_section_ai_summaries))
+
+  ## Redaction helpers -- applied to any text that may be surfaced to the user
+  ai_host_only   <- sub("^https?://([^/]+).*", "\\1", AI_ENDPOINT)   # fgcz-c-056:8081
+  ai_scheme_host <- sub("^(https?://[^/]+).*", "\\1", AI_ENDPOINT)   # http://fgcz-c-056:8081
+  redact_pairs <- list(
+    c(AI_ENDPOINT,    "[REDACTED-LLM-ENDPOINT]"),
+    c(ai_scheme_host, "[REDACTED-LLM-HOST]"),
+    c(ai_host_only,   "[REDACTED-LLM-HOST]")
+  )
+  redact_string <- function(s) {
+    if (is.null(s) || length(s) == 0L) return(s)
+    for (p in redact_pairs) s <- gsub(p[1], p[2], s, fixed = TRUE)
+    s
+  }
+
+  ## ==== Run multiqc ====
+  ## We pass AI settings as proper CLI flags rather than via -c YAML, because:
+  ##   * -c <(echo ...) process substitution → /dev/fd/N is a FIFO → MultiQC's
+  ##     Path.is_file() check in load_config_file rejects it, so the YAML is
+  ##     silently ignored and the seqera default from config_defaults.yaml wins.
+  ##   * -c <real .yaml tempfile> loaded but didn't reliably propagate to
+  ##     config.ai_provider in our setup either.
+  ## CLI flags are applied unconditionally in update_config.py:228-235, so they
+  ## are the only path that is guaranteed to land.
+  ##
+  ## TMPDIR is pointed at the current working dir so MultiQC's tempdir
+  ## (tempfile.mkdtemp + shutil.rmtree at the end) lives somewhere we own and
+  ## can rmdir. Default /tmp on SLURM compute nodes denied rmdir with EACCES,
+  ## triggering MultiQC's quadratic-backoff retry loop (0+1+4+9+...+81 ≈ 285 s
+  ## wasted at the end of each run).
+  multiqc_dir <- file.path("..", basename(output$getColumn("MultiQC")))
+  multiqc_tmpdir <- file.path(getwd(), ".multiqc_tmp")
+  dir.create(multiqc_tmpdir, showWarnings = FALSE, recursive = TRUE)
+  Sys.setenv(TMPDIR = multiqc_tmpdir)
+  ## Use double-quotes (not shQuote, which emits single quotes) because the full
+  ## command will be piped to sed for redaction, and ezSystem's pipe wrapper
+  ## (bash -c '...') refuses any cmd that contains single quotes.
+  multiqcCmd <- paste0('multiqc --outdir "', multiqc_dir, '" .')
+  if (gen_ai) {
+    multiqcCmd <- paste0(
+      'OPENAI_API_KEY="dummy" TMPDIR="', multiqc_tmpdir,
+      '" multiqc --outdir "', multiqc_dir, '" .',
+      ' --ai-summary-full',
+      ' --ai-provider ',              AI_PROVIDER,
+      ' --ai-model "',                AI_MODEL, '"',
+      ' --ai-custom-endpoint "',      AI_ENDPOINT, '"',
+      ' --ai-custom-context-window ', AI_CONTEXT_WINDOW
+    )
+    redact_sed <- tempfile(pattern = "redact_", fileext = ".sed", tmpdir = multiqc_tmpdir)
+    writeLines(vapply(redact_pairs, function(p) sprintf("s|%s|%s|g", p[1], p[2]), character(1)),
+               redact_sed)
+    multiqcCmdShell <- sprintf("%s 2>&1 | sed -f %s", multiqcCmd, redact_sed)
+  } else {
+    multiqcCmdShell <- multiqcCmd
+  }
+
+  t_mqc_start <- Sys.time()
+  message(sprintf("[MultiQC] STARTED at %s (generate_ai_summary=%s, per_section_ai_summaries=%s, model=%s)",
+                  format(t_mqc_start, "%Y-%m-%d %H:%M:%S"),
+                  gen_ai, per_sec, AI_MODEL))
+  ## echo = FALSE so ezSystem doesn't ezLog the full command (would leak the endpoint URL).
+  ezSystem(multiqcCmdShell, echo = FALSE)
+  t_mqc_end <- Sys.time()
+  mqc_dur_s <- as.numeric(difftime(t_mqc_end, t_mqc_start, units = "secs"))
+  message(sprintf("[MultiQC] FINISHED at %s -- duration: %.1f s",
+                  format(t_mqc_end, "%Y-%m-%d %H:%M:%S"), mqc_dur_s))
+
+  ## ==== Post-scrub: strip endpoint from any MultiQC-written files ====
+  ## For multiqc_report.html we additionally:
+  ##   * strip the "Provider: <span>...</span>, " chunk MultiQC bakes into its
+  ##     own AI disclaimer (only the model name is meant to be public).
+  ##   * inject a sidebar nav-l1 link to multiqc_data/llms-full.txt so the user
+  ##     can open the per-section prompts MultiQC wrote.
+  if (gen_ai) {
+    scrub_files <- c(file.path(multiqc_dir, "multiqc_report.html"),
+                     file.path(multiqc_dir, "multiqc_data", "multiqc.log"),
+                     file.path(multiqc_dir, "multiqc_data", "multiqc_data.json"))
+    for (f in scrub_files) {
+      if (!file.exists(f)) next
+      txt <- paste(readLines(f, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+      txt <- redact_string(txt)
+      if (basename(f) == "multiqc_report.html") {
+        txt <- gsub(
+          '\\s*Provider:\\s*<span[^>]*class="ai-summary-disclaimer-provider"[^>]*>[^<]*</span>\\s*,?\\s*',
+          '', txt, perl = TRUE
+        )
+        ## Capitalise "model:" -> "Model:" and append total MultiQC wall-clock
+        ## (matches the log line "[MultiQC] FINISHED ... duration: X.Y s")
+        txt <- gsub(
+          '(?<![A-Za-z])model:\\s*(<span[^>]*class="ai-summary-disclaimer-model"[^>]*>[^<]*</span>)',
+          sprintf('Model: \\1 &middot; %.1f s', mqc_dur_s),
+          txt, perl = TRUE
+        )
+        nav_li <- paste0(
+          '              <li>\n',
+          '                <a href="multiqc_data/llms-full.txt" class="nav-l1" target="_blank">AI Prompts (llms-full.txt)</a>\n',
+          '              </li>\n'
+        )
+        txt <- sub(
+          '(</ul>\\s*</div>\\s*</div>\\s*<!-- Nav Width Toggle Button -->)',
+          paste0(nav_li, '\\1'),
+          txt, perl = TRUE
+        )
+      }
+      writeLines(txt, f, useBytes = TRUE)
+    }
+  }
+
+  ## ==== Per-section AI summaries ====
+  if (per_sec) {
+    multiqc_html_path <- file.path(multiqc_dir, "multiqc_report.html")
+    if (!file.exists(multiqc_html_path)) {
+      message("[AI-Sections] multiqc_report.html missing; skipping per-section AI")
+    } else {
+      ## Markdown helpers (CommonMark-ish with MultiQC severity directives)
+      style_directives <- function(txt) {
+        if (is.null(txt) || !nzchar(txt)) return("")
+        for (sev in c("red", "orange", "yellow", "green")) {
+          txt <- gsub(sprintf(":span\\[([^]]*)\\]\\{\\.text-%s\\}", sev),
+                      sprintf('<span class="text-%s">\\1</span>', sev), txt, perl = TRUE)
+          txt <- gsub(sprintf(":sample\\[([^]]*)\\]\\{\\.text-%s\\}", sev),
+                      sprintf('<span class="text-%s" style="font-weight:600;font-style:italic;">\\1</span>', sev),
+                      txt, perl = TRUE)
+        }
+        txt <- gsub(":span\\[([^]]*)\\]\\{[^}]*\\}", "\\1", txt, perl = TRUE)
+        txt <- gsub(":sample\\[([^]]*)\\]\\{[^}]*\\}",
+                    '<span style="font-weight:600;font-style:italic;">\\1</span>', txt, perl = TRUE)
+        txt
+      }
+      md_to_html <- function(txt) {
+        txt <- style_directives(txt)
+        lines <- strsplit(txt, "\n", fixed = TRUE)[[1]]
+        out <- character(0)
+        list_depth <- 0L
+        for (l in lines) {
+          indent_match <- regmatches(l, regexpr("^\\s*", l))
+          indent <- nchar(indent_match)
+          trimmed <- sub("^\\s+", "", l)
+          if (grepl("^[-*] ", trimmed)) {
+            target_depth <- (indent %/% 4L) + 1L
+            while (list_depth < target_depth) { out <- c(out, "<ul>"); list_depth <- list_depth + 1L }
+            while (list_depth > target_depth) { out <- c(out, "</ul>"); list_depth <- list_depth - 1L }
+            item <- sub("^[-*] ", "", trimmed)
+            out <- c(out, paste0("<li>", item, "</li>"))
+          } else if (nzchar(trimmed)) {
+            while (list_depth > 0L) { out <- c(out, "</ul>"); list_depth <- list_depth - 1L }
+            out <- c(out, paste0("<p>", trimmed, "</p>"))
+          }
+        }
+        while (list_depth > 0L) { out <- c(out, "</ul>"); list_depth <- list_depth - 1L }
+        paste(out, collapse = "\n")
+      }
+
+      ## Data file -> MultiQC section anchor ID
+      data_to_section <- function(fname) {
+        base <- sub("\\.txt$", "", fname)
+        base <- sub("_plot(_Counts|_Percentages)?$", "", base)
+        base <- sub("_table$", "", base)
+        base <- sub("[-_]heatmap$", "", base)
+        base <- gsub("-", "_", base)
+        if (base == "fastqc_status_check") base <- "fastqc_status_checks"
+        if (base == "multiqc_general_stats") base <- "general_stats_table"
+        base
+      }
+
+      ## Build candidate per-section data files
+      data_dir <- file.path(multiqc_dir, "multiqc_data")
+      section_files <- list.files(data_dir,
+                                  pattern = "_plot.*\\.txt$|.*-heatmap\\.txt$|.*_table\\.txt$|^multiqc_general_stats\\.txt$",
+                                  full.names = TRUE)
+      section_files <- section_files[!grepl("/multiqc_(fastqc|sources|software_versions|citations)\\.txt$",
+                                            section_files)]
+      ## De-dup by mapped section id (a section may have multiple data files like
+      ## _plot_Counts and _plot_Percentages; we only call the LLM once per section)
+      sec_ids <- vapply(basename(section_files), data_to_section, character(1))
+      keep <- !duplicated(sec_ids)
+      section_files <- section_files[keep]
+      sec_ids <- sec_ids[keep]
+      N <- length(section_files)
+
+      ## Read HTML once; we'll do all substitutions in-memory then write back
+      html_text <- paste(readLines(multiqc_html_path, warn = FALSE, encoding = "UTF-8"),
+                          collapse = "\n")
+
+      sys_prompt <- paste(
+        "You are an expert in bioinformatics, sequencing, and QC reports.",
+        "You are given the data for a single section of a MultiQC FastQC report (a plot, table, or heatmap).",
+        "Produce 1-2 concise bullet points summarising the key observations and any QC issues you see.",
+        "If nothing concerning, say so in one bullet.",
+        "Use markdown. Highlight severity with CommonMark directives like :span[39.2%]{.text-red}, .text-orange, .text-yellow, .text-green.",
+        "Highlight sample names with :sample[name]{.text-red} etc.",
+        "Use 4 spaces to indent nested lists. Do not add headers.",
+        sep = "\n"
+      )
+
+      t_sec_total_start <- Sys.time()
+      message(sprintf("[AI-Sections] STARTED at %s (N=%d sections, model=%s)",
+                      format(t_sec_total_start, "%Y-%m-%d %H:%M:%S"), N, AI_MODEL))
+
+      ## Accumulator for the per-section prompts file (mirror of MultiQC's
+      ## llms-full.txt convention, but for the calls SUSHI makes itself).
+      section_prompts_lines <- c(
+        sprintf("SUSHI per-section AI prompts -- model: %s -- %d sections",
+                AI_MODEL, N),
+        ""
+      )
+
+      for (i in seq_along(section_files)) {
+        sec_path <- section_files[i]
+        sec_id   <- sec_ids[i]
+        sec_data <- paste(readLines(sec_path, warn = FALSE), collapse = "\n")
+        max_chars <- AI_CONTEXT_WINDOW * 3L
+        if (nchar(sec_data) > max_chars) {
+          sec_data <- paste0(substr(sec_data, 1L, max_chars), "\n[... truncated ...]")
+        }
+        user_msg <- sprintf("Section: %s\n\nData:\n%s", sec_id, sec_data)
+        payload <- list(model = AI_MODEL,
+                        messages = list(list(role = "system", content = sys_prompt),
+                                        list(role = "user",   content = user_msg)))
+
+        t_one_start <- Sys.time()
+        resp <- tryCatch(
+          httr2::request(AI_ENDPOINT) |>
+            httr2::req_method("POST") |>
+            httr2::req_headers(Authorization = "Bearer dummy") |>
+            httr2::req_body_json(payload) |>
+            httr2::req_timeout(600) |>
+            httr2::req_error(is_error = function(r) FALSE) |>
+            httr2::req_perform(),
+          error = function(e) {
+            message(sprintf("[AI-Sections] HTTP error on %s: %s",
+                            sec_id, redact_string(conditionMessage(e))))
+            NULL
+          }
+        )
+        t_one_end <- Sys.time()
+        one_dur <- as.numeric(difftime(t_one_end, t_one_start, units = "secs"))
+
+        raw_body <- if (!is.null(resp)) httr2::resp_body_string(resp) else ""
+        prompt_tokens     <- 0L
+        completion_tokens <- 0L
+        total_tokens      <- 0L
+        response_text     <- ""
+        if (nzchar(raw_body)) {
+          parsed <- tryCatch(jsonlite::fromJSON(raw_body, simplifyVector = FALSE),
+                              error = function(e) NULL)
+          if (!is.null(parsed)) {
+            response_text     <- tryCatch(parsed$choices[[1]]$message$content, error = function(e) "")
+            prompt_tokens     <- as.integer(parsed$usage$prompt_tokens %||% 0L)
+            completion_tokens <- as.integer(parsed$usage$completion_tokens %||% 0L)
+            total_tokens      <- as.integer(parsed$usage$total_tokens %||%
+                                              (prompt_tokens + completion_tokens))
+          }
+        }
+        if (is.null(response_text) || !nzchar(response_text)) {
+          response_text <- "_(no AI response)_"
+        }
+        response_text <- redact_string(response_text)
+
+        tok_per_s <- if (one_dur > 0 && completion_tokens > 0) completion_tokens / one_dur else NA_real_
+        footer_html <- sprintf(
+          paste0('<div class="text-muted" style="font-size:0.85em;margin-top:8px;',
+                 'border-top:1px solid #eee;padding-top:4px;">',
+                 'Model: %s &middot; %.1f s &middot; %d tokens (%d in, %d out) &middot; %s tok/s',
+                 '</div>'),
+          AI_MODEL, one_dur, total_tokens, prompt_tokens, completion_tokens,
+          if (is.na(tok_per_s)) "n/a" else sprintf("%.1f", tok_per_s)
+        )
+        summary_html <- paste0(md_to_html(response_text), "\n", footer_html)
+
+        ## Inject: try MultiQC's pre-created empty div first, else inject into the section wrapper
+        empty_div_re <- sprintf(
+          '<div class="ai-summary-response" id="%s_ai_summary_response"[^>]*></div>',
+          sec_id
+        )
+        empty_div_replacement <- sprintf(
+          '<div class="ai-summary-response" id="%s_ai_summary_response" style="margin-bottom: -5px;">%s</div>',
+          sec_id, summary_html
+        )
+        if (grepl(empty_div_re, html_text, perl = TRUE)) {
+          html_text <- sub(empty_div_re, empty_div_replacement, html_text, perl = TRUE)
+          ## MultiQC ships the per-section AI wrapper with style="display: none;"
+          ## (it only reveals after the user clicks the toolbox button). Since we
+          ## just pre-baked the response, flip it visible.
+          wrapper_show_re <- sprintf(
+            '(id="%s_ai_summary_wrapper"[^>]*style=")display:\\s*none;', sec_id
+          )
+          html_text <- sub(wrapper_show_re, '\\1display: block;', html_text, perl = TRUE)
+        } else {
+          wrapper_re <- sprintf('(<div [^>]*id="mqc-section-wrapper-%s"[^>]*>)', sec_id)
+          wrapper_replacement <- sprintf(
+            '\\1\n<div class="ai-summary-response" style="margin:10px 0;padding:8px 12px;border-left:3px solid #4a90d9;background:#f5f9fd;">%s</div>',
+            summary_html
+          )
+          if (grepl(wrapper_re, html_text, perl = TRUE)) {
+            html_text <- sub(wrapper_re, wrapper_replacement, html_text, perl = TRUE)
+          } else {
+            message(sprintf("[AI-Sections] no injection point for %s; skipping", sec_id))
+          }
+        }
+
+        message(sprintf("[AI-Sections] %d/%d %s: %.1f s, %d tokens, %s tok/s",
+                        i, N, sec_id, one_dur, total_tokens,
+                        if (is.na(tok_per_s)) "n/a" else sprintf("%.1f", tok_per_s)))
+
+        section_prompts_lines <- c(
+          section_prompts_lines,
+          strrep("=", 76),
+          sprintf("Section: %s", sec_id),
+          sprintf("Duration: %.1f s | Tokens: %d (%d in, %d out) | %s tok/s",
+                  one_dur, total_tokens, prompt_tokens, completion_tokens,
+                  if (is.na(tok_per_s)) "n/a" else sprintf("%.1f", tok_per_s)),
+          strrep("=", 76),
+          "",
+          "[SYSTEM PROMPT]",
+          sys_prompt,
+          "",
+          "[USER PROMPT]",
+          user_msg,
+          "",
+          ""
+        )
+      }
+
+      ## Persist the per-section prompts and link them from the side nav.
+      prompts_path <- file.path(data_dir, "sushi_section_prompts.txt")
+      writeLines(section_prompts_lines, prompts_path, useBytes = TRUE)
+      nav_li_sushi <- paste0(
+        '              <li>\n',
+        '                <a href="multiqc_data/sushi_section_prompts.txt" class="nav-l1" target="_blank">AI Prompts per section (sushi_section_prompts.txt)</a>\n',
+        '              </li>\n'
+      )
+      html_text <- sub(
+        '(</ul>\\s*</div>\\s*</div>\\s*<!-- Nav Width Toggle Button -->)',
+        paste0(nav_li_sushi, '\\1'),
+        html_text, perl = TRUE
+      )
+
+      writeLines(html_text, multiqc_html_path, useBytes = TRUE)
+
+      t_sec_total_end <- Sys.time()
+      sec_total_dur_s <- as.numeric(difftime(t_sec_total_end, t_sec_total_start, units = "secs"))
+      message(sprintf("[AI-Sections] FINISHED at %s -- total: %.1f s (mean %.1f s/section)",
+                      format(t_sec_total_end, "%Y-%m-%d %H:%M:%S"),
+                      sec_total_dur_s, sec_total_dur_s / max(1L, N)))
+    }
+  }
+
   unlink(c("fastqc.out", "fastqc.err"))
+  unlink(multiqc_tmpdir, recursive = TRUE, force = TRUE)
 
   return("Success")
 }

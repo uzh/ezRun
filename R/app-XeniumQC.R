@@ -139,7 +139,11 @@ ezMethodXeniumQC <- function(
     sampleAlarms <- extractXeniumAlarms(summaryHtml)
     if (nrow(sampleAlarms) > 0) {
       sampleAlarms$sampleName <- sampleName
-      allAlarms <- rbind(allAlarms, sampleAlarms)
+      # bind_rows tolerates per-sample alarm-column differences that rbind would reject
+      allAlarms <- as.data.frame(
+        dplyr::bind_rows(allAlarms, sampleAlarms),
+        check.names = FALSE, stringsAsFactors = FALSE
+      )
     }
 
     # Verify protein features in cell_feature_matrix
@@ -191,11 +195,14 @@ ezMethodXeniumQC <- function(
       check.names = FALSE
     )
 
-    if (nrow(stats) == 0) {
-      stats <- sampleStats
-    } else {
-      stats <- rbind(stats, sampleStats)
-    }
+    # bind_rows (not rbind): datasets run on different Xenium Onboard Analysis versions have
+    # different metrics_summary.csv columns; rbind() dies on the mismatch, bind_rows NA-fills.
+    # as.data.frame keeps base [,i] indexing working downstream (a tibble would break the
+    # is.numeric() rounding loop below and the column reordering).
+    stats <- as.data.frame(
+      dplyr::bind_rows(stats, sampleStats),
+      check.names = FALSE, stringsAsFactors = FALSE
+    )
   }
 
   # Clean up column names and round numeric values

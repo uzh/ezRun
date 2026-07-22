@@ -2,7 +2,7 @@
 params:
   reportTitle: "Analysis"
 title: "`r params$reportTitle`"
-metadata-files: ["_fgcz_report.yml"]
+metadata-files: ["_fgcz-report.yml"]
 ---
 
 ```{r setup}
@@ -10,43 +10,255 @@ metadata-files: ["_fgcz_report.yml"]
 library(ezRun)
 library(DT)
 library(tidyverse)
-
-.dt <- function(df, caption = NULL, pageLength = 10L,
-                filter = "none", rownames = FALSE, escape = TRUE, ...) {
-  DT::datatable(
-    data = df, caption = caption, filter = filter,
-    rownames = rownames, escape = escape,
-    class = "compact stripe",
-    options = list(
-      pageLength = pageLength,
-      scrollX = TRUE,
-      dom = "tip",
-      columnDefs = list(list(targets = "_all", className = "dt-left"))
-    ),
-    ...
-  ) |> DT::formatStyle(columns = seq_len(ncol(df)),
-                        `text-align` = "left",
-                        `white-space` = "normal",
-                        `word-wrap` = "break-word",
-                        `max-width` = "300px")
-}
-
-.save_plot <- function(plot, name, width = 6, height = 5, dpi = 300) {
-  if (!dir.exists("plots")) dir.create("plots", recursive = TRUE)
-  ggplot2::ggsave(file.path("plots", paste0(name, ".png")),
-                  plot = plot, width = width, height = height, dpi = dpi, bg = "white")
-  ggplot2::ggsave(file.path("plots", paste0(name, ".pdf")),
-                  plot = plot, width = width, height = height, device = "pdf", bg = "white")
-}
 ```
 
 ::: {.panel-tabset}
 
 # First
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+<!-- PATTERN 1 — section-level callout: a full-width note that frames or
+     caveats the WHOLE sub-tab (methods summary, data source, scope). Just a
+     plain ::: callout (3 colons), no columns. -->
+
+::: {.callout-note}
+## About this section
+
+Use a full-width callout when the note applies to *everything* in the sub-tab
+rather than one figure. Swap `note` for `tip` / `warning` / `important` to
+change the colour and icon; add `collapse="true"` to fold it shut by default.
+:::
+
+Main content of the tab then runs full-width underneath.
 
 # Second
+
+<!-- PATTERN 2 — OPTIONAL plot + side callout (flush, same height).
+     RULE: every figure carries a native #| fig-cap caption (below the plot) —
+     that alone is the default figure style and obeys the yaml out.width (see
+     the Nested tab for a plain example).
+     EXTRA (opt-in): a green callout beside the plot for annotation, stretched
+     to the plot's height via .fig-row in fgcz.scss. In THIS side-by-side
+     layout the plot fills its column (size set by .fig-main in fgcz.scss, not
+     out.width). Keep numbers as inline R so the note can't drift from the
+     figure. The callout keeps its natural height so collapse="true" works
+     (it is NOT locked to the plot height); on narrow screens it drops below
+     the plot. Fence colons nest: 5 = .fig-row · 4 = each side · 3 = .callout. -->
+
+```{r second-demo}
+#| include: false
+demo_df   <- mtcars
+demo_n    <- nrow(demo_df)
+demo_mean <- round(mean(demo_df$mpg), 1)
+demo_plot <- ggplot(demo_df, aes(wt, mpg)) +
+  geom_point(size = 2) +
+  labs(x = "Weight (1000 lbs)", y = "Fuel economy (mpg)") +
+  theme_bw()
+```
+
+::::: {.fig-row}
+
+:::: {.fig-main}
+
+```{r second-plot}
+#| fig-cap: "Fuel economy versus weight across the mtcars dataset."
+demo_plot
+```
+
+::::
+
+:::: {.fig-side}
+
+::: {.callout-tip collapse="true"}
+## What this shows
+
+Each point is one of the **`r demo_n`** cars; mean fuel economy is
+**`r demo_mean` mpg**, and heavier cars are clearly less efficient. This green
+box is an optional annotation beside the plot — the figure's own caption sits
+underneath as usual.
+:::
+
+::::
+
+:::::
+
+# Nested
+
+<!-- PATTERN 3 — nested tabset (card-in-card). The inner ::: {.panel-tabset}
+     uses ## sub-headings for its tabs, one level deeper than the # tabs of
+     the outer set. With fgcz.scss the inner set renders as a card inside the
+     outer card. Chunks call existing functions only — no template-local
+     helper defs (DT::datatable for the table, ggplot2 for the figure). -->
+
+::: {.panel-tabset}
+
+## Table
+
+```{r nested-table}
+ezRun::ezInteractiveTableRmd(
+  head(mtcars[, 1:6], 8),
+  title = "Demo table — first rows of mtcars"
+)
+```
+
+## Figure
+
+```{r nested-figure}
+#| fig-cap: "Demo figure — fuel economy by cylinder count."
+ggplot(mtcars, aes(factor(cyl), mpg, fill = factor(cyl))) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(x = "Cylinders", y = "Fuel economy (mpg)") +
+  theme_bw()
+```
+
+:::
+
+# Three-level
+
+<!-- PATTERN 4 — three levels of nesting (tabset → tabset → tabset). Every
+     depth renders as the IDENTICAL folder-tab card (no per-level colour; see
+     fgcz.scss) — depth reads from the nested card borders alone.
+     Fence colons step DOWN per level so nesting is unambiguous:
+     4 colons = level-2 tabset · 3 colons = each level-3 tabset. Tabs at each
+     level are just headings: ## for level 2, ### for level 3. -->
+
+:::: {.panel-tabset}
+
+## By dimension
+
+::: {.panel-tabset}
+
+### Sepal
+
+```{r tl-sepal}
+#| fig-cap: "Sepal width versus length in the iris dataset, by species."
+ggplot(iris, aes(Sepal.Length, Sepal.Width, colour = Species)) +
+  geom_point(size = 2) +
+  labs(x = "Sepal length (cm)", y = "Sepal width (cm)", colour = "Species") +
+  theme_bw()
+```
+
+### Petal
+
+```{r tl-petal}
+#| fig-cap: "Petal width versus length in the iris dataset, by species."
+ggplot(iris, aes(Petal.Length, Petal.Width, colour = Species)) +
+  geom_point(size = 2) +
+  labs(x = "Petal length (cm)", y = "Petal width (cm)", colour = "Species") +
+  theme_bw()
+```
+
+:::
+
+## Distributions
+
+::: {.panel-tabset}
+
+### Sepal length
+
+```{r tl-sepal-hist}
+#| fig-cap: "Distribution of sepal length across species."
+ggplot(iris, aes(Sepal.Length, fill = Species)) +
+  geom_histogram(bins = 20, alpha = 0.7, position = "identity") +
+  labs(x = "Sepal length (cm)", y = "Count", fill = "Species") +
+  theme_bw()
+```
+
+### Petal length
+
+```{r tl-petal-hist}
+#| fig-cap: "Distribution of petal length across species."
+ggplot(iris, aes(Petal.Length, fill = Species)) +
+  geom_histogram(bins = 20, alpha = 0.7, position = "identity") +
+  labs(x = "Petal length (cm)", y = "Count", fill = "Species") +
+  theme_bw()
+```
+
+:::
+
+::::
+
+# Five-level
+
+<!-- PATTERN 5 — five levels of nesting (tabset → … → tabset), the deepest
+     nesting the template demonstrates. Every depth renders as the IDENTICAL
+     folder-tab card (no per-level colour; see fgcz.scss) — depth reads from the
+     nested card borders alone. This top tab is level 1; each nested
+     ::: {.panel-tabset} steps one level deeper.
+     Fence colons step DOWN per level so nesting stays unambiguous:
+     6 = level-2 tabset · 5 = level-3 · 4 = level-4 · 3 = level-5. Tab headings
+     are ## (L2) · ### (L3) · #### (L4) · ##### (L5). -->
+
+:::::: {.panel-tabset}
+
+## Level 2 · A
+
+```{r fl-l2a}
+#| fig-cap: "Level 2 — fuel economy versus weight (mtcars)."
+ggplot(mtcars, aes(wt, mpg)) +
+  geom_point(size = 2, colour = "#1B4079") +
+  labs(x = "Weight (1000 lbs)", y = "Fuel economy (mpg)") +
+  theme_bw()
+```
+
+## Level 2 · B (go deeper)
+
+::::: {.panel-tabset}
+
+### Level 3 · A
+
+```{r fl-l3a}
+#| fig-cap: "Level 3 — fuel economy by cylinder count (mtcars)."
+ggplot(mtcars, aes(factor(cyl), mpg, fill = factor(cyl))) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(x = "Cylinders", y = "Fuel economy (mpg)") +
+  theme_bw()
+```
+
+### Level 3 · B (go deeper)
+
+:::: {.panel-tabset}
+
+#### Level 4 · A
+
+```{r fl-l4a}
+#| fig-cap: "Level 4 — sepal dimensions by species (iris)."
+ggplot(iris, aes(Sepal.Length, Sepal.Width, colour = Species)) +
+  geom_point(size = 2) +
+  labs(x = "Sepal length (cm)", y = "Sepal width (cm)", colour = "Species") +
+  theme_bw()
+```
+
+#### Level 4 · B (go deeper)
+
+::: {.panel-tabset}
+
+##### Level 5 · A
+
+```{r fl-l5a}
+#| fig-cap: "Level 5 — distribution of petal length across species (iris)."
+ggplot(iris, aes(Petal.Length, fill = Species)) +
+  geom_histogram(bins = 20, alpha = 0.7, position = "identity") +
+  labs(x = "Petal length (cm)", y = "Count", fill = "Species") +
+  theme_bw()
+```
+
+##### Level 5 · B
+
+```{r fl-l5b}
+#| fig-cap: "Level 5 — petal dimensions by species (iris)."
+ggplot(iris, aes(Petal.Length, Petal.Width, colour = Species)) +
+  geom_point(size = 2) +
+  labs(x = "Petal length (cm)", y = "Petal width (cm)", colour = "Species") +
+  theme_bw()
+```
+
+:::
+
+::::
+
+:::::
+
+::::::
 
 # Session Info
 

@@ -402,11 +402,12 @@ cellClustWithCorrection <- function(scDataList, param) {
       harmonyFactors <- "Condition"
     }
     # Calculate Harmony reduction
+    # harmony >= 1.0 renamed `reduction` -> `reduction.use` and removed `assay.use`
+    # (check_legacy_args() now hard-errors on assay.use); the assay is taken from the reduction.
     scData <- RunHarmony(
       scData,
       group.by.vars = harmonyFactors,
-      reduction = "pca",
-      assay.use = "SCT",
+      reduction.use = "pca",
       reduction.save = "harmony"
     )
 
@@ -860,7 +861,12 @@ getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
   if (
     ezIsSpecified(param$cellxgeneUrl) && ezIsSpecified(param$cellxgeneLabel)
   ) {
-    cellxgeneResults <- cellxgene_annotation(scData = scData, param = param)
+    if(!requireNamespace("qs", quietly = TRUE)) {
+      warning("cellxgene annotation requested, but package 'qs' is not available. Skip annotation.")
+        cellxgeneResults <- NULL
+    } else {
+        cellxgeneResults <- cellxgene_annotation(scData = scData, param = param)
+    }
   } else {
     cellxgeneResults <- NULL
   }

@@ -1,0 +1,905 @@
+---
+params:
+  reportTitle: "CountQC"
+title: "`r params$reportTitle`"
+metadata-files: ["_fgcz-report.yml"]
+---
+
+```{r setup}
+#| include: false
+library(ezRun)
+library(SummarizedExperiment)
+library(DT)
+library(kableExtra)
+library(WGCNA)
+library(plotly)
+library(matrixStats)
+library(reshape2)
+library(tidyverse)
+library(writexl)
+library(gridExtra)
+library(cowplot)
+library(ggpubr)
+library(cluster)
+library(fpc)
+library(clusterSim)
+library(ggrepel)
+library(htmlwidgets)
+library(jsonlite)
+
+## ── Data loading (qs2 with rds fallback, checks data/ first) ──
+.fgcz_load <- function(name, nthreads = 4L) {
+  paths <- c(
+    file.path("data", paste0(name, ".qs2")),
+    paste0(name, ".qs2"),
+    file.path("data", paste0(name, ".rds")),
+    paste0(name, ".rds")
+  )
+  for (p in paths) {
+    if (file.exists(p)) {
+      if (grepl("\\.qs2$", p)) return(qs2::qs_read(p, nthreads = nthreads))
+      return(readRDS(p))
+    }
+  }
+  stop("No .qs2 or .rds file found for: ", name)
+}
+
+## ── DT helper ─────────────────────────────────────────────────
+.dt <- function(df, caption = NULL, pageLength = 10L,
+                filter = "none", rownames = FALSE, escape = TRUE, ...) {
+  DT::datatable(
+    data = df, caption = caption, filter = filter,
+    rownames = rownames, escape = escape,
+    class = "compact stripe",
+    options = list(
+      pageLength = pageLength,
+      scrollX = TRUE,
+      dom = "tip",
+      columnDefs = list(
+        list(targets = "_all", className = "dt-left")
+      )
+    ),
+    ...
+  ) |> DT::formatStyle(columns = seq_len(ncol(df)),
+                        `text-align` = "left",
+                        `white-space` = "normal",
+                        `word-wrap` = "break-word",
+                        `max-width` = "300px")
+}
+
+## Emit a DT widget as raw HTML inside results='asis' chunks
+.dt_asis <- function(...) {
+  widget <- .dt(...)
+  cat(as.character(htmltools::as.tags(widget)))
+}
+
+## ── Output directories ────────────────────────────────────────
+for (d in c("plots", "excel", "html")) {
+  if (!dir.exists(d)) dir.create(d, recursive = TRUE)
+}
+
+## ── Plot saving (PNG + PDF to plots/) ─────────────────────────
+.save_plot <- function(plot, name, width = 6, height = 5, dpi = 300) {
+  if (!dir.exists("plots")) dir.create("plots", recursive = TRUE)
+  png_path <- file.path("plots", paste0(name, ".png"))
+  pdf_path <- file.path("plots", paste0(name, ".pdf"))
+  ggplot2::ggsave(png_path, plot = plot, width = width, height = height,
+                  dpi = dpi, bg = "white")
+  ggplot2::ggsave(pdf_path, plot = plot, width = width, height = height,
+                  device = "pdf", bg = "white")
+  invisible(png_path)
+}
+
+## ── Agent metadata writer ─────────────────────────────────────
+.write_metadata <- function(...) {
+  args <- list(...)
+  args$generatedAt <- format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
+  args$softwareVersions <- list(
+    R = paste0(R.version$major, ".", R.version$minor),
+    quarto = tryCatch(system("quarto --version", intern = TRUE)[1],
+                      error = function(e) "unknown"))
+  jsonlite::write_json(args, path = "report-metadata.json",
+                       pretty = TRUE, auto_unbox = TRUE, null = "null")
+}
+
+rawData <- .fgcz_load("rawData")
+output  <- metadata(rawData)$output
+param   <- metadata(rawData)$param
+```
+
+```{r prepare-data}
+#| include: false
+debug <- FALSE
+
+seqAnno <- data.frame(rowData(rawData), row.names = rownames(rawData),
+                      check.names = FALSE)
+dataset <- data.frame(colData(rawData), row.names = colnames(rawData),
+                      check.names = FALSE)
+
+types <- data.frame(row.names = rownames(seqAnno))
+for (nm in setdiff(na.omit(unique(seqAnno$type)), "")) {
+  types[[nm]] <- seqAnno$type == nm
+}
+
+metadata(rawData)$design <- ezDesignFromDataset(dataset, param)
+colData(rawData)$conds   <- ezConditionsFromDesign(metadata(rawData)$design,
+                                                   maxFactors = 2)
+metadata(rawData)$condColors <- lapply(metadata(rawData)$design, getCondsColors)
+metadata(rawData)$sampleColors <- list()
+for (cond in colnames(metadata(rawData)$design)) {
+  metadata(rawData)$sampleColors[[cond]] <-
+    set_names(metadata(rawData)$condColors[[cond]][metadata(rawData)$design[[cond]]],
+              rownames(metadata(rawData)$design))
+}
+```
+
+::: {.panel-tabset}
+
+# Settings
+
+`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
+```{r check-enough-samples}
+#| results: asis
+if (ncol(rawData) < 2) {
+  cat("Note: Statistics and Plots are not available for single sample experiments.", "\n")
+  cat("Run the report again with multiple samples selected.", "\n")
+  knitr::knit_exit()
+}
+```
+
+```{r settings-table}
+settings <- character()
+settings["Reference:"]          <- param$refBuild
+settings["Normalization method:"] <- param$normMethod
+if (param$useSigThresh) {
+  settings["Log2 signal threshold:"]    <- signif(log2(param$sigThresh), digits = 4)
+  settings["Linear signal threshold:"]  <- signif(param$sigThresh, digits = 4)
+}
+settings["Feature level:"]        <- metadata(rawData)$featureLevel
+settings["Number of features:"]   <- nrow(rawData)
+settings["Data Column Used:"]     <- metadata(rawData)$countName
+
+settings_df <- data.frame(Setting = settings, row.names = names(settings))
+.dt(settings_df, caption = "Analysis settings", filter = "none",
+    pageLength = 20L, rownames = TRUE)
+```
+
+```{r live-report}
+#| echo: false
+#| results: asis
+if (exists("output") && !is.null(output)) {
+  liveReportLink <- output$getColumn("Live Report")
+  result <- EzResult(se = rawData)
+  result$saveToFile(basename(output$getColumn("Live Report")))
+  cat(paste0("[Live Report and Visualizations](", liveReportLink, ")", "{target=\"_blank\"}"), "\n")
+}
+```
+
+# Data Files
+
+The data files are in tabular text format and can also be opened with a spreadsheet program (e.g. Excel).
+
+When opening with Excel, do make sure that the Gene symbols are loaded into a column formatted as 'text' that prevents
+conversion of the symbols to dates). See
+
+(https://www.genenames.org/help/importing-gene-symbol-data-into-excel-correctly)
+
+```{r prepare-signal}
+#| include: false
+assays(rawData)$signal <- ezNorm(assays(rawData)$counts,
+                                 presentFlag = assays(rawData)$presentFlag,
+                                 method = param$normMethod) + param$minSignal
+signalRange <- range(assays(rawData)$signal, na.rm = TRUE)
+
+signalCond <- rowsum(t(log2(assays(rawData)$signal)), group = colData(rawData)$conds)
+signalCond <- 2^t(sweep(signalCond, 1,
+                        table(colData(rawData)$conds)[rownames(signalCond)], FUN = "/"))
+
+isPresentCond <- rowsum(t(assays(rawData)$presentFlag * 1), group = colData(rawData)$conds)
+isPresentCond <- t(sweep(isPresentCond, 1,
+                         table(colData(rawData)$conds)[rownames(isPresentCond)], FUN = "/")) >= 0.5
+rowData(rawData)$isValid <- rowMeans(isPresentCond) >= 0.5
+```
+
+```{r write-data-files}
+#| include: false
+if (!is.null(assays(rawData)$presentFlag)) {
+  combined <- interleaveMatricesByColumn(assays(rawData)$signal,
+                                        assays(rawData)$presentFlag)
+} else {
+  combined <- assays(rawData)$signal
+}
+if (!is.null(seqAnno)) {
+  combined <- cbind(seqAnno[rownames(combined), , drop = FALSE], combined)
+}
+if (!is.null(combined$featWidth)) {
+  combined$featWidth <- as.integer(combined$featWidth)
+}
+
+combined$isPresent_50P <- rowMeans(assays(rawData)$presentFlag) >= 0.5
+
+# Raw counts
+countFile <- file.path("excel", paste0(ezValidFilename(param$name), "-raw-count.xlsx"))
+counts <- as_tibble(assays(rawData)$counts, rownames = "Feature ID")
+if (!is.null(rowData(rawData)$gene_name)) {
+  counts <- left_join(counts,
+                      as_tibble(rowData(rawData)[, "gene_name", drop = FALSE],
+                                rownames = "Feature ID"))
+  counts <- dplyr::select(counts, "Feature ID", gene_name, everything())
+}
+write_xlsx(counts, path = countFile)
+
+# Normalised signal
+signalFile <- file.path("excel", paste0(ezValidFilename(param$name), "-normalized-signal.xlsx"))
+write_xlsx(combined, path = signalFile)
+
+selectSignals <- grepl("Signal", colnames(combined))
+combined$"Mean signal"    <- rowMeans(combined[, selectSignals], na.rm = TRUE)
+combined$"Maximum signal" <- rowMaxs(as.matrix(combined[, selectSignals]), na.rm = TRUE)
+topGenesPerSample <- apply(combined[, selectSignals], 2, function(col) {
+  col <- sort(col, decreasing = TRUE)
+  if (length(col) > 100) col <- col[1:100]
+  return(names(col))
+})
+topGenes <- unique(as.character(topGenesPerSample))
+
+combined <- combined[order(combined$"Maximum signal", decreasing = TRUE), , drop = FALSE]
+useInInteractiveTable <- c("seqid", "gene_name", "Maximum signal",
+                           "Mean signal", "description", "featWidth", "gc")
+useInInteractiveTable <- intersect(useInInteractiveTable, colnames(combined))
+tableLink <- file.path("html", sub(".xlsx", "-viewHighExpressionGenes.html",
+                                   basename(signalFile)))
+## Select top genes
+combinedTopGenes <- combined[which(rownames(combined) %in% topGenes), ]
+## Restrict number of table rows if necessary
+topGenesDf <- head(combinedTopGenes[, useInInteractiveTable, drop = FALSE],
+                   param$maxTableRows)
+ezInteractiveTableRmd(topGenesDf, digits = 3,
+                      colNames = c("ID", colnames(topGenesDf)),
+                      title = paste("Showing the top", nrow(topGenesDf),
+                                    "genes with the highest expression")) |>
+  DT::saveWidget(tableLink)
+
+rpkmFile <- file.path("excel", paste0(ezValidFilename(param$name), "-rpkm.xlsx"))
+rpkm <- as_tibble(getRpkm(rawData), rownames = "Feature ID")
+if (!is.null(rowData(rawData)$gene_name)) {
+  rpkm <- left_join(rpkm,
+                    as_tibble(rowData(rawData)[, "gene_name", drop = FALSE],
+                              rownames = "Feature ID"))
+  rpkm <- dplyr::select(rpkm, "Feature ID", gene_name, everything())
+}
+write_xlsx(rpkm, path = rpkmFile)
+
+tpmFile <- file.path("excel", paste0(ezValidFilename(param$name), "-tpm.xlsx"))
+tpm <- as_tibble(getTpm(rawData), rownames = "Feature ID")
+if (!is.null(rowData(rawData)$gene_name)) {
+  tpm <- left_join(tpm,
+                   as_tibble(rowData(rawData)[, "gene_name", drop = FALSE],
+                             rownames = "Feature ID"))
+  tpm <- dplyr::select(tpm, "Feature ID", gene_name, everything())
+}
+write_xlsx(tpm, path = tpmFile)
+```
+
+```{r data-file-links}
+#| echo: false
+#| results: asis
+#| message: false
+for (each in c(countFile, signalFile, rpkmFile, tpmFile, tableLink)) {
+  cat("\n")
+  cat(paste0("[", each, "](", each, ")"))
+  cat("\n")
+}
+```
+
+# Count Statistics
+
+```{r count-statistics}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-width: !expr "min(7 + (ncol(rawData) - 10) * 0.3, 30)"
+toPlot <- tibble(samples      = colnames(rawData),
+                 totalCounts  = signif(colSums(assays(rawData)$counts) / 1e6, digits = 3),
+                 presentCounts = colSums(assays(rawData)$presentFlag),
+                 percentages  = paste(signif(100 * presentCounts / nrow(rawData), digits = 2), "%"))
+m <- list(l = 80, r = 80, b = 200, t = 100, pad = 0)
+
+## Total reads
+plot_ly(toPlot, x = ~samples,
+        y = ~totalCounts, type = "bar") |>
+  layout(title  = "Total reads",
+         yaxis  = list(title = "Counts [Mio]"),
+         margin = m)
+
+plot_ly(toPlot, x = ~samples, y = ~presentCounts, type = "bar",
+        text = ~percentages, textposition = "auto") |>
+  layout(title  = "Genomic features with reads above threshold",
+         yaxis  = list(title = "Counts"),
+         margin = m)
+
+## Check for dominant genes in samples
+countFracPerSample <- sweep(counts[, 3:ncol(counts)], 2,
+                            colSums(counts[, 3:ncol(counts)]), FUN = "/")
+rownames(countFracPerSample) <- make.unique(counts$gene_name)
+
+df <- countFracPerSample |>
+  as.data.frame() |>
+  tibble::rownames_to_column("Gene") |>
+  pivot_longer(-Gene, names_to = "Sample", values_to = "Fraction")
+
+top3 <- df |>
+  group_by(Sample) |>
+  slice_max(Fraction, n = 3, with_ties = FALSE) |>
+  mutate(rank = factor(row_number(), levels = 1:3)) |>
+  ungroup()
+
+p <- ggplot(df, aes(x = Sample, y = Fraction)) +
+  geom_boxplot(outlier.shape = NA, fill = "grey90")
+p <- p + geom_point(data = top3, aes(colour = rank), size = 2,
+                    position = position_dodge(width = 0.4))
+p <- p + geom_text_repel(data = top3,
+                         aes(label = Gene, colour = rank),
+                         size          = 2.5,
+                         nudge_y       = 0.02,
+                         direction     = "y",
+                         segment.size  = 0.2,
+                         segment.alpha = 0.4,
+                         max.overlaps  = Inf) +
+  scale_colour_manual(values = c("red", "orange", "gold"), name = "Top-gene rank")
+p <- p + theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+        plot.margin = margin(5.5, 20, 5.5, 5.5, "pt"))
+p <- p + labs(y = "Fraction of total expression",
+              title = "Top 3 over-represented genes per sample")
+p
+```
+
+# Correlation/Clustering Plot
+
+```{r prepare-data-correlation}
+#| include: false
+if (!is.null(seqAnno$IsControl)) {
+  rowData(rawData)$isValid <- rowData(rawData)$isValid & !seqAnno$IsControl
+}
+```
+
+```{r check-enough-features}
+#| results: asis
+if (sum(rowData(rawData)$isValid) < 10) {
+  cat("Not enough valid features for further plots", "\n")
+  knitr::knit_exit()
+}
+```
+
+```{r filter-valid-features}
+#| include: false
+rawDataAll <- rawData
+rawData    <- rawData[rowData(rawData)$isValid, ]
+assays(rawData)$log2signal <- log2(assays(rawData)$signal +
+                                     param$backgroundExpression)
+assays(rawData)$log2signalCentered <- sweep(assays(rawData)$log2signal, 1,
+                                            rowMeans(assays(rawData)$log2signal))
+
+metadata(rawData)$design <- ezDesignFromDataset(dataset, param)
+colData(rawData)$conds   <- ezConditionsFromDesign(metadata(rawData)$design,
+                                                   maxFactors = 2)
+
+if (param$selectByFtest) {
+  f_test_results <- apply(assays(rawData)$log2signalCentered, 1, function(row) {
+    data <- data.frame(Expression = row, Group = colData(rawData)$conds)
+    fit  <- lm(Expression ~ Group, data = data)
+    anova(fit)["Group", "Pr(>F)"]
+  })
+  metadata(rawData)$topGenes <- names(sort(f_test_results)[1:param$topGeneSize])
+} else {
+  metadata(rawData)$topGenes <- rownames(rawData)[
+    head(order(rowSds(assays(rawData)$log2signal, na.rm = TRUE),
+               decreasing = TRUE), param$topGeneSize)]
+}
+```
+
+::: {.panel-tabset}
+
+## Sample correlation
+
+```{r sample-correlation-setup}
+#| include: false
+figure.height <- min(max(7, ncol(rawData) * 0.3), 30)
+```
+
+```{r plot-sample-correlation}
+#| echo: false
+#| fig-height: !expr "figure.height"
+#| fig-width: !expr "figure.height * 1.25"
+## All genes
+ezCorrelationPlot(cor(assays(rawData)$log2signal, use = "complete.obs"),
+                  cond = colData(rawData)$conds,
+                  condLabels = colData(rawData)$conds,
+                  main = paste0("all present genes (", nrow(rawData), ")"),
+                  colors = metadata(rawData)$sampleColors[[1]])
+
+## Top genes
+ezCorrelationPlot(cor(assays(rawData)$log2signal[metadata(rawData)$topGenes, ],
+                      use = "complete.obs"),
+                  cond = colData(rawData)$conds,
+                  condLabels = colData(rawData)$conds,
+                  main = paste0("top genes (", length(metadata(rawData)$topGenes), ")"),
+                  colors = metadata(rawData)$sampleColors[[1]])
+```
+
+```{r sample-clustering}
+#| echo: false
+#| fig-height: 7
+#| fig-width: !expr "min(7 + (ncol(rawData) - 10) * 0.3, 30)"
+#| results: asis
+if (ncol(rawData) > 3) {
+  ## All genes
+  d  <- as.dist(1 - cor(assays(rawData)$log2signal, use = "complete.obs"))
+  hc <- hclust(d, method = "ward.D2")
+  plotDendroAndColors(hc,
+                      colors = as.data.frame(bind_cols(metadata(rawData)$sampleColors)),
+                      autoColorHeight = TRUE, hang = -0.1,
+                      main = "all present genes")
+
+  ## Top genes
+  d  <- as.dist(1 - cor(assays(rawData)$log2signal[metadata(rawData)$topGenes, ],
+                        use = "complete.obs"))
+  hc <- hclust(d, method = "ward.D2")
+  plotDendroAndColors(hc,
+                      colors = as.data.frame(bind_cols(metadata(rawData)$sampleColors)),
+                      autoColorHeight = TRUE, hang = -0.1,
+                      main = paste("top", length(metadata(rawData)$topGenes), " genes"))
+}
+```
+
+:::
+
+# Clustering of High Variance Features
+
+```{r clustering-high-variance}
+#| echo: false
+#| message: false
+#| fig-width: !expr "max(8, 4 + 0.15 * ncol(rawData))"
+#| fig-height: 10
+#| results: asis
+#| eval: !expr "!debug"
+if (ncol(rawData) > 3) {
+  varFeatures <- rownames(rawData)[
+    head(order(rowSds(assays(rawData)$log2signal), decreasing = TRUE),
+         param$maxGenesForClustering)]
+  notVarFeatures <- rownames(rawData)[
+    which(rowSds(assays(rawData)$log2signal) <= param$highVarThreshold)]
+  varFeatures <- setdiff(varFeatures, notVarFeatures)
+  param$highVarThreshold <- signif(
+    min(rowSds(assays(rawData)$log2signal[varFeatures, ])), digits = 3)
+
+  if (length(varFeatures) > param$minGenesForClustering) {
+    cat(paste("Threshold for std. dev. of log2 signal across samples:",
+              param$highVarThreshold), "\n")
+    cat("\n")
+    cat(paste("Number of features with high std. dev.:", length(varFeatures)), "\n")
+    cat("\n")
+    clusterColors <- hcl.colors(param$nSampleClusters, palette = "Spectral")
+
+    clusterResult <- clusterPheatmap(
+      x      = assays(rawData)$log2signalCentered[varFeatures, ],
+      design = metadata(rawData)$design,
+      param  = param, clusterColors = clusterColors,
+      lim    = c(-param$logColorRange, param$logColorRange),
+      doClusterColumns = TRUE,
+      condColors = metadata(rawData)$condColors)
+
+    xTmp <- enframe(clusterResult$clusterNumbers, "feature_id", value = "Cluster")
+    xTmp <- left_join(xTmp,
+                      as_tibble(rowData(rawData)[, "gene_name", drop = FALSE],
+                                rownames = "feature_id"))
+    xTmp <- arrange(xTmp, Cluster)
+    write_tsv(xTmp, file = "cluster-heatmap-clusterMembers.txt")
+
+    plot(clusterResult$pheatmap$gtable)
+
+    if (doGo(param, seqAnno)) {
+      clusterResult <- goClusterResults(
+        assays(rawData)$log2signalCentered[varFeatures, ],
+        param, clusterResult,
+        seqAnno          = seqAnno,
+        universeProbeIds = rownames(seqAnno))
+    }
+
+    if (!is.null(clusterResult$GO)) {
+      goTables <- goClusterTableRmd(param, clusterResult, seqAnno)
+      if (doEnrichr(param)) {
+        goAndEnrichr <- cbind(goTables$linkTable, goTables$enrichrTable)
+      } else {
+        goAndEnrichr <- goTables$linkTable
+      }
+      bgColors <- rep(gsub("FF$", "", clusterResult$clusterColors))
+      rownames(goAndEnrichr) <- paste0('<font color="', bgColors,
+                                       '">Cluster ', rownames(goAndEnrichr),
+                                       '</font>')
+      kable(goAndEnrichr, escape = FALSE, row.names = TRUE, format = "html",
+            caption = "GO categories of feature clusters") |>
+        kable_styling(bootstrap_options = "striped",
+                      full_width = F, position = "float_right") |>
+        footnote(general = "Cluster font color corresponds to the row colors in the heatmap plot.")
+    } else {
+      cat("No information available", "\n")
+    }
+  }
+} else {
+  varFeatures <- c()
+}
+```
+
+```{r render-go-cluster}
+#| include: false
+#| eval: !expr "!debug"
+if (ncol(rawData) > 3) {
+  if (length(varFeatures) > param$minGenesForClustering) {
+    if (!is.null(clusterResult$GO)) {
+      file <- file.path(system.file("templates", package = "ezRun"),
+                        "CountQC_goClusterTable.Rmd")
+      file.copy(from = file, to = basename(file), overwrite = TRUE)
+      rmarkdown::render(input = basename(file), envir = new.env(),
+                        output_dir = "html", output_file = "goClusterTable.html",
+                        quiet = TRUE)
+    }
+  }
+}
+```
+
+```{r go-cluster-link}
+#| echo: false
+#| results: asis
+#| eval: !expr "!debug"
+if (file.exists("html/goClusterTable.html")) {
+  cat(paste0("[GO cluster tables](html/goClusterTable.html)"), "\n")
+  cat("\n")
+}
+```
+
+```{r cluster-heatmap-members}
+#| echo: false
+#| results: asis
+#| eval: !expr "!debug"
+if (file.exists("cluster-heatmap-clusterMembers.txt")) {
+  cat(paste0("[Heatmap cluster members](cluster-heatmap-clusterMembers.txt)"), "\n")
+  cat("\n")
+}
+```
+
+<details>
+<summary>**Evaluate number of gene clusters**</summary>
+Multiple metrics were computed for a comprehensive assessment.
+
+* Compactness: Dunn Index, CH Index
+* Separation: Silhouette Width, Davies-Bouldin Index
+* Cluster Stability: Gap Statistic, Entropy
+
+```{r cluster-scores}
+#| echo: false
+#| message: false
+#| results: asis
+#| eval: !expr "!debug"
+if (length(varFeatures) > param$minGenesForClustering) {
+
+  dist_matrix <- dist(assays(rawData)$log2signalCentered[varFeatures, ])
+  hc          <- hclust(dist_matrix, method = "ward.D2")
+
+  hclust_cluster <- function(X, k) {
+    res          <- data.frame(clusters = rep(0, nrow(X)))
+    dist_matrix  <- dist(X)
+    hc           <- hclust(dist_matrix, method = "ward.D2")
+    res$clusters <- cutree(hc, k = k)
+    return(res)
+  }
+  gap_stat <- clusGap(assays(rawData)$log2signalCentered[varFeatures, ],
+                      FUN = hclust_cluster, K.max = 10, B = 50)
+
+  myClusterStats <- data.frame(nClusters = c(2:10), dunn = NA, ch = NA,
+                               db = NA, silhouette = NA, entropy = NA,
+                               gap = round(gap_stat$Tab[2:10, 3], 4))
+  for (i in 2:10) {
+    clusters       <- cutree(hc, k = i)
+    cluster_scores <- cluster.stats(dist_matrix, clusters)
+    myClusterStats$dunn[i - 1]      <- round(cluster_scores$dunn, 4)
+    myClusterStats$ch[i - 1]        <- round(cluster_scores$ch, 4)
+    myClusterStats$db[i - 1]        <- round(
+      index.DB(assays(rawData)$log2signalCentered[varFeatures, ], clusters)$DB, 4)
+    myClusterStats$silhouette[i - 1] <- round(cluster_scores$avg.silwidth, 4)
+    myClusterStats$entropy[i - 1]   <- round(cluster_scores$entropy, 4)
+  }
+
+  datatable(myClusterStats,
+            rownames = FALSE,
+            options  = list(dom = "t")) |>
+    formatStyle("dunn",
+                background         = styleColorBar(range(myClusterStats$dunn), "lightblue"),
+                backgroundSize     = "98% 15px",
+                backgroundRepeat   = "no-repeat",
+                backgroundPosition = "center") |>
+    formatStyle("ch",
+                background         = styleColorBar(range(myClusterStats$ch), "lightblue"),
+                backgroundSize     = "98% 15px",
+                backgroundRepeat   = "no-repeat",
+                backgroundPosition = "center") |>
+    formatStyle("db",
+                background         = styleColorBar(range(myClusterStats$db), "lightgreen"),
+                backgroundSize     = "98% 15px",
+                backgroundRepeat   = "no-repeat",
+                backgroundPosition = "center") |>
+    formatStyle("silhouette",
+                background         = styleColorBar(range(myClusterStats$silhouette), "lightgreen"),
+                backgroundSize     = "98% 15px",
+                backgroundRepeat   = "no-repeat",
+                backgroundPosition = "center") |>
+    formatStyle("entropy",
+                background         = styleColorBar(range(myClusterStats$entropy), "lightsalmon"),
+                backgroundSize     = "98% 15px",
+                backgroundRepeat   = "no-repeat",
+                backgroundPosition = "center") |>
+    formatStyle("gap",
+                background         = styleColorBar(range(myClusterStats$gap), "lightsalmon"),
+                backgroundSize     = "98% 15px",
+                backgroundRepeat   = "no-repeat",
+                backgroundPosition = "center")
+}
+```
+</details>
+
+# MDS Plot
+
+```{r mds-message}
+#| echo: false
+#| results: asis
+#| message: false
+if (ncol(rawData) <= 3) {
+  cat("MDS plot is not possible with fewer than 4 samples. \n")
+}
+```
+
+```{r mds-plots}
+#| echo: false
+#| message: false
+#| warning: false
+#| fig-height: 7
+#| fig-width: 9
+if (ncol(rawData) > 3) {
+  ezMdsPlotly(assays(rawData)$log2signal,
+              design     = metadata(rawData)$design,
+              ndim       = 3, main = "mdsPlot_PresentGenes 3D",
+              condColors = metadata(rawData)$condColors[[1]])
+}
+if (ncol(rawData) > 3) {
+  ezMdsPlotly(assays(rawData)$log2signal[metadata(rawData)$topGenes, ],
+              design     = metadata(rawData)$design, ndim = 3,
+              main       = "mdsPlot_TopGenes 3D",
+              condColors = metadata(rawData)$condColors[[1]])
+}
+if (ncol(rawData) > 3) {
+  ezMdsPlotly(assays(rawData)$log2signal,
+              design     = metadata(rawData)$design, ndim = 2,
+              main       = "mdsPlot_PresentGenes 2D",
+              condColors = metadata(rawData)$condColors[[1]])
+}
+if (ncol(rawData) > 3) {
+  ezMdsPlotly(assays(rawData)$log2signal[metadata(rawData)$topGenes, ],
+              design     = metadata(rawData)$design, ndim = 2,
+              main       = "mdsPlot_TopGenes 2D",
+              condColors = metadata(rawData)$condColors[[1]])
+}
+```
+
+# Scatter Plots by Conditions
+
+```{r scatter-plot-setup}
+#| echo: false
+#| message: false
+#| results: asis
+scatterPlotData <- countQcScatterPlots(param, metadata(rawData)$design,
+                                       colData(rawData)$conds, rawDataAll,
+                                       signalCond, isPresentCond, types = types)
+nPlots <- max(scatterPlotData$nPlots, 1)
+```
+
+```{r scatter-plot-all-pairs}
+#| echo: false
+#| message: false
+#| results: asis
+#| fig-width: !expr "min(max(ncol(signalCond) * 2, 4), 20)"
+#| fig-height: !expr "min(max(ncol(signalCond) * 2, 4), 20) * (16 / 15)"
+#| eval: !expr "ncol(rawData) > 3 & param$writeScatterPlots"
+qcScatterFiles <- scatterPlotData$allPairs
+
+cat("\n")
+cat("#### allPairs \n")
+for (gridOfPlots in qcScatterFiles) {
+  scatterPlots <- gridOfPlots$scatter
+  axisLabels   <- gridOfPlots$axisLabels
+  nItems       <- gridOfPlots$nItems
+
+  grobList        <- list()
+  idxLabel        <- 1
+  idxScatterPlot  <- 1
+  fontSize        <- max(4, 10 - nItems)
+
+  for (idxRow in 1:(nItems + 1)) {
+    if (idxRow == nItems + 1) {
+      axisLabel <- ""
+    } else {
+      axisLabel <- axisLabels[idxLabel]
+      idxLabel  <- idxLabel + 1
+    }
+    colLabel  <- text_grob(axisLabel, rot = 90, size = fontSize)
+    grobList  <- c(grobList, list(colLabel))
+  }
+
+  for (rowIndex in 1:nItems) {
+    for (colIndex in 1:nItems) {
+      if (colIndex == nItems) {
+        colLabel  <- text_grob(axisLabels[idxLabel], size = fontSize)
+        grobList  <- c(grobList, list(scatterPlots[[idxScatterPlot]]), list(colLabel))
+        idxLabel  <- idxLabel + 1
+      } else {
+        grobList  <- c(grobList, list(scatterPlots[[idxScatterPlot]]))
+      }
+      idxScatterPlot <- idxScatterPlot + 1
+    }
+  }
+
+  plotGrob <- plot_grid(
+    plotlist    = grobList,
+    nrow        = nItems + 1,
+    ncol        = nItems + 1,
+    rel_heights = c(rep(1, nItems), 0.1),
+    rel_widths  = c(0.1, rep(1, nItems)),
+    byrow       = FALSE
+  )
+
+  title <- ggdraw() +
+    draw_label(gridOfPlots$main, x = 0, hjust = 0) +
+    theme(plot.margin = margin(0, 0, 0, 7))
+
+  print(plot_grid(title, plotGrob, nrow = 2, ncol = 1, rel_heights = c(1, 15)))
+  cat("\n")
+}
+cat("\n")
+```
+
+```{r scatter-plot-narrow}
+#| echo: false
+#| message: false
+#| results: asis
+#| fig-width: !expr "min(nPlots, 6) * 5"
+#| fig-height: !expr "max(ceiling(nPlots / 6), 1) * 5"
+#| out-width: !expr "paste0(min(nPlots + 1, 6) * 167, 'px')"
+#| eval: !expr "ncol(rawData) > 3 & param$writeScatterPlots"
+qcScatterFiles <- scatterPlotData$narrowPlots
+
+if (length(qcScatterFiles) > 0) {
+  for (i in 1:length(qcScatterFiles)) {
+    cat("\n")
+    cat("####", names(qcScatterFiles)[i], "\n")
+    rowsOfPlots <- qcScatterFiles[[i]]
+    for (rowOfPlots in rowsOfPlots) {
+      scatterPlots <- rowOfPlots$scatters
+
+      legend_temp <- get_legend(
+        scatterPlots[[1]] +
+          theme(legend.text = element_text(size = 10)) +
+          guides(color = guide_legend(override.aes = list(size = 5)))
+      )
+
+      scatterPlots <- lapply(scatterPlots, function(x) {
+        x +
+          coord_fixed(xlim = c(1e1, NA), ylim = c(1e1, NA), expand = TRUE) +
+          theme(legend.position = "none",
+                text             = element_text(size = 10),
+                aspect.ratio     = 1)
+      })
+
+      scatterPlots[["legend"]] <- legend_temp
+
+      numRowsFinal <- rowOfPlots$nrow
+      if (rowOfPlots$ncol * rowOfPlots$nrow > length(rowOfPlots$scatters)) {
+        numColsFinal <- rowOfPlots$ncol
+      } else {
+        numColsFinal <- rowOfPlots$ncol + 1
+        if (length(rowOfPlots$scatters) < numColsFinal * (numRowsFinal - 1)) {
+          numRowsFinal <- numRowsFinal - 1
+        }
+      }
+
+      grid.arrange(grobs   = scatterPlots,
+                   nrow    = numRowsFinal,
+                   ncol    = numColsFinal,
+                   widths  = rep(6, numColsFinal),
+                   heights = rep(6, numRowsFinal))
+      cat("\n")
+    }
+    cat("\n")
+  }
+}
+```
+
+# EnrichR for topMarkers
+
+Based on top 500 genes per sample selected by TPM and filtered for known housekeeping genes reported in the [HRT atlas](https://housekeeping.unicamp.br/homePageGlobal.html).
+
+```{r enrichr-markers}
+#| echo: false
+#| results: asis
+#| warning: false
+#| eval: !expr "unique(dataset$featureLevel) != 'smRNA'"
+maxGenes <- 500
+dat      <- tpm[, 3:ncol(tpm)]
+rownames(dat) <- make.unique(tpm$gene_name)
+topMarkersPerSample <- apply(dat, 2, function(col) {
+  col <- sort(col, decreasing = TRUE)
+  if (length(col) > maxGenes) col <- col[1:maxGenes]
+  return(names(col))
+})
+
+hrtGenes <- ezRead.table("/srv/GT/databases/HRT/Human_Mouse_Common.csv",
+                         sep = ";", row.names = NULL)
+hrtGenes <- c(hrtGenes$Human, hrtGenes$Mouse)
+topMarkers <- list()
+for (j in 1:ncol(topMarkersPerSample)) {
+  topMarkers[[colnames(topMarkersPerSample)[j]]] <-
+    topMarkersPerSample[!topMarkersPerSample[, j] %in% hrtGenes, j]
+}
+topMarkers[["AllSamples"]] <- unique(unlist(lapply(topMarkers, head, n = maxGenes / 2),
+                                            use.names = FALSE))
+topMarkers <- topMarkers[c("AllSamples", colnames(topMarkersPerSample))]
+
+jsCall <- paste0('enrich({list: "', sapply(topMarkers, paste, collapse = "\\n"),
+                 '", popup: true});')
+enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall,
+                       "'>Analyse at Enrichr website</a>")
+enrichrTable <- tibble(Sample              = names(topMarkers),
+                       "# of posMarkers"   = lengths(topMarkers),
+                       "Enrichr link"      = enrichrCalls)
+kable(enrichrTable, format = "html", escape = FALSE,
+      caption = paste0("GeneSet enrichment")) |>
+  kable_styling("striped", full_width = F, position = "left")
+```
+
+# Input Dataset
+
+```{r input-dataset}
+#| echo: false
+ezInteractiveTableRmd(values = dataset, digits = 4)
+```
+
+```{r save-qs2}
+#| include: false
+qs2::qs_save(rawData, "rawData_final.qs2", nthreads=param$cores)
+```
+
+# Session Info
+
+```{r session-info}
+sessionInfo()
+```
+
+:::
+
+```{r agent-metadata}
+#| include: false
+.write_metadata(
+  `@context`  = "https://fgcz.ch/report-schema/v1",
+  reportType  = "count-qc",
+  omicsType   = "rnaseq",
+  organism    = if (!is.null(param$refBuild)) param$refBuild else NA,
+  nSamples    = ncol(rawData),
+  nFeatures   = nrow(rawData),
+  normMethod  = param$normMethod,
+  files       = list(
+    countFile  = countFile,
+    signalFile = signalFile,
+    plots      = "plots/"
+  )
+)
+```

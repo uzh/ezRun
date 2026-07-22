@@ -1,0 +1,209 @@
+#!/bin/bash
+# Unified QIIME2 16S Amplicon Workflow - paired-end
+# All mustache tokens (e.g. {{CORES}}) are whisker-rendered by R before this script runs.
+# Shebang is bash on purpose: the fastp block uses $'\t' ANSI-C quoting and
+# `echo -e`, both of which dash (/bin/sh on Debian) does not implement.
+
+export PYTHONWARNINGS="ignore"
+
+CORES={{CORES}}
+
+# Cap CORES to actually-available CPUs. QIIME2 2026.4's
+# core-metrics-phylogenetic enforces n_jobs <= os.cpu_count(), and SLURM
+# allocations can be smaller than the SUSHI-requested cores.
+NPROC=$(nproc 2>/dev/null || echo "$CORES")
+if [ "$CORES" -gt "$NPROC" ]; then
+  echo "Requested CORES=$CORES exceeds nproc=$NPROC; capping to $NPROC." 1>&2
+  CORES=$NPROC
+fi
+
+# ----- 0. Reference database -----
+# Absolute paths resolved by R from the auto-detected dropdown value.
+DB_SEQS="{{DB_SEQS}}"
+DB_TAX="{{DB_TAX}}"
+
+# ----- 1. Optional fastp adapter trimming -----
+if [ "{{RUN_FASTP}}" = "true" ]; then
+  mkdir -p fastp_out
+  # manifest.tsv is tab-separated; header: sample-id<TAB>forward-absolute-filepath<TAB>reverse-absolute-filepath
+  tail -n +2 manifest.tsv | while IFS=$'\t' read -r SAMPLE R1 R2; do
+    [ -z "$SAMPLE" ] && continue
+    fastp \
+      -i "$R1" \
+      -I "$R2" \
+      -o "fastp_out/${SAMPLE}_R1.fastq.gz" \
+      -O "fastp_out/${SAMPLE}_R2.fastq.gz" \
+      -j "fastp_out/${SAMPLE}.json" \
+      -h "fastp_out/${SAMPLE}.html" \
+      --detect_adapter_for_pe \
+      --disable_quality_filtering \
+      --disable_length_filtering \
+      -w $CORES
+  done
+
+  # Rebuild manifest pointing to the trimmed fastqs
+  echo -e "sample-id\tforward-absolute-filepath\treverse-absolute-filepath" > manifest.fastp.tsv
+  tail -n +2 manifest.tsv | while IFS=$'\t' read -r SAMPLE R1 R2; do
+    [ -z "$SAMPLE" ] && continue
+    echo -e "${SAMPLE}\t$(readlink -f fastp_out/${SAMPLE}_R1.fastq.gz)\t$(readlink -f fastp_out/${SAMPLE}_R2.fastq.gz)" >> manifest.fastp.tsv
+  done
+  mv manifest.tsv manifest.original.tsv
+  mv manifest.fastp.tsv manifest.tsv
+fi
+
+# ----- 2. Import & demux summary -----
+qiime tools import --type 'SampleData[PairedEndSequencesWithQuality]' --input-path manifest.tsv --output-path demux_seqs.qza --input-format PairedEndFastqManifestPhred33V2
+
+qiime demux summarize --i-data demux_seqs.qza --o-visualization demux_seqs.qzv
+
+# ----- 3. DADA2 denoise (paired) -----
+qiime dada2 denoise-paired --i-demultiplexed-seqs demux_seqs.qza --p-trim-left-f {{TRIM_LEFT_F}} --p-trim-left-r {{TRIM_LEFT_R}} --p-trunc-len-f {{TRUNC_LEN_F}} --p-trunc-len-r {{TRUNC_LEN_R}} --p-n-threads $CORES --o-table table.qza --o-representative-sequences dada2_rep_set.qza --o-denoising-stats dada2_denoising_stats.qza --o-base-transition-stats dada2_base_transition_stats.qza
+
+# ----- 4. Denoising stats summary -----
+qiime metadata tabulate --m-input-file dada2_denoising_stats.qza --o-visualization dada2_denoising_stats.qzv
+
+# ----- 5. Feature-table summary -----
+qiime feature-table summarize --i-table table.qza --o-feature-frequencies feature_frequencies.qza --o-sample-frequencies sample_frequencies.qza --o-summary table.qzv --m-metadata-file sample_metadata.tsv
+
+# ----- 6. Rep-seqs tabulation -----
+qiime feature-table tabulate-seqs --i-data dada2_rep_set.qza --o-visualization dada2_rep_set.qzv
+
+# ----- 7. Classifier (prebuilt or on-the-fly) -----
+if [ "{{CLASSIFIER_PATH}}" = "NONE" ]; then
+  qiime feature-classifier extract-reads --i-sequences $DB_SEQS --p-f-primer {{PRIMER1}} --p-r-primer {{PRIMER2}} --p-min-length {{CLASSIFIER_MIN_LEN}} --p-max-length {{CLASSIFIER_MAX_LEN}} --p-n-jobs $CORES --o-reads ref-seqs.qza
+  qiime feature-classifier fit-classifier-naive-bayes --i-reference-reads ref-seqs.qza --i-reference-taxonomy $DB_TAX --o-classifier classifier.qza
+  CLASSIFIER=classifier.qza
+else
+  CLASSIFIER="{{CLASSIFIER_PATH}}"
+fi
+
+# ----- 8. Classify-sklearn -----
+qiime feature-classifier classify-sklearn --i-classifier "$CLASSIFIER" --i-reads dada2_rep_set.qza --p-n-jobs $CORES --o-classification taxonomy.qza
+
+qiime metadata tabulate --m-input-file taxonomy.qza --o-visualization taxonomy.qzv
+
+# ----- 9. Taxonomy filtering (keep Bacteria, drop mitochondria + chloroplast) -----
+qiime taxa filter-table --i-table table.qza --i-taxonomy taxonomy.qza --p-include "k__Bacteria,d__Bacteria" --p-exclude mitochondria,chloroplast --o-filtered-table table-filtered.qza
+
+qiime taxa filter-seqs --i-sequences dada2_rep_set.qza --i-taxonomy taxonomy.qza --p-include "k__Bacteria,d__Bacteria" --p-exclude mitochondria,chloroplast --o-filtered-sequences rep-seqs-filtered.qza
+
+# ----- 9b. Filtered feature-table summary -----
+# The Ruby app links its "Feature Table" column to table-filtered.qzv; without
+# this step that visualization never exists and the link goes RED.
+qiime feature-table summarize --i-table table-filtered.qza --o-feature-frequencies table_filtered_feature_frequencies.qza --o-sample-frequencies table_filtered_sample_frequencies.qza --o-summary table-filtered.qzv --m-metadata-file sample_metadata.tsv
+
+# ----- 10. Taxa bar plot (uses filtered table) -----
+qiime taxa barplot --i-table table-filtered.qza --i-taxonomy taxonomy.qza --m-metadata-file sample_metadata.tsv --o-visualization taxa-bar-plots.qzv
+
+# ----- 11. Phylogeny on filtered rep-seqs -----
+qiime phylogeny align-to-tree-mafft-fasttree --i-sequences rep-seqs-filtered.qza --p-n-threads $CORES --o-alignment aligned-rep-seqs.qza --o-masked-alignment masked-aligned-rep-seqs.qza --o-tree unrooted-tree.qza --o-rooted-tree rooted-tree.qza
+
+# ----- 12. Core diversity metrics (uses filtered table) -----
+qiime diversity core-metrics-phylogenetic --i-phylogeny rooted-tree.qza --i-table table-filtered.qza --p-sampling-depth {{SAMPLING_DEPTH}} --p-n-jobs-or-threads $CORES --m-metadata-file sample_metadata.tsv --output-dir core-metrics-results
+
+# ----- 13. Alpha group significance (Shannon) -----
+qiime diversity alpha-group-significance --i-alpha-diversity core-metrics-results/shannon_vector.qza --m-metadata-file sample_metadata.tsv --o-visualization shannon_group_significance.qzv
+
+# ----- 14. Beta group significance (Jaccard, Bray-Curtis, weighted UniFrac) -----
+qiime diversity beta-group-significance --i-distance-matrix core-metrics-results/jaccard_distance_matrix.qza --m-metadata-file sample_metadata.tsv --m-metadata-column Group --o-visualization jaccard_group_significance.qzv --p-pairwise
+
+qiime diversity beta-group-significance --i-distance-matrix core-metrics-results/bray_curtis_distance_matrix.qza --m-metadata-file sample_metadata.tsv --m-metadata-column Group --o-visualization bray_curtis_group_significance.qzv --p-pairwise
+
+qiime diversity beta-group-significance --i-distance-matrix core-metrics-results/weighted_unifrac_distance_matrix.qza --m-metadata-file sample_metadata.tsv --m-metadata-column Group --o-visualization weighted_unifrac_group_significance.qzv --p-pairwise
+
+# ----- 15. Emperor PCoA plots -----
+qiime emperor plot --i-pcoa core-metrics-results/jaccard_pcoa_results.qza --m-metadata-file sample_metadata.tsv --o-visualization jaccard_emperor_plot.qzv
+
+qiime emperor plot --i-pcoa core-metrics-results/bray_curtis_pcoa_results.qza --m-metadata-file sample_metadata.tsv --o-visualization bray_curtis_emperor_plot.qzv
+
+qiime emperor plot --i-pcoa core-metrics-results/weighted_unifrac_pcoa_results.qza --m-metadata-file sample_metadata.tsv --o-visualization weighted_unifrac_emperor_plot.qzv
+
+# ----- 16. Alpha rarefaction (uses filtered table) -----
+# alpha-rarefaction aborts if --p-max-depth exceeds the largest per-sample
+# frequency present in the filtered table. We do NOT alter the table or the
+# user's sampling_depth; we only clamp the rarefaction *curve* max-depth to the
+# unaltered table's own maximum so the step always produces a visualization.
+RAREF_MAX={{MAX_RAREFACTION_DEPTH}}
+mkdir -p .raref_check
+qiime tools export --input-path table-filtered.qza --output-path .raref_check >/dev/null 2>&1 || true
+if [ -f .raref_check/feature-table.biom ]; then
+  DATA_MAX=$(python -c "import biom; t=biom.load_table('.raref_check/feature-table.biom'); print(int(t.sum(axis='sample').max()))" 2>/dev/null || echo "")
+  if [ -n "$DATA_MAX" ] && [ "$DATA_MAX" -gt 0 ] 2>/dev/null && [ "$RAREF_MAX" -gt "$DATA_MAX" ] 2>/dev/null; then
+    echo "max_rarefaction_depth=$RAREF_MAX exceeds max per-sample frequency ($DATA_MAX); using $DATA_MAX for the rarefaction curve." 1>&2
+    RAREF_MAX=$DATA_MAX
+  fi
+fi
+rm -rf .raref_check
+qiime diversity alpha-rarefaction --i-table table-filtered.qza --i-phylogeny rooted-tree.qza --p-max-depth $RAREF_MAX --m-metadata-file sample_metadata.tsv --o-visualization alpha-rarefaction.qzv
+
+# ----- 17. Differential-abundance pre-filter (parity with prior bash; ANCOM now in Rmd) -----
+qiime feature-table filter-features --i-table table-filtered.qza --p-min-frequency {{MIN_FREQ}} --p-min-samples {{MIN_SAMPLES}} --o-filtered-table table_abund.qza
+
+# ----- 18. Optional PICRUSt2 -----
+if [ "{{RUN_PICRUST2}}" = "true" ]; then
+  mkdir -p exports
+  qiime tools export --input-path rep-seqs-filtered.qza --output-path exports
+  qiime tools export --input-path table-filtered.qza --output-path exports
+
+  # --stratified emits per-ASV contribution tables (pred_metagenome_contrib.tsv.gz),
+  # needed by the Rmd's "ASV contributors" tab. Adds compute time, but on typical
+  # 16S datasets is acceptable; disable at picrust2_pipeline.py level if too slow.
+  picrust2_pipeline.py \
+    -s exports/dna-sequences.fasta \
+    -i exports/feature-table.biom \
+    -o picrust2_output \
+    --stratified \
+    --processes $CORES
+
+  # Decompress the four key TSVs into the working directory root
+  if [ -f picrust2_output/KO_metagenome_out/pred_metagenome_unstrat.tsv.gz ]; then
+    gunzip -kc picrust2_output/KO_metagenome_out/pred_metagenome_unstrat.tsv.gz > ko_abundance.tsv
+  fi
+  if [ -f picrust2_output/EC_metagenome_out/pred_metagenome_unstrat.tsv.gz ]; then
+    gunzip -kc picrust2_output/EC_metagenome_out/pred_metagenome_unstrat.tsv.gz > ec_abundance.tsv
+  fi
+  if [ -f picrust2_output/pathways_out/path_abun_unstrat.tsv.gz ]; then
+    gunzip -kc picrust2_output/pathways_out/path_abun_unstrat.tsv.gz > pathway_abundance.tsv
+  fi
+  # Per-ASV contribution table. Depending on picrust2 version / flags the
+  # stratified output is named pred_metagenome_contrib.tsv.gz (default long
+  # format) or pred_metagenome_strat.tsv.gz (--wide_table), and the dual-domain
+  # pipeline can nest it under KO_/EC_metagenome_out. Locate whichever exists,
+  # preferring the KO level.
+  CONTRIB=$(find picrust2_output -type f \( -name 'pred_metagenome_contrib.tsv.gz' -o -name 'pred_metagenome_strat.tsv.gz' \) 2>/dev/null | grep -i 'KO' | head -1)
+  if [ -z "$CONTRIB" ]; then
+    CONTRIB=$(find picrust2_output -type f \( -name 'pred_metagenome_contrib.tsv.gz' -o -name 'pred_metagenome_strat.tsv.gz' \) 2>/dev/null | head -1)
+  fi
+  if [ -n "$CONTRIB" ] && [ -f "$CONTRIB" ]; then
+    gunzip -kc "$CONTRIB" > picrust2_contrib.tsv
+  else
+    echo "PICRUSt2 stratified/contrib table not found under picrust2_output; ASV contributors tab will be skipped." 1>&2
+  fi
+fi
+
+# ----- 19. Unpack qzv archives into Results_Folder -----
+# QZV archives inflate as <name>.qzv.zip.folder/<UUID>/data/... , but the
+# SUSHI Ruby app links to <name>.qzv.zip.folder/data/... . Hoist the single
+# UUID subdir's contents up one level so those static links resolve.
+for i in $(ls *.qzv); do mv $i ${i}.zip; done
+
+for i in $(ls *.zip); do
+  unzip -q "$i" -d "${i}.folder"
+  ( shopt -s dotglob nullglob
+    for uuid_dir in "${i}.folder"/*/; do
+      mv "${uuid_dir}"* "${i}.folder/" 2>/dev/null || true
+      rmdir "${uuid_dir}" 2>/dev/null || true
+    done
+  )
+done
+
+mkdir -p Results_Folder
+mv *.zip.folder Results_Folder/
+
+# Persist fastp per-sample reports inside Results_Folder so the report's links
+# ("fastp_out/<sample>.html") resolve in gstore and the JSON summaries can be
+# read at render time.
+if [ -d fastp_out ]; then
+  mkdir -p Results_Folder/fastp_out
+  cp -f fastp_out/*.html fastp_out/*.json Results_Folder/fastp_out/ 2>/dev/null || true
+fi

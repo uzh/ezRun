@@ -1,0 +1,122 @@
+## ANCOM-BC2 {.tabset}
+
+Bias-corrected log-ratios with structural-zero handling.
+`r if (length(da_covariates)) "Covariates extend the fixed-effects formula." else "No covariates supplied."`
+
+### Species {.tabset}
+```{r ancombc2_species, eval=has_species}
+anc_sp <- run_ancombc2(physeq_Species, "Species")
+```
+
+#### Primary
+```{r ancombc2_species_primary, eval=has_species}
+dt(anc_sp$res, "ANCOM-BC2 Species — primary")
+```
+
+#### LFC plot
+```{r ancombc2_species_plot, eval=has_species, fig.width=12, fig.height=8}
+lfc_col  <- grep("^lfc_Group", colnames(anc_sp$res), value = TRUE)[1]
+diff_col <- grep("^diff_Group", colnames(anc_sp$res), value = TRUE)[1]
+if (!is.na(lfc_col)) {
+  d <- data.frame(taxon = anc_sp$res$Taxonomy, lfc = anc_sp$res[[lfc_col]],
+                  sig = anc_sp$res[[diff_col]]) %>% filter(sig) %>% arrange(desc(lfc))
+  if (nrow(d) > 0) {
+    d$taxon <- factor(d$taxon, levels = d$taxon)
+    print(ggplot(d, aes(taxon, lfc, fill = lfc > 0)) + geom_col() + coord_flip() +
+            scale_fill_manual(values = c("FALSE"="#377eb8","TRUE"="#e41a1c"), guide="none") +
+            labs(x = NULL, y = "Log fold change", title = lfc_col) + theme_bw())
+  } else cat("No significant ANCOM-BC2 Species features.\n")
+}
+```
+```{r ancombc2_species_vdat, include=FALSE, eval=has_species}
+.lfc <- grep("^lfc_Group", colnames(anc_sp$res), value = TRUE)[1]
+.p   <- grep("^p_Group",   colnames(anc_sp$res), value = TRUE)[1]
+.q   <- grep("^q_Group",   colnames(anc_sp$res), value = TRUE)[1]
+anc_sp_vd_adj <- if (!is.na(.lfc) && !is.na(.q))
+  mk_volcano_df(anc_sp$res, .lfc, .q, "Taxonomy") else NULL
+anc_sp_vd_raw <- if (!is.na(.lfc) && !is.na(.p))
+  mk_volcano_df(anc_sp$res, .lfc, .p, "Taxonomy") else NULL
+```
+
+#### Volcano — Adjusted p (Static)
+```{r ancombc2_species_vstat_adj, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(anc_sp_vd_adj, "ANCOM-BC2 Species (LFC vs q)", "log fold change",
+                    ylab = "-log10(BH-adjusted q)")
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r ancombc2_species_vint_adj, eval=has_species}
+show_volcano_interactive(anc_sp_vd_adj, "ANCOM-BC2 Species (LFC vs q)", "log fold change",
+                         ylab = "-log10(BH-adjusted q)")
+```
+
+#### Volcano — Raw p (Static)
+```{r ancombc2_species_vstat_raw, eval=has_species, fig.width=11, fig.height=8}
+show_volcano_static(anc_sp_vd_raw, "ANCOM-BC2 Species (LFC vs raw p)", "log fold change",
+                    ylab = "-log10(raw p)")
+```
+
+#### Volcano — Raw p (Interactive)
+```{r ancombc2_species_vint_raw, eval=has_species}
+show_volcano_interactive(anc_sp_vd_raw, "ANCOM-BC2 Species (LFC vs raw p)", "log fold change",
+                         ylab = "-log10(raw p)")
+```
+
+### Genus {.tabset}
+```{r ancombc2_genus}
+anc_ge <- run_ancombc2(physeq_Genus, "Genus")
+```
+
+#### Primary
+```{r ancombc2_genus_primary}
+dt(anc_ge$res, "ANCOM-BC2 Genus — primary")
+```
+
+#### LFC plot
+```{r ancombc2_genus_plot, fig.width=12, fig.height=8}
+lfc_col  <- grep("^lfc_Group", colnames(anc_ge$res), value = TRUE)[1]
+diff_col <- grep("^diff_Group", colnames(anc_ge$res), value = TRUE)[1]
+if (!is.na(lfc_col)) {
+  d <- data.frame(taxon = anc_ge$res$Taxonomy, lfc = anc_ge$res[[lfc_col]],
+                  sig = anc_ge$res[[diff_col]]) %>% filter(sig) %>% arrange(desc(lfc))
+  if (nrow(d) > 0) {
+    d$taxon <- factor(d$taxon, levels = d$taxon)
+    print(ggplot(d, aes(taxon, lfc, fill = lfc > 0)) + geom_col() + coord_flip() +
+            scale_fill_manual(values = c("FALSE"="#377eb8","TRUE"="#e41a1c"), guide="none") +
+            labs(x = NULL, y = "Log fold change", title = lfc_col) + theme_bw())
+  } else cat("No significant ANCOM-BC2 Genus features.\n")
+}
+```
+```{r ancombc2_genus_vdat, include=FALSE}
+.lfc <- grep("^lfc_Group", colnames(anc_ge$res), value = TRUE)[1]
+.p   <- grep("^p_Group",   colnames(anc_ge$res), value = TRUE)[1]
+.q   <- grep("^q_Group",   colnames(anc_ge$res), value = TRUE)[1]
+anc_ge_vd_adj <- if (!is.na(.lfc) && !is.na(.q))
+  mk_volcano_df(anc_ge$res, .lfc, .q, "Taxonomy") else NULL
+anc_ge_vd_raw <- if (!is.na(.lfc) && !is.na(.p))
+  mk_volcano_df(anc_ge$res, .lfc, .p, "Taxonomy") else NULL
+```
+
+#### Volcano — Adjusted p (Static)
+```{r ancombc2_genus_vstat_adj, fig.width=11, fig.height=8}
+show_volcano_static(anc_ge_vd_adj, "ANCOM-BC2 Genus (LFC vs q)", "log fold change",
+                    ylab = "-log10(BH-adjusted q)")
+```
+
+#### Volcano — Adjusted p (Interactive)
+```{r ancombc2_genus_vint_adj}
+show_volcano_interactive(anc_ge_vd_adj, "ANCOM-BC2 Genus (LFC vs q)", "log fold change",
+                         ylab = "-log10(BH-adjusted q)")
+```
+
+#### Volcano — Raw p (Static)
+```{r ancombc2_genus_vstat_raw, fig.width=11, fig.height=8}
+show_volcano_static(anc_ge_vd_raw, "ANCOM-BC2 Genus (LFC vs raw p)", "log fold change",
+                    ylab = "-log10(raw p)")
+```
+
+#### Volcano — Raw p (Interactive)
+```{r ancombc2_genus_vint_raw}
+show_volcano_interactive(anc_ge_vd_raw, "ANCOM-BC2 Genus (LFC vs raw p)", "log fold change",
+                         ylab = "-log10(raw p)")
+```

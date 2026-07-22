@@ -1,0 +1,108 @@
+---
+title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
+output:
+  html_document:
+    mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
+    self_contained: true
+    includes:
+      in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
+    css: !expr system.file("templates/fgcz.css", package="ezRun")
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup TargetedSeqQC, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(DT)
+```
+
+```{r load data TargetedSeqQC, include=FALSE}
+if (!exists("param")) {
+  param <- ezLoadRobj("param")
+}
+if (!exists("dataset")) {
+  dataset <- ezLoadRobj("dataset")
+}
+if (!exists("qcSummary")) {
+  qcSummary <- ezLoadRobj("qcSummary")
+}
+if (!exists("multiqcRelPath")) {
+  multiqcRelPath <- ezLoadRobj("multiqcRelPath")
+}
+```
+
+# Targeted / Exome Sequencing QC {.tabset}
+
+## Overview
+
+Started on `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`.
+
+This report gives per-sample capture QC for a cohort of aligned BAM files.
+The metrics are produced by **Picard CollectHsMetrics**, **mosdepth**,
+**samtools** (stats/flagstat/idxstats) and optionally
+**Picard CollectInsertSizeMetrics** / **VerifyBamID2**, and aggregated into a
+single **MultiQC** report.
+
+```{r overview info, results='asis'}
+cat("- **Samples:** ", nrow(qcSummary), "\n", sep = "")
+if (!is.null(param$refBuild) && nzchar(param$refBuild)) {
+  cat("- **Reference:** ", param$refBuild, "\n", sep = "")
+}
+if (!is.null(param$designName) && nzchar(param$designName)) {
+  cat("- **Capture design:** ", param$designName, " (vendor: ", param$vendor, ")\n", sep = "")
+}
+if (isTRUE(as.logical(param$restrictToMainChromosomes))) {
+  cat("- **Scope:** main chromosomes only (contig name <= ",
+      param$mainChromMaxNchar, " chars; scaffolds excluded)\n", sep = "")
+}
+cat("- **Min MAPQ / BASEQ:** ", param$mapq, " / ", param$baseq, "\n", sep = "")
+```
+
+### Full MultiQC report
+
+The complete interactive MultiQC report (all modules and plots) opens in a new
+tab. It is also exposed as its own `MultiQC Report [Link]` column in the output
+dataset.
+
+```{r multiqc link, results='asis'}
+## A plain hyperlink (not an iframe/img) so the self-contained report does not
+## try to embed the multi-MB MultiQC HTML as a resource.
+cat('<p style="font-size:1.1em;"><a href="', multiqcRelPath,
+    '" target="_blank"><b>Open the full MultiQC report &rarr;</b></a></p>\n',
+    sep = "")
+```
+
+## Key metrics {.tabset}
+
+### Summary table
+
+Headline WES capture metrics per sample. `PCT_*` values are fractions
+(0-1); `FOLD_80_BASE_PENALTY` near 1 means uniform coverage; high
+`ZERO_CVG_TARGETS_PCT` or low `PCT_TARGET_BASES_30X` flags weak captures.
+
+```{r summary table}
+numCols <- setdiff(colnames(qcSummary), "Sample")
+DT::datatable(
+  qcSummary,
+  rownames = FALSE,
+  filter = "top",
+  options = list(pageLength = 25, scrollX = TRUE, autoWidth = TRUE)
+) |>
+  DT::formatRound(columns = intersect(numCols, colnames(qcSummary)), digits = 3)
+```
+
+## Input dataset
+
+```{r input dataset}
+DT::datatable(
+  as.data.frame(dataset),
+  options = list(pageLength = 25, scrollX = TRUE),
+  caption = "Input dataset (from SUSHI)"
+)
+```
+
+## SessionInfo
+
+```{r sessionInfo}
+ezSessionInfo()
+```

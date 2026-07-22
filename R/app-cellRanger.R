@@ -188,8 +188,10 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
         ezSystem(paste0("rm ", genomeBam))
       }
     } else {
-      ezSystem(paste0("rm ", genomeBam))
-      ezSystem(paste0("rm ", genomeBam, ".bai"))
+        if(file.exists(genomeBam)) {   
+        ezSystem(paste0("rm ", genomeBam))
+        ezSystem(paste0("rm ", genomeBam, ".bai"))
+        }
     }
   }
   return("Success")

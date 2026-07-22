@@ -15,8 +15,8 @@ format:
     code-fold: true
     code-tools: true
 
-    # Theme (minimal for now — SCSS branding comes later)
-    theme: cosmo
+    # Theme — flatly base + FGCZ overrides (tabset card styling for now)
+    theme: [spacelab, fgcz.scss]
 
     # Grid sizing
     grid:
@@ -43,7 +43,7 @@ knitr:
     fig.width: 6
     fig.height: 5
     fig.retina: 2
-    out.width: "30%"
+    out.width: "40%"
 
 # Cross-references
 crossref:
