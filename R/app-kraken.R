@@ -5,6 +5,33 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+#' Build a Krona text file from a Kraken2 report, to be rendered with ktImportText.
+#' Taxonomy-agnostic: it uses the report's OWN rank/name hierarchy (the name column
+#' is indented 2 spaces per level) and the per-taxon read count (column 3), so it is
+#' correct for any database — NCBI or GTDB — and needs no NCBI taxid resolution. This
+#' mirrors how exploreMetaTax renders Krona. Handles both the 6-column report and the
+#' 8-column form produced by --report-minimizer-data (col 3 and the last col are used
+#' in both). Reads via readLines (NOT fread) so the indentation is preserved.
+reportToKronaText <- function(reportFile, kronaTextFile) {
+  raw <- readLines(reportFile)
+  raw <- raw[nzchar(raw)]
+  lineage <- character(0)
+  out <- character(0)
+  for (ln in raw) {
+    f <- strsplit(ln, "\t", fixed = TRUE)[[1]]
+    if (length(f) < 6) next
+    taxonReads <- suppressWarnings(as.numeric(f[3]))     # reads assigned directly to this taxon
+    nameField <- f[length(f)]                            # last column = indented taxon name
+    depth <- (nchar(nameField) - nchar(sub("^ +", "", nameField))) %/% 2L
+    length(lineage) <- depth                             # keep the ancestors above this level ...
+    lineage <- c(lineage, trimws(nameField))             # ... and add this level
+    if (!is.na(taxonReads) && taxonReads > 0) {
+      out <- c(out, paste(c(sprintf("%.0f", taxonReads), lineage), collapse = "\t"))
+    }
+  }
+  writeLines(out, kronaTextFile)
+}
+
 ezMethodKraken = function(
   input = NA,
   output = NA,
@@ -174,15 +201,21 @@ ezMethodKraken = function(
     trimmedReads <- if (param$paired) c(read1, read2) else read1
     ezSystem(paste("rm -f", paste(shQuote(trimmedReads), collapse = " ")))
 
-    # Krona must run on the uncompressed per-read output. Its verbose taxon dump
-    # (thousands of lines on large DBs) is redirected to a per-sample log so the
-    # job log stays readable; on failure that log survives in scratch for debugging.
-    ezLog(paste0(tag, ": (3/4) building Krona chart (details -> ", kronaLog, ")"))
+    # Build the Krona chart from the kraken REPORT (its own rank/name hierarchy),
+    # not the per-read output. This is taxonomy-agnostic — correct for NCBI and
+    # GTDB alike — and matches how exploreMetaTax renders Krona. (ktImportTaxonomy
+    # on the per-read output resolves column-3 taxids against Krona's bundled NCBI
+    # taxonomy: that yields "100% no hits" for --use-names output, and mis-maps
+    # non-NCBI DBs like GTDB.) ktImportText writes a self-contained HTML (no
+    # <sample>.html.files dir). Output is redirected to a per-sample log to keep the
+    # job log readable; on failure that log survives in scratch for debugging.
+    ezLog(paste0(tag, ": (3/4) building Krona chart from report (details -> ", kronaLog, ")"))
+    kronaTxt <- paste0(sampleName, ".krona.txt")
+    reportToKronaText(outReport, kronaTxt)
     cmd <- paste(
-      "ktImportTaxonomy -q 2 -t 3",
-      "-n", shQuote(sampleName),
-      outTxt,
+      "ktImportText", kronaTxt,
       "-o", outHtml,
+      "-n", shQuote(sampleName),
       ">", kronaLog, "2>&1"
     )
     ezSystem(cmd)
