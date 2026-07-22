@@ -173,12 +173,27 @@ EzAppScSeurat <-
           CyteTypeR = ezFrame(
             Type = "logical",
             DefaultValue = FALSE,
-            Description = "Enable CyteTypeR AI-powered cell type annotation"
+            Description = "Enable AI-powered cell type annotation"
+          ),
+          CyteTypeR.backend = ezFrame(
+            Type = "character",
+            DefaultValue = "qwen_local",
+            Description = "LLM backend: 'qwen_local' (FGCZ-internal Qwen on GPU, no data leaves FGCZ) or 'nygen' (Nygen Analytics cloud API)"
+          ),
+          CyteTypeR.llmBaseUrl = ezFrame(
+            Type = "character",
+            DefaultValue = "http://fgcz-c-056:8081/v1",
+            Description = "qwen_local backend: OpenAI-compatible base URL of the internal LLM server"
+          ),
+          CyteTypeR.llmModel = ezFrame(
+            Type = "character",
+            DefaultValue = "Qwen3.6-35B-A3B-FP8",
+            Description = "qwen_local backend: model id served by the internal LLM server"
           ),
           CyteTypeR.apiKey = ezFrame(
             Type = "character",
             DefaultValue = "",
-            Description = "Nygen Analytics CyteType API key"
+            Description = "nygen backend: Nygen Analytics CyteType API key"
           ),
           CyteTypeR.studyContext = ezFrame(
             Type = "character",
@@ -689,30 +704,25 @@ ezMethodScSeurat <- function(
     )
   }
 
-  # CyteTypeR AI-powered Annotation
+  # AI-powered cluster annotation. Two interchangeable backends produce the
+  # SAME cytetype_results columns so downstream mapping + reporting is shared:
+  #   - "qwen_local": calls an FGCZ-internal OpenAI-compatible LLM directly
+  #                   (ezAnnotateClustersLLM). No data leaves FGCZ, no API key.
+  #   - "nygen":      uploads markers to the Nygen Analytics cloud (CyteTypeR).
   if (
     ezIsSpecified(param$CyteTypeR) &&
       (param$CyteTypeR == TRUE || param$CyteTypeR == "true")
   ) {
     tryCatch(
       {
-        futile.logger::flog.info("Starting CyteTypeR cell type annotation...")
-
-        if (!require("CyteTypeR", quietly = TRUE)) {
-          futile.logger::flog.error("CyteTypeR package not available")
-          stop(
-            "CyteTypeR package required. ",
-            "Install from: https://github.com/NygenAnalytics/CyteTypeR"
-          )
+        ct_backend <- if (ezIsSpecified(param$CyteTypeR.backend)) {
+          tolower(param$CyteTypeR.backend)
+        } else {
+          "qwen_local"
         }
-
-        # Resolve API key: parameter > environment variable
-        api_key <- NULL
-        if (ezIsSpecified(param$CyteTypeR.apiKey)) {
-          api_key <- param$CyteTypeR.apiKey
-        } else if (nzchar(Sys.getenv("CYTETYPE_API_KEY", ""))) {
-          api_key <- Sys.getenv("CYTETYPE_API_KEY")
-        }
+        futile.logger::flog.info(
+          "Starting AI cell type annotation (backend: %s)...", ct_backend
+        )
 
         # Prepare markers (reuse existing markers from getSeuratMarkersAndAnnotate)
         cytetype_markers <- markers |>
@@ -721,73 +731,7 @@ ezMethodScSeurat <- function(
           dplyr::group_by(cluster) |>
           dplyr::arrange(dplyr::desc(avg_log2FC), .by_group = TRUE)
 
-        # Work on a copy to avoid mutating scData before CyteTypeR succeeds
-        scData_ct <- scData
-
-        # Ensure seurat_clusters is character (local copy only)
-        scData_ct$seurat_clusters <- as.character(scData_ct$seurat_clusters)
-
-        # Remove cells with NA cluster
-        cells_with_cluster <- colnames(scData_ct)[
-          !is.na(scData_ct$seurat_clusters)
-        ]
-        if (length(cells_with_cluster) < ncol(scData_ct)) {
-          futile.logger::flog.warn(
-            "Removing %d cells with NA cluster assignment for CyteTypeR",
-            ncol(scData_ct) - length(cells_with_cluster)
-          )
-          scData_ct <- subset(scData_ct, cells = cells_with_cluster)
-        }
-
-        # Handle case-insensitive duplicate columns (DuckDB requirement)
-        cols <- colnames(scData_ct@meta.data)
-        dupes <- cols[duplicated(tolower(cols))]
-        if (length(dupes) > 0) {
-          futile.logger::flog.warn(
-            "Removing duplicate metadata columns for CyteTypeR: %s",
-            paste(dupes, collapse = ", ")
-          )
-          scData_ct@meta.data[dupes] <- NULL
-        }
-
-        # Ensure clusters have enough markers (PrepareCyteTypeR needs >= 5 per cluster)
-        marker_counts <- cytetype_markers |>
-          dplyr::count(cluster) |>
-          dplyr::filter(n >= 5)
-        valid_clusters <- marker_counts$cluster
-        seurat_clusters_all <- unique(scData_ct$seurat_clusters)
-        excluded_clusters <- setdiff(seurat_clusters_all, valid_clusters)
-        if (length(excluded_clusters) > 0) {
-          futile.logger::flog.warn(
-            "Clusters excluded from CyteTypeR (no/insufficient markers): %s",
-            paste(excluded_clusters, collapse = ", ")
-          )
-          scData_ct <- subset(
-            scData_ct,
-            seurat_clusters %in% valid_clusters
-          )
-          cytetype_markers <- cytetype_markers |>
-            dplyr::filter(cluster %in% valid_clusters)
-        }
-
-        # Prepare data for CyteTypeR
-        prepped_data <- CyteTypeR::PrepareCyteTypeR(
-          scData_ct,
-          cytetype_markers,
-          n_top_genes = 15,
-          group_key = "seurat_clusters",
-          aggregate_metadata = TRUE,
-          coordinates_key = "umap"
-        )
-
-        # Fix NA entry in clusterMetadata (known PrepareCyteTypeR bug)
-        if (any(is.na(names(prepped_data$clusterMetadata)))) {
-          prepped_data$clusterMetadata <- prepped_data$clusterMetadata[
-            !is.na(names(prepped_data$clusterMetadata))
-          ]
-        }
-
-        # Auto-generate study_context if not provided
+        # Auto-generate study_context if not provided (shared by both backends)
         species <- getSpecies(param$refBuild)
         study_context <- if (ezIsSpecified(param$CyteTypeR.studyContext)) {
           param$CyteTypeR.studyContext
@@ -808,22 +752,137 @@ ezMethodScSeurat <- function(
           )
         }
 
-        # Submit annotation job (use copy to avoid mutating scData on failure)
-        scData_ct <- CyteTypeR::CyteTypeR(
-          obj = scData_ct,
-          prepped_data = prepped_data,
-          study_context = study_context,
-          auth_token = api_key,
-          require_artifacts = FALSE,
-          metadata = list(
-            title = paste0("ScSeurat CyteTypeR - ", input$getNames()),
-            run_label = paste0("sushi_", format(Sys.Date(), "%Y%m%d")),
-            experiment_name = param$name
-          )
-        )
+        cytetype_results <- NULL
+        cytetype_jobDetails <- NULL
 
-        # Extract results from the copy
-        cytetype_results <- scData_ct@misc$cytetype_results
+        if (ct_backend == "qwen_local") {
+          # --- Internal LLM backend (direct call, fully on-prem) ------------
+          llm_base_url <- if (ezIsSpecified(param$CyteTypeR.llmBaseUrl)) {
+            param$CyteTypeR.llmBaseUrl
+          } else {
+            "http://fgcz-c-056:8081/v1"
+          }
+          llm_model <- if (ezIsSpecified(param$CyteTypeR.llmModel)) {
+            param$CyteTypeR.llmModel
+          } else {
+            "Qwen3.6-35B-A3B-FP8"
+          }
+          cytetype_results <- ezAnnotateClustersLLM(
+            markers = as.data.frame(cytetype_markers),
+            study_context = study_context,
+            n_top_genes = 15,
+            base_url = llm_base_url,
+            model = llm_model
+          )
+          cytetype_jobDetails <- list(
+            backend = "qwen_local",
+            model = llm_model,
+            base_url = llm_base_url,
+            report_url = NULL
+          )
+        } else {
+          # --- Nygen Analytics cloud backend (original CyteTypeR path) ------
+          if (!require("CyteTypeR", quietly = TRUE)) {
+            futile.logger::flog.error("CyteTypeR package not available")
+            stop(
+              "CyteTypeR package required for the 'nygen' backend. ",
+              "Install from: https://github.com/NygenAnalytics/CyteTypeR"
+            )
+          }
+
+          # Resolve API key: parameter > environment variable
+          api_key <- NULL
+          if (ezIsSpecified(param$CyteTypeR.apiKey)) {
+            api_key <- param$CyteTypeR.apiKey
+          } else if (nzchar(Sys.getenv("CYTETYPE_API_KEY", ""))) {
+            api_key <- Sys.getenv("CYTETYPE_API_KEY")
+          }
+
+          # Work on a copy to avoid mutating scData before CyteTypeR succeeds
+          scData_ct <- scData
+
+          # Ensure seurat_clusters is character (local copy only)
+          scData_ct$seurat_clusters <- as.character(scData_ct$seurat_clusters)
+
+          # Remove cells with NA cluster
+          cells_with_cluster <- colnames(scData_ct)[
+            !is.na(scData_ct$seurat_clusters)
+          ]
+          if (length(cells_with_cluster) < ncol(scData_ct)) {
+            futile.logger::flog.warn(
+              "Removing %d cells with NA cluster assignment for CyteTypeR",
+              ncol(scData_ct) - length(cells_with_cluster)
+            )
+            scData_ct <- subset(scData_ct, cells = cells_with_cluster)
+          }
+
+          # Handle case-insensitive duplicate columns (DuckDB requirement)
+          cols <- colnames(scData_ct@meta.data)
+          dupes <- cols[duplicated(tolower(cols))]
+          if (length(dupes) > 0) {
+            futile.logger::flog.warn(
+              "Removing duplicate metadata columns for CyteTypeR: %s",
+              paste(dupes, collapse = ", ")
+            )
+            scData_ct@meta.data[dupes] <- NULL
+          }
+
+          # Ensure clusters have enough markers (PrepareCyteTypeR needs >= 5 per cluster)
+          marker_counts <- cytetype_markers |>
+            dplyr::count(cluster) |>
+            dplyr::filter(n >= 5)
+          valid_clusters <- marker_counts$cluster
+          seurat_clusters_all <- unique(scData_ct$seurat_clusters)
+          excluded_clusters <- setdiff(seurat_clusters_all, valid_clusters)
+          if (length(excluded_clusters) > 0) {
+            futile.logger::flog.warn(
+              "Clusters excluded from CyteTypeR (no/insufficient markers): %s",
+              paste(excluded_clusters, collapse = ", ")
+            )
+            scData_ct <- subset(
+              scData_ct,
+              seurat_clusters %in% valid_clusters
+            )
+            cytetype_markers <- cytetype_markers |>
+              dplyr::filter(cluster %in% valid_clusters)
+          }
+
+          # Prepare data for CyteTypeR
+          prepped_data <- CyteTypeR::PrepareCyteTypeR(
+            scData_ct,
+            cytetype_markers,
+            n_top_genes = 15,
+            group_key = "seurat_clusters",
+            aggregate_metadata = TRUE,
+            coordinates_key = "umap"
+          )
+
+          # Fix NA entry in clusterMetadata (known PrepareCyteTypeR bug)
+          if (any(is.na(names(prepped_data$clusterMetadata)))) {
+            prepped_data$clusterMetadata <- prepped_data$clusterMetadata[
+              !is.na(names(prepped_data$clusterMetadata))
+            ]
+          }
+
+          # Submit annotation job (use copy to avoid mutating scData on failure)
+          scData_ct <- CyteTypeR::CyteTypeR(
+            obj = scData_ct,
+            prepped_data = prepped_data,
+            study_context = study_context,
+            auth_token = api_key,
+            require_artifacts = FALSE,
+            metadata = list(
+              title = paste0("ScSeurat CyteTypeR - ", input$getNames()),
+              run_label = paste0("sushi_", format(Sys.Date(), "%Y%m%d")),
+              experiment_name = param$name
+            )
+          )
+
+          # Extract results from the copy
+          cytetype_results <- scData_ct@misc$cytetype_results
+          cytetype_jobDetails <- scData_ct@misc$cytetype_jobDetails
+          rm(scData_ct)
+        }
 
         if (!is.null(cytetype_results) && nrow(cytetype_results) > 0) {
           # Map annotations to original scData (CRITICAL: use unname() for Seurat v5)
@@ -853,7 +912,7 @@ ezMethodScSeurat <- function(
 
           # Transfer job details for report link
           scData@misc$cytetype_results <- cytetype_results
-          scData@misc$cytetype_jobDetails <- scData_ct@misc$cytetype_jobDetails
+          scData@misc$cytetype_jobDetails <- cytetype_jobDetails
 
           # Save results for Rmd template
           saveRDS(cytetype_results, "cytetype_results.rds")
@@ -872,20 +931,19 @@ ezMethodScSeurat <- function(
             length(unique(cytetype_results$annotation))
           )
         } else {
-          futile.logger::flog.warn("CyteTypeR returned no results")
+          futile.logger::flog.warn("AI cell type annotation returned no results")
         }
-        rm(scData_ct)
         gc()
       },
       error = function(e) {
         futile.logger::flog.error(
-          "CyteTypeR annotation failed: %s",
+          "AI cell type annotation failed: %s",
           e$message
         )
       }
     )
   } else {
-    futile.logger::flog.info("CyteTypeR annotation disabled, skipping...")
+    futile.logger::flog.info("AI cell type annotation disabled, skipping...")
   }
 
   makeRmdReport(

@@ -1337,14 +1337,29 @@ if(sctype_available && !is.null(sctype_results)){
 }
 ```
 
-### CyteTypeR
+### AI Cell Type Annotation
 
-`r if(cytetype_available) "CyteTypeR provides AI-powered cell type annotation using large language models via the Nygen Analytics API."`
+`r if(cytetype_available) "AI-powered cell type annotation using large language models, applied per cluster from the cluster marker genes."`
 
 ```{r cytetype results, eval=cytetype_available, results='asis', fig.width=14, fig.height=10}
 if (cytetype_available && !is.null(cytetype_results)) {
 
-  # Show cloud report link if available
+  # Backend note: local (internal LLM) vs Nygen cloud
+  ct_backend <- if (!is.null(scData@misc$cytetype_jobDetails$backend)) {
+    scData@misc$cytetype_jobDetails$backend
+  } else {
+    "nygen"
+  }
+  if (ct_backend == "qwen_local") {
+    cat(sprintf(
+      paste0("Annotations were generated **on FGCZ infrastructure** using the ",
+             "internal LLM `%s` (no data left FGCZ). Calls are advisory -- ",
+             "verify against canonical markers before relying on them.\n\n"),
+      scData@misc$cytetype_jobDetails$model
+    ))
+  }
+
+  # Show cloud report link if available (Nygen backend only)
   cytetype_report_url <- NULL
 
   # Try @misc$cytetype_jobDetails (fields: job_id, report_url, api_url, group_key, cluster_labels)
