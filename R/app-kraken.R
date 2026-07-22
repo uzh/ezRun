@@ -62,14 +62,45 @@ ezMethodKraken = function(
   saveUnclassified <- isTRUE(param$save_unclassified) ||
                      identical(tolower(as.character(param$save_unclassified)), "yes")
 
-  # When the shared daemon is used, always stop it, even if a sample errors out
-  # mid-loop, so no orphaned daemon or /tmp/classify.* files are left on the node.
+  # ---- progress banner: what this job is about to do ----
+  nSamples <- length(sampleNames)
+  pairedMode <- isTRUE(param$paired) ||
+                identical(tolower(as.character(param$paired)), "true")
+  ezLog(paste0(
+    "===== KrakenApp: ", nSamples, " sample(s) | ",
+    if (useDaemon) {
+      "DATASET mode, one shared Kraken2 daemon (database loaded ONCE, reused across samples)"
+    } else {
+      "one Kraken2 classify per sample (no daemon)"
+    },
+    " | DB=", dbArg,
+    " | paired=", pairedMode,
+    " | minimizer-data=", if (nzchar(reportMinimizerFlag)) "on" else "off",
+    " ====="
+  ))
+
   if (useDaemon) {
+    # Defensive pre-clean: if a previous job was cancelled (scancel/SIGKILL bypass
+    # the on.exit below) and happened to run on this same node, it may have left
+    # stale /tmp/classify.{pid,stdin,stdout} behind. `k2 clean --stop-daemon` clears
+    # them (and is a harmless no-op when there is nothing to clean). Safe under
+    # --exclusive, since no other Kraken job can legitimately be using them. This
+    # prevents a rare PID-reuse false-positive in k2's check_daemon from making the
+    # first classify attach to a phantom daemon and hang.
+    try(ezSystem("k2 clean --stop-daemon"), silent = TRUE)
+    # And always stop the daemon on normal exit or an R-level error mid-loop, so we
+    # don't leave an orphaned daemon / /tmp/classify.* files behind ourselves.
     on.exit(try(ezSystem("k2 clean --stop-daemon"), silent = TRUE), add = TRUE)
   }
 
-  for (sampleName in sampleNames) {
+  for (i in seq_along(sampleNames)) {
+    sampleName <- sampleNames[i]
+    tag <- paste0("[", i, "/", nSamples, "] ", sampleName)
+    tSampleStart <- Sys.time()
+    ezLog(paste0("----- ", tag, ": START -----"))
+
     # Trim one sample at a time: ezMethodFastpTrim is single-sample.
+    ezLog(paste0(tag, ": (1/4) trimming reads with fastp"))
     singleInput <- input$subset(sampleName)
     trimmedInput <- ezMethodFastpTrim(input = singleInput, param = param)
 
@@ -77,6 +108,7 @@ ezMethodKraken = function(
     outReport <- paste0(sampleName, ".report.txt")
     outHtml <- paste0(sampleName, ".html")
     outLog <- paste0(sampleName, ".log")
+    kronaLog <- paste0(sampleName, ".krona.log")
 
     if (param$paired) {
       read1 <- trimmedInput$getColumn("Read1")
@@ -105,6 +137,14 @@ ezMethodKraken = function(
     # subsequent samples reuse the in-memory DB. The call blocks until this sample's
     # classification is done, so processing stays sequential. When empty, this is a
     # plain per-sample `k2 classify` (classic behaviour).
+    daemonNote <- if (!useDaemon) {
+      "standalone, no daemon"
+    } else if (i == 1L) {
+      "daemon: starting + loading database into memory (one-time, this sample is the slow one)"
+    } else {
+      "daemon: reusing in-memory database (no reload)"
+    }
+    ezLog(paste0(tag, ": (2/4) classifying with Kraken2 [", daemonNote, "]"))
     cmd <- paste(
       "k2 classify",
       daemonFlag,
@@ -134,15 +174,20 @@ ezMethodKraken = function(
     trimmedReads <- if (param$paired) c(read1, read2) else read1
     ezSystem(paste("rm -f", paste(shQuote(trimmedReads), collapse = " ")))
 
-    # Krona must run on the uncompressed per-read output
+    # Krona must run on the uncompressed per-read output. Its verbose taxon dump
+    # (thousands of lines on large DBs) is redirected to a per-sample log so the
+    # job log stays readable; on failure that log survives in scratch for debugging.
+    ezLog(paste0(tag, ": (3/4) building Krona chart (details -> ", kronaLog, ")"))
     cmd <- paste(
       "ktImportTaxonomy -q 2 -t 3",
       "-n", shQuote(sampleName),
       outTxt,
-      "-o", outHtml
+      "-o", outHtml,
+      ">", kronaLog, "2>&1"
     )
     ezSystem(cmd)
 
+    ezLog(paste0(tag, ": (4/4) compressing classification output"))
     ezSystem(paste("pigz -f --best -p", ezThreads(), outTxt))
     if (saveUnclassified) {
       unclassifiedFiles <- if (param$paired) {
@@ -154,8 +199,14 @@ ezMethodKraken = function(
       ezSystem(paste("pigz -f --best -p", ezThreads(),
                      paste(unclassifiedFiles, collapse = " ")))
     }
+
+    elapsedMin <- round(as.numeric(difftime(Sys.time(), tSampleStart, units = "mins")), 1)
+    ezLog(paste0("----- ", tag, ": DONE in ", elapsedMin, " min -----"))
   }
 
+  ezLog(paste0("===== KrakenApp: all ", nSamples,
+               " sample(s) classified successfully =====",
+               if (useDaemon) " (stopping Kraken2 daemon now)" else ""))
   return("Success")
 }
 
