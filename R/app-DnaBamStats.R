@@ -1111,9 +1111,9 @@ get_dna_picard_dup_stats <- function(
   )
 
   if (!is.na(result$optDuplicates) &&
-    !is.na(result$allDuplicates) &&
-    result$allDuplicates > 0) {
-    result$opticalDupRate <- 100 * result$optDuplicates / result$allDuplicates
+    !is.na(result$readPairs) &&
+    result$readPairs > 0) {
+    result$opticalDupRate <- 100 * result$optDuplicates / result$readPairs
   }
 
   result$notes <- paste(
@@ -1367,11 +1367,11 @@ parse_dna_bamstats_legacy_picard_metrics <- function(
   }
   opticalDupRate <- NA_real_
   if (!is.na(optDuplicates) &&
-    !is.na(allDuplicates) &&
-    allDuplicates > 0) {
+    !is.na(readPairs) &&
+    readPairs > 0) {
     opticalDupRate <- 100 *
       optDuplicates /
-      allDuplicates
+      readPairs
   }
   list(
     allDuplicates = allDuplicates,
