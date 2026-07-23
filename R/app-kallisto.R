@@ -144,6 +144,27 @@ EzAppKallisto <-
             Description = "Path to fasta file with additional sequences to add to reference"
           )
         )
+      },
+      methods_identity = function() {
+        paste(
+          "You explain science like you are talking to a five year old.",
+          "Use very simple, short words. No jargon. If you must use a technical term, explain it immediately after in plain English.",
+          "Write in past tense, third person.",
+          "Only describe what is actually in the scripts and logs. Do not make things up.",
+          "Tool use rules:",
+          "- Use read_file to read input scripts and logs.",
+          "- Use append_file to add the Methods text to the output file (never overwrite it).",
+          sep = "\n"
+        )
+      },
+      methods_task = function() {
+        paste(
+          "Write one paragraph describing transcript-level RNA-seq quantification with kallisto.",
+          "Cover: kallisto version (from module load lines or log output), reference transcriptome used,",
+          "whether reads are paired-end or single-end, number of bootstrap samples,",
+          "and any non-default parameters (fragment length, SD, seed) actually set in the script.",
+          sep = "\n"
+        )
       }
     )
   )

@@ -546,12 +546,16 @@ EzApp <-
           log_paths    <- c(Sys.glob(file.path(gstore_script_dir, "*_o.log")),
                             Sys.glob(file.path(gstore_script_dir, "*_e.log")))
         }
-        python      <- "/home/rdomi/.conda/envs/gi_sushi_jobmanager_2024/bin/python"
-        llm_script  <- system.file("python/llm_script_writer.py", package = "ezRun")
-        output_file <- file.path(output_dir, "methods.txt")
+        python          <- "/home/rdomi/.conda/envs/gi_sushi_jobmanager_2024/bin/python"
+        llm_script      <- system.file("python/llm_script_writer.py", package = "ezRun")
+        output_file     <- file.path(output_dir, "methods.txt")
+        identity_file   <- file.path(output_dir, "methods_identity.txt")
+        task_file       <- file.path(output_dir, "methods_task.txt")
+        writeLines(methods_identity(), identity_file)
+        writeLines(methods_task(),     task_file)
         args <- c(llm_script, "--output", output_file,
-                  "--identity", methods_identity(),
-                  "--task",     methods_task())
+                  "--identity-file", identity_file,
+                  "--task-file",     task_file)
         if (length(script_paths) > 0) args <- c(args, "--scripts", script_paths)
         if (length(log_paths)    > 0) args <- c(args, "--logs",    log_paths)
         ret <- system2(python, args = args)

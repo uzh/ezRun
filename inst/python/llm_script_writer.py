@@ -6,7 +6,7 @@ Reads analysis scripts and logs, then appends a Methods paragraph per tool
 directly to methods.txt.
 
 Usage:
-    python llm_script_writer.py --output <path/to/methods.txt> --identity "..." --task "..."
+    python llm_script_writer.py --output <path> --identity-file <path> --task-file <path>
                                  [--scripts path ...] [--logs path ...]
 """
 import argparse
@@ -17,7 +17,7 @@ from datetime import datetime
 from agents import Agent, Runner, function_tool, set_default_openai_client, set_tracing_disabled
 from openai import AsyncOpenAI
 
-BASE_URL  = "http://fgcz-c-056:8000"
+BASE_URL  = "http://fgcz-c-056:8000/v1"
 MODEL     = "DeepSeek-V4-Flash-DSpark"
 OUTPUT_FILE = "methods.txt"  # overridden in __main__
 WORK_DIR    = "."            # overridden in __main__ to dirname(OUTPUT_FILE)
@@ -112,13 +112,16 @@ if __name__ == "__main__":
     parser.add_argument("--output",   required=True)
     parser.add_argument("--scripts",  nargs="*", default=[])
     parser.add_argument("--logs",     nargs="*", default=[])
-    parser.add_argument("--identity", required=True)
-    parser.add_argument("--task",     required=True)
+    parser.add_argument("--identity-file", required=True)
+    parser.add_argument("--task-file",     required=True)
     args = parser.parse_args()
 
-    global OUTPUT_FILE, WORK_DIR
     OUTPUT_FILE = os.path.abspath(args.output)
     WORK_DIR    = os.path.dirname(OUTPUT_FILE)
     os.makedirs(WORK_DIR, exist_ok=True)
-    path = asyncio.run(run(args.scripts, args.logs, args.identity, args.task))
+    with open(args.identity_file) as f:
+        identity = f.read()
+    with open(args.task_file) as f:
+        task = f.read()
+    path = asyncio.run(run(args.scripts, args.logs, identity, task))
     print(path)
