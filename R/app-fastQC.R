@@ -250,16 +250,16 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   ## stripped from MultiQC's stdout/log/HTML/JSON outputs, and never echoed by
   ## any message() call below. Only the model name is exposed publicly.
   AI_PROVIDER       <- "custom"
-  AI_MODEL          <- "Qwen3.6-27B-FP8"
-  AI_ENDPOINT       <- "http://fgcz-c-056:8081/v1/chat/completions"
+  AI_MODEL          <- "DeepSeek-V4-Flash-DSpark"
+  AI_ENDPOINT       <- "http://fgcz-c-056:8000/v1/chat/completions"
   AI_CONTEXT_WINDOW <- 128000L
 
   gen_ai  <- isTRUE(as.logical(param$generate_ai_summary))
   per_sec <- isTRUE(as.logical(param$per_section_ai_summaries))
 
   ## Redaction helpers -- applied to any text that may be surfaced to the user
-  ai_host_only   <- sub("^https?://([^/]+).*", "\\1", AI_ENDPOINT)   # fgcz-c-056:8081
-  ai_scheme_host <- sub("^(https?://[^/]+).*", "\\1", AI_ENDPOINT)   # http://fgcz-c-056:8081
+  ai_host_only   <- sub("^https?://([^/]+).*", "\\1", AI_ENDPOINT)   # fgcz-c-056:8000
+  ai_scheme_host <- sub("^(https?://[^/]+).*", "\\1", AI_ENDPOINT)   # http://fgcz-c-056:8000
   redact_pairs <- list(
     c(AI_ENDPOINT,    "[REDACTED-LLM-ENDPOINT]"),
     c(ai_scheme_host, "[REDACTED-LLM-HOST]"),
