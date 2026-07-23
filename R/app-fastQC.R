@@ -646,8 +646,8 @@ EzAppFastqc <-
           )
         )
       },
-      generate_methods = function(gstore_script_dir = NULL, output_dir = ".", ...) {
-        md_path <- file.path(output_dir, "methods.txt")
+      write_methods = function(gstore_script_dir = NULL, output_dir = ".", ...) {
+        md_path <- file.path(output_dir, "methods.md")
         writeLines(c(
           "## Methods",
           "",

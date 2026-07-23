@@ -503,42 +503,120 @@ EzApp <-
       },
       # Methods section generation -- two override paths for subclasses:
       #
-      # Path 1 -- LLM-guided (default): inherit generate_methods() and override
+      # Path 1 -- LLM-guided (default): inherit write_methods() and override
       #   methods_identity() to change who the LLM is, and/or
       #   methods_task()     to change what it is asked to write.
       #   Both, either, or neither can be overridden independently.
       #
-      # Path 2 -- static write: override generate_methods() entirely.
+      # Path 2 -- static write: override write_methods() entirely.
       #   The LLM is not called. methods_identity() and methods_task() are ignored.
       #   Use this when the methods text is fixed and known (e.g. EzAppFastqc).
       #
       # The LLM call lives in the AI/llm_methods_caller module, which provides
       #   llm_write_methods on PATH. Add "AI/llm_methods_caller" to the app's
       #   module list. AI/llm_caller is the broader-scoped sibling.
+      # If you override methods_identity(), keep the grounding block. It is the only
+      # thing standing between a customer manuscript and a confidently wrong organism.
       methods_identity = function() {
         paste(
-          "You are a scientific writer specialising in bioinformatics Methods sections.",
-          "Write in past tense, third person, concise academic prose.",
-          "Be accurate: only describe what is present in the provided scripts and logs.",
-          "Do not invent steps or parameters. If a value is not in the script, omit it rather than guess.",
-          "You may include additional context directly supported by the script or log content.",
-          "Do not include citations.",
-          "Tool use rules:",
-          "- Use read_file to read input scripts and logs.",
-          "- Use append_file to add the Methods text to the output file (never overwrite it).",
+          "You are a scientific writer producing the Materials and Methods section of a",
+          "peer-reviewed manuscript, describing a bioinformatics analysis that has already run.",
+          "",
+          "Your evidence is the job scripts that were executed and the stdout/stderr logs they",
+          "produced. They are the complete and authoritative record of this analysis. Read them",
+          "before you write: every tool, version, parameter and reference you name must be",
+          "traceable to a line in them.",
+          "",
+          "Grounding, in order of importance:",
+          "- Never state a value you have not read in the provided files. This covers tool",
+          "  versions, reference builds, parameters and the organism. A wrong version or a wrong",
+          "  organism is far worse than an absent one.",
+          "- What you know about a tool is not evidence about this run. If the files do not",
+          "  name the clustering algorithm, the multiple-testing correction, the normalisation",
+          "  method or a version, then it is not recorded, however certain you are of what that",
+          "  tool does by default. Stating a documented default as if it were observed is the",
+          "  single most common way this task goes wrong: it reads as fully grounded and is",
+          "  unfalsifiable without the run record. Do not do it.",
+          "- Do not complete a partial identifier. If the record says NovaSeq, write NovaSeq and",
+          "  not NovaSeq 6000; if it names a tool with no version, name it with no version. The",
+          "  missing half is not yours to supply, and the added precision is what makes such a",
+          "  sentence hard to challenge.",
+          "- Where something a Methods section would normally report is not determinable from",
+          "  the files, write [not recorded] in its place. Do not guess it, and do not drop it",
+          "  silently: a visible gap is what lets the analyst fill it in before submission.",
+          "  A section carrying a few [not recorded] markers is a success, not a failure.",
+          "- Tie every version to the tool it belongs to. Session listings and dependency dumps",
+          "  contain many versions; if you cannot tell which tool a version describes, leave it out.",
+          "- A module that was loaded but never invoked is not part of the analysis.",
+          "- A parameter in a job script was requested, not necessarily applied. Where a",
+          "  configuration file records what the tool actually received, that file decides:",
+          "  do not report a requested parameter that the applied configuration omits. A",
+          "  wrapper may drop a setting that does not apply to the chosen assay.",
+          "- Report the numbers that configured the analysis (thresholds, dimensions, seeds),",
+          "  not the numbers it produced (cell counts, contamination estimates, convergence",
+          "  values). Those are Results, not Methods.",
+          "",
+          "Style:",
+          "- Past tense, third person, continuous academic prose. No bullet lists, no bold tool",
+          "  headings, no per-tool catalogue.",
+          "- Give each tool its version at first mention, then use the bare name.",
+          "- No citations, DOIs or URLs.",
+          "- No filesystem paths, server names, usernames or project identifiers. Name the",
+          "  reference genome and annotation build, never the path they were read from.",
+          "- Leave out operational detail that does not affect the result: scheduler directives,",
+          "  module load lines, interpreter flags, thread and memory settings.",
+          "",
+          "Output the Methods text and nothing else. No preamble, no note on what you did, no",
+          "corrected or alternative version. What you write is delivered to the customer as-is.",
           sep = "\n"
         )
       },
       methods_task = function() {
         paste(
-          "Write one paragraph per tool found across all scripts.",
-          "Each paragraph must cover at minimum: tool name, version (from module load lines or log output),",
-          "key parameters actually set in the script, reference genome or annotation if present,",
-          "and input type (paired/single-end, FASTQ/BAM) if determinable.",
+          "Write the Methods section for this analysis as continuous prose.",
+          "",
+          "Order it by the flow of the data, not by the order the tools appear in the scripts.",
+          "Use only the stages that actually occurred, and merge them into a single paragraph",
+          "where the analysis was short:",
+          "",
+          "1. Data handling and quality control: input data type (FASTQ, BAM, count matrix),",
+          "   paired- or single-end, quality assessment, adapter or barcode handling, and every",
+          "   filtering or exclusion threshold applied to reads, cells or samples.",
+          "2. Alignment, quantification and feature extraction: the alignment, pseudo-alignment",
+          "   or counting tool, and the reference genome and annotation with their explicit build",
+          "   and release (for example GRCh38.p14, GENCODE release 48).",
+          "3. Normalisation, transformation and statistical inference: the normalisation or",
+          "   transformation applied, dimensionality reduction and clustering with their",
+          "   parameters, the test used for differential analysis, the model or contrast tested,",
+          "   and the multiple-testing correction with its threshold.",
+          "4. Interpretation: cell-type annotation, reference mapping, gene-set scoring and",
+          "   enrichment testing, naming the reference or marker set and the databases queried.",
+          "",
+          "The stages are an ordering aid, not a checklist to satisfy. Report an item only where",
+          "the run record states it; where it does not, write [not recorded] and move on. Never",
+          "close a gap with a tool's documented default.",
+          "",
+          "Completeness matters as much as accuracy: every tool that was actually invoked must",
+          "appear somewhere in the text, including ones that fit none of the stages cleanly.",
+          "Before finishing, check your draft against the tools named in the scripts and logs.",
+          "",
+          "For every tool, give the version and the parameters that were explicitly set. Where a",
+          "tool ran at its defaults, say so alongside its version rather than writing 'default",
+          "parameters were used' on its own, so the settings stay recoverable. Report the random",
+          "seed for any stochastic step (clustering, UMAP, t-SNE, imputation, subsampling).",
+          "Where several samples were processed identically, describe the procedure once.",
           sep = "\n"
         )
       },
-      generate_methods = function(gstore_script_dir = NULL, output_dir = ".", ...) {
+      ## Deprecated alias for write_methods(). ezRun and SUSHI are installed
+      ## separately, so a MethodsApp.rb still calling generate_methods() would break
+      ## the moment ezRun is upgraded first. Forwarding keeps that window safe, and
+      ## subclass overrides of write_methods() still win because this only forwards.
+      ## Remove once every deployed SUSHI instance calls write_methods().
+      generate_methods = function(...) {
+        write_methods(...)
+      },
+      write_methods = function(gstore_script_dir = NULL, output_dir = ".", ...) {
         script_paths <- c()
         log_paths    <- c()
         if (!is.null(gstore_script_dir)) {
@@ -553,8 +631,18 @@ EzApp <-
           all_logs     <- c(Sys.glob(file.path(gstore_script_dir, "*_o.log")),
                             Sys.glob(file.path(gstore_script_dir, "*_e.log")))
           log_paths    <- all_logs[!isOwnJob(all_logs)]
+          ## The job script records what was REQUESTED; the config the tool actually
+          ## received is written next to the results. CellRanger multi puts it at
+          ## <result_dir>/<sample>/config.csv, and only that file shows the real
+          ## chemistry, probe set and reference. A Flex run carried
+          ## includeIntrons=true in its script, but ezRun never passes that for
+          ## fixedRNA, and the generated Methods claimed intronic counting anyway.
+          ## Absent for every other app, in which case this glob returns nothing.
+          script_paths <- c(script_paths,
+                            Sys.glob(file.path(dirname(gstore_script_dir),
+                                               "*", "config.csv")))
         }
-        output_file     <- file.path(output_dir, "methods.txt")
+        output_file     <- file.path(output_dir, "methods.md")
         identity_file   <- file.path(output_dir, "methods_identity.txt")
         task_file       <- file.path(output_dir, "methods_task.txt")
         writeLines(methods_identity(), identity_file)
