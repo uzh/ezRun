@@ -7,6 +7,11 @@
 
 ezMethodKallisto = function(input = NA, output = NA, param = NA) {
   sampleName = input$getNames()
+  ## gpukallisto's GPU quant path never writes bootstraps (abundance.h5), so
+  ## force bootstrap-samples to 0 in GPU mode; the flag is then dropped below.
+  if (!is.null(param$gpu) && param$gpu > 0) {
+    param$"bootstrap-samples" = 0
+  }
   ref = getKallistoReference(param)
   refIdx = paste0(ref, ".idx")
   if (!param$paired) {
@@ -48,7 +53,7 @@ ezMethodKallisto = function(input = NA, output = NA, param = NA) {
     param$outputDir,
     "-t",
     ezThreads(),
-    condCharAdd("--bootstrap-samples", param$"bootstrap-samples"),
+    condNumAdd("--bootstrap-samples", param$"bootstrap-samples"),
     condCharAdd("--seed", param$seed),
     iftrue(param$paired, "", "--single"),
     strandOpt = switch(
@@ -84,7 +89,13 @@ ezMethodKallisto = function(input = NA, output = NA, param = NA) {
   ezSystem(cmd)
 
   ezSystem(paste("mv", pathAbundance.tsv, basename(output$getColumn("Count"))))
-  if (!is.null(param$"bootstrap-samples") && param$"bootstrap-samples" > 0) {
+  ## In GPU mode kallisto does not produce bootstraps, so the output dataset
+  ## has no bootstrappedCount column; only move the h5 when it is expected.
+  if (
+    !is.null(param$"bootstrap-samples") &&
+      param$"bootstrap-samples" > 0 &&
+      output$hasColumn("bootstrappedCount")
+  ) {
     ezSystem(paste(
       "mv",
       pathAbundance.h5,
@@ -113,6 +124,11 @@ EzAppKallisto <-
         runMethod <<- ezMethodKallisto
         name <<- "EzAppKallisto"
         appDefaults <<- rbind(
+          gpu = ezFrame(
+            Type = "integer",
+            DefaultValue = 0,
+            Description = "Set to 1 to run gpukallisto (CUDA); no bootstrap output (abundance.h5) is produced and bootstrap-samples is forced to 0"
+          ),
           "bootstrap-samples" = ezFrame(
             Type = "integer",
             DefaultValue = 10,
