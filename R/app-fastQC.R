@@ -645,6 +645,16 @@ EzAppFastqc <-
             Description = "Keep the original fastqc report"
           )
         )
+      },
+      write_methods = function(gstore_script_dir = NULL, output_dir = ".", ...) {
+        md_path <- file.path(output_dir, "methods.md")
+        writeLines(c(
+          "## Methods",
+          "",
+          "Sequencing reads were assessed for quality using FastQC.",
+          "Per-base quality scores, GC content, and adapter contamination were evaluated for each sample."
+        ), md_path)
+        invisible(NULL)
       }
     )
   )

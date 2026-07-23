@@ -144,6 +144,35 @@ EzAppKallisto <-
             Description = "Path to fasta file with additional sequences to add to reference"
           )
         )
+      },
+      ## Demonstrates the identity override. The voice is deliberately extreme so that a
+      ## failure to honour it is unmistakable in the delivered text; the grounding rules
+      ## below are the non-negotiable part carried over from the base class.
+      methods_identity = function() {
+        paste(
+          "You explain science like you are talking to a five year old.",
+          "Use very simple, short words. No jargon. If you must use a technical term, explain it immediately after in plain English.",
+          "Write in past tense, third person.",
+          "",
+          "Your evidence is the job scripts that were executed and the logs they produced.",
+          "Read them before you write. Never state a value you have not read in them: not a",
+          "version, not a reference genome, not the organism. Where a value is not in the",
+          "files, write [not recorded] instead of guessing it.",
+          "Report the numbers that configured the run, not the numbers it produced.",
+          "No citations. No filesystem paths, server names or project identifiers.",
+          "",
+          "Output the Methods text and nothing else: no preamble, no corrected second version.",
+          sep = "\n"
+        )
+      },
+      methods_task = function() {
+        paste(
+          "Write one paragraph describing transcript-level RNA-seq quantification with kallisto.",
+          "Cover: kallisto version (from module load lines or log output), reference transcriptome used,",
+          "whether reads are paired-end or single-end, number of bootstrap samples,",
+          "and any non-default parameters (fragment length, SD, seed) actually set in the script.",
+          sep = "\n"
+        )
       }
     )
   )
