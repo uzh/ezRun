@@ -112,7 +112,7 @@ if (!file.exists(method_child))
        "Check that ezMethodDiffShot staged it before knitting.")
 ```
 
-# Overview {#overview}
+# Overview & Consideration {#overview}
 
 ```{r source_type_setup, include=FALSE}
 source_type <- tolower(as.character(param$sourceType %||% "bracken"))
@@ -152,6 +152,23 @@ caveat_origin <- if (source_type == "bracken") {
 } else {
   "MetaPhlAn counts are *estimated* from marker-gene coverage"
 }
+
+## MaAsLin3-only note on which q-value to interpret. Built here (not inline)
+## so the backtick-quoted column names do not collide with `r ... ` syntax.
+maaslin_qval_note <- if (da_method == "MAASLIN3") {
+  paste0(
+    "> **Choosing a significance value — `qval_individual` vs `qval_joint`.** ",
+    "MaAsLin3 reports two q-values and which one to use depends on the question ",
+    "you care about. `qval_individual` is attached to a *specific* association ",
+    "(the abundance association or the prevalence association on its own): it ",
+    "answers \"is there a significant abundance association?\" or \"is there a ",
+    "significant prevalence association?\". `qval_joint` is attached to the ",
+    "*combined* abundance-and-prevalence association: it answers \"is there ",
+    "*either* a significant abundance or prevalence association?\". If you have ",
+    "no preference, use `qval_individual` — it lets you say whether the ",
+    "association was with abundance or with prevalence."
+  )
+} else ""
 ```
 
 This report runs **`r da_method_label`** differential abundance (DA) analysis on
@@ -167,6 +184,8 @@ The single test applied here is:
 > species tables are sparse; a prevalence / abundance filter is applied before
 > testing. (3) MaAsLin3 docs strongly recommend including read depth as a
 > covariate for prevalence models — it is added automatically.
+
+`r maaslin_qval_note`
 
 ---
 
@@ -382,9 +401,15 @@ dt(filt_summary, "Filtering summary", length_menu = FALSE)
 ## F/M etc. counts in a single sortable view.
 .show_cols <- c(da_group, intersect(da_covariates, colnames(metadata)))
 grp_tab <- do.call(rbind, lapply(.show_cols, function(cn) {
-  t <- as.data.frame(table(metadata[[cn]]), stringsAsFactors = FALSE)
-  data.frame(Column = cn, Level = as.character(t$Var1),
-             n_samples = as.integer(t$Freq), stringsAsFactors = FALSE)
+  t    <- as.data.frame(table(metadata[[cn]]), stringsAsFactors = FALSE)
+  lv   <- as.character(t$Var1)
+  vals <- as.character(metadata[[cn]])
+  ids  <- metadata$SampleID
+  samples <- vapply(lv, function(l)
+    paste(ids[!is.na(vals) & vals == l], collapse = " /// "), character(1))
+  data.frame(Column = cn, Level = lv,
+             n_samples = as.integer(t$Freq),
+             Samples = samples, stringsAsFactors = FALSE)
 }))
 save_csv(grp_tab, "group_sizes.csv")
 dt(grp_tab,
