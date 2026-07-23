@@ -514,7 +514,8 @@ EzApp <-
       #
       # The LLM call lives in the AI/llm_methods_caller module, which provides
       #   llm_write_methods on PATH. Add "AI/llm_methods_caller" to the app's
-      #   module list. AI/llm_caller is the broader-scoped sibling.
+      #   module list. (AI/llm_caller was retired 2026-07-23: it was a duplicate of
+      #   this module under the same command name.)
       # If you override methods_identity(), keep the grounding block. It is the only
       # thing standing between a customer manuscript and a confidently wrong organism.
       methods_identity = function() {
@@ -653,7 +654,7 @@ EzApp <-
                             Sys.glob(file.path(dirname(gstore_script_dir),
                                                "*", "config.csv")))
         }
-        output_file     <- file.path(output_dir, "methods.txt")
+        output_file     <- file.path(output_dir, "methods.md")
         identity_file   <- file.path(output_dir, "methods_identity.txt")
         task_file       <- file.path(output_dir, "methods_task.txt")
         writeLines(methods_identity(), identity_file)
