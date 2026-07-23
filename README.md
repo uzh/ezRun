@@ -46,7 +46,7 @@ remotes::install_github("uzh/ezRun")
 ```
 
 ## Development of `ezRun` package at FGCZ environment
-Always at the conda environment `ezRun` during the development. The conda environment contains the necessary external tools/software.
+During development at FGCZ, load the external tools from the module system (`module avail` / `module load Aligner/... Tools/...`) before starting R. There is no `ezRun` conda environment.
 
 
 ## Coding style

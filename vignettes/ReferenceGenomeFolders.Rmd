@@ -25,13 +25,12 @@ With the file-based representation the reference genomes are available to extern
 
 This pipeline has been tested for Ensembl and GENCODE annotation.
 
-To have necessary external tools available to R, activate the conda environment "ezRun"
-```{r conda env, eval=FALSE}
-library(ezRun)
-library(reticulate)
-use_condaenv("ezRun", conda = "/usr/local/ngseq/miniconda3/bin/conda",
-             required = TRUE)
-py_discover_config()
+To have the necessary external tools (STAR, samtools, picard, ...) available to R,
+load them from the module system before starting R:
+
+```bash
+module load Aligner/STAR/2.7.11b Tools/samtools/1.20   # plus whatever the build needs
+module load Dev/R/4.5.0
 ```
 
 ## GENCODE
