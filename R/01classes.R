@@ -501,15 +501,60 @@ EzApp <-
         }
         return()
       },
-      # ... absorbs extra named args (e.g. dataset_id) passed by callers so that
-      # subclass overrides with richer signatures don't break the base-class call.
-      # ⚠ DEV: python binary and llm_script_writer.py path are hardcoded below.
-      #   python must point to the conda env that has openai + agents installed.
-      #   llm_script_writer.py must move to inst/python/ before production.
-      generate_mm = function(script_paths = c(), log_paths = c(), output_dir = ".", dataset_id = NULL, ...) {
-        python     <- "/home/rdomi/.conda/envs/gi_sushi_jobmanager_2024/bin/python"
-        llm_script <- system.file("python/llm_script_writer.py", package = "ezRun")
-        ret <- system2(python, args = c(llm_script, as.integer(dataset_id), output_dir))
+      # Methods section generation -- two override paths for subclasses:
+      #
+      # Path 1 -- LLM-guided (default): inherit generate_methods() and override
+      #   methods_identity() to change who the LLM is, and/or
+      #   methods_task()     to change what it is asked to write.
+      #   Both, either, or neither can be overridden independently.
+      #
+      # Path 2 -- static write: override generate_methods() entirely.
+      #   The LLM is not called. methods_identity() and methods_task() are ignored.
+      #   Use this when the methods text is fixed and known (e.g. EzAppFastqc).
+      #
+      # DEV: python binary and llm_script_writer.py path are hardcoded below.
+      #   llm_script_writer.py must move to a standalone module before production.
+      methods_identity = function() {
+        paste(
+          "You are a scientific writer specialising in bioinformatics Methods sections.",
+          "Write in past tense, third person, concise academic prose.",
+          "Be accurate: only describe what is present in the provided scripts and logs.",
+          "Do not invent steps or parameters. If a value is not in the script, omit it rather than guess.",
+          "You may include additional context directly supported by the script or log content.",
+          "Do not include citations.",
+          "Tool use rules:",
+          "- Use read_file to read input scripts and logs.",
+          "- Use append_file to add the Methods text to the output file (never overwrite it).",
+          sep = "\n"
+        )
+      },
+      methods_task = function() {
+        paste(
+          "Write one paragraph per tool found across all scripts.",
+          "Each paragraph must cover at minimum: tool name, version (from module load lines or log output),",
+          "key parameters actually set in the script, reference genome or annotation if present,",
+          "and input type (paired/single-end, FASTQ/BAM) if determinable.",
+          sep = "\n"
+        )
+      },
+      generate_methods = function(gstore_script_dir = NULL, output_dir = ".", ...) {
+        script_paths <- c()
+        log_paths    <- c()
+        if (!is.null(gstore_script_dir)) {
+          all_sh   <- Sys.glob(file.path(gstore_script_dir, "*.sh"))
+          script_paths <- all_sh[!grepl("^methods_dataset_\\d+\\.sh$", basename(all_sh))]
+          log_paths    <- c(Sys.glob(file.path(gstore_script_dir, "*_o.log")),
+                            Sys.glob(file.path(gstore_script_dir, "*_e.log")))
+        }
+        python      <- "/home/rdomi/.conda/envs/gi_sushi_jobmanager_2024/bin/python"
+        llm_script  <- system.file("python/llm_script_writer.py", package = "ezRun")
+        output_file <- file.path(output_dir, "methods.txt")
+        args <- c(llm_script, "--output", output_file,
+                  "--identity", methods_identity(),
+                  "--task",     methods_task())
+        if (length(script_paths) > 0) args <- c(args, "--scripts", script_paths)
+        if (length(log_paths)    > 0) args <- c(args, "--logs",    log_paths)
+        ret <- system2(python, args = args)
         if (ret != 0) stop("llm_script_writer.py failed with exit code ", ret)
         invisible(NULL)
       }

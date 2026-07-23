@@ -1,42 +1,41 @@
 #!/usr/bin/env python3
 """
-Given a dataset_id and output_dir, an LLM agent generates a bash script that appends
-a markdown section to mm_dataset_<id>.md, self-corrects until it runs
-cleanly, then prints the .md path.
+LLM agent for Methods section generation.
+
+Reads analysis scripts and logs, then appends a Methods paragraph per tool
+directly to methods.txt.
 
 Usage:
-    python llm_script_writer.py <dataset_id> <output_dir>
+    python llm_script_writer.py --output <path/to/methods.txt> --identity "..." --task "..."
+                                 [--scripts path ...] [--logs path ...]
 """
+import argparse
 import asyncio
 import os
-import subprocess
-import sys
 from datetime import datetime
 
 from agents import Agent, Runner, function_tool, set_default_openai_client, set_tracing_disabled
 from openai import AsyncOpenAI
 
-BASE_URL     = "http://fgcz-c-056:8081/v1"
-MODEL        = "Qwen3.6-27B-FP8"
-WORK_DIR     = "."  # overridden in __main__ to output_dir passed by caller
-MAX_TURNS    = 15
-EXEC_TIMEOUT = 30
+BASE_URL  = "http://fgcz-c-056:8000"
+MODEL     = "DeepSeek-V4-Flash-DSpark"
+OUTPUT_FILE = "methods.txt"  # overridden in __main__
+WORK_DIR    = "."            # overridden in __main__ to dirname(OUTPUT_FILE)
+MAX_TURNS = 25
 
 set_tracing_disabled(True)
 set_default_openai_client(AsyncOpenAI(base_url=BASE_URL, api_key="dummy", timeout=60.0, max_retries=1))
 
-_succeeded: set[str] = set()
-
 
 @function_tool
-def write_file(path: str, content: str) -> str:
-    """Write content to a file. Path must be under WORK_DIR."""
+def append_file(path: str, content: str) -> str:
+    """Append content to a file. Path must be under WORK_DIR."""
     if not os.path.abspath(path).startswith(WORK_DIR):
         raise ValueError(f"Path outside allowed directory: {path}")
-    with open(path, "w") as f:
+    with open(path, "a") as f:
         f.write(content)
-    print(f"  write_file: {path}")
-    return f"Written: {path}"
+    print(f"  append_file: {path}")
+    return f"Appended: {path}"
 
 
 @function_tool
@@ -50,81 +49,76 @@ def read_file(path: str) -> str:
     return content
 
 
-@function_tool
-def run_script(path: str) -> dict:
-    """Execute a bash script. Returns exit_code, stdout, stderr."""
-    if not os.path.abspath(path).startswith(WORK_DIR):
-        raise ValueError(f"Path outside allowed directory: {path}")
-    if path in _succeeded:
-        return {"exit_code": 0, "stdout": "Already succeeded.", "stderr": ""}
-    try:
-        r = subprocess.run(
-            ["bash", path],
-            capture_output=True,
-            text=True,
-            timeout=EXEC_TIMEOUT,
-            cwd=WORK_DIR,
-        )
-        if r.returncode == 0 and not r.stderr.strip():
-            _succeeded.add(path)
-        print(f"  run_script: {path} -> exit_code={r.returncode}")
-        return {"exit_code": r.returncode, "stdout": r.stdout, "stderr": r.stderr}
-    except subprocess.TimeoutExpired:
-        print(f"  run_script: {path} -> timeout")
-        return {"exit_code": -1, "stdout": "", "stderr": f"Killed: script exceeded {EXEC_TIMEOUT}s"}
-
-
-INSTRUCTIONS = """\
-You write bash scripts and run them to produce output.
-A script succeeds when exit_code is 0 AND stderr is empty.
-If it fails, fix the script and retry. Once it succeeds, verify the output with read_file.
-"""
-
-agent = Agent(
-    name="script_writer",
-    model=MODEL,
-    tools=[write_file, run_script, read_file],
-    instructions=INSTRUCTIONS,
-)
-
-
-def _append_separator(dataset_id: int) -> str:
-    """Append a run separator to the .md and return its path."""
-    path = os.path.join(WORK_DIR, f"mm_dataset_{dataset_id}.md")
+def _output_path() -> str:
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open(path, "a") as f:
-        f.write(f"\n===== dataset_{dataset_id} | {timestamp} =====\n\n")
-    return path
+    with open(OUTPUT_FILE, "a") as f:
+        f.write(f"\n===== {timestamp} =====\n\n")
+    return OUTPUT_FILE
 
 
-async def run(dataset_id: int) -> str:
-    output_path = _append_separator(dataset_id)
-    script_path = os.path.join(WORK_DIR, f"mm_dataset_{dataset_id}.sh")
+async def run(script_paths: list[str], log_paths: list[str],
+              identity: str, task_override: str) -> str:
+    output_path = _output_path()
 
-    task = (
-        f"Write a bash script to {script_path} that appends a Hello World markdown section "
-        f"to {output_path} using >>. The script must exit 0 with empty stderr."
+    effective_agent = Agent(
+        name="methods_agent",
+        model=MODEL,
+        tools=[read_file, append_file],
+        instructions=identity,
     )
 
+    scripts_block = "\n".join(script_paths) if script_paths else "(none provided)"
+    logs_block    = "\n".join(log_paths)    if log_paths    else "(none provided)"
+    task_intro    = task_override
+
+    task = f"""\
+Read each of the following analysis scripts and log files using read_file.
+Then append a Methods section to: {output_path}
+
+{task_intro}
+
+Use append_file to write the Methods text to {output_path}. Do not overwrite the file.
+
+Analysis scripts:
+{scripts_block}
+
+Log files:
+{logs_block}
+"""
+
+    size_before = os.path.getsize(output_path)
+
     result = await Runner.run(
-        starting_agent=agent,
+        starting_agent=effective_agent,
         input=task,
         max_turns=MAX_TURNS,
     )
 
-    if not os.path.exists(output_path):
-        raise RuntimeError(f"Agent finished but output .md not found: {output_path}")
+    if os.path.getsize(output_path) <= size_before:
+        # LLM returned text without calling append_file — write final_output directly
+        fallback = (result.final_output or "").strip()
+        if fallback:
+            with open(output_path, "a") as f:
+                f.write(fallback + "\n")
+            print(f"  fallback write: agent output captured from final_output")
+        else:
+            raise RuntimeError(f"Agent produced no output: {output_path} was not appended to")
 
     return output_path
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python llm_script_writer.py <dataset_id> <output_dir>", file=sys.stderr)
-        sys.exit(1)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output",   required=True)
+    parser.add_argument("--scripts",  nargs="*", default=[])
+    parser.add_argument("--logs",     nargs="*", default=[])
+    parser.add_argument("--identity", required=True)
+    parser.add_argument("--task",     required=True)
+    args = parser.parse_args()
 
-    dataset_id = int(sys.argv[1])
-    WORK_DIR = os.path.abspath(sys.argv[2])
+    global OUTPUT_FILE, WORK_DIR
+    OUTPUT_FILE = os.path.abspath(args.output)
+    WORK_DIR    = os.path.dirname(OUTPUT_FILE)
     os.makedirs(WORK_DIR, exist_ok=True)
-    path = asyncio.run(run(dataset_id))
+    path = asyncio.run(run(args.scripts, args.logs, args.identity, args.task))
     print(path)
