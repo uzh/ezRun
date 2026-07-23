@@ -512,8 +512,9 @@ EzApp <-
       #   The LLM is not called. methods_identity() and methods_task() are ignored.
       #   Use this when the methods text is fixed and known (e.g. EzAppFastqc).
       #
-      # DEV: python binary and llm_script_writer.py path are hardcoded below.
-      #   llm_script_writer.py must move to a standalone module before production.
+      # The LLM call lives in the AI/llm_methods_caller module, which provides
+      #   llm_write_methods on PATH. Add "AI/llm_methods_caller" to the app's
+      #   module list. AI/llm_caller is the broader-scoped sibling.
       methods_identity = function() {
         paste(
           "You are a scientific writer specialising in bioinformatics Methods sections.",
@@ -546,20 +547,20 @@ EzApp <-
           log_paths    <- c(Sys.glob(file.path(gstore_script_dir, "*_o.log")),
                             Sys.glob(file.path(gstore_script_dir, "*_e.log")))
         }
-        python          <- "/home/rdomi/.conda/envs/gi_sushi_jobmanager_2024/bin/python"
-        llm_script      <- system.file("python/llm_script_writer.py", package = "ezRun")
         output_file     <- file.path(output_dir, "methods.txt")
         identity_file   <- file.path(output_dir, "methods_identity.txt")
         task_file       <- file.path(output_dir, "methods_task.txt")
         writeLines(methods_identity(), identity_file)
         writeLines(methods_task(),     task_file)
-        args <- c(llm_script, "--output", output_file,
+        args <- c("--output", output_file,
                   "--identity-file", identity_file,
                   "--task-file",     task_file)
         if (length(script_paths) > 0) args <- c(args, "--scripts", script_paths)
         if (length(log_paths)    > 0) args <- c(args, "--logs",    log_paths)
-        ret <- system2(python, args = args)
-        if (ret != 0) stop("llm_script_writer.py failed with exit code ", ret)
+        ## llm_write_methods is provided by the AI/llm_methods_caller module,
+        ## which must be in the app's module list so it is on PATH.
+        ret <- system2("llm_write_methods", args = args)
+        if (ret != 0) stop("llm_write_methods failed with exit code ", ret)
         invisible(NULL)
       }
     )
