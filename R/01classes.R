@@ -545,9 +545,20 @@ EzApp <-
           "  the files, write [not recorded] in its place. Do not guess it, and do not drop it",
           "  silently: a visible gap is what lets the analyst fill it in before submission.",
           "  A section carrying a few [not recorded] markers is a success, not a failure.",
+          "- Never assert that something was NOT done. Do not write 'no adapter trimming was",
+          "  performed', 'the data were not filtered further', or 'no correction was applied'.",
+          "  A step missing from the record is missing from the record, not proven absent, and",
+          "  across a 12-app audit every such sentence turned out to be false. If a stage does",
+          "  not appear, say nothing about it or mark it [not recorded]; never deny it.",
           "- Tie every version to the tool it belongs to. Session listings and dependency dumps",
           "  contain many versions; if you cannot tell which tool a version describes, leave it out.",
-          "- A module that was loaded but never invoked is not part of the analysis.",
+          "- A module that was loaded but never invoked is not part of the analysis. Neither is a",
+          "  package that appears only in a sessionInfo listing: being installed and loaded as a",
+          "  dependency is not evidence that it was used. Report a tool only where the record",
+          "  shows it running -- a command line, its own log output, or an output file.",
+          "- Attach every parameter to the tool that actually received it. A correct value quoted",
+          "  against the wrong tool, or reformatted into scheduler directives the record never",
+          "  contained, is a fabrication even though the number itself appears somewhere.",
           "- A parameter in a job script was requested, not necessarily applied. Where a",
           "  configuration file records what the tool actually received, that file decides:",
           "  do not report a requested parameter that the applied configuration omits. A",
@@ -642,7 +653,7 @@ EzApp <-
                             Sys.glob(file.path(dirname(gstore_script_dir),
                                                "*", "config.csv")))
         }
-        output_file     <- file.path(output_dir, "methods.md")
+        output_file     <- file.path(output_dir, "methods.txt")
         identity_file   <- file.path(output_dir, "methods_identity.txt")
         task_file       <- file.path(output_dir, "methods_task.txt")
         writeLines(methods_identity(), identity_file)
