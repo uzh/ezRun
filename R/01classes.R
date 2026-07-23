@@ -542,10 +542,17 @@ EzApp <-
         script_paths <- c()
         log_paths    <- c()
         if (!is.null(gstore_script_dir)) {
-          all_sh   <- Sys.glob(file.path(gstore_script_dir, "*.sh"))
-          script_paths <- all_sh[!grepl("^methods_dataset_\\d+\\.sh$", basename(all_sh))]
-          log_paths    <- c(Sys.glob(file.path(gstore_script_dir, "*_o.log")),
+          ## Exclude the methods job's own script AND its logs. Matching without a
+          ## trailing anchor also catches "<script>.sh_sushiID<n>_<stamp>_[oe].log".
+          ## Both namings are covered: methods_<id>.sh and methods_dataset_<id>.sh.
+          isOwnJob <- function(paths) {
+            grepl("^methods_(dataset_)?\\d+\\.sh", basename(paths))
+          }
+          all_sh       <- Sys.glob(file.path(gstore_script_dir, "*.sh"))
+          script_paths <- all_sh[!isOwnJob(all_sh)]
+          all_logs     <- c(Sys.glob(file.path(gstore_script_dir, "*_o.log")),
                             Sys.glob(file.path(gstore_script_dir, "*_e.log")))
+          log_paths    <- all_logs[!isOwnJob(all_logs)]
         }
         output_file     <- file.path(output_dir, "methods.txt")
         identity_file   <- file.path(output_dir, "methods_identity.txt")
