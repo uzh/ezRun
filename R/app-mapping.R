@@ -1490,6 +1490,11 @@ EzAppBismark <-
             Type = "logical",
             DefaultValue = "FALSE",
             Description = "should a bigwig coverage file be generated"
+          ),
+          nReads = ezFrame(
+              Type = "numeric",
+              DefaultValue = 0,
+              Description = "subsampling before mapping"
           )
         )
       }

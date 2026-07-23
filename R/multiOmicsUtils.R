@@ -573,45 +573,65 @@ attachUpstreamAnnotations <- function(obj, scReportDir) {
 ##' @return Character column name or NULL.
 ##' @export
 pickCellTypeColumn <- function(obj) {
-  # Priority requested by FGCZ:
-  # CyteType > cellxgene > AzimuthPanHuman > Azimuth > scType.
-  # Other manual / experimental annotations come last so an upstream
-  # CyteType column always wins when present.
   # Priority order matches FGCZ convention:
   # CyteTypeR > cellxgene > AzimuthPanHuman > Azimuth (tissue ref) > scType >
-  # SingleR > generic fallbacks. The leading hits in each block are the
-  # actual column names ezRun ScSeuratApp writes today (see
-  # ~/git/ezRun/R/app-ScSeurat.R + ~/git/ezRun/R/seuratUtils.R for sources);
-  # the trailing hits are legacy / generic spellings that other apps use.
+  # SingleR > manual labelling. intersect() below preserves the order of its
+  # FIRST argument, so this vector's order IS the priority.
+  #
+  # Every name here must be one some code path actually writes -- a plausible
+  # spelling that nothing emits is dead weight that silently demotes the schemes
+  # below it. Cite the write site when adding one, and see
+  # tests/testthat/test_pickCellTypeColumn.R for the regression guards.
   candidates <- c(
     # CyteTypeR (Nygen Analytics, AI-powered) — three columns from
-    # app-ScSeurat.R lines 834/842/850. Annotation is the high-level label,
+    # app-ScSeurat.R lines 891/899/907. Annotation is the high-level label,
     # granular adds finer subsets, ontology gives the CL: term.
     "CyteTypeR_annotation", "CyteTypeR_granular", "CyteTypeR_ontology",
-    "CyteTypeR.annotation", "CyteType_annotation", "cytetype", "CyteType",
-    # cellxgene label-transfer from a cellxgene reference dataset.
-    # ezRun's cellxgene_annotation() writes a column named after
-    # param$cellxgeneLabel (typically "cell_type"); here we list the
-    # common spellings.
-    "cellxgene.labels", "cellxgene_labels", "cellxgene_celltype", "cellxgene",
-    # Azimuth Pan-Human (CloudAzimuth) — writes predicted.celltype.l1/l2/l3
-    # directly onto scData. Same column names as Azimuth tissue refs, hence
-    # this block also catches both.
-    "predicted.celltype.l2", "predicted.celltype.l1", "predicted.celltype.l3",
-    "azimuth_pan_human", "AzimuthPanHuman.labels", "panhuman.predicted.celltype",
-    "PanHuman.celltype",
-    # Azimuth tissue references — when re-attached from sibling
-    # aziResults.qs2 by attachSeuratAnnotations(); see seuratUtils.R lines
-    # 827-849 for the canonical column names.
+    # cellxgene label-transfer. cellxgene_annotation() HARDCODES its output
+    # column name (cellxgene_annotation.R:338); param$cellxgeneLabel names the
+    # label column in the *reference* object (:279), not the output.
+    # attachUpstreamAnnotations() merges it verbatim, or prefixed with
+    # "cellxgene_" when the name already exists on the object (:518-533).
+    "predicted.id.cellxgene.authorlabel",
+    "cellxgene_predicted.id.cellxgene.authorlabel",
+    # Azimuth Pan-Human (AzimuthAPI::CloudAzimuth, app-ScSeurat.R:674).
+    # CloudAzimuth copies the server's meta.data onto scData verbatim (minus
+    # nCount_RNA/nFeature_RNA) and renames nothing, so these are panhumanpy's
+    # own column names. Same set in AzimuthAPI 0.1.0 and 1.0.0. ScSeurat.Rmd:109
+    # gates its Pan-Human section on final_level_labels.
+    #
+    # Ordering here is by legend readability, not by depth:
+    #   azimuth_label  AzimuthAPI's own Idents() default; PrepLabel collapses
+    #                  sub-cutoff groups into "Other", so level count is bounded.
+    #   azimuth_medium mid granularity, the usual sweet spot for a DimPlot.
+    #   azimuth_broad  coarsest refined level (== level_zero_labels, which
+    #                  panhumanpy drops when azimuth_broad exists).
+    #   azimuth_fine / final_level_labels can run to hundreds of levels, so
+    #                  they are a last resort.
+    # DELIBERATELY EXCLUDED: final_level_confidence (numeric),
+    # full_consistent_hierarchy (logical) and full_hierarchical_labels (a
+    # pipe-delimited "A|B|C" path with near-per-cell cardinality). CloudAzimuth
+    # writes all three, but none is usable as a group.by.
+    "azimuth_label", "azimuth_medium", "azimuth_broad", "level_zero_labels",
+    "azimuth_fine", "final_level_labels",
+    # Azimuth tissue references. ezRun runs Azimuth::RunAzimuth on a throwaway
+    # object and renames the levels into Azimuth.celltype.l1..l4 in a sibling
+    # data.frame (seuratUtils.R:830-853), re-attached by
+    # attachUpstreamAnnotations(). The predicted.celltype.* spellings are
+    # Azimuth's own raw output: ezRun never persists them, but README.md:130-137
+    # documents running Azimuth::RunAzimuth(obj, reference = "pbmcref") manually
+    # upstream of ScMultiOmics, so keep them as a fallback for such objects.
     "Azimuth.celltype.l2", "Azimuth.celltype.l1", "Azimuth.celltype.l3",
-    "Azimuth.celltype.l4", "Azimuth.labels", "azimuth.labels",
+    "Azimuth.celltype.l4",
+    "predicted.celltype.l2", "predicted.celltype.l1", "predicted.celltype.l3",
     # scType (ezRun ScSeurat writes `sctype_classification` via the
-    # run_sctype() wrapper at app-ScSeurat.R line 612).
-    "sctype_classification", "scType.labels", "scType_label", "sctype", "scType",
-    # SingleR — when re-attached from sibling singler.results.qs2 by
-    # attachSeuratAnnotations(). seuratUtils.R lines 778-784 emit
-    # `<ref>_single` and `<ref>_cluster` per reference. For pickCellType
-    # we prefer the cluster-level (more stable); singletons may also exist.
+    # run_sctype() wrapper at app-ScSeurat.R lines 621-625).
+    "sctype_classification",
+    # SingleR — written directly onto scData by seuratUtils.R:777-785, and
+    # re-attached from sibling singler.results.qs2 by
+    # attachUpstreamAnnotations(), which emits `<ref>_single` and
+    # `<ref>_cluster` per reference. For pickCellType we prefer the
+    # cluster-level (more stable); singletons may also exist.
     "MonacoImmuneData_cluster", "BlueprintEncodeData_cluster",
     "HumanPrimaryCellAtlasData_cluster", "DatabaseImmuneCellExpressionData_cluster",
     "NovershternHematopoieticData_cluster",
@@ -620,10 +640,21 @@ pickCellTypeColumn <- function(obj) {
     "HumanPrimaryCellAtlasData_single", "DatabaseImmuneCellExpressionData_single",
     "NovershternHematopoieticData_single",
     "ImmGenData_single", "MouseRNAseqData_single",
-    "SingleR.labels",
-    # Manual / experimental fallbacks (any project-specific column).
-    "manual_celltype", "celltype", "CellType", "cell_type",
-    "Cell_Type_Experimental"
+    # Manual cluster labelling: ezRun's own ScSeuratLabelClusters ($cellType,
+    # app-ScSeuratLabelClusters.R:124) and ScSeuratCombinedLabelClusters
+    # ($cellTypeIntegrated, app-ScSeuratCombinedLabelClusters.R:120).
+    # intersect() is case-sensitive, so the generic spellings below do NOT
+    # cover these.
+    "cellType", "cellTypeIntegrated",
+    # BD Rhapsody: loadBDRhapsody() readRDS's BD's own *_Seurat.rds and bypasses
+    # attachUpstreamAnnotations entirely, so this is the only candidate that
+    # makes the BD path pick a cell type at all.
+    "Cell_Type_Experimental",
+    # Generic last-resort spellings for hand-curated objects. ScMultiOmics
+    # accepts any upstream scData.qs2, so these catch a manually labelled
+    # column. Nothing in ezRun writes them; they sit last precisely because a
+    # dead name here cannot demote any of the real schemes above.
+    "manual_celltype", "cell_type", "celltype", "CellType"
   )
   hit <- intersect(candidates, colnames(obj@meta.data))
   if (length(hit) > 0) hit[1] else NULL
