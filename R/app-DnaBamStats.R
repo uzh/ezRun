@@ -37,6 +37,15 @@ ezMethodDnaBamStats <- function(
   dataset <- input$meta
   samples <- input$getNames()
   bamFiles <- input$getFullPaths("BAM")
+  ## The upstream aligner (e.g. Bowtie2) usually already ran MarkDuplicates and
+  ## delivered the duplicate-metrics file, referenced through the DupMetrics
+  ## column. Resolve those paths so the Picard step can reuse them instead of
+  ## rerunning MarkDuplicates (see get_dna_picard_dup_stats).
+  dupMetricsFiles <- if (input$hasColumn("DupMetrics")) {
+    input$getFullPaths("DupMetrics", checkExists = FALSE)
+  } else {
+    setNames(rep(NA_character_, length(samples)), samples)
+  }
 
   resultList <- list()
   for (sm in samples) {
@@ -52,7 +61,8 @@ ezMethodDnaBamStats <- function(
           bamFile = bamFiles[sm],
           sampleName = sm,
           param = param,
-          nReads = nReads
+          nReads = nReads,
+          dupMetricsFile = dupMetricsFiles[sm]
         )
       },
       error = function(e) {
@@ -113,13 +123,17 @@ ezMethodDnaBamStats <- function(
 ##' @param sampleName Sample name used in the report.
 ##' @param param ezRun parameter list.
 ##' @param nReads Total read count from the input dataset metadata.
+##' @param dupMetricsFile Optional path to a duplicate-metrics file already
+##' produced by the upstream aligner, reused instead of rerunning
+##' MarkDuplicates when it matches the requested pixel distance.
 ##' @return Named list with per-sample report values.
 ##' @template roxygen-template
 get_dna_bamstats_skeleton <- function(
   bamFile,
   sampleName,
   param,
-  nReads = NA
+  nReads = NA,
+  dupMetricsFile = NA_character_
 ) {
   result <- list(
     sampleName = sampleName,
@@ -224,7 +238,8 @@ get_dna_bamstats_skeleton <- function(
         get_dna_picard_dup_stats(
           bamFile = bamFile,
           sampleName = sampleName,
-          param = param
+          param = param,
+          dupMetricsFile = dupMetricsFile
         )
       },
       error = function(e) {
@@ -1051,18 +1066,41 @@ environment(ez_dna_lib_complexity) <- asNamespace("ATACseqQC")
 
 ##' @title Collect per-sample DNA duplicate metrics from Picard
 ##' @description
-##' Run Picard `MarkDuplicates` for one BAM file and parse the duplicate metrics
-##' table needed for the cohort overview.
+##' Reuse the duplicate-metrics file that the upstream aligner already produced
+##' when it is available and was computed with the requested optical-duplicate
+##' pixel distance; otherwise run Picard `MarkDuplicates` for one BAM file and
+##' parse the duplicate metrics table needed for the cohort overview.
 ##' @param bamFile Full path to the BAM file.
 ##' @param sampleName Sample name used for output staging.
 ##' @param param ezRun parameter list.
+##' @param dupMetricsFile Optional path to a duplicate-metrics file already
+##' produced by the upstream aligner (e.g. Bowtie2 MarkDuplicates), reused
+##' instead of rerunning MarkDuplicates when its pixel distance matches
+##' `param$pixelDist`.
 ##' @return Named list with parsed duplicate metrics.
 ##' @template roxygen-template
 get_dna_picard_dup_stats <- function(
   bamFile,
   sampleName,
-  param
+  param,
+  dupMetricsFile = NA_character_
 ) {
+  ## Most aligned BAMs already have duplicates marked and ship a Picard
+  ## duplicate-metrics file (default OPTICAL_DUPLICATE_PIXEL_DISTANCE = 2500).
+  ## Reuse it when the requested pixel distance matches, so MarkDuplicates is
+  ## not rerun on a multi-GB BAM for no additional information.
+  if (dna_bamstats_can_reuse_dup_metrics(dupMetricsFile, param$pixelDist)) {
+    reused <- parse_dna_picard_dup_metrics_file(dupMetricsFile)
+    reused$notes <- paste0(
+      "Reused existing duplicate metrics from ",
+      basename(dupMetricsFile),
+      " (OPTICAL_DUPLICATE_PIXEL_DISTANCE = ",
+      param$pixelDist,
+      "); MarkDuplicates not rerun."
+    )
+    return(reused)
+  }
+
   metricFn <- paste0(sampleName, "_picardDupReport.txt")
   tempBam <- paste0(sampleName, "_picard_tmp.bam")
   cmd <- paste(
@@ -1323,26 +1361,14 @@ read_dna_bamstats_legacy_input_dataset <- function(path) {
   )
 }
 
-##' @title Parse legacy Picard duplicate metrics
-##' @description Parse a historical Picard duplicate-metrics text file when it
-##' exists, otherwise return `NA` values with the optional drilldown path.
-##' @param metricFile Path to a legacy Picard metrics text file.
-##' @param drilldownFile Optional fallback file path to keep as a drilldown link.
-##' @return Named list of duplicate metrics.
+##' @title Parse a Picard duplicate-metrics file
+##' @description Parse the single duplicate-metrics data row from a Picard
+##' `MarkDuplicates` metrics text file into the fields used by the cohort
+##' overview, deriving the optical-duplicate rate from the read-pair counts.
+##' @param metricFile Path to a Picard duplicate-metrics text file.
+##' @return Named list of duplicate metrics with the metrics file path.
 ##' @template roxygen-template
-parse_dna_bamstats_legacy_picard_metrics <- function(
-  metricFile = NULL,
-  drilldownFile = NULL
-) {
-  if (is.null(metricFile) || !file.exists(metricFile)) {
-    return(list(
-      allDuplicates = NA_real_,
-      optDuplicates = NA_real_,
-      readPairs = NA_real_,
-      opticalDupRate = NA_real_,
-      picardMetricsFile = drilldownFile
-    ))
-  }
+parse_dna_picard_dup_metrics_file <- function(metricFile) {
   duplicateStats <- read.table(
     metricFile,
     skip = 6,
@@ -1380,6 +1406,89 @@ parse_dna_bamstats_legacy_picard_metrics <- function(
     opticalDupRate = opticalDupRate,
     picardMetricsFile = metricFile
   )
+}
+
+##' @title Read the optical-duplicate pixel distance from a Picard metrics file
+##' @description Recover the `OPTICAL_DUPLICATE_PIXEL_DISTANCE` recorded in the
+##' Picard command-line header of a duplicate-metrics file.
+##' @param metricFile Path to a Picard duplicate-metrics text file.
+##' @return Numeric pixel distance or `NA_real_` when it cannot be determined.
+##' @template roxygen-template
+get_dna_bamstats_metrics_pixel_distance <- function(metricFile) {
+  if (length(metricFile) != 1 ||
+    is.null(metricFile) ||
+    is.na(metricFile) ||
+    metricFile == "" ||
+    !file.exists(metricFile)) {
+    return(NA_real_)
+  }
+  headerLines <- readLines(metricFile, n = 6)
+  cmdLine <- grep(
+    "OPTICAL_DUPLICATE_PIXEL_DISTANCE=",
+    headerLines,
+    value = TRUE,
+    fixed = TRUE
+  )
+  if (length(cmdLine) == 0) {
+    return(NA_real_)
+  }
+  matched <- regmatches(
+    cmdLine[1],
+    regexpr("OPTICAL_DUPLICATE_PIXEL_DISTANCE=[0-9]+", cmdLine[1])
+  )
+  if (length(matched) == 0) {
+    return(NA_real_)
+  }
+  suppressWarnings(
+    as.numeric(sub("OPTICAL_DUPLICATE_PIXEL_DISTANCE=", "", matched))
+  )
+}
+
+##' @title Decide whether an existing duplicate-metrics file can be reused
+##' @description Reuse a pre-computed duplicate-metrics file only when it exists
+##' and was generated with the requested optical-duplicate pixel distance, so
+##' the reused optical-duplicate counts stay comparable to a fresh run.
+##' @param dupMetricsFile Path to an existing duplicate-metrics file.
+##' @param pixelDist Requested optical-duplicate pixel distance.
+##' @return `TRUE` when the file can be reused, otherwise `FALSE`.
+##' @template roxygen-template
+dna_bamstats_can_reuse_dup_metrics <- function(dupMetricsFile, pixelDist) {
+  if (length(dupMetricsFile) != 1 ||
+    is.null(dupMetricsFile) ||
+    is.na(dupMetricsFile) ||
+    dupMetricsFile == "" ||
+    !file.exists(dupMetricsFile)) {
+    return(FALSE)
+  }
+  existingPixelDist <- get_dna_bamstats_metrics_pixel_distance(dupMetricsFile)
+  ## When either pixel distance is unknown, rerun MarkDuplicates to be safe.
+  if (is.na(existingPixelDist) || is.null(pixelDist) || is.na(pixelDist)) {
+    return(FALSE)
+  }
+  isTRUE(existingPixelDist == as.numeric(pixelDist))
+}
+
+##' @title Parse legacy Picard duplicate metrics
+##' @description Parse a historical Picard duplicate-metrics text file when it
+##' exists, otherwise return `NA` values with the optional drilldown path.
+##' @param metricFile Path to a legacy Picard metrics text file.
+##' @param drilldownFile Optional fallback file path to keep as a drilldown link.
+##' @return Named list of duplicate metrics.
+##' @template roxygen-template
+parse_dna_bamstats_legacy_picard_metrics <- function(
+  metricFile = NULL,
+  drilldownFile = NULL
+) {
+  if (is.null(metricFile) || !file.exists(metricFile)) {
+    return(list(
+      allDuplicates = NA_real_,
+      optDuplicates = NA_real_,
+      readPairs = NA_real_,
+      opticalDupRate = NA_real_,
+      picardMetricsFile = drilldownFile
+    ))
+  }
+  parse_dna_picard_dup_metrics_file(metricFile)
 }
 
 ##' @title Parse Qualimap metrics from legacy artifacts
