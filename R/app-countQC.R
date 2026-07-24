@@ -31,12 +31,23 @@ ezMethodCountQC = function(
   }
 
   metadata(rawData)$output <- output
-  makeRmdReport(
-    rawData = rawData,
-    rmdFile = "CountQC.Rmd",
-    reportTitle = "CountQC",
-    selfContained = TRUE
-  )
+  ## Two report paths during the Quarto migration. Both write and read the same
+  ## rawData.qs2, so this is a safe A/B on real orders: set useQuartoReport to
+  ## render the .qmd, leave it unset for the legacy .Rmd.
+  if (isTRUE(param$useQuartoReport)) {
+    makeQuartoReport(
+      rawData = rawData,
+      qmdFile = "CountQC.qmd",
+      reportTitle = "CountQC"
+    )
+  } else {
+    makeRmdReport(
+      rawData = rawData,
+      rmdFile = "CountQC.Rmd",
+      reportTitle = "CountQC",
+      selfContained = TRUE
+    )
+  }
 
   return("Success")
 }
@@ -73,6 +84,11 @@ EzAppCountQC <-
             Type = "numeric",
             DefaultValue = 100,
             Description = "number of genes to consider in gene clustering, mds etc"
+          ),
+          useQuartoReport = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "render the Quarto (.qmd) report instead of the legacy .Rmd"
           )
         )
       }

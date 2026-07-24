@@ -923,6 +923,85 @@ makeRmdReport <- function(
   )
 }
 
+##' @title make ezRun Quarto report
+##' @description The Quarto counterpart to \code{makeRmdReport}: identical up to
+##'   the render call, which is delegated to
+##'   \code{fgczQuartoTemplate::fgcz_render()}. Objects passed through \code{...}
+##'   are written to disk exactly as \code{makeRmdReport} writes them, so a
+##'   \code{.qmd} and the \code{.Rmd} it succeeds consume the same \code{.qs2}
+##'   files and can be swapped by a parameter.
+##'
+##'   Unlike an \code{.Rmd}, a \code{.qmd} cannot reach into the installed
+##'   package for its styling: Quarto resolves \code{_metadata.yml}, the SCSS and
+##'   the header relative to the input file, so they must sit beside it.
+##'   \code{fgcz_render()} stages them, which is why a ported template carries no
+##'   \code{format:} block of its own.
+##' @param ... any number of R object
+##' @param htmlFile The name of the output html
+##' @param qmdFile The name of the qmd template in \code{inst/templates}
+##' @param reportTitle Title to use in the header of the html
+##' @param buttons Which toolbar controls to add: \code{TRUE} for all,
+##'   \code{FALSE} for none, or names among "search" and "download"
+##' @param colour Use the per-nesting-level tab colour palette
+##' @param number Prefix tab labels with hierarchical numbers (1, 1.1, ...)
+##' @param use.qs2 If TRUE, use qs2 rather than rds
+##' @param nthreads Threads used for qs2 serialisation
+##' @template roxygen-template
+##' @examples
+##' makeQuartoReport(rawData=rawData, qmdFile = "CountQC.qmd", reportTitle = "CountQC")
+##' # Outputs the report as '00index.html' in addition to the file 'rawData.qs2'
+makeQuartoReport <- function(
+  ...,
+  htmlFile = "00index.html",
+  qmdFile = "",
+  reportTitle = "SUSHI Report",
+  buttons = TRUE,
+  colour = FALSE,
+  number = FALSE,
+  use.qs2 = TRUE,
+  nthreads = 4
+) {
+  require(qs2)
+  if (!requireNamespace("fgczQuartoTemplate", quietly = TRUE)) {
+    stop(
+      "Package 'fgczQuartoTemplate' is required to render Quarto reports. ",
+      'Install it with: remotes::install_github("fgcz/fgczQuartoTemplate")'
+    )
+  }
+
+  varList <- list(...)
+  for (nm in names(varList)) {
+    if (!is.null(varList[[nm]])) {
+      if (use.qs2) {
+        qs_save(varList[[nm]], file = paste0(nm, ".qs2"), nthreads = nthreads)
+      } else {
+        saveRDS(varList[[nm]], file = paste0(nm, ".rds"))
+      }
+    }
+  }
+  file.copy(
+    file.path(
+      system.file("templates", package = "ezRun", mustWork = TRUE),
+      qmdFile
+    ),
+    ".",
+    overwrite = TRUE
+  )
+  force(reportTitle) ## as in makeRmdReport: evaluate before handing to the render
+
+  ## The app has already setwd()'d into the report directory, so staging and
+  ## output both land beside the .qs2 files the report reads back.
+  fgczQuartoTemplate::fgcz_render(
+    input = qmdFile,
+    buttons = buttons,
+    colour = colour,
+    number = number,
+    execute_params = list(reportTitle = reportTitle),
+    output_file = htmlFile,
+    quiet = TRUE
+  )
+}
+
 
 subsampleCountMatrix <- function(counts, targetCount, seed) {
   ## inspired by subSeq package where you can provide the proportion as input
