@@ -187,7 +187,7 @@ EzAppScSeurat <-
           ),
           mLLMCelltype = ezFrame(
             Type = "logical",
-            DefaultValue = FALSE,
+            DefaultValue = TRUE,
             Description = "Enable mLLMCelltype cluster annotation on the FGCZ-internal vLLM server (no data leaves FGCZ)"
           ),
           mLLMCelltype.tissue = ezFrame(
