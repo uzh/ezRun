@@ -184,6 +184,21 @@ EzAppScSeurat <-
             Type = "character",
             DefaultValue = "",
             Description = "Biological context for annotation"
+          ),
+          mLLMCelltype = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "Enable mLLMCelltype cluster annotation on the FGCZ-internal vLLM server (no data leaves FGCZ)"
+          ),
+          mLLMCelltype.tissue = ezFrame(
+            Type = "character",
+            DefaultValue = "auto",
+            Description = "Tissue context for mLLMCelltype. 'auto' falls back to sctype.tissue, then to the reference species alone"
+          ),
+          mLLMCelltype.url = ezFrame(
+            Type = "character",
+            DefaultValue = "http://fgcz-c-056:8000/v1/chat/completions",
+            Description = "OpenAI-compatible chat endpoint of the FGCZ-internal vLLM server"
           )
         )
       }
@@ -631,6 +646,73 @@ ezMethodScSeurat <- function(
     )
   } else {
     futile.logger::flog.info("scType annotation disabled, skipping...")
+  }
+
+  # mLLMCelltype annotation on the FGCZ-internal vLLM server.
+  # Same marker-gene-to-LLM idea as CyteTypeR, but the endpoint is on-site, so
+  # no expression data leaves FGCZ and no API key is needed.
+  if (
+    ezIsSpecified(param$mLLMCelltype) &&
+      (param$mLLMCelltype == TRUE || param$mLLMCelltype == "true")
+  ) {
+    tryCatch(
+      {
+        futile.logger::flog.info("Starting mLLMCelltype cell type annotation...")
+
+        if (!requireNamespace("mLLMCelltype", quietly = TRUE)) {
+          stop(
+            "mLLMCelltype package required. Install with: ",
+            "pak::pkg_install('cafferychen777/mLLMCelltype/R')"
+          )
+        }
+
+        tissue <- if (
+          ezIsSpecified(param$mLLMCelltype.tissue) &&
+            param$mLLMCelltype.tissue != "auto"
+        ) {
+          param$mLLMCelltype.tissue
+        } else if (
+          ezIsSpecified(param$sctype.tissue) && param$sctype.tissue != "auto"
+        ) {
+          param$sctype.tissue
+        } else {
+          ""
+        }
+
+        mllm <- annotateClustersWithMLLMCelltype(
+          topMarkers = topMarkers,
+          tissueName = trimws(paste(getSpecies(param$refBuild), tissue)),
+          vllmUrl = param$mLLMCelltype.url
+        )
+
+        ## unname() is required for Seurat v5 metadata assignment
+        scData$mLLMCelltype <- unname(
+          mllm$clusterLabels[as.character(scData$seurat_clusters)]
+        )
+
+        clusterInfos[["mLLMCelltype"]] <- unname(
+          mllm$clusterLabels[as.character(clusterInfos$Cluster)]
+        )
+        writexl::write_xlsx(clusterInfos, path = clusterInfoFile)
+
+        saveRDS(
+          list(
+            model = mllm$model,
+            url = param$mLLMCelltype.url,
+            tissue_name = mllm$tissueName
+          ),
+          "mllmcelltype_results.rds"
+        )
+        futile.logger::flog.info(
+          "mLLMCelltype annotation completed successfully"
+        )
+      },
+      error = function(e) {
+        futile.logger::flog.error("mLLMCelltype annotation failed: %s", e$message)
+      }
+    )
+  } else {
+    futile.logger::flog.info("mLLMCelltype annotation disabled, skipping...")
   }
 
   # Azimuth Pan-Human Integration using CloudAzimuth
@@ -1107,6 +1189,159 @@ querySignificantClusterAnnotationEnrichR <- function(
   return(enrichRout)
 }
 
+
+##' @title Register the FGCZ-internal vLLM as an mLLMCelltype provider
+##' @description mLLMCelltype's built-in providers cannot be used against the
+##'   FGCZ vLLM as-is: the processor is chosen from the model-name prefix (so a
+##'   served id that looks like nothing it knows fails outright), and every
+##'   built-in processor hardcodes `max_tokens = 4096` with no way to disable a
+##'   reasoning trace. DeepSeek-V4 spends that whole budget thinking and returns
+##'   `content = null` for roughly one request in three at ~15 clusters, which
+##'   surfaces as "Unexpected response format". Registering our own provider
+##'   fixes both: it turns thinking off (vLLM ignores chat-template kwargs a
+##'   model does not understand, so this is safe across models), raises the token
+##'   ceiling, and retries.
+##' @param modelId character, the model id served by the endpoint.
+##' @return Invisibly, the normalised model id.
+registerFgczVllmProvider <- function(modelId) {
+  processFn <- function(prompt, model, api_key, base_url = NULL) {
+    stopifnot(!is.null(base_url))
+    body <- list(
+      model = model,
+      messages = list(list(role = "user", content = prompt)),
+      temperature = 0, # cluster labels should not change between reruns
+      seed = 42L, # temperature 0 alone is not reproducible under vLLM batching
+      max_tokens = 8192L,
+      stream = FALSE,
+      chat_template_kwargs = list(thinking = FALSE)
+    )
+    for (attempt in seq_len(3L)) {
+      content <- tryCatch(
+        {
+          resp <- httr::POST(
+            base_url,
+            httr::add_headers(Authorization = paste("Bearer", api_key)),
+            body = body,
+            encode = "json",
+            httr::timeout(600)
+          )
+          httr::stop_for_status(resp)
+          httr::content(resp, "parsed")$choices[[1]]$message$content
+        },
+        error = function(e) {
+          futile.logger::flog.warn(
+            "FGCZ vLLM attempt %d/3 failed: %s",
+            attempt,
+            e$message
+          )
+          NULL
+        }
+      )
+      if (!is.null(content) && nzchar(trimws(content))) {
+        return(content)
+      }
+      Sys.sleep(2 * attempt)
+    }
+    stop("FGCZ vLLM returned no usable content after 3 attempts")
+  }
+
+  if (!"fgczvllm" %in% mLLMCelltype::list_custom_providers()) {
+    mLLMCelltype::register_custom_provider(
+      provider_name = "fgczvllm",
+      process_fn = processFn,
+      description = "FGCZ-internal vLLM (OpenAI-compatible chat completions)"
+    )
+  }
+  if (!tolower(modelId) %in% mLLMCelltype::list_custom_models()) {
+    mLLMCelltype::register_custom_model(
+      model_name = modelId,
+      provider_name = "fgczvllm"
+    )
+  }
+  invisible(tolower(modelId))
+}
+
+##' @title Annotate clusters with mLLMCelltype on the FGCZ-internal vLLM
+##' @description Sends the top marker gene names of each cluster to an
+##'   OpenAI-compatible vLLM endpoint running inside FGCZ and returns one
+##'   suggested cell type per cluster. Only gene names are transmitted, and the
+##'   endpoint is on-site, so no expression data leaves FGCZ.
+##' @param topMarkers data.frame with `cluster` and `gene` columns, already
+##'   reduced to the top N markers per cluster.
+##' @param tissueName character, biological context passed to the model
+##'   (e.g. "human PBMC").
+##' @param vllmUrl character, full OpenAI-compatible chat-completions URL.
+##' @return list with `clusterLabels` (named character vector, cluster id ->
+##'   label), `model` (the served model id) and `tissueName`.
+annotateClustersWithMLLMCelltype <- function(topMarkers, tissueName, vllmUrl) {
+  if (!requireNamespace("mLLMCelltype", quietly = TRUE)) {
+    stop(
+      "mLLMCelltype package required. Install with: ",
+      "pak::pkg_install('cafferychen777/mLLMCelltype/R')"
+    )
+  }
+
+  ## The served model id drifts (Qwen -> DeepSeek -> ...), so read it off the
+  ## endpoint rather than hardcoding one.
+  modelId <- jsonlite::fromJSON(
+    sub("/chat/completions/*$", "/models", vllmUrl)
+  )$data$id[1]
+  futile.logger::flog.info(
+    "mLLMCelltype using model %s at %s",
+    modelId,
+    vllmUrl
+  )
+  registerFgczVllmProvider(modelId)
+
+  ## Pass the markers as a NAMED LIST rather than the raw data.frame: given a
+  ## data.frame, mLLMCelltype re-sorts purely numeric cluster ids internally,
+  ## which would silently desync labels from clusters. Non-numeric names are
+  ## kept verbatim, so the returned vector is in exactly this order.
+  geneLists <- lapply(
+    split(as.character(topMarkers$gene), topMarkers$cluster),
+    function(genes) list(genes = genes)
+  )
+  geneLists <- geneLists[lengths(lapply(geneLists, `[[`, "genes")) > 0]
+  stopifnot(length(geneLists) > 0)
+  names(geneLists) <- paste0("cluster", names(geneLists))
+
+  ## A short/long response means the model dropped or invented a cluster, and
+  ## accepting it would shift every label by one. It happens intermittently, so
+  ## ask again rather than failing the whole annotation on one bad draw.
+  labels <- NULL
+  for (attempt in seq_len(3L)) {
+    labels <- mLLMCelltype::annotate_cell_types(
+      input = geneLists,
+      tissue_name = tissueName,
+      model = modelId,
+      ## The internal endpoint takes no auth and vLLM ignores the value, but
+      ## read it from the environment anyway so pointing at an authenticated
+      ## endpoint later needs no code change.
+      api_key = Sys.getenv("FGCZ_VLLM_API_KEY", unset = "no-auth-required"),
+      base_urls = vllmUrl
+    )
+    if (length(labels) == length(geneLists)) break
+    futile.logger::flog.warn(
+      "mLLMCelltype returned %d labels for %d clusters (attempt %d/3)",
+      length(labels),
+      length(geneLists),
+      attempt
+    )
+    labels <- NULL
+  }
+  if (is.null(labels)) {
+    stop("mLLMCelltype returned a label count that never matched the clusters")
+  }
+
+  list(
+    clusterLabels = setNames(
+      as.character(labels),
+      sub("^cluster", "", names(geneLists))
+    ),
+    model = modelId,
+    tissueName = tissueName
+  )
+}
 
 computeTFActivityAnalysis <- function(cells, species) {
     species <- tolower(species)

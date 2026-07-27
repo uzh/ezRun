@@ -117,6 +117,15 @@ if (cytetype_available && file.exists("cytetype_results.rds")) {
   cytetype_available <- FALSE
 }
 
+# Check mLLMCelltype availability from metadata
+mllm_available <- "mLLMCelltype" %in% colnames(scData@meta.data)
+if (mllm_available && file.exists("mllmcelltype_results.rds")) {
+  mllm_results <- readRDS("mllmcelltype_results.rds")
+} else {
+  mllm_results <- NULL
+  mllm_available <- FALSE
+}
+
 # Create shared color palette for all annotation methods (Azimuth, Azimuth Pan-Human, Cell x gene, scType)
 # Start with Seurat's first 12 default colors, then add palettes without black colors
 shared_colors <- c(
@@ -1331,6 +1340,31 @@ if(sctype_available && !is.null(sctype_results)){
   }
 
 }
+```
+
+### mLLMCelltype
+
+`r if(mllm_available) sprintf("mLLMCelltype annotates each cluster from its top marker genes using a large language model. The model (%s) runs on an FGCZ-internal server, so no expression data leaves FGCZ. Only the top marker gene names per cluster are sent, and the labels are LLM suggestions that should be confirmed against the marker genes below.", mllm_results$model)`
+
+```{r mllmcelltype results, eval=mllm_available, results='asis', fig.width=14, fig.height=10}
+cat("**Tissue context given to the model:** ", mllm_results$tissue_name, "\n\n")
+
+print(DimPlot(scData, reduction = "umap", label = TRUE, repel = TRUE,
+              group.by = "mLLMCelltype", order = TRUE,
+              cols = shared_colors, raster = FALSE) +
+        ggtitle(paste("mLLMCelltype -", mllm_results$model)) +
+        theme(legend.position = "right", aspect.ratio = 1))
+cat("\n\n")
+
+mllm_table <- unique(data.frame(
+  Cluster = as.character(scData$seurat_clusters),
+  mLLMCelltype = scData$mLLMCelltype,
+  stringsAsFactors = FALSE
+))
+mllm_table <- mllm_table[order(suppressWarnings(as.numeric(mllm_table$Cluster)),
+                               mllm_table$Cluster), ]
+cat("#### Cluster labels proposed by mLLMCelltype\n\n")
+ezInteractiveTableRmd(mllm_table, rowNames = FALSE)
 ```
 
 ### CyteTypeR
