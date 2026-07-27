@@ -251,25 +251,20 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   ## any message() call below. Only the model name is exposed publicly.
   AI_PROVIDER       <- "custom"
   AI_MODEL          <- "DeepSeek-V4-Flash-DSpark"
-  AI_ENDPOINT       <- "http://fgcz-c-056:8000/v1/chat/completions"
+  ## Single source of truth, shared with ScSeurat's mLLMCelltype step, so the
+  ## two cannot drift apart; overridable via FGCZ_VLLM_URL.
+  AI_ENDPOINT       <- fgczVllmEndpoint()
   AI_CONTEXT_WINDOW <- 128000L
 
   gen_ai  <- isTRUE(as.logical(param$generate_ai_summary))
   per_sec <- isTRUE(as.logical(param$per_section_ai_summaries))
 
-  ## Redaction helpers -- applied to any text that may be surfaced to the user
-  ai_host_only   <- sub("^https?://([^/]+).*", "\\1", AI_ENDPOINT)   # fgcz-c-056:8000
-  ai_scheme_host <- sub("^(https?://[^/]+).*", "\\1", AI_ENDPOINT)   # http://fgcz-c-056:8000
-  redact_pairs <- list(
-    c(AI_ENDPOINT,    "[REDACTED-LLM-ENDPOINT]"),
-    c(ai_scheme_host, "[REDACTED-LLM-HOST]"),
-    c(ai_host_only,   "[REDACTED-LLM-HOST]")
-  )
-  redact_string <- function(s) {
-    if (is.null(s) || length(s) == 0L) return(s)
-    for (p in redact_pairs) s <- gsub(p[1], p[2], s, fixed = TRUE)
-    s
-  }
+  ## Redaction helpers -- applied to any text that may be surfaced to the user.
+  ## Shared with ScSeurat rather than reimplemented here: one endpoint, one set
+  ## of replacements. redact_pairs is still needed as pairs, because the MultiQC
+  ## stdout stream is redacted live through a generated sed script below.
+  redact_pairs  <- vllmRedactionPairs()
+  redact_string <- redactVllmEndpoint
 
   ## ==== Run multiqc ====
   ## We pass AI settings as proper CLI flags rather than via -c YAML, because:

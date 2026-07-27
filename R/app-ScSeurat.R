@@ -1232,6 +1232,21 @@ fgczVllmEndpoint <- function() {
   )
 }
 
+##' @title Search/replace pairs that hide the vLLM endpoint
+##' @description Longest first, so the full endpoint is replaced before the bare
+##'   host would match part of it. Returned as pairs rather than only as a
+##'   function because callers also need them to build a `sed` script for
+##'   redacting a subprocess's output stream (see app-fastQC.R).
+##' @return list of c(pattern, replacement) character pairs, for fixed matching.
+vllmRedactionPairs <- function() {
+  endpoint <- fgczVllmEndpoint()
+  list(
+    c(endpoint, "[REDACTED-LLM-ENDPOINT]"),
+    c(sub("^(https?://[^/]+).*", "\\1", endpoint), "[REDACTED-LLM-HOST]"),
+    c(sub("^https?://([^/]+).*", "\\1", endpoint), "[REDACTED-LLM-HOST]")
+  )
+}
+
 ##' @title Redact the vLLM host from text that may reach a user
 ##' @param x character vector, possibly containing the endpoint or its host.
 ##' @return the same text with endpoint and host replaced by placeholders.
@@ -1239,16 +1254,7 @@ redactVllmEndpoint <- function(x) {
   if (is.null(x) || !length(x)) {
     return(x)
   }
-  endpoint <- fgczVllmEndpoint()
-  hostPort <- sub("^https?://([^/]+).*", "\\1", endpoint)
-  schemeHost <- sub("^(https?://[^/]+).*", "\\1", endpoint)
-  for (p in list(
-    c(endpoint, "[REDACTED-LLM-ENDPOINT]"),
-    c(schemeHost, "[REDACTED-LLM-HOST]"),
-    c(hostPort, "[REDACTED-LLM-HOST]")
-  )) {
-    x <- gsub(p[1], p[2], x, fixed = TRUE)
-  }
+  for (p in vllmRedactionPairs()) x <- gsub(p[1], p[2], x, fixed = TRUE)
   x
 }
 

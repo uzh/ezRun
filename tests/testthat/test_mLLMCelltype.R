@@ -135,3 +135,18 @@ test_that("no stray log directory is created in the working directory", {
   expect_false(identical(mLLMCelltype::get_logger()$log_dir, "logs"))
   expect_false(dir.exists(file.path(wd, "logs")))
 })
+
+## app-fastQC.R builds a sed script from these pairs to redact MultiQC's stdout
+## live, so they must be usable as pairs and ordered longest-first - otherwise
+## the bare host matches inside the full endpoint and leaves a mangled tail.
+test_that("redaction pairs are ordered so the full endpoint is replaced first", {
+  pairs <- ezRun:::vllmRedactionPairs()
+  expect_gte(length(pairs), 3)
+  expect_identical(pairs[[1]][1], ezRun:::fgczVllmEndpoint())
+  expect_true(all(diff(nchar(vapply(pairs, `[`, character(1), 1))) <= 0))
+
+  ## applying them in order, as both redactVllmEndpoint and the sed script do
+  s <- paste("calling", ezRun:::fgczVllmEndpoint(), "failed")
+  for (p in pairs) s <- gsub(p[1], p[2], s, fixed = TRUE)
+  expect_identical(s, "calling [REDACTED-LLM-ENDPOINT] failed")
+})
