@@ -666,10 +666,18 @@ ezMethodScSeurat <- function(
           )
         }
 
-        tissue <- if (
+        ## The tissue string is the single biggest lever on label quality, far
+        ## bigger than any model or prompting choice. On a FACS-sorted B-cell
+        ## dataset the fallback context ("Human Immune system") produced
+        ## confident monocyte / Treg / ILC2 / stromal calls for clusters that
+        ## were all B cells - 4 of 14 right. Passing "human sorted B cells"
+        ## against the same markers gave 13 of 14. So record whether the value
+        ## was actually supplied, and warn in the report when it was not.
+        tissueIsAuto <- !(
           ezIsSpecified(param$mLLMCelltype.tissue) &&
             param$mLLMCelltype.tissue != "auto"
-        ) {
+        )
+        tissue <- if (!tissueIsAuto) {
           param$mLLMCelltype.tissue
         } else if (
           ezIsSpecified(param$sctype.tissue) && param$sctype.tissue != "auto"
@@ -677,6 +685,15 @@ ezMethodScSeurat <- function(
           param$sctype.tissue
         } else {
           ""
+        }
+        if (tissueIsAuto) {
+          futile.logger::flog.warn(
+            paste0(
+              "mLLMCelltype.tissue is 'auto', falling back to '%s'. Labels are ",
+              "materially worse without a specific tissue/sort description."
+            ),
+            tissue
+          )
         }
 
         mllm <- annotateClustersWithMLLMCelltype(
@@ -693,13 +710,19 @@ ezMethodScSeurat <- function(
         clusterInfos[["mLLMCelltype"]] <- unname(
           mllm$clusterLabels[as.character(clusterInfos$Cluster)]
         )
+        clusterInfos[["mLLMCelltypeMarkers"]] <- unname(
+          mllm$clusterSupport[as.character(clusterInfos$Cluster)]
+        )
         writexl::write_xlsx(clusterInfos, path = clusterInfoFile)
 
         saveRDS(
           list(
             model = mllm$model,
             url = param$mLLMCelltype.url,
-            tissue_name = mllm$tissueName
+            tissue_name = mllm$tissueName,
+            tissue_is_auto = tissueIsAuto,
+            clusterLabels = mllm$clusterLabels,
+            clusterSupport = mllm$clusterSupport
           ),
           "mllmcelltype_results.rds"
         )
@@ -1305,12 +1328,17 @@ annotateClustersWithMLLMCelltype <- function(topMarkers, tissueName, vllmUrl) {
   stopifnot(length(geneLists) > 0)
   names(geneLists) <- paste0("cluster", names(geneLists))
 
-  ## A short/long response means the model dropped or invented a cluster, and
-  ## accepting it would shift every label by one. It happens intermittently, so
-  ## ask again rather than failing the whole annotation on one bad draw.
+  ## Ask for the reasoning form, which returns a list KEYED BY CLUSTER ID rather
+  ## than one label per line. The plain form is matched POSITIONALLY, so a reply
+  ## with one line too few or too many silently shifts every label by a cluster;
+  ## on a real 14-cluster run it returned 13, 15 and 13 lines on three
+  ## consecutive attempts, so that is the common case, not an edge case. The
+  ## keyed form also carries the marker genes the model cited per cluster, which
+  ## is what makes a label checkable in the report.
   labels <- NULL
+  support <- NULL
   for (attempt in seq_len(3L)) {
-    labels <- mLLMCelltype::annotate_cell_types(
+    res <- mLLMCelltype::annotate_cell_types(
       input = geneLists,
       tissue_name = tissueName,
       model = modelId,
@@ -1318,26 +1346,36 @@ annotateClustersWithMLLMCelltype <- function(topMarkers, tissueName, vllmUrl) {
       ## read it from the environment anyway so pointing at an authenticated
       ## endpoint later needs no code change.
       api_key = Sys.getenv("FGCZ_VLLM_API_KEY", unset = "no-auth-required"),
-      base_urls = vllmUrl
+      base_urls = vllmUrl,
+      return_reasoning = TRUE
     )
-    if (length(labels) == length(geneLists)) break
+    cand <- vapply(res, function(x) as.character(x$cell_type)[1], character(1))
+    ## on a parse failure the package returns "Unknown" for every cluster
+    if (all(names(geneLists) %in% names(cand)) && !all(cand == "Unknown")) {
+      labels <- cand[names(geneLists)]
+      support <- vapply(
+        res[names(geneLists)],
+        function(x) paste(as.character(x$marker_genes), collapse = ", "),
+        character(1)
+      )
+      break
+    }
     futile.logger::flog.warn(
-      "mLLMCelltype returned %d labels for %d clusters (attempt %d/3)",
-      length(labels),
+      "mLLMCelltype returned %d usable labels for %d clusters (attempt %d/3)",
+      sum(cand != "Unknown"),
       length(geneLists),
       attempt
     )
-    labels <- NULL
   }
   if (is.null(labels)) {
-    stop("mLLMCelltype returned a label count that never matched the clusters")
+    stop("mLLMCelltype never returned a usable label for every cluster")
   }
 
+  clusterIds <- sub("^cluster", "", names(geneLists))
   list(
-    clusterLabels = setNames(
-      as.character(labels),
-      sub("^cluster", "", names(geneLists))
-    ),
+    clusterLabels = setNames(as.character(labels), clusterIds),
+    ## the marker genes the model cited, so a reader can check the call
+    clusterSupport = setNames(as.character(support), clusterIds),
     model = modelId,
     tissueName = tissueName
   )

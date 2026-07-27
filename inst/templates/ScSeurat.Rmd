@@ -1349,6 +1349,23 @@ if(sctype_available && !is.null(sctype_results)){
 ```{r mllmcelltype results, eval=mllm_available, results='asis', fig.width=14, fig.height=10}
 cat("**Tissue context given to the model:** ", mllm_results$tissue_name, "\n\n")
 
+if (isTRUE(mllm_results$tissue_is_auto)) {
+  cat("<div style=\"border-left:4px solid #c0392b; background:#fdecea;",
+      "padding:10px 14px; margin:10px 0;\">\n",
+      "<b>Treat these labels with caution: no tissue context was supplied.</b>",
+      "`mLLMCelltype.tissue` was left at <code>auto</code>, so the model was",
+      "only told <b>&quot;", mllm_results$tissue_name, "&quot;</b>.\n\n",
+      "This is the single biggest factor in label quality. The model sees only",
+      "the top marker genes, so without knowing what was sequenced it will",
+      "assign whichever lineage those genes suggest in a general context. On a",
+      "FACS-sorted B-cell dataset that produced confident monocyte, Treg, ILC2",
+      "and stromal calls for clusters that were in fact all B cells (4 of 14",
+      "correct); re-running the identical markers with",
+      "<code>mLLMCelltype.tissue = \"sorted B cells\"</code> gave 13 of 14.\n\n",
+      "Set <code>mLLMCelltype.tissue</code> to the tissue or sorted population",
+      "and re-run before using these labels.\n</div>\n\n", sep = " ")
+}
+
 print(DimPlot(scData, reduction = "umap", label = TRUE, repel = TRUE,
               group.by = "mLLMCelltype", order = TRUE,
               cols = shared_colors, raster = FALSE) +
@@ -1361,9 +1378,18 @@ mllm_table <- unique(data.frame(
   mLLMCelltype = scData$mLLMCelltype,
   stringsAsFactors = FALSE
 ))
+## the marker genes the model cited for each call, so the label can be checked
+if (!is.null(mllm_results$clusterSupport)) {
+  mllm_table$SupportingMarkers <- unname(
+    mllm_results$clusterSupport[mllm_table$Cluster])
+}
 mllm_table <- mllm_table[order(suppressWarnings(as.numeric(mllm_table$Cluster)),
                                mllm_table$Cluster), ]
 cat("#### Cluster labels proposed by mLLMCelltype\n\n")
+cat("`SupportingMarkers` are the genes the model itself cited. Check each label",
+    "against them: these are suggestions from marker names alone, with no",
+    "reference dataset, and the model will name a cell type even for a",
+    "low-quality cluster.\n\n")
 ezInteractiveTableRmd(mllm_table, rowNames = FALSE)
 ```
 

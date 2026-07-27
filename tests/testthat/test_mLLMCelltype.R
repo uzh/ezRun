@@ -35,6 +35,9 @@ test_that("annotateClustersWithMLLMCelltype labels each cluster from its own mar
 
   expect_setequal(names(res$clusterLabels), c("2", "10", "0"))
   expect_true(nzchar(res$model))
+  ## labels are keyed by cluster id, and each carries the markers the model cited
+  expect_setequal(names(res$clusterSupport), c("2", "10", "0"))
+  expect_true(all(nzchar(res$clusterSupport)))
   ## Each label must match ITS OWN cluster's markers, not a neighbour's.
   expect_match(res$clusterLabels[["2"]], "[Mm]ono")
   expect_match(res$clusterLabels[["10"]], "T")
