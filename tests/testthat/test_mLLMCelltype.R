@@ -1,6 +1,6 @@
 context("mLLMCelltype annotation on the FGCZ-internal vLLM")
 
-VLLM_URL <- "http://fgcz-c-056:8000/v1/chat/completions"
+VLLM_URL <- ezRun:::fgczVllmEndpoint()  # one source of truth; never hardcode the host
 
 vllmReachable <- function(url) {
   isTRUE(tryCatch(
@@ -95,7 +95,43 @@ test_that("an unreachable endpoint errors instead of returning empty labels", {
     suppressWarnings(ezRun:::annotateClustersWithMLLMCelltype(
       topMarkers = topMarkers,
       tissueName = "human PBMC",
-      vllmUrl = "http://fgcz-c-056:9/v1/chat/completions"
+      vllmUrl = sub(":[0-9]+/", ":9/", VLLM_URL)
     ))
   )
+})
+
+## The endpoint is treated as sensitive (same convention as app-fastQC.R): it is
+## not an app parameter, so it cannot reach the delivered parameters.tsv, and it
+## must not survive into a log line or a saved result either.
+test_that("the vLLM endpoint is redacted and never persisted", {
+  endpoint <- ezRun:::fgczVllmEndpoint()
+  host <- sub("^https?://([^/]+).*", "\\1", endpoint)
+
+  msg <- paste0("Could not resolve host: ", host, " for ", endpoint)
+  red <- ezRun:::redactVllmEndpoint(msg)
+  expect_false(grepl(host, red, fixed = TRUE))
+  expect_false(grepl(endpoint, red, fixed = TRUE))
+  expect_match(red, "REDACTED-LLM")
+
+  ## the endpoint must not be declared as an app parameter, because every
+  ## appDefault is written to the parameters.tsv delivered with the job
+  defaults <- EzAppScSeurat$new()$appDefaults
+  expect_false(any(grepl("mLLMCelltype.url", rownames(defaults), fixed = TRUE)))
+  expect_false(any(grepl(host, as.character(unlist(defaults)), fixed = TRUE)))
+})
+
+## mLLMCelltype logs to "<cwd>/logs" by default, and the app's cwd is the report
+## directory delivered to gstore. Redirection must happen before the first call,
+## so nothing is ever written there and later cleaned up.
+test_that("no stray log directory is created in the working directory", {
+  skip_if_not_installed("mLLMCelltype")
+
+  wd <- file.path(tempdir(), "mllm_cwd_check")
+  dir.create(wd, showWarnings = FALSE)
+  old <- setwd(wd)
+  on.exit(setwd(old), add = TRUE)
+
+  ezRun:::registerFgczVllmProvider("test-model-logdir")
+  expect_false(identical(mLLMCelltype::get_logger()$log_dir, "logs"))
+  expect_false(dir.exists(file.path(wd, "logs")))
 })

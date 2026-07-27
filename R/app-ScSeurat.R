@@ -194,12 +194,12 @@ EzAppScSeurat <-
             Type = "character",
             DefaultValue = "auto",
             Description = "Tissue context for mLLMCelltype. 'auto' falls back to sctype.tissue, then to the reference species alone"
-          ),
-          mLLMCelltype.url = ezFrame(
-            Type = "character",
-            DefaultValue = "http://fgcz-c-056:8000/v1/chat/completions",
-            Description = "OpenAI-compatible chat endpoint of the FGCZ-internal vLLM server"
           )
+          ## NOTE: the vLLM endpoint is deliberately NOT a parameter. Every
+          ## appDefault is written to the delivered parameters.tsv, so declaring
+          ## it here would publish the internal host to every customer. It lives
+          ## as a constant in fgczVllmEndpoint(), same convention as
+          ## app-fastQC.R's AI_ENDPOINT.
         )
       }
     )
@@ -699,7 +699,7 @@ ezMethodScSeurat <- function(
         mllm <- annotateClustersWithMLLMCelltype(
           topMarkers = topMarkers,
           tissueName = trimws(paste(getSpecies(param$refBuild), tissue)),
-          vllmUrl = param$mLLMCelltype.url
+          vllmUrl = fgczVllmEndpoint()
         )
 
         ## unname() is required for Seurat v5 metadata assignment
@@ -717,8 +717,9 @@ ezMethodScSeurat <- function(
 
         saveRDS(
           list(
+            ## model name only - the endpoint is never written to a
+            ## delivered file (this .rds ships to gstore with the report)
             model = mllm$model,
-            url = param$mLLMCelltype.url,
             tissue_name = mllm$tissueName,
             tissue_is_auto = tissueIsAuto,
             clusterLabels = mllm$clusterLabels,
@@ -731,7 +732,10 @@ ezMethodScSeurat <- function(
         )
       },
       error = function(e) {
-        futile.logger::flog.error("mLLMCelltype annotation failed: %s", e$message)
+        futile.logger::flog.error(
+          "mLLMCelltype annotation failed: %s",
+          redactVllmEndpoint(e$message)
+        )
       }
     )
   } else {
@@ -1213,6 +1217,41 @@ querySignificantClusterAnnotationEnrichR <- function(
 }
 
 
+##' @title The FGCZ-internal vLLM endpoint
+##' @description The endpoint is treated as sensitive: it is a constant here
+##'   rather than an app parameter, is kept out of SLURM logs and out of every
+##'   delivered file, and is never echoed by a message. Only the model name is
+##'   exposed publicly. Same convention as `AI_ENDPOINT` in app-fastQC.R.
+##'   Declaring it as an appDefault would publish it, because appDefaults are
+##'   written to the parameters.tsv that ships with every job.
+##' @return character, the chat-completions URL.
+fgczVllmEndpoint <- function() {
+  Sys.getenv(
+    "FGCZ_VLLM_URL",
+    unset = "http://fgcz-c-056:8000/v1/chat/completions"
+  )
+}
+
+##' @title Redact the vLLM host from text that may reach a user
+##' @param x character vector, possibly containing the endpoint or its host.
+##' @return the same text with endpoint and host replaced by placeholders.
+redactVllmEndpoint <- function(x) {
+  if (is.null(x) || !length(x)) {
+    return(x)
+  }
+  endpoint <- fgczVllmEndpoint()
+  hostPort <- sub("^https?://([^/]+).*", "\\1", endpoint)
+  schemeHost <- sub("^(https?://[^/]+).*", "\\1", endpoint)
+  for (p in list(
+    c(endpoint, "[REDACTED-LLM-ENDPOINT]"),
+    c(schemeHost, "[REDACTED-LLM-HOST]"),
+    c(hostPort, "[REDACTED-LLM-HOST]")
+  )) {
+    x <- gsub(p[1], p[2], x, fixed = TRUE)
+  }
+  x
+}
+
 ##' @title Register the FGCZ-internal vLLM as an mLLMCelltype provider
 ##' @description mLLMCelltype's built-in providers cannot be used against the
 ##'   FGCZ vLLM as-is: the processor is chosen from the model-name prefix (so a
@@ -1252,10 +1291,11 @@ registerFgczVllmProvider <- function(modelId) {
           httr::content(resp, "parsed")$choices[[1]]$message$content
         },
         error = function(e) {
+          ## httr errors embed the request URL, so redact before logging
           futile.logger::flog.warn(
             "FGCZ vLLM attempt %d/3 failed: %s",
             attempt,
-            e$message
+            redactVllmEndpoint(e$message)
           )
           NULL
         }
@@ -1267,6 +1307,17 @@ registerFgczVllmProvider <- function(modelId) {
     }
     stop("FGCZ vLLM returned no usable content after 3 attempts")
   }
+
+  ## mLLMCelltype logs to "<cwd>/logs", and the app's cwd is the report
+  ## directory that ships to gstore. get_logger() takes no arguments and its
+  ## constructor CREATES the directory, so simply reassigning $log_dir
+  ## afterwards is too late - the empty logs/ already exists in the delivery.
+  ## Force that first construction to happen in the tempdir instead: nothing is
+  ## ever written where it should not be, rather than written and cleaned up.
+  ## (`f()$field <- v` is also not an assignable target in R, hence the local.)
+  oldwd <- setwd(tempdir())
+  mllmLogger <- tryCatch(mLLMCelltype::get_logger(), finally = setwd(oldwd))
+  mllmLogger$log_dir <- file.path(tempdir(), "mLLMCelltype_logs")
 
   if (!"fgczvllm" %in% mLLMCelltype::list_custom_providers()) {
     mLLMCelltype::register_custom_provider(
@@ -1309,11 +1360,8 @@ annotateClustersWithMLLMCelltype <- function(topMarkers, tissueName, vllmUrl) {
   modelId <- jsonlite::fromJSON(
     sub("/chat/completions/*$", "/models", vllmUrl)
   )$data$id[1]
-  futile.logger::flog.info(
-    "mLLMCelltype using model %s at %s",
-    modelId,
-    vllmUrl
-  )
+  ## model name only - the endpoint must not reach the SLURM log
+  futile.logger::flog.info("mLLMCelltype using model %s", modelId)
   registerFgczVllmProvider(modelId)
 
   ## Pass the markers as a NAMED LIST rather than the raw data.frame: given a
