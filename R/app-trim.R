@@ -26,7 +26,7 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
     sapply(files, function(x) system(paste("cat", x, " >> input_R1.fastq.gz")))
     input$setColumn("Read1", file.path(getwd(), "input_R1.fastq.gz"))
 
-    if (grepl(',', input$meta$Read2) & param$paired) {
+    if (param$paired && grepl(',', input$meta$Read2)) {
       files <- file.path(
         param$dataRoot,
         limma::strsplit2(input$meta$Read2, ',')
