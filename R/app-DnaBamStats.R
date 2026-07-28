@@ -115,6 +115,31 @@ ezMethodDnaBamStats <- function(
   return("Success")
 }
 
+##' @title Assert that an input BAM is still readable
+##' @description
+##' Fail loudly with a clear message when an input BAM that was validated as
+##' readable at job start is no longer accessible. On the FGCZ cluster this is
+##' typically caused by the gstore autofs mount unmounting mid-run (idle
+##' timeout), which would otherwise let per-sample steps silently degrade and
+##' produce a near-empty report.
+##' @param bamFile Full path to the BAM file.
+##' @param sampleName Sample name used in the error message.
+##' @return Invisible `TRUE` when the BAM is readable; otherwise stops.
+##' @template roxygen-template
+assert_dna_bam_readable <- function(bamFile, sampleName = NULL) {
+  if (file.exists(bamFile) && file.access(bamFile, mode = 4) == 0) {
+    return(invisible(TRUE))
+  }
+  stop(
+    "input BAM became unreadable mid-run (gstore unmounted?): ",
+    bamFile,
+    if (!is.null(sampleName)) paste0(" [sample ", sampleName, "]") else "",
+    ". It was validated as readable at job start, so it disappeared during ",
+    "processing. Stage inputs to /scratch before processing (or keep the ",
+    "gstore mount warm) and rerun."
+  )
+}
+
 ##' @title Collect minimal per-sample DNA BAM stats for the report skeleton
 ##' @description
 ##' Gather the DNA BAM QC values needed to render the maintained cohort-level
@@ -164,7 +189,11 @@ get_dna_bamstats_skeleton <- function(
     picardMetricsFile = NULL
   )
 
-  if (file.exists(bamFile) && !is.na(nReads)) {
+  ## The BAM was validated readable at job start (getFullPaths(checkExists)).
+  ## If it is gone now, fail clearly instead of silently skipping every step.
+  assert_dna_bam_readable(bamFile, sampleName)
+
+  if (!is.na(nReads)) {
     result$multiMatchInFileTable <- tryCatch(
       {
         getBamMultiMatching(
@@ -186,7 +215,8 @@ get_dna_bamstats_skeleton <- function(
     )
   }
 
-  if (isTRUE(param$paired) && file.exists(bamFile)) {
+  if (isTRUE(param$paired)) {
+    assert_dna_bam_readable(bamFile, sampleName)
     pairedPlotStats <- get_dna_paired_end_plots(
       bamFile = bamFile,
       sampleName = sampleName
@@ -197,7 +227,10 @@ get_dna_bamstats_skeleton <- function(
     }
   }
 
-  if (isTRUE(param$runQualimap) && file.exists(bamFile)) {
+  if (isTRUE(param$runQualimap)) {
+    ## Re-check here: the mount can drop during the long paired-end plot step,
+    ## which is exactly where a silent skip produced empty Qualimap results.
+    assert_dna_bam_readable(bamFile, sampleName)
     qualimapStats <- tryCatch(
       {
         get_dna_qualimap_stats(
@@ -232,7 +265,10 @@ get_dna_bamstats_skeleton <- function(
     result[names(qualimapStats)] <- qualimapStats
   }
 
-  if (isTRUE(param$runPicard) && file.exists(bamFile)) {
+  if (isTRUE(param$runPicard)) {
+    ## Reused metrics only need the (small) DupMetrics file, but running
+    ## MarkDuplicates needs the BAM; assert readability before either path.
+    assert_dna_bam_readable(bamFile, sampleName)
     picardStats <- tryCatch(
       {
         get_dna_picard_dup_stats(
@@ -945,7 +981,11 @@ get_dna_qualimap_multi_sample_summary <- function(samples, resultList) {
     Folder = vapply(
       samples,
       function(sm) {
-        resultList[[sm]]$qualimapDir
+        qualimapDir <- resultList[[sm]]$qualimapDir
+        if (is.null(qualimapDir) || length(qualimapDir) != 1) {
+          return(NA_character_)
+        }
+        as.character(qualimapDir)
       },
       character(1)
     ),
