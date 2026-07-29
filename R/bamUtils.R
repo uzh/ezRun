@@ -47,11 +47,11 @@ atacBamProcess <- function(input = NA, output = NA, param = NA) {
   noDupBam <- tempfile(pattern = "nodup_", tmpdir = ".", fileext = ".bam")
   ezLog("Remove duplicates...")
   if (param$removeDuplicates) {
-    dupBam(
+    removeDuplicatesFromBam(
       inBam = bamFile,
       outBam = noDupBam,
-      operation = "remove",
-      ram = param$ram
+      ram = param$ram,
+      cores = param$cores
     )
   } else {
     outBam = noDupBam
@@ -171,6 +171,62 @@ dupBam <- function(
   )
   ezSystem(cmd)
   Rsamtools::indexBam(outBam)
+  invisible(outBam)
+}
+
+##' @title Check whether a BAM already has its duplicates marked
+##' @description
+##' Inspect the BAM header for a program record left by a duplicate-marking
+##' step (Picard MarkDuplicates or samtools markdup). When present, duplicates
+##' are already flagged in the file, so a costly re-run of MarkDuplicates can be
+##' skipped (e.g. Bowtie2/BWA now mark duplicates during alignment).
+##' @param bamFile Path to a BAM file.
+##' @return \code{TRUE} when the header shows duplicates were already marked.
+##' @template roxygen-template
+bamHasMarkedDuplicates <- function(bamFile) {
+  if (length(bamFile) != 1 || is.na(bamFile) || !file.exists(bamFile)) {
+    return(FALSE)
+  }
+  header <- tryCatch(
+    system2("samtools", c("view", "-H", shQuote(bamFile)),
+            stdout = TRUE, stderr = FALSE),
+    error = function(e) character(0)
+  )
+  pgLines <- grep("^@PG", header, value = TRUE)
+  any(grepl("MarkDuplicates|markdup", pgLines, ignore.case = TRUE))
+}
+
+##' @title Remove duplicate reads, skipping MarkDuplicates when already done
+##' @description
+##' Produce a duplicate-free BAM. When the input BAM already has duplicates
+##' marked (see \code{\link{bamHasMarkedDuplicates}}), the flagged reads are
+##' dropped directly with \code{samtools} (fast, no re-detection); otherwise
+##' Picard \code{MarkDuplicates} is run with \code{REMOVE_DUPLICATES=true} via
+##' \code{\link{dupBam}}.
+##' @param inBam Full path to the input BAM file.
+##' @param outBam Output BAM path.
+##' @param ram RAM in GB passed to \code{dupBam} when MarkDuplicates is run.
+##' @param cores Threads used by \code{samtools} in the fast path.
+##' @return Invisibly, the output BAM path.
+##' @template roxygen-template
+removeDuplicatesFromBam <- function(inBam, outBam, ram = 20, cores = 1) {
+  if (bamHasMarkedDuplicates(inBam)) {
+    ezLog(paste0(
+      "Duplicates are already marked in ", basename(inBam),
+      "; dropping flagged reads with samtools (skipping MarkDuplicates)."
+    ))
+    ## -F 1024 removes reads with the 0x400 (duplicate) flag set.
+    ezSystem(paste(
+      "samtools view -b", "-@", cores, "-F 1024", "-o", outBam, inBam
+    ))
+    Rsamtools::indexBam(outBam)
+  } else {
+    ezLog(paste0(
+      "Duplicates are not marked in ", basename(inBam),
+      "; running Picard MarkDuplicates to remove them."
+    ))
+    dupBam(inBam = inBam, outBam = outBam, operation = "remove", ram = ram)
+  }
   invisible(outBam)
 }
 

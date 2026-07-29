@@ -60,6 +60,9 @@ noReplicates <- deseqOut$noReplicates
 peakTable <- makeDiffPeakTable(res, noReplicates, lfcThreshold, fdrThreshold)
 hasAnno   <- "geneName" %in% colnames(peakTable)
 
+## Variance-stabilized signal, computed once and reused by PCA and the heatmap.
+vsd <- diffPeakVST(mlDds, noReplicates)
+
 groupColors <- c("#009E73", "#CC79A7")
 names(groupColors) <- c(refGroup, sampleGroup)
 
@@ -161,7 +164,6 @@ plotMA <- function() {
 }
 
 plotPca <- function() {
-  vsd <- diffPeakVST(mlDds, noReplicates)
   pcaData <- DESeq2::plotPCA(vsd, intgroup = "Condition", returnData = TRUE)
   pv <- round(100 * attr(pcaData, "percentVar"))
   ggplot(pcaData, aes(PC1, PC2, color = group, label = name)) +
@@ -174,12 +176,23 @@ plotPca <- function() {
 }
 
 plotHeat <- function(nTop = 1000) {
-  ord <- order(peakTable$padj, na.last = NA)
+  ## Rank by the same criterion used to call candidates: fold change when there
+  ## are no replicates (p-values unreliable), adjusted p-value otherwise.
+  ord <- if (noReplicates) {
+    order(-abs(peakTable$log2FoldChange), na.last = NA)
+  } else {
+    order(peakTable$padj, na.last = NA)
+  }
   ord <- head(ord, min(nTop, length(ord)))
   if (length(ord) < 2) return(NULL)
-  vsd <- diffPeakVST(mlDds, noReplicates)
   ids <- peakTable$peakId[ord]
   mat <- assay(vsd)[ids, , drop = FALSE]
+  ## Row z-scaling and row clustering are undefined for rows with zero or
+  ## non-finite variance (common with few samples): they become NaN and make
+  ## hclust() fail. Drop them so the heatmap is always well defined.
+  rowSd <- apply(mat, 1, stats::sd)
+  mat <- mat[is.finite(rowSd) & rowSd > 0, , drop = FALSE]
+  if (nrow(mat) < 2) return(NULL)
   annotation_col <- data.frame(Condition = mlDds$Condition,
                                row.names = colnames(mat))
   ComplexHeatmap::pheatmap(mat, scale = "row", show_rownames = FALSE,
@@ -188,7 +201,7 @@ plotHeat <- function(nTop = 1000) {
     color = colorRampPalette(rev(brewer.pal(7, "RdYlBu")))(100),
     clustering_method = "complete", angle_col = "45",
     name = "z-score",
-    column_title = paste0("Top ", length(ord), " differential peaks"))
+    column_title = paste0("Top ", nrow(mat), " differential peaks"))
 }
 
 ## Genomic feature and TSS-distance columns depend on the annotation tool.
@@ -237,6 +250,8 @@ plotTssDist <- function() {
 }
 ```
 
+:::::: {.panel-tabset}
+
 # Overview
 
 ::: {.callout-note}
@@ -279,7 +294,7 @@ DT::datatable(summaryTab, rownames = FALSE, options = list(dom = "t"),
               caption = "Peak-level summary")
 ```
 
-## Pathway enrichment (Enrichr)
+# Pathway enrichment
 
 Submit the candidate genes associated with differential peaks to
 [Enrichr](https://maayanlab.cloud/Enrichr/) (opens in a new tab). Up to 500
@@ -370,8 +385,8 @@ if (is.null(td)) cat("Distance-to-TSS annotation is not available for this run."
 
 # Results table
 
-The interactive table lists the top 1000 candidate peaks (ranked by adjusted
-p-value). The complete table for all tested peaks is written to
+The interactive table lists the top 1000 candidate peaks. The complete table
+for all tested peaks is written to
 [`differential_peaks.txt`](differential_peaks.txt).
 
 ```{r results-table}
@@ -381,7 +396,8 @@ displayCols <- intersect(
   colnames(peakTable))
 tableTib <- peakTable |>
   dplyr::filter(candidate) |>
-  dplyr::arrange(padj) |>
+  ## rank by fold change without replicates (p-values unreliable), else by FDR
+  dplyr::arrange(if (noReplicates) dplyr::desc(abs(log2FoldChange)) else padj) |>
   dplyr::select(dplyr::all_of(displayCols))
 if (hasAnno) {
   tableTib <- tableTib |> dplyr::distinct(geneName, .keep_all = TRUE)
@@ -395,3 +411,5 @@ ezInteractiveTableRmd(tableTib, digits = 3)
 ```{r session-info}
 ezSessionInfo()
 ```
+
+:::::

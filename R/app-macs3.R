@@ -35,11 +35,11 @@ ezMethodMacs3 = function(input = NA, output = NA, param = NA) {
     bamFile <- input$getFullPaths("BAM")
     outBam <- basename(output$getColumn("BAM"))
     if (param$removeDuplicates) {
-      dupBam(
+      removeDuplicatesFromBam(
         inBam = bamFile,
         outBam = outBam,
-        operation = "remove",
-        ram = param$ram
+        ram = param$ram,
+        cores = param$cores
       )
     } else {
       file.copy(from = bamFile, to = outBam, overwrite = TRUE)
