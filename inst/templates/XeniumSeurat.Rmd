@@ -732,6 +732,38 @@ if (length(flag_cols) > 0) {
 }
 ```
 
+### Segmentation health
+
+Two absolute, sample-level readouts of how well the cell boundaries were drawn.
+Deliberately not another MAD flag: a MAD-based score flags a roughly fixed slice
+of any dataset, good or bad, so it can never tell you a sample is clean.
+
+```{r segmentation_health, results='asis'}
+sh <- xeniumSegmentationHealth(scData@meta.data)
+if (!is.na(sh$median_nucleus_cell_ratio)) {
+ cat("**Median nucleus : cell area ratio:** ",
+     round(sh$median_nucleus_cell_ratio, 3), ". ",
+     "A nucleus-seeded boundary with nothing to stop it inflates into empty ",
+     "tissue, leaving the nucleus an implausibly small share of the cell. ",
+     "Across 7 reference datasets this runs ~0.41-0.50 for stain-segmented runs ",
+     "but ~0.32 for DAPI-nucleus + 15 um expansion.\n\n", sep = "")
+ cat("**Candidate ballooned cells** (ratio < 0.1): ",
+     round(100 * sh$frac_ratio_below_0.1, 2), "%\n\n", sep = "")
+} else {
+ cat("Nucleus:cell ratio not available (needs nucleus_area + cell_area).\n\n")
+}
+if (!is.null(sh$segmentation_mix)) {
+ mix <- sh$segmentation_mix
+ mix$pct <- round(mix$pct, 2)
+ cat("Segmentation method mix (cells that fell back to nucleus expansion because ",
+     "no stain boundary was found are the ones most likely to be ballooned):\n\n", sep = "")
+ print(knitr::kable(mix, format = "markdown", row.names = FALSE))
+ cat("\n\n")
+} else {
+ cat("`segmentation_method` not present (run predates Xenium Onboard Analysis 3.0).\n\n")
+}
+```
+
 ```{r free_unfiltered, include=FALSE}
 # Last use of the pre-filter object. It and the SPE copy are each roughly the
 # size of scData, and makeRmdReport renders in the SAME R process that still
@@ -747,9 +779,16 @@ invisible(gc(verbose = FALSE))
 Mutually Exclusive Co-expression Rate: for each pair of cell-type-defining marker
 genes (one most-specific gene per RCTD cell type, so each labels a distinct cell
 type), the fraction of cells expressing **both** divided by cells expressing
-**either** (Jaccard co-detection). High values suggest transcript spill-over /
-segmentation contamination. No separate single-cell reference is used: markers
-are picked from this sample's expression within the RCTD cell types.
+**either** (Jaccard co-detection). Higher values indicate more transcript
+spill-over / segmentation contamination.
+
+**Read this as a relative, not an absolute, measure.** The markers are picked
+from *this* sample by searching for the most type-specific gene available, on the
+same data the rate is then measured on. That search is biased toward exclusive
+genes, so the absolute value is optimistic and a low MECR is not by itself proof
+of a clean run. It is meaningful for comparing sections processed the same way,
+or against a fixed external marker panel. Genes must be detected in at least 10%
+of their cell type's cells, and types need at least 50 cells, to be eligible.
 
 ```{r mecr, fig.width=8, fig.height=7, results='asis'}
 # MECR markers: one most-specific gene per CELL TYPE. Cell types come from the
@@ -763,15 +802,27 @@ mecr_source <- "cell-type markers (RCTD)"
 if ("RCTD_Main" %in% colnames(scData@meta.data) && !all(is.na(scData$RCTD_Main))) {
  ct <- as.character(scData$RCTD_Main)
  data_mat <- GetAssayData(scData, assay = "Xenium", layer = "data")
- types <- names(which(table(ct) >= 20))
+ # >= 50 cells, not 20. The score below is an enrichment RATIO, and for a gene
+ # seen only in type t at cell fraction f the ratio tends to 1/f regardless of
+ # expression level - so a tiny type lets a one-cell noise gene win, and a gene
+ # detected in ~no cells co-detects with nothing, dragging MECR toward a
+ # spuriously clean 0.
+ types <- names(which(table(ct) >= 50))
  if (length(types) >= 2) {
    overall <- Matrix::rowMeans(data_mat)
+   detected <- data_mat > 0
    top_per_type <- vapply(types, function(tt) {
      # which() drops NA (unannotated cells); ct == tt alone yields NA subscripts
-     m <- Matrix::rowMeans(data_mat[, which(ct == tt), drop = FALSE])
-     names(which.max(m / (overall + 1e-9)))  # most enriched gene in this type
+     idx <- which(ct == tt)
+     m <- Matrix::rowMeans(data_mat[, idx, drop = FALSE])
+     # Detection floor: the gene must actually be expressed in >=10% of this
+     # type's cells before it can be called that type's marker.
+     detRate <- Matrix::rowMeans(detected[, idx, drop = FALSE])
+     score <- m / (overall + 1e-9)
+     score[detRate < 0.1] <- -Inf
+     if (all(!is.finite(score))) NA_character_ else names(which.max(score))
    }, character(1))
-   mecr_markers <- unique(unname(top_per_type))
+   mecr_markers <- unique(stats::na.omit(unname(top_per_type)))
  }
 }
 if (length(mecr_markers) < 2 && exists("posMarkers") && nrow(posMarkers) > 0 &&
