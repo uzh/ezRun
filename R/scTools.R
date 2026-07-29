@@ -323,6 +323,123 @@ panHumanAzimuthPlan <- function(param) {
   return(list(run = TRUE, reason = "human dataset"))
 }
 
+# panhumanpy's label refiner does not return a label when its 8 hierarchy heads
+# contradict each other: it returns a SENTINEL (annotate_tools.py:1503 returns the
+# string "False"; annotate.py:545 masks None/False/"False"/"false"). CellRanger
+# fills that sentinel before writing its CSV (fill_unannotated, annotate.py:548);
+# AzimuthAPI::CloudAzimuth does not, so the raw sentinel lands in the delivered
+# object. On p42258/o42614 that was 3,504 of 17,777 cells (19.7%) reading "False"
+# in azimuth_broad/medium/fine -- the third most common value in all three, which
+# exploreSC then lists as a browsable cell type.
+#
+# We forward-fill from the parent tier (annotate.py:551's fill_unannotated=FALSE
+# branch) rather than writing "Not Confidently Annotated": every tier keeps a real
+# cell type, just a coarser one, and no cell drops out of a plot legend. A sentinel
+# broad falls back to the first component of full_hierarchical_labels, which was
+# verified equal to CellRanger's broad_cell_type on 15,163/15,163 cells.
+#
+# NOT a sentinel: "Unassigned" is a trained reject class (one of 13 level-0 output
+# neurons), carrying a median confidence of 0.90 -- it must survive untouched.
+fillAzimuthSentinels <- function(meta) {
+  isSentinel <- function(x) {
+    is.na(x) | as.character(x) %in% c("False", "false", "None", "")
+  }
+  # order matters: medium inherits the filled broad, fine the filled medium
+  hierPart <- function(i) {
+    if (!"full_hierarchical_labels" %in% colnames(meta)) {
+      return(NULL)
+    }
+    vapply(
+      strsplit(as.character(meta$full_hierarchical_labels), "|", fixed = TRUE),
+      function(p) if (length(p) >= i) p[[i]] else NA_character_,
+      character(1)
+    )
+  }
+  fillFrom <- function(col, parent) {
+    if (!col %in% colnames(meta) || is.null(parent)) {
+      return(invisible(NULL))
+    }
+    bad <- isSentinel(meta[[col]])
+    if (any(bad)) {
+      meta[[col]] <<- as.character(meta[[col]])
+      meta[[col]][bad] <<- as.character(parent)[bad]
+    }
+  }
+  fillFrom("azimuth_broad", hierPart(1))
+  fillFrom(
+    "azimuth_medium",
+    if ("azimuth_broad" %in% colnames(meta)) meta$azimuth_broad else hierPart(1)
+  )
+  fillFrom(
+    "azimuth_fine",
+    if ("azimuth_medium" %in% colnames(meta)) meta$azimuth_medium else hierPart(1)
+  )
+  meta
+}
+
+# CellRanger >= 10.1.0 runs the SAME Pan-Human Azimuth model locally and by
+# default, writing outs/cell_types/Azimuth/cell_types.csv. Measured on
+# p42258/o42614 over an identical 15,163-cell matrix, CellRanger's vendored ONNX
+# fork and upstream panhumanpy 1.0.0 agree BIT-FOR-BIT on confidence (Pearson
+# r = 1.0000, max |diff| = 0.0000) and on full_hierarchical_labels (15,163/15,163).
+# So when the file is there, calling CloudAzimuth recomputes an identical answer
+# AND ships the expression matrix to azimuthapi.satijalab.org to do it.
+#
+# Returns a data.frame keyed by barcode using the column names the report expects,
+# or NULL. NULL must mean "fall back to the API" -- never a partial object, which
+# is the state the guard at app-ScSeurat.R:807 exists to prevent.
+readCellRangerPanHuman <- function(countMatrixPath) {
+  if (is.null(countMatrixPath) || length(countMatrixPath) != 1L ||
+    is.na(countMatrixPath) || !nzchar(countMatrixPath)) {
+    return(NULL)
+  }
+  # CountMatrix is <outs>/filtered_feature_bc_matrix (dir) or ...matrix.h5 (file);
+  # dirname() lands on <outs> either way.
+  csv <- file.path(
+    dirname(countMatrixPath), "cell_types", "Azimuth", "cell_types.csv"
+  )
+  if (!file.exists(csv)) {
+    return(NULL)
+  }
+  ann <- try(
+    read.csv(csv, stringsAsFactors = FALSE, check.names = FALSE),
+    silent = TRUE
+  )
+  if (inherits(ann, "try-error") || !is.data.frame(ann) || nrow(ann) == 0L) {
+    return(NULL)
+  }
+  needed <- c(
+    "barcode", "broad_cell_type", "coarse_cell_type", "fine_cell_type",
+    "full_hierarchical_labels", "final_level_softmax_prob"
+  )
+  if (!all(needed %in% colnames(ann))) {
+    return(NULL)
+  }
+  # final_level_labels is the deepest component of the hierarchy string; verified
+  # equal to panhumanpy's own final_level_labels on 15,163/15,163 cells.
+  finalLevel <- vapply(
+    strsplit(as.character(ann$full_hierarchical_labels), "|", fixed = TRUE),
+    function(p) if (length(p)) p[[length(p)]] else NA_character_,
+    character(1)
+  )
+  out <- data.frame(
+    full_hierarchical_labels = ann$full_hierarchical_labels,
+    final_level_labels = finalLevel,
+    final_level_confidence = as.numeric(ann$final_level_softmax_prob),
+    azimuth_broad = ann$broad_cell_type,
+    azimuth_medium = ann$coarse_cell_type,
+    azimuth_fine = ann$fine_cell_type,
+    azimuth_label = finalLevel,
+    stringsAsFactors = FALSE
+  )
+  # full_consistent_hierarchy is deliberately NOT reconstructed: deriving it from
+  # the "Not Confidently Annotated" label matches the real flag on only
+  # 15,055/15,163 cells, and multiOmicsUtils.R only uses it to EXCLUDE a column
+  # from group.by lists, so absent is both honest and harmless.
+  rownames(out) <- ann$barcode
+  out
+}
+
 geneMeansCluster <- function(object) {
   if (is(object, "SingleCellExperiment")) {
     tr_cnts <- expm1(logcounts(object))

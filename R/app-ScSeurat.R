@@ -155,20 +155,21 @@ EzAppScSeurat <-
             DefaultValue = "auto",
             Description = "Tissue type for scType annotation. Select 'auto' for automatic detection"
           ),
-          sctype.confidence.threshold = ezFrame(
-            Type = "numeric",
-            DefaultValue = 0.25,
-            Description = "Confidence threshold for scType annotation"
-          ),
+          # sctype.confidence.threshold and AzimuthPanHuman.confidence.threshold
+          # were declared here but read by NOTHING -- 0 hits repo-wide outside
+          # these declarations, while param$sctype.tissue has 6 and
+          # param$sctype.enabled 2, so the search does find live parameters.
+          # They were exposed in the SUSHI UI as tunable and changed no output:
+          # on p42258/o42614, 4,675 cells were "Unassigned" at confidence >= 0.5
+          # (median 0.90) while 1,175 cells below 0.5 kept a real label.
+          # Removed rather than wired: panhumanpy has no probability gate by
+          # design, and "Unassigned" is a trained reject class, not a
+          # low-confidence marker, so a cutoff knob invites that exact misreading.
+          # final_level_confidence is still plotted in the report.
           AzimuthPanHuman = ezFrame(
             Type = "logical",
             DefaultValue = FALSE,
-            Description = "Enable Azimuth Pan-Human neural network-based cell type annotation (HUMAN DATASETS ONLY)"
-          ),
-          AzimuthPanHuman.confidence.threshold = ezFrame(
-            Type = "numeric",
-            DefaultValue = 0.5,
-            Description = "Confidence threshold for Azimuth Pan-Human annotation (0.0-1.0)"
+            Description = "Enable Azimuth Pan-Human neural network-based cell type annotation (HUMAN DATASETS ONLY). Reuses CellRanger's local annotation when the upstream run has one."
           ),
           CyteTypeR = ezFrame(
             Type = "logical",
@@ -758,35 +759,77 @@ ezMethodScSeurat <- function(
   azimuthPlan <- panHumanAzimuthPlan(param)
   azimuthOutcome <- list(completed = FALSE, reason = azimuthPlan$reason)
   if (azimuthPlan$run) {
+    azimuthSource <- NA_character_
     tryCatch(
       {
         futile.logger::flog.info("Starting Azimuth Pan-Human annotation...")
 
-        # CloudAzimuth is in AzimuthAPI, not Azimuth.
-        if (!requireNamespace("AzimuthAPI", quietly = TRUE)) {
-          futile.logger::flog.error("AzimuthAPI package not available")
-          stop("AzimuthAPI package required for CloudAzimuth function")
+        # Prefer CellRanger's LOCAL annotation when the upstream run produced one.
+        # CellRanger >= 10.1.0 runs this same model by default and its output was
+        # verified bit-for-bit identical to upstream panhumanpy on 15,163 cells
+        # (see readCellRangerPanHuman). Recomputing it via CloudAzimuth buys
+        # nothing and ships the expression matrix to azimuthapi.satijalab.org.
+        crAnn <- readCellRangerPanHuman(input$getFullPaths("CountMatrix")[1])
+        if (!is.null(crAnn)) {
+          shared <- intersect(colnames(scData), rownames(crAnn))
+          # A poor barcode overlap means we are not looking at this object's own
+          # upstream run; fall through to the API rather than attaching a mostly
+          # empty annotation.
+          if (length(shared) >= 0.5 * ncol(scData)) {
+            idx <- match(colnames(scData), rownames(crAnn))
+            for (cc in colnames(crAnn)) {
+              scData[[cc]] <- crAnn[[cc]][idx]
+            }
+            azimuthSource <- "CellRanger outs/cell_types (local, no data left the site)"
+            futile.logger::flog.info(
+              "Reusing CellRanger's local Pan-Human annotation for %d/%d cells; CloudAzimuth API not called",
+              length(shared),
+              ncol(scData)
+            )
+          } else {
+            futile.logger::flog.info(
+              "Found CellRanger cell_types.csv but only %d/%d barcodes matched; falling back to CloudAzimuth",
+              length(shared),
+              ncol(scData)
+            )
+            crAnn <- NULL
+          }
         }
 
-        # Verify RNA normalization before Azimuth Pan-Human annotation
-        if (
-          !"data" %in% names(scData[["RNA"]]@layers) ||
-            is.null(scData[["RNA"]]@layers[["data"]])
-        ) {
+        if (is.null(crAnn)) {
+          # CloudAzimuth is in AzimuthAPI, not Azimuth.
+          if (!requireNamespace("AzimuthAPI", quietly = TRUE)) {
+            futile.logger::flog.error("AzimuthAPI package not available")
+            stop("AzimuthAPI package required for CloudAzimuth function")
+          }
+
+          # Verify RNA normalization before Azimuth Pan-Human annotation
+          if (
+            !"data" %in% names(scData[["RNA"]]@layers) ||
+              is.null(scData[["RNA"]]@layers[["data"]])
+          ) {
+            futile.logger::flog.info(
+              "RNA normalization not found. Running NormalizeData for Azimuth Pan-Human annotation..."
+            )
+            scData <- NormalizeData(scData, assay = "RNA")
+          }
+
+          # Run CloudAzimuth - this handles everything automatically
+          scData <- AzimuthAPI::CloudAzimuth(scData)
+          azimuthSource <- "CloudAzimuth API (expression matrix sent off-site)"
+
+          # Restore original seurat_clusters as default Idents (CloudAzimuth changes this)
+          Idents(scData) <- scData$seurat_clusters
           futile.logger::flog.info(
-            "RNA normalization not found. Running NormalizeData for Azimuth Pan-Human annotation..."
+            "Restored seurat_clusters as default Idents after CloudAzimuth"
           )
-          scData <- NormalizeData(scData, assay = "RNA")
+
+          # The API returns panhumanpy's raw "False" sentinel in the tier columns
+          # whenever the model's hierarchy heads disagree -- 19.7% of cells on
+          # p42258/o42614. CellRanger fills this before writing its CSV; the API
+          # does not, so do it here or the sentinel is delivered as a cell type.
+          scData@meta.data <- fillAzimuthSentinels(scData@meta.data)
         }
-
-        # Run CloudAzimuth - this handles everything automatically
-        scData <- AzimuthAPI::CloudAzimuth(scData)
-
-        # Restore original seurat_clusters as default Idents (CloudAzimuth changes this)
-        Idents(scData) <- scData$seurat_clusters
-        futile.logger::flog.info(
-          "Restored seurat_clusters as default Idents after CloudAzimuth"
-        )
 
         # A clean return is NOT proof that labels arrived: CloudAzimuth can come
         # back without writing its columns (e.g. when almost no gene symbol
@@ -806,8 +849,9 @@ ezMethodScSeurat <- function(
         )
         if (!"final_level_labels" %in% azimuthCols) {
           stop(
-            "CloudAzimuth returned without the final_level_labels column ",
-            "(columns found: ",
+            "Pan-Human annotation (",
+            azimuthSource,
+            ") produced no final_level_labels column (columns found: ",
             if (length(azimuthCols)) {
               paste(azimuthCols, collapse = ", ")
             } else {
@@ -817,15 +861,20 @@ ezMethodScSeurat <- function(
           )
         }
         nLabelled <- sum(!is.na(scData@meta.data$final_level_labels))
+        # Record WHICH route produced the labels. The API pins no model version,
+        # so without this there is no way to tell afterwards whether a delivered
+        # annotation came from CellRanger's pinned local model or the API.
         azimuthOutcome <- list(
           completed = TRUE,
           reason = azimuthPlan$reason,
+          source = azimuthSource,
           columns = azimuthCols,
           nCells = ncol(scData),
           nLabelled = nLabelled
         )
         futile.logger::flog.info(
-          "Azimuth Pan-Human annotation completed successfully (%d/%d cells labelled, columns: %s)",
+          "Azimuth Pan-Human annotation completed successfully via %s (%d/%d cells labelled, columns: %s)",
+          azimuthSource,
           nLabelled,
           ncol(scData),
           paste(azimuthCols, collapse = ", ")
