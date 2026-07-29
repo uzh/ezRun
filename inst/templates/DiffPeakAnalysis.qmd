@@ -1,0 +1,397 @@
+---
+params:
+  reportTitle: "Differential Peak Analysis"
+title: "`r params$reportTitle`"
+---
+
+<!-- Styling comes from the fgczQuartoTemplate assets staged next to this file
+     (_metadata.yml is applied by Quarto automatically). ezRun stages them via
+     makeQuartoReport(), which calls fgczQuartoTemplate::fgcz_render(). -->
+
+```{r setup}
+#| include: false
+library(ezRun)
+library(DESeq2)
+library(SummarizedExperiment)
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(stringr)
+library(ggplot2)
+library(ggrepel)
+library(ComplexHeatmap)
+library(RColorBrewer)
+library(DT)
+library(htmltools)
+
+## ── Data loading (qs2 with rds fallback, checks data/ first) ──────────────
+.fgcz_load <- function(name, nthreads = 4L) {
+  paths <- c(
+    file.path("data", paste0(name, ".qs2")),
+    paste0(name, ".qs2"),
+    file.path("data", paste0(name, ".rds")),
+    paste0(name, ".rds")
+  )
+  for (p in paths) {
+    if (file.exists(p)) {
+      if (grepl("\\.qs2$", p)) return(qs2::qs_read(p, nthreads = nthreads))
+      return(readRDS(p))
+    }
+  }
+  stop("No .qs2 or .rds file found for: ", name)
+}
+
+dds      <- .fgcz_load("dds")
+peakAnno <- .fgcz_load("peakAnno")
+param    <- .fgcz_load("param")
+output   <- .fgcz_load("output")
+
+sampleGroup  <- param$sampleGroup
+refGroup     <- param$refGroup
+lfcThreshold <- 1
+fdrThreshold <- 0.05
+
+## Robust fit (handles comparisons without replicates); see ezRun app code.
+deseqOut     <- runDiffPeakDESeq(dds, sampleGroup, refGroup, peakAnno)
+mlDds        <- deseqOut$dds
+res          <- deseqOut$res
+noReplicates <- deseqOut$noReplicates
+
+peakTable <- makeDiffPeakTable(res, noReplicates, lfcThreshold, fdrThreshold)
+hasAnno   <- "geneName" %in% colnames(peakTable)
+
+groupColors <- c("#009E73", "#CC79A7")
+names(groupColors) <- c(refGroup, sampleGroup)
+
+## ── Summary counts ────────────────────────────────────────────────────────
+nTested   <- sum(!is.na(peakTable$log2FoldChange))
+nCand     <- sum(peakTable$candidate, na.rm = TRUE)
+nUp       <- sum(peakTable$candidate & peakTable$direction == "up", na.rm = TRUE)
+nDown     <- sum(peakTable$candidate & peakTable$direction == "down", na.rm = TRUE)
+
+## ── Full result table for download ────────────────────────────────────────
+resultsFile <- "differential_peaks.txt"
+utils::write.table(
+  peakTable |> dplyr::arrange(padj),
+  file = resultsFile, sep = "\t", quote = FALSE, row.names = FALSE
+)
+
+## ── Candidate gene lists for Enrichr ──────────────────────────────────────
+candGenes <- function(dir = NULL) {
+  if (!hasAnno) return(character(0))
+  tbl <- peakTable |> dplyr::filter(candidate)
+  if (!is.null(dir)) tbl <- tbl |> dplyr::filter(direction == dir)
+  g <- unique(tbl$geneName)
+  g[!is.na(g) & g != ""]
+}
+
+## An HTML form that submits a gene list to Enrichr in a new tab. This is the
+## documented Enrichr "add gene list from your website" pattern; it needs no
+## external JS library, so it stays valid in self-contained HTML.
+enrichrForm <- function(genes, description, label, maxGenes = 500L) {
+  if (length(genes) == 0) {
+    return(tags$p(tags$em(paste0("No candidate genes for ", label, "."))))
+  }
+  genes <- head(genes, maxGenes)
+  tags$form(
+    action = "https://maayanlab.cloud/Enrichr/enrich",
+    method = "post", target = "_blank", enctype = "multipart/form-data",
+    style = "display:inline-block; margin:0 10px 10px 0;",
+    tags$input(type = "hidden", name = "list",
+               value = paste(genes, collapse = "\n")),
+    tags$input(type = "hidden", name = "description", value = description),
+    tags$button(
+      type = "submit",
+      style = "padding:6px 12px; cursor:pointer; border-radius:6px; border:1px solid #888;",
+      paste0(label, " (", length(genes), " genes) → Enrichr")
+    )
+  )
+}
+
+## ── Plot helpers (right-sized, single comparison) ─────────────────────────
+compLabel <- paste(sampleGroup, "vs", refGroup)
+
+plotVolcano <- function() {
+  d <- peakTable |> dplyr::filter(!is.na(padj))
+  d$class <- dplyr::case_when(
+    d$candidate & d$direction == "up"   ~ "Up",
+    d$candidate & d$direction == "down" ~ "Down",
+    TRUE ~ "Not sig"
+  )
+  top <- d |> dplyr::filter(candidate)
+  if (hasAnno) top <- top |> dplyr::filter(!is.na(geneName) & geneName != "")
+  top <- top |> dplyr::group_by(direction) |>
+    dplyr::slice_min(padj, n = 10, with_ties = FALSE) |> dplyr::ungroup()
+
+  p <- ggplot(d, aes(log2FoldChange, -log10(padj), color = class)) +
+    geom_point(size = 0.9, alpha = 0.5) +
+    scale_color_manual(name = "",
+      values = c("Up" = "#D55E00", "Down" = "#0072B2", "Not sig" = "grey75"),
+      breaks = c("Up", "Not sig", "Down")) +
+    geom_vline(xintercept = c(-lfcThreshold, lfcThreshold),
+               linetype = "dashed", color = "grey40") +
+    geom_hline(yintercept = -log10(fdrThreshold),
+               linetype = "dashed", color = "grey40") +
+    labs(x = expression(Log[2]~fold~change), y = expression(-Log[10]~adjusted~p),
+         title = paste("Volcano:", compLabel)) +
+    theme_bw(base_size = 11) + theme(plot.title = element_text(hjust = 0.5))
+  if (hasAnno && nrow(top) > 0) {
+    p <- p + geom_label_repel(data = top, aes(label = geneName),
+      color = "black", fill = "white", size = 3, min.segment.length = 0,
+      max.overlaps = Inf, show.legend = FALSE)
+  }
+  p
+}
+
+plotMA <- function() {
+  d <- peakTable |> dplyr::filter(!is.na(padj)) |>
+    dplyr::mutate(significant = dplyr::if_else(candidate, "Candidate", "Not sig"),
+                  baseMeanLog = log10(baseMean + 1))
+  ggplot(d, aes(baseMeanLog, log2FoldChange, color = significant)) +
+    geom_point(size = 0.9, alpha = 0.5) +
+    scale_color_manual(name = "",
+      values = c("Candidate" = "#0072B2", "Not sig" = "grey65"),
+      breaks = c("Candidate", "Not sig")) +
+    geom_hline(yintercept = c(-lfcThreshold, lfcThreshold),
+               linetype = "dashed", color = "grey40") +
+    geom_hline(yintercept = 0, color = "grey30") +
+    labs(x = expression(Log[10]~mean~normalized~count),
+         y = expression(Log[2]~fold~change), title = paste("MA:", compLabel)) +
+    theme_bw(base_size = 11) + theme(plot.title = element_text(hjust = 0.5))
+}
+
+plotPca <- function() {
+  vsd <- diffPeakVST(mlDds, noReplicates)
+  pcaData <- DESeq2::plotPCA(vsd, intgroup = "Condition", returnData = TRUE)
+  pv <- round(100 * attr(pcaData, "percentVar"))
+  ggplot(pcaData, aes(PC1, PC2, color = group, label = name)) +
+    geom_point(size = 3) +
+    ggrepel::geom_text_repel(size = 3, show.legend = FALSE) +
+    scale_color_manual(values = groupColors, name = "Group") +
+    labs(title = paste("PCA:", compLabel),
+         x = paste0("PC1 (", pv[1], "%)"), y = paste0("PC2 (", pv[2], "%)")) +
+    theme_bw(base_size = 11) + theme(plot.title = element_text(hjust = 0.5))
+}
+
+plotHeat <- function(nTop = 1000) {
+  ord <- order(peakTable$padj, na.last = NA)
+  ord <- head(ord, min(nTop, length(ord)))
+  if (length(ord) < 2) return(NULL)
+  vsd <- diffPeakVST(mlDds, noReplicates)
+  ids <- peakTable$peakId[ord]
+  mat <- assay(vsd)[ids, , drop = FALSE]
+  annotation_col <- data.frame(Condition = mlDds$Condition,
+                               row.names = colnames(mat))
+  ComplexHeatmap::pheatmap(mat, scale = "row", show_rownames = FALSE,
+    annotation_col = annotation_col,
+    annotation_colors = list(Condition = groupColors),
+    color = colorRampPalette(rev(brewer.pal(7, "RdYlBu")))(100),
+    clustering_method = "complete", angle_col = "45",
+    name = "z-score",
+    column_title = paste0("Top ", length(ord), " differential peaks"))
+}
+
+## Genomic feature and TSS-distance columns depend on the annotation tool.
+featureCol <- intersect(c("Annotation", "annotation", "insideFeature"),
+                        colnames(peakTable))
+featureCol <- if (length(featureCol)) featureCol[1] else NA_character_
+distCol    <- intersect(c("Distance to TSS", "distanceToTSS",
+                          "shortestDistance", "distancetoFeature"),
+                        colnames(peakTable))
+distCol    <- if (length(distCol)) distCol[1] else NA_character_
+
+plotFeatureDist <- function() {
+  if (is.na(featureCol)) return(NULL)
+  d <- peakTable |>
+    dplyr::mutate(feature = str_replace(as.character(.data[[featureCol]]),
+                                        " \\(.*$", ""),
+                  set = dplyr::if_else(candidate, "Candidates", "All peaks")) |>
+    dplyr::filter(!is.na(feature) & feature != "")
+  if (nrow(d) == 0) return(NULL)
+  d <- d |> dplyr::count(set, feature) |>
+    dplyr::group_by(set) |> dplyr::mutate(frac = n / sum(n)) |> dplyr::ungroup()
+  ggplot(d, aes(reorder(feature, frac), frac, fill = set)) +
+    geom_col(position = "dodge") + coord_flip() +
+    scale_y_continuous(labels = scales::percent) +
+    scale_fill_manual(values = c("All peaks" = "grey60",
+                                 "Candidates" = "#D55E00"), name = "") +
+    labs(x = "Genomic feature", y = "Fraction of peaks",
+         title = "Peak genomic-feature distribution") +
+    theme_bw(base_size = 11) + theme(plot.title = element_text(hjust = 0.5))
+}
+
+plotTssDist <- function() {
+  if (is.na(distCol)) return(NULL)
+  d <- peakTable |>
+    dplyr::mutate(dist = suppressWarnings(as.numeric(.data[[distCol]])),
+                  set = dplyr::if_else(candidate, "Candidates", "All peaks")) |>
+    dplyr::filter(!is.na(dist) & abs(dist) <= 1e5)
+  if (nrow(d) == 0) return(NULL)
+  ggplot(d, aes(dist / 1e3, fill = set)) +
+    geom_histogram(bins = 60, position = "identity", alpha = 0.5) +
+    scale_fill_manual(values = c("All peaks" = "grey60",
+                                 "Candidates" = "#D55E00"), name = "") +
+    labs(x = "Distance to TSS (kb)", y = "Number of peaks",
+         title = "Distance of peaks to nearest TSS") +
+    theme_bw(base_size = 11) + theme(plot.title = element_text(hjust = 0.5))
+}
+```
+
+# Overview
+
+::: {.callout-note}
+## Analysis summary
+
+Differential accessibility/binding analysis of consensus peaks with **DESeq2**,
+comparing **`r sampleGroup`** over **`r refGroup`**
+(grouping column *`r param$grouping`*, annotation *`r param$annotationMethod`*).
+Peak counts were variance-stabilized (VST). A peak is called a **candidate** at
+|log2 fold change| ≥ `r lfcThreshold`
+`r if (noReplicates) "" else paste0("and adjusted p-value < ", fdrThreshold)`.
+Positive log2 fold change means higher signal in **`r sampleGroup`**.
+:::
+
+```{r no-rep-warning}
+#| output: asis
+if (noReplicates) {
+  cat(
+    ":::: {.callout-warning}\n",
+    "## No biological replicates in this comparison\n\n",
+    "At least one group has a single sample, so DESeq2 cannot estimate ",
+    "within-group dispersion in the usual way. Dispersion was estimated with a ",
+    "blind (`~1`) design that treats the two conditions as one group, which ",
+    "makes the Wald test **conservative**: adjusted p-values are typically not ",
+    "significant and should not be trusted. Candidates below are therefore ",
+    "ranked by **fold change only** (|log2FC| ≥ ", lfcThreshold, "). ",
+    "Add replicates for a statistically robust analysis.\n",
+    "::::\n", sep = ""
+  )
+}
+```
+
+```{r summary-table}
+summaryTab <- data.frame(
+  Metric = c("Peaks tested", "Candidate peaks",
+             paste0("Up in ", sampleGroup), paste0("Down in ", sampleGroup)),
+  Count  = c(nTested, nCand, nUp, nDown)
+)
+DT::datatable(summaryTab, rownames = FALSE, options = list(dom = "t"),
+              caption = "Peak-level summary")
+```
+
+## Pathway enrichment (Enrichr)
+
+Submit the candidate genes associated with differential peaks to
+[Enrichr](https://maayanlab.cloud/Enrichr/) (opens in a new tab). Up to 500
+genes per list are sent.
+
+```{r enrichr-buttons}
+if (!hasAnno) {
+  htmltools::tags$p(htmltools::tags$em(
+    "Peak annotation is unavailable, so gene-based enrichment links cannot be built."))
+} else {
+  htmltools::tagList(
+    enrichrForm(candGenes("up"),  paste0(compLabel, " - up candidates"),   "Up candidates"),
+    enrichrForm(candGenes("down"),paste0(compLabel, " - down candidates"), "Down candidates"),
+    enrichrForm(candGenes(),      paste0(compLabel, " - all candidates"),  "All candidates")
+  )
+}
+```
+
+# Differential peaks
+
+::: {.panel-tabset}
+
+## Volcano
+
+```{r volcano}
+#| fig-width: 8
+#| fig-height: 6
+#| fig-cap: "Volcano plot. Dashed lines mark the fold-change and significance thresholds; the top 10 up- and down-regulated annotated peaks are labelled."
+plotVolcano()
+```
+
+## MA
+
+```{r ma}
+#| fig-width: 8
+#| fig-height: 6
+#| fig-cap: "MA plot of log2 fold change against mean normalized count."
+plotMA()
+```
+
+## PCA
+
+```{r pca}
+#| fig-width: 7
+#| fig-height: 5
+#| fig-cap: "Principal component analysis of variance-stabilized peak counts."
+res_pca <- tryCatch(plotPca(), error = function(e) NULL)
+if (is.null(res_pca)) cat("PCA could not be computed for this comparison.") else res_pca
+```
+
+## Heatmap
+
+```{r heatmap}
+#| fig-width: 7
+#| fig-height: 7
+#| fig-cap: "Row-scaled variance-stabilized signal of the top differential peaks."
+h <- tryCatch(plotHeat(), error = function(e) NULL)
+if (is.null(h)) cat("Not enough peaks to draw a heatmap.") else h
+```
+
+:::
+
+# Peak annotation
+
+::: {.panel-tabset}
+
+## Feature distribution
+
+```{r feature-dist}
+#| fig-width: 8
+#| fig-height: 5
+#| fig-cap: "Distribution of peaks across genomic features, comparing all peaks with the differential candidates."
+fd <- tryCatch(plotFeatureDist(), error = function(e) NULL)
+if (is.null(fd)) cat("Genomic-feature annotation is not available for this run.") else fd
+```
+
+## Distance to TSS
+
+```{r tss-dist}
+#| fig-width: 8
+#| fig-height: 5
+#| fig-cap: "Distribution of peak distance to the nearest transcription start site (within 100 kb)."
+td <- tryCatch(plotTssDist(), error = function(e) NULL)
+if (is.null(td)) cat("Distance-to-TSS annotation is not available for this run.") else td
+```
+
+:::
+
+# Results table
+
+The interactive table lists the top 1000 candidate peaks (ranked by adjusted
+p-value). The complete table for all tested peaks is written to
+[`differential_peaks.txt`](differential_peaks.txt).
+
+```{r results-table}
+displayCols <- intersect(
+  c("peakId", "geneName", featureCol, distCol, "baseMean",
+    "log2FoldChange", "lfcSE", "stat", "pvalue", "padj", "direction"),
+  colnames(peakTable))
+tableTib <- peakTable |>
+  dplyr::filter(candidate) |>
+  dplyr::arrange(padj) |>
+  dplyr::select(dplyr::all_of(displayCols))
+if (hasAnno) {
+  tableTib <- tableTib |> dplyr::distinct(geneName, .keep_all = TRUE)
+}
+tableTib <- head(tableTib, 1000)
+ezInteractiveTableRmd(tableTib, digits = 3)
+```
+
+# Session Info
+
+```{r session-info}
+ezSessionInfo()
+```

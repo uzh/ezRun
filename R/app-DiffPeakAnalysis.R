@@ -6,9 +6,52 @@
 # www.fgcz.ch
 
 ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA) {
+  if (identical(as.character(param$sampleGroup), as.character(param$refGroup))) {
+    stop(
+      "sampleGroup and refGroup must be different (both are '",
+      param$sampleGroup, "')."
+    )
+  }
+  if (!param$grouping %in% input$colNames) {
+    stop(
+      "The grouping column '", param$grouping,
+      "' is not present in the input dataset. Available columns: ",
+      paste(input$colNames, collapse = ", ")
+    )
+  }
+
   grouping <- input$getColumn(param$grouping)
-  stopifnot(param$sampleGroup != param$refGroup)
   grouping <- grouping[grouping %in% c(param$refGroup, param$sampleGroup)]
+
+  ## robustness: both comparison groups must have samples
+  groupCounts <- table(
+    factor(grouping, levels = c(param$refGroup, param$sampleGroup))
+  )
+  emptyGroups <- names(groupCounts)[groupCounts == 0]
+  if (length(emptyGroups) > 0) {
+    stop(
+      "No samples found for group(s): ", paste(emptyGroups, collapse = ", "),
+      " in column '", param$grouping, "'. Observed values: ",
+      paste(sort(unique(input$getColumn(param$grouping))), collapse = ", ")
+    )
+  }
+  if (sum(groupCounts) < 2) {
+    stop(
+      "A differential peak comparison needs at least two samples; found ",
+      sum(groupCounts), "."
+    )
+  }
+  if (any(groupCounts < 2)) {
+    ezLog(paste0(
+      "Comparison ", param$sampleGroup, " vs ", param$refGroup,
+      " has group(s) without replicates (",
+      paste(sprintf("%s=%d", names(groupCounts), as.integer(groupCounts)),
+        collapse = ", "),
+      "). Continuing with the DESeq2 no-replicate workaround; ",
+      "p-values will be conservative."
+    ))
+  }
+
   commonCols <- c("Geneid", "Chr", "Start", "End", "Strand", "Length")
 
   countFiles <- input$getFullPathsList("Count")
@@ -23,20 +66,24 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA) {
     cores = param$cores
   )
   outDir <- file.path(basename(output$getColumn('ResultFolder')))
-  cd = getwd()
+  cd <- getwd()
+  on.exit(setwd(cd), add = TRUE)
   setwdNew(outDir)
-  makeRmdReport(
+  reportTitle <- paste0(
+    "Differential Peak Analysis: ",
+    param$sampleGroup, " over ", param$refGroup
+  )
+  makeQuartoReport(
     output = output,
     param = param,
     peakAnno = peakAnno,
     dds = dds,
-    selfContained = TRUE,
-    rmdFile = "DiffPeakAnalysis.Rmd",
+    qmdFile = "DiffPeakAnalysis.qmd",
     htmlFile = "00index.html",
-    reportTitle = 'Differential Peak Analysis',
+    reportTitle = reportTitle,
+    buttons = TRUE,
     use.qs2 = TRUE
   )
-  setwd(cd)
 }
 
 
@@ -104,6 +151,119 @@ generateDESeqDS <- function(featureCounts, commonCols, grouping) {
   rownames(dds) <- featureCounts$Geneid
   dds$Condition <- dds$group
   dds
+}
+
+##' @title Run DESeq2 for a two-group differential peak comparison
+##' @description
+##' Fit DESeq2 for one \code{sampleGroup} vs \code{refGroup} comparison and
+##' return the annotated result table together with the fitted object. This is
+##' robust to comparisons \emph{without biological replicates}: when the design
+##' has no residual degrees of freedom, dispersions are estimated by treating
+##' the two conditions as a single group (design \code{~1}) and a Wald test is
+##' run against the real design. This absorbs the between-condition signal into
+##' the dispersion, so p-values are conservative (usually non-significant),
+##' while log2 fold changes stay informative for exploratory ranking. See the
+##' DESeq2 vignette section on analysis without replicates.
+##' @param dds A \code{DESeqDataSet} with a \code{group} column.
+##' @param sampleGroup Group of interest (numerator of the contrast).
+##' @param refGroup Reference group (denominator of the contrast).
+##' @param peakAnno Optional peak annotation data frame joined by \code{peakId}.
+##' @return A list with \code{dds} (fitted), \code{res} (annotated tibble),
+##' \code{noReplicates} (logical), \code{sampleGroup} and \code{refGroup}.
+##' @export
+runDiffPeakDESeq <- function(dds, sampleGroup, refGroup, peakAnno = NULL) {
+  library(DESeq2)
+
+  ## keep only the two comparison groups and drop unused factor levels
+  keep <- as.character(dds$group) %in% c(sampleGroup, refGroup)
+  dds <- dds[, keep]
+  dds$group <- droplevels(factor(as.character(dds$group)))
+  dds$group <- relevel(dds$group, ref = refGroup)
+  dds$Condition <- dds$group
+
+  ## residual degrees of freedom decide whether replicates are available
+  colDataDf <- as.data.frame(SummarizedExperiment::colData(dds))
+  modelMat <- stats::model.matrix(DESeq2::design(dds), data = colDataDf)
+  noReplicates <- (nrow(modelMat) - ncol(modelMat)) < 1
+
+  if (!noReplicates) {
+    mlDds <- DESeq2::DESeq(dds)
+  } else {
+    ezLog(paste0(
+      "No biological replicates for ", sampleGroup, " vs ", refGroup,
+      "; estimating dispersion with a blind (~1) design. p-values are ",
+      "conservative and fold changes are for exploratory ranking only."
+    ))
+    mlDds <- DESeq2::estimateSizeFactors(dds)
+    blind <- mlDds
+    DESeq2::design(blind) <- ~1
+    blind <- tryCatch(
+      DESeq2::estimateDispersions(blind, fitType = "parametric"),
+      error = function(e) DESeq2::estimateDispersions(blind, fitType = "local")
+    )
+    DESeq2::dispersions(mlDds) <- DESeq2::dispersions(blind)
+    DESeq2::dispersionFunction(mlDds) <- DESeq2::dispersionFunction(blind)
+    mlDds <- DESeq2::nbinomWaldTest(mlDds)
+  }
+
+  rawRes <- DESeq2::results(mlDds, contrast = c("group", sampleGroup, refGroup))
+  res <- rawRes |>
+    as.data.frame() |>
+    tibble::rownames_to_column("peakId") |>
+    tibble::as_tibble()
+  if (!is.null(peakAnno)) {
+    res <- dplyr::left_join(res, peakAnno, by = "peakId")
+  }
+
+  list(
+    dds = mlDds,
+    res = res,
+    noReplicates = noReplicates,
+    sampleGroup = sampleGroup,
+    refGroup = refGroup
+  )
+}
+
+##' @title Build the candidate differential-peak table
+##' @description
+##' Add \code{direction} and \code{candidate} flags to a DESeq2 result table.
+##' When replicates are available a peak is a candidate when it passes both the
+##' fold-change and FDR thresholds; without replicates (unreliable p-values)
+##' the fold-change threshold alone is used.
+##' @param res Annotated result tibble from \code{runDiffPeakDESeq}.
+##' @param noReplicates Logical, whether the comparison lacked replicates.
+##' @param lfcThreshold Absolute log2 fold-change threshold (default 1).
+##' @param fdrThreshold Adjusted p-value threshold (default 0.05).
+##' @return A tibble with \code{direction} and \code{candidate} columns added.
+##' @export
+makeDiffPeakTable <- function(res, noReplicates, lfcThreshold = 1, fdrThreshold = 0.05) {
+  tbl <- res |>
+    dplyr::filter(!is.na(log2FoldChange)) |>
+    dplyr::mutate(direction = dplyr::if_else(log2FoldChange > 0, "up", "down"))
+  if (isTRUE(noReplicates)) {
+    tbl <- tbl |>
+      dplyr::mutate(candidate = abs(log2FoldChange) >= lfcThreshold)
+  } else {
+    tbl <- tbl |>
+      dplyr::mutate(
+        candidate = !is.na(padj) &
+          abs(log2FoldChange) >= lfcThreshold &
+          padj < fdrThreshold
+      )
+  }
+  tbl
+}
+
+##' @title Variance-stabilizing transformation robust to missing replicates
+##' @description Wrapper around \code{varianceStabilizingTransformation} that
+##' uses a blind (design \code{~1}) transformation when the comparison has no
+##' replicates, which is the only variant that can be computed in that case.
+##' @param mlDds A fitted \code{DESeqDataSet}.
+##' @param noReplicates Logical, whether the comparison lacked replicates.
+##' @return A \code{DESeqTransform} object.
+##' @export
+diffPeakVST <- function(mlDds, noReplicates) {
+  DESeq2::varianceStabilizingTransformation(mlDds, blind = isTRUE(noReplicates))
 }
 
 
