@@ -960,11 +960,16 @@ ezMethodXeniumSeurat <- function(
   banksy_k_geom <- ifelse(
     is.null(param$banksyKgeom), 30, as.numeric(param$banksyKgeom)
   )
-  # Was hardcoded to 12 while npcs = 30 were computed, discarding 60% of the
-  # embedding. Every published example clusters on all the PCs it computed
-  # (SeuratWrappers Xenium 50/1:50, Slide-seq 30/1:30, paper "top 20").
+  # Number of pca.banksy PCs used for niche clustering. This was hardcoded to 12
+  # while npcs = 30 were computed, i.e. 60% of the embedding was discarded with
+  # no stated reason, and Banksy's own runBanksyPCA computes npcs = 20 with the
+  # convention of clustering on all of them. But raising it changes every
+  # existing customer's niche boundaries and niche count, so the DEFAULT STAYS
+  # AT 12 to keep results comparable with previous runs - same rule applied to
+  # rctdUMIminSigma above. It is now a parameter, so a higher value is an
+  # explicit, documentable choice rather than one that arrives with a reinstall.
   banksy_dims <- ifelse(
-    is.null(param$banksyDims), 30, as.numeric(param$banksyDims)
+    is.null(param$banksyDims), 12, as.numeric(param$banksyDims)
   )
   tryCatch(
     {
@@ -1292,8 +1297,8 @@ EzAppXeniumSeurat <- setRefClass(
         ),
         banksyDims = ezFrame(
           Type = "numeric",
-          DefaultValue = 30,
-          Description = "BANKSY: number of pca.banksy PCs used for niche clustering (30 = all computed; published examples use all of theirs)"
+          DefaultValue = 12,
+          Description = "BANKSY: number of pca.banksy PCs used for niche clustering. Default 12 preserves historical behaviour; 30 (all the PCs computed) uses the full embedding but shifts niche boundaries, so change it deliberately and say so when comparing against earlier runs"
         ),
         banksyKgeom = ezFrame(
           Type = "numeric",
