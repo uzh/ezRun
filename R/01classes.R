@@ -668,6 +668,12 @@ EzApp <-
         ## which must be in the app's module list so it is on PATH.
         ret <- system2("llm_write_methods", args = args)
         if (ret != 0) stop("llm_write_methods failed with exit code ", ret)
+        ## A customer's manuscript needs the whole pipeline, not just the last step, so
+        ## prepend the ancestors' Methods. Never let this fail the job: the local text is
+        ## already written and is the part that cannot be regenerated cheaply.
+        if (!is.null(gstore_script_dir)) {
+          try(prependLineageMethods(dirname(gstore_script_dir), output_file), silent = TRUE)
+        }
         invisible(NULL)
       }
     )
@@ -825,4 +831,96 @@ findUnusedDirs <- function(dirPath, user = NULL) {
     allInfo <- allInfo[order(allInfo$ctime), , drop = FALSE]
   }
   return(allInfo)
+}
+
+##' @title Ancestor result directories of a SUSHI run
+##' @description Walks a run's lineage using only files in the result directory. Every
+##' child's \code{input_dataset.tsv} carries its parent's result directory inside the
+##' \code{[File]} columns (e.g. \code{p2220/Kallisto_2026-07-23--15-15-36/sample1.txt}),
+##' so no SUSHI database query is needed and the walk also works on a copied gstore tree.
+##' Handles apps with several parents and stops at raw data, which has no
+##' \code{input_dataset.tsv}.
+##' @param resultDir the run's gstore result directory.
+##' @param gstoreRoot root under which project directories live.
+##' @param maxDepth safety bound on how far up to walk.
+##' @return a character vector of ancestor directories, nearest parent first.
+##' @template roxygen-template
+ezMethodsLineage <- function(resultDir,
+                             gstoreRoot = "/srv/gstore/projects",
+                             maxDepth = 10) {
+  seen <- character(0)
+  frontier <- resultDir
+  ordered <- character(0)
+  for (depth in seq_len(maxDepth)) {
+    parents <- character(0)
+    for (d in frontier) {
+      ids <- file.path(d, "input_dataset.tsv")
+      if (!file.exists(ids)) next
+      x <- readLines(ids, warn = FALSE)
+      if (length(x) < 2) next
+      ## all data rows: samples may come from different parents
+      fields <- unlist(strsplit(x[-1], "\t", fixed = TRUE))
+      hits <- regmatches(fields, regexpr("^p[0-9]+/[^/]+/", fields))
+      hits <- unique(sub("/$", "", hits[nzchar(hits)]))
+      for (h in hits) {
+        p <- file.path(gstoreRoot, h)
+        if (dir.exists(p) && !(p %in% seen) && p != resultDir) {
+          seen <- c(seen, p)
+          parents <- c(parents, p)
+        }
+      }
+    }
+    if (!length(parents)) break
+    ordered <- c(ordered, parents)
+    frontier <- parents
+  }
+  ordered
+}
+
+##' @title Prepend the lineage's Methods sections to a run's Methods file
+##' @description Rewrites \code{methodsFile} so it describes the whole pipeline, oldest
+##' ancestor first, matching the order the data actually flowed. Ancestors with no Methods
+##' file yet (raw data, or a parent whose own methods job has not finished) are skipped.
+##' The file is left untouched when no ancestor contributes anything.
+##' @param resultDir the run's gstore result directory.
+##' @param methodsFile the Methods file just written for this run.
+##' @param methodsName the delivered Methods filename to look for in ancestors.
+##' @param gstoreRoot root under which project directories live.
+##' @return invisibly, TRUE if the file was rewritten.
+##' @template roxygen-template
+prependLineageMethods <- function(resultDir, methodsFile,
+                                  gstoreRoot = "/srv/gstore/projects",
+                                  methodsName = "methods.md") {
+  localTxt <- if (file.exists(methodsFile)) readLines(methodsFile, warn = FALSE) else character(0)
+  ## Idempotence: a methods job re-run over the same result dir must not stack the
+  ## ancestors again. If we already assembled this file, keep only this run's own
+  ## section and rebuild from it.
+  ownHeading <- sprintf("### %s", basename(resultDir))
+  if (length(localTxt) && grepl("^## Methods\\s*$", localTxt[1])) {
+    i <- which(localTxt == ownHeading)
+    localTxt <- if (length(i)) {
+      tail(localTxt, -(i[length(i)]))            # everything after our own heading
+    } else {
+      character(0)                                # assembled but ours is missing: rebuild clean
+    }
+    while (length(localTxt) && !nzchar(localTxt[1])) localTxt <- localTxt[-1]
+  }
+  anc <- rev(ezMethodsLineage(resultDir, gstoreRoot = gstoreRoot))  # oldest first
+  blocks <- list()
+  for (a in anc) {
+    ## the ancestor's file is always the delivered name, independent of where this run
+    ## happens to be writing its own copy (scratch, a temp file in a test, ...)
+    f <- file.path(a, methodsName)
+    if (!file.exists(f)) next
+    txt <- readLines(f, warn = FALSE)
+    if (!length(txt) || !any(nzchar(txt))) next
+    blocks[[length(blocks) + 1]] <- c(sprintf("### %s", basename(a)), "", txt, "")
+  }
+  if (!length(blocks)) return(invisible(FALSE))
+  writeLines(c("## Methods", "",
+               unlist(blocks),
+               sprintf("### %s", basename(resultDir)), "",
+               localTxt),
+             methodsFile)
+  invisible(TRUE)
 }

@@ -743,10 +743,21 @@ ezMethodScSeurat <- function(
   }
 
   # Azimuth Pan-Human Integration using CloudAzimuth
-  if (
-    ezIsSpecified(param$AzimuthPanHuman) &&
-      (param$AzimuthPanHuman == TRUE || param$AzimuthPanHuman == "true")
-  ) {
+  #
+  # azimuth_results.rds is the only on-disk trace of this step, so it records the
+  # OUTCOME, not merely that the branch was entered. It used to be written as a
+  # bare list(completed = TRUE) on the success path only, which made a failed run
+  # indistinguishable from a skipped one once the job log aged out -- p42258's
+  # 2026-06-12 run has that marker next to a log saying "AzimuthAPI package not
+  # available ... annotation failed". Keep the `completed` field: it is what any
+  # existing audit of these files keys on.
+  #
+  # It is now written on EVERY path (ran / skipped / failed), so the file's
+  # PRESENCE no longer means "annotated" -- read $completed. Any sweep that
+  # counted these files as successful annotations was already wrong.
+  azimuthPlan <- panHumanAzimuthPlan(param)
+  azimuthOutcome <- list(completed = FALSE, reason = azimuthPlan$reason)
+  if (azimuthPlan$run) {
     tryCatch(
       {
         futile.logger::flog.info("Starting Azimuth Pan-Human annotation...")
@@ -777,26 +788,67 @@ ezMethodScSeurat <- function(
           "Restored seurat_clusters as default Idents after CloudAzimuth"
         )
 
-        # Save a marker that Azimuth completed (scData already contains the annotation)
-        azimuth_results <- list(completed = TRUE)
-
-        saveRDS(azimuth_results, "azimuth_results.rds")
+        # A clean return is NOT proof that labels arrived: CloudAzimuth can come
+        # back without writing its columns (e.g. when almost no gene symbol
+        # matched). ScSeurat.Rmd:109 gates the whole Pan-Human report section on
+        # final_level_labels, so if that column is missing the section silently
+        # vanishes from the report. Fail loudly here instead.
+        azimuthCols <- intersect(
+          c(
+            "final_level_labels",
+            "azimuth_label",
+            "azimuth_medium",
+            "azimuth_broad",
+            "azimuth_fine",
+            "level_zero_labels"
+          ),
+          colnames(scData@meta.data)
+        )
+        if (!"final_level_labels" %in% azimuthCols) {
+          stop(
+            "CloudAzimuth returned without the final_level_labels column ",
+            "(columns found: ",
+            if (length(azimuthCols)) {
+              paste(azimuthCols, collapse = ", ")
+            } else {
+              "none"
+            },
+            "). The report's Pan-Human section would be silently empty."
+          )
+        }
+        nLabelled <- sum(!is.na(scData@meta.data$final_level_labels))
+        azimuthOutcome <- list(
+          completed = TRUE,
+          reason = azimuthPlan$reason,
+          columns = azimuthCols,
+          nCells = ncol(scData),
+          nLabelled = nLabelled
+        )
         futile.logger::flog.info(
-          "Azimuth Pan-Human annotation completed successfully"
+          "Azimuth Pan-Human annotation completed successfully (%d/%d cells labelled, columns: %s)",
+          nLabelled,
+          ncol(scData),
+          paste(azimuthCols, collapse = ", ")
         )
       },
       error = function(e) {
+        azimuthOutcome <<- list(
+          completed = FALSE,
+          reason = paste("failed:", conditionMessage(e))
+        )
         futile.logger::flog.error(
           "Azimuth Pan-Human annotation failed: %s",
-          e$message
+          conditionMessage(e)
         )
       }
     )
   } else {
     futile.logger::flog.info(
-      "Azimuth Pan-Human annotation disabled, skipping..."
+      "Azimuth Pan-Human annotation skipped: %s",
+      azimuthPlan$reason
     )
   }
+  saveRDS(azimuthOutcome, "azimuth_results.rds")
 
   # CyteTypeR AI-powered Annotation
   if (

@@ -63,7 +63,8 @@ computeXeniumQcMetrics <- function(df, nmads = 3, count_col = NULL, negControlMa
     df$transcripts_per_nucleus <- tpn
   }
   ctrl_cols <- intersect(
-    c("nCount_ControlProbe", "nCount_ControlCodeword", "nCount_BlankCodeword"),
+    c("nCount_ControlProbe", "nCount_ControlCodeword", "nCount_BlankCodeword",
+      "nCount_GenomicControl"),
     colnames(df)
   )
   if (has_counts && length(ctrl_cols) > 0) {

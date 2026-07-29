@@ -4,6 +4,20 @@
 # It follows FGCZ best practices and recommendations.
 # Runs in SAMPLE mode - one job per sample.
 
+#' Append a timestamped line to the per-sample log.txt
+#'
+#' Do NOT use ezRun::ezWrite for this. Its signature is
+#' `ezWrite(..., sep, collapse, con)` - there is no `append` argument and `con`
+#' only matches by name, so the long-standing idiom
+#' `ezWrite(msg, "log.txt", append = TRUE)` pasted the filename and TRUE into
+#' the message and printed it to stdout; log.txt was never created. Passing
+#' `con = "log.txt"` is no better: writeLines() opens a character connection in
+#' "wt" mode, truncating the file on every call.
+logMsg <- function(...) {
+  cat(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), " ", ..., "\n",
+      sep = "", file = "log.txt", append = TRUE)
+}
+
 #' Patched RunBanksy function for Seurat v5 compatibility
 #' Uses 'layer' instead of deprecated 'slot' argument (SeuratObject >= 5.0.0)
 #' Issue: https://github.com/satijalab/seurat/issues/10250
@@ -182,21 +196,30 @@ RunBanksy_v5 <- function(
     )
   }
   fast_scaler <- function(mat, obj, grp, split.scl, verb) {
+    # scale() divides by sd, so a zero-variance gene (a panel gene detected in
+    # no cell - common, since every panel gene is a variable feature here)
+    # yields a whole NaN row. Seurat's own ScaleData returns 0 in that case;
+    # match it, otherwise the BANKSY assay carries NaN features into PCA.
+    zeroVarSafe <- function(m) {
+      s <- t(scale(t(m)))
+      s[!is.finite(s)] <- 0
+      s
+    }
     if (!is.null(grp) && split.scl) {
       groups <- unique(unlist(obj[[grp]]))
       scaled_list <- lapply(groups, function(g) {
         idx <- which(unlist(obj[[grp]]) == g)
         idx <- idx[idx %in% seq_len(ncol(mat))]
-        if (length(idx) > 0) t(scale(t(mat[, idx, drop = FALSE]))) else NULL
+        if (length(idx) > 0) zeroVarSafe(mat[, idx, drop = FALSE]) else NULL
       })
       scaled_list <- scaled_list[!sapply(scaled_list, is.null)]
       if (length(scaled_list) > 0) {
         do.call(cbind, scaled_list)[, colnames(mat)]
       } else {
-        t(scale(t(mat)))
+        zeroVarSafe(mat)
       }
     } else {
-      t(scale(t(mat)))
+      zeroVarSafe(mat)
     }
   }
 
@@ -263,14 +286,50 @@ ezMethodXeniumSeurat <- function(
   # Get input path for this sample
   xeniumPath <- file.path(param$dataRoot, input$getColumn("XeniumPath"))
 
-  ezWrite(
-    paste("Processing sample:", sampleName, "at", xeniumPath),
-    "log.txt",
-    append = TRUE
-  )
+  logMsg(
+    paste("Processing sample:", sampleName, "at", xeniumPath))
 
   if (!dir.exists(xeniumPath)) {
     stop(paste("Error: Path not found:", xeniumPath))
+  }
+
+  # --- Validate parameter combinations BEFORE any compute ---
+  # Everything below used to fail (or worse, silently degrade) only after hours
+  # of clustering and RCTD had already run.
+  if (!is.null(param$rctdFile) && param$rctdFile != "" &&
+      !file.exists(param$rctdFile)) {
+    stop(paste("rctdFile not found:", param$rctdFile))
+  }
+  if (!is.null(param$rctdClassFile) && param$rctdClassFile != "" &&
+      !file.exists(param$rctdClassFile)) {
+    stop(paste("rctdClassFile not found:", param$rctdClassFile))
+  }
+  if (isTRUE(param$doSPLIT)) {
+    hasRef <- (!is.null(param$rctdFile) && param$rctdFile != "") ||
+      (ezIsSpecified(param$rctdReference) && param$rctdReference != "None")
+    if (!hasRef) {
+      stop("doSPLIT requires an RCTD reference (set rctdReference or rctdFile).")
+    }
+    splitModeReq <- ifelse(is.null(param$splitMode), "neighborhood",
+                           as.character(param$splitMode))
+    # splitMode = "shift" needs the class hierarchy: without class_df, RCTD's
+    # results_df has no first_type_class/second_type_class, and SPLIT's swap rule
+    # dies inside dplyr with an "object not found" that the tryCatch then hid.
+    if (splitModeReq == "shift" &&
+        (is.null(param$rctdClassFile) || param$rctdClassFile == "")) {
+      stop(paste(
+        "splitMode = 'shift' requires rctdClassFile (a TSV mapping cell_type ->",
+        "class). Without it SPLIT's label-swap rule has no class hierarchy and",
+        "fails. Use splitMode = 'neighborhood' or supply rctdClassFile."
+      ))
+    }
+    if (!requireNamespace("SPLIT", quietly = TRUE)) {
+      stop(paste(
+        "doSPLIT = TRUE but the SPLIT package is not installed in this R",
+        "library. SPLIT is present under Dev/R/4.6.0 but absent from 4.5.0 -",
+        "check the Rversion the app is running."
+      ))
+    }
   }
 
   # 1. Load Xenium Data
@@ -301,14 +360,11 @@ ezMethodXeniumSeurat <- function(
       for (cl in added_cols) {
         sdata[[cl]] <- cells_meta[[cl]][meta_idx]
       }
-      ezWrite(
+      logMsg(
         paste(
           "Added", paste(added_cols, collapse = ", "), "to",
           sum(!is.na(meta_idx)), "cells"
-        ),
-        "log.txt",
-        append = TRUE
-      )
+        ))
     }
   }
 
@@ -343,41 +399,50 @@ ezMethodXeniumSeurat <- function(
   sdata <- addXeniumCellQc(sdata, nmads = qc_nmads)
 
   # Store unfiltered object for QC reporting (with QC + outlier flags)
-  ezWrite(
-    "Saving unfiltered object for QC reporting...",
-    "log.txt",
-    append = TRUE
-  )
-  qs2::qs_save(sdata, "scData.unfiltered.qs2", nthreads = 8)
+  logMsg(
+    "Saving unfiltered object for QC reporting...")
+  # nthreads = 1: multi-threaded qs2 deadlocks on multi-GB Seurat v5 objects
+  # (a 9 GB object hung 23 h at nthreads = 8; ~7 min at 1).
+  qs2::qs_save(sdata, "scData.unfiltered.qs2", nthreads = 1)
 
-  ezWrite(
+  logMsg(
     paste(
       "Filtering cells: minCounts =",
       min_counts,
       ", minFeatures =",
       min_features
-    ),
-    "log.txt",
-    append = TRUE
-  )
+    ))
   cells_before <- ncol(sdata)
+  # Fail with the thresholds named. subset() on integer(0) aborts with a bare
+  # "No cells found", which gives the user nothing to act on.
+  if (!any(sdata$useCell)) {
+    stop(sprintf(
+      paste0("QC removed all %d cells (minCounts = %s, minFeatures = %s). ",
+             "Median counts/cell = %g, median genes/cell = %g - lower the ",
+             "thresholds or check the input."),
+      cells_before, min_counts, min_features,
+      stats::median(sdata$nCount_Xenium), stats::median(sdata$nFeature_Xenium)
+    ))
+  }
   sdata <- subset(sdata, cells = which(sdata$useCell))
   cells_after <- ncol(sdata)
-  ezWrite(
-    paste("Cells after QC:", cells_after, "/", cells_before),
-    "log.txt",
-    append = TRUE
-  )
+  logMsg(
+    paste("Cells after QC:", cells_after, "/", cells_before))
 
-  # 3. Normalization (Xenium-specific with median counts as scale factor)
+  # 3. Normalization (Xenium-specific with median counts as scale factor).
+  # Matches the BANKSY paper ("normalized to the median transcript count and
+  # then natural log-transformed") and squidpy's normalize_total default.
   sdata <- NormalizeData(sdata, scale.factor = median(sdata$nCount_Xenium))
 
-  # 4. Feature Selection & Scaling
-  sdata <- FindVariableFeatures(
-    sdata,
-    selection.method = "vst",
-    nfeatures = 2000
-  )
+  # 4. Feature Selection & Scaling.
+  # Xenium is a TARGETED panel: every gene on it was deliberately chosen, so
+  # all of them are "variable features". HVG selection is a no-op below 2000
+  # genes but silently drops 3001 of the 5001 genes on a Prime 5K panel, and
+  # ScaleData/RunPCA both default to VariableFeatures(). Neither the Seurat
+  # Xenium vignette nor the squidpy tutorial calls FindVariableFeatures; the
+  # vignette uses RunPCA(features = rownames(obj)).
+  VariableFeatures(sdata) <- rownames(sdata)
+  logMsg(paste("Using all", nrow(sdata), "panel genes as variable features"))
   sdata <- ScaleData(sdata)
 
   # 5. Dimension Reduction
@@ -397,30 +462,21 @@ ezMethodXeniumSeurat <- function(
   ref_path <- NULL
   if (!is.null(param$rctdFile) && param$rctdFile != "") {
     ref_path <- param$rctdFile
-    ezWrite(
-      paste("Using manual RCTD reference:", ref_path),
-      "log.txt",
-      append = TRUE
-    )
+    logMsg(
+      paste("Using manual RCTD reference:", ref_path))
   } else if (
     ezIsSpecified(param$rctdReference) && param$rctdReference != "None"
   ) {
     ref_relative <- sub(" \\([^)]+\\)$", "", param$rctdReference)
     ref_path <- file.path("/srv/GT/databases/RCTD_References", ref_relative)
-    ezWrite(
-      paste("Using RCTD reference from dropdown:", ref_path),
-      "log.txt",
-      append = TRUE
-    )
+    logMsg(
+      paste("Using RCTD reference from dropdown:", ref_path))
   }
 
   if (!is.null(ref_path)) {
     stopifnot(file.exists(ref_path))
-    ezWrite(
-      paste("Running RCTD with reference:", ref_path),
-      "log.txt",
-      append = TRUE
-    )
+    logMsg(
+      paste("Running RCTD with reference:", ref_path))
     ref_obj <- ezLoadRobj(ref_path)
 
     # Check if it is a spacexr Reference object
@@ -429,11 +485,8 @@ ezMethodXeniumSeurat <- function(
         ref_obj <- ref_obj$reference
       } else if (inherits(ref_obj, "Seurat")) {
         # Convert Seurat object to RCTD Reference
-        ezWrite(
-          "Converting Seurat object to RCTD Reference...",
-          "log.txt",
-          append = TRUE
-        )
+        logMsg(
+          "Converting Seurat object to RCTD Reference...")
         ref_counts <- Seurat::GetAssayData(ref_obj, layer = "counts")
         # Try common cell type annotation columns
         celltype_col <- intersect(
@@ -451,15 +504,12 @@ ezMethodXeniumSeurat <- function(
           # RCTD requires cell_types to be a factor
           ref_celltypes <- as.factor(ref_celltypes)
           ref_obj <- spacexr::Reference(ref_counts, ref_celltypes)
-          ezWrite(
+          logMsg(
             paste(
               "Created RCTD Reference with",
               length(levels(ref_celltypes)),
               "cell types"
-            ),
-            "log.txt",
-            append = TRUE
-          )
+            ))
         }
       } else {
         warning(
@@ -512,10 +562,8 @@ ezMethodXeniumSeurat <- function(
             basename(ref_path), ref_gene_overlap, nrow(counts)
           ))
         }
-        ezWrite(
-          paste("RCTD reference shares", ref_gene_overlap, "genes with the panel"),
-          "log.txt", append = TRUE
-        )
+        logMsg(
+          paste("RCTD reference shares", ref_gene_overlap, "genes with the panel"))
 
         # Run RCTD
         umi_min <- ifelse(
@@ -528,28 +576,92 @@ ezMethodXeniumSeurat <- function(
         # doublets to singlets instead of rejecting) and supplies the class
         # hierarchy SPLIT-shift needs (Bilous et al. 2026 recommendation).
         rctd_class_df <- NULL
-        if (
-          !is.null(param$rctdClassFile) && param$rctdClassFile != "" &&
-            file.exists(param$rctdClassFile)
-        ) {
+        if (!is.null(param$rctdClassFile) && param$rctdClassFile != "") {
+          # Fail loudly on a bad path. Silently skipping it produced a
+          # wrong-but-successful run, and with splitMode = "shift" (which
+          # REQUIRES the class hierarchy) a silently absent class_df crashes
+          # SPLIT much later with a cryptic dplyr error.
+          if (!file.exists(param$rctdClassFile)) {
+            stop(sprintf("rctdClassFile not found: %s", param$rctdClassFile))
+          }
           cdf <- read.delim(param$rctdClassFile, stringsAsFactors = FALSE)
+          if (ncol(cdf) < 2) {
+            stop("rctdClassFile must have 2 columns: cell_type, class")
+          }
+          # Duplicate cell_type -> data.frame(row.names=) aborts with
+          # "duplicate row.names". A cell type MISSING from the mapping is
+          # worse: class_df[type, "class"] is NA inside spacexr's
+          # check_pairs_type, which throws "missing value where TRUE/FALSE
+          # needed" only AFTER fitBulk and choose_sigma_c have burned the
+          # expensive part of the run. Validate both up front.
+          dupTypes <- unique(cdf[[1]][duplicated(cdf[[1]])])
+          if (length(dupTypes) > 0) {
+            stop(sprintf("rctdClassFile has duplicate cell_type rows: %s",
+                         paste(head(dupTypes, 10), collapse = ", ")))
+          }
+          refTypes <- levels(ref_obj@cell_types)
+          missTypes <- setdiff(refTypes, as.character(cdf[[1]]))
+          if (length(missTypes) > 0) {
+            stop(sprintf(
+              "rctdClassFile is missing %d of the %d reference cell types: %s",
+              length(missTypes), length(refTypes),
+              paste(head(missTypes, 10), collapse = ", ")
+            ))
+          }
           rctd_class_df <- data.frame(
             class = as.character(cdf[[2]]),
             row.names = as.character(cdf[[1]])
           )
-          ezWrite(
+          logMsg(
             paste(
               "Using RCTD class mapping:", param$rctdClassFile, "(",
               length(unique(cdf[[2]])), "classes)"
-            ),
-            "log.txt", append = TRUE
-          )
+            ))
         }
+
+        # UMI_min_sigma gates which cells are used to fit sigma, the
+        # overdispersion term that drives the whole RCTD likelihood and
+        # therefore every singlet/doublet/reject call. spacexr's default is 300
+        # while Xenium medians run 100-300, so sigma gets fit on the upper tail
+        # of the count distribution - enriched for large RNA-rich cells and
+        # depleted of exactly the low-RNA types (T cells, neutrophils) that
+        # rctdUMImin exists to retain. Keep spacexr's default so results do not
+        # silently change (rctd-py keeps 300 too), but expose it and make the
+        # mismatch visible instead of letting it fail cryptically at N_fit = 0.
+        umi_min_sigma <- ifelse(
+          is.null(param$rctdUMIminSigma),
+          300,
+          as.numeric(param$rctdUMIminSigma)
+        )
+        nUMI_query <- Matrix::colSums(counts)
+        n_sigma_cells <- sum(nUMI_query > umi_min_sigma)
+        logMsg(sprintf(
+          "RCTD sigma fitting: %d/%d cells clear UMI_min_sigma = %g (median counts/cell = %g)",
+          n_sigma_cells, length(nUMI_query), umi_min_sigma,
+          stats::median(nUMI_query)
+        ))
+        if (n_sigma_cells < 100) {
+          # spacexr samples min(N_fit = 100, n_sigma_cells) cells and hard-errors
+          # at 0. Back off to a quantile of the observed distribution rather than
+          # dying after the expensive steps.
+          fallback <- max(1, floor(stats::quantile(nUMI_query, 0.75, names = FALSE)))
+          logMsg(sprintf(
+            "WARNING: only %d cells clear UMI_min_sigma = %g (spacexr needs 100); falling back to %g (75th percentile)",
+            n_sigma_cells, umi_min_sigma, fallback
+          ))
+          umi_min_sigma <- fallback
+        }
+
+        # spacexr fits sigma on a random sample() of cells, and with
+        # max_cores > 1 mclapply advances the parent RNG as a side effect, so
+        # RCTD labels are NOT reproducible run-to-run without a fixed seed.
+        set.seed(42)
         myRCTD <- create.RCTD(
           query.puck,
           ref_obj,
           max_cores = param$cores,
           UMI_min = umi_min,
+          UMI_min_sigma = umi_min_sigma,
           class_df = rctd_class_df
         )
         myRCTD <- run.RCTD(myRCTD, doublet_mode = 'doublet')
@@ -593,18 +705,22 @@ ezMethodXeniumSeurat <- function(
           sdata <- AddMetaData(sdata, metadata = results$results_df)
         }
 
-        ezWrite("RCTD annotation completed", "log.txt", append = TRUE)
+        logMsg("RCTD annotation completed")
 
         # --- Optional SPLIT spatial purification (opt-in side-by-side layer) ---
         # Removes transcript spill-over using the RCTD fit. Adds split.*
         # classification metadata to the main object and saves a separate
         # purified object; the primary clustering/UMAP stay on raw counts.
         if (isTRUE(param$doSPLIT)) {
-          ezWrite(
-            "Running SPLIT spatial purification...",
-            "log.txt",
-            append = TRUE
-          )
+          logMsg(
+            "Running SPLIT spatial purification...")
+          # Recorded and surfaced in the report. Previously any failure here was
+          # swallowed, the job returned "Success", and the report told the user
+          # "SPLIT was not run - enable the doSPLIT parameter" while the summary
+          # table said doSPLIT = yes. The work already done (clustering, RCTD,
+          # BANKSY) is worth keeping, so this records the reason rather than
+          # aborting - but the report now shows it as a failure, not as "off".
+          splitError <- NULL
           tryCatch(
             {
               # SPLIT >= 0.2.2 requires the RCTD object to be post-processed
@@ -681,11 +797,9 @@ ezMethodXeniumSeurat <- function(
                   score_name = "neighborhood_weights_second_type",
                   DO_swap_lables = FALSE
                 )
-                ezWrite(
+                logMsg(
                   paste0("SPLIT neighbourhood-aware balance (threshold=", split_thr,
-                         ", 15um prune, k=20)"),
-                  "log.txt", append = TRUE
-                )
+                         ", 15um prune, k=20)"))
               } else if (split_mode == "shift") {
                 # SPLIT-shift: transcriptomic-neighbourhood label correction. If a
                 # cell's primary type disagrees with its transcriptomic neighbourhood
@@ -706,13 +820,11 @@ ezMethodXeniumSeurat <- function(
                   score_name = "neighborhood_weights_second_type",
                   DO_swap_lables = TRUE
                 )
-                ezWrite("SPLIT-shift (transcriptomic neighbourhood + label swap)",
-                        "log.txt", append = TRUE)
+                logMsg("SPLIT-shift (transcriptomic neighbourhood + label swap)")
               } else {
                 # 'full' mode: purify every cell with a secondary type (RCTD-only)
                 spatial_purified <- xe_purified
-                ezWrite("SPLIT full purification (all cells with a secondary type)",
-                        "log.txt", append = TRUE)
+                logMsg("SPLIT full purification (all cells with a secondary type)")
               }
 
               # map SPLIT classification onto the main object (purification_status:
@@ -777,59 +889,46 @@ ezMethodXeniumSeurat <- function(
                   )
                   # map the post-purification annotation onto the main object
                   sdata$split.celltype_after <- unname(pur_main[colnames(sdata)])
-                  ezWrite(
-                    "Re-annotated purified counts with RCTD (after-SPLIT)",
-                    "log.txt",
-                    append = TRUE
-                  )
+                  logMsg(
+                    "Re-annotated purified counts with RCTD (after-SPLIT)")
                 },
                 error = function(e) {
-                  ezWrite(
-                    paste("Purified re-annotation failed:", e$message),
-                    "log.txt",
-                    append = TRUE
-                  )
+                  logMsg(
+                    paste("Purified re-annotation failed:", e$message))
                 }
               )
 
               qs2::qs_save(
                 spatial_purified,
                 "scData.purified.qs2",
-                nthreads = param$cores
+                nthreads = 1
               )
-              ezWrite(
+              logMsg(
                 paste(
                   "SPLIT purification done:",
                   ncol(pur_counts), "purified cells"
-                ),
-                "log.txt",
-                append = TRUE
-              )
+                ))
             },
             error = function(e) {
-              ezWrite(
-                paste("SPLIT purification failed:", e$message),
-                "log.txt",
-                append = TRUE
-              )
+              logMsg(paste("SPLIT purification failed:", conditionMessage(e)))
+              splitError <<- conditionMessage(e)
             }
           )
+          param$splitError <- splitError
         }
       }
     }
-  } else if (!is.null(ref_path)) {
-    ezWrite(
-      paste("RCTD reference not found:", ref_path),
-      "log.txt",
-      append = TRUE
-    )
   }
+  # (There used to be an `else if (!is.null(ref_path))` branch logging
+  # "RCTD reference not found" here. It was the else of `if (!is.null(ref_path))`,
+  # so its condition was always FALSE - unreachable. A missing reference now
+  # fails up front in the validation block instead.)
 
   # Assign final object
   scData <- sdata
 
   # Pre-compute cluster markers
-  ezWrite("Computing cluster markers...", "log.txt", append = TRUE)
+  logMsg("Computing cluster markers...")
   Idents(scData) <- "seurat_clusters"
   posMarkers <- FindAllMarkers(
     scData,
@@ -845,16 +944,35 @@ ezMethodXeniumSeurat <- function(
   writexl::write_xlsx(posMarkers, "posMarkers.xlsx")
 
   # BANKSY Spatial Niches
-  ezWrite("Running BANKSY spatial analysis...", "log.txt", append = TRUE)
+  logMsg("Running BANKSY spatial analysis...")
+  # Recorded so the report can name the real reason instead of the vague
+  # "not performed or failed".
+  banksyError <- NULL
+  # lambda = 0.8 is the BANKSY paper's DOMAIN-SEGMENTATION setting ("lambda = 0.2
+  # for cell typing and lambda = 0.8 for domain segmentation"), which is what a
+  # niche is. k_geom = 30 matches the SeuratWrappers Xenium example.
+  lambda <- ifelse(is.null(param$lambda), 0.8, as.numeric(param$lambda))
+  niche_res <- ifelse(
+    is.null(param$nicheResolution),
+    0.5,
+    as.numeric(param$nicheResolution)
+  )
+  banksy_k_geom <- ifelse(
+    is.null(param$banksyKgeom), 30, as.numeric(param$banksyKgeom)
+  )
+  # Number of pca.banksy PCs used for niche clustering. This was hardcoded to 12
+  # while npcs = 30 were computed, i.e. 60% of the embedding was discarded with
+  # no stated reason, and Banksy's own runBanksyPCA computes npcs = 20 with the
+  # convention of clustering on all of them. But raising it changes every
+  # existing customer's niche boundaries and niche count, so the DEFAULT STAYS
+  # AT 12 to keep results comparable with previous runs - same rule applied to
+  # rctdUMIminSigma above. It is now a parameter, so a higher value is an
+  # explicit, documentable choice rather than one that arrives with a reinstall.
+  banksy_dims <- ifelse(
+    is.null(param$banksyDims), 12, as.numeric(param$banksyDims)
+  )
   tryCatch(
     {
-      lambda <- ifelse(is.null(param$lambda), 0.8, as.numeric(param$lambda))
-      niche_res <- ifelse(
-        is.null(param$nicheResolution),
-        0.5,
-        as.numeric(param$nicheResolution)
-      )
-
       # Use embedded RunBanksy_v5 for Seurat v5 compatibility
       # SeuratWrappers::RunBanksy uses deprecated 'slot' argument that fails with SeuratObject >= 5.0
       scData <- RunBanksy_v5(
@@ -863,7 +981,7 @@ ezMethodXeniumSeurat <- function(
         assay = "Xenium",
         layer = "data",
         features = "variable",
-        k_geom = 30,
+        k_geom = banksy_k_geom,
         verbose = FALSE
       )
       DefaultAssay(scData) <- "BANKSY"
@@ -878,7 +996,7 @@ ezMethodXeniumSeurat <- function(
       scData <- FindNeighbors(
         scData,
         reduction = "pca.banksy",
-        dims = 1:12,
+        dims = 1:banksy_dims,
         verbose = FALSE
       )
       scData <- FindClusters(
@@ -887,6 +1005,28 @@ ezMethodXeniumSeurat <- function(
         resolution = niche_res,
         verbose = FALSE
       )
+
+      # CRITICAL: restore the transcriptional clustering.
+      # FindClusters() ends with an `object[["seurat_clusters"]] <- Idents(object)`
+      # that is guarded by `if (all(cluster.name %in% default.cluster.name))` in
+      # Seurat 5.4.0 but is UNCONDITIONAL in 5.5.1. So on 5.5.1 this call
+      # silently replaced the transcriptional clusters with the BANKSY niches:
+      # every "cluster" figure in the report showed niches, posMarkers (computed
+      # earlier from the real clusters) no longer matched them, and
+      # clusters_for_explorer.csv came out byte-identical to
+      # niches_for_explorer.csv. The clustering survives under its resolution
+      # key, so put it back. Regression test:
+      # tests/testthat/test_xeniumSeuratClusters.R
+      resCol <- paste0("Xenium_snn_res.", res)
+      if (resCol %in% colnames(scData[[]])) {
+        scData$seurat_clusters <- scData[[resCol]][, 1]
+      } else {
+        stop(sprintf(
+          "Cannot restore transcriptional clusters: '%s' not in meta.data (have: %s)",
+          resCol, paste(grep("_snn_res", colnames(scData[[]]), value = TRUE),
+                        collapse = ", ")
+        ))
+      }
 
       # Niche markers - use original assay for interpretable gene markers
       # (BANKSY features .m0/.m1 are only for clustering, not marker identification)
@@ -912,14 +1052,11 @@ ezMethodXeniumSeurat <- function(
       # Reset default assay
       DefaultAssay(scData) <- "Xenium"
       Idents(scData) <- "seurat_clusters"
-      ezWrite("BANKSY analysis completed", "log.txt", append = TRUE)
+      logMsg("BANKSY analysis completed")
     },
     error = function(e) {
-      ezWrite(
-        paste("BANKSY analysis failed:", e$message),
-        "log.txt",
-        append = TRUE
-      )
+      logMsg(paste("BANKSY analysis failed:", conditionMessage(e)))
+      banksyError <<- conditionMessage(e)
       writexl::write_xlsx(data.frame(), "posMarkersBanksy.xlsx")
     }
   )
@@ -930,11 +1067,41 @@ ezMethodXeniumSeurat <- function(
   if ("Xenium" %in% SeuratObject::Assays(scData)) DefaultAssay(scData) <- "Xenium"
   if ("seurat_clusters" %in% colnames(scData[[]])) Idents(scData) <- "seurat_clusters"
 
-  # Export Xenium Explorer compatible CSV files
-  # Cell IDs in Seurat match original Xenium format (e.g., "aaaddlda-1")
-  ezWrite("Exporting Xenium Explorer CSV files...", "log.txt", append = TRUE)
+  # Pre-compute cell-type markers so the report reads them from disk instead of
+  # recomputing a full FindAllMarkers on every render, and so the user actually
+  # gets the table (clusters and niches each shipped an .xlsx; cell types did not).
+  if ("RCTD_Main" %in% colnames(scData@meta.data) &&
+      !all(is.na(scData$RCTD_Main))) {
+    logMsg("Computing cell type markers...")
+    tryCatch(
+      {
+        Idents(scData) <- "RCTD_Main"
+        posMarkersCellType <- FindAllMarkers(
+          scData, only.pos = TRUE, min.pct = 0.25,
+          logfc.threshold = 0.25, verbose = FALSE
+        )
+        if (nrow(posMarkersCellType) > 0) {
+          posMarkersCellType$diff_pct <- abs(
+            posMarkersCellType$pct.1 - posMarkersCellType$pct.2
+          )
+        }
+        writexl::write_xlsx(posMarkersCellType, "posMarkersCellType.xlsx")
+      },
+      error = function(e) {
+        logMsg(paste("Cell type marker computation failed:", conditionMessage(e)))
+      }
+    )
+    Idents(scData) <- "seurat_clusters"
+  }
 
-  cell_ids <- colnames(scData)
+  # Export Xenium Explorer compatible CSV files.
+  # Xenium Explorer matches on the RAW cell_id ("aaaddlda-1"), but RenameCells()
+  # above prefixed every cell with the sample name ("Sample_aaaddlda-1"), so the
+  # exported ids matched zero cells on import. Strip the prefix back off.
+  logMsg("Exporting Xenium Explorer CSV files...")
+
+  cell_ids <- sub(paste0("^", sampleName, "_"), "", colnames(scData))
+  stopifnot(!any(grepl(paste0("^", sampleName, "_"), cell_ids)))
 
   # Clusters for Xenium Explorer
   write.csv(
@@ -970,81 +1137,71 @@ ezMethodXeniumSeurat <- function(
     )
   }
 
-  # Generate Vitessce-optimized Zarr for fast visualization
-  # This enables <5 second load times in exploreVitessceXenium
-  # Disabled by default until fully tested
-  if (
-    isTRUE(param$generateVitessceZarr) && !is.null(param$generateVitessceZarr)
-  ) {
-    ezWrite(
-      "Generating Vitessce Zarr for fast visualization...",
-      con = "log.txt",
-      append = TRUE
-    )
+  # (A Vitessce-Zarr block used to sit here, gated on param$generateVitessceZarr.
+  # That parameter existed in neither appDefaults nor the Ruby app, so isTRUE(NULL)
+  # made it permanently unreachable - and its fallback branch sourced a script from
+  # a personal home checkout. Removed. If Vitessce export is wanted, add the
+  # parameter to BOTH sides and ship the script inside ezRun.)
 
-    tryCatch(
-      {
-        # Try ezRun bundled script first, fall back to development location
-        vitessce_script <- system.file(
-          "R",
-          "vitessce-utils.R",
-          package = "ezRun"
-        )
-        if (!file.exists(vitessce_script) || vitessce_script == "") {
-          vitessce_script <- "/home/pgueguen/git/paul-scripts/Internal_Dev/SeuratXeniumApp/scripts/generate_vitessce_zarr.R"
-        }
-
-        if (file.exists(vitessce_script)) {
-          source(vitessce_script)
-
-          result <- generate_vitessce_zarr(
-            seurat_path = "scData.qs2",
-            output_dir = ".",
-            seurat_obj = scData,
-            nthreads = 8
-          )
-
-          ezWrite(
-            paste("Vitessce Zarr created:", result$zarr_path),
-            con = "log.txt",
-            append = TRUE
-          )
-        } else {
-          ezWrite(
-            "Warning: Vitessce generation script not found, skipping",
-            con = "log.txt",
-            append = TRUE
-          )
-        }
-      },
-      error = function(e) {
-        ezWrite(
-          paste("Warning: Vitessce Zarr generation failed:", e$message),
-          con = "log.txt",
-          append = TRUE
-        )
-      }
-    )
-  }
-
-  # Save final analyzed object and parameters for Rmd report.
   # Record the reference RCTD ACTUALLY used (ref_path resolves rctdFile OR the dropdown, with
   # rctdFile taking precedence) so the report names the real provenance, not the dropdown value
   # that rctdFile may have silently overridden. NULL when no annotation was run.
   param$rctdRefUsed <- if (exists("ref_path")) ref_path else NULL
-  ezWrite("Saving final analyzed object...", "log.txt", append = TRUE)
-  qs2::qs_save(scData, "scData.qs2", nthreads = param$cores)
-  qs2::qs_save(param, "param.qs2")
+  param$banksyError <- banksyError
 
-  # Generate Report
+  # Drop the BANKSY assay before saving. It carries a dense scale.data block
+  # (tens of GB on a Prime 5K run) that nothing reads: the report only ever uses
+  # assay = "Xenium" plus the banksy_cluster metadata column, which survives
+  # DietSeurat. This shrinks the delivered object, every ezLoadRobj in the
+  # report, and the exploreSC payload.
+  if ("BANKSY" %in% SeuratObject::Assays(scData)) {
+    # pca.banksy goes too: it is an embedding OF the BANKSY assay, so keeping it
+    # would leave a reduction pointing at an assay that no longer exists (which
+    # makes GetAssayData warn "Layer counts isn't present"). The niche labels
+    # live in meta.data$banksy_cluster and survive.
+    scData <- DietSeurat(
+      scData, assays = "Xenium",
+      dimreducs = intersect(c("pca", "umap"), names(scData@reductions)),
+      graphs = names(scData@graphs)
+    )
+    logMsg("Dropped the BANKSY assay and its pca.banksy embedding before saving (niche labels retained)")
+  }
+
+  # exploreSC only offers character/factor meta.data columns in "colour by", so a
+  # logical covariate is silently invisible. Factor-ise the QC flags.
+  logicalCols <- names(which(vapply(scData@meta.data, is.logical, logical(1))))
+  for (cl in logicalCols) {
+    scData[[cl]] <- factor(ifelse(scData@meta.data[[cl]], "yes", "no"),
+                           levels = c("no", "yes"))
+  }
+  if (length(logicalCols) > 0) {
+    logMsg(paste("Factor-ised logical meta.data for exploreSC:",
+                 paste(logicalCols, collapse = ", ")))
+  }
+
+  logMsg("Saving final analyzed object...")
+  # NOTE: makeRmdReport() qs_save()s every named argument in its `...`, so it
+  # writes scData.qs2 / param.qs2 / input.qs2 itself. Saving them here as well
+  # would serialize a multi-GB object twice. The `use.qs2` argument comes AFTER
+  # `...` in makeRmdReport's signature, so R does not partial-match it - passing
+  # `use.qs = TRUE` (as this app did) silently created a junk `use.qs.qs2`.
   makeRmdReport(
     param = param,
     scData = scData,
     input = input,
-    use.qs = TRUE,
+    use.qs2 = TRUE,
+    nthreads = 1,
     rmdFile = "XeniumSeurat.Rmd",
     reportTitle = paste0(sampleName, " - Xenium Analysis")
   )
+
+  # The unfiltered object exists only so the report can draw the pre-filter QC
+  # panels. It is ~as large as scData.qs2, so leaving it behind roughly doubles
+  # the delivered size per sample for something nothing downstream reads.
+  if (file.exists("scData.unfiltered.qs2")) {
+    unlink("scData.unfiltered.qs2")
+    logMsg("Removed scData.unfiltered.qs2 (report-only intermediate)")
+  }
 
   return("Success")
 }
@@ -1058,27 +1215,34 @@ EzAppXeniumSeurat <- setRefClass(
       runMethod <<- ezMethodXeniumSeurat
       name <<- "EzAppXeniumSeurat"
 
-      # Populate RCTD References
+      # Populate RCTD References.
+      # recursive = TRUE: every reference lives in a subdirectory
+      # (allen/, disco/, celltypist/, ...), so the old non-recursive
+      # list.files() always returned character(0) and this silently fell through
+      # to "None". The paths must stay relative ("folder/file.rds") because
+      # ezMethodXeniumSeurat joins them onto the reference root.
       rctd_refs <- tryCatch(
         {
           if (dir.exists("/srv/GT/databases/RCTD_References")) {
             list.files(
               "/srv/GT/databases/RCTD_References",
-              pattern = ".rds$",
-              full.names = FALSE
+              pattern = "\\.rds$",
+              full.names = FALSE,
+              recursive = TRUE
             )
           } else {
-            c("Reference_Not_Found_Locally")
+            character(0)
           }
         },
         error = function(e) {
-          c("Error_Listing_References")
+          character(0)
         }
       )
 
-      if (length(rctd_refs) == 0) {
-        rctd_refs <- c("None")
-      }
+      # "None" must stay FIRST: DefaultValue is rctd_refs[1], and defaulting to
+      # whichever reference happens to sort first would switch RCTD on (with an
+      # arbitrary atlas) for every job that does not set it explicitly.
+      rctd_refs <- c("None", sort(rctd_refs))
 
       appDefaults <<- rbind(
         minCounts = ezFrame(
@@ -1126,6 +1290,21 @@ EzAppXeniumSeurat <- setRefClass(
           DefaultValue = 10,
           Description = "Minimum UMI count for RCTD annotation (10 retains low-RNA cells - T cells/neutrophils - that spillover hits hardest)"
         ),
+        rctdUMIminSigma = ezFrame(
+          Type = "numeric",
+          DefaultValue = 300,
+          Description = "Min UMI for cells used to fit RCTD's sigma (overdispersion). spacexr's default is 300 while Xenium medians run 100-300, so sigma is fit on the count-rich tail; lower it if the log warns that too few cells clear it"
+        ),
+        banksyDims = ezFrame(
+          Type = "numeric",
+          DefaultValue = 12,
+          Description = "BANKSY: number of pca.banksy PCs used for niche clustering. Default 12 preserves historical behaviour; 30 (all the PCs computed) uses the full embedding but shifts niche boundaries, so change it deliberately and say so when comparing against earlier runs"
+        ),
+        banksyKgeom = ezFrame(
+          Type = "numeric",
+          DefaultValue = 30,
+          Description = "BANKSY: spatial neighbourhood size k_geom (paper endorses 15-30)"
+        ),
         qcNmads = ezFrame(
           Type = "numeric",
           DefaultValue = 3,
@@ -1156,10 +1335,10 @@ EzAppXeniumSeurat <- setRefClass(
           DefaultValue = 1000,
           Description = "Cell-type co-occurrence: number of label permutations for the enrichment null (log2 enrichment + z-score)"
         ),
-        computeSC = ezFrame(
+        coocFdr = ezFrame(
           Type = "logical",
           DefaultValue = TRUE,
-          Description = "Compute Seurat Analysis"
+          Description = "Cell-type co-occurrence: BH-correct the permutation p-values across cell-type pairs before starring the heatmap"
         )
       )
     }
