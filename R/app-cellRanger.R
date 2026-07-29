@@ -67,11 +67,15 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
     GEX = {
       #3.1. Obtain GEX the reference
       refDir <- getCellRangerGEXReference(param)
+      ## Pass CellRanger an alias of the reference so it will actually run its
+      ## built-in cell-type annotation; refDir itself stays untouched (and is
+      ## what the controlSeqs cleanup below unlinks).
+      annotRefDir <- cellRangerAnnotatableRef(refDir, param)
       #3.2. Command
       cmd <- paste(
         "cellranger count",
         paste0("--id=", cellRangerFolder),
-        paste0("--transcriptome=", refDir),
+        paste0("--transcriptome=", annotRefDir),
         paste0("--fastqs=", fileLevelDir),
         paste0("--sample=", sampleName),
         paste0("--localmem=", param$ram),
@@ -313,6 +317,87 @@ computeBamStatsSC = function(bamFile, ram = NULL) {
   return(resultFrame)
 }
 
+
+# CellRanger >= 10.1.0 runs the Pan-Human Azimuth cell-type model LOCALLY and by
+# default (no 10x Cloud account, no --cell-annotation-model flag, ~18s for 20k
+# cells). It only does so when the reference DECLARES a genome name it
+# recognises: cellranger's GENOMES_WITH_SUPPORTED_LOCAL_MODELS is
+# c("hg19","GRCh38","GRCh39"), matched as a SUBSTRING of reference.json$genomes.
+#
+# FGCZ references declare the index directory name instead, e.g.
+# "genes_10XGEX_SC_Mt_rRNA-Mt_tRNA-protein_coding-rRNA-tRNA_Index". None of the
+# supported names is a substring of that, so cellranger logs
+#   Exiting because genome: [...] ... and is_human: False
+# and skips annotation SILENTLY - count still succeeds, there is simply no
+# outs/cell_types/ directory. Every FGCZ human run has been missing this.
+#
+# Renaming the shared production references would fix it but changes the genome
+# string in every future output and is not ours to do. Instead hand cellranger a
+# tiny alias directory: symlinks to the real fasta/genes/star (so the 31 GB index
+# is not copied - the alias is ~16 KB) plus our own reference.json whose
+# `genomes` field says GRCh38. Verified: cellranger takes the genome name from
+# reference.json and ignores the directory basename, so this is sufficient.
+#
+# Human only, because the model is pan-HUMAN; on any other species this is a
+# no-op. Never fails the job: on any problem it returns the original refDir and
+# the run proceeds exactly as before, just without annotation.
+cellRangerAnnotatableRef <- function(refDir, param, aliasParent = getwd()) {
+  supported <- c("hg19", "GRCh38", "GRCh39")
+  tryCatch(
+    {
+      if (!identical(getSpecies(param$refBuild), "Human")) {
+        return(refDir)
+      }
+      jsonFile <- file.path(refDir, "reference.json")
+      if (!file.exists(jsonFile)) {
+        return(refDir)
+      }
+      ref <- jsonlite::fromJSON(jsonFile, simplifyVector = TRUE)
+      genomes <- as.character(unlist(ref$genomes))
+      ## Multi-genome references are unsupported by cell annotation anyway.
+      if (length(genomes) != 1L) {
+        return(refDir)
+      }
+      if (any(vapply(
+        supported,
+        function(s) grepl(s, genomes, fixed = TRUE),
+        logical(1)
+      ))) {
+        return(refDir) ## already annotatable, e.g. a 10x-supplied reference
+      }
+      aliasDir <- file.path(aliasParent, "10X_annotatable_Ref")
+      unlink(aliasDir, recursive = TRUE)
+      dir.create(aliasDir, recursive = TRUE, showWarnings = FALSE)
+      for (entry in list.files(refDir, all.files = FALSE)) {
+        if (identical(entry, "reference.json")) next
+        file.symlink(file.path(refDir, entry), file.path(aliasDir, entry))
+      }
+      ref$genomes <- "GRCh38"
+      writeLines(
+        jsonlite::toJSON(ref, auto_unbox = TRUE, pretty = TRUE),
+        file.path(aliasDir, "reference.json")
+      )
+      ## Fail closed: only use the alias if it actually looks like a reference.
+      if (!all(file.exists(file.path(aliasDir, list.files(refDir))))) {
+        return(refDir)
+      }
+      futile.logger::flog.info(
+        "CellRanger cell annotation: reference declares genome '%s', which has no local model; using alias %s declaring GRCh38",
+        genomes,
+        aliasDir
+      )
+      return(aliasDir)
+    },
+    error = function(e) {
+      futile.logger::flog.warn(
+        "Could not build an annotatable reference alias (%s); continuing with %s, cell annotation will be skipped",
+        conditionMessage(e),
+        refDir
+      )
+      return(refDir)
+    }
+  )
+}
 
 getCellRangerGEXReference <- function(param) {
   require(rtracklayer)

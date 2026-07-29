@@ -289,6 +289,40 @@ getSpecies <- function(refBuild) {
   return(species)
 }
 
+# Decide whether the Pan-Human Azimuth (CloudAzimuth) step should run, and say
+# why not when it should not. This is the ONLY species gate: neither ScSeuratApp
+# nor CloudAzimuth itself checks, so without this a mouse job silently ships its
+# matrix to the human model. The reference is keyed on HUMAN gene symbols, so on
+# a mouse object almost nothing matches (Gpr4 vs GPR4) and what comes back is a
+# confident-looking annotation computed from a near-empty matrix.
+# Returns list(run, reason); the reason is logged so a skip is visible.
+panHumanAzimuthPlan <- function(param) {
+  enabled <- ezIsSpecified(param$AzimuthPanHuman) &&
+    (isTRUE(param$AzimuthPanHuman) ||
+      identical(tolower(as.character(param$AzimuthPanHuman)[1]), "true"))
+  if (!enabled) {
+    return(list(run = FALSE, reason = "disabled by parameter"))
+  }
+  if (!ezIsSpecified(param$refBuild)) {
+    return(list(
+      run = FALSE,
+      reason = "no refBuild given, cannot confirm the dataset is human"
+    ))
+  }
+  species <- getSpecies(param$refBuild)
+  if (!identical(species, "Human")) {
+    return(list(
+      run = FALSE,
+      reason = paste0(
+        "Pan-Human Azimuth is human-only and refBuild resolves to species '",
+        species,
+        "'"
+      )
+    ))
+  }
+  return(list(run = TRUE, reason = "human dataset"))
+}
+
 geneMeansCluster <- function(object) {
   if (is(object, "SingleCellExperiment")) {
     tr_cnts <- expm1(logcounts(object))
