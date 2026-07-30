@@ -1,0 +1,9 @@
+metric	direction	narrow_min	narrow_good	broad_min	broad_good	note
+FRiP	higher	0.01	0.05	NA	NA	Broad marks are often <0.01; interpret with the fingerprint instead.
+NSC	higher	1.05	1.10	1.02	1.05	Frequently low for broad histone marks.
+RSC	higher	0.8	1.0	0.8	1.0	Unreliable for broad marks.
+NRF	higher	0.8	0.9	0.8	0.9	Non-redundant fraction of uniquely mapped reads.
+PBC1	higher	0.7	0.9	0.7	0.9	PCR bottleneck coefficient 1.
+PBC2	higher	3	10	3	10	PCR bottleneck coefficient 2.
+mappedFraction	higher	0.8	0.95	0.8	0.95	Fraction of reads mapped.
+mapq30Fraction	higher	0.7	0.9	0.7	0.9	Fraction of reads with MAPQ >= 30.

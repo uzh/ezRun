@@ -1,0 +1,419 @@
+---
+params:
+  reportTitle: "ChIP-seq Peak Comparison"
+title: "`r params$reportTitle`"
+---
+
+<!-- Styling comes from the fgczQuartoTemplate assets staged next to this file by
+     ezRun::makeQuartoReport(), which calls fgczQuartoTemplate::fgcz_render().
+     There is deliberately no format: block here. -->
+
+```{r setup}
+#| include: false
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.width = 8, fig.height = 5)
+suppressPackageStartupMessages({
+  library(GenomicRanges); library(ggplot2); library(data.table)
+})
+## allow non-UCSC chromosome names (e.g. Ensembl "1", bacterial RefSeq "NC_*")
+## in Gviz tracks, otherwise DataTrack/AnnotationTrack reject them.
+options(ucscChromosomeNames = FALSE)
+
+.fgcz_load <- function(name, nthreads = 4L) {
+  paths <- c(file.path("data", paste0(name, ".qs2")), paste0(name, ".qs2"),
+             file.path("data", paste0(name, ".rds")), paste0(name, ".rds"))
+  for (p in paths) if (file.exists(p)) {
+    if (grepl("\\.qs2$", p)) return(qs2::qs_read(p, nthreads = nthreads))
+    return(readRDS(p))
+  }
+  stop("No .qs2/.rds file found for: ", name)
+}
+.tbl <- function(df, digits = 3, ...) {
+  df <- as.data.frame(df)
+  num <- vapply(df, is.numeric, logical(1)); df[num] <- lapply(df[num], round, digits)
+  if (requireNamespace("DT", quietly = TRUE))
+    return(DT::datatable(df, class = "compact stripe", rownames = FALSE,
+                         options = list(pageLength = 10, scrollX = TRUE, dom = "tip"), ...))
+  knitr::kable(df)
+}
+.noteHTML <- function(txt) htmltools::HTML(sprintf(
+  '<div class="callout callout-style-default callout-note"><div class="callout-body-container callout-body"><p>%s</p></div></div>', txt))
+.have <- function(x) !is.null(x) && (is.data.frame(x) || length(x) > 0)
+
+chipData    <- .fgcz_load("chipData")
+param       <- chipData$param
+sampleNames <- chipData$sampleNames
+condition   <- chipData$condition
+nSamples    <- chipData$nSamples
+peaks       <- chipData$peaks
+cvdPalette  <- grDevices::palette.colors(palette = "Okabe-Ito")   # colour-blind safe
+sampleCol   <- setNames(rep(cvdPalette, length.out = nSamples), sampleNames)
+```
+
+::: {.panel-tabset}
+
+# Overview
+
+```{r overview-text}
+#| output: asis
+cat(sprintf("Reference build: **`%s`** &nbsp;|&nbsp; peak column: **%s** &nbsp;|&nbsp; mark type: **%s**\n\n",
+            param$refBuild, chipData$peakCol, param$markType))
+cat(sprintf("top peaks (n) / rankBy: **%s / %s** &nbsp;|&nbsp; quantify from: **%s** &nbsp;|&nbsp; normalization: **%s** &nbsp;|&nbsp; consensus min samples: **%s**\n\n",
+            param$topN, param$rankBy, param$quantifyFrom, param$normalization,
+            param$minSamplesForConsensus))
+```
+
+```{r overview-table}
+info <- data.frame(
+  Sample = sampleNames,
+  Condition = if (!is.null(condition)) as.character(condition) else "NA",
+  Peaks = chipData$peakStats$nPeaks[match(sampleNames, chipData$peakStats$sample)],
+  BAM = ifelse(chipData$hasBam, "yes", "no"),
+  BigWig = ifelse(chipData$hasBw, "yes", "no"),
+  stringsAsFactors = FALSE)
+.tbl(info)
+```
+
+### Peaks dropped during harmonisation
+
+```{r droplog}
+if (.have(chipData$dropLog) && nrow(chipData$dropLog) > 0) .tbl(chipData$dropLog) else
+  .noteHTML("No peaks were dropped (all on-reference, in-bounds, not blacklisted).")
+```
+
+# QC
+
+::: {.panel-tabset}
+
+## Summary
+
+```{r qcflags-table}
+if (.have(chipData$qcFlags) && nrow(chipData$qcFlags) > 0) {
+  fl <- chipData$qcFlags
+  wide <- reshape(fl[, c("sample", "metric", "value")], idvar = "sample",
+                  timevar = "metric", direction = "wide")
+  colnames(wide) <- sub("^value\\.", "", colnames(wide))
+  .tbl(wide)
+} else .noteHTML("No flaggable QC metrics available for this dataset.")
+```
+
+::: {.callout-tip}
+## Flags
+**good** ≥ good threshold &nbsp; **acceptable** ≥ min &nbsp; **low** < min. ENCODE NRF/PBC/NSC/RSC thresholds are calibrated for large eukaryotic genomes; on compact genomes read positions saturate and these metrics read low even for good libraries.
+:::
+
+## Alignment QC
+
+::: {.callout-note collapse="true"}
+## Metric definitions
+- **NRF** (Non-Redundant Fraction) — distinct read start positions ÷ total mapped reads. Low = PCR duplication (or, on compact genomes, positional saturation).
+- **PBC1** (PCR Bottleneck Coefficient 1) — positions with exactly one read ÷ distinct positions.
+- **PBC2** (PCR Bottleneck Coefficient 2) — positions with one read ÷ positions with two reads.
+- **duplicationRate** — fraction of reads flagged as duplicates. **mapq30Fraction** — fraction with MAPQ ≥ 30.
+:::
+
+```{r aln}
+if (!chipData$hasBam) {
+  .noteHTML("No BAM files in the dataset — alignment QC is unavailable.")
+} else {
+  tab <- chipData$alnStats
+  if (.have(chipData$complexity)) tab <- merge(tab, chipData$complexity, by = "sample", all = TRUE)
+  .tbl(tab)
+}
+```
+
+## Signal QC
+
+::: {.callout-note collapse="true"}
+## Metric definitions
+- **FRiP** (Fraction of Reads in Peaks) — aligned reads inside called peaks ÷ total; higher = better enrichment.
+- **NSC** (Normalized Strand Cross-Correlation) — fragment-length cross-correlation peak relative to background; > 1 = enrichment.
+- **RSC** (Relative Strand Cross-Correlation) — fragment-length peak height (above background) relative to the read-length phantom peak; ≥ 0.8 = good signal.
+:::
+
+```{r signalqc-table}
+if (!chipData$hasBam) {
+  .noteHTML("No BAM files — FRiP and NSC/RSC are unavailable.")
+} else {
+  parts <- list()
+  if (.have(chipData$frip)) parts$FRiP <- chipData$frip
+  if (.have(chipData$ccMetrics)) parts$CC <- chipData$ccMetrics
+  .tbl(Reduce(function(a, b) merge(a, b, by = "sample", all = TRUE), parts))
+}
+```
+
+```{r frip-plot}
+#| fig-height: 3.5
+if (chipData$hasBam && .have(chipData$frip)) {
+  d <- chipData$frip; d$sample <- factor(d$sample, levels = sampleNames)
+  ggplot(d, aes(sample, frip, fill = sample)) + geom_col() +
+    scale_fill_manual(values = sampleCol, guide = "none") +
+    labs(y = "FRiP", x = NULL, title = "Fraction of reads in peaks") +
+    theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+```
+
+```{r bwcor}
+#| fig-height: 5
+if (chipData$hasBw && !is.null(chipData$bwCor)) {
+  m <- chipData$bwCor$spearman
+  if (requireNamespace("ComplexHeatmap", quietly = TRUE))
+    ComplexHeatmap::Heatmap(m, name = "Spearman", column_title = "BigWig genome-wide correlation")
+  else print(m)
+}
+```
+
+## Peak QC
+
+```{r peakqc-table}
+.tbl(chipData$peakStats)
+```
+
+```{r peakqc-width}
+#| fig-height: 4
+if (length(peaks)) {
+  wd <- do.call(rbind, lapply(sampleNames, function(s)
+    data.frame(sample = s, width = BiocGenerics::width(peaks[[s]]))))
+  ggplot(wd, aes(sample, width, fill = sample)) + geom_violin(scale = "width") +
+    scale_y_log10() + scale_fill_manual(values = sampleCol, guide = "none") +
+    labs(title = "Peak width distribution", y = "width (bp, log10)", x = NULL) +
+    theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+```
+
+```{r peakqc-anno}
+#| fig-height: 4
+if (!is.null(chipData$consAnno)) {
+  tryCatch(ChIPseeker::plotAnnoBar(chipData$consAnno),
+           error = function(e) .noteHTML("Annotation bar plot unavailable."))
+} else .noteHTML("Consensus annotation not available (no TxDb built from the GTF).")
+```
+
+### Signal concentration
+
+Peaks ranked strongest-first (x); cumulative fraction of total signal (y). A steep rise = signal concentrated in a few strong peaks; a near-diagonal (dashed line) = signal spread evenly, itself a QC warning.
+
+```{r peakqc-cumsignal}
+#| fig-height: 4
+cs <- chipData$cumSignal
+if (length(cs)) {
+  d <- do.call(rbind, lapply(names(cs), function(s) if (nrow(cs[[s]])) cbind(cs[[s]], sample = s)))
+  if (!is.null(d))
+    ggplot(d, aes(fracPeaks, cumFracSignal, colour = sample)) + geom_line(linewidth = 0.8) +
+      geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "grey60") +
+      scale_colour_manual(values = sampleCol) +
+      labs(title = "Signal concentration", x = "fraction of peaks (ranked strongest first)",
+           y = "cumulative fraction of signal") + theme_bw()
+}
+```
+
+### Genomic footprint
+
+```{r peakqc-footprint-table}
+if (.have(chipData$footprint$summary)) .tbl(chipData$footprint$summary)
+```
+
+```{r peakqc-footprint-plot}
+#| fig-height: 4
+fp <- chipData$footprint
+if (.have(fp$perChrom))
+  ggplot(fp$perChrom, aes(chrom, bpPerMb, fill = sample)) +
+    geom_col(position = "dodge") + scale_fill_manual(values = sampleCol) +
+    labs(title = "Peak footprint per chromosome (bp per Mb)", x = NULL) +
+    theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r peakqc-ideogram}
+#| fig-height: 6
+if (requireNamespace("karyoploteR", quietly = TRUE) && length(peaks)) {
+  tryCatch({
+    si <- chipData$seqinfo
+    custom <- GRanges(GenomeInfoDb::seqnames(si), IRanges::IRanges(1, GenomeInfoDb::seqlengths(si)))
+    kp <- karyoploteR::plotKaryotype(genome = custom)
+    for (i in seq_along(peaks))
+      karyoploteR::kpPlotRegions(kp, data = peaks[[i]], col = cvdPalette[i],
+        r0 = (i - 1) / nSamples, r1 = i / nSamples)
+  }, error = function(e) NULL)
+}
+```
+
+```{r peakqc-ideogram-note}
+#| output: asis
+if (grepl("^Salmonella|bacter", param$refBuild, ignore.case = TRUE))
+  cat("\n::: {.callout-note}\nBacterial genome: the ideogram is a linear contig view, not a cytoband karyotype. Each horizontal track is one sample's peaks.\n:::\n")
+```
+
+:::
+
+# Comparison
+
+::: {.panel-tabset}
+
+## Overlap
+
+```{r overlap-all}
+#| fig-height: 5
+if (nSamples < 2) {
+  .noteHTML("Only one sample — pairwise overlap is not applicable.")
+} else {
+  m <- chipData$jaccard
+  if (requireNamespace("ComplexHeatmap", quietly = TRUE))
+    ComplexHeatmap::Heatmap(m, name = "Jaccard", column_title = "Pairwise base-pair Jaccard (all peaks)")
+  else print(m)
+}
+```
+
+```{r overlap-sets}
+#| fig-height: 5
+if (nSamples >= 2) {
+  occ <- chipData$occupancy
+  if (nSamples <= 20 && requireNamespace("UpSetR", quietly = TRUE)) {
+    df <- as.data.frame(occ); df[] <- lapply(df, as.integer)
+    tryCatch(UpSetR::upset(df, nsets = ncol(df), order.by = "freq"), error = function(e) NULL)
+  } else {
+    spec <- table(rowSums(occ))
+    barplot(spec, xlab = "number of samples sharing a consensus region",
+            ylab = "consensus regions", main = "Occupancy spectrum", col = cvdPalette[3])
+  }
+}
+```
+
+## Consensus
+
+```{r consensus-text}
+#| output: asis
+cons <- chipData$consensus
+cat(sprintf("Consensus = genomic regions occupied by **at least %s sample(s)** (minSamplesForConsensus). ",
+            param$minSamplesForConsensus))
+if (param$minSamplesForConsensus <= 1) {
+  cat("At the current setting of 1 this is the **union of all peaks**; the `occupancy` column (and `occupancy_matrix.tsv`) lets you filter to shared regions.\n\n")
+} else {
+  cat("\n\n")
+}
+if (length(cons) > 0) {
+  cat(sprintf("**%d consensus regions**, total %s bp. Occupancy spectrum (how many samples share each region):\n\n",
+              length(cons), format(sum(BiocGenerics::width(cons)), big.mark = ",")))
+}
+```
+
+```{r consensus}
+if (length(cons) == 0) .noteHTML("No consensus regions at the chosen minSamplesForConsensus.") else
+  .tbl(as.data.frame(table(occupancy = S4Vectors::mcols(cons)$occupancy)))
+```
+
+```{r consensus-width}
+#| fig-height: 4
+if (length(cons) > 0)
+  ggplot(data.frame(width = BiocGenerics::width(cons)), aes(width)) +
+    geom_histogram(bins = 40, fill = cvdPalette[2]) + scale_x_log10() +
+    labs(title = "Consensus peak width", x = "width (bp, log10)") + theme_bw()
+```
+
+## Quantitative
+
+```{r quant-cor}
+#| fig-height: 5
+mat <- chipData$normMat
+if (is.null(mat) || nrow(mat) < 2 || nSamples < 2) {
+  .noteHTML("No quantitative signal matrix available (needs >= 2 samples).")
+} else {
+  cc <- suppressWarnings(cor(mat, method = "spearman", use = "pairwise.complete.obs"))
+  if (requireNamespace("ComplexHeatmap", quietly = TRUE))
+    ComplexHeatmap::Heatmap(cc, name = "Spearman", column_title = "Consensus-signal sample correlation")
+  else print(cc)
+}
+```
+
+```{r quant-pca}
+#| fig-height: 5
+if (!is.null(mat) && nSamples >= 3) {
+  pc <- tryCatch(prcomp(t(log1p(mat)), scale. = FALSE), error = function(e) NULL)
+  if (!is.null(pc)) {
+    d <- data.frame(PC1 = pc$x[, 1], PC2 = pc$x[, 2], sample = colnames(mat))
+    lab <- if (requireNamespace("ggrepel", quietly = TRUE))
+      ggrepel::geom_text_repel(show.legend = FALSE) else geom_text(vjust = -0.8, show.legend = FALSE)
+    ggplot(d, aes(PC1, PC2, colour = sample, label = sample)) + geom_point(size = 3) + lab +
+      scale_colour_manual(values = sampleCol, guide = "none") +
+      labs(title = "PCA of consensus signal") + theme_bw()
+  }
+} else if (!is.null(mat)) .noteHTML("PCA needs at least 3 samples.")
+```
+
+:::
+
+# Top peaks coverage
+
+The `r param$topN` most-significant peaks (highest `r param$rankBy`, i.e. largest fold-enrichment / log2 ratio over background) across the whole dataset. For each locus, one coverage track per sample (BigWig signal ± `r param$profileExtend` bp), so you can read directly whether a strong site in one sample is also occupied in the others. The grey **peak** track marks the called peak; the **gene** track at the bottom shows any genes in the window, coloured by strand (**blue = + / forward**, **orange = − / reverse**) with arrowheads pointing in the direction of transcription.
+
+```{r topcov}
+#| fig-height: 6
+#| results: asis
+lc <- chipData$locusCov
+if (length(lc) == 0) {
+  cat('<div class="callout callout-note"><p>No BigWig tracks — per-locus coverage tracks are unavailable.</p></div>\n')
+} else if (!requireNamespace("Gviz", quietly = TRUE)) {
+  cat('<div class="callout callout-note"><p>Gviz is not installed — cannot draw coverage tracks.</p></div>\n')
+} else {
+  ## Gviz's .onLoad resets this to TRUE, so it MUST be set after the namespace
+  ## is loaded (above) to allow non-UCSC contig names (Ensembl / bacterial RefSeq).
+  options(ucscChromosomeNames = FALSE)
+  for (i in seq_along(lc)) {
+    L <- lc[[i]]
+    chr <- as.character(GenomeInfoDb::seqnames(L$region))
+    ymax <- max(L$cov, na.rm = TRUE); if (!is.finite(ymax) || ymax <= 0) ymax <- 1
+    ## axis, then one coverage track per sample, then the peak call ...
+    tracks <- list(Gviz::GenomeAxisTrack()); sizes <- 1
+    for (s in sampleNames) {
+      tracks <- c(tracks, Gviz::DataTrack(
+        range = L$binGR, data = L$cov[, s], name = s, type = "h",
+        col = sampleCol[[s]], col.histogram = sampleCol[[s]],
+        fill.histogram = sampleCol[[s]], ylim = c(0, ymax)))
+      sizes <- c(sizes, 2)
+    }
+    tracks <- c(tracks, Gviz::AnnotationTrack(L$peak, name = "peak", fill = "grey40", col = NA))
+    sizes <- c(sizes, 0.6)
+    ## ... and the gene track at the BOTTOM, coloured/arrowed by strand
+    ## (blue = + / forward, orange = - / reverse).
+    if (!is.null(chipData$genes)) {
+      g <- IRanges::subsetByOverlaps(chipData$genes, L$region)
+      if (length(g) > 0L) {
+        g <- GenomeInfoDb::keepSeqlevels(g, chr, pruning.mode = "coarse")
+        g$feature <- ifelse(as.character(BiocGenerics::strand(g)) == "-", "reverse", "forward")
+        gtrack <- tryCatch(Gviz::GeneRegionTrack(
+          g, name = "genes", transcriptAnnotation = "symbol", showId = TRUE,
+          col = NA, fontcolor.group = "black",
+          forward = "#0072B2", reverse = "#D55E00",
+          arrowHeadWidth = 20, arrowHeadMaxWidth = 30),
+          error = function(e) NULL)
+        if (!is.null(gtrack)) { tracks <- c(tracks, gtrack); sizes <- c(sizes, 1.8) }
+      }
+    }
+    Gviz::plotTracks(tracks, chromosome = chr,
+                     from = BiocGenerics::start(L$region), to = BiocGenerics::end(L$region),
+                     main = L$label, cex.main = 0.75, sizes = sizes)
+  }
+}
+```
+
+# Downloads
+
+```{r downloads}
+#| output: asis
+cat(sprintf("The consensus files below contain regions occupied by **≥ %s sample(s)** (the `occupancy` column gives the exact count per region).\n\n",
+            param$minSamplesForConsensus))
+files <- c("consensus_peaks.bed", "occupancy_matrix.tsv", "consensus_signal_counts.tsv",
+           "consensus_signal_normalized.tsv", "top_significant_peaks.bed", "qc_metrics.xlsx")
+present <- files[file.exists(files)]
+if (length(present)) {
+  cat("Result files in the report folder:\n\n")
+  for (f in present) cat(sprintf("- [%s](%s)\n", f, f))
+} else cat("::: {.callout-note}\nResult files are written alongside this report in the job output folder.\n:::\n")
+```
+
+# SessionInfo
+
+```{r session}
+if (exists("ezSessionInfo", mode = "function")) ezSessionInfo() else sessionInfo()
+```
+
+:::
