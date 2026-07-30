@@ -530,7 +530,7 @@ qcThresholdTable <- function(markType = c("narrow", "broad")) {
   markType <- match.arg(markType)
   f <- getOption("ezRun_chIPThresholdsFile", "")
   if (!nzchar(f) || !file.exists(f))
-    f <- system.file("extdata", "chIPSeqPeakComparison", "qc_thresholds.tsv",
+    f <- system.file("extdata", "chipSeqPeakComparison", "qc_thresholds.tsv",
                      package = "ezRun")
   if (!nzchar(f) || !file.exists(f)) {
     ## not installed (e.g. running under load_all / a bare test session): search
