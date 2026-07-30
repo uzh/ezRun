@@ -545,16 +545,22 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
     )
   }
 
-  if (param$getJunctions) {
-    file.rename(
-      from = "SJ.out.tab",
-      to = basename(output$getColumn("Junctions"))
-    )
-    file.rename(
-      from = "Chimeric.out.junction",
-      to = basename(output$getColumn("Chimerics"))
-    )
+  ## the junctions are always kept: the downstream QC derives the junction statistics
+  ## from SJ.out.tab instead of scanning the bam file again with RSeQC. An empty file is
+  ## created if STAR did not write one, e.g. no chimeric junctions without --chimSegmentMin
+  renameOrCreate <- function(from, columnName) {
+    if (!columnName %in% output$colNames) {
+      return()
+    }
+    to <- basename(output$getColumn(columnName))
+    if (file.exists(from)) {
+      file.rename(from = from, to = to)
+    } else {
+      file.create(to)
+    }
   }
+  renameOrCreate("SJ.out.tab", "Junctions")
+  renameOrCreate("Chimeric.out.junction", "Chimerics")
 
   if (ezIsSpecified(param$barcodePattern) && param$barcodePattern != '') {
     #Deduplicated based on UMI
@@ -621,6 +627,29 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       ))
     }
   )
+
+  ## duplication rates for the downstream QC; computed here because the STAR jobs
+  ## run one per sample in parallel whereas RNABamStats would do it sequentially
+  if ("DupRate" %in% output$colNames) {
+    dupRateFile <- basename(output$getColumn("DupRate"))
+    tryCatch(
+      {
+        dupRate <- getDupRateFromBam(
+          basename(bamFile),
+          param = param,
+          markedBam = isTRUE(param$markDuplicates),
+          ram = param$ram,
+          threads = param$cores
+        )
+        ezWrite.table(dupRate, file = dupRateFile, row.names = FALSE)
+      },
+      error = function(e) {
+        ## an empty file makes RNABamStats fall back to computing them itself
+        ezLog("dupRadar failed: ", conditionMessage(e))
+        file.create(dupRateFile)
+      }
+    )
+  }
 
   ## write an igv link
   if (param$writeIgvLink && "IGV" %in% output$colNames) {
@@ -784,11 +813,6 @@ EzAppSTAR <-
         runMethod <<- ezMethodSTAR
         name <<- "EzAppSTAR"
         appDefaults <<- rbind(
-          getJunctions = ezFrame(
-            Type = "logical",
-            DefaultValue = "FALSE",
-            Description = "should junctions be returned"
-          ),
           writeIgvLink = ezFrame(
             Type = "logical",
             DefaultValue = "TRUE",
@@ -1308,24 +1332,29 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
   ezSystem(cmd)
   cmd <- paste("samtools", "view -S -b ", bamFileNameBismark, " > bismark.bam")
   ezSystem(cmd)
-  
+
   ## Add read group tags so downstream tools (e.g. Picard MarkDuplicates) don't crash
   sampleName <- names(bamFile)
   rgHeader <- paste0(
-      "@RG\tID:", sampleName,
-      "\tSM:", sampleName,
-      "\tLB:", sampleName,
-      "\tPL:ILLUMINA",
-      "\tPU:", sampleName
+    "@RG\tID:",
+    sampleName,
+    "\tSM:",
+    sampleName,
+    "\tLB:",
+    sampleName,
+    "\tPL:ILLUMINA",
+    "\tPU:",
+    sampleName
   )
   cmd <- paste(
-      "samtools addreplacerg",
-      "-r", shQuote(rgHeader),
-      "-o bismark_rg.bam bismark.bam"
+    "samtools addreplacerg",
+    "-r",
+    shQuote(rgHeader),
+    "-o bismark_rg.bam bismark.bam"
   )
   ezSystem(cmd)
   ezSystem("mv bismark_rg.bam bismark.bam")
-  
+
   ezSortIndexBam(
     "bismark.bam",
     basename(bamFile),
@@ -1493,9 +1522,9 @@ EzAppBismark <-
             Description = "should a bigwig coverage file be generated"
           ),
           nReads = ezFrame(
-              Type = "numeric",
-              DefaultValue = 0,
-              Description = "subsampling before mapping"
+            Type = "numeric",
+            DefaultValue = 0,
+            Description = "subsampling before mapping"
           )
         )
       }

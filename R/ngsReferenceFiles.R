@@ -16,6 +16,13 @@
 ##' rfbed = getReferenceFeaturesBed(param)
 ##' }
 getReferenceFeaturesBed <- function(param) {
+  ## TODO: the export() below silently drops every transcript without a CDS, so the bed
+  ## holds only the protein-coding transcripts (111323 of 373791 for GRCh38 GENCODE 48).
+  ## This inflates the novel junction rate of junction_annotation.py and biases the
+  ## strandedness of infer_experiment.py. asBED(exonsBy(txdb, by="tx", use.names=TRUE))
+  ## keeps all of them; the thick/CDS fields it gives up are only needed by
+  ## read_distribution.py, which we do not use. Note that fixing this only takes effect
+  ## for newly built references, the existing .bed files are cached and returned below.
   require(GenomicFeatures)
   bedFile <- str_replace(param$ezRef["refFeatureFile"], "\\.gtf$", ".bed")
   if (file.exists(bedFile)) {

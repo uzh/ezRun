@@ -85,14 +85,28 @@ ezMethodRnaBamStats = function(
     rm(errorRates)
     gc()
   }
-  ## do the analysis from package rseqc
-  junctionsResults = ezMclapply(
-    files,
-    getJunctionPlotsFromBam,
-    param,
-    mc.preschedule = FALSE,
-    mc.cores = min(length(files), ezThreads())
-  )
+  ## the junction statistics come from STAR's SJ.out.tab if it is available for every
+  ## sample; otherwise they are computed from the bam files with rseqc
+  sjFiles = getUpstreamQcFiles(input, "Junctions")
+  if (length(sjFiles) == length(samples)) {
+    ezLog("using the splice junctions reported by the aligner")
+    spliceSites = getAnnotatedSpliceSites(gff) ## must not be a promise; mclapply would force it in every child
+    junctionsResults = ezMclapply(
+      sjFiles,
+      getJunctionStatsFromSJ,
+      spliceSites,
+      mc.preschedule = FALSE,
+      mc.cores = min(length(sjFiles), ezThreads())
+    )
+  } else {
+    junctionsResults = ezMclapply(
+      files,
+      getJunctionPlotsFromBam,
+      param,
+      mc.preschedule = FALSE,
+      mc.cores = min(length(files), ezThreads())
+    )
+  }
   for (sm in samples) {
     resultList[[sm]][["Junction"]] = junctionsResults[[sm]]
   }
@@ -101,13 +115,22 @@ ezMethodRnaBamStats = function(
 
   ## do Assessment of duplication rates from package dupRadar
   if (is.null(param$dupRadar) || param$dupRadar == TRUE) {
-    dupRateResults <- ezMclapply(
-      files,
-      getDupRateFromBam,
-      param,
-      mc.preschedule = FALSE,
-      mc.cores = min(length(files), ezThreads())
-    )
+    dupRateFiles = getUpstreamQcFiles(input, "DupRate")
+    if (
+      length(dupRateFiles) == length(samples) &&
+        hasSameUpstreamSettings(input, param)
+    ) {
+      ezLog("using the duplication rates computed by the aligner")
+      dupRateResults <- lapply(dupRateFiles, ezRead.table, row.names = NULL)
+    } else {
+      dupRateResults <- ezMclapply(
+        files,
+        getDupRateFromBam,
+        param,
+        mc.preschedule = FALSE,
+        mc.cores = min(length(files), ezThreads())
+      )
+    }
     for (sm in samples) {
       resultList[[sm]][["dupRate"]] = dupRateResults[[sm]]
     }
@@ -116,7 +139,8 @@ ezMethodRnaBamStats = function(
   }
 
   if (input$hasColumn("StrandFile")) {
-    strandFiles <- input$getFullPaths("StrandFile")
+    ## checkExists must be off so that the file.exists() test below is reached
+    strandFiles <- input$getFullPaths("StrandFile", checkExists = FALSE)
     for (sm in samples) {
       if (ezIsSpecified(strandFiles[sm]) && file.exists(strandFiles[sm])) {
         resultList[[sm]][["Strandness"]] <- ezReadRSeQCStrandness(strandFiles[
@@ -188,6 +212,42 @@ EzAppRnaBamStats <-
     )
   )
 
+
+##' @describeIn computeBamStats Gets the files of an optional input column that were written by
+##' an upstream app. Such a column can be missing altogether in datasets from an older app version
+##' and the file can be empty if the upstream computation failed.
+getUpstreamQcFiles <- function(input, columnName) {
+  if (!input$hasColumn(columnName)) {
+    return(character(0))
+  }
+  ## checkExists must be off, the column can name a file that is not there any more
+  files <- input$getFullPaths(columnName, checkExists = FALSE)
+  use <- file.exists(files)
+  use[use] <- file.size(files[use]) > 0
+  return(files[use])
+}
+
+##' @describeIn computeBamStats Checks whether the annotation and the library settings of the
+##' upstream app are the ones requested here. If they differ, its results must not be reused.
+hasSameUpstreamSettings <- function(input, param) {
+  normalize <- function(x) {
+    tolower(trimws(as.character(x)))
+  }
+  for (columnName in c("refFeatureFile", "strandMode", "paired")) {
+    if (!input$hasColumn(columnName)) {
+      return(FALSE)
+    }
+    if (
+      !all(
+        normalize(input$getColumn(columnName)) == normalize(param[[columnName]])
+      )
+    ) {
+      ezLog("the upstream ", columnName, " differs; recomputing")
+      return(FALSE)
+    }
+  }
+  return(TRUE)
+}
 
 ##' @describeIn computeBamStats Gets the error positions from the BAM file.
 getPosErrorFromBam = function(bamFile, param) {
@@ -946,6 +1006,93 @@ getTargetTypeCounts = function(
   return(result)
 }
 
+##' @describeIn computeBamStats Gets the annotated splice sites from the gff. The positions
+##' follow the convention of STAR's SJ.out.tab, i.e. the first and the last base of the intron, 1-based.
+getAnnotatedSpliceSites <- function(gff) {
+  require(data.table)
+  use <- gff$type == "exon" & !is.na(gff$transcript_id)
+  exons <- data.table(
+    seqid = gff$seqid[use],
+    start = as.integer(gff$start[use]),
+    end = as.integer(gff$end[use]),
+    transcript_id = gff$transcript_id[use]
+  )
+  setorder(exons, transcript_id, start)
+  exons[, intronStart := end + 1L]
+  ## shift must be qualified, IRanges masks the data.table version
+  exons[,
+    intronEnd := data.table::shift(start, type = "lead") - 1L,
+    by = transcript_id
+  ]
+  introns <- exons[!is.na(intronEnd) & intronEnd >= intronStart]
+  return(list(
+    starts = unique(paste(introns$seqid, introns$intronStart)),
+    ends = unique(paste(introns$seqid, introns$intronEnd))
+  ))
+}
+
+##' @describeIn computeBamStats Gets the junction results from STAR's SJ.out.tab file.
+##' This is the cheap alternative to \code{getJunctionPlotsFromBam()} which has to read the
+##' whole bam file again.
+getJunctionStatsFromSJ = function(sjFile, spliceSites, minIntronSize = 50) {
+  require(data.table)
+  sj <- fread(
+    sjFile,
+    header = FALSE,
+    col.names = c(
+      "seqid",
+      "start",
+      "end",
+      "strand",
+      "motif",
+      "annotatedInSjdb",
+      "nUnique",
+      "nMulti",
+      "maxOverhang"
+    )
+  )
+  ## the annotatedInSjdb column is deliberately not used: with --twopassMode the junctions
+  ## found in the first pass are inserted into the database and reported as annotated
+  sj <- sj[end - start + 1L >= minIntronSize & nUnique + nMulti > 0]
+  if (nrow(sj) == 0) {
+    return(list())
+  }
+  readCount <- sj$nUnique + sj$nMulti
+  ## same definition as in RSeQC junction_annotation.py: the two splice sites are judged
+  ## independently, so a novel combination of two known splice sites counts as annotated
+  startKnown <- paste(sj$seqid, sj$start) %in% spliceSites$starts
+  endKnown <- paste(sj$seqid, sj$end) %in% spliceSites$ends
+  annotation <- ifelse(
+    startKnown & endKnown,
+    "annotated",
+    ifelse(!startKnown & !endKnown, "complete_novel", "partial_novel")
+  )
+
+  result = list()
+  result[["splice_junction"]] = table(annotation) / length(annotation) * 100
+  result[["splice_events"]] = as.table(tapply(readCount, annotation, sum)) /
+    sum(readCount) *
+    100
+
+  ## expected number of distinct junctions when a fraction of the reads is sampled;
+  ## this closed form replaces the repeated random subsampling of the individual reads
+  quantiles = seq(0.05, 1, by = 0.05)
+  saturation <- function(counts) {
+    values <- sapply(quantiles, function(q) {
+      sum(1 - (1 - q)^counts)
+    })
+    names(values) <- as.character(quantiles)
+    return(values)
+  }
+  isNovel <- annotation != "annotated"
+  result[["junctionSaturation"]] = list(
+    "all junctions" = saturation(readCount),
+    "known junctions" = saturation(readCount[!isNovel]),
+    "novel junctions" = saturation(readCount[isNovel])
+  )
+  return(result)
+}
+
 ##' @describeIn computeBamStats Gets the junction results from the BAM file.
 getJunctionPlotsFromBam = function(bamFile, param) {
   pngFiles = list()
@@ -1064,28 +1211,39 @@ getDupRateFromBam <- function(
   gtfFn,
   stranded = c("both", "sense", "antisense"),
   paired = FALSE,
-  threads = 1
+  threads = 1,
+  markedBam = FALSE,
+  ram = NULL
 ) {
   if (!is.null(param)) {
     gtfFn <- param$ezRef@refFeatureFile
     stranded <- param$strandMode
     paired <- param$paired
-    threads <- ceiling(param$cores / 2)
+    if (missing(threads)) {
+      threads <- ceiling(param$cores / 2)
+    }
+    if (is.null(ram)) {
+      ram <- floor(param$ram / param$cores) - 1
+    }
   }
   require(dupRadar)
 
-  ## Mark the duplicates in bamFile
-  inputBam <- paste(Sys.getpid(), basename(bamFile), sep = "-")
-  ### The bamFile may not be writable.
-  file.symlink(from = bamFile, to = inputBam)
+  if (markedBam) {
+    ## the duplicates are already flagged upstream, no need to run picard again
+    bamDuprmFn <- bamFile
+  } else {
+    ## Mark the duplicates in bamFile
+    inputBam <- paste(Sys.getpid(), basename(bamFile), sep = "-")
+    ### The bamFile may not be writable.
+    file.symlink(from = bamFile, to = inputBam)
 
-  ## intermediate files
-  # picardMetricsFn <- gsub("\\.bam$", "_picard_metrics.txt", inputBam) # picard
-  bamDuprmFn <- gsub("\\.bam$", "_duprm.bam", inputBam)
-  # bamutilLogFn <- paste0(bamDuprmFn, ".log") # bamutil
-  on.exit(file.remove(c(inputBam, bamDuprmFn, paste0(bamDuprmFn, ".bai")))) #, picardMetricsFn, bamutilLogFn)))
-  ram <- floor(param$ram / param$cores) - 1
-  dupBam(inBam = inputBam, outBam = bamDuprmFn, operation = "mark", ram = ram)
+    ## intermediate files
+    # picardMetricsFn <- gsub("\\.bam$", "_picard_metrics.txt", inputBam) # picard
+    bamDuprmFn <- gsub("\\.bam$", "_duprm.bam", inputBam)
+    # bamutilLogFn <- paste0(bamDuprmFn, ".log") # bamutil
+    on.exit(file.remove(c(inputBam, bamDuprmFn, paste0(bamDuprmFn, ".bai")))) #, picardMetricsFn, bamutilLogFn)))
+    dupBam(inBam = inputBam, outBam = bamDuprmFn, operation = "mark", ram = ram)
+  }
   ## Duplication rate analysis
   dm <- analyzeDuprates(
     bam = bamDuprmFn,
