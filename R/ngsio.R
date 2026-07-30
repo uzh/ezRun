@@ -637,7 +637,9 @@ filterFastqByBam = function(
   param = ScanBamParam(
     what = c("qname"),
     flag = scanBamFlag(
-      isUnmappedQuery = !keepUnmapped,
+      ## the scanned reads are the ones removed from the fastq files, so the unmapped ones
+      ## must be left out of the scan if they are to be kept
+      isUnmappedQuery = ezBamFlagSkip(keepUnmapped),
       isProperPair = isProperPair
     )
   )

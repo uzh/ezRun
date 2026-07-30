@@ -273,7 +273,7 @@ getPosErrorFromBam = function(bamFile, param) {
       isFirstMateRead = TRUE,
       isSecondMateRead = FALSE,
       isUnmappedQuery = FALSE,
-      isDuplicate = !param$ignoreDup,
+      isDuplicate = ezBamFlagSkip(param$ignoreDup),
       what = what
     )
     result[[paste(
@@ -286,7 +286,7 @@ getPosErrorFromBam = function(bamFile, param) {
       isFirstMateRead = FALSE,
       isSecondMateRead = TRUE,
       isUnmappedQuery = FALSE,
-      isDuplicate = !param$ignoreDup,
+      isDuplicate = ezBamFlagSkip(param$ignoreDup),
       what = what
     )
     result[[paste(
@@ -298,7 +298,7 @@ getPosErrorFromBam = function(bamFile, param) {
       bamFile,
       seqname = chromSel,
       isUnmappedQuery = FALSE,
-      isDuplicate = !param$ignoreDup,
+      isDuplicate = ezBamFlagSkip(param$ignoreDup),
       what = what
     )
     result[[paste(chromSel, "Position Stats")]] = ezPosSpecErrorRate(
@@ -768,9 +768,9 @@ getStatsFromBamSingleChrom = function(
       seqname = chrom,
       isFirstMateRead = TRUE,
       isSecondMateRead = FALSE,
-      isProperPair = param$keepProperPairsOnly,
+      isProperPair = ezBamFlagKeepOnly(param$keepProperPairsOnly),
       isUnmappedQuery = FALSE,
-      isDuplicate = !param$ignoreDup,
+      isDuplicate = ezBamFlagSkip(param$ignoreDup),
       what = "qname"
     )$qname
     use = names(reads) %in% pairedNames
