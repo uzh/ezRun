@@ -622,17 +622,32 @@ ezGSEA <- function(enrichInput, param) {
     enrichInput$seqAnno$gene_id
   )
   ontologies = c("BP", "MF", "CC")
+  
+  df <- enrichInput$seqAnno
+  df <- df[df$isPresent,]
+  if(param$rankMetric == "log2Ratio") {
+        df$rank_metric <- df$log2Ratio
+  } else if(param$rankMetric == "pValue") {
+        df$rank_metric <- -log10(pmax(df$pValue, .Machine$double.xmin))
+  } else if(param$rankMetric == "signedPValue") {
+      df$rank_metric <- sign(df$log2Ratio) * -log10(pmax(df$pValue, .Machine$double.xmin))
+  }
+  df <- df[!is.na(df$rank_metric), ]
+  gl <- setNames(df$rank_metric, rownames(df))
+  gl <- sort(gl, decreasing = TRUE)
+  
   goResults = ezMclapply(
     ontologies,
     function(onto) {
       enrichRes <- GSEA(
-        gene = sort(enrichInput$log2Ratio, decreasing = TRUE),
+        gene = gl,
         pvalueCutoff = param$fdrThreshGSEA,
         TERM2GENE = enrichInput$go2gene[[onto]]
       )
       if (!is.null(enrichRes)) {
         tempTable <- enrichRes@result
         if (nrow(tempTable) != 0L) {
+          tempTable <- tempTable[!is.na(tempTable$ID),]    
           tempTable$Description <- Term(GOTERM[tempTable$ID])
           tempTable$geneName <- sapply(
             relist(

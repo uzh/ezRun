@@ -100,6 +100,11 @@ EzAppEdger <-
             Type = "logical",
             DefaultValue = FALSE,
             Description = "should enrichr be precomputed"
+          ),
+          rankMetric = ezFrame(
+              Type = "character",
+              DefaultValue = 'log2Ratio',
+              Description = "how to rank genes for GSEA"
           )
         )
       }

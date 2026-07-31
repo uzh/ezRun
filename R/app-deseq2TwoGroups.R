@@ -87,8 +87,12 @@ EzAppDeseq2 <-
             Type = "logical",
             DefaultValue = FALSE,
             Description = "apply lfcShrink"
+          ),
+          rankMetric = ezFrame(
+              Type = "character",
+              DefaultValue = 'log2Ratio',
+              Description = "how to rank genes for GSEA"
           )
-          
         )
       }
     )
