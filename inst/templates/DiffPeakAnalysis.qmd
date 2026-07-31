@@ -51,11 +51,15 @@ refGroup     <- param$refGroup
 lfcThreshold <- 1
 fdrThreshold <- 0.05
 
-## Robust fit (handles comparisons without replicates); see ezRun app code.
-deseqOut     <- runDiffPeakDESeq(dds, sampleGroup, refGroup, peakAnno)
+## Robust fit (handles comparisons without replicates and an optional blocking
+## factor for paired testing); see ezRun app code.
+deseqOut     <- runDiffPeakDESeq(dds, sampleGroup, refGroup, peakAnno,
+                                 grouping2Name = param$grouping2)
 mlDds        <- deseqOut$dds
 res          <- deseqOut$res
 noReplicates <- deseqOut$noReplicates
+blockingUsed <- isTRUE(deseqOut$blockingUsed)
+grouping2Name <- deseqOut$grouping2Name
 
 peakTable <- makeDiffPeakTable(res, noReplicates, lfcThreshold, fdrThreshold)
 hasAnno   <- "geneName" %in% colnames(peakTable)
@@ -166,42 +170,62 @@ plotMA <- function() {
 plotPca <- function() {
   pcaData <- DESeq2::plotPCA(vsd, intgroup = "Condition", returnData = TRUE)
   pv <- round(100 * attr(pcaData, "percentVar"))
-  ggplot(pcaData, aes(PC1, PC2, color = group, label = name)) +
-    geom_point(size = 3) +
+  ## when a blocking factor was used, encode it as point shape
+  if (blockingUsed && "grouping2" %in% colnames(SummarizedExperiment::colData(mlDds))) {
+    pcaData$block <- as.character(
+      SummarizedExperiment::colData(mlDds)[pcaData$name, "grouping2"])
+    p <- ggplot(pcaData, aes(PC1, PC2, color = group, shape = block, label = name)) +
+      geom_point(size = 3) +
+      scale_shape_discrete(name = grouping2Name)
+  } else {
+    p <- ggplot(pcaData, aes(PC1, PC2, color = group, label = name)) +
+      geom_point(size = 3)
+  }
+  p +
     ggrepel::geom_text_repel(size = 3, show.legend = FALSE) +
     scale_color_manual(values = groupColors, name = "Group") +
-    labs(title = paste("PCA:", compLabel),
+    labs(title = paste("PCA (all peaks):", compLabel),
          x = paste0("PC1 (", pv[1], "%)"), y = paste0("PC2 (", pv[2], "%)")) +
     theme_bw(base_size = 11) + theme(plot.title = element_text(hjust = 0.5))
 }
 
-plotHeat <- function(nTop = 1000) {
-  ## Rank by the same criterion used to call candidates: fold change when there
-  ## are no replicates (p-values unreliable), adjusted p-value otherwise.
+## Candidate-based heatmap. Returns a list(plot, caption) or NULL when there are
+## no candidate peaks (the chunk then prints a 'no candidates' message).
+heatMaxRows <- 2000
+plotHeat <- function() {
+  cand <- peakTable |> dplyr::filter(candidate)
+  nCandTotal <- nrow(cand)
+  if (nCandTotal == 0) return(NULL)
+  ## rank candidates: fold change without replicates, adjusted p-value otherwise
   ord <- if (noReplicates) {
-    order(-abs(peakTable$log2FoldChange), na.last = NA)
+    order(-abs(cand$log2FoldChange))
   } else {
-    order(peakTable$padj, na.last = NA)
+    order(cand$padj, na.last = TRUE)
   }
-  ord <- head(ord, min(nTop, length(ord)))
-  if (length(ord) < 2) return(NULL)
-  ids <- peakTable$peakId[ord]
-  mat <- assay(vsd)[ids, , drop = FALSE]
-  ## Row z-scaling and row clustering are undefined for rows with zero or
-  ## non-finite variance (common with few samples): they become NaN and make
-  ## hclust() fail. Drop them so the heatmap is always well defined.
+  capped <- nCandTotal > heatMaxRows
+  cand <- cand[head(ord, min(heatMaxRows, nCandTotal)), , drop = FALSE]
+  mat <- assay(vsd)[cand$peakId, , drop = FALSE]
+  ## Row z-scaling / clustering are undefined for zero- or non-finite-variance
+  ## rows (they become NaN and break hclust); drop them.
   rowSd <- apply(mat, 1, stats::sd)
   mat <- mat[is.finite(rowSd) & rowSd > 0, , drop = FALSE]
   if (nrow(mat) < 2) return(NULL)
   annotation_col <- data.frame(Condition = mlDds$Condition,
                                row.names = colnames(mat))
-  ComplexHeatmap::pheatmap(mat, scale = "row", show_rownames = FALSE,
+  caption <- if (capped) {
+    paste0("Row z-scored VST of the top ", nrow(mat), " of ", nCandTotal,
+           " candidate peaks.")
+  } else {
+    paste0("Row z-scored VST of ", nrow(mat), " candidate peaks.")
+  }
+  gg <- ComplexHeatmap::pheatmap(mat, scale = "row", show_rownames = FALSE,
     annotation_col = annotation_col,
     annotation_colors = list(Condition = groupColors),
     color = colorRampPalette(rev(brewer.pal(7, "RdYlBu")))(100),
     clustering_method = "complete", angle_col = "45",
     name = "z-score",
-    column_title = paste0("Top ", nrow(mat), " differential peaks"))
+    column_title = paste0(nrow(mat), " candidate peaks"))
+  list(plot = gg, caption = caption)
 }
 
 ## Genomic feature and TSS-distance columns depend on the annotation tool.
@@ -266,6 +290,19 @@ Peak counts were variance-stabilized (VST). A peak is called a **candidate** at
 Positive log2 fold change means higher signal in **`r sampleGroup`**.
 :::
 
+```{r design-note}
+#| output: asis
+if (blockingUsed) {
+  cat("**Design:** paired/blocked — `~ group + ", grouping2Name, "`.\n", sep = "")
+} else if (ezIsSpecified(param$grouping2)) {
+  cat("**Design:** single-factor `~ group`. The requested second factor **",
+      param$grouping2, "** was dropped (single level, confounded with the ",
+      "groups, or too few residual degrees of freedom).\n", sep = "")
+} else {
+  cat("**Design:** single-factor `~ group`.\n", sep = "")
+}
+```
+
 ```{r no-rep-warning}
 #| output: asis
 if (noReplicates) {
@@ -294,24 +331,44 @@ DT::datatable(summaryTab, rownames = FALSE, options = list(dom = "t"),
               caption = "Peak-level summary")
 ```
 
-# Pathway enrichment
+# Explorative analysis
 
-Submit the candidate genes associated with differential peaks to
-[Enrichr](https://maayanlab.cloud/Enrichr/) (opens in a new tab). Up to 500
-genes per list are sent.
+Unsupervised views based on **all** consensus peaks, independent of the
+differential test.
 
-```{r enrichr-buttons}
-if (!hasAnno) {
-  htmltools::tags$p(htmltools::tags$em(
-    "Peak annotation is unavailable, so gene-based enrichment links cannot be built."))
-} else {
-  htmltools::tagList(
-    enrichrForm(candGenes("up"),  paste0(compLabel, " - up candidates"),   "Up candidates"),
-    enrichrForm(candGenes("down"),paste0(compLabel, " - down candidates"), "Down candidates"),
-    enrichrForm(candGenes(),      paste0(compLabel, " - all candidates"),  "All candidates")
-  )
-}
+::: {.panel-tabset}
+
+## PCA
+
+```{r pca}
+#| fig-width: 7
+#| fig-height: 5
+#| fig-cap: "Principal component analysis of variance-stabilized counts over all peaks."
+res_pca <- tryCatch(plotPca(), error = function(e) NULL)
+if (is.null(res_pca)) cat("PCA could not be computed for this comparison.") else res_pca
 ```
+
+## Feature distribution
+
+```{r feature-dist}
+#| fig-width: 8
+#| fig-height: 5
+#| fig-cap: "Distribution of peaks across genomic features, comparing all peaks with the differential candidates."
+fd <- tryCatch(plotFeatureDist(), error = function(e) NULL)
+if (is.null(fd)) cat("Genomic-feature annotation is not available for this run.") else fd
+```
+
+## Distance to TSS
+
+```{r tss-dist}
+#| fig-width: 8
+#| fig-height: 5
+#| fig-cap: "Distribution of peak distance to the nearest transcription start site (within 100 kb)."
+td <- tryCatch(plotTssDist(), error = function(e) NULL)
+if (is.null(td)) cat("Distance-to-TSS annotation is not available for this run.") else td
+```
+
+:::
 
 # Differential peaks
 
@@ -335,53 +392,44 @@ plotVolcano()
 plotMA()
 ```
 
-## PCA
-
-```{r pca}
-#| fig-width: 7
-#| fig-height: 5
-#| fig-cap: "Principal component analysis of variance-stabilized peak counts."
-res_pca <- tryCatch(plotPca(), error = function(e) NULL)
-if (is.null(res_pca)) cat("PCA could not be computed for this comparison.") else res_pca
-```
-
 ## Heatmap
 
 ```{r heatmap}
 #| fig-width: 7
-#| fig-height: 7
-#| fig-cap: "Row-scaled variance-stabilized signal of the top differential peaks."
+#| fig-height: 8
 h <- tryCatch(plotHeat(), error = function(e) NULL)
-if (is.null(h)) cat("Not enough peaks to draw a heatmap.") else h
+if (is.null(h)) {
+  cat("**No candidate peaks — the heatmap is only shown when differential candidates exist.**")
+} else {
+  ComplexHeatmap::draw(h$plot)
+}
+```
+
+```{r heatmap-caption}
+#| output: asis
+if (!is.null(h)) cat("*", h$caption, "*\n", sep = "")
 ```
 
 :::
 
-# Peak annotation
+# Pathway enrichment
 
-::: {.panel-tabset}
+Submit the candidate genes associated with differential peaks to
+[Enrichr](https://maayanlab.cloud/Enrichr/) (opens in a new tab). Up to 500
+genes per list are sent.
 
-## Feature distribution
-
-```{r feature-dist}
-#| fig-width: 8
-#| fig-height: 5
-#| fig-cap: "Distribution of peaks across genomic features, comparing all peaks with the differential candidates."
-fd <- tryCatch(plotFeatureDist(), error = function(e) NULL)
-if (is.null(fd)) cat("Genomic-feature annotation is not available for this run.") else fd
+```{r enrichr-buttons}
+if (!hasAnno) {
+  htmltools::tags$p(htmltools::tags$em(
+    "Peak annotation is unavailable, so gene-based enrichment links cannot be built."))
+} else {
+  htmltools::tagList(
+    enrichrForm(candGenes("up"),  paste0(compLabel, " - up candidates"),   "Up candidates"),
+    enrichrForm(candGenes("down"),paste0(compLabel, " - down candidates"), "Down candidates"),
+    enrichrForm(candGenes(),      paste0(compLabel, " - all candidates"),  "All candidates")
+  )
+}
 ```
-
-## Distance to TSS
-
-```{r tss-dist}
-#| fig-width: 8
-#| fig-height: 5
-#| fig-cap: "Distribution of peak distance to the nearest transcription start site (within 100 kb)."
-td <- tryCatch(plotTssDist(), error = function(e) NULL)
-if (is.null(td)) cat("Distance-to-TSS annotation is not available for this run.") else td
-```
-
-:::
 
 # Results table
 
@@ -412,4 +460,4 @@ ezInteractiveTableRmd(tableTib, digits = 3)
 ezSessionInfo()
 ```
 
-:::::
+::::::

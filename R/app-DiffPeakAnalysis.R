@@ -23,6 +23,20 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA) {
   grouping <- input$getColumn(param$grouping)
   grouping <- grouping[grouping %in% c(param$refGroup, param$sampleGroup)]
 
+  ## optional second factor for paired/blocked testing (mirrors the DESeq2 app's
+  ## 'grouping2'); resolved to a per-sample vector named by sample.
+  grouping2 <- NULL
+  if (ezIsSpecified(param$grouping2)) {
+    if (!param$grouping2 %in% input$colNames) {
+      stop(
+        "The grouping2 column '", param$grouping2,
+        "' is not present in the input dataset. Available columns: ",
+        paste(input$colNames, collapse = ", ")
+      )
+    }
+    grouping2 <- input$getColumn(param$grouping2)[names(grouping)]
+  }
+
   ## robustness: both comparison groups must have samples
   groupCounts <- table(
     factor(grouping, levels = c(param$refGroup, param$sampleGroup))
@@ -57,7 +71,7 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA) {
   countFiles <- input$getFullPathsList("Count")
   featureCounts <- loadCountFiles(countFiles, grouping, commonCols)
 
-  dds <- generateDESeqDS(featureCounts, commonCols, grouping)
+  dds <- generateDESeqDS(featureCounts, commonCols, grouping, grouping2)
   peakAnno <- annotateConsensusPeaks(
     gtfFile = param$ezRef@refFeatureFile,
     fastaFile = param$ezRef@refFastaFile,
@@ -111,22 +125,24 @@ EzAppDiffPeakAnalysis <-
   )
 
 ##' @description generate file with all counts for sampleGroup and refGroup
+##' Count columns are named by the (unique) sample name so per-sample covariates
+##' (e.g. a blocking factor) can be attached in \code{generateDESeqDS}.
 loadCountFiles <- function(countFiles, grouping, commonCols) {
   countFilesSubset <- countFiles[names(grouping)]
 
   loadAllTables <- imap(countFilesSubset, function(file_i, listName) {
-    group <- grouping[[listName]]
-    rep_id <- match(listName, names(grouping)[grouping == group])
-    new_col <- paste0(group, "_REP", rep_id)
     data.table::fread(file_i, data.table = FALSE) %>%
-      rename(!!new_col := matchCounts)
+      rename(!!listName := matchCounts)
   })
 
   purrr::reduce(loadAllTables, full_join, by = commonCols)
 }
 
 ##' @description generate DESeqDataSet from the counts table
-generateDESeqDS <- function(featureCounts, commonCols, grouping) {
+##' @param grouping Named (by sample) vector of the primary group per sample.
+##' @param grouping2 Optional named (by sample) vector of a second/blocking
+##' factor; when supplied the design becomes \code{~ group + grouping2}.
+generateDESeqDS <- function(featureCounts, commonCols, grouping, grouping2 = NULL) {
   library(DESeq2)
   countCols <- setdiff(colnames(featureCounts), commonCols)
 
@@ -135,12 +151,20 @@ generateDESeqDS <- function(featureCounts, commonCols, grouping) {
     as.data.frame()
   countData <- round(countData)
 
-  colData <- ezFrame(
+  ## count columns are sample names; build colData from the dataset maps.
+  ## The blocking factor is carried as a colData column but the object is always
+  ## built with ~group: runDiffPeakDESeq decides whether ~ group + grouping2 is
+  ## usable (full rank, enough residual df) before switching the design, so a
+  ## confounded second factor never trips DESeq2's construction-time rank check.
+  colData <- data.frame(
     sample = countCols,
-    group = sub("_REP.*", "", countCols),
-    replicate = sub(".*_REP", "", countCols),
-    row.names = countCols
+    group = factor(as.character(grouping[countCols])),
+    row.names = countCols,
+    stringsAsFactors = FALSE
   )
+  if (!is.null(grouping2)) {
+    colData$grouping2 <- factor(as.character(grouping2[countCols]))
+  }
 
   dds <- DESeqDataSetFromMatrix(
     countData = countData,
@@ -168,10 +192,14 @@ generateDESeqDS <- function(featureCounts, commonCols, grouping) {
 ##' @param sampleGroup Group of interest (numerator of the contrast).
 ##' @param refGroup Reference group (denominator of the contrast).
 ##' @param peakAnno Optional peak annotation data frame joined by \code{peakId}.
+##' @param grouping2Name Optional display name of the blocking factor (used only
+##' for messaging in the report).
 ##' @return A list with \code{dds} (fitted), \code{res} (annotated tibble),
-##' \code{noReplicates} (logical), \code{sampleGroup} and \code{refGroup}.
+##' \code{noReplicates} (logical), \code{blockingUsed} (logical),
+##' \code{grouping2Name}, \code{sampleGroup} and \code{refGroup}.
 ##' @export
-runDiffPeakDESeq <- function(dds, sampleGroup, refGroup, peakAnno = NULL) {
+runDiffPeakDESeq <- function(dds, sampleGroup, refGroup, peakAnno = NULL,
+                             grouping2Name = NULL) {
   library(DESeq2)
 
   ## keep only the two comparison groups and drop unused factor levels
@@ -181,7 +209,40 @@ runDiffPeakDESeq <- function(dds, sampleGroup, refGroup, peakAnno = NULL) {
   dds$group <- relevel(dds$group, ref = refGroup)
   dds$Condition <- dds$group
 
-  ## residual degrees of freedom decide whether replicates are available
+  ## Decide whether the optional blocking factor (grouping2) can be used for a
+  ## paired/blocked design. Drop it (with a warning) when it is constant,
+  ## confounded with the groups (rank-deficient), or leaves no residual df.
+  blockingUsed <- FALSE
+  hasBlock <- "grouping2" %in% colnames(SummarizedExperiment::colData(dds))
+  if (hasBlock) {
+    dds$grouping2 <- droplevels(factor(dds$grouping2))
+    cd <- as.data.frame(SummarizedExperiment::colData(dds))
+    usable <- tryCatch({
+      if (nlevels(dds$grouping2) < 2) {
+        FALSE
+      } else {
+        mm <- stats::model.matrix(~ group + grouping2, data = cd)
+        qr(mm)$rank == ncol(mm) && (nrow(mm) - qr(mm)$rank) >= 1
+      }
+    }, error = function(e) FALSE)
+    if (usable) {
+      DESeq2::design(dds) <- ~ group + grouping2
+      blockingUsed <- TRUE
+    } else {
+      DESeq2::design(dds) <- ~group
+      ezLog(paste0(
+        "Second factor '",
+        if (is.null(grouping2Name)) "grouping2" else grouping2Name,
+        "' is not usable for ", sampleGroup, " vs ", refGroup,
+        " (single level, confounded with the groups, or too few residual ",
+        "degrees of freedom); it was dropped and ~group is used instead."
+      ))
+    }
+  } else {
+    DESeq2::design(dds) <- ~group
+  }
+
+  ## residual degrees of freedom on the CHOSEN design decide replicate handling
   colDataDf <- as.data.frame(SummarizedExperiment::colData(dds))
   modelMat <- stats::model.matrix(DESeq2::design(dds), data = colDataDf)
   noReplicates <- (nrow(modelMat) - ncol(modelMat)) < 1
@@ -189,6 +250,9 @@ runDiffPeakDESeq <- function(dds, sampleGroup, refGroup, peakAnno = NULL) {
   if (!noReplicates) {
     mlDds <- DESeq2::DESeq(dds)
   } else {
+    ## a block term cannot be estimated without residual df: fall back to ~group
+    DESeq2::design(dds) <- ~group
+    blockingUsed <- FALSE
     ezLog(paste0(
       "No biological replicates for ", sampleGroup, " vs ", refGroup,
       "; estimating dispersion with a blind (~1) design. p-values are ",
@@ -219,6 +283,8 @@ runDiffPeakDESeq <- function(dds, sampleGroup, refGroup, peakAnno = NULL) {
     dds = mlDds,
     res = res,
     noReplicates = noReplicates,
+    blockingUsed = blockingUsed,
+    grouping2Name = if (blockingUsed) grouping2Name else NULL,
     sampleGroup = sampleGroup,
     refGroup = refGroup
   )
