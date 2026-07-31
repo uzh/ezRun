@@ -648,8 +648,7 @@ if (isTRUE(param$runGO)) {
         log2Ratio <- enrichInput$log2Ratio[sigGeneIds]
         names(log2Ratio) <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
         log2Ratio <- sort(log2Ratio, decreasing = T)
-        erp[["cnet"]] <- enrichplot::cnetplot(
-          x = er, color.params = list(foldChange = log2Ratio), cex.params = list(category_label = 0.7, gene_label = 0.6))
+        erp[["cnet"]] <- enrichplot::cnetplot(x = er, foldChange = log2Ratio)
         enrichResultPlots[[onto]][[sig]] <- erp
       }
     }
@@ -804,9 +803,8 @@ enrichResultGSEAPlots <- list()
       log2Ratio <- enrichInput$log2Ratio[sigGeneIds]
       names(log2Ratio) <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
       log2Ratio <- sort(log2Ratio, decreasing = T)
-      erp[["cnet"]] <- enrichplot::cnetplot(
-        x = er, color.params = list(foldChange = log2Ratio), cex.params = list(category_label = 0.7, gene_label = 0.6))
-      
+      erp[["cnet"]] <- enrichplot::cnetplot(x = er, foldChange = log2Ratio)
+
       enrichResultGSEAPlots[[onto]] <- erp
     }
   }
