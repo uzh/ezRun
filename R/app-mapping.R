@@ -546,8 +546,11 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   }
 
   ## the junctions are always kept: the downstream QC derives the junction statistics
-  ## from SJ.out.tab instead of scanning the bam file again with RSeQC. An empty file is
-  ## created if STAR did not write one, e.g. no chimeric junctions without --chimSegmentMin
+  ## from SJ.out.tab instead of scanning the bam file again with RSeQC.
+  ## Every declared output has to exist from here on, even if a later step fails or the job
+  ## runs out of time: the copy of the finished workunit crashes on the first missing file
+  ## and then leaves the whole delivery half done. An empty file is also what STAR gives us
+  ## when there is nothing to report, e.g. no chimeric junctions without --chimSegmentMin.
   renameOrCreate <- function(from, columnName) {
     if (!columnName %in% output$colNames) {
       return()
@@ -561,6 +564,13 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   }
   renameOrCreate("SJ.out.tab", "Junctions")
   renameOrCreate("Chimeric.out.junction", "Chimerics")
+  ## the duplication rates are computed further down, after the strandedness check, but the
+  ## file has to be there before that
+  dupRateFile <- NULL
+  if ("DupRate" %in% output$colNames) {
+    dupRateFile <- basename(output$getColumn("DupRate"))
+    file.create(dupRateFile)
+  }
 
   if (ezIsSpecified(param$barcodePattern) && param$barcodePattern != '') {
     #Deduplicated based on UMI
@@ -630,23 +640,22 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
 
   ## duplication rates for the downstream QC; computed here because the STAR jobs
   ## run one per sample in parallel whereas RNABamStats would do it sequentially
-  if ("DupRate" %in% output$colNames) {
-    dupRateFile <- basename(output$getColumn("DupRate"))
+  if (!is.null(dupRateFile)) {
     tryCatch(
       {
+        ## whether picard has to run again is read off the bam header, no matter whether
+        ## markDuplicates or the aligner itself did the marking
         dupRate <- getDupRateFromBam(
           basename(bamFile),
           param = param,
-          markedBam = isTRUE(param$markDuplicates),
           ram = param$ram,
           threads = param$cores
         )
         ezWrite.table(dupRate, file = dupRateFile, row.names = FALSE)
       },
       error = function(e) {
-        ## an empty file makes RNABamStats fall back to computing them itself
+        ## the empty file created above stays, RNABamStats then computes the rates itself
         ezLog("dupRadar failed: ", conditionMessage(e))
-        file.create(dupRateFile)
       }
     )
   }

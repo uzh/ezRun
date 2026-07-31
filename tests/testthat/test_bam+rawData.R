@@ -44,6 +44,49 @@ test_that("Tests getBamMultiMatching() from bamio.r", {
   expect_identical(names(multi), as.character(0:(length(multi) - 1)))
 })
 
+test_that("bamHasMarkedDuplicates() reads the marking off the bam header", {
+  starBam = system.file(
+    "extdata/yeast_10k_STAR/wt_1.bam",
+    package = "ezRun",
+    mustWork = TRUE
+  )
+  ## this fixture was aligned with markDuplicates=TRUE, its header carries the program
+  ## record of picard and 88 of its reads have the duplicate flag set
+  expect_true(bamHasMarkedDuplicates(starBam))
+  ## ex1.bam was never marked
+  expect_false(bamHasMarkedDuplicates(bamFile))
+  expect_false(bamHasMarkedDuplicates("does_not_exist.bam"))
+  expect_false(bamHasMarkedDuplicates(NA))
+
+  skip_if(Sys.which("samtools") == "", "samtools not available")
+  ## the decision has to come from the program record and from nothing else: dropping it
+  ## from the header of the very same file must turn the answer around. A false positive
+  ## would make getDupRateFromBam() skip picard and report the duplication rates of an
+  ## unmarked bam.
+  header = system2("samtools", c("view", "-H", starBam), stdout = TRUE)
+  headerFile = tempfile(fileext = ".sam")
+  unmarkedBam = tempfile(fileext = ".bam")
+  on.exit(file.remove(headerFile, unmarkedBam))
+  ## every record has to go, not just the one picard wrote: the ones added afterwards link
+  ## back to it with PP:MarkDuplicates and that counts as marked as well
+  writeLines(
+    grep(
+      "MarkDuplicates|markdup",
+      header,
+      invert = TRUE,
+      value = TRUE,
+      ignore.case = TRUE
+    ),
+    headerFile
+  )
+  system2(
+    "samtools",
+    c("reheader", shQuote(headerFile), shQuote(starBam)),
+    stdout = unmarkedBam
+  )
+  expect_false(bamHasMarkedDuplicates(unmarkedBam))
+})
+
 test_that("Tests ezBamFlagKeepOnly() and ezBamFlagSkip() from bamio.r", {
   ## the three states of a scanBamFlag() argument: NA does not filter, TRUE keeps only the
   ## records with the flag, FALSE only those without it. A logical parameter must never be

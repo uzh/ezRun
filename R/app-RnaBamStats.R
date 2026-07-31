@@ -1212,7 +1212,7 @@ getDupRateFromBam <- function(
   stranded = c("both", "sense", "antisense"),
   paired = FALSE,
   threads = 1,
-  markedBam = FALSE,
+  markedBam = bamHasMarkedDuplicates(bamFile),
   ram = NULL
 ) {
   if (!is.null(param)) {
