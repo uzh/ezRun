@@ -100,15 +100,29 @@ ezMethodDnaBamStats <- function(
     )
   }
 
-  makeRmdReport(
-    dataset = dataset,
-    param = param,
-    resultList = resultList,
-    reportData = reportData,
-    rmdFile = "DnaBamStats.Rmd",
-    reportTitle = "DNA BAM Stats",
-    selfContained = TRUE
-  )
+  ## Two report paths during the Quarto migration. Both write and read the same
+  ## qs2 objects, so this is a safe A/B: set useQuartoReport to render the .qmd,
+  ## leave it unset for the legacy .Rmd.
+  if (isTRUE(param$useQuartoReport)) {
+    makeQuartoReport(
+      dataset = dataset,
+      param = param,
+      resultList = resultList,
+      reportData = reportData,
+      qmdFile = "DnaBamStats.qmd",
+      reportTitle = "DNA BAM Stats"
+    )
+  } else {
+    makeRmdReport(
+      dataset = dataset,
+      param = param,
+      resultList = resultList,
+      reportData = reportData,
+      rmdFile = "DnaBamStats.Rmd",
+      reportTitle = "DNA BAM Stats",
+      selfContained = TRUE
+    )
+  }
 
   rm(resultList)
   gc()
@@ -2041,6 +2055,11 @@ EzAppDnaBamStats <-
             Type = "logical",
             DefaultValue = "TRUE",
             Description = "run Picard MarkDuplicates to derive duplicate and optical-duplicate metrics"
+          ),
+          useQuartoReport = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "render the Quarto (.qmd) report instead of the legacy .Rmd"
           )
         )
       }

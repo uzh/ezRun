@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" role="img"
+  aria-labelledby="title description">
+  <title id="title">FGCZ DNA BAM QC reporting workflow</title>
+  <desc id="description">
+    Coordinate-sorted DNA alignments and per-sample read counts flow through
+    Qualimap and Picard metrics into a cohort report with a pass/fail QC
+    heatmap, per-sample QC plots, and a metrics_summary.tsv table.
+  </desc>
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#233142"
+        flood-opacity="0.14"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
+      markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#637083"/>
+    </marker>
+    <style>
+      .card { fill: #ffffff; stroke: #cfd6df; stroke-width: 2; }
+      .step { fill: #ffffff; font: 700 28px system-ui, sans-serif; }
+      .body { fill: #263442; font: 19px system-ui, sans-serif; }
+      .number { fill: #ffffff; font: 700 18px system-ui, sans-serif; }
+      .flow { fill: none; stroke: #637083; stroke-width: 5; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="340" rx="22" fill="#f5f7fa"/>
+
+  <path class="flow" d="M 370 170 H 425" marker-end="url(#arrow)"/>
+  <path class="flow" d="M 775 170 H 830" marker-end="url(#arrow)"/>
+
+  <g filter="url(#shadow)">
+    <rect class="card" x="40" y="45" width="310" height="250" rx="18"/>
+    <path d="M 58 45 H 332 A 18 18 0 0 1 350 63 V 115 H 40 V 63 A 18 18 0 0 1 58 45 Z"
+      fill="#1b4079"/>
+    <circle cx="78" cy="80" r="21" fill="#6ca0dc"/>
+    <text class="number" x="78" y="86" text-anchor="middle">1</text>
+    <text class="step" x="115" y="90">Input</text>
+    <circle cx="76" cy="151" r="7" fill="#1b4079"/>
+    <text class="body" x="96" y="158">.bam + .bai files</text>
+    <circle cx="76" cy="196" r="7" fill="#1b4079"/>
+    <text class="body" x="96" y="203">Read count per sample</text>
+    <circle cx="76" cy="241" r="7" fill="#1b4079"/>
+    <text class="body" x="96" y="248">Reference genome build</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect class="card" x="445" y="45" width="310" height="250" rx="18"/>
+    <path d="M 463 45 H 737 A 18 18 0 0 1 755 63 V 115 H 445 V 63 A 18 18 0 0 1 463 45 Z"
+      fill="#2a6f97"/>
+    <circle cx="483" cy="80" r="21" fill="#8ecae6"/>
+    <text class="number" x="483" y="86" text-anchor="middle">2</text>
+    <text class="step" x="520" y="90">Analyse</text>
+    <circle cx="481" cy="151" r="7" fill="#2a6f97"/>
+    <text class="body" x="501" y="158">Mapping rate &amp; coverage</text>
+    <circle cx="481" cy="196" r="7" fill="#2a6f97"/>
+    <text class="body" x="501" y="203">Duplicates, optical dups</text>
+    <circle cx="481" cy="241" r="7" fill="#2a6f97"/>
+    <text class="body" x="501" y="248">Error, insert size, GC</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect class="card" x="850" y="45" width="310" height="250" rx="18"/>
+    <path d="M 868 45 H 1142 A 18 18 0 0 1 1160 63 V 115 H 850 V 63 A 18 18 0 0 1 868 45 Z"
+      fill="#2f7d5a"/>
+    <circle cx="888" cy="80" r="21" fill="#8fd3b3"/>
+    <text class="number" x="888" y="86" text-anchor="middle">3</text>
+    <text class="step" x="925" y="90">Report</text>
+    <circle cx="886" cy="151" r="7" fill="#2f7d5a"/>
+    <text class="body" x="906" y="158">Pass/fail QC heatmap</text>
+    <circle cx="886" cy="196" r="7" fill="#2f7d5a"/>
+    <text class="body" x="906" y="203">Per-sample QC plots</text>
+    <circle cx="886" cy="241" r="7" fill="#2f7d5a"/>
+    <text class="body" x="906" y="248">metrics_summary.tsv</text>
+  </g>
+
+</svg>
