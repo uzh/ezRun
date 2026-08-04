@@ -572,7 +572,8 @@ EzApp <-
           "- Past tense, third person, continuous academic prose. No bullet lists, no bold tool",
           "  headings, no per-tool catalogue.",
           "- Give each tool its version at first mention, then use the bare name.",
-          "- No citations, DOIs or URLs.",
+          "- No citations, DOIs or URLs. This does not apply to the References section",
+          "  described below, if the prompt includes a candidate reference list.",
           "- No filesystem paths, server names, usernames or project identifiers. Name the",
           "  reference genome and annotation build, never the path they were read from.",
           "- Leave out operational detail that does not affect the result: scheduler directives,",
@@ -628,7 +629,7 @@ EzApp <-
       generate_methods = function(...) {
         write_methods(...)
       },
-      write_methods = function(gstore_script_dir = NULL, output_dir = ".", ...) {
+      write_methods = function(gstore_script_dir = NULL, output_dir = ".", citations = NULL, ...) {
         script_paths <- c()
         log_paths    <- c()
         if (!is.null(gstore_script_dir)) {
@@ -664,6 +665,11 @@ EzApp <-
                   "--task-file",     task_file)
         if (length(script_paths) > 0) args <- c(args, "--scripts", script_paths)
         if (length(log_paths)    > 0) args <- c(args, "--logs",    log_paths)
+        if (length(citations)    > 0) {
+          citations_file <- file.path(output_dir, "citations_candidates.txt")
+          writeLines(citations, citations_file)
+          args <- c(args, "--citations", citations_file)
+        }
         ## llm_write_methods is provided by the AI/llm_methods_caller module,
         ## which must be in the app's module list so it is on PATH.
         ret <- system2("llm_write_methods", args = args)
