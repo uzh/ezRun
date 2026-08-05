@@ -341,10 +341,24 @@ computeBamStatsSC = function(bamFile, ram = NULL) {
 # Human only, because the model is pan-HUMAN; on any other species this is a
 # no-op. Never fails the job: on any problem it returns the original refDir and
 # the run proceeds exactly as before, just without annotation.
+#
+# Older CellRangers have no local model at all, so the alias would buy nothing;
+# they are left with the original reference. An unparseable version is treated
+# as too old.
 cellRangerAnnotatableRef <- function(refDir, param, aliasParent = getwd()) {
   supported <- c("hg19", "GRCh38", "GRCh39")
   tryCatch(
     {
+      crVersion <- if (ezIsSpecified(param$CellRangerVersion)) {
+        tryCatch(
+          numeric_version(basename(param$CellRangerVersion)),
+          error = function(e) NULL,
+          warning = function(w) NULL
+        )
+      }
+      if (is.null(crVersion) || crVersion < numeric_version("10.1.0")) {
+        return(refDir)
+      }
       if (!identical(getSpecies(param$refBuild), "Human")) {
         return(refDir)
       }
@@ -373,6 +387,22 @@ cellRangerAnnotatableRef <- function(refDir, param, aliasParent = getwd()) {
         file.symlink(file.path(refDir, entry), file.path(aliasDir, entry))
       }
       ref$genomes <- "GRCh38"
+      ## CellRanger needs these three as JSON arrays and version as a string;
+      ## auto_unbox would scalarise them and `version: null` round-trips to {}.
+      for (fld in c("genomes", "input_fasta_files", "input_gtf_files")) {
+        if (!is.null(ref[[fld]])) {
+          ref[[fld]] <- I(as.character(ref[[fld]]))
+        }
+      }
+      ref$version <- if (
+        is.character(ref$version) &&
+          length(ref$version) == 1L &&
+          nzchar(ref$version)
+      ) {
+        ref$version
+      } else {
+        genomes ## keep the original genome label rather than inventing one
+      }
       writeLines(
         jsonlite::toJSON(ref, auto_unbox = TRUE, pretty = TRUE),
         file.path(aliasDir, "reference.json")
