@@ -629,7 +629,8 @@ EzApp <-
       generate_methods = function(...) {
         write_methods(...)
       },
-      write_methods = function(gstore_script_dir = NULL, output_dir = ".", citations = NULL, ...) {
+      write_methods = function(gstore_script_dir = NULL, output_dir = ".", citations = NULL,
+                               example_script = NULL, sample_count = NULL, ...) {
         script_paths <- c()
         log_paths    <- c()
         if (!is.null(gstore_script_dir)) {
@@ -639,11 +640,45 @@ EzApp <-
           isOwnJob <- function(paths) {
             grepl("^methods_(dataset_)?\\d+\\.sh", basename(paths))
           }
-          all_sh       <- Sys.glob(file.path(gstore_script_dir, "*.sh"))
-          script_paths <- all_sh[!isOwnJob(all_sh)]
-          all_logs     <- c(Sys.glob(file.path(gstore_script_dir, "*_o.log")),
+          ## The methods job can start as soon as the main job's DB status flips to
+          ## "done", which is decoupled from whether its log files have actually
+          ## finished landing on this node's view of gstore -- observed gap on a real
+          ## job: 14s. Retry rather than silently proceeding with zero logs and no
+          ## grounding evidence. If it's still not there after a bounded wait, continue
+          ## anyway with whatever's found: describing from the script alone beats
+          ## failing the whole methods job outright.
+          retryLogGlob <- function(globFun, maxWaitSeconds = 60, interval = 15) {
+            found  <- globFun()
+            waited <- 0
+            while (length(found) == 0 && waited < maxWaitSeconds) {
+              Sys.sleep(interval)
+              waited <- waited + interval
+              found  <- globFun()
+            }
+            found
+          }
+          if (!is.null(example_script)) {
+            ## A SAMPLE-mode dataset can have dozens of samples sharing this directory --
+            ## reading every one of them blew the model's context window on a real
+            ## 34-sample STAR batch (258k input tokens). Every sample's script came from
+            ## the same app with the same params, so one is sufficient evidence of the
+            ## pipeline; the true count travels separately via sample_count so the text
+            ## still says "N samples" instead of reading like a single-sample analysis.
+            candidate    <- file.path(gstore_script_dir, example_script)
+            script_paths <- candidate[file.exists(candidate)]
+            log_paths    <- retryLogGlob(function() {
+              Sys.glob(file.path(gstore_script_dir,
+                                 paste0(example_script, "_sushiID*_[oe].log")))
+            })
+          } else {
+            all_sh       <- Sys.glob(file.path(gstore_script_dir, "*.sh"))
+            script_paths <- all_sh[!isOwnJob(all_sh)]
+            log_paths    <- retryLogGlob(function() {
+              all_logs <- c(Sys.glob(file.path(gstore_script_dir, "*_o.log")),
                             Sys.glob(file.path(gstore_script_dir, "*_e.log")))
-          log_paths    <- all_logs[!isOwnJob(all_logs)]
+              all_logs[!isOwnJob(all_logs)]
+            })
+          }
           ## The job script records what was REQUESTED; the config the tool actually
           ## received is written next to the results. CellRanger multi puts it at
           ## <result_dir>/<sample>/config.csv, and only that file shows the real
@@ -651,6 +686,8 @@ EzApp <-
           ## includeIntrons=true in its script, but ezRun never passes that for
           ## fixedRNA, and the generated Methods claimed intronic counting anyway.
           ## Absent for every other app, in which case this glob returns nothing.
+          ## NOT YET scoped to one sample like scripts/logs above: a multi-sample
+          ## CellRanger-family batch could still read every sample's config.csv here.
           script_paths <- c(script_paths,
                             Sys.glob(file.path(dirname(gstore_script_dir),
                                                "*", "config.csv")))
@@ -669,6 +706,9 @@ EzApp <-
           citations_file <- file.path(output_dir, "citations_candidates.txt")
           writeLines(citations, citations_file)
           args <- c(args, "--citations", citations_file)
+        }
+        if (!is.null(sample_count) && sample_count > 1) {
+          args <- c(args, "--sample-count", as.character(sample_count))
         }
         ## llm_write_methods is provided by the AI/llm_methods_caller module,
         ## which must be in the app's module list so it is on PATH.
