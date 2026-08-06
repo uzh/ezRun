@@ -206,9 +206,11 @@ if (!nzchar(.fgcz_user %||% "")) .fgcz_user <- Sys.getenv("USER", "unknown")
 
 # Overview
 
-::: {.callout-note}
-## What this report is
+::: {.panel-tabset}
 
+## Run Info
+
+::: {.callout-note title="What this report is"}
 **CountQC** is a quality-control report for a *count matrix*: one row per
 feature (gene or transcript), one column per sample. It does not test any
 hypothesis — it answers "is this dataset sound enough to analyse?" before any
@@ -248,7 +250,7 @@ knitr::kable(
 )
 ```
 
-# Settings
+## Settings
 
 `r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
 
@@ -264,7 +266,7 @@ if (ncol(rawData) < 2) {
 ```{r settings-table}
 settings <- character()
 settings["Reference:"]          <- param$refBuild
-settings["Normalization method:"] <- param$normMethod
+settings["Normalisation method:"] <- param$normMethod
 if (param$useSigThresh) {
   settings["Log2 signal threshold:"]    <- signif(log2(param$sigThresh), digits = 4)
   settings["Linear signal threshold:"]  <- signif(param$sigThresh, digits = 4)
@@ -289,7 +291,7 @@ if (exists("output") && !is.null(output)) {
 }
 ```
 
-# Data Files
+## Data Files
 
 The data files are in tabular text format and can also be opened with a spreadsheet program (*e.g.*, Excel).
 
@@ -404,11 +406,17 @@ for (each in c(countFile, signalFile, rpkmFile, tpmFile, tableLink)) {
 }
 ```
 
+:::
+
 # Count Statistics
 
 ::: {.panel-tabset}
 
 ## Read counts
+
+::: {.callout-note}
+Total reads per sample (left) and the number of genomic features with reads above the detection threshold (right). Interactive (plotly) plots ignore Quarto's `fig-cap`, so this is a manual caption.
+:::
 
 ```{r count-statistics}
 #| layout-ncol: 2
@@ -417,35 +425,45 @@ toPlot <- tibble(samples      = colnames(rawData),
                  presentCounts = colSums(assays(rawData)$presentFlag),
                  percentages  = paste(signif(100 * presentCounts / nrow(rawData), digits = 2), "%"))
 m <- list(l = 80, r = 80, b = 120, t = 60, pad = 0)   # b: room for rotated sample labels — raise if names are long
+plotHeight <- 420
+
+# plotly sizes in px; knitr's fig-height/fig-width are ignored for widgets.
+# layout(height=...) alone only sizes the DRAWN plot — the htmlwidget
+# CONTAINER falls back to knitr's fig.height * fig-dpi (e.g. 5in * 300dpi =
+# 1500px) and leaves a tall empty band under the plot. Setting p$height on
+# the widget object sizes the container to match too. Width is set
+# to "100%" (a CSS string, not a pixel number) so the widget fills whatever
+# column Quarto's layout-ncol:2 flex gives it (50% of the tab card), instead
+# of either fighting that with a forced pixel width (overflows the card) or
+# falling back to the site-wide out.width:40% default meant for standalone
+# figures (leaves the column mostly empty). MDS's mds() helper below CAN
+# hardcode a pixel width because it sits in a custom .fig-grid, not
+# layout-ncol.
+sizePlot <- function(p) {
+  p$width <- "100%"; p$height <- plotHeight
+  plotly::layout(p, height = plotHeight, margin = m,
+                 xaxis = list(tickangle = 45)) |> plotly::config(responsive = TRUE)
+}
 
 ## Total reads
-plot_ly(toPlot, x = ~samples,
-        y = ~totalCounts, type = "bar") |>
-  layout(title  = "Total reads",
-         yaxis  = list(title = "Counts [Mio]"),
-         height = 420,                 # plotly sizes in px; knitr fig-height is ignored for widgets
-         width = min(7 + (ncol(rawData) - 10) * 0.3, 30) * 96,   # inches → px
-         margin = m)
+plot_ly(toPlot, x = ~samples, y = ~totalCounts, type = "bar") |>
+  layout(title = "Total reads", yaxis = list(title = "Counts [Mio]")) |>
+  sizePlot()
 
-## Above genomic threshold 
+## Above genomic threshold
 plot_ly(toPlot, x = ~samples, y = ~presentCounts, type = "bar",
         text = ~percentages, textposition = "auto") |>
-  layout(title  = "Genomic features with reads above threshold",
-         yaxis  = list(title = "Counts"),
-         height = 420,
-         width = min(7 + (ncol(rawData) - 10) * 0.3, 30) * 96,
-         margin = m)
+  layout(title = "Genomic features with reads above threshold", yaxis = list(title = "Counts")) |>
+  sizePlot()
 ```
 
-::: {.callout-note}
-Total reads per sample (left) and the number of genomic features with reads above the detection threshold (right). Interactive (plotly) plots ignore Quarto's `fig-cap`, so this is a manual caption.
-:::
+
 
 ## Dominant genes
 
 ```{r dominant-genes}
 #| fig-height: 5
-#| fig-width: 7
+#| fig-width: !expr "min(7 + (ncol(rawData) - 10) * 0.3, 30)"
 #| fig-cap: "Top 3 over-represented genes per sample, drawn over each sample's distribution of expression fractions."
 ## Check for dominant genes in samples
 
@@ -478,7 +496,7 @@ p <- p + geom_text_repel(data = top3,
                          max.overlaps  = Inf) +
   scale_colour_manual(values = c("red", "orange", "gold"), name = "Top-gene rank")
 p <- p + theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
         plot.margin = margin(5.5, 20, 5.5, 5.5, "pt"))
 p <- p + labs(y = "Fraction of total expression",
               title = "Top 3 over-represented genes per sample")
@@ -534,9 +552,11 @@ if (param$selectByFtest) {
 ## Sample correlation
 
 ```{r sample-correlation-setup}
-# Width grows with sample count (more samples → wider matrix); height stays fixed.
-figure.width <- min(6 + (ncol(rawData) - 10), 30)
-figure.height <- min(6 + (ncol(rawData) - 10) * 0.3, 30)
+# Correlation matrices are ~square (N samples x N samples); grow both dimensions
+# together with sample count, tied by the same 1.25 width:height ratio the
+# pre-Quarto report used, rather than scaling width and height independently.
+figure.height <- min(7 + (ncol(rawData) - 10) * 0.3, 30)
+figure.width  <- figure.height * 1.25
 ```
 
 ```{r plot-sample-correlation}
@@ -565,12 +585,14 @@ Pearson correlation of samples based on all detected (left) and top 100 most abu
 
 ## Sample clustering
 
+::: {.callout-note}
+Hierarchical clustering (Ward D2) of samples based on all detected (left) and top 100 most abundant (right) features.
+:::
+
 ```{r sample-clustering}
 #| layout-ncol: 2
 #| fig-height: 6
 #| fig-width: !expr "min(7 + (ncol(rawData) - 10) * 0.3, 30)"
-#| results: asis
-#| fig-cap: "Hierarchical clustering (Ward D2) of samples based on all detected (left) and top 100 most abundant (right) features."
 
 if (ncol(rawData) > 3) {
   ## All genes
@@ -644,7 +666,8 @@ if (ncol(rawData) > 3) {
         universeProbeIds = rownames(seqAnno))
     }
 
-    if (!is.null(clusterResult$GO)) {
+    hasGoTable <- !is.null(clusterResult$GO)
+    if (hasGoTable) {
       goTables <- goClusterTableRmd(param, clusterResult, seqAnno)
       if (doEnrichr(param)) {
         goAndEnrichr <- cbind(goTables$linkTable, goTables$enrichrTable)
@@ -657,21 +680,28 @@ if (ncol(rawData) > 3) {
                                        '</font>')
       goKable <- kable(goAndEnrichr, escape = FALSE, row.names = TRUE, format = "html",
             caption = "GO categories of feature clusters") |>
-        kable_styling(bootstrap_options = "striped",
-                      full_width = F, position = "float_right") |>
+        kable_styling(bootstrap_options = "striped", full_width = FALSE) |>
         footnote(general = "Cluster font color corresponds to the row colors in the heatmap plot.")
-      # Emit the float_right table BEFORE the plot so it sits beside the heatmap
-      # at the top (a right-floated block can only sit alongside content that
-      # follows it in source order; if drawn after the plot it drops below).
-      # Blank-line-delimited raw HTML: auto-printing a kableExtra table as the
-      # tail of a results:asis chunk leaves Pandoc in a verbatim state that
-      # swallows ALL following content into an unclosed <pre><code>.
-      cat("\n\n", as.character(goKable), "\n\n", sep = "")
     } else {
       cat("No information available", "\n")
     }
 
+    # .fig-row/.fig-main/.fig-side (fgcz.scss) place the table beside the plot
+    # via flexbox — NOT kableExtra's position="float_right", which used to sit
+    # the table on top of/behind the plot's wrapping figure div (CSS floats
+    # don't reliably clear a subsequent block-level figure), leaving every link
+    # in the table unclickable. Flex items can't overlap this way, and unlike
+    # the float they don't force plot-before/after-table source ordering.
+    if (hasGoTable) cat("\n::::: {.fig-row}\n:::: {.fig-main}\n")
     plot(clusterResult$pheatmap$gtable)
+    if (hasGoTable) {
+      cat("\n::::\n:::: {.fig-side}\n\n")
+      # Blank-line-delimited raw HTML: auto-printing a kableExtra table as the
+      # tail of a results:asis chunk leaves Pandoc in a verbatim state that
+      # swallows ALL following content into an unclosed <pre><code>.
+      cat("\n\n", as.character(goKable), "\n\n", sep = "")
+      cat("\n::::\n:::::\n")
+    }
   }
 } else {
   varFeatures <- c()
@@ -807,8 +837,8 @@ if (ncol(rawData) <= 3) {
 # "white space between 3D and 2D"). .fig-grid (fgcz.scss) flex-WRAPS the four
 # widgets so the pair wraps to one-per-row when the column is narrow instead of
 # overflowing layout-ncol's fixed 2-up grid into the callout.
-mdsHeight <- 380   # px per plot — tweak to taste
-mdsWidth  <- 460   # px per plot — two + gap must fit the .fig-main column
+mdsHeight <- 520   # px per plot — tweak to taste
+mdsWidth  <- 620   # px per plot — two + gap must fit the .fig-main column; wraps to one-per-row if not
 mds <- function(p) {                       # lock BOTH the plot and its container
   p$width <- mdsWidth; p$height <- mdsHeight
   plotly::layout(p, height = mdsHeight, width = mdsWidth)
@@ -853,9 +883,6 @@ MDS plots are like PCA plots, each dot is one of the samples in the dataset, and
 
 ```{r scatter-plot-setup}
 #| results: asis
-#| fig-height: 6
-#| fig-width: 6
-#| fig-cap: ""
 scatterPlotData <- countQcScatterPlots(param, metadata(rawData)$design,
                                        colData(rawData)$conds, rawDataAll,
                                        signalCond, isPresentCond, types = types)
@@ -868,8 +895,9 @@ nPlots <- max(scatterPlotData$nPlots, 1)
 #| echo: false
 #| message: false
 #| results: asis
-#| fig-width: !expr "min(max(ncol(signalCond) * 2, 4), 20)"
-#| fig-height: !expr "min(max(ncol(signalCond) * 2, 4), 20) * (16 / 15)"
+#| fig-width: 6
+#| fig-height: 6
+#| out-width: "40%"
 #| eval: !expr "ncol(rawData) > 3 & param$writeScatterPlots"
 qcScatterFiles <- scatterPlotData$allPairs
 
