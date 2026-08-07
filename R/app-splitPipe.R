@@ -63,6 +63,8 @@ ezMethodSplitPipe <- function(input = NA, output = NA, param = NA) {
   ## 4. Combine sublibraries (or promote the single sublibrary to the result)
   resultDir <- param$name
   if (nSublib > 1) {
+    ## Keep sublibs/ afterwards: each sublibrary's STAR Log.final.out (genome
+    ## mapping rate for the report) lives under sublibs/<Name>/process/.
     cmd <- paste(
       "split-pipe --mode comb",
       paste0("--nthreads ", param$cores),
@@ -76,10 +78,70 @@ ezMethodSplitPipe <- function(input = NA, output = NA, param = NA) {
     unlink("sublibs", recursive = TRUE)
   }
 
-  ## 5. Report (stable 00index.html inside the result directory)
+  ## 5. Convert each biological-sample DGE matrix to 10x format so the output is
+  ## readable by the downstream ScSeurat / CellBender apps (which use Read10X /
+  ## read10xCounts). The native Parse DGE_* directories are left in place.
+  writeTenxMatrices(resultDir)
+
+  ## 6. Report (stable FGCZ-Quarto 00index.html inside the result directory)
   makeSplitPipeReport(resultDir, param)
 
   return("Success")
+}
+
+##' Convert every Parse split-pipe DGE matrix under a result directory to 10x
+##' format. For each biological-sample dir `<resultDir>/<sample>/` it writes
+##' `filtered_feature_bc_matrix/` (from DGE_filtered) and `raw_feature_bc_matrix/`
+##' (from DGE_unfiltered) using DropletUtils::write10xCounts.
+writeTenxMatrices <- function(resultDir) {
+  sampleDirs <- list.dirs(resultDir, recursive = FALSE)
+  sampleDirs <- sampleDirs[dir.exists(file.path(sampleDirs, "DGE_filtered"))]
+  for (sampleDir in sampleDirs) {
+    convertParseToTenx(
+      file.path(sampleDir, "DGE_filtered"),
+      file.path(sampleDir, "filtered_feature_bc_matrix")
+    )
+    if (dir.exists(file.path(sampleDir, "DGE_unfiltered"))) {
+      convertParseToTenx(
+        file.path(sampleDir, "DGE_unfiltered"),
+        file.path(sampleDir, "raw_feature_bc_matrix")
+      )
+    }
+  }
+}
+
+##' Convert a single Parse DGE directory (count_matrix.mtx [cells x genes],
+##' all_genes.csv, cell_metadata.csv) into a 10x v3 matrix directory
+##' (matrix.mtx.gz / barcodes.tsv.gz / features.tsv.gz). The matrix is transposed
+##' to the 10x genes x cells orientation; gene_id becomes the feature id (so
+##' Read10X(gene.column = 1) yields Ensembl-ID rownames) and gene_name the symbol.
+convertParseToTenx <- function(dgeDir, outDir) {
+  ezLoadPackage("DropletUtils")
+  m <- Matrix::readMM(file.path(dgeDir, "count_matrix.mtx")) ## cells x genes
+  genes <- ezRead.table(
+    file.path(dgeDir, "all_genes.csv"),
+    sep = ",",
+    row.names = NULL
+  )
+  cells <- ezRead.table(
+    file.path(dgeDir, "cell_metadata.csv"),
+    sep = ",",
+    row.names = NULL
+  )
+  m <- Matrix::t(m) ## -> genes x cells (10x orientation)
+  rownames(m) <- genes$gene_id
+  colnames(m) <- cells$bc_wells
+  unlink(outDir, recursive = TRUE)
+  DropletUtils::write10xCounts(
+    path = outDir,
+    x = m,
+    barcodes = cells$bc_wells,
+    gene.id = genes$gene_id,
+    gene.symbol = genes$gene_name,
+    gene.type = "Gene Expression",
+    version = "3",
+    overwrite = TRUE
+  )
 }
 
 ##' Build the '--sample'/'--samp_list'/'--samp_sltab' arguments for split-pipe.
@@ -187,15 +249,18 @@ getParseReference <- function(param) {
   return(refDir)
 }
 
-##' Render a stable 00index.html report inside the split-pipe result directory.
+##' Render a stable FGCZ-Quarto 00index.html report inside the result directory.
 makeSplitPipeReport <- function(resultDir, param) {
   cwd <- getwd()
   on.exit(setwd(cwd), add = TRUE)
   setwd(resultDir)
-  makeRmdReport(
+  makeQuartoReport(
     param = param,
-    rmdFile = "SplitPipe.Rmd",
-    reportTitle = paste("Parse split-pipe -", param$name)
+    qmdFile = "SplitPipe.qmd",
+    reportTitle = paste("Parse split-pipe -", param$name),
+    buttons = TRUE,
+    number = TRUE,
+    colour = FALSE
   )
 }
 

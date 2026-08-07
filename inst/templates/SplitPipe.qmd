@@ -1,0 +1,257 @@
+---
+params:
+  reportTitle: "Parse split-pipe"
+title: "`r params$reportTitle`"
+---
+
+<!-- Styling comes from the fgczQuartoTemplate assets staged next to this file by
+     makeQuartoReport() -> fgczQuartoTemplate::fgcz_render(); nothing to declare
+     here. The report reads the split-pipe outputs from the working directory. -->
+
+```{r setup}
+#| include: false
+library(ezRun)
+library(DT)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(ggplot2)
+
+param <- ezLoadRobj("param")
+wddir <- "."
+
+## Colour-blind-safe qualitative palette (Okabe-Ito) - avoid red/green reliance.
+cbPalette <- c(
+  "#0072B2", "#E69F00", "#009E73", "#CC79A7",
+  "#56B4E9", "#D55E00", "#F0E442", "#999999"
+)
+
+## Per-biological-sample output directories (those with a 10x/DGE matrix).
+sampleDirs <- list.dirs(wddir, recursive = FALSE, full.names = FALSE)
+sampleDirs <- sampleDirs[vapply(
+  sampleDirs,
+  function(d) dir.exists(file.path(wddir, d, "DGE_filtered")),
+  logical(1)
+)]
+
+## Fetch a column from a split-pipe summary data.frame by exact name or, when the
+## metric is genome-prefixed (e.g. "GRCh38-p14_median_genes_per_cell"), by suffix.
+getMetric <- function(df, name) {
+  if (name %in% names(df)) {
+    return(df[[name]])
+  }
+  hit <- grep(paste0("_", name, "$"), names(df), value = TRUE)
+  if (length(hit) >= 1) {
+    return(df[[hit[1]]])
+  }
+  rep(NA, nrow(df))
+}
+
+## Parse a STAR Log.final.out into a named list of the fields we surface.
+readStarFinalLog <- function(fn) {
+  ll <- readLines(fn, warn = FALSE)
+  grab <- function(key) {
+    hit <- grep(key, ll, fixed = TRUE, value = TRUE)
+    if (length(hit) == 0) {
+      return(NA_character_)
+    }
+    trimws(sub(".*\\|", "", hit[1]))
+  }
+  list(
+    input = grab("Number of input reads"),
+    uniquePct = grab("Uniquely mapped reads %"),
+    multiPct = grab("% of reads mapped to multiple loci")
+  )
+}
+```
+
+#  {.tabset}
+
+Rendered `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`.
+
+## Overview
+
+This report summarizes the **Parse Biosciences split-pipe** run **`r param$name`**.
+
+- Kit: **`r param$kit`**, chemistry: **`r param$chemistry`**
+- Reference: **`r param$refBuild`**
+- Biological samples: **`r paste(sampleDirs, collapse = ", ")`**
+
+## Summary metrics (10x-style)
+
+```{r metricsTable}
+#| echo: false
+aggFn <- file.path(wddir, "agg_sample_summary.csv")
+if (file.exists(aggFn)) {
+  agg <- read_csv(aggFn, show_col_types = FALSE)
+
+  ## Total genes detected per sample (from each sample's report dir).
+  totalGenes <- vapply(agg$sample, function(s) {
+    mFn <- file.path(wddir, s, "report", "sample_mrtg_counts.csv")
+    if (file.exists(mFn)) {
+      mm <- read_csv(mFn, show_col_types = FALSE)
+      v <- mm$count[mm$statistic == "total_gene_count"]
+      if (length(v)) {
+        return(as.numeric(v[1]))
+      }
+    }
+    NA_real_
+  }, numeric(1))
+
+  metrics <- tibble(
+    Metric = c(
+      "Estimated Number of Cells",
+      "Mean Reads per Cell",
+      "Number of Reads",
+      "Sequencing Saturation",
+      "Valid Barcode Fraction",
+      "Reads Mapped to Transcriptome",
+      "Median Genes per Cell",
+      "Median UMIs (Transcripts) per Cell",
+      "Fraction Reads in Cells",
+      "Fraction Exonic",
+      "Total Genes Detected",
+      "cDNA Q30"
+    )
+  )
+  for (i in seq_len(nrow(agg))) {
+    metrics[[agg$sample[i]]] <- c(
+      getMetric(agg, "number_of_cells")[i],
+      round(getMetric(agg, "mean_reads_per_cell")[i], 1),
+      getMetric(agg, "number_of_reads")[i],
+      getMetric(agg, "sequencing_saturation")[i],
+      getMetric(agg, "valid_barcode_fraction")[i],
+      getMetric(agg, "transcriptome_map_fraction")[i],
+      getMetric(agg, "median_genes_per_cell")[i],
+      getMetric(agg, "median_tscp_per_cell")[i],
+      getMetric(agg, "fraction_reads_in_cells")[i],
+      getMetric(agg, "fraction_exonic")[i],
+      totalGenes[i],
+      getMetric(agg, "cDNA_Q30")[i]
+    )
+  }
+  DT::datatable(
+    metrics,
+    caption = "Per-sample summary. 'Median UMIs (Transcripts) per Cell' is the Parse transcript count (= UMIs); mapping fractions are transcriptome-level.",
+    options = list(dom = "t", pageLength = 20, scrollX = TRUE),
+    rownames = FALSE
+  )
+} else {
+  cat("No agg_sample_summary.csv found.\n")
+}
+```
+
+## Alignment (per sublibrary)
+
+Genome mapping rate comes from the STAR alignment log of each **sublibrary**
+(these are run-level, not per biological sample).
+
+```{r alignTable}
+#| echo: false
+starLogs <- list.files(
+  wddir,
+  pattern = "Log\\.final\\.out$",
+  recursive = TRUE,
+  full.names = TRUE
+)
+if (length(starLogs) > 0) {
+  aln <- lapply(starLogs, function(fn) {
+    s <- readStarFinalLog(fn)
+    uniq <- suppressWarnings(as.numeric(sub("%", "", s$uniquePct)))
+    multi <- suppressWarnings(as.numeric(sub("%", "", s$multiPct)))
+    tibble(
+      Sublibrary = basename(dirname(dirname(fn))),
+      `Input Reads` = s$input,
+      `Uniquely Mapped %` = s$uniquePct,
+      `Multi-loci %` = s$multiPct,
+      `Reads Mapped to Genome %` = ifelse(
+        is.na(uniq) | is.na(multi),
+        NA_character_,
+        sprintf("%.2f%%", uniq + multi)
+      )
+    )
+  })
+  DT::datatable(
+    bind_rows(aln),
+    caption = "STAR alignment per sublibrary. 'Reads Mapped to Genome' = uniquely mapped + multi-loci.",
+    options = list(dom = "t", scrollX = TRUE),
+    rownames = FALSE
+  )
+} else {
+  cat("No STAR Log.final.out found.\n")
+}
+```
+
+## Per-cell distributions {.tabset}
+
+Genes, UMIs (transcripts) and reads per cell, labeled by **biological sample**
+(computed from each sample's `cell_metadata.csv` - these use the real sample
+names, unlike split-pipe's native genome-keyed knee plots below).
+
+```{r perCell}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 5
+meta <- lapply(sampleDirs, function(s) {
+  fn <- file.path(wddir, s, "DGE_filtered", "cell_metadata.csv")
+  if (file.exists(fn)) {
+    d <- read_csv(fn, show_col_types = FALSE)
+    d$sampleDir <- s
+    d
+  } else {
+    NULL
+  }
+})
+meta <- bind_rows(meta)
+if (!is.null(meta) && nrow(meta) > 0) {
+  plotVar <- function(var, ylab) {
+    ggplot(meta, aes(x = sampleDir, y = .data[[var]], fill = sampleDir)) +
+      geom_violin(scale = "width", trim = TRUE) +
+      geom_boxplot(width = 0.1, outlier.size = 0.3, fill = "white") +
+      scale_y_log10() +
+      scale_fill_manual(values = cbPalette, guide = "none") +
+      labs(x = "Biological sample", y = ylab) +
+      theme_bw()
+  }
+  print(plotVar("gene_count", "Genes per cell (log10)"))
+  print(plotVar("tscp_count", "UMIs / transcripts per cell (log10)"))
+  print(plotVar("mread_count", "Reads per cell (log10)"))
+} else {
+  cat("No cell_metadata.csv found.\n")
+}
+```
+
+## split-pipe native figures {.tabset}
+
+split-pipe's own QC figures. Note the knee-plot legends are keyed by **genome
+name** (e.g. `GRCh38-p14`), suffixed by sublibrary index in combined runs - they
+are per-genome/per-sublibrary QC, not per biological sample.
+
+```{r nativeFigs}
+#| echo: false
+#| results: asis
+for (s in sampleDirs) {
+  cat("\n\n### ", s, "\n\n", sep = "")
+  nativeHtml <- paste0(s, "_analysis_summary.html")
+  if (file.exists(file.path(wddir, nativeHtml))) {
+    cat("[Full split-pipe analysis summary](", nativeHtml, ")\n\n", sep = "")
+  }
+  figDir <- file.path(wddir, s, "figures")
+  if (dir.exists(figDir)) {
+    for (fig in sort(list.files(figDir, pattern = "\\.png$", full.names = TRUE))) {
+      cat("\n\n![", basename(fig), "](", fig, ")\n\n", sep = "")
+    }
+  }
+}
+zipFn <- file.path(wddir, "all_summaries.zip")
+if (file.exists(zipFn)) {
+  cat("\n\n[Download all_summaries.zip](all_summaries.zip)\n")
+}
+```
+
+## SessionInfo
+
+```{r sessionInfo}
+#| echo: false
+ezSessionInfo()
+```
