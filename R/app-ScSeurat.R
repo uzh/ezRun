@@ -1208,6 +1208,11 @@ addCellQcToSeurat <- function(
       as.numeric(param$perc_riboprot)
   }
 
+  # A cell with zero counts is a library-size failure by definition. Without
+  # this, the branches above let it through whenever neither a fixed threshold
+  # nor nmad is set, and scDblFinder then dies on a zero library size.
+  scData$qc.lib <- scData$qc.lib | scData@meta.data[, att_nCounts] == 0
+
   scData$useCell <- !(scData$qc.lib |
     scData$qc.nexprs |
     scData$qc.mito |
@@ -1216,24 +1221,34 @@ addCellQcToSeurat <- function(
 
   if (DefaultAssay(scData) == "RNA") {
     set.seed(38)
+    # as-dgCMatrix: on a SparseArray, scDblFinder's internal `x %*% diag(...)`
+    # is unsupported and it falls back to a division that errors out.
+    dblCounts <- as(
+      GetAssayData(scData, layer = "counts")[, scData$useCell],
+      "dgCMatrix"
+    )
     doubletsInfo <- tryCatch(
       {
         scDblFinder(
-          GetAssayData(scData, layer = "counts")[, scData$useCell],
+          dblCounts,
           returnType = "table",
           clusters = TRUE,
           BPPARAM = BPPARAM
         )
       },
       error = function(e) {
-        futile.logger::flog.warn(paste(
-          "scDblFinder failed (likely too few cells), skipping doublet detection:",
-          conditionMessage(e)
-        ))
+        ezLog(
+          "scDblFinder failed, skipping doublet detection: ",
+          conditionMessage(e),
+          level = "warn"
+        )
         NULL
       }
     )
-    if (!is.null(doubletsInfo) && any(!is.na(doubletsInfo[colnames(scData), "score"]))) {
+    if (
+      !is.null(doubletsInfo) &&
+        any(!is.na(doubletsInfo[colnames(dblCounts), "score"]))
+    ) {
       scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
       scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
       scData$qc.doublet <- scData$doubletClass %in% "doublet"
@@ -1243,6 +1258,10 @@ addCellQcToSeurat <- function(
         scData$useCell <- scData$useCell & scData$doubletClass %in% "singlet"
       }
     } else {
+      ezLog(
+        "No doublet scores available; doublet filtering is skipped and the QC report will show zero doublets.",
+        level = "warn"
+      )
       scData$doubletScore <- NA_real_
       scData$doubletClass <- "undetermined"
       scData$qc.doublet <- FALSE

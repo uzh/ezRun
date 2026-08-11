@@ -338,37 +338,39 @@ plot_hb1 + plot_hb2
 
 ```{r  5th line of plots, fig.width=8, fig.height=4}
 
-plot8 <- plotColData(
-  xxAll,
-  x="Sample", 
-  y="doubletScore", 
-  colour_by = "discard"
-) +
-  labs(
-    title = "Doublet score",
-    y = "Doublet score"
+if (any(!is.na(xxAll$doubletScore))) {
+  plot8 <- plotColData(
+    xxAll,
+    x="Sample",
+    y="doubletScore",
+    colour_by = "discard"
   ) +
-  theme(
-    legend.position = "none",
-    axis.ticks.y = element_blank(),
-    axis.ticks.x = element_blank()
-  )
+    labs(
+      title = "Doublet score",
+      y = "Doublet score"
+    ) +
+    theme(
+      legend.position = "none",
+      axis.ticks.y = element_blank(),
+      axis.ticks.x = element_blank()
+    )
 
-plot9 <- plotColData(
-  xxAll,
-  x="nCount_RNA", 
-  y="doubletScore",
-  colour_by = "discard"
-) +
-  labs(
-    x = "UMI counts",
-    y = "Percent ribosomal protein reads"
+  plot9 <- plotColData(
+    xxAll,
+    x="nCount_RNA",
+    y="doubletScore",
+    colour_by = "discard"
   ) +
-  theme(
-    legend.position = "none"
-  )
+    labs(
+      x = "UMI counts",
+      y = "Percent ribosomal protein reads"
+    ) +
+    theme(
+      legend.position = "none"
+    )
 
-plot8 + plot9
+  print(plot8 + plot9)
+}
 
 
 ```
@@ -765,8 +767,8 @@ VlnPlot(scData, features = "percent_hb") + ggtitle("Hemoglobin percentage vs ide
 FeaturePlot(scData, features = "percent_hb", label = TRUE)
 
 if (any(!is.na(scData$doubletScore))) {
-  VlnPlot(scData, features ="doubletScore") + ggtitle("DoubletScore vs ident") + NoLegend()
-  FeaturePlot(scData, features="doubletScore", label = TRUE)
+  print(VlnPlot(scData, features ="doubletScore") + ggtitle("DoubletScore vs ident") + NoLegend())
+  print(FeaturePlot(scData, features="doubletScore", label = TRUE))
 }
 ```
 
