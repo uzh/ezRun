@@ -1233,7 +1233,7 @@ addCellQcToSeurat <- function(
         NULL
       }
     )
-    if (!is.null(doubletsInfo)) {
+    if (!is.null(doubletsInfo) && any(!is.na(doubletsInfo[colnames(scData), "score"]))) {
       scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
       scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
       scData$qc.doublet <- scData$doubletClass %in% "doublet"

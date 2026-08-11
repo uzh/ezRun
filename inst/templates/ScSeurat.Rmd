@@ -764,8 +764,10 @@ FeaturePlot(scData, features="percent_riboprot", label = TRUE)
 VlnPlot(scData, features = "percent_hb") + ggtitle("Hemoglobin percentage vs ident") + NoLegend()
 FeaturePlot(scData, features = "percent_hb", label = TRUE)
 
-VlnPlot(scData, features ="doubletScore") + ggtitle("DoubletScore vs ident") + NoLegend()
-FeaturePlot(scData, features="doubletScore", label = TRUE)
+if (any(!is.na(scData$doubletScore))) {
+  VlnPlot(scData, features ="doubletScore") + ggtitle("DoubletScore vs ident") + NoLegend()
+  FeaturePlot(scData, features="doubletScore", label = TRUE)
+}
 ```
 
 ```{r decontx, fig.width=min(6 + clusterNameNChar*0.2, 10), fig.height = min(6 + clusterNameNChar*0.2, 10)}
