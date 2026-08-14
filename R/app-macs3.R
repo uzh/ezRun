@@ -172,7 +172,106 @@ ezMethodMacs3 = function(input = NA, output = NA, param = NA) {
   ezSystem(cmd)
   peakXlsFile <- basename(output$getColumn("CalledPeaks"))
   annotatePeaks(peakXlsFile, peakSeqFile, param)
+
+  ## Build a per-sample IGV (igv.js) HTML page: coverage bigWig + called peaks + gene annotation.
+  ## The bigWig/peaks track URLs point at the gstore project path and become reachable once the
+  ## results are delivered; the genome/gene tracks are served from REF_HOST and always resolve.
+  localPeakBed <- basename(output$getColumn("BED"))
+  igvJsonFile <- sub("\\.html$", ".json", basename(output$getColumn("IGV")))
+  igvJson <- writeMacs3IgvSession(
+    param,
+    output,
+    jsonFileName = igvJsonFile,
+    bigwigFile = output$getColumn("BigWigFile"),
+    peakBedFile = if (file.exists(localPeakBed)) output$getColumn("BED") else NULL,
+    baseUrl = PROJECT_BASE_URL
+  )
+  writeNfCoreIgvHtml(
+    param,
+    igvJson,
+    title = paste(output$getNames(), "coverage"),
+    htmlTemplate = "templates/igvNfCoreTemplate.html",
+    htmlFileName = basename(output$getColumn("IGV"))
+  )
   return("Success")
+}
+
+##' @title Writes a per-sample IGV session for MACS3
+##' @description Builds an igv.js session (JSON) for a single MACS3 sample with a genome
+##'   sequence track, the coverage bigWig, the called peaks (BED, optional), and gene
+##'   annotation (transcripts GTF + exons BED). Modeled on \code{writeIgvSessionFile} in
+##'   the PeakCombiner app.
+##' @param param the parameter list, providing \code{param$ezRef}.
+##' @param output the output \code{EzDataset}, providing the sample name.
+##' @param jsonFileName file name to write the JSON session to.
+##' @param bigwigFile the gstore-relative path of the coverage bigWig track.
+##' @param peakBedFile the gstore-relative path of the called-peaks BED track, or
+##'   \code{NULL} to omit the peaks track (e.g. when no peaks were called).
+##' @param baseUrl the project base URL the bigWig/peaks paths are relative to.
+##' @return the JSON session content as a string (also written to \code{jsonFileName}).
+##' @template roxygen-template
+writeMacs3IgvSession <- function(
+  param,
+  output,
+  jsonFileName,
+  bigwigFile,
+  peakBedFile = NULL,
+  baseUrl
+) {
+  refBuildName <- param$ezRef@refBuildName
+  refUrlBase <- file.path(REF_HOST, param$ezRef@refBuild)
+  fastaUrl <- sub(
+    "Annotation.*",
+    "Sequence/WholeGenomeFasta/genome.fa",
+    refUrlBase
+  )
+  faiUrl <- paste0(fastaUrl, ".fai")
+
+  sampleName <- output$getNames()
+  tracks <- list()
+  tracks[[length(tracks) + 1]] <- list(type = "sequence")
+  tracks[[length(tracks) + 1]] <- list(
+    id = sampleName,
+    url = file.path(baseUrl, bigwigFile),
+    format = "bigWig",
+    name = paste(sampleName, "coverage")
+  )
+  if (!is.null(peakBedFile)) {
+    tracks[[length(tracks) + 1]] <- list(
+      id = "peaks",
+      url = file.path(baseUrl, peakBedFile),
+      format = "bed",
+      type = "annotation",
+      name = "peaks"
+    )
+  }
+  tracks[[length(tracks) + 1]] <- list(
+    id = "genes",
+    url = file.path(
+      REF_HOST,
+      param$ezRef@refBuild,
+      "Genes/transcripts.only.gtf"
+    ),
+    format = "gtf",
+    type = "annotation",
+    name = "genes"
+  )
+  tracks[[length(tracks) + 1]] <- list(
+    id = "exons",
+    url = file.path(REF_HOST, param$ezRef@refBuild, "Genes/genes.bed"),
+    format = "bed",
+    type = "annotation",
+    name = "exons"
+  )
+  jsonLines <- list(
+    version = "3.5.3",
+    showSampleNames = FALSE,
+    reference = list(id = refBuildName, fastaUrl = fastaUrl, indexURL = faiUrl),
+    tracks = tracks
+  )
+  jsonFile <- rjson::toJSON(jsonLines, indent = 5, method = "C")
+  write(jsonFile, jsonFileName)
+  return(jsonFile)
 }
 
 ##' @template app-template
