@@ -34,9 +34,10 @@ ezMethodJoinGenoTypesRNASeq <- function(input = NA, output = NA, param = NA) {
   vcfOutputFile = results[[1]]
   chromSizes = ezChromSizesFromVcf(vcfOutputFile)
 
-  system(
-    'bcftools view -m2 -M2 -v snps allSamples.g.vcf.gz -Oz -o tmp.snps.vcf.gz'
-  )
+  system(sprintf(
+    "bcftools view -m2 -M2 -v snps %s -Oz -o tmp.snps.vcf.gz",
+    shQuote(vcfOutputFile)
+  ))
   system('tabix -f -p vcf tmp.snps.vcf.gz')
 
   tmp_vcf <- "tmp.snps.vcf.gz"
@@ -139,34 +140,39 @@ runGatkPipelineRNASeq <- function(
   datasetCase <- datasetCaseList[[caseName]]
   myLog = paste0('log_', caseName, '.txt')
 
-  ##Create CombinedGVCF:
+  ##Create CombinedGVCF: (this is a genuine multi-sample gVCF, so .g.vcf is correct)
+  combinedGVCF = NULL
   if (nrow(datasetCase) > 1) {
-    GenotypeGVCF = paste(gatk, 'CombineGVCFs')
-    myGVCF = paste0(caseName, ".g.vcf")
+    combinedGVCF = paste0(caseName, ".g.vcf")
     cmd = paste(
-      GenotypeGVCF,
+      paste(gatk, 'CombineGVCFs'),
       "-R",
       param$genomeSeq,
       paste('--variant', datasetCase[['GVCF [File]']], collapse = ' '),
       "--output",
-      myGVCF
+      combinedGVCF
     )
     ezSystem(paste(cmd, '2>', myLog))
-    fileCmd = paste("--variant", myGVCF)
+    fileCmd = paste("--variant", combinedGVCF)
   } else {
     fileCmd = paste("--variant", datasetCase[['GVCF [File]']])
   }
 
+  ## Joint genotyping produces a final (non-gVCF) VCF, hence .vcf (not .g.vcf)
   GenotypeGVCF = paste(gatk, 'GenotypeGVCFs')
-  gvcfFile = paste0(caseName, '.g.vcf')
-  tmpGvcf = paste0(caseName, '_temp.vcf')
-  cmd = paste(GenotypeGVCF, "-R", param$genomeSeq, fileCmd, "--output", tmpGvcf)
+  vcfFile = paste0(caseName, '.vcf')
+  tmpVcf = paste0(caseName, '_temp.vcf')
+  cmd = paste(GenotypeGVCF, "-R", param$genomeSeq, fileCmd, "--output", tmpVcf)
   ezSystem(paste(cmd, '2>', myLog))
-  ezSystem(paste('mv', tmpGvcf, gvcfFile))
-  ezSystem(paste('mv', paste0(tmpGvcf, ".idx"), paste0(gvcfFile, ".idx")))
-  ezSystem(paste("bgzip", gvcfFile))
-  ezSystem(paste0("tabix -p vcf ", gvcfFile, ".gz"))
-  return(paste0(gvcfFile, '.gz'))
+  ezSystem(paste('mv', tmpVcf, vcfFile))
+  ezSystem(paste('mv', paste0(tmpVcf, ".idx"), paste0(vcfFile, ".idx")))
+  ezSystem(paste("bgzip", vcfFile))
+  ezSystem(paste0("tabix -p vcf ", vcfFile, ".gz"))
+  ## drop the large intermediate combined gVCF (no longer overwritten now that names differ)
+  if (!is.null(combinedGVCF)) {
+    ezSystem(paste("rm -f", combinedGVCF, paste0(combinedGVCF, ".idx")))
+  }
+  return(paste0(vcfFile, '.gz'))
 }
 
 
