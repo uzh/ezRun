@@ -236,7 +236,14 @@ getParseSampleArgs <- function(param) {
     ## Let split-pipe add the default all-well sample.
     return("--yes_allwell")
   }
-  specs <- trimws(strsplit(param$sampleWells, ";")[[1]])
+  ## Split on '+' or ';'. SUSHI can only deliver '+': ezParam rejects any option
+  ## string containing [;\\{}$%#!] as a shell-injection guard, so a ';'-separated
+  ## sampleWells aborts the job before this function is ever called. ';' is kept
+  ## for direct callers of ezMethodSplitPipe, which never pass through ezParam.
+  ## Every other plausible separator is load-bearing in split-pipe's own well
+  ## syntax: ',' joins selections, ':' makes blocks, '-' makes ranges, '_' joins
+  ## barcode rounds and '.' prefixes a plate.
+  specs <- trimws(strsplit(param$sampleWells, "[;+]")[[1]])
   specs <- specs[nzchar(specs)]
   if (length(specs) == 0) {
     return("--yes_allwell")
@@ -365,7 +372,7 @@ EzAppSplitPipe <-
           sampleWells = ezFrame(
             Type = "character",
             DefaultValue = "all-well A1-A12",
-            Description = "';'-separated '<name> <wells>' specs for --sample."
+            Description = "'+'-separated '<name> <wells>' specs for --sample, e.g. 'A1 A1+A2 A2'. Do not use ';': ezParam rejects it."
           ),
           sampleLoadingTable = ezFrame(
             Type = "character",
