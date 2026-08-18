@@ -21,7 +21,51 @@ ezMethodSplitPipe <- function(input = NA, output = NA, param = NA) {
   ## 2. Sample -> well mapping, shared across all sublibraries
   sampleArgs <- getParseSampleArgs(param)
 
-  ## 3. Run split-pipe --mode all for each sublibrary
+  ## 3. Run split-pipe --mode all for each sublibrary, unless finished
+  ## sublibrary directories were produced elsewhere (param$sublibDir).
+  sublibDirs <- if (ezIsSpecified(param$sublibDir)) {
+    adoptSplitPipeSublibraries(param$sublibDir, sublibNames)
+  } else {
+    runSplitPipeSublibraries(input, param, refDir, sampleArgs, sublibNames)
+  }
+
+  ## 4. Combine sublibraries (or promote the single sublibrary to the result)
+  resultDir <- param$name
+  if (nSublib > 1) {
+    ## Keep sublibs/ afterwards: each sublibrary's STAR Log.final.out (genome
+    ## mapping rate for the report) lives under sublibs/<Name>/process/.
+    cmd <- paste(
+      "split-pipe --mode comb",
+      paste0("--nthreads ", param$cores),
+      "--sublibraries",
+      paste(sublibDirs, collapse = " "),
+      paste0("--output_dir ", resultDir)
+    )
+    ezSystem(cmd)
+  } else if (ezIsSpecified(param$sublibDir)) {
+    ## The single sublibrary is a symlink into a directory this job does not own,
+    ## so copy its contents; mv would relocate the shared directory itself.
+    ezSystem(paste("cp -aL", sublibDirs[1], resultDir))
+    unlink("sublibs", recursive = TRUE)
+  } else {
+    ezSystem(paste("mv", sublibDirs[1], resultDir))
+    unlink("sublibs", recursive = TRUE)
+  }
+
+  ## 5. Convert each biological-sample DGE matrix to 10x format so the output is
+  ## readable by the downstream ScSeurat / CellBender apps (which use Read10X /
+  ## read10xCounts). The native Parse DGE_* directories are left in place.
+  writeTenxMatrices(resultDir)
+
+  ## 6. Report (stable FGCZ-Quarto 00index.html inside the result directory)
+  makeSplitPipeReport(resultDir, param)
+
+  return("Success")
+}
+
+##' Run 'split-pipe --mode all' once per sublibrary, into sublibs/<Name>.
+##' Returns the sublibrary directories in input order.
+runSplitPipeSublibraries <- function(input, param, refDir, sampleArgs, sublibNames) {
   read1List <- input$getFullPathsList("Read1")
   read2List <- input$getFullPathsList("Read2")
   sublibDirs <- character(0)
@@ -59,34 +103,63 @@ ezMethodSplitPipe <- function(input = NA, output = NA, param = NA) {
     ezSystem(cmd)
     sublibDirs <- c(sublibDirs, outDir)
   }
+  sublibDirs
+}
 
-  ## 4. Combine sublibraries (or promote the single sublibrary to the result)
-  resultDir <- param$name
-  if (nSublib > 1) {
-    ## Keep sublibs/ afterwards: each sublibrary's STAR Log.final.out (genome
-    ## mapping rate for the report) lives under sublibs/<Name>/process/.
-    cmd <- paste(
-      "split-pipe --mode comb",
-      paste0("--nthreads ", param$cores),
-      "--sublibraries",
-      paste(sublibDirs, collapse = " "),
-      paste0("--output_dir ", resultDir)
-    )
-    ezSystem(cmd)
-  } else {
-    ezSystem(paste("mv", sublibDirs[1], resultDir))
-    unlink("sublibs", recursive = TRUE)
+##' Adopt 'split-pipe --mode all' output that was produced outside this app.
+##' `runSplitPipeSublibraries` processes the sublibraries one after another, and
+##' the combine step needs all of them present at once, so a large order costs
+##' days of wall time on a single node and every sublibrary has to fit on that
+##' node's scratch together (measured: 0.44 min and 163 bytes of output per
+##' thousand read pairs at 32 threads, so 16 sublibraries of ~740M read pairs is
+##' ~86 h and ~1.9 TB). Pointing sublibDir at a directory that already holds one
+##' finished '--mode all' run per input row lets those runs happen as independent
+##' jobs instead, leaving this app to do the combine, the 10x conversion, the
+##' report and the registration.
+##' The directories are symlinked into the usual sublibs/<Name> layout, so the
+##' combine command and the report find them exactly where they normally are.
+##' Fails loudly per sublibrary rather than combining a partial run.
+adoptSplitPipeSublibraries <- function(sublibDir, sublibNames) {
+  dir.create("sublibs", showWarnings = FALSE)
+  for (nm in sublibNames) {
+    src <- file.path(sublibDir, nm)
+    if (!dir.exists(src)) {
+      stop(
+        "sublibDir is set but holds no directory for sublibrary '",
+        nm,
+        "': ",
+        src
+      )
+    }
+    ## Version-agnostic: the log is split-pipe_v<major>_<minor>_<patch>.log
+    logFile <- Sys.glob(file.path(src, "split-pipe_v*.log"))
+    if (length(logFile) != 1) {
+      stop(
+        "expected exactly one split-pipe log in ",
+        src,
+        ", found ",
+        length(logFile),
+        " - that is not a finished --mode all run"
+      )
+    }
+    if (!any(grepl(
+      "All done split-pipe",
+      readLines(logFile, warn = FALSE),
+      fixed = TRUE
+    ))) {
+      stop(
+        "sublibrary '",
+        nm,
+        "' did not finish: no 'All done split-pipe' in ",
+        logFile
+      )
+    }
+    file.symlink(normalizePath(src), file.path("sublibs", nm))
   }
-
-  ## 5. Convert each biological-sample DGE matrix to 10x format so the output is
-  ## readable by the downstream ScSeurat / CellBender apps (which use Read10X /
-  ## read10xCounts). The native Parse DGE_* directories are left in place.
-  writeTenxMatrices(resultDir)
-
-  ## 6. Report (stable FGCZ-Quarto 00index.html inside the result directory)
-  makeSplitPipeReport(resultDir, param)
-
-  return("Success")
+  ezWrite(paste(
+    "adopted", length(sublibNames), "pre-built sublibraries from", sublibDir
+  ))
+  file.path("sublibs", sublibNames)
 }
 
 ##' Convert every Parse split-pipe DGE matrix under a result directory to 10x
@@ -298,6 +371,11 @@ EzAppSplitPipe <-
             Type = "character",
             DefaultValue = "",
             Description = "Optional Parse sample loading table (overrides sampleWells)."
+          ),
+          sublibDir = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "Optional directory holding one FINISHED 'split-pipe --mode all' output per input row, named after the row. When set, only --mode comb runs."
           ),
           transcriptTypes = ezFrame(
             Type = "charVector",
