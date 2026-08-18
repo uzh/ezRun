@@ -1150,6 +1150,29 @@ addCellQcToSeurat <- function(
   # otherwise use MAD-based filtering if nmad is specified
   use_mad <- ezIsSpecified(param$nmad)
 
+  # MAD on a percentage can put the upper threshold above 100, which the metric
+  # can never reach, so the filter is incapable of flagging anything - and in the
+  # report that is indistinguishable from a threshold that found nothing to flag.
+  # o41361/p31662 hit this on 4 of 12 samples (percent_mito thresholds 100.6 to
+  # 229.6, zero cells excluded each) because CellBender's over-called ambient
+  # droplets were the majority and set the median. Say so rather than pass
+  # silently; the caller's fix is a fixed threshold.
+  madOutlierPct <- function(x, metric, fixedParam, ...) {
+    flags <- isOutlier(x, nmads = param$nmad, type = "higher", ...)
+    th <- attr(flags, "thresholds")[["higher"]]
+    if (isTRUE(is.finite(th) && th > 100)) {
+      ezLog(
+        "MAD threshold for ", metric, " is ", round(th, 1),
+        "%, above the 100% a percentage can reach, so this filter cannot flag ",
+        "any cell. Its median is ", round(median(x, na.rm = TRUE), 1),
+        "%, i.e. most barcodes are already at the level being screened for. ",
+        "Set a fixed ", fixedParam, " threshold instead.",
+        level = "warn"
+      )
+    }
+    flags
+  }
+
   if (!ezIsSpecified(param$nUMI)) {
     if (use_mad) {
       scData$qc.lib <- isOutlier(
@@ -1180,11 +1203,11 @@ addCellQcToSeurat <- function(
   }
   if (!ezIsSpecified(param$perc_mito)) {
     if (use_mad) {
-      scData$qc.mito <- isOutlier(
+      scData$qc.mito <- madOutlierPct(
         scData@meta.data[, "percent_mito"],
-        subset = !is.na(scData@meta.data[, "percent_mito"]),
-        nmads = param$nmad,
-        type = "higher"
+        metric = "percent_mito",
+        fixedParam = "perc_mito",
+        subset = !is.na(scData@meta.data[, "percent_mito"])
       )
     } else {
       scData$qc.mito <- FALSE
@@ -1194,11 +1217,11 @@ addCellQcToSeurat <- function(
   }
   if (!ezIsSpecified(param$perc_riboprot)) {
     if (use_mad) {
-      scData$qc.riboprot <- isOutlier(
+      scData$qc.riboprot <- madOutlierPct(
         scData@meta.data[, "percent_riboprot"],
-        subset = !is.na(scData@meta.data[, "percent_riboprot"]),
-        nmads = param$nmad,
-        type = "higher"
+        metric = "percent_riboprot",
+        fixedParam = "perc_riboprot",
+        subset = !is.na(scData@meta.data[, "percent_riboprot"])
       )
     } else {
       scData$qc.riboprot <- FALSE
@@ -1227,24 +1250,39 @@ addCellQcToSeurat <- function(
       GetAssayData(scData, layer = "counts")[, scData$useCell],
       "dgCMatrix"
     )
-    doubletsInfo <- tryCatch(
-      {
+    callScDblFinder <- function(...) {
+      tryCatch(
         scDblFinder(
           dblCounts,
           returnType = "table",
           clusters = TRUE,
-          BPPARAM = BPPARAM
-        )
-      },
-      error = function(e) {
-        ezLog(
-          "scDblFinder failed, skipping doublet detection: ",
-          conditionMessage(e),
-          level = "warn"
-        )
-        NULL
-      }
-    )
+          BPPARAM = BPPARAM,
+          ...
+        ),
+        error = function(e) {
+          ezLog("scDblFinder failed: ", conditionMessage(e), level = "warn")
+          NULL
+        }
+      )
+    }
+    doubletsInfo <- callScDblFinder()
+    if (is.null(doubletsInfo)) {
+      # scDblFinder normalises within the ~1352 features it SELECTS, not over
+      # all genes (.defaultProcessing -> calculatePCA -> t(t(mat)/sf)). A cell
+      # whose counts sit entirely outside that selection gets a size factor of
+      # 0 even with a healthy library size, and SparseArray >= 1.12 makes the
+      # division a hard error instead of returning Inf. Seen on o41361/hCB54,
+      # where one barcode held 121 UMIs in 5 unselected genes and cost all 6847
+      # cells their doublet scores. Handing over every gene makes the size
+      # factor the full library size, which qc.lib already guarantees non-zero.
+      ezLog(
+        "retrying doublet detection over all genes, since a selected-feature ",
+        "size factor of zero is what makes the call above fail",
+        level = "warn"
+      )
+      set.seed(38)
+      doubletsInfo <- callScDblFinder(nfeatures = rownames(dblCounts))
+    }
     if (
       !is.null(doubletsInfo) &&
         any(!is.na(doubletsInfo[colnames(dblCounts), "score"]))
