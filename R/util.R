@@ -883,7 +883,12 @@ makeRmdReport <- function(
   selfContained = TRUE,
   reportTitle = "SUSHI Report",
   use.qs2 = TRUE,
-  nthreads = 4
+  nthreads = 4,
+  ## quiet = TRUE hides the renderer's own stderr, so a failing report reaches the
+  ## job log as nothing but "Error returned by quarto CLI. Rerun with
+  ## quiet = FALSE". Diagnosing one cost a 6h44m Parse combine, so it is an
+  ## argument now. Both report helpers take it, because both hid it.
+  quiet = TRUE
 ) {
   require(qs2)
 
@@ -919,7 +924,7 @@ makeRmdReport <- function(
     envir = new.env(),
     output_dir = ".",
     output_file = htmlFile,
-    quiet = TRUE
+    quiet = quiet
   )
 }
 
@@ -959,7 +964,12 @@ makeQuartoReport <- function(
   colour = FALSE,
   number = FALSE,
   use.qs2 = TRUE,
-  nthreads = 4
+  nthreads = 4,
+  ## quiet = TRUE hides the renderer's own stderr, so a failing report reaches the
+  ## job log as nothing but "Error returned by quarto CLI. Rerun with
+  ## quiet = FALSE". Diagnosing one cost a 6h44m Parse combine, so it is an
+  ## argument now. Both report helpers take it, because both hid it.
+  quiet = TRUE
 ) {
   require(qs2)
   if (!requireNamespace("fgczQuartoTemplate", quietly = TRUE)) {
@@ -998,7 +1008,7 @@ makeQuartoReport <- function(
     number = number,
     execute_params = list(reportTitle = reportTitle),
     output_file = htmlFile,
-    quiet = TRUE
+    quiet = quiet
   )
 }
 
