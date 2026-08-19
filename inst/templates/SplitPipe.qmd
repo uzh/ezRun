@@ -207,14 +207,30 @@ plotPerCell <- function(var, ylab) {
     cat("No cell_metadata.csv found.\n")
     return(invisible(NULL))
   }
+  ## cbPalette holds 8 colours and the fill is mapped to one level per biological
+  ## sample, so a manual scale errors outright ("Insufficient values in manual
+  ## scale. 92 needed but only 8 provided") as soon as a run has more samples than
+  ## colours - a WT_mega plate has up to 96. Interpolate instead. The fill is
+  ## decorative (guide = "none"), so a ramp loses nothing.
+  n <- length(unique(meta$sampleDir))
+  fills <- if (n <= length(cbPalette)) {
+    cbPalette[seq_len(n)]
+  } else {
+    colorRampPalette(cbPalette)(n)
+  }
   print(
     ggplot(meta, aes(x = sampleDir, y = .data[[var]], fill = sampleDir)) +
       geom_violin(scale = "width", trim = TRUE) +
       geom_boxplot(width = 0.1, outlier.size = 0.3, fill = "white") +
       scale_y_log10() +
-      scale_fill_manual(values = cbPalette, guide = "none") +
+      scale_fill_manual(values = fills, guide = "none") +
       labs(x = "Biological sample", y = ylab) +
-      theme_bw()
+      theme_bw() +
+      ## 96 violins do not fit horizontal labels
+      theme(axis.text.x = element_text(
+        angle = 90, vjust = 0.5, hjust = 1,
+        size = if (n > 48) 5 else if (n > 24) 7 else 9
+      ))
   )
 }
 ```
@@ -225,7 +241,7 @@ plotPerCell <- function(var, ylab) {
 
 ```{r pcGenes}
 #| echo: false
-#| fig-width: 8
+#| fig-width: 14
 #| fig-height: 5
 plotPerCell("gene_count", "Genes per cell (log10)")
 ```
@@ -234,7 +250,7 @@ plotPerCell("gene_count", "Genes per cell (log10)")
 
 ```{r pcUmis}
 #| echo: false
-#| fig-width: 8
+#| fig-width: 14
 #| fig-height: 5
 plotPerCell("tscp_count", "UMIs / transcripts per cell (log10)")
 ```
@@ -243,7 +259,7 @@ plotPerCell("tscp_count", "UMIs / transcripts per cell (log10)")
 
 ```{r pcReads}
 #| echo: false
-#| fig-width: 8
+#| fig-width: 14
 #| fig-height: 5
 plotPerCell("mread_count", "Reads per cell (log10)")
 ```
