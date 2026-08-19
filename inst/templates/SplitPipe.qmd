@@ -148,12 +148,24 @@ Genome mapping rate comes from the STAR alignment log of each **sublibrary**
 
 ```{r alignTable}
 #| echo: false
-starLogs <- list.files(
-  wddir,
-  pattern = "Log\\.final\\.out$",
-  recursive = TRUE,
-  full.names = TRUE
-)
+## STAR writes its log to sublibs/<Name>/process/Log.final.out. For a COMBINED run
+## sublibs/ is a SIBLING of this result directory, not a child, so searching only
+## under wddir never found them and this table was empty for every combined run.
+## Two further traps: with the sublibDir parameter those sublibs/<Name> entries are
+## SYMLINKS, and list.files(recursive = TRUE) does NOT follow symlinked directories
+## (verified on R 4.6), so only an explicit glob at the known depth sees them. The
+## single-sublibrary case is different again - there the sublibrary is promoted into
+## the result directory, so its log sits at <wddir>/process/.
+starLogs <- unique(normalizePath(c(
+  Sys.glob(file.path(wddir, "..", "sublibs", "*", "process", "Log.final.out")),
+  Sys.glob(file.path(wddir, "process", "Log.final.out")),
+  list.files(
+    wddir,
+    pattern = "Log\\.final\\.out$",
+    recursive = TRUE,
+    full.names = TRUE
+  )
+)))
 if (length(starLogs) > 0) {
   aln <- lapply(starLogs, function(fn) {
     s <- readStarFinalLog(fn)
