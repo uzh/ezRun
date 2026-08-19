@@ -275,15 +275,31 @@ are per-genome/per-sublibrary QC, not per biological sample.
 ```{r nativeFigs}
 #| echo: false
 #| results: asis
+## Every figure below also lives in that sample's own split-pipe HTML, which is
+## linked per tab. Inlining them all is fine for a handful of samples and ruinous
+## for a plate: 92 samples means ~1080 PNGs, and because the report is
+## self-contained that produced a 256 MB 00index.html no browser will open. So
+## embed only for small runs and rely on the links otherwise.
+embedFigures <- length(sampleDirs) <= 8
+if (!embedFigures) {
+  cat(
+    "\nThis run has ", length(sampleDirs), " samples. Their split-pipe figures are",
+    " not inlined here, because doing so makes this page too large to open;",
+    " follow the per-sample link in each tab instead.\n\n",
+    sep = ""
+  )
+}
 cat("\n::: {.panel-tabset}\n\n")
 for (s in sampleDirs) {
   cat("\n\n## ", s, "\n\n", sep = "")
   nativeHtml <- paste0(s, "_analysis_summary.html")
   if (file.exists(file.path(wddir, nativeHtml))) {
     cat("[Full split-pipe analysis summary](", nativeHtml, ")\n\n", sep = "")
+  } else {
+    cat("_No split-pipe summary for this sample (no cells were recovered)._\n\n")
   }
   figDir <- file.path(wddir, s, "figures")
-  if (dir.exists(figDir)) {
+  if (embedFigures && dir.exists(figDir)) {
     for (fig in sort(list.files(figDir, pattern = "\\.png$", full.names = TRUE))) {
       cat("\n\n![", basename(fig), "](", fig, ")\n\n", sep = "")
     }
