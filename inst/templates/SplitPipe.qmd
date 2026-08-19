@@ -156,9 +156,11 @@ Genome mapping rate comes from the STAR alignment log of each **sublibrary**
 ## (verified on R 4.6), so only an explicit glob at the known depth sees them. The
 ## single-sublibrary case is different again - there the sublibrary is promoted into
 ## the result directory, so its log sits at <wddir>/process/.
+## Note the leading * in the globs: STAR names the file after its output prefix, so
+## on disk it is 'barcode_headLog.final.out', not 'Log.final.out'.
 starLogs <- unique(normalizePath(c(
-  Sys.glob(file.path(wddir, "..", "sublibs", "*", "process", "Log.final.out")),
-  Sys.glob(file.path(wddir, "process", "Log.final.out")),
+  Sys.glob(file.path(wddir, "..", "sublibs", "*", "process", "*Log.final.out")),
+  Sys.glob(file.path(wddir, "process", "*Log.final.out")),
   list.files(
     wddir,
     pattern = "Log\\.final\\.out$",
