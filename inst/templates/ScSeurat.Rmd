@@ -400,32 +400,32 @@ qcStats <- ezFrame("Number of Cells"=integer(0),
                    "Max Pass Value"=integer(0), 
                    Fraction = integer(0))
 qcStats[ "Library Size", ] <- c(
-  c(sum(allCellsMeta$qc.lib), range(allCellsMeta$nCount_RNA[allCellsMeta$useCell])) %>% as.integer(),
-  round(sum(allCellsMeta$qc.lib)/nrow(allCellsMeta), 2)
+  c(sum(allCellsMeta$qc.lib, na.rm = TRUE), range(allCellsMeta$nCount_RNA[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.lib, na.rm = TRUE)/nrow(allCellsMeta), 2)
 )
 qcStats[ "Expressed genes", ] <- c(
-  c(sum(allCellsMeta$qc.nexprs), range(allCellsMeta$nFeature_RNA[allCellsMeta$useCell])) %>% as.integer(),
-  round(sum(allCellsMeta$qc.nexprs)/nrow(allCellsMeta), 2)
+  c(sum(allCellsMeta$qc.nexprs, na.rm = TRUE), range(allCellsMeta$nFeature_RNA[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.nexprs, na.rm = TRUE)/nrow(allCellsMeta), 2)
 )
 qcStats[ "Mitochondrial Percent", ] <- c(
-  c(sum(allCellsMeta$qc.mito), range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer(),
-  round(sum(allCellsMeta$qc.mito)/nrow(allCellsMeta), 2)
+  c(sum(allCellsMeta$qc.mito, na.rm = TRUE), range(allCellsMeta$percent_mito[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.mito, na.rm = TRUE)/nrow(allCellsMeta), 2)
 )
 qcStats[ "Ribosomal protein Percent", ] <- c(
-  c(sum(allCellsMeta$qc.riboprot), range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer(),
-  round(sum(allCellsMeta$qc.riboprot)/nrow(allCellsMeta), 2)
+  c(sum(allCellsMeta$qc.riboprot, na.rm = TRUE), range(allCellsMeta$percent_riboprot[allCellsMeta$useCell])) %>% as.integer(),
+  round(sum(allCellsMeta$qc.riboprot, na.rm = TRUE)/nrow(allCellsMeta), 2)
 )
 qcStats[ "Doublets", ] <- c(
-  sum(allCellsMeta$qc.doublet), 
+  sum(allCellsMeta$qc.doublet, na.rm = TRUE), 
   NA, 
   NA, 
-  round(sum(allCellsMeta$qc.doublet) / nrow(allCellsMeta), 2)
+  round(sum(allCellsMeta$qc.doublet, na.rm = TRUE) / nrow(allCellsMeta), 2)
 )
 qcStats[ "Empty Droplets", ] <- c(
-  sum(allCellsMeta$qc.empty), 
+  sum(allCellsMeta$qc.empty, na.rm = TRUE), 
   NA, 
   NA, 
-  round(sum(allCellsMeta$qc.empty) / nrow(allCellsMeta), 2)
+  round(sum(allCellsMeta$qc.empty, na.rm = TRUE) / nrow(allCellsMeta), 2)
 )
 qcStats[ "Total removed (thresholding)", ] <- c(
   sum(!allCellsMeta$useCell), 
@@ -451,9 +451,68 @@ qc_dt <- as.data.frame(qcStats) |>
 
 qc_dt <- qc_dt[, c("Metric", setdiff(names(qc_dt), "Metric"))]
 
+## Spell out what each criterion measures AND the cut that was actually applied. Neither was
+## visible before: "Library Size" does not say it means total UMIs, and the Min/Max Pass Value
+## columns show the range of the KEPT cells, not the threshold - so a reader could not tell from
+## this table whether a filter was strict or loose. An unset threshold is not "no filter", it
+## selects the automatic per-sample MAD cut, which is worth naming here too.
+qcCut <- function(value, cmp, unit = "") {
+  if (!ezIsSpecified(value)) return("automatic threshold")
+  sprintf("removed if %s %s%s", cmp, format(value), unit)
+}
+qcLabels <- c(
+  "Library Size"              = sprintf("Library Size (total UMIs, %s)",
+                                        qcCut(param$nUMI, "<")),
+  "Expressed genes"           = sprintf("Expressed genes (genes detected, %s)",
+                                        qcCut(param$ngenes, "<")),
+  "Mitochondrial Percent"     = sprintf("Mitochondrial Percent (%s)",
+                                        qcCut(param$perc_mito, ">", "%")),
+  "Ribosomal protein Percent" = sprintf("Ribosomal protein Percent (%s)",
+                                        qcCut(param$perc_riboprot, ">", "%")),
+  "Doublets"                  = "Doublets (scDblFinder)",
+  "Empty Droplets"            = "Empty Droplets (emptyDrops)"
+)
+hit <- qc_dt$Metric %in% names(qcLabels)
+qc_dt$Metric[hit] <- qcLabels[qc_dt$Metric[hit]]
+
+## The per-criterion rows OVERLAP: one cell can fail several criteria at once, and is counted
+## in each of their rows but only once in "Total removed". So the rows deliberately sum to more
+## than the total, which reads as an arithmetic error unless the table says so. State it, with
+## the numbers computed from this sample rather than described in the abstract.
+qcFlagCols <- intersect(c("qc.lib", "qc.nexprs", "qc.mito", "qc.riboprot",
+                          "qc.doublet", "qc.empty"), colnames(allCellsMeta))
+qcCaption <- NULL
+if (length(qcFlagCols) > 0) {
+  qcFlagMat  <- vapply(qcFlagCols, function(f) !is.na(allCellsMeta[[f]]) &
+                         allCellsMeta[[f]], logical(nrow(allCellsMeta)))
+  nPerCell   <- rowSums(qcFlagMat)
+  nMulti     <- sum(nPerCell > 1)
+  nRowSum    <- sum(qcFlagMat)
+  nRemoved   <- sum(!allCellsMeta$useCell, na.rm = TRUE)
+  qcText <- if (nMulti > 0) {
+    ## Criteria overlapped here, so the rows genuinely do not sum to the total. Say by how much.
+    sprintf(paste("Each row counts cells failing that criterion. A cell can fail several, so the",
+                  "rows sum to %s while %s distinct cells were removed: %s cell%s failed more",
+                  "than one criterion."),
+            format(nRowSum, big.mark = ","), format(nRemoved, big.mark = ","),
+            format(nMulti, big.mark = ","), ifelse(nMulti == 1, "", "s"))
+  } else {
+    ## No cell failed more than one criterion, so the rows DO sum to the total. Saying
+    ## "criteria overlap" here would be wrong and would make a correct table look suspect.
+    sprintf(paste("Each row counts cells failing that criterion. No cell failed more than one,",
+                  "so the rows sum exactly to the %s cells removed."),
+            format(nRemoved, big.mark = ","))
+  }
+  qcCaption <- htmltools::tags$caption(
+    style = "caption-side: bottom; text-align: left; font-size: 90%; color: #6c757d;",
+    paste(qcText, "A dash means the criterion was not applied.")
+  )
+}
+
 dt <- DT::datatable(
   qc_dt,
   rownames  = FALSE,
+  caption   = qcCaption,
   options   = list(
     autoWidth = TRUE,
     dom       = "t"

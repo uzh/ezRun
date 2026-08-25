@@ -102,7 +102,12 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
           resultPath,
           "multi/count/raw_feature_bc_matrix"
         )
-        if (!exists(cmDir)) {
+        ## file.exists(), NOT exists(): exists() tests for an R OBJECT of that name, so it is
+        ## always FALSE for a path string and this branch always overwrote the run-level path
+        ## above with one that does not exist for any `cellranger multi` output. Measured:
+        ## file.exists(p) TRUE while exists(p) FALSE, which made every Multi CellBender job
+        ## fail on a bad path unless the dataset happened to carry UnfilteredCountMatrix.
+        if (!file.exists(cmDir)) {
           cmDir <- file.path(
             param$dataRoot,
             resultPath,
