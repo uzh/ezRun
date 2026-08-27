@@ -9,6 +9,7 @@ Description: An environment that makes it easy to process data by using R
     packages and external tools.
 License: GPL-3 | file LICENSE
 URL: https://github.com/uzh/ezRun
+Encoding: UTF-8
 Depends:
     R (>= 4.5.0),stats,methods,utils,data.table,Biostrings,GenomicRanges,
     tidyverse,logger
@@ -23,9 +24,10 @@ Suggests:
     GenomicRanges, ShortRead, Gviz, gplots, GO.db, GOstats, annotate,
     bitops, edgeR, limma, S4Vectors, VariantAnnotation, rmarkdown, plotly,
     kableExtra, htmlwidgets, RSelenium, webshot, clusterProfiler, dupRadar,
-    scran, writexl, zip, httr2, fgczQuartoTemplate
+    scran, writexl, zip, httr2, fgczQuartoTemplate, exploreDE, ATACseqQC
 Remotes:
-    fgcz/fgczQuartoTemplate
+    fgcz/fgczQuartoTemplate,
+    fgcz/exploreDE
 SystemRequirements:
 VignetteBuilder: knitr
 RoxygenNote: 7.3.2

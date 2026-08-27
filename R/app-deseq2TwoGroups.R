@@ -39,6 +39,52 @@ ezMethodDeseq2 = function(input = NA, output = NA, param = NA) {
     check.names = FALSE
   )
 
+  ## -- exploreDE-compatible .h5ad (opt-in; must never fail the SUSHI job) ----
+  if (ezIsSpecified(param$writeAnnData) && param$writeAnnData) {
+    if (requireNamespace("exploreDE", quietly = TRUE)) {
+      tryCatch(
+        {
+          factorCols <- paste(param$groupingName, "[Factor]")
+          if (ezIsSpecified(param$grouping2Name)) {
+            factorCols <- c(factorCols, paste(param$grouping2Name, "[Factor]"))
+          }
+          ## exploreDE's own organism inference (eds_infer_organism()) is
+          ## package-internal / not exported -- reproduce its one-line logic
+          ## here rather than reach into exploreDE:::.
+          organism <- NA_character_
+          if (ezIsSpecified(param$refBuild)) {
+            organism <- gsub("_", " ", strsplit(param$refBuild, "/", fixed = TRUE)[[1]][1], fixed = TRUE)
+          }
+          enrichResult <- metadata(deResult)$enrichResult
+          enrichResultGSEA <- metadata(deResult)$enrichResultGSEA
+          pathwaysArg <- if (!is.null(enrichResult)) {
+            setNames(list(list(ora = enrichResult, gsea = enrichResultGSEA)), param$comparison)
+          } else {
+            list()
+          }
+          exploreDE::build_explore_h5ad(
+            x             = list(raw = assays(deResult)$counts, normalised = assays(deResult)$xNorm),
+            out           = paste0("result--", param$comparison, ".h5ad"),
+            omics         = "rnaseq",
+            feature_level = param$featureLevel,
+            organism      = organism,
+            ref_build     = param$refBuild,
+            coldata       = colData(deResult),
+            rowdata       = rowData(deResult),
+            factors       = factorCols,
+            de            = setNames(list(rowData(deResult)), param$comparison),
+            pathways      = pathwaysArg
+          )
+        },
+        error = function(e) {
+          ezLog("EzAppDeseq2: failed to write exploreDE .h5ad for ", param$comparison, ": ", conditionMessage(e))
+        }
+      )
+    } else {
+      ezLog("EzAppDeseq2: exploreDE package not available -- skipping .h5ad output")
+    }
+  }
+
   makeRmdReport(
     output = output,
     param = param,
@@ -92,6 +138,11 @@ EzAppDeseq2 <-
               Type = "character",
               DefaultValue = 'log2Ratio',
               Description = "how to rank genes for GSEA"
+          ),
+          writeAnnData = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "Also write an exploreDE-compatible .h5ad file alongside the xlsx/Rmd report"
           )
         )
       }
