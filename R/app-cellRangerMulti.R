@@ -377,11 +377,12 @@ getCellRangerMultiData <- function(input, multiColName, sampleName, param) {
 
   if (input$hasColumn(read1ColName)) {
     # FASTQ input: derive fastq_id from R1 filename prefix (10x naming convention
-    # <fastq_id>_S<N>_L<NNN>_R[12]_001.fastq.gz). All R1 entries for one modality
-    # share the same prefix.
+    # <fastq_id>_S<N>_L<NNN>_R[12]_001.fastq.gz). The lane segment is dropped by
+    # bcl-convert when a run is not lane-split, so it is optional here too. All
+    # R1 entries for one modality share the same prefix.
     read1Files <- strsplit(input$getColumn(read1ColName), ",")[[1]]
     multiName <- unique(sub(
-      "_S\\d+_L\\d+_R[12]_\\d+\\.fastq\\.gz$",
+      "_S\\d+_(L\\d+_)?R[12]_\\d+\\.fastq\\.gz$",
       "",
       basename(read1Files)
     ))
