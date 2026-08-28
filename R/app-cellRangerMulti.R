@@ -433,6 +433,12 @@ buildMultiConfigFile <- function(input, param, dirList) {
     refDir <- getCellRangerGEXReference(param)
     fileContents <- append(fileContents, "[gene-expression]")
     fileContents <- append(fileContents, sprintf("reference,%s", refDir))
+    if (ezIsSpecified(param$chemistry) && !(param$chemistry %in% c("auto", ""))) {
+      # 10x's chemistry auto-detector can misidentify a plain GEX library (e.g.
+      # as ARC-v1) when there is no paired VDJ/Feature library to disambiguate;
+      # let the caller pin the known chemistry instead.
+      fileContents <- append(fileContents, sprintf("chemistry,%s", param$chemistry))
+    }
     fileContents <- append(fileContents, paste("create-bam,true"))
     if (ezIsSpecified(param$expectedCells)) {
       fileContents <- append(
