@@ -223,13 +223,17 @@ ezMethodSpliceWiz <- function(input = NA, output = NA, param = NA) {
   qs2::qs_save(se, "spliceWiz_filtered_se.qs2")
 
   ## -- FGCZ Quarto report -----------------------------------------------------
+  ## quiet = FALSE so a failing chunk surfaces the real quarto/knitr error in the
+  ## SUSHI job log (the default quiet = TRUE reduces any failure to an opaque
+  ## "Error returned by quarto CLI" -- see the note in makeQuartoReport()).
   makeQuartoReport(
     output = output,
     param = param,
     aseResult = res,
     se = se,
     qmdFile = "SpliceWiz.qmd",
-    reportTitle = param$comparison
+    reportTitle = param$comparison,
+    quiet = FALSE
   )
   return("Success")
 }

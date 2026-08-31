@@ -53,8 +53,12 @@ cbPalette <- c(
 )
 
 ## The 7 canonical SpliceWiz event types, in a fixed display order.
-eventLevels <- c("SE", "MXE", "A5SS", "A3SS", "RI", "AFE", "ALE")
-ase$EventType <- factor(ase$EventType, levels = intersect(eventLevels, unique(ase$EventType)))
+## SpliceWiz labels intron retention "IR" (not "RI"). Keep any unexpected types
+## as their own levels rather than dropping them to NA.
+eventLevels <- c("SE", "MXE", "A5SS", "A3SS", "IR", "AFE", "ALE")
+knownLevels <- intersect(eventLevels, unique(ase$EventType))
+otherLevels <- setdiff(unique(ase$EventType), eventLevels)
+ase$EventType <- factor(ase$EventType, levels = c(knownLevels, otherLevels))
 
 ## Significance call: adjusted p below cutoff AND effect size above |dPSI| cutoff.
 ase$significant <- !is.na(ase$FDR) & ase$FDR < fdrCut &
@@ -134,19 +138,25 @@ if (nrow(brkLong) > 0 && sum(brkLong$Significant) > 0) {
 vol <- ase |> filter(!is.na(FDR), !is.na(deltaPSI))
 if (nrow(vol) > 0) {
   vol$negLog10FDR <- -log10(pmax(vol$FDR, .Machine$double.xmin))
+  vol$colourKey <- ifelse(vol$significant, as.character(vol$EventType), "n.s.")
+  ## build a colour for every event type actually present (interpolate if there
+  ## are more than the base palette), so scale_colour_manual never errors on an
+  ## unmapped value.
+  presentTypes <- setdiff(unique(vol$colourKey), "n.s.")
+  typeColours <- setNames(
+    grDevices::colorRampPalette(cbPalette)(max(length(presentTypes), 1))[seq_along(presentTypes)],
+    presentTypes
+  )
+  colourValues <- c(typeColours, "n.s." = "grey75")
   ## label the top few significant events by effect size
   lab <- vol |> filter(significant) |> arrange(desc(abs_deltaPSI)) |> head(15)
   ggplot(vol, aes(x = deltaPSI, y = negLog10FDR)) +
-    geom_point(aes(colour = ifelse(significant, as.character(EventType), "n.s.")),
-               alpha = 0.6, size = 1.4) +
+    geom_point(aes(colour = colourKey), alpha = 0.6, size = 1.4) +
     geom_hline(yintercept = -log10(fdrCut), linetype = "dashed", colour = "grey40") +
     geom_vline(xintercept = c(-dpsiCut, dpsiCut), linetype = "dashed", colour = "grey40") +
     ggrepel::geom_text_repel(data = lab, aes(label = EventName),
                              size = 2.6, max.overlaps = 20) +
-    scale_colour_manual(
-      values = c(setNames(cbPalette[seq_along(eventLevels)], eventLevels), "n.s." = "grey75"),
-      name = "Event type"
-    ) +
+    scale_colour_manual(values = colourValues, name = "Event type") +
     labs(x = paste0("ΔPSI  (", sampleGroup, " − ", refGroup, ")"),
          y = "−log10 adjusted p") +
     theme_bw()
@@ -201,23 +211,27 @@ if (nrow(topEvents) == 0) {
   for (i in seq_len(nrow(topEvents))) {
     ev <- topEvents$EventName[i]
     cat("\n\n## ", ev, "\n\n", sep = "")
-    p <- tryCatch(
-      plotCoverage(
-        se, Event = ev,
-        tracks = c(refGroup, sampleGroup),
-        condition = "condition",
-        plotJunctions = TRUE
-      ),
+    ## Build AND render inside the tryCatch: plotCoverage can succeed yet the
+    ## patchwork fail to print (e.g. a ggplot build/scale error), and an
+    ## uncaught error here aborts the whole quarto render.
+    ok <- tryCatch(
+      {
+        p <- plotCoverage(
+          se, Event = ev,
+          tracks = c(refGroup, sampleGroup),
+          condition = "condition",
+          plotJunctions = TRUE
+        )
+        print(p)
+        TRUE
+      },
       error = function(e) {
         cat("_Coverage plot unavailable for this event: ",
             conditionMessage(e), "_\n\n", sep = "")
-        NULL
+        FALSE
       }
     )
-    if (!is.null(p)) {
-      print(p)
-      cat("\n\n")
-    }
+    if (ok) cat("\n\n")
   }
   cat("\n:::\n\n")
 }
