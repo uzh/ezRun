@@ -106,7 +106,14 @@ EzDataset <-
       },
       getColumn = function(names) {
         "Gets the column(s) selected with \\code{names}."
-        idx = match(names, colNames)
+        # Match the exact (possibly tag-suffixed) name first so a duplicated base
+        # name such as 'Donor [Factor]' vs 'Donor [Numeric]' resolves to the right
+        # column; fall back to the tag-stripped name so a bare 'Donor' still works.
+        idx = match(names, base::names(meta))
+        needStrip = is.na(idx)
+        if (any(needStrip)) {
+          idx[needStrip] = match(sub(" \\[.*", "", names[needStrip]), colNames)
+        }
         if (any(is.na(idx))) {
           stop(
             "Column not found in dataset: ",
