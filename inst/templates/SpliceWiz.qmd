@@ -1,0 +1,233 @@
+---
+params:
+  reportTitle: "SpliceWiz Alternative Splicing"
+title: "`r params$reportTitle`"
+---
+
+<!-- Styling comes from the fgczQuartoTemplate assets staged next to this file
+     (_metadata.yml is applied by Quarto automatically). ezRun stages them via
+     makeQuartoReport(), which calls fgczQuartoTemplate::fgcz_render(). The report
+     reads the objects saved by makeQuartoReport() from the working directory. -->
+
+```{r setup}
+#| include: false
+library(ezRun)
+library(SpliceWiz)
+library(SummarizedExperiment)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(DT)
+
+## ── Data loading (qs2 with rds fallback) ─────────────────────────────────
+.fgcz_load <- function(name, nthreads = 4L) {
+  paths <- c(
+    paste0(name, ".qs2"), file.path("data", paste0(name, ".qs2")),
+    paste0(name, ".rds"), file.path("data", paste0(name, ".rds"))
+  )
+  for (p in paths) {
+    if (file.exists(p)) {
+      if (grepl("\\.qs2$", p)) return(qs2::qs_read(p, nthreads = nthreads))
+      return(readRDS(p))
+    }
+  }
+  stop("No .qs2 or .rds file found for: ", name)
+}
+
+param     <- .fgcz_load("param")
+ase       <- .fgcz_load("aseResult")
+se        <- .fgcz_load("se")
+
+sampleGroup <- param$sampleGroup
+refGroup    <- param$refGroup
+fdrCut      <- as.numeric(param$FDR)
+dpsiCut     <- as.numeric(param$deltaPSI)
+topN        <- as.integer(param$topN)
+aseMethod   <- param$aseMethod
+
+## Colour-blind-safe qualitative palette (Okabe-Ito) — the user has red-green CVD,
+## so event types are distinguished by these colours *and* by direct labels.
+cbPalette <- c(
+  "#0072B2", "#E69F00", "#009E73", "#CC79A7",
+  "#56B4E9", "#D55E00", "#F0E442", "#999999"
+)
+
+## The 7 canonical SpliceWiz event types, in a fixed display order.
+eventLevels <- c("SE", "MXE", "A5SS", "A3SS", "RI", "AFE", "ALE")
+ase$EventType <- factor(ase$EventType, levels = intersect(eventLevels, unique(ase$EventType)))
+
+## Significance call: adjusted p below cutoff AND effect size above |dPSI| cutoff.
+ase$significant <- !is.na(ase$FDR) & ase$FDR < fdrCut &
+  !is.na(ase$abs_deltaPSI) & ase$abs_deltaPSI > dpsiCut
+ase$direction <- ifelse(ase$deltaPSI > 0,
+  paste0("up in ", sampleGroup), paste0("up in ", refGroup))
+```
+
+Rendered `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`.
+
+::: {.panel-tabset}
+
+# Overview
+
+Differential alternative splicing for **`r sampleGroup`** vs **`r refGroup`**,
+computed with **SpliceWiz** (`ASE_`\ `r aseMethod`).
+
+- Reference build: **`r param$refBuild`**
+- Samples analysed: **`r ncol(se)`**  (`r sum(colData(se)$condition == sampleGroup)` `r sampleGroup`, `r sum(colData(se)$condition == refGroup)` `r refGroup`)
+- Events tested (after filtering): **`r nrow(ase)`**
+- Significance: adjusted p < **`r fdrCut`** and |ΔPSI| > **`r dpsiCut`**
+- Significant events: **`r sum(ase$significant)`**
+
+ΔPSI is the difference in Percent-Spliced-In between the two groups
+(positive = higher inclusion in **`r sampleGroup`**). The full result table is
+written to `SpliceWiz_ASE_all.txt`, with one file per event type
+(`SpliceWiz_ASE_<EventType>.txt`); the filtered `NxtSE` is in
+`spliceWiz_filtered_se.rds`.
+
+# Event-type breakdown
+
+```{r breakdown}
+#| echo: false
+brk <- ase |>
+  group_by(EventType) |>
+  summarise(
+    Tested = n(),
+    Significant = sum(significant),
+    `Up in sampleGroup` = sum(significant & deltaPSI > 0),
+    `Up in refGroup` = sum(significant & deltaPSI < 0),
+    .groups = "drop"
+  )
+DT::datatable(
+  brk,
+  caption = paste0("Events per type. 'Significant' = adj.p < ", fdrCut,
+                   " and |ΔPSI| > ", dpsiCut, "."),
+  options = list(dom = "t", pageLength = 20), rownames = FALSE
+)
+```
+
+```{r breakdownPlot}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 4.5
+brkLong <- brk |>
+  select(EventType, Significant) |>
+  filter(!is.na(EventType))
+if (nrow(brkLong) > 0 && sum(brkLong$Significant) > 0) {
+  ggplot(brkLong, aes(x = EventType, y = Significant, fill = EventType)) +
+    geom_col() +
+    geom_text(aes(label = Significant), vjust = -0.3, size = 3.5) +
+    scale_fill_manual(values = cbPalette, guide = "none") +
+    labs(x = "Event type", y = "Significant events",
+         title = "Significant differential splicing events by type") +
+    theme_bw()
+} else {
+  cat("No significant events to plot.\n")
+}
+```
+
+# Volcano
+
+```{r volcano}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 6
+vol <- ase |> filter(!is.na(FDR), !is.na(deltaPSI))
+if (nrow(vol) > 0) {
+  vol$negLog10FDR <- -log10(pmax(vol$FDR, .Machine$double.xmin))
+  ## label the top few significant events by effect size
+  lab <- vol |> filter(significant) |> arrange(desc(abs_deltaPSI)) |> head(15)
+  ggplot(vol, aes(x = deltaPSI, y = negLog10FDR)) +
+    geom_point(aes(colour = ifelse(significant, as.character(EventType), "n.s.")),
+               alpha = 0.6, size = 1.4) +
+    geom_hline(yintercept = -log10(fdrCut), linetype = "dashed", colour = "grey40") +
+    geom_vline(xintercept = c(-dpsiCut, dpsiCut), linetype = "dashed", colour = "grey40") +
+    ggrepel::geom_text_repel(data = lab, aes(label = EventName),
+                             size = 2.6, max.overlaps = 20) +
+    scale_colour_manual(
+      values = c(setNames(cbPalette[seq_along(eventLevels)], eventLevels), "n.s." = "grey75"),
+      name = "Event type"
+    ) +
+    labs(x = paste0("ΔPSI  (", sampleGroup, " − ", refGroup, ")"),
+         y = "−log10 adjusted p") +
+    theme_bw()
+} else {
+  cat("No testable events for the volcano plot.\n")
+}
+```
+
+# Top events
+
+```{r topTable}
+#| echo: false
+keepCols <- intersect(
+  c("EventName", "EventType", "EventRegion", "deltaPSI", "abs_deltaPSI",
+    "PValue", "FDR", "flags"),
+  colnames(ase)
+)
+tbl <- ase |>
+  filter(significant) |>
+  arrange(desc(abs_deltaPSI)) |>
+  select(all_of(keepCols))
+if (nrow(tbl) == 0) {
+  cat("No significant events at the current thresholds.\n")
+} else {
+  numCols <- intersect(c("deltaPSI", "abs_deltaPSI", "PValue", "FDR"), colnames(tbl))
+  DT::datatable(
+    tbl, rownames = FALSE, filter = "top",
+    caption = "Significant events, ranked by |ΔPSI|.",
+    options = list(pageLength = 25, scrollX = TRUE)
+  ) |> DT::formatSignif(columns = numCols, digits = 3)
+}
+```
+
+# Coverage plots
+
+Normalized-coverage tracks for the top **`r topN`** significant events (by |ΔPSI|),
+averaged per group.
+
+```{r coverage}
+#| echo: false
+#| results: asis
+#| fig-width: 10
+#| fig-height: 5
+topEvents <- ase |>
+  filter(significant) |>
+  arrange(desc(abs_deltaPSI)) |>
+  head(topN)
+if (nrow(topEvents) == 0) {
+  cat("\nNo significant events to draw coverage for.\n")
+} else {
+  cat("\n::: {.panel-tabset}\n")
+  for (i in seq_len(nrow(topEvents))) {
+    ev <- topEvents$EventName[i]
+    cat("\n\n## ", ev, "\n\n", sep = "")
+    p <- tryCatch(
+      plotCoverage(
+        se, Event = ev,
+        tracks = c(refGroup, sampleGroup),
+        condition = "condition",
+        plotJunctions = TRUE
+      ),
+      error = function(e) {
+        cat("_Coverage plot unavailable for this event: ",
+            conditionMessage(e), "_\n\n", sep = "")
+        NULL
+      }
+    )
+    if (!is.null(p)) {
+      print(p)
+      cat("\n\n")
+    }
+  }
+  cat("\n:::\n\n")
+}
+```
+
+# SessionInfo
+
+```{r sessionInfo}
+#| echo: false
+ezSessionInfo()
+```
+
+:::
