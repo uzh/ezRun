@@ -93,6 +93,17 @@ test_that("detectModalities accepts a bare H5 file as CountMatrix (CellBender ou
   expect_true(m$hasRNA)
 })
 
+test_that("findFilteredH5 returns a bare H5 file path directly (CellBender naming)", {
+  # app-ScMultiOmics.R calls findFilteredH5(countMatrixPath) directly (not
+  # just via detectModalities) to actually load the H5 for ADT/RNA reading -
+  # cellbender_filtered_seurat.h5 doesn't match the *filtered_feature_bc_matrix.h5
+  # pattern the directory-scan branch looks for, so it must be recognized here too.
+  d <- tempfile(); dir.create(d)
+  h5 <- file.path(d, "cellbender_filtered_seurat.h5")
+  file.create(h5)
+  expect_equal(findFilteredH5(h5), h5)
+})
+
 test_that("readADTCounts returns only Antibody Capture features from a multi-modal H5", {
   skip_on_cran(); skip_if_not_installed("Seurat"); skip_if_not_installed("hdf5r")
   # Build a minimal valid CellRanger H5 with 3 GEX + 2 ADT features and 4 cells.

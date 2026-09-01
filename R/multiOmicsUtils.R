@@ -15,6 +15,13 @@
 ##' @return Character path to the H5 file, or character(0) if none found.
 ##' @keywords internal
 findFilteredH5 <- function(countMatrixPath) {
+  # countMatrixPath may already BE the H5 (e.g. CellBender's
+  # cellbender_filtered_seurat.h5), which doesn't match the
+  # *filtered_feature_bc_matrix.h5 pattern searched for below.
+  if (!dir.exists(countMatrixPath) && grepl("\\.h5$", countMatrixPath) &&
+      file.exists(countMatrixPath)) {
+    return(countMatrixPath)
+  }
   candidates <- c(countMatrixPath, dirname(countMatrixPath))
   for (d in candidates) {
     if (!dir.exists(d)) next
@@ -42,14 +49,7 @@ detectModalities <- function(countMatrixPath) {
   # the path itself resolves to something real.
   stopifnot(file.exists(countMatrixPath))
 
-  # countMatrixPath is itself the H5 (e.g. CellBender's cellbender_filtered_seurat.h5,
-  # which doesn't match the *filtered_feature_bc_matrix.h5 pattern findFilteredH5()
-  # scans for) -- use it directly rather than searching around it.
-  h5 <- if (!dir.exists(countMatrixPath) && grepl("\\.h5$", countMatrixPath)) {
-    countMatrixPath
-  } else {
-    findFilteredH5(countMatrixPath)
-  }
+  h5 <- findFilteredH5(countMatrixPath)
   hasRNA <- length(h5) > 0
 
   hasADT <- hasRNA && h5HasAntibodyCapture(h5)
