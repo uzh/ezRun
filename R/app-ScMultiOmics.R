@@ -178,7 +178,8 @@ ezMethodScMultiOmics <- function(input = NA, output = NA, param = NA,
   ## 4. Per-modality processing ----------------------------------------------
   if (isTRUE(mod$hasADT) && !isBD) {
     h5 <- findFilteredH5(countMatrixPath)
-    adt <- readADTCounts(h5, sampleName = sampleName)
+    adt <- readADTCounts(h5, sampleName = sampleName,
+                         objBarcodes = colnames(obj))
     if (!is.null(adt) && ncol(adt) > 0) {
       message("Adding ADT assay: ", nrow(adt), " features x ", ncol(adt), " cells.")
       obj <- processADT(obj, adt,

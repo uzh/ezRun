@@ -150,18 +150,22 @@ h5AntibodyIds <- function(h5path) {
 }
 
 ##' @title Extract Antibody Capture (ADT) counts from a CellRanger H5.
-##' @description Reads a multi-modal CellRanger filtered_feature_bc_matrix.h5 and
-##'   returns the Antibody Capture submatrix with `<sample>_<barcode>` colnames so
-##'   it aligns with a Seurat object built upstream (which prefixes barcodes by
-##'   sample name). When the H5 has only a single feature type, that matrix is
-##'   returned unchanged when it is Antibody Capture, otherwise an empty matrix.
+##' @description Reads a multi-modal CellRanger (or CellBender) H5 and returns the
+##'   Antibody Capture submatrix, with colnames in whichever barcode namespace the
+##'   target Seurat object uses - bare `<barcode>` or `<sample>_<barcode>` - as
+##'   decided by `objBarcodes`. When the H5 has only a single feature type, that
+##'   matrix is returned unchanged when it is Antibody Capture, otherwise an empty
+##'   matrix.
 ##' @param h5path Path to the CellRanger HDF5.
 ##' @param sampleName Sample identifier used to prefix barcodes (matches
 ##'   `obj$Sample` / `obj$cellBarcode`).
-##' @return Sparse matrix with ADT features as rows and prefixed cell barcodes
-##'   as columns, or NULL if no ADT features are present.
+##' @param objBarcodes Optional `colnames(obj)` of the Seurat object the ADT will
+##'   be attached to. Barcodes are prefixed with `sampleName` only if the object
+##'   is itself sample-prefixed; pass NULL to always prefix (legacy behaviour).
+##' @return Sparse matrix with ADT features as rows and cell barcodes as columns,
+##'   or NULL if no ADT features are present.
 ##' @export
-readADTCounts <- function(h5path, sampleName) {
+readADTCounts <- function(h5path, sampleName, objBarcodes = NULL) {
   stopifnot(file.exists(h5path))
   cts <- Seurat::Read10X_h5(h5path, use.names = TRUE, unique.features = TRUE)
   rna_names <- character()
@@ -206,7 +210,15 @@ readADTCounts <- function(h5path, sampleName) {
         rownames(adt)[fix_idx] <- stripped[fix_idx]
       }
     }
-    colnames(adt) <- paste0(sampleName, "_", colnames(adt))
+    # Match the target object's barcode namespace. ScSeurat writes BARE
+    # barcodes for a SAMPLE-mode run and sample-prefixed ones only when several
+    # samples share an object; prefixing unconditionally empties the intersect
+    # in processADT() and subset.Seurat() then dies with "No cells found".
+    # Same rule as prefixVDJBarcodes() applies on the VDJ path.
+    if (is.null(objBarcodes) ||
+        any(startsWith(objBarcodes, paste0(sampleName, "_")))) {
+      colnames(adt) <- paste0(sampleName, "_", colnames(adt))
+    }
   }
   adt
 }

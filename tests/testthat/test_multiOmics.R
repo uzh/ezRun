@@ -136,6 +136,16 @@ test_that("readADTCounts returns only Antibody Capture features from a multi-mod
   expect_equal(nrow(adt), 2L)
   expect_setequal(rownames(adt), c("ADT1", "ADT2"))
   expect_equal(ncol(adt), n_cells)
+
+  # objBarcodes decides the barcode namespace: a BARE object (what ScSeurat
+  # writes in SAMPLE mode) must get BARE ADT colnames, otherwise processADT's
+  # intersect is empty and subset.Seurat() dies with "No cells found".
+  adt_bare <- readADTCounts(h5, sampleName = "S1", objBarcodes = bcs)
+  expect_equal(colnames(adt_bare), bcs)
+
+  adt_pref <- readADTCounts(h5, sampleName = "S1",
+                            objBarcodes = paste0("S1_", bcs))
+  expect_equal(colnames(adt_pref), paste0("S1_", bcs))
 })
 
 test_that("processADT attaches ADT assay and adt.umap reduction to a Seurat object", {
