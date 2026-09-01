@@ -81,6 +81,18 @@ test_that("detectModalities handles FGCZ CellRanger Multi layout (mtx dir as Cou
   expect_true(m$hasVDJ_T)
 })
 
+test_that("detectModalities accepts a bare H5 file as CountMatrix (CellBender output layout)", {
+  # CellBenderApp/ScSeuratApp propagate CountMatrix as a path to a single
+  # cellbender_filtered_seurat.h5 FILE, not a directory - dir.exists() on
+  # that path is always FALSE even though every helper in this file already
+  # falls back to dirname(countMatrixPath) for sibling lookups.
+  d <- tempfile(); dir.create(d)
+  h5 <- file.path(d, "cellbender_filtered_seurat.h5")
+  file.create(h5)
+  m <- detectModalities(h5)
+  expect_true(m$hasRNA)
+})
+
 test_that("readADTCounts returns only Antibody Capture features from a multi-modal H5", {
   skip_on_cran(); skip_if_not_installed("Seurat"); skip_if_not_installed("hdf5r")
   # Build a minimal valid CellRanger H5 with 3 GEX + 2 ADT features and 4 cells.

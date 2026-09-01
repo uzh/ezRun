@@ -35,9 +35,21 @@ findFilteredH5 <- function(countMatrixPath) {
 ##' @return Named list with logical flags: hasRNA, hasADT, hasVDJ_T, hasVDJ_B, hasATAC.
 ##' @export
 detectModalities <- function(countMatrixPath) {
-  stopifnot(dir.exists(countMatrixPath))
+  # countMatrixPath may be a directory (mtx layout) or a bare H5 FILE
+  # (CellBenderApp/ScSeuratApp propagate CountMatrix as e.g.
+  # cellbender_filtered_seurat.h5) - every helper below already falls back
+  # to dirname(countMatrixPath) for sibling lookups, so only require that
+  # the path itself resolves to something real.
+  stopifnot(file.exists(countMatrixPath))
 
-  h5 <- findFilteredH5(countMatrixPath)
+  # countMatrixPath is itself the H5 (e.g. CellBender's cellbender_filtered_seurat.h5,
+  # which doesn't match the *filtered_feature_bc_matrix.h5 pattern findFilteredH5()
+  # scans for) -- use it directly rather than searching around it.
+  h5 <- if (!dir.exists(countMatrixPath) && grepl("\\.h5$", countMatrixPath)) {
+    countMatrixPath
+  } else {
+    findFilteredH5(countMatrixPath)
+  }
   hasRNA <- length(h5) > 0
 
   hasADT <- hasRNA && h5HasAntibodyCapture(h5)
