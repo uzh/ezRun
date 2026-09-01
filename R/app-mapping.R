@@ -532,7 +532,8 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       inBam = "sorted.bam",
       outBam = basename(bamFile),
       operation = "mark",
-      ram = param$ram
+      ram = param$ram,
+      dupDistance = param$dupDistance
     )
     file.remove("sorted.bam")
   } else {
