@@ -292,6 +292,41 @@ ezMethodSpliceWiz <- function(input = NA, output = NA, param = NA) {
   ## is not re-plottable from the delivered object -- the ASE/PSI data remain.)
   qs2::qs_save(se, "spliceWiz_filtered_se.qs2")
 
+  ## -- plain bundle for the hosted 'exploreSpliceWiz' Shiny app ---------------
+  ## Everything here is plain data.frames/matrix so the explorer needs NO
+  ## SpliceWiz in its image. Contract (input file spliceWiz_explore.qs2):
+  ##   list(ase, psi[events x samples, 0-1], coldata[sample,condition], meta).
+  ## The app is reached at http://fgcz-shiny.uzh.ch/exploreSpliceWiz?data=<gstore
+  ## relative report dir> (built below and in SpliceWizApp.rb#next_dataset).
+  inc <- SummarizedExperiment::assay(se, "Included")
+  exc <- SummarizedExperiment::assay(se, "Excluded")
+  psi <- as.data.frame(inc / (inc + exc))
+  rownames(psi) <- SummarizedExperiment::rowData(se)$EventName
+  bundle <- list(
+    ase = res,
+    psi = psi,
+    coldata = data.frame(
+      sample = colnames(se),
+      condition = as.character(colData(se)$condition),
+      stringsAsFactors = FALSE
+    ),
+    meta = list(
+      comparison = param$comparison, sampleGroup = param$sampleGroup,
+      refGroup = param$refGroup, aseMethod = param$aseMethod,
+      FDR = param$FDR, deltaPSI = param$deltaPSI
+    )
+  )
+  qs2::qs_save(bundle, "spliceWiz_explore.qs2")
+
+  ## explorer URL from the gstore-relative result dir (matches SpliceWizApp.rb's
+  ## next_dataset report_file = File.join(@result_dir, comparison))
+  if (ezIsSpecified(param$resultDir)) {
+    param$exploreURL <- paste0(
+      "http://fgcz-shiny.uzh.ch/exploreSpliceWiz?data=",
+      file.path(param$resultDir, param$comparison)
+    )
+  }
+
   ## -- FGCZ Quarto report -----------------------------------------------------
   ## quiet = FALSE so a failing chunk surfaces the real quarto/knitr error in the
   ## SUSHI job log (the default quiet = TRUE reduces any failure to an opaque

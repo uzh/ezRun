@@ -318,17 +318,32 @@ if (nrow(topEvents) == 0) {
 
 # Data
 
+```{r explorerLink}
+#| echo: false
+#| output: asis
+if (ezIsSpecified(param$exploreURL)) {
+  cat("### Interactive explorer\n\n")
+  cat(sprintf(
+    "[Open the SpliceWiz results explorer](%s) to filter the ASE table, browse the volcano, and view per-event PSI boxplots by condition.\n\n",
+    param$exploreURL
+  ))
+}
+```
+
 ```{r downloads}
 #| echo: false
 #| output: asis
+cat("### Download files\n\n")
 files <- c(
   "SpliceWiz_ASE_all.txt",
   sort(list.files(".", pattern = "^SpliceWiz_ASE_.*\\.txt$")),
+  "spliceWiz_explore.qs2",
   "spliceWiz_filtered_se.qs2"
 )
 files <- unique(files[file.exists(files)])
 labels <- c(
   "SpliceWiz_ASE_all.txt"       = "All tested events (TSV)",
+  "spliceWiz_explore.qs2"       = "Explorer bundle (qs2; ASE table + per-sample PSI + conditions)",
   "spliceWiz_filtered_se.qs2"   = "Filtered NxtSE object (qs2; ASE/PSI data — coverage not re-plottable)"
 )
 cat("Result files in this report folder:\n\n")
