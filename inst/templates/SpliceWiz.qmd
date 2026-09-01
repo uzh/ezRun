@@ -17,6 +17,7 @@ library(SummarizedExperiment)
 library(dplyr)
 library(ggplot2)
 library(ggrepel)
+library(patchwork)
 library(DT)
 
 ## ── Data loading (qs2 with rds fallback) ─────────────────────────────────
@@ -60,11 +61,55 @@ knownLevels <- intersect(eventLevels, unique(ase$EventType))
 otherLevels <- setdiff(unique(ase$EventType), eventLevels)
 ase$EventType <- factor(ase$EventType, levels = c(knownLevels, otherLevels))
 
+if (is.null(ase$gene_name)) ase$gene_name <- NA_character_
+
 ## Significance call: adjusted p below cutoff AND effect size above |dPSI| cutoff.
 ase$significant <- !is.na(ase$FDR) & ase$FDR < fdrCut &
   !is.na(ase$abs_deltaPSI) & ase$abs_deltaPSI > dpsiCut
 ase$direction <- ifelse(ase$deltaPSI > 0,
   paste0("up in ", sampleGroup), paste0("up in ", refGroup))
+
+## ── Tiny schematic SVGs + definitions for the event types ────────────────
+## No diagrams ship with SpliceWiz; these hand-drawn cartoons use the
+## included/excluded convention from ?ASE-methods. Blue = constitutive exon,
+## orange = the alternative element. Shown collapsed by default.
+eventInfo <- list(
+  SE = list(
+    name = "Skipped Exon",
+    def  = "A cassette exon is either included or skipped. PSI = fraction including the exon.",
+    svg  = '<svg viewBox="0 0 170 48" width="170" height="48"><line x1="34" y1="24" x2="136" y2="24" stroke="#999" stroke-width="2"/><path d="M42 19 q43 -17 86 0" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/><rect x="4" y="16" width="30" height="16" fill="#0072B2"/><rect x="71" y="16" width="28" height="16" fill="#E69F00"/><rect x="136" y="16" width="30" height="16" fill="#0072B2"/></svg>'
+  ),
+  MXE = list(
+    name = "Mutually Exclusive Exons",
+    def  = "Exactly one of two adjacent exons is used (never both, never neither).",
+    svg  = '<svg viewBox="0 0 176 52" width="176" height="52"><line x1="34" y1="26" x2="142" y2="26" stroke="#999" stroke-width="2"/><rect x="4" y="18" width="30" height="16" fill="#0072B2"/><rect x="62" y="4"  width="26" height="14" fill="#E69F00"/><rect x="96" y="34" width="26" height="14" fill="#D55E00"/><rect x="142" y="18" width="30" height="16" fill="#0072B2"/></svg>'
+  ),
+  A5SS = list(
+    name = "Alternative 5′ Splice Site",
+    def  = "Two competing donor sites at an exon's 3′ end give a longer or shorter exon.",
+    svg  = '<svg viewBox="0 0 170 48" width="170" height="48"><rect x="4" y="16" width="44" height="16" fill="#0072B2"/><rect x="48" y="16" width="16" height="16" fill="#E69F00"/><line x1="64" y1="24" x2="136" y2="24" stroke="#999" stroke-width="2"/><rect x="136" y="16" width="30" height="16" fill="#0072B2"/></svg>'
+  ),
+  A3SS = list(
+    name = "Alternative 3′ Splice Site",
+    def  = "Two competing acceptor sites at an exon's 5′ end give a longer or shorter exon.",
+    svg  = '<svg viewBox="0 0 170 48" width="170" height="48"><rect x="4" y="16" width="30" height="16" fill="#0072B2"/><line x1="34" y1="24" x2="106" y2="24" stroke="#999" stroke-width="2"/><rect x="106" y="16" width="16" height="16" fill="#E69F00"/><rect x="122" y="16" width="44" height="16" fill="#0072B2"/></svg>'
+  ),
+  IR = list(
+    name = "Intron Retention",
+    def  = "An intron is retained in the mature transcript instead of being spliced out.",
+    svg  = '<svg viewBox="0 0 170 48" width="170" height="48"><rect x="4" y="16" width="40" height="16" fill="#0072B2"/><rect x="44" y="16" width="82" height="16" fill="#E69F00" opacity="0.5"/><path d="M44 24 q41 14 82 0" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/><rect x="126" y="16" width="40" height="16" fill="#0072B2"/></svg>'
+  ),
+  AFE = list(
+    name = "Alternative First Exon",
+    def  = "The transcript starts from one of two alternative first exons.",
+    svg  = '<svg viewBox="0 0 170 52" width="170" height="52"><rect x="4" y="4"  width="26" height="14" fill="#E69F00"/><rect x="4" y="34" width="26" height="14" fill="#D55E00"/><path d="M30 11 q50 15 106 15" fill="none" stroke="#999" stroke-width="1.5"/><path d="M30 41 q50 -15 106 -15" fill="none" stroke="#999" stroke-width="1.5"/><rect x="136" y="18" width="30" height="16" fill="#0072B2"/></svg>'
+  ),
+  ALE = list(
+    name = "Alternative Last Exon",
+    def  = "The transcript ends in one of two alternative last exons.",
+    svg  = '<svg viewBox="0 0 170 52" width="170" height="52"><rect x="4" y="18" width="30" height="16" fill="#0072B2"/><path d="M34 26 q50 -15 106 -15" fill="none" stroke="#999" stroke-width="1.5"/><path d="M34 26 q50 15 106 15" fill="none" stroke="#999" stroke-width="1.5"/><rect x="140" y="4"  width="26" height="14" fill="#E69F00"/><rect x="140" y="34" width="26" height="14" fill="#D55E00"/></svg>'
+  )
+)
 ```
 
 Rendered `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`.
@@ -77,18 +122,36 @@ Differential alternative splicing for **`r sampleGroup`** vs **`r refGroup`**,
 computed with **SpliceWiz** (`ASE_`\ `r aseMethod`).
 
 - Reference build: **`r param$refBuild`**
+- Transcript biotypes: **`r if (ezIsSpecified(param$transcriptTypes)) gsub(",", ", ", paste(param$transcriptTypes, collapse=", ")) else "all"`**
 - Samples analysed: **`r ncol(se)`**  (`r sum(colData(se)$condition == sampleGroup)` `r sampleGroup`, `r sum(colData(se)$condition == refGroup)` `r refGroup`)
 - Events tested (after filtering): **`r nrow(ase)`**
 - Significance: adjusted p < **`r fdrCut`** and |ΔPSI| > **`r dpsiCut`**
 - Significant events: **`r sum(ase$significant)`**
 
 ΔPSI is the difference in Percent-Spliced-In between the two groups
-(positive = higher inclusion in **`r sampleGroup`**). The full result table is
-written to `SpliceWiz_ASE_all.txt`, with one file per event type
-(`SpliceWiz_ASE_<EventType>.txt`); the filtered `NxtSE` is in
-`spliceWiz_filtered_se.rds`.
+(positive = higher inclusion in **`r sampleGroup`**). See the **Data** tab for the
+full result tables and the filtered `NxtSE` object.
 
 # Event-type breakdown
+
+::: {.callout-note collapse="true"}
+## What do the event types mean?
+
+```{r eventLegend}
+#| echo: false
+#| results: asis
+cat('<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;align-items:center;">\n')
+for (et in names(eventInfo)) {
+  ei <- eventInfo[[et]]
+  cat(sprintf(
+    '<div style="display:flex;gap:10px;align-items:center;">%s<div><b>%s</b> &mdash; %s<br><span style="opacity:0.8;">%s</span></div></div>\n',
+    ei$svg, et, ei$name, ei$def
+  ))
+}
+cat('</div>\n\n')
+cat('<p style="opacity:0.8;margin-top:8px;">Blue = constitutive exon, orange = the alternative element; dashed line = the spliced-out (excluded) path. PSI (Percent Spliced In) is the fraction of transcripts using the "included" isoform.</p>\n')
+```
+:::
 
 ```{r breakdown}
 #| echo: false
@@ -120,7 +183,7 @@ if (nrow(brkLong) > 0 && sum(brkLong$Significant) > 0) {
   ggplot(brkLong, aes(x = EventType, y = Significant, fill = EventType)) +
     geom_col() +
     geom_text(aes(label = Significant), vjust = -0.3, size = 3.5) +
-    scale_fill_manual(values = cbPalette, guide = "none") +
+    scale_fill_manual(values = colorRampPalette(cbPalette)(nrow(brkLong)), guide = "none") +
     labs(x = "Event type", y = "Significant events",
          title = "Significant differential splicing events by type") +
     theme_bw()
@@ -148,14 +211,14 @@ if (nrow(vol) > 0) {
     presentTypes
   )
   colourValues <- c(typeColours, "n.s." = "grey75")
-  ## label the top few significant events by effect size
+  ## label the top few significant events by gene (fall back to event name)
+  vol$lab <- ifelse(!is.na(vol$gene_name) & vol$gene_name != "", vol$gene_name, vol$EventName)
   lab <- vol |> filter(significant) |> arrange(desc(abs_deltaPSI)) |> head(15)
   ggplot(vol, aes(x = deltaPSI, y = negLog10FDR)) +
     geom_point(aes(colour = colourKey), alpha = 0.6, size = 1.4) +
     geom_hline(yintercept = -log10(fdrCut), linetype = "dashed", colour = "grey40") +
     geom_vline(xintercept = c(-dpsiCut, dpsiCut), linetype = "dashed", colour = "grey40") +
-    ggrepel::geom_text_repel(data = lab, aes(label = EventName),
-                             size = 2.6, max.overlaps = 20) +
+    ggrepel::geom_text_repel(data = lab, aes(label = lab), size = 2.6, max.overlaps = 20) +
     scale_colour_manual(values = colourValues, name = "Event type") +
     labs(x = paste0("ΔPSI  (", sampleGroup, " − ", refGroup, ")"),
          y = "−log10 adjusted p") +
@@ -170,8 +233,8 @@ if (nrow(vol) > 0) {
 ```{r topTable}
 #| echo: false
 keepCols <- intersect(
-  c("EventName", "EventType", "EventRegion", "deltaPSI", "abs_deltaPSI",
-    "PValue", "FDR", "flags"),
+  c("gene_name", "EventName", "EventType", "EventRegion", "deltaPSI",
+    "abs_deltaPSI", "PValue", "FDR", "flags"),
   colnames(ase)
 )
 tbl <- ase |>
@@ -181,11 +244,22 @@ tbl <- ase |>
 if (nrow(tbl) == 0) {
   cat("No significant events at the current thresholds.\n")
 } else {
+  ## render gene_name as an Ensembl search link
+  if ("gene_name" %in% colnames(tbl)) {
+    g <- tbl$gene_name
+    tbl$gene_name <- ifelse(
+      is.na(g) | g == "", g,
+      paste0('<a href="https://www.ensembl.org/Multi/Search/Results?q=', g,
+             '" target="_blank">', g, "</a>")
+    )
+  }
   numCols <- intersect(c("deltaPSI", "abs_deltaPSI", "PValue", "FDR"), colnames(tbl))
   DT::datatable(
-    tbl, rownames = FALSE, filter = "top",
+    tbl, rownames = FALSE, filter = "top", escape = FALSE,
+    extensions = "Buttons",
     caption = "Significant events, ranked by |ΔPSI|.",
-    options = list(pageLength = 25, scrollX = TRUE)
+    options = list(dom = "Bfrtip", buttons = c("excel"),
+                   pageLength = 25, scrollX = TRUE)
   ) |> DT::formatSignif(columns = numCols, digits = 3)
 }
 ```
@@ -193,48 +267,79 @@ if (nrow(tbl) == 0) {
 # Coverage plots
 
 Normalized-coverage tracks for the top **`r topN`** significant events (by |ΔPSI|),
-averaged per group.
+averaged per group. Only the isoforms involved in each event are drawn.
 
 ```{r coverage}
 #| echo: false
-#| results: asis
-#| fig-width: 10
-#| fig-height: 5
+#| layout-ncol: 2
+#| fig-width: 7
+#| fig-height: 4.5
 topEvents <- ase |>
   filter(significant) |>
   arrange(desc(abs_deltaPSI)) |>
   head(topN)
 if (nrow(topEvents) == 0) {
-  cat("\nNo significant events to draw coverage for.\n")
+  cat("No significant events to draw coverage for.\n")
 } else {
-  cat("\n::: {.panel-tabset}\n")
   for (i in seq_len(nrow(topEvents))) {
     ev <- topEvents$EventName[i]
-    cat("\n\n## ", ev, "\n\n", sep = "")
-    ## Build AND render inside the tryCatch: plotCoverage can succeed yet the
-    ## patchwork fail to print (e.g. a ggplot build/scale error), and an
-    ## uncaught error here aborts the whole quarto render.
-    ok <- tryCatch(
+    gn <- topEvents$gene_name[i]
+    ttl <- sprintf("%s — %s  (ΔPSI=%.2f)",
+                   ifelse(is.na(gn) | gn == "", "", gn), ev, topEvents$deltaPSI[i])
+    ## build AND print inside one tryCatch: plotCoverage can succeed yet the
+    ## patchwork fail to print; an uncaught error would abort the whole render.
+    tryCatch(
       {
         p <- plotCoverage(
           se, Event = ev,
-          tracks = c(refGroup, sampleGroup),
-          condition = "condition",
-          plotJunctions = TRUE
-        )
+          tracks = c(refGroup, sampleGroup), condition = "condition",
+          plot_key_isoforms = TRUE,   # only isoforms involved in this event
+          zoom_factor = 0, bases_flanking = 100,
+          plotJunctions = TRUE, junctionThreshold = 0.05
+        ) +
+          patchwork::plot_annotation(
+            title = ttl,
+            theme = theme(plot.title = element_text(size = 9))
+          )
         print(p)
-        TRUE
       },
       error = function(e) {
-        cat("_Coverage plot unavailable for this event: ",
-            conditionMessage(e), "_\n\n", sep = "")
-        FALSE
+        print(
+          ggplot() +
+            annotate("text", 0, 0, size = 3,
+                     label = paste0("coverage unavailable:\n", ev)) +
+            theme_void()
+        )
       }
     )
-    if (ok) cat("\n\n")
   }
-  cat("\n:::\n\n")
 }
+```
+
+# Data
+
+```{r downloads}
+#| echo: false
+#| output: asis
+files <- c(
+  "SpliceWiz_ASE_all.txt",
+  sort(list.files(".", pattern = "^SpliceWiz_ASE_.*\\.txt$")),
+  "spliceWiz_filtered_se.qs2"
+)
+files <- unique(files[file.exists(files)])
+labels <- c(
+  "SpliceWiz_ASE_all.txt"       = "All tested events (TSV)",
+  "spliceWiz_filtered_se.qs2"   = "Filtered NxtSE object (qs2; ASE/PSI data — coverage not re-plottable)"
+)
+cat("Result files in this report folder:\n\n")
+for (f in files) {
+  lab <- if (f %in% names(labels)) labels[[f]] else {
+    et <- sub("^SpliceWiz_ASE_(.*)\\.txt$", "\\1", f)
+    paste0(et, " events (TSV)")
+  }
+  cat(sprintf("- [%s](%s) — %s\n", f, f, lab))
+}
+cat("\n")
 ```
 
 # SessionInfo
