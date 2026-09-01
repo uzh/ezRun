@@ -72,7 +72,7 @@ ezMethodSpaceRangerDev <- function(input = NA, output = NA, param = NA) {
     sampleDirs <- normalizePath(sampleDirs)
     read1Files <- strsplit(input$getColumn("Read1"), ",")[[1]]
     sampleNameFQ <- unique(sub(
-      "_S\\d+_L\\d+_R[12]_\\d+\\.fastq\\.gz$",
+      "_S\\d+(_L\\d+)?_R[12]_\\d+\\.fastq\\.gz$",
       "",
       basename(read1Files)
     ))
