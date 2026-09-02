@@ -441,7 +441,7 @@ cat("\n")
 
 # Use simple tryCatch to handle potential errors in DoHeatmap
 tryCatch({
-  DoHeatmap(scData, features=top5$gene)
+  ezDoHeatmap(scData, features=top5$gene)
 }, error = function(e) {
   if (grepl("No requested features found in the scale.data (slot|layer)", e$message)) {
     message("Note: Could not generate heatmap because the requested features were not found in the scale.data layer.")
@@ -511,7 +511,7 @@ for (clusterName in clusterNames) {
     downGenes <- dt[dt$avg_log2FC < 0, ] %>% slice_min( n=20, order_by = avg_log2FC) %>% pull("gene")
     
     genesToPlot <- c(upGenes, downGenes)
-    print(DoHeatmap(subset(scd, downsample = 2000), genesToPlot, slot="scale.data") + ggtitle(paste0("Cell type: ", clusterName)))
+    print(ezDoHeatmap(subset(scd, downsample = 2000), genesToPlot, slot="scale.data") + ggtitle(paste0("Cell type: ", clusterName)))
   }
   p <- do_VolcanoPlot(scData, dt, plot.title = clusterName, FC_cutoff = 0.5, add_gene_tags = TRUE, order_tags_by = "pvalue")
   print(p)

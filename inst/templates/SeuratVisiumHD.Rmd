@@ -1563,7 +1563,7 @@ DotPlot(scData, features=rev(genesToPlot)) +
 genesToPlot <- intersect(param$controlSeqs, rownames(scData))
 
 if (length(genesToPlot) > 0){
-  DoHeatmap(scData, features=unique(genesToPlot))
+  ezDoHeatmap(scData, features=unique(genesToPlot))
   DotPlot(scData, features=genesToPlot) + coord_flip() +
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 } else { 

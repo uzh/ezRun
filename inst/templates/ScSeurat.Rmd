@@ -861,7 +861,7 @@ if (length(genesToPlot) > 0){
   if (length(genesToPlot) < 20){
     FeaturePlot(scData, genesToPlot) + NoLegend()
   } else {
-    DoHeatmap(scData, features=genesToPlot)
+    ezDoHeatmap(scData, features=genesToPlot)
     DotPlot(scData, features=genesToPlot) + coord_flip() +
       theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
   }
@@ -922,7 +922,7 @@ genesToPlot <- intersect(genesToPlot, rownames(scData))
 ## genesToPlot is empty whenever no markers were found (e.g. a low-cell sample
 ## that yields a single cluster). Skip the heatmap, keep the rest of the report.
 tryCatch(
-  print(DoHeatmap(scData, features = unique(genesToPlot))),
+  print(ezDoHeatmap(scData, features = unique(genesToPlot))),
   error = function(e) {
     message("Skipping marker heatmap (DoHeatmap failed): ", conditionMessage(e))
   }
@@ -946,7 +946,7 @@ genesToPlot <- intersect(param$controlSeqs, rownames(scData))
 
 if (length(genesToPlot) > 0){
   tryCatch(
-    print(DoHeatmap(scData, features = unique(genesToPlot))),
+    print(ezDoHeatmap(scData, features = unique(genesToPlot))),
     error = function(e) {
       message("Skipping controlSeqs heatmap (DoHeatmap failed): ", conditionMessage(e))
     }

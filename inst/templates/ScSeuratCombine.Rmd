@@ -360,7 +360,7 @@ if (all(varhandle::check.numeric(cluster_levels))) {
 ```
 
 ```{r marker heatmap, fig.width=12, fig.height=length(levels(Idents(scData)))}
-DoHeatmap(scDataToPlot, features=unique(genesToPlot)) + guides(color = "none")
+ezDoHeatmap(scDataToPlot, features=unique(genesToPlot)) + guides(color = "none")
 ```
 
 ```{r marker dotplot, fig.width=12, fig.height=length(levels(Idents(scData)))}

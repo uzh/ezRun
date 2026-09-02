@@ -1171,3 +1171,26 @@ ezSpatialFeaturePlot <- function(
   #   legend.key.width  = unit(6, "pt")
   # )
 }
+
+##' @title DoHeatmap that does not silently render blank
+##' @description Seurat's `DoHeatmap(raster = TRUE)` (the default) draws one
+##' raster pixel column per cell, plus `draw.lines` spacers between identity
+##' groups. Cairo drops any raster wider than 32767 px WITHOUT an error or a
+##' warning, so above ~31.5k cells the whole heatmap comes out as a fully white
+##' PNG - measured 2026-09-02 on p39836/o43013 sample 17 (32562 cells, 15
+##' clusters -> 33792 raster columns): blank at 32770 columns, fine at 32445.
+##' Fall back to the vector renderer past that width; it costs ~17 s instead of
+##' ~4 s but shows exactly the same cells.
+##' @param object a Seurat object.
+##' @param features features to plot.
+##' @param ... passed to \code{Seurat::DoHeatmap}; an explicit \code{raster} is respected.
+##' @return the ggplot returned by \code{Seurat::DoHeatmap}.
+ezDoHeatmap <- function(object, features, ...) {
+  args <- list(...)
+  nCells <- if (is.null(args$cells)) ncol(object) else length(args$cells)
+  nGroups <- nlevels(droplevels(Idents(object)))
+  ## DoHeatmap's own default: lines.width = ceiling(nCells * 0.0025) per group
+  rasterWidth <- nCells + nGroups * ceiling(nCells * 0.0025)
+  if (is.null(args$raster)) args$raster <- rasterWidth < 32767
+  do.call(DoHeatmap, c(list(object = object, features = features), args))
+}
