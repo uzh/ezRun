@@ -1,0 +1,365 @@
+---
+params:
+  reportTitle: "rMATS-turbo Alternative Splicing"
+title: "`r params$reportTitle`"
+---
+
+<!-- Styling comes from the fgczQuartoTemplate assets staged next to this file
+     (_metadata.yml is applied by Quarto automatically). ezRun stages them via
+     makeQuartoReport(), which calls fgczQuartoTemplate::fgcz_render(). The report
+     reads the objects saved by makeQuartoReport() from the working directory. -->
+
+```{r setup}
+#| include: false
+library(ezRun)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(DT)
+
+## ── Data loading (qs2 with rds fallback) ─────────────────────────────────
+.fgcz_load <- function(name, nthreads = 4L) {
+  paths <- c(
+    paste0(name, ".qs2"), file.path("data", paste0(name, ".qs2")),
+    paste0(name, ".rds"), file.path("data", paste0(name, ".rds"))
+  )
+  for (p in paths) {
+    if (file.exists(p)) {
+      if (grepl("\\.qs2$", p)) return(qs2::qs_read(p, nthreads = nthreads))
+      return(readRDS(p))
+    }
+  }
+  stop("No .qs2 or .rds file found for: ", name)
+}
+
+param   <- .fgcz_load("param")
+ase     <- .fgcz_load("aseResult")
+coldata <- .fgcz_load("coldata")
+
+sampleGroup <- param$sampleGroup
+refGroup    <- param$refGroup
+fdrCut      <- as.numeric(param$FDR)
+dpsiCut     <- as.numeric(param$deltaPSI)
+topN        <- as.integer(param$topN)
+statModel   <- param$statModel
+
+## Colour-blind-safe qualitative palette (Okabe-Ito) — the user has red-green CVD,
+## so event types are distinguished by these colours *and* by direct labels.
+cbPalette <- c(
+  "#0072B2", "#E69F00", "#009E73", "#CC79A7",
+  "#56B4E9", "#D55E00", "#F0E442", "#999999"
+)
+
+## The 5 rMATS event types, in a fixed display order. Keep any unexpected types
+## as their own levels rather than dropping them to NA.
+eventLevels <- c("SE", "MXE", "A5SS", "A3SS", "RI")
+knownLevels <- intersect(eventLevels, unique(ase$EventType))
+otherLevels <- setdiff(unique(ase$EventType), eventLevels)
+ase$EventType <- factor(ase$EventType, levels = c(knownLevels, otherLevels))
+
+if (is.null(ase$gene_name)) ase$gene_name <- NA_character_
+
+## Significance call: adjusted p below cutoff AND effect size above |dPSI| cutoff.
+ase$significant <- !is.na(ase$FDR) & ase$FDR < fdrCut &
+  !is.na(ase$abs_deltaPSI) & ase$abs_deltaPSI > dpsiCut
+ase$direction <- ifelse(ase$deltaPSI > 0,
+  paste0("up in ", sampleGroup), paste0("up in ", refGroup))
+
+nSample <- as.integer(table(coldata$condition)[c(sampleGroup, refGroup)])
+names(nSample) <- c(sampleGroup, refGroup)
+
+## ── Tiny schematic SVGs + definitions for the event types ────────────────
+## Blue = constitutive exon, orange = the alternative element; dashed line = the
+## spliced-out (excluded) path. Included isoform = the rMATS "inclusion" form.
+## NB: pandoc lowercases the SVG viewBox attribute to an invalid 'viewbox', so
+## width/height are set equal to the viewBox dimensions to render 1:1 regardless.
+eventInfo <- list(
+  SE = list(
+    name = "Skipped Exon",
+    def  = "A cassette exon is either included or skipped. Inclusion form contains the target exon.",
+    svg  = '<svg viewBox="0 0 170 48" width="170" height="48"><line x1="34" y1="24" x2="136" y2="24" stroke="#999" stroke-width="2"/><path d="M42 19 q43 -17 86 0" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/><rect x="4" y="16" width="30" height="16" fill="#0072B2"/><rect x="71" y="16" width="28" height="16" fill="#E69F00"/><rect x="136" y="16" width="30" height="16" fill="#0072B2"/></svg>'
+  ),
+  MXE = list(
+    name = "Mutually Exclusive Exons",
+    def  = "Exactly one of two adjacent exons is used (never both, never neither).",
+    svg  = '<svg viewBox="0 0 176 52" width="176" height="52"><line x1="34" y1="26" x2="142" y2="26" stroke="#999" stroke-width="2"/><rect x="4" y="18" width="30" height="16" fill="#0072B2"/><rect x="62" y="4"  width="26" height="14" fill="#E69F00"/><rect x="96" y="34" width="26" height="14" fill="#D55E00"/><rect x="142" y="18" width="30" height="16" fill="#0072B2"/></svg>'
+  ),
+  A5SS = list(
+    name = "Alternative 5′ Splice Site",
+    def  = "Two competing donor sites at an exon's 3′ end give a longer or shorter exon.",
+    svg  = '<svg viewBox="0 0 170 48" width="170" height="48"><rect x="4" y="16" width="44" height="16" fill="#0072B2"/><rect x="48" y="16" width="16" height="16" fill="#E69F00"/><line x1="64" y1="24" x2="136" y2="24" stroke="#999" stroke-width="2"/><rect x="136" y="16" width="30" height="16" fill="#0072B2"/></svg>'
+  ),
+  A3SS = list(
+    name = "Alternative 3′ Splice Site",
+    def  = "Two competing acceptor sites at an exon's 5′ end give a longer or shorter exon.",
+    svg  = '<svg viewBox="0 0 170 48" width="170" height="48"><rect x="4" y="16" width="30" height="16" fill="#0072B2"/><line x1="34" y1="24" x2="106" y2="24" stroke="#999" stroke-width="2"/><rect x="106" y="16" width="16" height="16" fill="#E69F00"/><rect x="122" y="16" width="44" height="16" fill="#0072B2"/></svg>'
+  ),
+  RI = list(
+    name = "Retained Intron",
+    def  = "An intron is retained in the mature transcript instead of being spliced out.",
+    svg  = '<svg viewBox="0 0 170 48" width="170" height="48"><rect x="4" y="16" width="40" height="16" fill="#0072B2"/><rect x="44" y="16" width="82" height="16" fill="#E69F00" opacity="0.5"/><path d="M44 24 q41 14 82 0" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/><rect x="126" y="16" width="40" height="16" fill="#0072B2"/></svg>'
+  )
+)
+```
+
+Rendered `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`.
+
+::: {.panel-tabset}
+
+# Overview
+
+Differential alternative splicing for **`r sampleGroup`** vs **`r refGroup`**,
+computed with **rMATS-turbo** (`r statModel` statistical model, junction counts / JC).
+
+- Reference build: **`r param$refBuild`**
+- Transcript biotypes: **`r if (ezIsSpecified(param$transcriptTypes)) gsub(",", ", ", paste(param$transcriptTypes, collapse=", ")) else "all"`**
+- Samples analysed: **`r nrow(coldata)`**  (`r nSample[[sampleGroup]]` `r sampleGroup`, `r nSample[[refGroup]]` `r refGroup`)
+- Events tested: **`r nrow(ase)`**
+- Significance: adjusted p < **`r fdrCut`** and |ΔPSI| > **`r dpsiCut`**
+- Significant events: **`r sum(ase$significant)`**
+
+ΔPSI is the rMATS **IncLevelDifference** = mean(PSI, `r sampleGroup`) −
+mean(PSI, `r refGroup`) (positive = higher inclusion in **`r sampleGroup`**). See
+the **Data** tab for the full JC/JCEC result tables and the explorer bundle.
+
+# Event-type breakdown
+
+::: {.callout-note collapse="true"}
+## What do the event types mean?
+
+```{r eventLegend}
+#| echo: false
+#| results: asis
+cat('<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;align-items:center;">\n')
+for (et in names(eventInfo)) {
+  ei <- eventInfo[[et]]
+  cat(sprintf(
+    '<div style="display:flex;gap:10px;align-items:center;">%s<div><b>%s</b> &mdash; %s<br><span style="opacity:0.8;">%s</span></div></div>\n',
+    ei$svg, et, ei$name, ei$def
+  ))
+}
+cat('</div>\n\n')
+cat('<p style="opacity:0.8;margin-top:8px;">Blue = constitutive exon, orange = the alternative element; dashed line = the spliced-out (excluded) path. PSI (Percent Spliced In) is the fraction of transcripts using the "included" isoform.</p>\n')
+```
+:::
+
+```{r breakdown}
+#| echo: false
+brk <- ase |>
+  group_by(EventType) |>
+  summarise(
+    Tested = n(),
+    Significant = sum(significant),
+    `Up in sampleGroup` = sum(significant & deltaPSI > 0),
+    `Up in refGroup` = sum(significant & deltaPSI < 0),
+    .groups = "drop"
+  )
+DT::datatable(
+  brk,
+  caption = paste0("Events per type. 'Significant' = adj.p < ", fdrCut,
+                   " and |ΔPSI| > ", dpsiCut, "."),
+  options = list(dom = "t", pageLength = 20), rownames = FALSE
+)
+```
+
+```{r breakdownPlot}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 4.5
+brkLong <- brk |>
+  select(EventType, Significant) |>
+  filter(!is.na(EventType))
+if (nrow(brkLong) > 0 && sum(brkLong$Significant) > 0) {
+  ggplot(brkLong, aes(x = EventType, y = Significant, fill = EventType)) +
+    geom_col() +
+    geom_text(aes(label = Significant), vjust = -0.3, size = 3.5) +
+    scale_fill_manual(values = colorRampPalette(cbPalette)(nrow(brkLong)), guide = "none") +
+    labs(x = "Event type", y = "Significant events",
+         title = "Significant differential splicing events by type") +
+    theme_bw()
+} else {
+  cat("No significant events to plot.\n")
+}
+```
+
+# Volcano
+
+```{r volcano}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 6
+vol <- ase |> filter(!is.na(FDR), !is.na(deltaPSI))
+if (nrow(vol) > 0) {
+  vol$negLog10FDR <- -log10(pmax(vol$FDR, .Machine$double.xmin))
+  vol$colourKey <- ifelse(vol$significant, as.character(vol$EventType), "n.s.")
+  ## build a colour for every event type actually present (interpolate if there
+  ## are more than the base palette), so scale_colour_manual never errors on an
+  ## unmapped value.
+  presentTypes <- setdiff(unique(vol$colourKey), "n.s.")
+  typeColours <- setNames(
+    grDevices::colorRampPalette(cbPalette)(max(length(presentTypes), 1))[seq_along(presentTypes)],
+    presentTypes
+  )
+  colourValues <- c(typeColours, "n.s." = "grey75")
+  ## label the top few significant events by gene (fall back to event name)
+  vol$lab <- ifelse(!is.na(vol$gene_name) & vol$gene_name != "", vol$gene_name, vol$EventName)
+  lab <- vol |> filter(significant) |> arrange(desc(abs_deltaPSI)) |> head(15)
+  ggplot(vol, aes(x = deltaPSI, y = negLog10FDR)) +
+    geom_point(aes(colour = colourKey), alpha = 0.6, size = 1.4) +
+    geom_hline(yintercept = -log10(fdrCut), linetype = "dashed", colour = "grey40") +
+    geom_vline(xintercept = c(-dpsiCut, dpsiCut), linetype = "dashed", colour = "grey40") +
+    ggrepel::geom_text_repel(data = lab, aes(label = lab), size = 2.6, max.overlaps = 20) +
+    scale_colour_manual(values = colourValues, name = "Event type") +
+    labs(x = paste0("ΔPSI  (", sampleGroup, " − ", refGroup, ")"),
+         y = "−log10 adjusted p") +
+    theme_bw()
+} else {
+  cat("No testable events for the volcano plot.\n")
+}
+```
+
+# Top events
+
+```{r topTable}
+#| echo: false
+keepCols <- intersect(
+  c("gene_name", "EventName", "EventType", "EventRegion", "deltaPSI",
+    "abs_deltaPSI", "PValue", "FDR"),
+  colnames(ase)
+)
+tbl <- ase |>
+  filter(significant) |>
+  arrange(desc(abs_deltaPSI)) |>
+  select(all_of(keepCols))
+if (nrow(tbl) == 0) {
+  cat("No significant events at the current thresholds.\n")
+} else {
+  ## render gene_name as an Ensembl search link
+  if ("gene_name" %in% colnames(tbl)) {
+    g <- tbl$gene_name
+    tbl$gene_name <- ifelse(
+      is.na(g) | g == "", g,
+      paste0('<a href="https://www.ensembl.org/Multi/Search/Results?q=', g,
+             '" target="_blank">', g, "</a>")
+    )
+  }
+  numCols <- intersect(c("deltaPSI", "abs_deltaPSI", "PValue", "FDR"), colnames(tbl))
+  DT::datatable(
+    tbl, rownames = FALSE, filter = "top", escape = FALSE,
+    extensions = "Buttons",
+    caption = "Significant events, ranked by |ΔPSI|.",
+    options = list(dom = "Bfrtip", buttons = c("excel"),
+                   pageLength = 25, scrollX = TRUE)
+  ) |> DT::formatSignif(columns = numCols, digits = 3)
+}
+```
+
+# Top-event PSI
+
+Per-replicate PSI (Percent Spliced In) by condition for the top **`r topN`**
+significant events (by |ΔPSI|), from the rMATS `IncLevel1` / `IncLevel2` values.
+
+```{r psiBoxplots}
+#| echo: false
+#| layout-ncol: 2
+#| fig-width: 5
+#| fig-height: 4
+topEvents <- ase |>
+  filter(significant) |>
+  arrange(desc(abs_deltaPSI)) |>
+  head(topN)
+if (nrow(topEvents) == 0) {
+  cat("No significant events to draw PSI boxplots for.\n")
+} else {
+  for (i in seq_len(nrow(topEvents))) {
+    ev <- topEvents$EventName[i]
+    gn <- topEvents$gene_name[i]
+    et <- as.character(topEvents$EventType[i])
+    ttl <- sprintf("%s  %s  (ΔPSI=%.2f)",
+                   ifelse(is.na(gn) | gn == "", ev, gn), et, topEvents$deltaPSI[i])
+    tryCatch(
+      {
+        s1 <- suppressWarnings(as.numeric(strsplit(topEvents$IncLevel1[i], ",")[[1]]))
+        s2 <- suppressWarnings(as.numeric(strsplit(topEvents$IncLevel2[i], ",")[[1]]))
+        df <- data.frame(
+          PSI = c(s1, s2),
+          group = factor(
+            c(rep(sampleGroup, length(s1)), rep(refGroup, length(s2))),
+            levels = c(refGroup, sampleGroup)
+          )
+        )
+        df <- df[!is.na(df$PSI), , drop = FALSE]
+        if (nrow(df) == 0) stop("no PSI values")
+        print(
+          ggplot(df, aes(x = group, y = PSI, fill = group)) +
+            geom_boxplot(outlier.shape = NA, alpha = 0.6, width = 0.5) +
+            geom_jitter(width = 0.12, size = 1.6, alpha = 0.9) +
+            scale_fill_manual(values = c(cbPalette[1], cbPalette[2]), guide = "none") +
+            coord_cartesian(ylim = c(0, 1)) +
+            labs(x = NULL, y = "PSI", title = ttl) +
+            theme_bw() +
+            theme(plot.title = element_text(size = 9))
+        )
+      },
+      error = function(e) {
+        print(
+          ggplot() +
+            annotate("text", 0, 0, size = 3,
+                     label = paste0("PSI unavailable:\n", ev)) +
+            theme_void()
+        )
+      }
+    )
+  }
+}
+```
+
+# Data
+
+```{r explorerLink}
+#| echo: false
+#| output: asis
+if (ezIsSpecified(param$exploreURL)) {
+  cat("### Interactive explorer\n\n")
+  cat(sprintf(
+    "[Open the rMATS-turbo results explorer](%s) to filter the result table, browse the volcano, and view per-event PSI boxplots by condition.\n\n",
+    param$exploreURL
+  ))
+}
+```
+
+```{r downloads}
+#| echo: false
+#| output: asis
+cat("### Download files\n\n")
+files <- c(
+  "rMATS_JC_all.txt",
+  sort(list.files(".", pattern = "^rMATS_(SE|MXE|A5SS|A3SS|RI)\\.MATS\\.(JC|JCEC)\\.txt$")),
+  "rMATS_summary.txt",
+  "rmatsTurbo_explore.qs2"
+)
+files <- unique(files[file.exists(files)])
+labels <- c(
+  "rMATS_JC_all.txt"        = "All tested events, combined JC table (TSV)",
+  "rMATS_summary.txt"       = "rMATS run summary (events + significant counts per type)",
+  "rmatsTurbo_explore.qs2"  = "Explorer bundle (qs2; result table + per-sample PSI + conditions)"
+)
+cat("Result files in this report folder (JC = junction counts, JCEC = junction + exon-body counts):\n\n")
+for (f in files) {
+  lab <- if (f %in% names(labels)) labels[[f]] else {
+    m <- sub("^rMATS_(.*)\\.MATS\\.(JC|JCEC)\\.txt$", "\\1 events, \\2 (TSV)", f)
+    m
+  }
+  cat(sprintf("- [%s](%s) — %s\n", f, f, lab))
+}
+cat("\n")
+```
+
+# SessionInfo
+
+```{r sessionInfo}
+#| echo: false
+ezSessionInfo()
+```
+
+:::
