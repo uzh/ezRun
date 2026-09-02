@@ -12,10 +12,16 @@
 ## a staged bash script and parses the *.MATS.JC/JCEC.txt tables back into R for
 ## the FGCZ Quarto report. Modelled on app-SpliceWiz.R.
 
-## Fixed locations of the rMATS-turbo install (see run_rmats reference).
-RMATS_RUN     <- "/usr/local/ngseq/srcm/Tools/rmats-turbo/run_rmats"
-RMATS_CONDASH <- "/usr/local/ngseq/miniforge3/etc/profile.d/conda.sh"
-RMATS_CONDAENV <- "gi_rmats-turbo"
+## Fixed locations of the rMATS-turbo install. We call rmats.py directly through
+## `conda run -n` rather than the run_rmats wrapper: the wrapper's
+## setup_environment.sh does `source ~/.bashrc`, whose conda-init block re-activates
+## a different env AFTER ours, so `python rmats.py` then runs under the wrong
+## interpreter and the python3.14-only `rmatspipeline` C extension fails to import
+## (crashed the first real SUSHI run). `conda run -n` activates the target env
+## deterministically, independent of the currently-active env and of ~/.bashrc.
+RMATS_CONDA <- "/usr/local/ngseq/miniforge3/bin/conda"
+RMATS_ENV   <- "gi_rmats-turbo"
+RMATS_PY    <- "/usr/local/ngseq/srcm/Tools/rmats-turbo/rmats.py"
 
 ##' @title Prepare the GTF fed to rMATS-turbo (optional biotype prefilter)
 ##' @description rMATS needs only a GTF (no index build). If
@@ -144,22 +150,18 @@ ezMethodRmatsTurbo <- function(input = NA, output = NA, param = NA) {
   readLen <- if (ezIsSpecified(param$readLength)) as.character(param$readLength) else ""
 
   ## -- staged bash script ------------------------------------------------------
-  ## run_rmats is a thin wrapper that does NOT activate gi_rmats-turbo (it only
-  ## activates a local conda_envs/rmats that is absent), so we activate the env
-  ## ourselves. A script (not an inline ezSystem string) also sidesteps the
-  ## ezSystem pipe+single-quote guard. samtools (module Tools/samtools) stays on
-  ## PATH after conda activate (the env has none) for the read-length probe.
-  ## 'set -e' (NOT pipefail) so 'samtools view | head' closing the pipe early
-  ## does not abort the script.
-  ## conda activation runs BEFORE 'set -e' (activate scripts are not set -e/-u
-  ## clean and can return non-zero on a stray unalias) -- see the FGCZ conda +
-  ## set -e failure mode. 'set -e' then guards the read-length probe and the run.
+  ## A script (not an inline ezSystem string) also sidesteps the ezSystem
+  ## pipe+single-quote guard.
+  ## The read-length probe uses samtools from the loaded Tools/samtools module
+  ## (stays on PATH; the rMATS env has no samtools), outside the conda env.
+  ## rMATS itself runs via `conda run -n gi_rmats-turbo python rmats.py` -- NOT the
+  ## run_rmats wrapper (see RMATS_CONDA note above); `conda run` propagates the
+  ## real exit code so ezSystem still detects failure, and --no-capture-output
+  ## streams progress to the job log. 'set -e' (NOT pipefail, so 'samtools | head'
+  ## closing the pipe early does not abort) guards the whole script.
   script <- file.path(workDir, "run_rmats.sh")
   scriptLines <- c(
     "#!/bin/bash",
-    sprintf("source %s", shQuote(RMATS_CONDASH)),
-    sprintf("conda activate %s || { echo 'conda activate %s failed' >&2; exit 1; }",
-            RMATS_CONDAENV, RMATS_CONDAENV),
     "set -e",
     sprintf('FIRSTBAM=%s', shQuote(b1Bams[1])),
     sprintf('READLEN=%s', shQuote(readLen)),
@@ -168,7 +170,8 @@ ezMethodRmatsTurbo <- function(input = NA, output = NA, param = NA) {
     'fi',
     'echo "rMATS-turbo readLength=$READLEN"',
     paste(
-      shQuote(RMATS_RUN),
+      shQuote(RMATS_CONDA), "run --no-capture-output -n", RMATS_ENV,
+      "python", shQuote(RMATS_PY),
       sprintf("--b1 %s --b2 %s", shQuote(b1File), shQuote(b2File)),
       sprintf("--gtf %s", shQuote(gtf)),
       sprintf("-t %s", readType),
