@@ -12,16 +12,18 @@
 ## a staged bash script and parses the *.MATS.JC/JCEC.txt tables back into R for
 ## the FGCZ Quarto report. Modelled on app-SpliceWiz.R.
 
-## Fixed locations of the rMATS-turbo install. We call rmats.py directly through
-## `conda run -n` rather than the run_rmats wrapper: the wrapper's
-## setup_environment.sh does `source ~/.bashrc`, whose conda-init block re-activates
-## a different env AFTER ours, so `python rmats.py` then runs under the wrong
-## interpreter and the python3.14-only `rmatspipeline` C extension fails to import
-## (crashed the first real SUSHI run). `conda run -n` activates the target env
-## deterministically, independent of the currently-active env and of ~/.bashrc.
-RMATS_CONDA <- "/usr/local/ngseq/miniforge3/bin/conda"
-RMATS_ENV   <- "gi_rmats-turbo"
-RMATS_PY    <- "/usr/local/ngseq/srcm/Tools/rmats-turbo/rmats.py"
+## Fixed locations of the rMATS-turbo install. rMATS runs in conda env
+## `gi_rmats-turbo` (python3.14; the `rmatspipeline` C extension is 3.14-only and
+## is found via rmats.py's own sys.path[0]). We enter the env with Herper's
+## `local_CondaEnv` -- the established FGCZ pattern (see app-MageckTestApp.R) -- and
+## then call `python rmats.py` directly. local_CondaEnv PREPENDS the env's bin to
+## PATH in-process, so the right python wins deterministically even though the SUSHI
+## worker already runs inside another conda env (gi_py3.12.8, python3.12). NOT the
+## run_rmats wrapper (its setup_environment.sh `source ~/.bashrc` clobbers the env)
+## and NOT `conda run -n` (resolved to the wrong python in the real job env).
+RMATS_ENV       <- "gi_rmats-turbo"
+RMATS_MINICONDA <- "/usr/local/ngseq/miniforge3"
+RMATS_PY        <- "/usr/local/ngseq/srcm/Tools/rmats-turbo/rmats.py"
 
 ##' @title Prepare the GTF fed to rMATS-turbo (optional biotype prefilter)
 ##' @description rMATS needs only a GTF (no index build). If
@@ -68,6 +70,8 @@ rmatsLibType <- function(strandMode) {
 }
 
 ezMethodRmatsTurbo <- function(input = NA, output = NA, param = NA) {
+  require(Herper) # enter the rMATS conda env (see RMATS_ENV note); as in MageckTest
+
   cwd <- getwd() # the SUSHI $SCRATCH_DIR; only the report dir is shipped to gstore
   on.exit(setwd(cwd), add = TRUE)
   reportName <- basename(output$getColumn("Report"))
@@ -151,14 +155,12 @@ ezMethodRmatsTurbo <- function(input = NA, output = NA, param = NA) {
 
   ## -- staged bash script ------------------------------------------------------
   ## A script (not an inline ezSystem string) also sidesteps the ezSystem
-  ## pipe+single-quote guard.
-  ## The read-length probe uses samtools from the loaded Tools/samtools module
-  ## (stays on PATH; the rMATS env has no samtools), outside the conda env.
-  ## rMATS itself runs via `conda run -n gi_rmats-turbo python rmats.py` -- NOT the
-  ## run_rmats wrapper (see RMATS_CONDA note above); `conda run` propagates the
-  ## real exit code so ezSystem still detects failure, and --no-capture-output
-  ## streams progress to the job log. 'set -e' (NOT pipefail, so 'samtools | head'
-  ## closing the pipe early does not abort) guards the whole script.
+  ## pipe+single-quote guard. The read-length probe uses samtools from the loaded
+  ## Tools/samtools module (still on PATH; the rMATS env has none). `python` in the
+  ## script resolves to the gi_rmats-turbo env's python3.14 because
+  ## runRmatsTurbo() enters the env with Herper::local_CondaEnv (prepends the env
+  ## bin to the R process PATH, which the ezSystem shell inherits). 'set -e' (NOT
+  ## pipefail, so 'samtools | head' closing the pipe early does not abort).
   script <- file.path(workDir, "run_rmats.sh")
   scriptLines <- c(
     "#!/bin/bash",
@@ -170,7 +172,6 @@ ezMethodRmatsTurbo <- function(input = NA, output = NA, param = NA) {
     'fi',
     'echo "rMATS-turbo readLength=$READLEN"',
     paste(
-      shQuote(RMATS_CONDA), "run --no-capture-output -n", RMATS_ENV,
       "python", shQuote(RMATS_PY),
       sprintf("--b1 %s --b2 %s", shQuote(b1File), shQuote(b2File)),
       sprintf("--gtf %s", shQuote(gtf)),
@@ -184,7 +185,15 @@ ezMethodRmatsTurbo <- function(input = NA, output = NA, param = NA) {
     )
   )
   writeLines(scriptLines, script)
-  ezSystem(paste("bash", shQuote(script)))
+
+  ## Run rMATS inside the conda env via Herper, scoped to this helper so the env
+  ## PATH reverts before parsing / makeQuartoReport (quarto must not pick up the
+  ## env's python3.14). Mirrors app-MageckTestApp.R's local_CondaEnv usage.
+  runRmatsTurbo <- function(script) {
+    Herper::local_CondaEnv(RMATS_ENV, pathToMiniConda = RMATS_MINICONDA)
+    ezSystem(paste("bash", shQuote(script)))
+  }
+  runRmatsTurbo(script)
 
   ## -- parse the rMATS output tables ------------------------------------------
   eventTypes <- c("SE", "MXE", "A5SS", "A3SS", "RI")
