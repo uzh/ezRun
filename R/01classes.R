@@ -359,6 +359,11 @@ ezTagListFromNames = function(names) {
 ##' ds = EzDataset$new(file=file, dataRoot=NULL)
 ##' NULLApp = EzApp$new(runMethod=function(input, output, param){},name="NULLApp")
 ##' NULLApp$run(input=ds, output=ds, param=list(process_mode="DATASET"))
+
+## Set by hand -- update if the model backing AI/llm_methods_caller changes.
+## Source: LLM_CALLER_MODEL in the AI/llm_methods_caller module.
+METHODS_LLM_MODEL_NAME <- "DeepSeek-V4-Flash-DSpark"
+
 EzApp <-
   setRefClass(
     "EzApp",
@@ -636,7 +641,41 @@ EzApp <-
       generate_methods = function(...) {
         write_methods(...)
       },
-      write_methods = function(gstore_script_dir = NULL, output_dir = ".", citations = NULL,
+      ## Static bibliography list. write_methods() offers it to the LLM as candidates
+      ## and keeps only entries it finds evidence for.
+      citation = function() {
+        character(0)
+      },
+      ## Override this (not write_methods()) for an app whose Methods text is fixed
+      ## and known rather than LLM-generated (e.g. EzAppFastqc). Default: call the LLM
+      ## via llm_write_methods. Its response includes a "## References" header
+      ## followed by references; write_methods() splits and filters that itself.
+      methods_description = function(script_paths, log_paths, sample_count, output_dir) {
+        identity_file <- file.path(output_dir, "methods_identity.txt")
+        task_file     <- file.path(output_dir, "methods_task.txt")
+        writeLines(methods_identity(), identity_file)
+        writeLines(methods_task(),     task_file)
+        args <- c("--output", file.path(output_dir, "methods.md"),
+                  "--identity-file", identity_file,
+                  "--task-file",     task_file)
+        if (length(script_paths) > 0) args <- c(args, "--scripts", script_paths)
+        if (length(log_paths)    > 0) args <- c(args, "--logs",    log_paths)
+        candidates <- citation()
+        if (length(candidates) > 0) {
+          citations_file <- file.path(output_dir, "citations_candidates.txt")
+          writeLines(candidates, citations_file)
+          args <- c(args, "--citations", citations_file)
+        }
+        if (!is.null(sample_count) && sample_count > 1) {
+          args <- c(args, "--sample-count", as.character(sample_count))
+        }
+        ## llm_write_methods is provided by the AI/llm_methods_caller module,
+        ## which must be in the app's module list so it is on PATH.
+        ret <- system2("llm_write_methods", args = args)
+        if (ret != 0) stop("llm_write_methods failed with exit code ", ret)
+        trimws(paste(readLines(file.path(output_dir, "methods.md"), warn = FALSE), collapse = "\n"), "right")
+      },
+      write_methods = function(gstore_script_dir = NULL, output_dir = ".", analysis_name = NULL,
                                example_script = NULL, sample_count = NULL, ...) {
         script_paths <- c()
         log_paths    <- c()
@@ -699,28 +738,38 @@ EzApp <-
                             Sys.glob(file.path(dirname(gstore_script_dir),
                                                "*", "config.csv")))
         }
-        output_file     <- file.path(output_dir, "methods.md")
-        identity_file   <- file.path(output_dir, "methods_identity.txt")
-        task_file       <- file.path(output_dir, "methods_task.txt")
-        writeLines(methods_identity(), identity_file)
-        writeLines(methods_task(),     task_file)
-        args <- c("--output", output_file,
-                  "--identity-file", identity_file,
-                  "--task-file",     task_file)
-        if (length(script_paths) > 0) args <- c(args, "--scripts", script_paths)
-        if (length(log_paths)    > 0) args <- c(args, "--logs",    log_paths)
-        if (length(citations)    > 0) {
-          citations_file <- file.path(output_dir, "citations_candidates.txt")
-          writeLines(citations, citations_file)
-          args <- c(args, "--citations", citations_file)
+        raw <- methods_description(script_paths, log_paths, sample_count, output_dir)
+
+        ## For each known citation, check whether its DOI/URL appears anywhere in the
+        ## raw response, rather than trusting the model's copy of the text verbatim.
+        ## A hit emits our own stored string; a miss drops it. No "## References"
+        ## header at all (model didn't comply, or a static override with no LLM
+        ## involved) falls back to the full candidate list.
+        rawLines   <- strsplit(raw, "\n", fixed = TRUE)[[1]]
+        markerIdx  <- which(grepl("^## References", rawLines))
+        candidates <- citation()
+        if (length(markerIdx) > 0) {
+          description <- trimws(paste(rawLines[seq_len(markerIdx[1] - 1)], collapse = "\n"), "right")
+          anchors <- vapply(candidates, function(entry) {
+            m <- regmatches(entry, regexpr("https?://\\S+", entry))
+            if (length(m) > 0) m else entry
+          }, character(1))
+          kept <- candidates[vapply(anchors, function(a) grepl(a, raw, fixed = TRUE), logical(1))]
+          references <- if (length(kept) > 0) paste(kept, collapse = "\n") else "pending"
+        } else {
+          description <- raw
+          references  <- if (length(candidates) > 0) paste(candidates, collapse = "\n") else "pending"
         }
-        if (!is.null(sample_count) && sample_count > 1) {
-          args <- c(args, "--sample-count", as.character(sample_count))
-        }
-        ## llm_write_methods is provided by the AI/llm_methods_caller module,
-        ## which must be in the app's module list so it is on PATH.
-        ret <- system2("llm_write_methods", args = args)
-        if (ret != 0) stop("llm_write_methods failed with exit code ", ret)
+
+        document <- paste0(
+          sprintf("## %s | %s\n\n", analysis_name, format(Sys.time(), "%Y-%m-%d %H:%M")),
+          "### Description\n\n", description, "\n\n",
+          "### References\n\n", references, "\n\n",
+          "### Declaration\n\n",
+          "This description has been generated by ", METHODS_LLM_MODEL_NAME,
+          " based on the input data, the parameters and the result of the analysis.\n"
+        )
+        writeLines(document, file.path(output_dir, "methods.md"))
         invisible(NULL)
       }
     )

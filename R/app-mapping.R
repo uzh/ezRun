@@ -257,6 +257,21 @@ EzAppBowtie2 <-
     "EzAppBowtie2",
     contains = "EzApp",
     methods = list(
+      ## bowtie2/samtools/fastp unconditional; Picard MarkDuplicates gated on
+      ## markDuplicates; Rsamtools/GenomicAlignments gated on secondRef (real
+      ## coverage computation); rtracklayer gated on generateBigWig (exports that
+      ## computed coverage as a bigWig track) -- listed regardless of gating.
+      citation = function() {
+        c(
+          "Langmead, B. & Salzberg, S.L. Fast gapped-read alignment with Bowtie 2. Nat Methods 9, 357-359 (2012). https://doi.org/10.1038/nmeth.1923",
+          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
+          "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+          "Lawrence, M. et al. Software for Computing and Annotating Genomic Ranges. PLoS Computational Biology 9(8), e1003118 (2013). https://doi.org/10.1371/journal.pcbi.1003118",
+          "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package version 2.28.0. https://doi.org/10.18129/B9.bioc.Rsamtools",
+          "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBowtie2
