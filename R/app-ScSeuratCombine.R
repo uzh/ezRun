@@ -57,6 +57,11 @@ EzAppScSeuratCombine <-
             DefaultValue = "Harmony",
             Description = "Choose integration method in Seurat (Harmony, CCA, RPCA)"
           ),
+          harmonyGroupBy = ezFrame(
+            Type = "charVector",
+            DefaultValue = "Condition",
+            Description = "Metadata column(s) Harmony corrects for; Batch is one level per input sample"
+          ),
           enrichrDatabase = ezFrame(
             Type = "charVector",
             DefaultValue = "",

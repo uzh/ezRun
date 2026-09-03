@@ -388,18 +388,27 @@ cellClustWithCorrection <- function(scDataList, param) {
     scData <- RunPCA(scData, assay = "SCT", npcs = param$npcs)
 
     #2.4 Prep and run Harmony algorithm
-    # Find the additional harmony factors if we have any
-    if (!is.null(param$additionalFactors)) {
-      harmonyFactors <-
-        c(
-          "Condition",
-          colnames(scData@meta.data)[startsWith(
-            colnames(scData@meta.data),
-            "meta_"
-          )]
-        )
+    # param$harmonyGroupBy (ScSeuratCombine knob, default "Condition" for backward
+    # compatibility) names the metadata column(s) Harmony corrects for; "Batch" is
+    # one level per input sample. Any additionalFactors are corrected for as well.
+    harmonyFactors <- if (ezIsSpecified(param$harmonyGroupBy)) {
+      param$harmonyGroupBy
     } else {
-      harmonyFactors <- "Condition"
+      "Condition"
+    }
+    if (!is.null(param$additionalFactors)) {
+      harmonyFactors <- c(
+        harmonyFactors,
+        colnames(scData@meta.data)[startsWith(colnames(scData@meta.data), "meta_")]
+      )
+    }
+    if ("Batch" %in% harmonyFactors && !"Batch" %in% colnames(scData@meta.data)) {
+      scData$Batch <- scData$Sample # same fallback as the report
+    }
+    missingFactors <- setdiff(harmonyFactors, colnames(scData@meta.data))
+    if (length(missingFactors) > 0) {
+      stop("harmonyGroupBy column(s) not in the cell metadata: ",
+           paste(missingFactors, collapse = ", "))
     }
     # Calculate Harmony reduction
     # harmony >= 1.0 renamed `reduction` -> `reduction.use` and removed `assay.use`

@@ -196,7 +196,11 @@ if(ezIsSpecified(param$SCT.regress.CellCycle) &&
 cat("\n")
 cat("To integrate, we applied the following steps:")
 cat("\n\n")
-cat(paste("**1. Perform integration method",param$integrationMethod, "**")) 
+cat(paste("**1. Perform integration method",param$integrationMethod, "**"))
+if (param$integrationMethod == "Harmony") {
+  harmonyGroupBy <- if (ezIsSpecified(param$harmonyGroupBy)) param$harmonyGroupBy else "Condition"
+  cat(paste0(" Harmony corrected for the metadata column(s): ", paste(harmonyGroupBy, collapse = ", "), "."))
+}
 #CCA identifies shared sources of variation between the conditions/groups. It is a form of PCA, in that it identifies the greatest sources of variation in the data, #but only if it is shared or conserved across the conditions/groups (using the 3000 most variant genes from each sample).")
 cat("\n\n")
 cat("**2. Identify anchors or mutual nearest neighbors (MNNs) across datasets (sometimes incorrect anchors are identified):** MNNs are like good friends. For each cell in one sample, the cell's closest neighbor in the other sample is identified based on gene expression values as it's best neighbor.The reciprical analysis is performed, and if the two cells are 'best friends' in both directions, then those cells will be marked as anchors to 'anchor' the two datasets together.")
@@ -703,7 +707,7 @@ This is the main interactive deliverable of the report: a Shiny app to browse ev
 
 ## Parameters
 ```{r report parameters, echo=FALSE}
-param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "integrationMethod")]
+param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "integrationMethod", "harmonyGroupBy")]
 ```
 
 ## SessionInfo
