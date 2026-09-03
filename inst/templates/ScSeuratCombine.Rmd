@@ -32,6 +32,33 @@ library(ezRun)
 library(HDF5Array)
 library(enrichR)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
+options(ggrepel.max.overlaps = Inf) # never drop a cluster label because the UMAP is crowded
+
+# Figure width for a categorical axis: 0.25 inch per label, so 40+ clusters do not overlap.
+figWidthFor <- function(nLabels) {
+  max(10, 2 + 0.25 * nLabels)
+}
+
+# Legend below the panel, as many columns as the label length allows in figWidth inches, so
+# a long batch list cannot squeeze the panel. `aesthetic` is "fill" (bars) or "color" (DimPlot).
+legendBelow <- function(labels, figWidth, aesthetic = "fill") {
+  # 9 pt text is ~0.07 in per character; 1 in of slack for the legend title and margins
+  legendCols <- max(1, floor((figWidth - 1) / (0.07 * max(nchar(as.character(labels))) + 0.6)))
+  guide <- guide_legend(ncol = legendCols, override.aes = list(size = 3))
+  list(theme(legend.position = "bottom", legend.text = element_text(size = 9),
+             legend.title = element_text(size = 9), legend.key.size = unit(0.35, "cm"),
+             legend.key.spacing.y = unit(1, "pt")),
+       do.call(guides, setNames(list(guide), aesthetic)))
+}
+
+# Cells per cluster, stacked by a grouping column.
+cellCountBarplot <- function(scData, ident, group) {
+  cellCounts <- scData@meta.data[, c(ident, group)]
+  ggplot(cellCounts, aes(x = .data[[ident]], fill = .data[[group]])) +
+    geom_bar() +
+    labs(x = "Cluster", y = "Number of cells", fill = group) +
+    legendBelow(cellCounts[[group]], figWidthFor(length(unique(cellCounts[[ident]]))))
+}
 ```
 
 ```{r data-loading}
@@ -118,14 +145,15 @@ The UMAPs and the barplot below can help us to visualize if the clusters are bal
 
 <br/><br/>
 
-```{r UMAP and barplot batch, fig.width=10, fig.height=7}
+```{r UMAP batch, fig.width=10, fig.height=7}
 if(!('Batch' %in% colnames(scData@meta.data)))
   scData@meta.data[['Batch']] <- scData@meta.data[['Sample']]
-DimPlot(scData, reduction =  "umap_noCorrected", group.by = "Batch")
-DimPlot(scData, reduction="umap_noCorrected", group.by="ident_noCorrected", label = TRUE)
-cellIdents_perBatch = data.frame(scData@meta.data[,c("ident_noCorrected", "Batch")])
-barplot = ggplot(data=cellIdents_perBatch, aes(x=cellIdents_perBatch[,1], fill=Batch)) + geom_bar(stat="Count")
-barplot + labs(x="Cluster", y = "Number of cells", fill = "Batch")
+DimPlot(scData, reduction =  "umap_noCorrected", group.by = "Batch") + theme(aspect.ratio = 1) + legendBelow(scData$Batch, 10, "color")
+DimPlot(scData, reduction="umap_noCorrected", group.by="ident_noCorrected", label = TRUE, repel = TRUE) + theme(aspect.ratio = 1)
+```
+
+```{r barplot batch, fig.width=figWidthFor(length(unique(scData$ident_noCorrected))), fig.height=7}
+cellCountBarplot(scData, "ident_noCorrected", "Batch")
 cells_prop = cellsProportion(scData, groupVar1 = "ident_noCorrected", groupVar2 = "Batch")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per batch") %>% kable_styling(bootstrap_options = "striped") %>% scroll_box(width = "100%", height = "800px")
 #bootstrap_options = "striped", full_width = F, position = "float_right"
@@ -133,12 +161,13 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per ba
 
 
 
-```{r UMAP and barplot Condition, eval=length(unique(scData$Batch)) != length(unique(scData$Condition)) ,fig.width=8, fig.height=5}
+```{r UMAP Condition, eval=length(unique(scData$Batch)) != length(unique(scData$Condition)), fig.width=8, fig.height=6}
 #if there are only two samples these plots are the same as the previous ones
-DimPlot(scData, reduction =  "umap_noCorrected", group.by = "Condition")
-cellIdents_perCondition = data.frame(scData@meta.data[,c("ident_noCorrected", "Condition")])
-barplot = ggplot(data=cellIdents_perCondition, aes(x=cellIdents_perCondition[,1], fill=Condition)) + geom_bar(stat="Count")
-barplot + labs(x="Cluster", y = "Number of cells", fill = "Condition")
+DimPlot(scData, reduction =  "umap_noCorrected", group.by = "Condition") + theme(aspect.ratio = 1)
+```
+
+```{r barplot Condition, eval=length(unique(scData$Batch)) != length(unique(scData$Condition)), fig.width=figWidthFor(length(unique(scData$ident_noCorrected))), fig.height=5}
+cellCountBarplot(scData, "ident_noCorrected", "Condition")
 cells_prop = cellsProportion(scData, groupVar1 = "ident_noCorrected", groupVar2 = "Condition")
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per condition") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
 ```
@@ -186,14 +215,14 @@ cat("The UMAPs below place similar cells together in low-dimensional space after
 <br/>
 
 
-```{r UMAP per Batch after correction,fig.width=9, fig.height=7}
-DimPlot(scData, reduction="umap", group.by="Batch")
-p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5, cols = shared_colors) + labs(color = "ident")
-LabelClusters(p2, id = "ident",  fontface = "bold", color = "black", size = 6)
+```{r UMAP per Batch after correction, fig.width=10, fig.height=7}
+DimPlot(scData, reduction="umap", group.by="Batch") + theme(aspect.ratio = 1) + legendBelow(scData$Batch, 10, "color")
+p2 <- DimPlot(scData, reduction="umap", label = FALSE, pt.size = 1.5, cols = shared_colors) + labs(color = "ident") + theme(aspect.ratio = 1)
+LabelClusters(p2, id = "ident", repel = TRUE, fontface = "bold", color = "black", size = 6)
+```
 
-cellIdents_perBatch = data.frame(scData@meta.data[,c("ident", "Batch")])
-barplot = ggplot(data=cellIdents_perBatch, aes(x=cellIdents_perBatch[,1], fill=Batch)) + geom_bar(stat="Count")
-barplot + labs(x="Cluster", y = "Number of cells", fill = "Batch")
+```{r barplot per Batch after correction, fig.width=figWidthFor(nlevels(Idents(scData))), fig.height=7}
+cellCountBarplot(scData, "ident", "Batch")
 cells_prop = cellsProportion(scData, groupVar1 = "ident", groupVar2="Batch")
 cluster_prop <- cellsProportion(scData, groupVar1 = "Condition", groupVar2="ident")
 cluster_prop <- cluster_prop[,grep('Condition|_fraction', colnames(cluster_prop))]
@@ -203,11 +232,12 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per ba
 kable(cluster_prop,row.names=FALSE, format="html",caption="Cell proportions per cluster") %>% kable_styling(bootstrap_options = "striped") %>% scroll_box(width = "100%", height = "100%")
 ```
 
-```{r UMAP per Condition after correction, eval=length(unique(scData$Batch)) != length(unique(scData$Condition))}
-DimPlot(scData, reduction="umap", group.by="Condition")
-cellIdents_perCondition = data.frame(scData@meta.data[,c("ident", "Condition")])
-barplot = ggplot(data=cellIdents_perCondition, aes(x=cellIdents_perCondition[,1], fill=Condition)) + geom_bar(stat="Count")
-barplot + labs(x="Cluster", y = "Number of cells", fill = "Condition")
+```{r UMAP per Condition after correction, eval=length(unique(scData$Batch)) != length(unique(scData$Condition)), fig.width=8, fig.height=6}
+DimPlot(scData, reduction="umap", group.by="Condition") + theme(aspect.ratio = 1)
+```
+
+```{r barplot per Condition after correction, eval=length(unique(scData$Batch)) != length(unique(scData$Condition)), fig.width=figWidthFor(nlevels(Idents(scData))), fig.height=5}
+cellCountBarplot(scData, "ident", "Condition")
 cells_prop = cellsProportion(scData, groupVar1 = "ident", groupVar2="Condition")
 
 kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions") %>% kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
@@ -269,19 +299,22 @@ We can explore whether the cells cluster by the different cell cycle phases. In 
 
 ```{r cell-cycle-umap, eval =!is.null(scData@meta.data$CellCycle), fig.width=10, fig.height=6}
 if (any(!is.na(scData$CellCycle))){
-  DimPlot(scData, label=TRUE, split.by = "CellCycle", reduction="umap")
+  DimPlot(scData, label=TRUE, repel = TRUE, split.by = "CellCycle", reduction="umap")
 }
 ```
 
+```{r qc violins, fig.width=figWidthFor(nlevels(Idents(scData))), fig.height=5}
+VlnPlot(scData, features ="nCount_RNA", pt.size = 0) + ggtitle("Number of UMIs vs cluster") + NoLegend()
+VlnPlot(scData, features ="nFeature_RNA", pt.size = 0) + ggtitle("Number of genes vs cluster") + NoLegend()
+VlnPlot(scData, features ="percent_mito", pt.size = 0) + ggtitle("Mitochondrial percentage vs cluster") + NoLegend()
+VlnPlot(scData, features ="percent_riboprot", pt.size = 0) + ggtitle("Ribosomal percentage vs cluster") + NoLegend()
+```
+
 ```{r uninteresting variation, fig.width=6, fig.height=6}
-VlnPlot(scData, features ="nCount_RNA") + ggtitle("Number of UMIs vs cluster") + NoLegend()
-FeaturePlot(scData, features="nCount_RNA", reduction="umap", label = TRUE)
-VlnPlot(scData, features ="nFeature_RNA") + ggtitle("Number of genes vs cluster") + NoLegend()
-FeaturePlot(scData, features="nFeature_RNA", reduction="umap", label = TRUE)
-VlnPlot(scData, features ="percent_mito") + ggtitle("Mitochondrial percentage vs cluster") + NoLegend()
-FeaturePlot(scData, features="percent_mito", reduction="umap", label = TRUE)
-VlnPlot(scData, features ="percent_riboprot") + ggtitle("Ribosomal percentage vs cluster") + NoLegend()
-FeaturePlot(scData, features="percent_riboprot", reduction="umap", label = TRUE)
+FeaturePlot(scData, features="nCount_RNA", reduction="umap", label = TRUE, repel = TRUE)
+FeaturePlot(scData, features="nFeature_RNA", reduction="umap", label = TRUE, repel = TRUE)
+FeaturePlot(scData, features="percent_mito", reduction="umap", label = TRUE, repel = TRUE)
+FeaturePlot(scData, features="percent_riboprot", reduction="umap", label = TRUE, repel = TRUE)
 if (ezIsSpecified(param$controlSeqs)) {
   genesToPlot <- gsub("_", "-", param$controlSeqs)
   genesToPlot <- intersect(genesToPlot, rownames(scData))
@@ -359,12 +392,13 @@ if (all(varhandle::check.numeric(cluster_levels))) {
 
 ```
 
-```{r marker heatmap, fig.width=12, fig.height=length(levels(Idents(scData)))}
+```{r marker heatmap, fig.width=figWidthFor(nlevels(Idents(scData))), fig.height=2 + 0.2 * length(genesToPlot)}
 ezDoHeatmap(scDataToPlot, features=unique(genesToPlot)) + guides(color = "none")
 ```
 
-```{r marker dotplot, fig.width=12, fig.height=length(levels(Idents(scData)))}
-DotPlot(scDataToPlot, features=genesToPlot) + coord_flip()
+```{r marker dotplot, fig.width=figWidthFor(nlevels(Idents(scData))), fig.height=2 + 0.2 * length(genesToPlot)}
+# coord_flip() puts the first feature at the bottom; reversed, cluster 0's markers read from the top like the heatmap
+DotPlot(scDataToPlot, features=rev(genesToPlot)) + coord_flip()
 ```
 
 ## EnrichR
@@ -372,7 +406,9 @@ DotPlot(scDataToPlot, features=genesToPlot) + coord_flip()
 Cell type scoring using the EnrichR tool. This approach consists in performing a gene set enrichment analysis on the marker genes defining each cluster. This identifies the pathways and processes that are (relatively) active in each cluster based on the upregulation of the associated genes compared to other clusters.
 
 ```{r query online enrichR version, echo=FALSE, results='asis'}
-genesPerCluster <- split(posMarkers$gene, posMarkers$cluster)
+# Enrichr rejects over-long gene lists: keep the top 500 markers per cluster by fold change (same cap as ScSeurat)
+topMarkers <- posMarkers %>% group_by(cluster) %>% slice_max(avg_log2FC, n = 500, with_ties = FALSE) %>% ungroup()
+genesPerCluster <- split(as.character(topMarkers$gene), topMarkers$cluster)
 jsCall = paste0('enrich({list: "', sapply(genesPerCluster, paste, collapse="\\n"), '", popup: true});')
 enrichrCalls <- paste0("<a href='javascript:void(0)' onClick='", jsCall, 
                        "'>Analyse at Enrichr website</a>")
@@ -422,9 +458,9 @@ for (cluster in names(enrichRout)) {
 
 <br/>
 
-## SingleR
-
-Matching of clusters to annotated reference datasets using SingleR.
+```{r singler heading, eval=!is.null(singler.results), results='asis'}
+cat("## SingleR\n\nMatching of clusters to annotated reference datasets using SingleR.\n\n")
+```
 
 ```{r singler, fig.height=12, fig.width=12, results = 'asis', eval= !is.null(singler.results)}
 clusterInfosList <- list()
@@ -650,10 +686,9 @@ AUCell_plotTSNE(tSNE=cellsUmap,
 
 ## Interactive explorer
 
-The link below will take you to an interactive Shiny app which can be used to make 
-production-ready plots and figures. You can also use this app to explore your own markers and create corresponding feature plots.
+<a class="btn btn-primary btn-lg" style="font-size:1.5em; margin:0.5em 0 1em 0;" target="_blank" href="`r paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=", output$getColumn("Report"), "/scData.qs2")`">Open the Single Cell Explorer</a>
 
-[single cell explorer](`r {paste0("https://fgcz-shiny.uzh.ch/exploreSC", "/?data=",output$getColumn("Report"), "/scData.qs2")}`){target="_blank"}
+This is the main interactive deliverable of the report: a Shiny app to browse every cluster, annotation and gene of the final object, and to make production-ready plots and feature plots of your own markers.
 
 ### Data availability
 

@@ -1172,25 +1172,31 @@ ezSpatialFeaturePlot <- function(
   # )
 }
 
-##' @title DoHeatmap that does not silently render blank
-##' @description Seurat's `DoHeatmap(raster = TRUE)` (the default) draws one
-##' raster pixel column per cell, plus `draw.lines` spacers between identity
-##' groups. Cairo drops any raster wider than 32767 px WITHOUT an error or a
-##' warning, so above ~31.5k cells the whole heatmap comes out as a fully white
-##' PNG - measured 2026-09-02 on p39836/o43013 sample 17 (32562 cells, 15
-##' clusters -> 33792 raster columns): blank at 32770 columns, fine at 32445.
-##' Fall back to the vector renderer past that width; it costs ~17 s instead of
-##' ~4 s but shows exactly the same cells.
+##' @title Marker heatmap that survives large cell counts
+##' @description \code{Seurat::DoHeatmap} draws one raster column per cell,
+##' twice: the expression body (\code{raster = TRUE}) and the group bar (always).
+##' It also pads every group with \code{ceiling(nCells * 0.0025)} blank columns.
+##' Cairo refuses a raster wider than 32767 px and then silently stops drawing
+##' for the rest of the page. Above that width the report got either an
+##' all-white heatmap (body too wide; p39836/o43013, 2026-09-02) or, with
+##' \code{raster = FALSE}, tiles without gene names, group bar, cluster labels
+##' or legend (group bar too wide; p39836, 2026-09-03: 30000 cells + 46 groups
+##' = 33450 columns). This wrapper caps the number of cells drawn so the widest
+##' raster stays below the limit; the drawn cells are a random sample.
 ##' @param object a Seurat object.
 ##' @param features features to plot.
-##' @param ... passed to \code{Seurat::DoHeatmap}; an explicit \code{raster} is respected.
+##' @param maxRasterWidth largest raster width handed to the device, in columns.
+##' @param ... passed to \code{Seurat::DoHeatmap}; an explicit \code{cells} is
+##'   subsampled if it is still too wide.
 ##' @return the ggplot returned by \code{Seurat::DoHeatmap}.
-ezDoHeatmap <- function(object, features, ...) {
+ezDoHeatmap <- function(object, features, maxRasterWidth = 31000, ...) {
   args <- list(...)
-  nCells <- if (is.null(args$cells)) ncol(object) else length(args$cells)
-  nGroups <- nlevels(droplevels(Idents(object)))
-  ## DoHeatmap's own default: lines.width = ceiling(nCells * 0.0025) per group
-  rasterWidth <- nCells + nGroups * ceiling(nCells * 0.0025)
-  if (is.null(args$raster)) args$raster <- rasterWidth < 32767
-  do.call(DoHeatmap, c(list(object = object, features = features), args))
+  cells <- if (is.null(args$cells)) colnames(object) else args$cells
+  nGroups <- length(unique(Seurat::Idents(object)[cells]))
+  ## width = nCells + nGroups * ceiling(nCells * 0.0025); the ceiling adds at most nGroups
+  maxCells <- floor((maxRasterWidth - nGroups) / (1 + 0.0025 * nGroups))
+  if (length(cells) > maxCells) {
+    args$cells <- sample(cells, maxCells)
+  }
+  do.call(Seurat::DoHeatmap, c(list(object = object, features = features), args))
 }
