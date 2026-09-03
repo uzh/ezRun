@@ -163,6 +163,18 @@ EzAppMpileup <-
     "EzAppMpileup",
     contains = "EzApp",
     methods = list(
+      ## bcftools/samtools/Picard/VariantAnnotation unconditional (Picard is NOT
+      ## gated here, unlike STARApp/Bowtie2App); Rsamtools's ScanBamParam/filterBam
+      ## region-restriction gated on param$region.
+      citation = function() {
+        c(
+          "Danecek, P. et al. Twelve years of SAMtools and BCFtools. GigaScience 10(2), giab008 (2021). https://doi.org/10.1093/gigascience/giab008",
+          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+          "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+          "Obenchain, V. et al. VariantAnnotation: a Bioconductor package for exploration and annotation of genetic variants. Bioinformatics 30(14), 2076-2078 (2014). https://doi.org/10.1093/bioinformatics/btu168",
+          "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package version 2.28.0. https://doi.org/10.18129/B9.bioc.Rsamtools"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodMpileup

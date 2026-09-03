@@ -50,6 +50,19 @@ EzAppCountQC <-
     "EzAppCountQC",
     contains = "EzApp",
     methods = list(
+      ## GO enrichment (runGO) actually runs via goseq + GO.db -- go-analysis.R only
+      ## require()'s GOstats, never calls it; the earlier citation named the wrong
+      ## tool. RUVSeq gated on runRUV. pheatmap/WGCNA-dendrogram/cluster-validation
+      ## stats (gap/silhouette/DB-index) deliberately excluded: no citable paper, or
+      ## only a plotting helper is used rather than the method itself.
+      citation = function() {
+        c(
+          "Rehrauer, H. et al. ezRun: An R meta-package for the analysis of Next Generation Sequencing Data. https://github.com/uzh/ezRun",
+          "Young, M.D., Wakefield, M.J., Smyth, G.K. & Oshlack, A. Gene ontology analysis for RNA-seq: accounting for selection bias. Genome Biology 11, R14 (2010). https://doi.org/10.1186/gb-2010-11-2-r14",
+          "Bioconductor. GO.db: A set of annotation maps describing the entire Gene Ontology. R package version 3.23.1. https://doi.org/10.18129/B9.bioc.GO.db",
+          "Risso, D., Ngai, J., Speed, T.P. & Dudoit, S. Normalization of RNA-seq data using factor analysis of control genes or samples. Nature Biotechnology 32(9), 896-902 (2014). https://doi.org/10.1038/nbt.2931"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCountQC

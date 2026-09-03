@@ -239,6 +239,15 @@ EzAppFastqc_10x <-
     "EzAppFastqc_10x",
     contains = "EzApp",
     methods = list(
+      ## FastQC/MultiQC/ShortRead unconditional. Unlike the non-10x FastqcApp, fastp
+      ## is never called anywhere in this app (not just differently gated).
+      citation = function() {
+        c(
+          "Andrews, S. FastQC: A Quality Control Tool for High Throughput Sequence Data. (2010). http://www.bioinformatics.babraham.ac.uk/projects/fastqc/",
+          "Ewels, P., Magnusson, M., Lundin, S. & Käller, M. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics 32(19), 3047-3048 (2016). https://doi.org/10.1093/bioinformatics/btw354",
+          "Morgan, M., Anders, S., Lawrence, M., Aboyoun, P., Pagès, H. & Gentleman, R. ShortRead: a bioconductor package for input, quality assessment and exploration of high-throughput sequence data. Bioinformatics 25(19), 2607-2608 (2009). https://doi.org/10.1093/bioinformatics/btp450"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodFastQC_10x

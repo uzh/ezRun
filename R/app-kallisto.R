@@ -119,6 +119,12 @@ EzAppKallisto <-
     "EzAppKallisto",
     contains = "EzApp",
     methods = list(
+      citation = function() {
+        c(
+          "Bray, N.L., Pimentel, H., Melsted, P. & Pachter, L. Near-optimal probabilistic RNA-seq quantification. Nat Biotechnol 34, 525-527 (2016). https://doi.org/10.1038/nbt.3519",
+          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodKallisto

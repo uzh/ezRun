@@ -10,6 +10,39 @@ EzAppScSeurat <-
     "EzAppScSeurat",
     contains = "EzApp",
     methods = list(
+      ## Seurat (v5, matches installed 5.5.1) unconditional. scDblFinder unconditional
+      ## (tryCatch-wrapped; only doublet removal gated on keepDoublets). emptyDrops
+      ## runs when raw matrix has extra barcodes (data-driven). cyclone/decontX/SoupX/
+      ## enrichR/AUCell/SingleR/celldex/decoupleR/dorothea/progeny/sc-type/
+      ## mLLMCelltype/CyteTypeR/AzimuthPanHuman all gated on their own params (species
+      ## Human/Mouse, estimateAmbient, enrichrDatabase, tissue, SingleR,
+      ## computePathwayTFActivity, sctype.enabled, mLLMCelltype, CyteTypeR,
+      ## AzimuthPanHuman respectively) -- listed regardless of gating.
+      ## NOTE: Azimuth::RunAzimuth, cellxgene_annotation, STACAS and schard exist in
+      ## the shared seuratUtils.R helpers but are unreachable here -- ScSeuratApp
+      ## never declares param$Azimuth/cellxgeneUrl/cellxgeneLabel/featSelectionMethod.
+      citation = function() {
+        c(
+          "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
+          "Germain, P.-L. et al. Doublet identification in single-cell sequencing data using scDblFinder. F1000Research 10, 979 (2022). https://doi.org/10.12688/f1000research.73600.2",
+          "Lun, A.T.L. et al. EmptyDrops: distinguishing cells from empty droplets in droplet-based single-cell RNA sequencing data. Genome Biology 20, 63 (2019). https://doi.org/10.1186/s13059-019-1662-y",
+          "Scialdone, A. et al. Computational assignment of cell-cycle stage from single-cell transcriptome data. Methods 85, 54-61 (2015). https://doi.org/10.1016/j.ymeth.2015.06.021",
+          "Yang, S. et al. Decontamination of ambient RNA in single-cell RNA-seq with DecontX. Genome Biology 21, 57 (2020). https://doi.org/10.1186/s13059-020-1950-6",
+          "Young, M.D. & Behjati, S. SoupX removes ambient RNA contamination from droplet-based single-cell RNA sequencing data. GigaScience 9(12), giaa151 (2020). https://doi.org/10.1093/gigascience/giaa151",
+          "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128",
+          "Kuleshov, M.V. et al. Enrichr: a comprehensive gene set enrichment analysis web server 2016 update. Nucleic Acids Research 44(W1), W90-W97 (2016). https://doi.org/10.1093/nar/gkw377",
+          "Aibar, S. et al. SCENIC: single-cell regulatory network inference and clustering. Nature Methods 14, 1083-1086 (2017). https://doi.org/10.1038/nmeth.4463",
+          "Aran, D. et al. Reference-based analysis of lung single-cell sequencing reveals a transitional profibrotic macrophage. Nature Immunology 20(2), 163-172 (2019). https://doi.org/10.1038/s41590-018-0276-y",
+          "Aran, D. et al. celldex: Reference Index for Cell Types. R package version 1.22.0. https://doi.org/10.18129/B9.bioc.celldex",
+          "Badia-i-Mompel, P. et al. decoupleR: ensemble of computational methods to infer biological activities from omics data. Bioinformatics Advances 2(1), vbac016 (2022). https://doi.org/10.1093/bioadv/vbac016",
+          "Garcia-Alonso, L., Holland, C.H., Ibrahim, M.M., Turei, D. & Saez-Rodriguez, J. Benchmark and integration of resources for the estimation of human transcription factor activities. Genome Research 29, 1363-1375 (2019). https://doi.org/10.1101/gr.240663.118",
+          "Schubert, M. et al. Perturbation-response genes reveal signaling footprints in cancer gene expression. Nature Communications 9, 20 (2018). https://doi.org/10.1038/s41467-017-02391-6",
+          "Ianevski, A., Giri, A.K. & Aittokallio, T. Fully-automated and ultra-fast cell-type identification using specific marker combinations from single-cell transcriptomic data. Nature Communications 13, 1246 (2022). https://doi.org/10.1038/s41467-022-28803-w",
+          "Yang et al. Large language model consensus substantially improves the cell type annotation accuracy for scRNA-seq data. Communications Biology (2026). https://doi.org/10.1038/s42003-026-10420-8",
+          "Ahuja, G. et al. Multi-agent AI enables evidence-based cell annotation in single-cell transcriptomics. bioRxiv (2025) [preprint, not peer-reviewed]. https://doi.org/10.1101/2025.11.06.686964",
+          "Satija Lab. Pan-Human Azimuth. https://satijalab.org/pan_human_azimuth/ [preprint referenced on this page could not be independently verified]"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodScSeurat

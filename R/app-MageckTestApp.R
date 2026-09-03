@@ -166,6 +166,17 @@ EzAppMageckTest <-
     "EzAppMageckTest",
     contains = "EzApp",
     methods = list(
+      ## mageck test and MAGeCKFlute (which internally uses clusterProfiler)
+      ## unconditional. limma::alias2Symbol gated on species being hsa/mmu.
+      ## EnhancedVolcano deliberately excluded: no dedicated paper, pure plotting.
+      citation = function() {
+        c(
+          "Li, W. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biology 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4",
+          "Wang, B. et al. Integrative analysis of pooled CRISPR genetic screens using MAGeCKFlute. Nature Protocols 14, 756-780 (2019). https://doi.org/10.1038/s41596-018-0113-7",
+          "Wu, T. et al. clusterProfiler 4.0: A universal enrichment tool for interpreting omics data. The Innovation 2(3), 100141 (2021). https://doi.org/10.1016/j.xinn.2021.100141",
+          "Ritchie, M.E. et al. limma powers differential expression analyses for RNA-sequencing and microarray studies. Nucleic Acids Research 43(7), e47 (2015). https://doi.org/10.1093/nar/gkv007"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodMageckTest

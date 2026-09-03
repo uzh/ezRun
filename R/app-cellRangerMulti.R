@@ -831,6 +831,20 @@ EzAppCellRangerMulti <-
     "EzAppCellRangerMulti",
     contains = "EzApp",
     methods = list(
+      ## cellranger multi unconditional; samtools (CRAM) gated on keepBam+secondRef;
+      ## seqtk gated on nReads; rtracklayer/Biostrings gated on extendThreePrime
+      ## (real GTF coordinate extension via getCellRangerGEXReference, computed not
+      ## copied). No Rsamtools::scanBam/bamStats here, unlike CellRangerApp.
+      citation = function() {
+        c(
+          "10x Genomics. Cell Ranger. https://www.10xgenomics.com/support/software/cell-ranger",
+          "Zheng, G.X.Y. et al. Massively parallel digital transcriptional profiling of single cells. Nature Communications 8, 14049 (2017). https://doi.org/10.1038/ncomms14049",
+          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+          "Li, H. seqtk: a fast and lightweight tool for processing FASTA or FASTQ sequences. https://github.com/lh3/seqtk",
+          "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328",
+          "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package version 2.80.1. https://doi.org/10.18129/B9.bioc.Biostrings"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCellRangerMulti
