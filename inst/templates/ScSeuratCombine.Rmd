@@ -34,6 +34,9 @@ library(enrichR)
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, knitr.table.format = "html")
 options(ggrepel.max.overlaps = Inf) # never drop a cluster label because the UMAP is crowded
 
+# Absent in objects from before the knob existed, where SCTransform was the only option
+normalizationMethod <- if (ezIsSpecified(param$normalizationMethod)) param$normalizationMethod else "SCTransform"
+
 # Figure width for a categorical axis: 0.25 inch per label, so 40+ clusters do not overlap.
 figWidthFor <- function(nLabels) {
   max(10, 2 + 0.25 * nLabels)
@@ -175,19 +178,28 @@ kable(cells_prop,row.names=FALSE, format="html",caption="Cell proportions per co
 ## Clustering
 
 ```{r no_integration, eval = param$integrationMethod=='none',results='asis'}
-cat("We started by merging all the samples in one dataset and then used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.")
+if (normalizationMethod == "LogNormalize") {
+  cat("We started by merging all the samples in one dataset and then log-normalized the raw filtered counts: each cell's counts are divided by that cell's total, scaled to 10,000, and log1p-transformed. The most variable genes were identified with the variance-stabilizing (vst) method, and the data were then centred and scaled.")
+} else {
+  cat("We started by merging all the samples in one dataset and then used the SCtransform method from the Seurat package for normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes. By default, SCtransform accounts for cellular sequencing depth, or nUMIs.")
+}
 if(ezIsSpecified(param$SCT.regress.CellCycle) && 
    param$SCT.regress.CellCycle) {
   cat("We already checked cell cycle and decided that it does represent a major source of variation in our data, and this may influence clustering. Therefore, we regressed out variation due to cell cycle")
 }
-cat("As a result, SCTransform ranked the genes by residual variance and returned the 3000 most variant genes. Next, we performed PCA on the scaled data using the previously determined variable features. Taking as a distance metric the previously identified PCs, the cells clusters were then identified using a graph-based clustering approach where the cells are embedded in a graph structure - for example a K-nearest neighbor (KNN) graph, with edges drawn between cells with similar feature expression patterns, and then attempt to partition this graph into highly interconnected ‘communities’. The resolution is an important argument that sets the \"granularity\" of the downstream clustering and will need to be optimized for every individual experiment. Increased resolution values lead to a greater number of clusters, which is often required for larger datasets.\n")
+cat("As a result,", ifelse(normalizationMethod == "LogNormalize", "the vst method", "SCTransform"), "ranked the genes and returned the", param$nfeatures, "most variant genes. Next, we performed PCA on the scaled data using the previously determined variable features. Taking as a distance metric the previously identified PCs, the cells clusters were then identified using a graph-based clustering approach where the cells are embedded in a graph structure - for example a K-nearest neighbor (KNN) graph, with edges drawn between cells with similar feature expression patterns, and then attempt to partition this graph into highly interconnected ‘communities’. The resolution is an important argument that sets the \"granularity\" of the downstream clustering and will need to be optimized for every individual experiment. Increased resolution values lead to a greater number of clusters, which is often required for larger datasets.\n")
 cat("\n")
 cat("The UMAPs below place similar cells together in low-dimensional space. The first UMAP represents cells according to the condition and the second one shows the graph-based common clusters that were found among the datasets.\n")
 ```
 
 
 ```{r integration, eval = param$integrationMethod!='none',results='asis'}
-cat("After inspecting the datasets and observing that cells clustered by sample we decided to integrate samples using shared highly variable genes. Oftentimes, when clustering cells from multiple conditions there are condition-specific clusters and integration can help ensure the same cell types cluster together.\n We started by normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes in each sample separately. For this, we used the SCtransform method from the Seurat package which accounts for cellular sequencing depth, or nUMIs by default.")
+cat("After inspecting the datasets and observing that cells clustered by sample we decided to integrate samples using shared highly variable genes. Oftentimes, when clustering cells from multiple conditions there are condition-specific clusters and integration can help ensure the same cell types cluster together.\n We started by normalizing, estimating the variance of the raw filtered data, and identifying the most variable genes in each sample separately.")
+if (normalizationMethod == "LogNormalize") {
+  cat("For this we used log-normalization: each cell's counts divided by that cell's total, scaled to 10,000 and log1p-transformed, followed by variance-stabilizing (vst) feature selection. Because log-normalization works one cell at a time, doing it per sample is identical to doing it on the merged object.")
+} else {
+  cat("For this, we used the SCtransform method from the Seurat package which accounts for cellular sequencing depth, or nUMIs by default.")
+}
 cat("\n")
 if(ezIsSpecified(param$SCT.regress.CellCycle) && 
    param$SCT.regress.CellCycle) {
@@ -332,11 +344,13 @@ One of the most important parameters when clustering is k, the number of nearest
 Below, it is shown a clustering tree that helps us to visualize the relationships between clusters at a range of resolutions. Each cluster forms a node in the tree and edges are constructed by considering the cells in a cluster at a lower resolution that end up in a cluster at the next highest resolution. By connecting clusters in this way, we can see how clusters are related to each other, which are clearly distinct and which are unstable. The size of each node is related to the number of cells in each cluster and the color indicates the clustering resolution. Edges are colored according to the number of cells they represent and the transparency shows the incoming node proportion, the number of cells in the edge divided by the number of samples in the node it points to. 
 
 ```{r clustree, fig.align='center', fig.width=6, fig.height=8}
-if(!(param$integrationMethod %in% c("none","Harmony"))) {
-  clustree::clustree(scData, prefix = "integrated_snn_res.")
-} else {
-  clustree::clustree(scData, prefix = "SCT_snn_res.")
+# Read the prefix off the metadata instead of assuming the assay: FindClusters names
+# these <assay>_snn_res.<r>, so it is SCT_, RNA_ or integrated_ depending on the run.
+resCols <- grep("_snn_res\\.", colnames(scData@meta.data), value = TRUE)
+if (length(resCols) == 0) {
+  stop("no <assay>_snn_res.<resolution> columns in the object; clustree cannot run")
 }
+clustree::clustree(scData, prefix = paste0(sub("_snn_res\\..*$", "", resCols[1]), "_snn_res."))
 ```
 
 ## Cluster markers
@@ -707,7 +721,7 @@ This is the main interactive deliverable of the report: a Shiny app to browse ev
 
 ## Parameters
 ```{r report parameters, echo=FALSE}
-param[c("npcs","pcGenes","resolution", "SCT.regress.CellCycle", "DE.method", "integrationMethod", "harmonyGroupBy")]
+param[c("npcs","pcGenes","resolution", "normalizationMethod", "SCT.regress.CellCycle", "DE.method", "integrationMethod", "harmonyGroupBy")]
 ```
 
 ## SessionInfo

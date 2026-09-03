@@ -281,25 +281,97 @@ seuratClusteringHTO <- function(scData) {
   return(scData)
 }
 
+##' @title Which normalization the multi-sample apps should use
+##' @description \code{param$normalizationMethod} is "SCTransform" (the historical
+##' behaviour, and the default when the parameter is absent) or "LogNormalize".
+seuratNormalizationMethod <- function(param) {
+  if (ezIsSpecified(param$normalizationMethod)) {
+    param$normalizationMethod
+  } else {
+    "SCTransform"
+  }
+}
+
+##' @title The assay PCA, clustering and markers run on
+##' @description SCTransform writes its own "SCT" assay; log-normalization keeps
+##' working in the raw assay ("RNA", or "Spatial" for the slides app).
+seuratAnalysisAssay <- function(param, rawAssay = "RNA") {
+  if (seuratNormalizationMethod(param) == "LogNormalize") rawAssay else "SCT"
+}
+
+##' @title Normalize each sample separately
+##' @description Per-sample normalization, as both integration paths need. Note
+##' log-normalization is a per-CELL operation (counts / that cell's total * 1e4),
+##' so doing it per sample and doing it on the merged object give identical
+##' values - which is what makes the later \code{JoinLayers} lossless.
+##' @return the list of Seurat objects, each normalized with variable features set.
+seuratNormalizeSampleList <- function(scDataList, param, assay = "RNA") {
+  vars.to.regress <- getSeuratVarsToRegress(param)
+  logNorm <- seuratNormalizationMethod(param) == "LogNormalize"
+  for (i in seq_along(scDataList)) {
+    if (logNorm) {
+      scDataList[[i]] <- NormalizeData(
+        scDataList[[i]],
+        normalization.method = "LogNormalize",
+        scale.factor = 10000,
+        assay = assay,
+        verbose = FALSE
+      )
+      scDataList[[i]] <- FindVariableFeatures(
+        scDataList[[i]],
+        selection.method = "vst",
+        nfeatures = param$nfeatures,
+        verbose = FALSE
+      )
+    } else {
+      scDataList[[i]] <- SCTransform(
+        scDataList[[i]],
+        vars.to.regress = vars.to.regress,
+        assay = assay,
+        verbose = TRUE
+      )
+    }
+  }
+  return(scDataList)
+}
+
+##' @title Scale a merged log-normalized object so RunPCA and DoHeatmap have data
+##' @description SCTransform produces its own scale.data; the log-normalization
+##' path has to do it explicitly, on the joined layers, after the variable
+##' features are known. Cell-cycle regression happens here rather than in SCT.
+seuratScaleMergedLogNorm <- function(scData, param, assay, features) {
+  DefaultAssay(scData) <- assay
+  scData <- JoinLayers(scData, assay = assay)
+  VariableFeatures(scData) <- unique(features)
+  scData <- ScaleData(
+    scData,
+    vars.to.regress = getSeuratVarsToRegress(param),
+    verbose = FALSE
+  )
+  return(scData)
+}
+
 cellClustNoCorrection <- function(scDataList, param) {
   if (param[['name']] == 'SpatialSeuratSlides') {
     assay = "Spatial"
   } else {
     assay = "RNA"
   }
-  vars.to.regress <- getSeuratVarsToRegress(param)
   #1. Data preprocesing is done on each object separately
-  for (i in 1:length(scDataList)) {
-    scDataList[[i]] <- SCTransform(
-      scDataList[[i]],
-      vars.to.regress = vars.to.regress,
-      assay = assay,
-      verbose = TRUE
-    )
-  }
+  scDataList <- seuratNormalizeSampleList(scDataList, param, assay = assay)
   #2. Merge all seurat objects
   scData = merge(x = scDataList[[1]], y = scDataList[-1], merge.data = TRUE)
-  VariableFeatures(scData) <- unlist(lapply(scDataList, VariableFeatures))
+  allVariableFeatures <- unlist(lapply(scDataList, VariableFeatures))
+  if (seuratNormalizationMethod(param) == "LogNormalize") {
+    scData <- seuratScaleMergedLogNorm(
+      scData,
+      param,
+      assay = assay,
+      features = allVariableFeatures
+    )
+  } else {
+    VariableFeatures(scData) <- allVariableFeatures
+  }
   #3. Dimensionality reduction and clustering
   scData <- seuratStandardWorkflow(scData, param)
 
@@ -312,16 +384,11 @@ cellClustWithCorrection <- function(scDataList, param) {
   } else {
     assay = "RNA"
   }
-  vars.to.regress <- getSeuratVarsToRegress(param)
+  logNorm <- seuratNormalizationMethod(param) == "LogNormalize"
+  ## Seurat's own name for the normalization, as the anchor/integration API wants it
+  anchorNormMethod <- if (logNorm) "LogNormalize" else "SCT"
   #1. Data preprocesing is done on each object separately
-  for (i in 1:length(scDataList)) {
-    scDataList[[i]] <- SCTransform(
-      scDataList[[i]],
-      vars.to.regress = vars.to.regress,
-      assay = assay,
-      verbose = TRUE
-    )
-  }
+  scDataList <- seuratNormalizeSampleList(scDataList, param, assay = assay)
 
   #2. Data integration
   #2.1. # Select the most variable features to use for integration
@@ -334,11 +401,13 @@ cellClustWithCorrection <- function(scDataList, param) {
     for (i in 1:length(scDataList)) {
       scDataList[[i]] <- ScaleData(scDataList[[i]], features = integ_features)
     }
-    #2.2. Prepare the SCT list object for integration
-    scDataList <- PrepSCTIntegration(
-      object.list = scDataList,
-      anchor.features = integ_features
-    )
+    #2.2. Prepare the SCT list object for integration (SCT residuals only)
+    if (!logNorm) {
+      scDataList <- PrepSCTIntegration(
+        object.list = scDataList,
+        anchor.features = integ_features
+      )
+    }
     if (param$integrationMethod == 'RPCA') {
       scDataList <- lapply(
         X = scDataList,
@@ -350,14 +419,14 @@ cellClustWithCorrection <- function(scDataList, param) {
     if (param$integrationMethod == 'CCA') {
       integ_anchors <- FindIntegrationAnchors(
         object.list = scDataList,
-        normalization.method = "SCT",
+        normalization.method = anchorNormMethod,
         anchor.features = integ_features,
         dims = 1:param$npcs
       )
     } else if (param$integrationMethod == 'RPCA') {
       integ_anchors <- FindIntegrationAnchors(
         object.list = scDataList,
-        normalization.method = "SCT",
+        normalization.method = anchorNormMethod,
         anchor.features = integ_features,
         dims = 1:param$npcs,
         reduction = "rpca",
@@ -368,7 +437,7 @@ cellClustWithCorrection <- function(scDataList, param) {
     #2.4. Integrate datasets
     seurat_integrated <- IntegrateData(
       anchorset = integ_anchors,
-      normalization.method = "SCT",
+      normalization.method = anchorNormMethod,
       dims = 1:param$npcs
     )
 
@@ -383,9 +452,22 @@ cellClustWithCorrection <- function(scDataList, param) {
       merge.data = TRUE
     )
     #2.3.1 Manually set variable features of merged Seurat object
-    VariableFeatures(scData) <- integ_features
+    if (logNorm) {
+      scData <- seuratScaleMergedLogNorm(
+        scData,
+        param,
+        assay = assay,
+        features = integ_features
+      )
+    } else {
+      VariableFeatures(scData) <- integ_features
+    }
     #2.3.2 Calculate PCs using manually set variable features
-    scData <- RunPCA(scData, assay = "SCT", npcs = param$npcs)
+    scData <- RunPCA(
+      scData,
+      assay = seuratAnalysisAssay(param, rawAssay = assay),
+      npcs = param$npcs
+    )
 
     #2.4 Prep and run Harmony algorithm
     # param$harmonyGroupBy (ScSeuratCombine knob, default "Condition" for backward

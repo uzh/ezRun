@@ -57,6 +57,11 @@ EzAppScSeuratCombine <-
             DefaultValue = "Harmony",
             Description = "Choose integration method in Seurat (Harmony, CCA, RPCA)"
           ),
+          normalizationMethod = ezFrame(
+            Type = "charVector",
+            DefaultValue = "SCTransform",
+            Description = "SCTransform (variance-stabilizing residuals) or LogNormalize (classic log1p of counts per 10k)"
+          ),
           harmonyGroupBy = ezFrame(
             Type = "charVector",
             DefaultValue = "Condition",
@@ -75,7 +80,7 @@ EzAppScSeuratCombine <-
           SCT.regress.CellCycle = ezFrame(
             Type = "logical",
             DefaultValue = FALSE,
-            Description = "Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."
+            Description = "Choose CellCycle to be regressed out (in SCTransform, or in ScaleData when LogNormalize is used) if it is a bias."
           ),
           DE.method = ezFrame(
             Type = "charVector",
@@ -306,7 +311,7 @@ seuratIntegrateDataAndAnnotate <- function(
   if (param$integrationMethod != 'none') {
     scData_corrected = cellClustWithCorrection(scDataList, param)
     #in order to compute the markers we switch again to the original assay
-    DefaultAssay(scData_corrected) <- "SCT"
+    DefaultAssay(scData_corrected) <- seuratAnalysisAssay(param)
     scData <- scData_corrected
   } else {
     scData = scData_noCorrected
@@ -321,7 +326,10 @@ seuratIntegrateDataAndAnnotate <- function(
   scData <- JoinLayers(scData, assay = "RNA")
 
   scData@meta.data$ident_noCorrected <- Idents(scData_noCorrected)
-  scData <- PrepSCTFindMarkers(scData)
+  ## Only the SCTransform path has SCT residuals to re-prepare
+  if ("SCT" %in% Seurat::Assays(scData)) {
+    scData <- PrepSCTFindMarkers(scData)
+  }
 
   # get annotation information
   anno <- getSeuratMarkersAndAnnotate(scData, param, BPPARAM = BPPARAM)
