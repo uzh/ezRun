@@ -357,7 +357,7 @@ Here, we use a heatmap and a dotplot to visualize simultaneously the top 5 marke
 
 <br/>
 
-```{r marker plot setup}
+```{r marker plot setup, results='asis'}
 # prepare top 5 markers for each cluster
 top5 <- posMarkers %>%
   mutate(cluster = as.character(cluster))
@@ -376,7 +376,8 @@ genesToPlot <- intersect(genesToPlot, rownames(scData))
 
 if (ncol(scData) > 3e4) {
   # Heatmap and Dotplot may not work above 30'000 cells, so we downsample
-  cat("We first downsample to a representative 30'000 cells.")
+  cat("\n\nThe heatmap and dotplot below are drawn on a random subset of at most 30'000 of the",
+      format(ncol(scData), big.mark = "'"), "cells.\n\n")
   scDataToPlot <- scData[, sample(colnames(scData), size=3e4, replace=F)]
 } else {
   scDataToPlot <- scData
