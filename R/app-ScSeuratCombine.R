@@ -35,11 +35,6 @@ EzAppScSeuratCombine <-
             DefaultValue = 0.6,
             Description = "Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."
           ),
-          excludeGenePattern = ezFrame(
-            Type = "character",
-            DefaultValue = "",
-            Description = "Regex of gene symbols to drop from the RNA assay of every sample before SCTransform, so they cannot enter HVG selection or drive the integration. Example for TCR/BCR V-D-J segments: ^TR[ABGD][VDJC][0-9P]|^TR[ABGD]C[0-9]?$|^IG[HKL][VDJC]|^IGH[AEGMD][0-9]?$"
-          ),
           integrationMethod = ezFrame(
             Type = "character",
             DefaultValue = "Harmony",
@@ -206,30 +201,6 @@ ezMethodScSeuratCombine = function(
         "-",
         sprintf("%02d", scData$seurat_clusters)
       )
-    }
-    # Drop unwanted genes (e.g. TCR/BCR V-D-J segments) before any SCTransform runs, so they
-    # cannot be picked as variable features or drive the integration. The keep-list spans ALL
-    # assays on purpose: these objects also carry an ADT assay, and subset(obj, features=) drops
-    # any assay whose features are absent from the list. Subsetting the assays individually
-    # instead works but makes Seurat warn about mismatched layers.
-    if (ezIsSpecified(param$excludeGenePattern) && param$excludeGenePattern != "") {
-      keepFeat <- unlist(lapply(Assays(scData), function(assayName) {
-        allFeat <- rownames(scData[[assayName]])
-        if (assayName %in% c("RNA", "SCT")) {
-          dropFeat <- grep(param$excludeGenePattern, allFeat, value = TRUE, perl = TRUE)
-          if (length(dropFeat) > 0) {
-            ezLog(paste0(
-              "excludeGenePattern: dropping ", length(dropFeat), " of ", length(allFeat),
-              " features from assay ", assayName, " in sample ", sm,
-              " (e.g. ", paste(head(dropFeat, 3), collapse = ", "), ")"
-            ))
-          }
-          setdiff(allFeat, dropFeat)
-        } else {
-          allFeat
-        }
-      }))
-      scData <- subset(scData, features = unique(keepFeat))
     }
     return(scData)
   })
