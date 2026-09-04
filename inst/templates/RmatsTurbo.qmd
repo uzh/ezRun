@@ -40,8 +40,14 @@ sampleGroup <- param$sampleGroup
 refGroup    <- param$refGroup
 fdrCut      <- as.numeric(param$FDR)
 dpsiCut     <- as.numeric(param$deltaPSI)
+covCut      <- as.numeric(param$minCoverage)
 topN        <- as.integer(param$topN)
 statModel   <- param$statModel
+
+## Coverage filter (computed in the app): low-coverage events have FDR = NA (they
+## were excluded from the FDR recomputation) and are greyed in the volcano.
+if (is.null(ase$passCoverage)) ase$passCoverage <- TRUE
+if (is.null(ase$FDR_rMATS)) ase$FDR_rMATS <- ase$FDR
 
 ## Colour-blind-safe qualitative palette (Okabe-Ito) — the user has red-green CVD,
 ## so event types are distinguished by these colours *and* by direct labels.
@@ -114,7 +120,8 @@ computed with **rMATS-turbo** (`r statModel` statistical model, junction counts 
 - Reference build: **`r param$refBuild`**
 - Transcript biotypes: **`r if (ezIsSpecified(param$transcriptTypes)) gsub(",", ", ", paste(param$transcriptTypes, collapse=", ")) else "all"`**
 - Samples analysed: **`r nrow(coldata)`**  (`r nSample[[sampleGroup]]` `r sampleGroup`, `r nSample[[refGroup]]` `r refGroup`)
-- Events tested: **`r nrow(ase)`**
+- Coverage filter: average junction reads (IJC+SJC) ≥ **`r covCut`** in **both** groups; rMATS is anti-conservative on low-coverage junctions, so low-coverage events are greyed in the volcano and **excluded from the FDR** (multiple-testing) correction, which is recomputed per event type on the passing set.
+- Events tested: **`r nrow(ase)`** total (**`r sum(ase$passCoverage)`** passed the coverage filter and entered FDR)
 - Significance: adjusted p < **`r fdrCut`** and |ΔPSI| > **`r dpsiCut`**
 - Significant events: **`r sum(ase$significant)`**
 
@@ -149,6 +156,7 @@ brk <- ase |>
   group_by(EventType) |>
   summarise(
     Tested = n(),
+    LowCoverage = sum(!passCoverage),
     Significant = sum(significant),
     `Up in sampleGroup` = sum(significant & deltaPSI > 0),
     `Up in refGroup` = sum(significant & deltaPSI < 0),
@@ -156,7 +164,8 @@ brk <- ase |>
   )
 DT::datatable(
   brk,
-  caption = paste0("Events per type. 'Significant' = adj.p < ", fdrCut,
+  caption = paste0("Events per type. 'LowCoverage' = below the coverage filter ",
+                   "(excluded from FDR). 'Significant' = adj.p < ", fdrCut,
                    " and |ΔPSI| > ", dpsiCut, "."),
   options = list(dom = "t", pageLength = 20), rownames = FALSE
 )
@@ -182,25 +191,84 @@ if (nrow(brkLong) > 0 && sum(brkLong$Significant) > 0) {
 }
 ```
 
+Junction-read coverage of **rMATS's own** significant vs non-significant calls
+(using rMATS's unfiltered FDR). rMATS's significant calls skew toward *low*
+coverage — the anti-conservative behaviour that motivates the filter. The dashed
+line marks the filter threshold (`r covCut` reads).
+
+```{r covBySig}
+#| echo: false
+#| fig-width: 6
+#| fig-height: 4.5
+if (!is.null(ase$meanCov)) {
+  ## Split by rMATS's OWN significance (FDR_rMATS, computed over all events) so the
+  ## plot exposes the low-coverage skew -- NOT our post-filter significance, which
+  ## is coverage-bounded by construction and would make the comparison circular.
+  rmatsSig <- !is.na(ase$FDR_rMATS) & ase$FDR_rMATS < fdrCut &
+    !is.na(ase$abs_deltaPSI) & ase$abs_deltaPSI > dpsiCut
+  fracLow <- if (sum(rmatsSig) > 0) mean(!ase$passCoverage[rmatsSig]) else NA_real_
+  covDf <- data.frame(
+    meanCov = ase$meanCov,
+    sigCat = factor(
+      ifelse(rmatsSig, "rMATS significant", "rMATS non-sig."),
+      levels = c("rMATS non-sig.", "rMATS significant")
+    )
+  )
+  covDf <- covDf[is.finite(covDf$meanCov) & covDf$meanCov > 0, , drop = FALSE]
+  if (nrow(covDf) > 0) {
+    ggplot(covDf, aes(x = sigCat, y = meanCov, fill = sigCat)) +
+      geom_boxplot(outlier.shape = NA, alpha = 0.7, width = 0.5) +
+      scale_y_log10() +
+      geom_hline(yintercept = covCut, linetype = "dashed", colour = "grey40") +
+      scale_fill_manual(
+        values = c(`rMATS non-sig.` = "grey70", `rMATS significant` = cbPalette[6]),
+        guide = "none"
+      ) +
+      labs(x = NULL, y = "mean junction reads (IJC+SJC), log10",
+           title = "Coverage of rMATS significant vs non-significant events",
+           subtitle = if (is.finite(fracLow)) {
+             sprintf("%.0f%% of rMATS-significant events are below the coverage filter (excluded from FDR)",
+                     100 * fracLow)
+           } else NULL) +
+      theme_bw()
+  } else {
+    cat("No events with positive mean coverage to plot.\n")
+  }
+} else {
+  cat("Coverage information not available.\n")
+}
+```
+
 # Volcano
 
 ```{r volcano}
 #| echo: false
 #| fig-width: 8
 #| fig-height: 6
-vol <- ase |> filter(!is.na(FDR), !is.na(deltaPSI))
+## Keep low-coverage events (FDR = NA): plot them greyed at their ORIGINAL rMATS
+## FDR position, to show the inflated significance the coverage filter removes.
+vol <- ase |> filter(!is.na(deltaPSI))
+vol <- vol[is.finite(vol$FDR) | is.finite(vol$FDR_rMATS), , drop = FALSE]
 if (nrow(vol) > 0) {
-  vol$negLog10FDR <- -log10(pmax(vol$FDR, .Machine$double.xmin))
-  vol$colourKey <- ifelse(vol$significant, as.character(vol$EventType), "n.s.")
+  plotFDR <- ifelse(vol$passCoverage, vol$FDR, vol$FDR_rMATS)
+  vol$negLog10FDR <- -log10(pmax(plotFDR, .Machine$double.xmin))
+  vol$colourKey <- ifelse(
+    !vol$passCoverage, "low coverage",
+    ifelse(vol$significant, as.character(vol$EventType), "n.s.")
+  )
   ## build a colour for every event type actually present (interpolate if there
   ## are more than the base palette), so scale_colour_manual never errors on an
   ## unmapped value.
-  presentTypes <- setdiff(unique(vol$colourKey), "n.s.")
+  presentTypes <- setdiff(unique(vol$colourKey), c("n.s.", "low coverage"))
   typeColours <- setNames(
     grDevices::colorRampPalette(cbPalette)(max(length(presentTypes), 1))[seq_along(presentTypes)],
     presentTypes
   )
-  colourValues <- c(typeColours, "n.s." = "grey75")
+  colourValues <- c(typeColours, "n.s." = "grey60", "low coverage" = "grey85")
+  ## draw low-coverage points first (underneath), then n.s., then significant
+  vol$layer <- ifelse(vol$colourKey == "low coverage", 0L,
+                      ifelse(vol$colourKey == "n.s.", 1L, 2L))
+  vol <- vol[order(vol$layer), , drop = FALSE]
   ## label the top few significant events by gene (fall back to event name)
   vol$lab <- ifelse(!is.na(vol$gene_name) & vol$gene_name != "", vol$gene_name, vol$EventName)
   lab <- vol |> filter(significant) |> arrange(desc(abs_deltaPSI)) |> head(15)
@@ -211,7 +279,10 @@ if (nrow(vol) > 0) {
     ggrepel::geom_text_repel(data = lab, aes(label = lab), size = 2.6, max.overlaps = 20) +
     scale_colour_manual(values = colourValues, name = "Event type") +
     labs(x = paste0("ΔPSI  (", sampleGroup, " − ", refGroup, ")"),
-         y = "−log10 adjusted p") +
+         y = "−log10 adjusted p",
+         caption = paste0("Low-coverage events (grey; avg IJC+SJC < ", covCut,
+                          " in a group) are shown at their rMATS FDR but excluded ",
+                          "from the recomputed FDR.")) +
     theme_bw()
 } else {
   cat("No testable events for the volcano plot.\n")
@@ -224,7 +295,7 @@ if (nrow(vol) > 0) {
 #| echo: false
 keepCols <- intersect(
   c("gene_name", "EventName", "EventType", "EventRegion", "deltaPSI",
-    "abs_deltaPSI", "PValue", "FDR"),
+    "abs_deltaPSI", "PValue", "FDR", "minGroupCov"),
   colnames(ase)
 )
 tbl <- ase |>

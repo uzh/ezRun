@@ -198,6 +198,7 @@ ezMethodRmatsTurbo <- function(input = NA, output = NA, param = NA) {
   ## -- parse the rMATS output tables ------------------------------------------
   eventTypes <- c("SE", "MXE", "A5SS", "A3SS", "RI")
   sharedCols <- c("ID", "GeneID", "geneSymbol", "chr", "strand",
+                  "IJC_SAMPLE_1", "SJC_SAMPLE_1", "IJC_SAMPLE_2", "SJC_SAMPLE_2",
                   "PValue", "FDR", "IncLevel1", "IncLevel2", "IncLevelDifference")
   ## combine the shared columns across event types into one report table; the
   ## full per-event-type files (with the event-specific coordinate columns) are
@@ -228,12 +229,43 @@ ezMethodRmatsTurbo <- function(input = NA, output = NA, param = NA) {
   res$deltaPSI <- suppressWarnings(as.numeric(res$IncLevelDifference))
   res$abs_deltaPSI <- abs(res$deltaPSI)
   res$PValue <- suppressWarnings(as.numeric(res$PValue))
-  res$FDR <- suppressWarnings(as.numeric(res$FDR))
+  ## keep rMATS's own FDR (computed over ALL events of a type, incl. low-coverage)
+  res$FDR_rMATS <- suppressWarnings(as.numeric(res$FDR))
   res$EventName <- paste(res$EventType, res$gene_name, res$ID, sep = ":")
   res$EventRegion <- paste0(res$chr, ":", res$strand)
+
+  ## -- coverage filter --------------------------------------------------------
+  ## rMATS is anti-conservative on low-coverage junctions (it computes FDR over
+  ## ALL events, inflating significance). Flag events with too few supporting
+  ## junction reads (average inclusion+skipping per replicate) in BOTH groups,
+  ## then RECOMPUTE the FDR (Benjamini-Hochberg, per event type) over the
+  ## coverage-passing events only -- low-coverage events get FDR = NA and are
+  ## thus excluded from significance. Nothing is dropped from the tables.
+  meanTotal <- function(ijc, sjc) {
+    vapply(seq_along(ijc), function(i) {
+      a <- suppressWarnings(as.numeric(strsplit(ijc[i], ",")[[1]]))
+      b <- suppressWarnings(as.numeric(strsplit(sjc[i], ",")[[1]]))
+      mean(a + b, na.rm = TRUE)
+    }, numeric(1))
+  }
+  res$avgCov_sample <- meanTotal(res$IJC_SAMPLE_1, res$SJC_SAMPLE_1) # b1 = sampleGroup
+  res$avgCov_ref <- meanTotal(res$IJC_SAMPLE_2, res$SJC_SAMPLE_2)    # b2 = refGroup
+  res$minGroupCov <- pmin(res$avgCov_sample, res$avgCov_ref)
+  ## mean per-replicate total junction reads across all samples (for diagnostics)
+  n1 <- length(s1)
+  n2 <- length(s2)
+  res$meanCov <- (res$avgCov_sample * n1 + res$avgCov_ref * n2) / (n1 + n2)
+  minCov <- as.numeric(param$minCoverage)
+  res$passCoverage <- is.finite(res$minGroupCov) & res$minGroupCov >= minCov
+  res$FDR <- NA_real_
+  for (et in unique(res$EventType)) {
+    idx <- res$EventType == et & res$passCoverage
+    res$FDR[idx] <- p.adjust(res$PValue[idx], method = "BH")
+  }
+
   ## surface the useful columns near the front
   front <- c("gene_name", "EventType", "EventName", "EventRegion",
-             "deltaPSI", "abs_deltaPSI", "PValue", "FDR")
+             "deltaPSI", "abs_deltaPSI", "PValue", "FDR", "passCoverage")
   res <- res[, c(intersect(front, colnames(res)),
                  setdiff(colnames(res), front)), drop = FALSE]
 
@@ -281,7 +313,7 @@ ezMethodRmatsTurbo <- function(input = NA, output = NA, param = NA) {
     meta = list(
       comparison = param$comparison, sampleGroup = param$sampleGroup,
       refGroup = param$refGroup, statModel = param$statModel,
-      FDR = param$FDR, deltaPSI = param$deltaPSI
+      FDR = param$FDR, deltaPSI = param$deltaPSI, minCoverage = param$minCoverage
     )
   )
   qs2::qs_save(bundle, "rmatsTurbo_explore.qs2")
@@ -353,6 +385,11 @@ EzAppRmatsTurbo <-
             Type = "character",
             DefaultValue = "0.0001",
             Description = "rMATS --cstat: cutoff splicing difference for the null hypothesis test (0 <= c < 1)"
+          ),
+          minCoverage = ezFrame(
+            Type = "numeric",
+            DefaultValue = 10,
+            Description = "coverage filter: min average junction reads (IJC+SJC) in BOTH groups; failing events are greyed in the volcano and excluded from the recomputed FDR"
           ),
           transcriptTypes = ezFrame(
             Type = "charVector",
