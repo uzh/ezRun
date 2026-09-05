@@ -18,9 +18,12 @@ EzAppScSeurat <-
       ## Human/Mouse, estimateAmbient, enrichrDatabase, tissue, SingleR,
       ## computePathwayTFActivity, sctype.enabled, mLLMCelltype, CyteTypeR,
       ## AzimuthPanHuman respectively) -- listed regardless of gating.
-      ## NOTE: Azimuth::RunAzimuth, cellxgene_annotation, STACAS and schard exist in
-      ## the shared seuratUtils.R helpers but are unreachable here -- ScSeuratApp
-      ## never declares param$Azimuth/cellxgeneUrl/cellxgeneLabel/featSelectionMethod.
+      ## Azimuth::RunAzimuth (param$Azimuth) and cellxgene_annotation + schard
+      ## (param$cellxgeneUrl / cellxgeneLabel) are live knobs: ScSeuratApp.rb declares
+      ## all three (cellxgene since sushi 03effc0a, 2024-10-17). Only STACAS is
+      ## unreachable -- param$featSelectionMethod is read in seuratUtils.R but never
+      ## declared in the Ruby app. (Corrected 2026-09-05; the previous note claimed
+      ## all four were undeclared.)
       citation = function() {
         c(
           "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
