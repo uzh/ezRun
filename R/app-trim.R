@@ -188,8 +188,13 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
     "--thread",
     param$cores,
     # global trimming
+    # When UMIs are extracted downstream the UMI sits at the 5' end of the read
+    # and must survive fastp. Force trim_front to 0 on the mate(s) that carry a
+    # UMI: barcodePattern -> R2, barcodePattern2 -> R1 (dual-inline libraries).
     if (ezIsSpecified(param$trim_front1)) {
-      paste("--trim_front1", param$trim_front1)
+      umiOnR1 <- ezIsSpecified(param$barcodePattern2) &&
+        param$barcodePattern2 != ''
+      paste("--trim_front1", if (umiOnR1) "0" else param$trim_front1)
     },
     if (ezIsSpecified(param$trim_tail1)) {
       paste("--trim_tail1", param$trim_tail1)

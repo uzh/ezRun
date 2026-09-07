@@ -419,23 +419,58 @@ EzAppBowtie <-
     )
   )
 
+## Convert a simple umi_tools barcode pattern (N = UMI base, X = skip/dark base
+## to discard, C = cell barcode base) into a umi_tools regex, e.g.
+## "NNNNNNNNXXXXXX" -> "(?P<umi_1>.{8})(?P<discard_1>.{6})". The regex extract
+## method is used instead of the string method because there X is a *retained*
+## sample base -- only regex discard groups actually remove the skip bases.
+## Consecutive identical symbols collapse into one counted group.
+umiPatternToRegex <- function(pattern) {
+  pattern <- toupper(gsub("\\s", "", pattern))
+  if (!grepl("^[NXC]+$", pattern)) {
+    stop("barcode pattern must contain only N, X or C characters: ", pattern)
+  }
+  runs <- rle(strsplit(pattern, "")[[1]])
+  groupType <- c(N = "umi", X = "discard", C = "cell")
+  counters <- c(umi = 0L, discard = 0L, cell = 0L)
+  pieces <- character(length(runs$lengths))
+  for (i in seq_along(runs$lengths)) {
+    type <- groupType[[runs$values[i]]]
+    counters[type] <- counters[type] + 1L
+    pieces[i] <- sprintf(
+      "(?P<%s_%d>.{%d})",
+      type,
+      counters[type],
+      runs$lengths[i]
+    )
+  }
+  paste0(pieces, collapse = "")
+}
+
 ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   refDir <- getSTARReference(param)
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
 
   if (ezIsSpecified(param$barcodePattern) && param$barcodePattern != '') {
-    #Extract UMI
+    ## Extract UMIs with umi_tools before alignment.
+    ## The N/X pattern is translated to a umi_tools regex so that skip/dark bases
+    ## (X) are truly discarded: in the umi_tools string method X marks a retained
+    ## sample base, only regex discard groups are removed. N bases become the UMI
+    ## (appended to the read name); this removes the need for the previously
+    ## hard-coded 6-base fastp trim. barcodePattern applies to R2 (the historical
+    ## Takara case); barcodePattern2, when set, applies to R1 for dual-inline UMI
+    ## libraries (e.g. Twist 5M2S+T or Agilent XT HS2, which carry a UMI at the
+    ## 5' end of both mates), and the two UMIs are concatenated in the read name.
     require(Herper)
     local_CondaEnv(
       "gi_umi_tools",
       pathToMiniConda = "/usr/local/ngseq/miniforge3"
     )
-    ##Extract UMI from R2
     markedFile_R1 <- sub('R1', 'markedUMI_R1', trimmedInput$getColumn("Read1"))
     markedFile_R2 <- sub('R2', 'markedUMI_R2', trimmedInput$getColumn("Read2"))
     cmd <- paste0(
-      'umi_tools extract --temp-dir=. --verbose=0 --stdin=',
+      'umi_tools extract --temp-dir=. --verbose=0 --extract-method=regex --stdin=',
       trimmedInput$getColumn("Read2"),
       ' --read2-in=',
       trimmedInput$getColumn("Read1"),
@@ -443,32 +478,24 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       markedFile_R2,
       ' --read2-out=',
       markedFile_R1,
-      ' --bc-pattern=',
-      param$barcodePattern
+      " --bc-pattern='",
+      umiPatternToRegex(param$barcodePattern),
+      "'"
     )
+    if (ezIsSpecified(param$barcodePattern2) && param$barcodePattern2 != '') {
+      cmd <- paste0(
+        cmd,
+        " --bc-pattern2='",
+        umiPatternToRegex(param$barcodePattern2),
+        "'"
+      )
+    }
     ezSystem(cmd)
 
-    ###Run Fastp to trim the first 6 bases of markedFile_R2
-    ## paste command
-    cmd <- str_c(
-      "fastp -i",
-      markedFile_R2,
-      "-o",
-      trimmedInput$getColumn("Read2"),
-      # general options
-      "--thread",
-      param$cores,
-      # global trimming
-      paste(
-        "--trim_front1 6 --disable_quality_filtering --disable_length_filtering --disable_adapter_trimming"
-      ),
-      "--compression",
-      param$fastpCompression,
-      sep = " "
-    )
-    ezSystem(cmd)
-
+    ## umi_tools has already removed the UMI and skip bases from both mates;
+    ## put the marked reads back in place for the aligner.
     ezSystem(paste('mv', markedFile_R1, trimmedInput$getColumn("Read1")))
+    ezSystem(paste('mv', markedFile_R2, trimmedInput$getColumn("Read2")))
   }
 
   if (!str_detect(param$cmdOptions, "outSAMattributes")) {
@@ -592,7 +619,9 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
     #Deduplicated based on UMI
     deDupBamFile <- sub('.bam', '_dedup.bam', basename(bamFile))
     cmd <- paste0(
-      'umi_tools dedup --temp-dir=. --verbose=0 --paired --no-sort-output --stdin=',
+      'umi_tools dedup --temp-dir=. --verbose=0',
+      if (param$paired) ' --paired' else '',
+      ' --no-sort-output --stdin=',
       basename(bamFile),
       ' --stdout=',
       deDupBamFile,
