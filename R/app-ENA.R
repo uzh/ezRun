@@ -1,3 +1,56 @@
+## Download an ENA XML record (run/sample/experiment) with retries and validation.
+## ENA occasionally returns a truncated or empty body that still parses as XML but
+## lacks the expected content; retrying on a too-small/unparseable response avoids
+## poisoning the downstream extraction. Returns a parsed XMLInternalDocument.
+.enaFetchXml <- function(accession, tries = 4, minBytes = 400) {
+  destfile <- paste0(accession, ".xml")
+  for (attempt in seq_len(tries)) {
+    cmd <- paste0(
+      "curl -s -f -o ",
+      destfile,
+      " -X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",
+      accession,
+      "?download=true\'"
+    )
+    try(ezSystem(cmd), silent = TRUE)
+    if (file.exists(destfile) && file.info(destfile)$size >= minBytes) {
+      doc <- tryCatch(xmlParse(destfile), error = function(e) NULL)
+      if (!is.null(doc)) {
+        return(doc)
+      }
+    }
+    Sys.sleep(5 * attempt)
+  }
+  stop(
+    "Could not retrieve a valid ENA XML for ",
+    accession,
+    " after ",
+    tries,
+    " attempts"
+  )
+}
+
+## Extract the ENA-SPOT-COUNT (read count) from a run's RUN_ATTRIBUTES list without
+## crashing on a missing/empty TAG. Returns NA when the tag is absent, in which case
+## the caller falls back to countReadsInFastq().
+.enaSpotCount <- function(runAttr) {
+  if (is.null(runAttr) || !is.list(runAttr)) {
+    return(NA)
+  }
+  for (k in seq_along(runAttr)) {
+    tag <- runAttr[[k]]$TAG
+    if (
+      !is.null(tag) &&
+        length(tag) == 1 &&
+        !is.na(tag) &&
+        tag == "ENA-SPOT-COUNT"
+    ) {
+      return(runAttr[[k]]$VALUE)
+    }
+  }
+  NA
+}
+
 ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
   require(XML)
   for (i in seq_along(5)) {
@@ -77,40 +130,20 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
 
   fastqInfo$Name <- fastqInfo$sample_accession ## use the accession as a fallback
   for (i in 1:nrow(fastqInfo)) {
-    #download ERR xml File
-    cmd = paste0(
-      "curl -o ",
-      fastqInfo$run_accession[i],
-      ".xml ",
-      "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",
-      fastqInfo$run_accession[i],
-      "?download=true\'"
-    )
-    ezSystem(cmd)
+    #download ERR xml File (retried/validated against truncated ENA responses)
+    runInfo <- .enaFetchXml(fastqInfo$run_accession[i])
     #Extract read number from xml, extract sampleID from xml
-    runInfo <- xmlParse(paste0(fastqInfo$run_accession[i], '.xml'))
-
     runAttr = xmlToList(runInfo)$RUN$RUN_ATTRIBUTES
-    for (k in 1:length(runAttr)) {
-      if (runAttr[[k]]$TAG == 'ENA-SPOT-COUNT') {
-        fastqInfo[['ReadCount']][i] <- runAttr[[k]]$VALUE
-      }
+    readCount <- .enaSpotCount(runAttr)
+    if (!is.na(readCount)) {
+      fastqInfo[['ReadCount']][i] <- readCount
     }
     sampleID <- xmlToList(runInfo)$RUN$RUN_LINKS[[2]]$XREF_LINK$ID
 
     if (is.list(sampleID) | any(grepl('^ERP', sampleID))) {
       sampleID <- fastqInfo$sample_accession[i]
     }
-    cmd = paste0(
-      "curl -o ",
-      sampleID,
-      ".xml ",
-      "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",
-      sampleID,
-      "?download=true\'"
-    )
-    ezSystem(cmd)
-    xml <- xmlParse(paste0(sampleID, '.xml'))
+    xml <- .enaFetchXml(sampleID)
     sampleInfo <- xmlToList(xml)
 
     if (!is.null(sampleInfo$SAMPLE$TITLE)) {
@@ -137,16 +170,7 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
           if (length(experimentID) > 1) {
             experimentID <- experimentID['accession']
           }
-          cmd = paste0(
-            "curl -o ",
-            experimentID,
-            ".xml ",
-            "-X GET \'https://www.ebi.ac.uk/ena/browser/api/xml/",
-            experimentID,
-            "?download=true\'"
-          )
-          ezSystem(cmd)
-          xml <- xmlParse(paste0(experimentID, '.xml'))
+          xml <- .enaFetchXml(experimentID)
           experimentInfo <- xmlToList(xml)
           cleanName <- gsub(
             "[\\# \\(\\):,;]",
