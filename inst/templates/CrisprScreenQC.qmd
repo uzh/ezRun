@@ -89,6 +89,15 @@ samples <- names(data$matchedLibCounts)
 if (is.null(samples)) samples <- names(data$countsPerLib)
 nReads  <- suppressWarnings(as.numeric(param$nReads))
 
+## Sequence-logo width scales with read length (one PWM column per base): short
+## reads (~36 bp) stay compact, long reads (150 bp) get a wide enough figure that
+## individual positions remain legible. Rendered full width; the template's
+## lightbox lets the reader click to zoom to base resolution.
+.readLen <- tryCatch(
+  max(vapply(data$PWMs, function(p) length(ic(p)), integer(1))),
+  error = function(e) 50L)
+.seqlogoWidth <- max(9, min(32, round(0.16 * .readLen)))
+
 theme_set(theme_bw(base_size = 12))
 ```
 
@@ -498,14 +507,16 @@ for (nm in names(data$topFeatureResults)) {
 Base composition of the reads as a sequence logo. A well-behaved screen shows a
 constant scaffold (tall, single-letter columns) flanking the variable spacer
 region (mixed columns). Loss of the expected constant bases indicates a trimming
-or library-prep problem.
+or library-prep problem. The figure width scales with read length; for long
+reads click a logo to zoom to base resolution.
 
 ```{r seqlogo}
 #| echo: false
 #| results: asis
-#| fig-width: 8.5
+#| fig-width: !expr .seqlogoWidth
 #| fig-height: 3.6
-#| out-width: "60%"
+#| fig-dpi: 100
+#| out-width: "100%"
 consensusSeqs <- character()
 for (nm in names(data$PWMs)) {
   cat("\n\n####", nm, "\n\n")
