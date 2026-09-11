@@ -54,6 +54,16 @@ ezMethodCrisprScreenQC <- function(input, output, param) {
   inputFiles <- inputProc$getFullPaths("Read1")
   countsPerLib <- list()
   topFeatureResults <- list()
+  ## Per-sample, the reference library the reads actually map to (highest total
+  ## count) plus that library's full per-sgRNA count vector. The merged MAGeCK
+  ## reference bundles every installed library, so representation metrics (Gini,
+  ## zero-count fraction, coverage) are only meaningful when restricted to this
+  ## matched library rather than computed over all the irrelevant ones.
+  matchedLibs <- character()
+  matchedLibCounts <- list()
+  ## Per-sample MAGeCK count summary (Reads, Mapped, Percentage, TotalsgRNAs,
+  ## Zerocounts, GiniIndex, ...) parsed from <sample>.countsummary.txt.
+  countSummaryList <- list()
 
   PWMs <- list()
 
@@ -74,10 +84,20 @@ ezMethodCrisprScreenQC <- function(input, output, param) {
     if (file.exists(resultFile)) {
       counts <- ezRead.table(resultFile, row.names = NULL)
       counts[['Lib']] = sub('--.*', '', counts$sgRNA)
-      countsPerLib[[i]] <- tapply(counts$sample1, INDEX = counts$Lib, FUN = sum)
+      perLib <- tapply(counts$sample1, INDEX = counts$Lib, FUN = sum)
+      countsPerLib[[i]] <- perLib
       topFeatureResults[[i]] <- counts[
         order(counts$sample1, decreasing = TRUE),
       ][1:param$topFeatures, ]
+      ## Library the reads map to, and its per-sgRNA counts for representation QC.
+      matchedLib <- names(perLib)[which.max(perLib)]
+      matchedLibs[i] <- matchedLib
+      matchedLibCounts[[i]] <- counts$sample1[counts$Lib == matchedLib]
+      ## MAGeCK's own count summary (overall, across the merged reference).
+      summaryFile <- paste0(sampleNames[i], '.countsummary.txt')
+      if (file.exists(summaryFile)) {
+        countSummaryList[[i]] <- ezRead.table(summaryFile, row.names = NULL)
+      }
     } else {
       samplesToRemove <- c(samplesToRemove, sampleNames[i])
     }
@@ -88,6 +108,18 @@ ezMethodCrisprScreenQC <- function(input, output, param) {
     PWMs[[i]] <- makePWM(consMatrix)
   }
   names(PWMs) <- sampleNames
+  names(matchedLibs) <- sampleNames
+  names(matchedLibCounts) <- sampleNames
+  names(countSummaryList) <- sampleNames
+  ## One row per sample, tagged with the sample name, dropping any that failed.
+  countSummary <- NULL
+  for (nm in names(countSummaryList)) {
+    if (!is.null(countSummaryList[[nm]])) {
+      thisRow <- countSummaryList[[nm]]
+      thisRow$Sample <- nm
+      countSummary <- rbind(countSummary, thisRow)
+    }
+  }
   if (length(samplesToRemove) > 0) {
     sampleNames <- sampleNames[!(sampleNames %in% samplesToRemove)]
   }
@@ -99,17 +131,23 @@ ezMethodCrisprScreenQC <- function(input, output, param) {
     sgRNAPerLib = sgRNAPerLib,
     countsPerLib = countsPerLib,
     topFeatureResults = topFeatureResults,
+    matchedLibs = matchedLibs,
+    matchedLibCounts = matchedLibCounts,
+    countSummary = countSummary,
     PWMs = PWMs
   )
 
   setwd(reportDir)
-  makeRmdReport(
+  makeQuartoReport(
     output = output,
     param = param,
     input = input,
     data = data,
-    rmdFile = "CrisprScreenQC.Rmd",
-    reportTitle = paste("CRISPR Screen QC", param$name)
+    qmdFile = "CrisprScreenQC.qmd",
+    reportTitle = paste("CRISPR Screen QC", param$name),
+    number = TRUE,
+    buttons = TRUE,
+    colour = TRUE
   )
   return("Success")
 

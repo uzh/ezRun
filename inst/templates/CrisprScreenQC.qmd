@@ -1,0 +1,573 @@
+---
+params:
+  reportTitle: "CRISPR Screen QC"
+  # B-Fabric identifiers, shown in Session Info > Report provenance and used to
+  # name the ZIP the Download panel builds. Leave empty to auto-detect from the
+  # render path / SUSHI job description.
+  project: ""
+  order: ""
+title: "`r params$reportTitle`"
+---
+
+<!-- Styling comes from the fgczQuartoTemplate assets staged next to this file by
+     ezRun::makeQuartoReport() -> fgczQuartoTemplate::fgcz_render(); there is no
+     format: block to declare here. Tab colour/numbering and the Find/Download
+     toolbar are render-time arguments of makeQuartoReport(), not params. -->
+
+```{r setup}
+#| include: false
+library(ezRun)
+library(seqLogo)
+library(ggplot2)
+library(DT)
+library(knitr)
+library(scales)
+
+## ── Data loading (qs2 with rds fallback, checks data/ first) ──
+.fgcz_load <- function(name, nthreads = 4L) {
+  paths <- c(
+    file.path("data", paste0(name, ".qs2")),
+    paste0(name, ".qs2"),
+    file.path("data", paste0(name, ".rds")),
+    paste0(name, ".rds")
+  )
+  for (p in paths) {
+    if (file.exists(p)) {
+      if (grepl("\\.qs2$", p)) return(qs2::qs_read(p, nthreads = nthreads))
+      return(readRDS(p))
+    }
+  }
+  stop("No .qs2 or .rds file found for: ", name)
+}
+
+## ── Compact DT helper (search box + horizontal scroll, no pagination noise) ──
+.dt <- function(df, caption = NULL, pageLength = 10L,
+                filter = "none", rownames = FALSE, escape = TRUE, ...) {
+  DT::datatable(
+    data = df, caption = caption, filter = filter,
+    rownames = rownames, escape = escape,
+    class = "compact stripe",
+    options = list(
+      pageLength = pageLength, scrollX = TRUE, dom = "tip",
+      columnDefs = list(list(targets = "_all", className = "dt-left"))
+    ),
+    ...
+  )
+}
+
+## ── Colourblind-safe palette (Okabe-Ito; report author has red-green CVD) ──
+.cvd <- c("#0072B2", "#E69F00", "#009E73", "#CC79A7",
+          "#56B4E9", "#D55E00", "#F0E442", "#000000")
+
+## ── Gini index of a count vector (0 = perfectly even, 1 = maximally skewed) ──
+## x is coerced to double: a library has tens of thousands of sgRNAs, so the
+## integer products in the formula overflow 32-bit and silently return NA.
+.gini <- function(x) {
+  x <- as.numeric(sort(x[!is.na(x)]))
+  n <- length(x)
+  if (n == 0L || sum(x) == 0) return(NA_real_)
+  sum((2 * seq_len(n) - n - 1) * x) / (n * sum(x))
+}
+
+## ── Lorenz curve points for a count vector ──
+.lorenz <- function(x) {
+  x <- as.numeric(sort(x[!is.na(x)]))
+  if (length(x) == 0L || sum(x) == 0) {
+    return(data.frame(p = c(0, 1), L = c(0, 1)))
+  }
+  data.frame(p = c(0, seq_along(x) / length(x)),
+             L = c(0, cumsum(x) / sum(x)))
+}
+
+output <- .fgcz_load("output")
+param  <- .fgcz_load("param")
+input  <- .fgcz_load("input")
+data   <- .fgcz_load("data")
+
+dataset <- input$meta
+samples <- names(data$matchedLibCounts)
+if (is.null(samples)) samples <- names(data$countsPerLib)
+nReads  <- suppressWarnings(as.numeric(param$nReads))
+
+theme_set(theme_bw(base_size = 12))
+```
+
+```{r provenance}
+#| include: false
+## Minimal B-Fabric provenance (project/order/user/time), resolved once for the
+## Session Info tab and the Download-panel ZIP name. Mirrors CountQC.qmd.
+`%||%` <- function(a, b) if (is.null(a) || !length(a) || !nzchar(a[1])) b else a
+.fgcz_meta <- function(col) {
+  v <- tryCatch(unique(output$meta[[col]]), error = function(e) NULL)
+  v <- as.character(v[!is.na(v)]); v <- v[nzchar(v)]
+  if (length(v)) v[1] else ""
+}
+.fgcz_id <- function(explicit, prefix) {
+  x <- as.character(explicit %||% "")
+  if (!nzchar(x)) {
+    sources <- c(as.character(param$resultDir %||% ""),
+                 tryCatch(as.character(output$getColumn("Report")),
+                          error = function(e) ""),
+                 getwd())
+    pat <- sprintf("(?<![A-Za-z0-9])%s[0-9]{3,6}(?![0-9])", prefix)
+    for (s in sources) {
+      if (!nzchar(s)) next
+      hits <- regmatches(s, gregexpr(pat, s, perl = TRUE))[[1]]
+      if (length(hits)) { x <- hits[length(hits)]; break }
+    }
+  }
+  if (!nzchar(x)) return("")
+  if (!grepl(sprintf("^%s", prefix), x)) x <- paste0(prefix, x)
+  x
+}
+.fgcz_order_explicit <- as.character(params$order %||% "")
+if (!nzchar(.fgcz_order_explicit)) {
+  .fgcz_order_explicit <- .fgcz_meta("Order Id [B-Fabric]")
+}
+.fgcz_project <- .fgcz_id(params$project, "p")
+.fgcz_order   <- .fgcz_id(.fgcz_order_explicit, "o")
+.fgcz_user <- unname(Sys.info()[["user"]])
+if (!nzchar(.fgcz_user %||% "")) .fgcz_user <- Sys.getenv("USER", "unknown")
+.fgcz_rendered <- format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+```
+
+```{r per-sample-metrics}
+#| include: false
+## Per-sample QC metrics, computed on the MATCHED library (the reference the
+## reads actually map to) so that representation numbers are not diluted by the
+## dozens of unrelated libraries in the merged MAGeCK reference.
+summaryDf <- NULL
+for (nm in samples) {
+  mlc <- data$matchedLibCounts[[nm]]
+  if (is.null(mlc)) next
+  matchedLib <- data$matchedLibs[[nm]]
+  nSgRNA     <- length(mlc)
+  mappedMatched <- sum(mlc)
+  totalReads <- if (!is.null(data$countSummary) &&
+                    nm %in% data$countSummary$Sample) {
+    as.numeric(data$countSummary$Reads[data$countSummary$Sample == nm][1])
+  } else nReads
+  summaryDf <- rbind(summaryDf, data.frame(
+    Sample          = nm,
+    `Matched library` = matchedLib,
+    `Reads`         = totalReads,
+    `Mapped to library` = mappedMatched,
+    `Mapping rate (%)`  = 100 * mappedMatched / max(totalReads, 1),
+    `sgRNAs in library` = nSgRNA,
+    `Zero-count sgRNAs (%)` = 100 * mean(mlc == 0),
+    `Mean reads / sgRNA` = mappedMatched / max(nSgRNA, 1),
+    ## Zeros expected from pure Poisson sampling at this depth: exp(-mean
+    ## reads/sgRNA). The sampling "floor" a perfect library cannot beat, so
+    ## observed zero-count above this is real dropout, not just shallow reads.
+    `Expected zero (%)` = 100 * exp(-mappedMatched / max(nSgRNA, 1)),
+    `Gini index`    = .gini(mlc),
+    check.names = FALSE, stringsAsFactors = FALSE
+  ))
+}
+```
+
+::: {.panel-tabset}
+
+# Overview
+
+::: {.panel-tabset}
+
+## At a glance
+
+::: {.callout-note title="What this report is"}
+**CRISPR Screen QC** checks whether a pooled CRISPR-screen sequencing sample is
+sound *before* any screen analysis (MAGeCK test / MLE) begins. Reads are
+subsampled, adapter/length-trimmed with **fastp**, and counted against every
+installed sgRNA library with **MAGeCK count**. Three questions matter:
+
+1. **Identity & mapping** — do the reads map, and to the *intended* library?
+   (Overview + Library representation → *Mapping per library*.)
+2. **Representation** — is the library evenly covered, or have many sgRNAs
+   dropped to zero? A skewed library biases every downstream hit call.
+   (Library representation → *sgRNA representation*.)
+3. **Read structure** — do the reads show the expected constant scaffold around
+   a variable spacer? (Read patterns.)
+
+*Reading the numbers — mind the subsampling:* this report is normally generated
+from **subsampled** reads (see *Parameters & inputs*), typically only ~1 read per
+sgRNA. **Mapping rate** is a proportion and so is depth-robust — it should be high
+(screen libraries usually map well above 60 %, the dashed guide). **Zero-count
+fraction** and **Gini index**, in contrast, are inflated by shallow depth alone:
+at ~1 read/sgRNA even a flawless library shows ~30 % zeros and a high Gini.
+So there is *no* fixed pass/fail cut-off for these two here — read them as
+**relative** comparisons between samples sequenced at the same depth. On the
+zero-count panel the diamonds mark the zeros expected from pure Poisson sampling
+at each sample's depth; a bar sitting well above its diamond is real dropout
+beyond sampling, and a sample that is an outlier from the rest is the flag to act
+on.
+:::
+
+The figure below summarises the key numbers per sample, each computed on the
+library the sample actually maps to.
+
+```{r glance-plot}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 4.5
+#| out-width: "72%"
+#| fig-cap: "Per-sample QC on the matched library. Dashed line: mapping-rate guide (depth-robust). Diamonds on the zero-count panel: zeros expected from Poisson sampling at each sample's depth — no fixed guide is drawn for zero-count or Gini because both depend on sequencing depth (see note above)."
+if (!is.null(summaryDf)) {
+  metricLevels <- c("Mapping rate (%)", "Zero-count sgRNAs (%)", "Gini index")
+  long <- rbind(
+    data.frame(Sample = summaryDf$Sample, metric = "Mapping rate (%)",
+               value = summaryDf$`Mapping rate (%)`),
+    data.frame(Sample = summaryDf$Sample, metric = "Zero-count sgRNAs (%)",
+               value = summaryDf$`Zero-count sgRNAs (%)`),
+    data.frame(Sample = summaryDf$Sample, metric = "Gini index",
+               value = summaryDf$`Gini index`)
+  )
+  long$metric <- factor(long$metric, levels = metricLevels)
+  long$Sample <- factor(long$Sample, levels = rev(summaryDf$Sample))
+  ## Only mapping rate gets a fixed guide; zero-count and Gini are depth-dependent
+  ## so no absolute cut-off is drawn (see the note above the figure).
+  guides <- data.frame(
+    metric = factor("Mapping rate (%)", levels = metricLevels),
+    xint = 60)
+  ## Depth-aware reference for the zero-count panel: Poisson-expected zeros.
+  expZero <- data.frame(
+    metric = factor("Zero-count sgRNAs (%)", levels = metricLevels),
+    Sample = factor(summaryDf$Sample, levels = rev(summaryDf$Sample)),
+    value = summaryDf$`Expected zero (%)`)
+  ## Per-facet axis domains: percentages on [0,100], Gini on [0,1]. facet
+  ## free_x auto-ranges from 0; invisible points at the upper bound fix each
+  ## panel's maximum (ggh4x is not available here).
+  lims <- data.frame(
+    metric = factor(metricLevels, levels = metricLevels),
+    Sample = long$Sample[1],
+    value = c(100, 100, 1))
+  ggplot(long, aes(x = value, y = Sample)) +
+    geom_col(width = 0.7, fill = .cvd[1], orientation = "y") +
+    geom_vline(data = guides, aes(xintercept = xint),
+               linetype = "dashed", colour = "grey40") +
+    geom_point(data = expZero, aes(x = value, y = Sample),
+               shape = 18, size = 2, colour = "grey20") +
+    geom_blank(data = lims, aes(x = value, y = Sample)) +
+    facet_wrap(~metric, scales = "free_x", nrow = 1) +
+    labs(x = NULL, y = NULL)
+} else {
+  cat("No per-sample metrics available.")
+}
+```
+
+::: {.callout-note collapse="true" title="Exact per-sample QC numbers"}
+```{r glance-table}
+#| echo: false
+if (!is.null(summaryDf)) {
+  showDf <- summaryDf
+  showDf$`Mapping rate (%)`       <- round(showDf$`Mapping rate (%)`, 1)
+  showDf$`Zero-count sgRNAs (%)`  <- round(showDf$`Zero-count sgRNAs (%)`, 1)
+  showDf$`Expected zero (%)`      <- round(showDf$`Expected zero (%)`, 1)
+  showDf$`Mean reads / sgRNA`     <- round(showDf$`Mean reads / sgRNA`, 2)
+  showDf$`Gini index`             <- round(showDf$`Gini index`, 3)
+  .dt(showDf, caption = "Per-sample QC on the matched library.")
+} else {
+  cat("Not available.")
+}
+```
+:::
+
+::: {.callout-note collapse="true" title="MAGeCK count summary (all merged libraries)"}
+These are MAGeCK's own numbers, computed across the *whole* merged reference
+(every installed library at once). Because most libraries are irrelevant to any
+given sample, the overall Gini and zero-count values here are expected to be
+high and are **not** a measure of the real library's quality — use the
+matched-library numbers above for that.
+
+```{r mageck-summary-table}
+#| echo: false
+if (!is.null(data$countSummary)) {
+  .dt(data$countSummary, caption = "MAGeCK count summary (merged reference).")
+} else {
+  cat("MAGeCK count summary not available for this run.")
+}
+```
+:::
+
+## Parameters & inputs
+
+```{r params-table}
+#| echo: false
+.pv <- c(
+  "Subsampled reads"        = as.character(param$nReads),
+  "Minimum read length"     = as.character(param$length_required),
+  "Adapter trimming (fastp)" = "on",
+  "5' trim (front1)"        = as.character(param$trim_front1),
+  "3' trim (tail1)"         = as.character(param$trim_tail1),
+  "Top sgRNAs listed"       = as.character(param$topFeatures),
+  "sgRNA library path"      = as.character(param$libPath)
+)
+.pv <- .pv[!is.na(.pv) & nzchar(.pv)]
+knitr::kable(
+  data.frame(Parameter = names(.pv), Value = unname(.pv), check.names = FALSE),
+  caption = "Processing parameters for this run.")
+```
+
+```{r input-summary}
+#| echo: false
+knitr::kable(
+  data.frame(
+    Field = c("Samples", "Libraries screened against",
+              "sgRNAs in reference (merged)"),
+    Value = c(length(samples),
+              length(data$sgRNAPerLib),
+              format(sum(data$sgRNAPerLib), big.mark = ",")),
+    check.names = FALSE),
+  caption = "Inputs to this run.")
+```
+
+::: {.callout-note collapse="true" title="Input dataset table"}
+```{r input-dataset}
+#| echo: false
+.dt(dataset, caption = "Input dataset for this run.", pageLength = 20L)
+```
+:::
+
+:::
+
+# Library representation
+
+::: {.panel-tabset}
+
+## Mapping per library
+
+Each sample is counted against **all** installed libraries at once. The reads of
+a sound sample should pile up on a single, intended library; substantial signal
+spread across several libraries points to contamination or a mislabelled sample.
+
+```{r mapping-per-lib}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 4
+#| out-width: "80%"
+#| fig-cap: "Percentage of subsampled reads mapping to each sgRNA library (heatmap; only libraries reaching >=0.05% in at least one sample are shown). A sound sample is bright on a single row."
+mapLong <- NULL
+for (nm in samples) {
+  cpl <- data$countsPerLib[[nm]]
+  if (is.null(cpl)) next
+  mapLong <- rbind(mapLong, data.frame(
+    Sample = nm, Library = names(cpl),
+    Pct = 100 * as.numeric(cpl) / max(nReads, 1),
+    stringsAsFactors = FALSE))
+}
+keep <- with(mapLong, tapply(Pct, Library, max))
+keep <- names(keep)[keep >= 0.05]
+mapPlot <- mapLong[mapLong$Library %in% keep, ]
+mapPlot$Library <- factor(mapPlot$Library,
+  levels = names(sort(tapply(mapPlot$Pct, mapPlot$Library, max))))
+mapPlot$Sample <- factor(mapPlot$Sample, levels = samples)
+ggplot(mapPlot, aes(x = Sample, y = Library, fill = Pct)) +
+  geom_tile(colour = "white", linewidth = 0.3) +
+  ## Label only non-trace cells, and flip text colour so it always contrasts
+  ## with the viridis fill (dark text on the bright high-value cells, white on
+  ## the dark low-value ones).
+  geom_text(aes(label = ifelse(Pct >= 1, round(Pct), ""),
+                colour = Pct > 55), size = 2.6, show.legend = FALSE) +
+  scale_colour_manual(values = c(`TRUE` = "grey10", `FALSE` = "white"),
+                      guide = "none") +
+  scale_fill_viridis_c(name = "Reads (%)", limits = c(0, 100)) +
+  labs(x = NULL, y = NULL) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## sgRNA representation
+
+For the matched library of each sample, how evenly are reads spread across its
+sgRNAs? The **distribution** should be a single, reasonably tight peak; a long
+left tail toward zero means many guides are poorly represented. The **Lorenz
+curve** restates the Gini index visually — the further it bows below the
+diagonal, the more skewed the library. Note that at the shallow **subsampled**
+depth used here even a perfect library looks skewed, so compare curves *between
+samples* (same depth) rather than against an absolute standard.
+
+```{r count-distribution}
+#| echo: false
+#| fig-width: 7.5
+#| fig-height: 4.5
+#| out-width: "72%"
+#| fig-cap: "Per-sgRNA read-count distribution (log10, +1 pseudocount) within each sample's matched library, as a violin with an inset boxplot. A tight box high above zero is good; a long tail to 1 means many under-represented guides."
+distLong <- NULL
+for (nm in samples) {
+  mlc <- data$matchedLibCounts[[nm]]
+  if (is.null(mlc)) next
+  distLong <- rbind(distLong, data.frame(
+    Sample = nm, count = as.numeric(mlc), stringsAsFactors = FALSE))
+}
+distLong$Sample <- factor(distLong$Sample, levels = rev(samples))
+ggplot(distLong, aes(x = Sample, y = count + 1)) +
+  geom_violin(fill = .cvd[1], colour = NA, alpha = 0.55, scale = "width") +
+  geom_boxplot(width = 0.15, fill = "white", outlier.size = 0.2,
+               outlier.colour = "grey60") +
+  scale_y_log10(labels = scales::comma) +
+  coord_flip() +
+  labs(x = NULL, y = "Read count per sgRNA (+1, log10)")
+```
+
+```{r lorenz-curve}
+#| echo: false
+#| fig-width: 5.5
+#| fig-height: 5
+#| out-width: "56%"
+#| fig-cap: "Lorenz curve of sgRNA counts within each matched library, coloured by Gini index. The dashed diagonal is perfectly even representation; the further a curve bows below it, the more skewed the library."
+lz <- NULL
+for (nm in samples) {
+  mlc <- data$matchedLibCounts[[nm]]
+  if (is.null(mlc)) next
+  d <- .lorenz(mlc)
+  d$Sample <- nm
+  d$Gini <- .gini(mlc)
+  lz <- rbind(lz, d)
+}
+ggplot(lz, aes(x = p, y = L, group = Sample, colour = Gini)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "grey50") +
+  geom_line(linewidth = 0.7) +
+  scale_colour_viridis_c(name = "Gini") +
+  coord_equal() +
+  labs(x = "Cumulative fraction of sgRNAs",
+       y = "Cumulative fraction of reads")
+```
+
+::: {.callout-note collapse="true" title="Screened libraries (sgRNA counts per reference)"}
+```{r screened-libs}
+#| echo: false
+sgTab <- data.frame(Library = names(data$sgRNAPerLib),
+                    `#sgRNAs` = as.integer(data$sgRNAPerLib),
+                    check.names = FALSE)
+sgTab <- sgTab[order(-sgTab$`#sgRNAs`), ]
+knitr::kable(sgTab, row.names = FALSE,
+             caption = "Number of sgRNAs per installed reference library.")
+```
+:::
+
+:::
+
+# Top sgRNAs
+
+How concentrated are the reads? The bar below is the share of each matched
+library's mapped reads captured by its most abundant sgRNAs. A high share means
+a few guides dominate the library — a sign of skew or a jackpot artefact. The
+individual top sgRNAs (with gene targets) are in the collapsible table.
+
+```{r top-sgrna-plot}
+#| echo: false
+#| fig-width: 7.5
+#| fig-height: 4
+#| out-width: "70%"
+#| fig-cap: "Share of each matched library's mapped reads captured by its top sgRNAs."
+topN <- suppressWarnings(as.integer(param$topFeatures))
+concDf <- NULL
+for (nm in names(data$topFeatureResults)) {
+  tf  <- data$topFeatureResults[[nm]]
+  mlc <- data$matchedLibCounts[[nm]]
+  if (is.null(tf) || nrow(tf) == 0 || is.null(mlc) || sum(mlc) == 0) next
+  concDf <- rbind(concDf, data.frame(
+    Sample = nm,
+    Share = 100 * sum(tf$sample1) / sum(as.numeric(mlc)),
+    stringsAsFactors = FALSE))
+}
+concDf$Sample <- factor(concDf$Sample, levels = concDf$Sample[order(concDf$Share)])
+ggplot(concDf, aes(x = Sample, y = Share)) +
+  geom_col(width = 0.7, fill = .cvd[2]) +
+  coord_flip() +
+  labs(x = NULL,
+       y = sprintf("Reads in top %s sgRNAs (%% of matched library)", topN))
+```
+
+::: {.callout-note collapse="true" title="Top sgRNAs table"}
+```{r top-sgrna-table}
+#| echo: false
+myTable <- NULL
+for (nm in names(data$topFeatureResults)) {
+  tf <- data.frame(data$topFeatureResults[[nm]])
+  if (nrow(tf) > 0) {
+    tf[["Sample"]] <- nm
+    colnames(tf) <- c("sgRNA", "Gene", "Count", "Library", "Sample")
+    myTable <- rbind(myTable, tf)
+  }
+}
+.dt(myTable, caption = "Top sgRNAs per sample.", pageLength = 20L)
+```
+:::
+
+# Read patterns
+
+Base composition of the reads as a sequence logo. A well-behaved screen shows a
+constant scaffold (tall, single-letter columns) flanking the variable spacer
+region (mixed columns). Loss of the expected constant bases indicates a trimming
+or library-prep problem.
+
+```{r seqlogo}
+#| echo: false
+#| results: asis
+#| fig-width: 8.5
+#| fig-height: 3.6
+#| out-width: "60%"
+consensusSeqs <- character()
+for (nm in names(data$PWMs)) {
+  cat("\n\n####", nm, "\n\n")
+  seqLogo(data$PWMs[[nm]])
+  cons <- limma::strsplit2(consensus(data$PWMs[[nm]]), split = "")
+  cons[ic(data$PWMs[[nm]]) < 1] <- "N"
+  consensusSeqs[nm] <- paste(cons, collapse = "")
+  cat("\n\n")
+}
+```
+
+::: {.callout-note collapse="true" title="Consensus sequences"}
+```{r consensus-table}
+#| echo: false
+knitr::kable(
+  data.frame(Sample = names(consensusSeqs), Consensus = consensusSeqs,
+             row.names = NULL, check.names = FALSE),
+  caption = "Per-sample consensus (low-information positions shown as N).")
+```
+:::
+
+# Session Info
+
+::: {.panel-tabset}
+
+## Report provenance
+
+```{r report-metadata-marker}
+#| echo: false
+#| results: asis
+.attrs <- c(
+  if (nzchar(.fgcz_project)) sprintf(' data-project-id="%s"', .fgcz_project),
+  if (nzchar(.fgcz_order))   sprintf(' data-order-id="%s"',   .fgcz_order),
+  sprintf(' data-generated-by="%s"', "ezRun CrisprScreenQC"),
+  sprintf(' data-generated-at="%s"', .fgcz_rendered)
+)
+cat('<div id="fgcz-report-metadata" hidden', paste(.attrs, collapse = ""), '></div>')
+```
+
+```{r report-provenance}
+#| echo: false
+.prov <- c(
+  "Project"     = .fgcz_project,
+  "Order"       = .fgcz_order,
+  "Rendered by" = .fgcz_user,
+  "Rendered at" = .fgcz_rendered,
+  "Host"        = unname(Sys.info()[["nodename"]]),
+  "R version"   = paste(R.version$major, R.version$minor, sep = ".")
+)
+.prov <- .prov[nzchar(.prov)]
+knitr::kable(
+  data.frame(Field = names(.prov), Value = unname(.prov), check.names = FALSE),
+  caption = "Provenance for this rendered report.")
+```
+
+## R session info
+
+```{r session-info}
+#| echo: false
+ezSessionInfo()
+```
+
+:::
+
+:::
