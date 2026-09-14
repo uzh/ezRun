@@ -123,10 +123,10 @@ geneClass <- ifelse(isControl, "control",
               ifelse(geneU %in% essSet, "essential",
               ifelse(geneU %in% negSet, "non-essential", "other")))
 
-## ── Reference sample group (explicit param$refGroup) for essential depletion ──
+## ── Reference condition (explicit param$referenceCondition) for depletion ──
 ## Matched against the condition labels first, then any sample-annotation column
-## value, so the user can name the reference group as it appears in their design.
-refGroup <- if (!is.null(param$refGroup)) trimws(as.character(param$refGroup)) else ""
+## value, so the user can name the reference as it appears in their design.
+refGroup <- if (!is.null(param$referenceCondition)) trimws(as.character(param$referenceCondition)) else ""
 refGroupSpecified <- nzchar(refGroup)
 refIdx <- integer(0)
 if (refGroupSpecified) {
@@ -185,7 +185,7 @@ An exploratory QC overview of a pooled **CRISPR screen** after sgRNA counting
 info <- data.frame(
   Item = c("Samples", "sgRNAs (guides)", "Genes", "Control guides",
            "Essential genes (CEGv2) present", "Non-essential (NEGv1) present",
-           "Normalisation", "Reference group (refGroup)"),
+           "Normalisation", "Reference condition"),
   Value = c(
     nSamp, nrow(counts), length(unique(gene[!isControl])), sum(isControl),
     length(intersect(geneU[!isControl], essSet)),
@@ -278,12 +278,12 @@ ggplot(long, aes(class, value, fill = class)) +
 #| results: asis
 if (!hasRef) {
   msg <- if (!refGroupSpecified) {
-    "No **refGroup** was set, so essential-gene **depletion** and the ROC are not computed. Set the `refGroup` parameter to the reference/plasmid/T0 condition to enable them."
+    "No **reference condition** was set, so essential-gene **depletion** and the ROC are not computed. Set the `referenceCondition` parameter to the reference/plasmid/T0 condition to enable them."
   } else if (length(refIdx) == 0L) {
-    sprintf("The specified **refGroup** '%s' matched no sample, so depletion/ROC are skipped. Available conditions: %s.",
+    sprintf("The specified **reference condition** '%s' matched no sample, so depletion/ROC are skipped. Available conditions: %s.",
             refGroup, paste(unique(conds), collapse = ", "))
   } else {
-    sprintf("The specified **refGroup** '%s' matched *all* samples; non-reference samples are needed too, so depletion/ROC are skipped.", refGroup)
+    sprintf("The specified **reference condition** '%s' matched *all* samples; non-reference samples are needed too, so depletion/ROC are skipped.", refGroup)
   }
   cat(sprintf("::: {.callout-note}\n%s\n:::\n", msg))
 }
@@ -319,16 +319,21 @@ ggplot(roc, aes(lfc, fill = ess)) +
 ```{r correlation}
 #| echo: false
 #| eval: !expr "nSamp >= 2"
-#| fig-width: !expr "max(5, min(12, 3 + 0.5 * nSamp))"
-#| fig-height: !expr "max(4.5, min(11, 2.5 + 0.5 * nSamp))"
-#| out-width: "75%"
+#| fig-width: !expr "max(6, min(16, 3.5 + 0.55 * nSamp))"
+#| fig-height: !expr "max(5, min(15, 3 + 0.55 * nSamp))"
+#| out-width: !expr "if (nSamp <= 8) '60%' else '90%'"
 #| fig-cap: "Pearson correlation of samples on normalised counts (all targeting sgRNAs)."
 cm <- cor(mat[!isControl, ], use = "complete.obs")
 ann <- data.frame(Condition = conds, row.names = samples)
-pheatmap(cm, annotation_col = ann, annotation_row = ann,
-         display_numbers = nSamp <= 12, number_format = "%.2f",
+## Fixed cell size (points) keeps the grid readable when there are few samples,
+## so labels/title no longer dominate a tiny plotting area.
+cellSz <- if (nSamp <= 20) 32 else NA
+pheatmap(cm, annotation_col = ann,
+         display_numbers = nSamp <= 15, number_format = "%.2f",
+         number_color = "grey15", fontsize = 9, fontsize_number = 8,
+         cellwidth = cellSz, cellheight = cellSz, border_color = "white",
          color = colorRampPalette(c("#f7fbff", .cvd[1]))(50),
-         main = "Sample-sample Pearson correlation", silent = FALSE)
+         main = "Sample correlation (Pearson)")
 ```
 
 ```{r correlation-skip}

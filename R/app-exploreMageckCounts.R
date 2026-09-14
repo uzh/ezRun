@@ -23,7 +23,7 @@ ezMethodMageckCountQC <- function(
     qmdFile = "ExploreMageckCounts.qmd",
     reportTitle = "ExploreMageckCounts",
     colour = isTRUE(param$colour),
-    number = isTRUE(param$number)
+    number = TRUE
   )
   return("Success")
 }
@@ -165,7 +165,7 @@ EzAppExploreMageckCounts <-
             DefaultValue = "deseq2",
             Description = "count normalisation: deseq2 (size factors), tmm, cpm, or logMean"
           ),
-          refGroup = ezFrame(
+          referenceCondition = ezFrame(
             Type = "character",
             DefaultValue = "",
             Description = "reference/plasmid/T0 condition used as baseline for essential-gene depletion + ROC; empty = skip that analysis"
