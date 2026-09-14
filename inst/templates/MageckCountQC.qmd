@@ -84,12 +84,14 @@ is usable in a pooled CRISPR screen:
 ```{r glance-callout}
 #| echo: false
 #| results: asis
-ct  <- if (!is.na(mapFrac) && mapFrac < 0.65) "warning" else "note"
-msg <- if (!is.na(mapFrac) && mapFrac < 0.65)
+ct <- if (!is.na(mapFrac) && mapFrac < 0.65) "warning" else "note"
+msg <- if (is.na(mapFrac)) {
+  "Mapping rate could not be determined from the countsummary file."
+} else if (mapFrac < 0.65) {
   sprintf("⚠ Only **%.1f%%** of reads mapped — likely an sgRNA-length / 5' constant-region / strand problem; see the `cmdOptions` parameter.", mapFrac * 100)
-else if (!is.na(mapFrac))
+} else {
   sprintf("Mapping rate: **%.1f%%** of reads mapped to the library.", mapFrac * 100)
-else "Mapping rate could not be determined from the countsummary file."
+}
 cat(sprintf("::: {.callout-%s}\n%s\n:::\n", ct, msg))
 ```
 
