@@ -52,13 +52,16 @@ ezMethodMageckCount <- function(input, output, param) {
   ## failure never discards an otherwise-good count.
   if (file.exists(summaryFile)) {
     param[['sampleName']] <- sampleName
+    ## Per-sample report name: SAMPLE-mode jobs all copy into one shared result
+    ## dir, so a fixed name (e.g. 00index.html) would collide across samples.
+    ## Registered as a [File] column in the .rb so the framework rsyncs it back
+    ## ([Link] columns are not copied).
     tryCatch(
-      makeRmdReport(
+      makeQuartoReport(
         param = param,
-        output = output,
-        rmdFile = "MageckCountQC.Rmd",
-        reportTitle = paste0("MAGeCK Count QC - ", sampleName),
-        selfContained = TRUE
+        htmlFile = paste0(sampleName, ".html"),
+        qmdFile = "MageckCountQC.qmd",
+        reportTitle = paste0("MAGeCK Count QC - ", sampleName)
       ),
       error = function(e) {
         ezLog(paste("MageckCountQC report failed:", conditionMessage(e)))

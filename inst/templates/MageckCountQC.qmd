@@ -1,0 +1,154 @@
+---
+params:
+  reportTitle: "MAGeCK Count QC"
+  project: ""
+  order: ""
+title: "`r params$reportTitle`"
+---
+
+<!-- Styling comes from the fgczQuartoTemplate assets staged next to this file by
+     ezRun::makeQuartoReport() -> fgczQuartoTemplate::fgcz_render(); no format:
+     block here. Tab colour/numbering and the toolbar are makeQuartoReport args. -->
+
+```{r setup}
+#| include: false
+library(ezRun)
+library(ggplot2)
+library(knitr)
+library(scales)
+
+## ── Data loading (qs2 with rds fallback, checks data/ first) ──
+.fgcz_load <- function(name, nthreads = 4L) {
+  paths <- c(file.path("data", paste0(name, ".qs2")), paste0(name, ".qs2"),
+             file.path("data", paste0(name, ".rds")), paste0(name, ".rds"))
+  for (p in paths) {
+    if (file.exists(p)) {
+      if (grepl("\\.qs2$", p)) return(qs2::qs_read(p, nthreads = nthreads))
+      return(readRDS(p))
+    }
+  }
+  stop("No .qs2 or .rds file found for: ", name)
+}
+
+## ── Colourblind-safe palette (Okabe-Ito; report author has red-green CVD) ──
+.cvd <- c("#0072B2", "#E69F00", "#009E73", "#CC79A7",
+          "#56B4E9", "#D55E00", "#F0E442", "#000000")
+
+theme_set(theme_bw(base_size = 12))
+```
+
+```{r load}
+#| include: false
+param <- .fgcz_load("param")
+sampleName <- param$sampleName
+summaryFile <- paste0(sampleName, ".countsummary.txt")
+countSummary <- ezRead.table(summaryFile, row.names = NULL)
+
+## Tolerant column access across mageck versions.
+pick <- function(df, candidates) {
+  hit <- intersect(candidates, colnames(df))
+  if (length(hit) >= 1L) df[[hit[1]]][1] else NA
+}
+reads  <- suppressWarnings(as.numeric(pick(countSummary, "Reads")))
+mapped <- suppressWarnings(as.numeric(pick(countSummary, "Mapped")))
+pct    <- suppressWarnings(as.numeric(pick(countSummary, "Percentage")))
+totalG <- suppressWarnings(as.numeric(pick(countSummary, c("TotalsgRNAs", "TotalsgRNA"))))
+zeros  <- suppressWarnings(as.numeric(pick(countSummary, c("Zerocounts", "ZeroCounts"))))
+gini   <- suppressWarnings(as.numeric(pick(countSummary, "GiniIndex")))
+
+## mageck reports Percentage as a fraction (0-1); normalise to a rate in [0,1].
+mapFrac <- if (!is.na(pct)) ifelse(pct > 1, pct / 100, pct) else
+  if (!is.na(mapped) && !is.na(reads) && reads > 0) mapped / reads else NA
+zeroFrac <- if (!is.na(zeros) && !is.na(totalG) && totalG > 0) zeros / totalG else NA
+```
+
+::: {.panel-tabset}
+
+# Overview
+
+::: {.callout-note title="What this report is"}
+**MAGeCK count** maps the raw reads of a single sample against the sgRNA library
+and reports the per-sample metrics below. The three that decide whether a sample
+is usable in a pooled CRISPR screen:
+
+1. **Mapping rate** — the fraction of reads assigned to a library sgRNA. A low
+   rate usually means the sgRNA length / 5' constant region / strand is off, not
+   a bad library; tune it via the `cmdOptions` parameter (e.g. `--sgrna-len`).
+2. **Zero-count sgRNAs** — guides never observed. A large fraction signals
+   dropout or under-sequencing.
+3. **Gini index** — evenness of guide representation (0 = perfectly even,
+   1 = fully skewed). High values are expected under strong selection but worth
+   checking for reference samples.
+:::
+
+```{r glance-callout}
+#| echo: false
+#| results: asis
+ct  <- if (!is.na(mapFrac) && mapFrac < 0.65) "warning" else "note"
+msg <- if (!is.na(mapFrac) && mapFrac < 0.65)
+  sprintf("⚠ Only **%.1f%%** of reads mapped — likely an sgRNA-length / 5' constant-region / strand problem; see the `cmdOptions` parameter.", mapFrac * 100)
+else if (!is.na(mapFrac))
+  sprintf("Mapping rate: **%.1f%%** of reads mapped to the library.", mapFrac * 100)
+else "Mapping rate could not be determined from the countsummary file."
+cat(sprintf("::: {.callout-%s}\n%s\n:::\n", ct, msg))
+```
+
+```{r glance-metrics}
+#| echo: false
+gm <- data.frame(
+  Metric = c("Total reads", "Mapped reads", "Mapping rate",
+             "Total sgRNAs", "Zero-count sgRNAs", "Gini index"),
+  Value = c(
+    format(reads, big.mark = ",", scientific = FALSE),
+    format(mapped, big.mark = ",", scientific = FALSE),
+    if (is.na(mapFrac)) "NA" else sprintf("%.1f %%", mapFrac * 100),
+    format(totalG, big.mark = ",", scientific = FALSE),
+    if (is.na(zeros)) "NA" else sprintf("%s (%.1f %%)",
+        format(zeros, big.mark = ",", scientific = FALSE),
+        ifelse(is.na(zeroFrac), NA, zeroFrac * 100)),
+    if (is.na(gini)) "NA" else sprintf("%.3f", gini)),
+  check.names = FALSE)
+knitr::kable(gm, caption = sprintf("Per-sample count QC — %s", sampleName))
+```
+
+```{r mapping-bar}
+#| echo: false
+#| fig-width: 7
+#| fig-height: 2.2
+#| out-width: "70%"
+#| fig-cap: "Reads assigned to the library vs. unmapped."
+if (!is.na(reads) && !is.na(mapped)) {
+  bar <- data.frame(
+    stage = factor(c("Mapped", "Unmapped"), levels = c("Unmapped", "Mapped")),
+    reads = c(mapped, max(reads - mapped, 0)))
+  bar$lab <- sprintf("%s  (%.1f%%)", format(round(bar$reads), big.mark = ","),
+                     100 * bar$reads / max(reads, 1))
+  ggplot(bar, aes(x = reads, y = stage, fill = stage)) +
+    geom_col(width = 0.7) +
+    geom_text(aes(label = lab), hjust = -0.03, size = 3.2) +
+    scale_fill_manual(values = c(Mapped = .cvd[3], Unmapped = .cvd[6]), guide = "none") +
+    scale_x_continuous(labels = scales::comma, expand = expansion(mult = c(0, 0.3))) +
+    labs(x = "Reads", y = NULL)
+}
+```
+
+The raw mageck output: [`r summaryFile`](`r summaryFile`){target="_blank"}.
+
+# Parameters
+
+```{r params-table}
+#| echo: false
+keep <- intersect(c("libName", "cmdOptions", "sampleName", "name"), names(param))
+knitr::kable(data.frame(Parameter = keep,
+                        Value = vapply(param[keep], function(x) paste(as.character(x), collapse = ", "), ""),
+                        row.names = NULL, check.names = FALSE))
+```
+
+# Session info
+
+```{r session}
+#| echo: false
+ezSessionInfo()
+```
+
+:::
