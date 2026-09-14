@@ -46,11 +46,42 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
     intern = TRUE
   )) /
     4
+  ## Spacer length: use the library's own sgRNA length when the dict is uniform
+  ## (the norm). Anchoring the extraction to this fixed length -- rather than
+  ## taking everything between the read start and the right pattern -- removes the
+  ## constant 5' base (the U6 'G') and any staggered filler that otherwise leaves
+  ## the spacer one or more bases too long and unalignable.
+  spacerLength <- as.integer(param$spacerLength)
+  if (is.na(spacerLength) || spacerLength <= 0) {
+    seqLengths <- unique(nchar(dict$Sequence))
+    spacerLength <- if (length(seqLengths) == 1) seqLengths else 0L
+  }
+
+  ## Read base-composition PWM (for the read-structure logo) and, when enabled,
+  ## inferred flanking patterns. Computed on the trimmed reads before extraction.
+  patternGuess <- guessFlankingPatterns(readFile)
+  leftUsed <- param$leftPattern
+  rightUsed <- param$rightPattern
+  guessPatterns <- isTRUE(as.logical(param$guessPatterns))
+  if (guessPatterns) {
+    if (leftUsed == '') leftUsed <- patternGuess$leftGuess
+    if (rightUsed == '') rightUsed <- patternGuess$rightGuess
+  }
+  patternInfo <- list(
+    leftUsed = leftUsed,
+    rightUsed = rightUsed,
+    leftGuess = patternGuess$leftGuess,
+    rightGuess = patternGuess$rightGuess,
+    spacerLength = spacerLength,
+    guessPatterns = guessPatterns
+  )
+
   reads <- twoPatternReadFilter(
     readFile,
-    param$leftPattern,
-    param$rightPattern,
-    param$maxMismatch
+    leftUsed,
+    rightUsed,
+    param$maxMismatch,
+    spacerLength = spacerLength
   )
 
   ###Export as fasta file
@@ -140,36 +171,9 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
     writexl::write_xlsx(countsPerGene, countFile_gene)
   }
 
-  data = data.frame(group = rep('Count', nrow(dict)), counts = c(dict$Count))
-  # Basic violin plot
-  p <- ggplot(data, aes(x = group, y = counts))
-  p <- p +
-    geom_violin(fill = "royalblue", alpha = 0.5, trim = FALSE, adjust = 0.5)
-  p <- p + geom_boxplot(width = 0.1)
-  p <- p +
-    ggtitle(paste0(sampleName, '-ReadCount Distribution')) +
-    ylab('ReadCount per sgRNA')
-  p <- p +
-    theme(
-      plot.title = element_text(size = 15, face = "bold"),
-      axis.title.x = element_blank(),
-      axis.text.x = element_text(angle = 45, hjust = 1)
-    )
-  png(paste0(sampleName, '_violin.png'), 600, 1000, res = 100)
-  print(p)
-  dev.off()
-
-  h <- ggplot(dict, aes(x = log2(1 + Count))) + geom_histogram(binwidth = 0.1)
-  h <- h +
-    ggtitle(paste0(sampleName, '-Histogram')) +
-    ylab('Number of sgRNAs') +
-    xlab('Log2 count per sgRNA')
-  png(paste0(sampleName, '_histogram.png'), 800, 500, res = 100)
-  print(h)
-  dev.off()
-
-  ## TODO: the equivalent code is also in the RMD but there the controls are not included
-  sortedCounts = log2(1 + sort(dict$Count))
+  ## Count-distribution plots are now built in the Quarto report (log-scale,
+  ## control-vs-targeting), so no static PNGs are written here.
+  sortedCounts = log2(1 + sort(dict$Count[!dict$isControl]))
   meanCounts <- mean(sortedCounts)
   upperCutOff = meanCounts + param$diffToLogMeanThreshold
   lowerCutOff = meanCounts - param$diffToLogMeanThreshold
@@ -228,14 +232,20 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
   }
   writexl::write_xlsx(targetView, paste0(sampleName, '-targetBasedResult.xlsx'))
 
-  makeRmdReport(
+  makeQuartoReport(
     param = param,
     output = output,
     dict = dict,
     stats = stats,
+    targetView = targetView,
+    patternInfo = patternInfo,
+    pwm = patternGuess$pwm,
     htmlFile = "00index.html",
-    rmdFile = "CountSpacer.Rmd",
-    reportTitle = paste0("CountSpacer: ", sampleName)
+    qmdFile = "CountSpacer.qmd",
+    reportTitle = paste0("CountSpacer: ", sampleName),
+    number = TRUE,
+    buttons = TRUE,
+    colour = TRUE
   )
   ezWrite.table(
     unlist(stats),
@@ -258,11 +268,95 @@ selectFirst <- function(x) {
 }
 
 
+##' Infer the constant flanking patterns of a CRISPR read from per-position base
+##' composition. The spacer region is variable (max base frequency ~0.25) while
+##' the constant leading base(s) and the downstream scaffold are near-invariant.
+##' Returns the read-composition PWM (for a seqLogo) plus the guessed left/right
+##' flanking sequences ("" when none is evident).
+guessFlankingPatterns <- function(
+  readFile,
+  nSample = 1e5,
+  minCoverageFrac = 0.5,
+  constFreq = 0.9,
+  varFreq = 0.5,
+  minSpacerRun = 10L,
+  maxFlank = 12L
+) {
+  require(ShortRead)
+  require(Biostrings)
+  require(seqLogo)
+  emptyGuess <- list(pwm = NULL, leftGuess = "", rightGuess = "", consensus = "")
+  strm <- FastqStreamer(readFile, n = nSample)
+  on.exit(close(strm))
+  fq <- yield(strm)
+  reads <- sread(fq)
+  if (length(reads) == 0) {
+    return(emptyGuess)
+  }
+  cm <- consensusMatrix(reads, baseOnly = TRUE)
+  cm <- cm[c("A", "C", "G", "T"), , drop = FALSE]
+  coverage <- colSums(cm)
+  keep <- coverage >= (minCoverageFrac * length(reads))
+  if (!any(keep)) {
+    return(emptyGuess)
+  }
+  lastPos <- max(which(keep))
+  cm <- cm[, seq_len(lastPos), drop = FALSE]
+  coverage <- coverage[seq_len(lastPos)]
+  probs <- sweep(cm, 2, pmax(coverage, 1), "/")
+  probs[, coverage == 0] <- 0.25
+  maxFreq <- apply(probs, 2, max)
+  consBase <- rownames(cm)[apply(probs, 2, which.max)]
+  pwm <- seqLogo::makePWM(probs)
+  isConst <- maxFreq >= constFreq
+  isVar <- maxFreq < varFreq
+
+  ## Leading constant run -> left flanking pattern (e.g. the U6 'G').
+  leftGuess <- ""
+  if (isConst[1]) {
+    run <- 1L
+    while (run < length(isConst) && isConst[run + 1L]) {
+      run <- run + 1L
+    }
+    leftGuess <- paste(consBase[seq_len(min(run, maxFlank))], collapse = "")
+  }
+
+  ## First long variable run = spacer; the first constant run that starts after
+  ## it = scaffold. A transition base can sit between them (e.g. a 60%-conserved
+  ## position), so scan for the next constant RUN rather than the single position
+  ## immediately after the spacer.
+  rightGuess <- ""
+  rv <- rle(isVar)
+  vEnds <- cumsum(rv$lengths)
+  spacerRuns <- which(rv$values & rv$lengths >= minSpacerRun)
+  if (length(spacerRuns) > 0) {
+    spacerEnd <- vEnds[spacerRuns[1]]
+    rc <- rle(isConst)
+    cEnds <- cumsum(rc$lengths)
+    cStarts <- cEnds - rc$lengths + 1L
+    constRuns <- which(rc$values & cStarts > spacerEnd)
+    if (length(constRuns) > 0) {
+      s <- cStarts[constRuns[1]]
+      e <- min(cEnds[constRuns[1]], s + maxFlank - 1L)
+      rightGuess <- paste(consBase[s:e], collapse = "")
+    }
+  }
+
+  list(
+    pwm = pwm,
+    leftGuess = leftGuess,
+    rightGuess = rightGuess,
+    consensus = paste(consBase, collapse = "")
+  )
+}
+
+
 twoPatternReadFilter <- function(
   readFile,
   leftPattern,
   rightPattern,
-  maxMismatch
+  maxMismatch,
+  spacerLength = 0L
 ) {
   allReads = DNAStringSet()
   processedReads = 0
@@ -278,7 +372,7 @@ twoPatternReadFilter <- function(
       vp <- vmatchPattern(leftPattern, reads, max.mismatch = maxMismatch)
       leftEnd <- vp %>% endIndex() %>% vapply(selectFirst, integer(1))
     } else {
-      leftEnd <- rep(0, length(reads))
+      leftEnd <- rep(0L, length(reads))
     }
 
     if (rightPattern != '') {
@@ -288,18 +382,36 @@ twoPatternReadFilter <- function(
       rightStart <- width(reads)
     }
 
-    toNA <- which(rightStart < leftEnd)
-    rightStart[toNA] <- NA
-    patternPositions <- cbind(leftEnd = leftEnd, rightStart = rightStart)
-    patternInRead <- !apply(is.na(patternPositions), 1, any)
-    patternPositions <- as.data.frame(patternPositions[patternInRead, ])
-    if (rightPattern != '' || leftPattern != '') {
-      reads <- reads[patternInRead]
-      reads <- DNAStringSet(substr(
-        reads,
-        patternPositions$leftEnd + 1,
-        patternPositions$rightStart - 1
-      ))
+    if (spacerLength > 0 && rightPattern != '') {
+      ## Right-anchored, fixed-length spacer: the spacerLength bases immediately
+      ## 5' of the right pattern. This drops the constant leading base (U6 'G')
+      ## and any staggered filler that a start-of-read extraction keeps -- the
+      ## cause of over-long spacers that fail to align.
+      spStart <- rightStart - spacerLength
+      spEnd <- rightStart - 1L
+      ok <- !is.na(rightStart) & spStart >= (leftEnd + 1L) & spStart >= 1L
+      reads <- DNAStringSet(substr(reads[ok], spStart[ok], spEnd[ok]))
+    } else if (spacerLength > 0 && leftPattern != '') {
+      ## Left-anchored fixed-length spacer (no right pattern available).
+      spStart <- leftEnd + 1L
+      spEnd <- leftEnd + spacerLength
+      ok <- !is.na(leftEnd) & spEnd <= width(reads)
+      reads <- DNAStringSet(substr(reads[ok], spStart[ok], spEnd[ok]))
+    } else {
+      ## Legacy behaviour: everything between the two patterns.
+      toNA <- which(rightStart < leftEnd)
+      rightStart[toNA] <- NA
+      patternPositions <- cbind(leftEnd = leftEnd, rightStart = rightStart)
+      patternInRead <- !apply(is.na(patternPositions), 1, any)
+      patternPositions <- as.data.frame(patternPositions[patternInRead, , drop = FALSE])
+      if (rightPattern != '' || leftPattern != '') {
+        reads <- reads[patternInRead]
+        reads <- DNAStringSet(substr(
+          reads,
+          patternPositions$leftEnd + 1,
+          patternPositions$rightStart - 1
+        ))
+      }
     }
     processedReads = processedReads + length(currentReads)
     allReads <- c(allReads, reads)
@@ -342,6 +454,16 @@ EzAppCountSpacer <-
             Type = "numeric",
             DefaultValue = 2,
             Description = "log 2 difference relative to the mean log2 counts above/below which counts are called significant"
+          ),
+          guessPatterns = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "infer the left/right flanking patterns from read base composition when they are not supplied"
+          ),
+          spacerLength = ezFrame(
+            Type = "integer",
+            DefaultValue = 0,
+            Description = "spacer length to extract, anchored on the flanking pattern; 0 = derive from the library (recommended)"
           )
         )
       }

@@ -1,0 +1,461 @@
+---
+params:
+  reportTitle: "CountSpacer"
+  project: ""
+  order: ""
+title: "`r params$reportTitle`"
+---
+
+<!-- Styling comes from the fgczQuartoTemplate assets staged next to this file by
+     ezRun::makeQuartoReport() -> fgczQuartoTemplate::fgcz_render(); no format:
+     block here. Tab colour/numbering and the toolbar are makeQuartoReport args. -->
+
+```{r setup}
+#| include: false
+library(ezRun)
+library(seqLogo)
+library(ggplot2)
+library(DT)
+library(knitr)
+library(scales)
+
+## ── Data loading (qs2 with rds fallback, checks data/ first) ──
+.fgcz_load <- function(name, nthreads = 4L) {
+  paths <- c(file.path("data", paste0(name, ".qs2")), paste0(name, ".qs2"),
+             file.path("data", paste0(name, ".rds")), paste0(name, ".rds"))
+  for (p in paths) {
+    if (file.exists(p)) {
+      if (grepl("\\.qs2$", p)) return(qs2::qs_read(p, nthreads = nthreads))
+      return(readRDS(p))
+    }
+  }
+  stop("No .qs2 or .rds file found for: ", name)
+}
+
+## ── Compact DT helper ─────────────────────────────────────────
+.dt <- function(df, caption = NULL, pageLength = 10L,
+                filter = "none", rownames = FALSE, escape = TRUE, ...) {
+  DT::datatable(
+    data = df, caption = caption, filter = filter,
+    rownames = rownames, escape = escape, class = "compact stripe",
+    options = list(pageLength = pageLength, scrollX = TRUE, dom = "tip",
+      columnDefs = list(list(targets = "_all", className = "dt-left"))), ...)
+}
+
+## ── Colourblind-safe palette (Okabe-Ito; report author has red-green CVD) ──
+.cvd <- c("#0072B2", "#E69F00", "#009E73", "#CC79A7",
+          "#56B4E9", "#D55E00", "#F0E442", "#000000")
+
+## ── Gini (0 even, 1 skewed); x coerced to double to avoid 32-bit overflow ──
+.gini <- function(x) {
+  x <- as.numeric(sort(x[!is.na(x)])); n <- length(x)
+  if (n == 0L || sum(x) == 0) return(NA_real_)
+  sum((2 * seq_len(n) - n - 1) * x) / (n * sum(x))
+}
+.lorenz <- function(x) {
+  x <- as.numeric(sort(x[!is.na(x)]))
+  if (length(x) == 0L || sum(x) == 0) return(data.frame(p = c(0, 1), L = c(0, 1)))
+  data.frame(p = c(0, seq_along(x) / length(x)), L = c(0, cumsum(x) / sum(x)))
+}
+
+param       <- .fgcz_load("param")
+output      <- .fgcz_load("output")
+dict        <- .fgcz_load("dict")
+stats       <- .fgcz_load("stats")
+targetView  <- .fgcz_load("targetView")
+patternInfo <- .fgcz_load("patternInfo")
+pwm         <- tryCatch(.fgcz_load("pwm"), error = function(e) NULL)
+
+sampleName <- tryCatch(output$getNames(), error = function(e) params$reportTitle)
+theme_set(theme_bw(base_size = 12))
+
+## seqLogo width scales with read length so the constant scaffold stays legible.
+.seqlogoWidth <- tryCatch(max(9, min(32, round(0.16 * length(seqLogo::ic(pwm))))),
+                          error = function(e) 10)
+```
+
+```{r provenance}
+#| include: false
+`%||%` <- function(a, b) if (is.null(a) || !length(a) || !nzchar(a[1])) b else a
+.fgcz_meta <- function(col) {
+  v <- tryCatch(unique(output$meta[[col]]), error = function(e) NULL)
+  v <- as.character(v[!is.na(v)]); v <- v[nzchar(v)]; if (length(v)) v[1] else ""
+}
+.fgcz_id <- function(explicit, prefix) {
+  x <- as.character(explicit %||% "")
+  if (!nzchar(x)) {
+    sources <- c(as.character(param$resultDir %||% ""),
+                 tryCatch(as.character(output$getColumn("Report")), error = function(e) ""),
+                 getwd())
+    pat <- sprintf("(?<![A-Za-z0-9])%s[0-9]{3,6}(?![0-9])", prefix)
+    for (s in sources) { if (!nzchar(s)) next
+      hits <- regmatches(s, gregexpr(pat, s, perl = TRUE))[[1]]
+      if (length(hits)) { x <- hits[length(hits)]; break } }
+  }
+  if (!nzchar(x)) return("")
+  if (!grepl(sprintf("^%s", prefix), x)) x <- paste0(prefix, x)
+  x
+}
+.fgcz_order_explicit <- as.character(params$order %||% "")
+if (!nzchar(.fgcz_order_explicit)) .fgcz_order_explicit <- .fgcz_meta("Order Id [B-Fabric]")
+.fgcz_project <- .fgcz_id(params$project, "p")
+.fgcz_order   <- .fgcz_id(.fgcz_order_explicit, "o")
+.fgcz_user <- unname(Sys.info()[["user"]])
+if (!nzchar(.fgcz_user %||% "")) .fgcz_user <- Sys.getenv("USER", "unknown")
+.fgcz_rendered <- format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+```
+
+```{r derive}
+#| include: false
+res  <- dict[!dict$isControl, ]           # targeting sgRNAs
+ctrl <- dict[dict$isControl, ]            # non-targeting controls
+
+mapped        <- sum(dict$Count)
+rawReads      <- as.numeric(stats$rawReads)
+filteredReads <- as.numeric(stats$filteredReads)
+validReads    <- as.numeric(stats$validSpacerReads)
+mappingRate   <- 100 * mapped / max(validReads, 1)
+
+thr <- as.numeric(param$diffToLogMeanThreshold)
+sc  <- log2(1 + sort(res$Count))
+muC <- mean(sc); upC <- muC + thr; loC <- muC - thr
+nUp <- sum(sc > upC); nDown <- sum(sc < loC)
+
+pctZero    <- 100 * mean(res$Count == 0)
+detectedPc <- 100 * mean(res$Count > 0)
+giniVal    <- .gini(res$Count)
+## Skew: ratio of the 90th to 10th percentile of non-zero counts.
+nz <- res$Count[res$Count > 0]
+skew <- if (length(nz) > 10) unname(quantile(nz, 0.9) / max(quantile(nz, 0.1), 1)) else NA
+```
+
+::: {.panel-tabset}
+
+# Overview
+
+::: {.panel-tabset}
+
+## At a glance
+
+::: {.callout-note title="What this report is"}
+**CountSpacer** is a per-sample QC report for a pooled CRISPR screen. Reads are
+adapter/length-trimmed (**fastp**), the sgRNA **spacer** is extracted using a
+left/right flanking pattern, and the spacers are aligned to the chosen library
+with **bowtie**. The two questions that decide whether the sample is usable:
+
+1. **Did the spacers map?** The funnel below tracks reads from raw to mapped. A
+   low *mapped / valid-spacer* fraction almost always means the flanking pattern
+   or the extracted spacer length is off (e.g. a constant leading base left on),
+   not a bad library — check the **Read structure** tab and the inferred
+   patterns.
+2. **Is the library evenly represented?** See **Library representation**
+   (Gini, zero-count fraction) and **Per-gene coverage**.
+:::
+
+```{r funnel}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 3
+#| out-width: "78%"
+#| fig-cap: "Read funnel from raw reads to spacers mapped to the library. The mapped fraction of valid-spacer reads is the headline mapping rate."
+fun <- data.frame(
+  stage = c("Raw", "Filtered", "Valid spacer", "Mapped"),
+  reads = c(rawReads, filteredReads, validReads, mapped))
+fun$stage <- factor(fun$stage, levels = rev(fun$stage))
+fun$lab <- sprintf("%s  (%.1f%%)", format(round(fun$reads), big.mark = ","),
+                   100 * fun$reads / max(rawReads, 1))
+ggplot(fun, aes(x = reads, y = stage)) +
+  geom_col(width = 0.7, fill = .cvd[1]) +
+  geom_text(aes(label = lab), hjust = -0.03, size = 3.2) +
+  scale_x_continuous(labels = scales::comma,
+                     expand = expansion(mult = c(0, 0.28))) +
+  labs(x = "Reads", y = NULL)
+```
+
+```{r glance-callout}
+#| echo: false
+#| results: asis
+ct <- if (mappingRate < 50) "warning" else "note"
+msg <- if (mappingRate < 50) sprintf("⚠ Only **%.1f%%** of valid-spacer reads mapped — likely a flanking-pattern / spacer-length problem; check the Read structure tab.", mappingRate) else sprintf("Mapping rate: **%.1f%%** of valid-spacer reads mapped to the library.", mappingRate)
+cat(sprintf("::: {.callout-%s}\n%s\n:::\n", ct, msg))
+```
+
+```{r glance-metrics}
+#| echo: false
+gm <- data.frame(
+  Metric = c("Mapping rate (valid spacer)", "sgRNAs mapped (reads)",
+             "Targeting sgRNAs", "Detected (count > 0)", "Zero-count sgRNAs",
+             "Median reads / sgRNA", "Mean reads / sgRNA",
+             "Gini index", "Skew (P90/P10)"),
+  Value = c(sprintf("%.1f %%", mappingRate),
+            format(mapped, big.mark = ","),
+            format(nrow(res), big.mark = ","),
+            sprintf("%.1f %%", detectedPc),
+            sprintf("%.1f %%", pctZero),
+            format(median(res$Count)), sprintf("%.1f", mean(res$Count)),
+            sprintf("%.3f", giniVal),
+            if (is.na(skew)) "NA" else sprintf("%.1f", skew)),
+  check.names = FALSE)
+knitr::kable(gm, caption = "Key per-sample QC metrics (targeting sgRNAs).")
+```
+
+::: {.callout-note collapse="true" title="Flanking patterns used"}
+```{r pattern-table}
+#| echo: false
+pt <- data.frame(
+  Field = c("Left pattern (used)", "Right pattern (used)",
+            "Left pattern (guessed)", "Right pattern (guessed)",
+            "Spacer length", "Pattern guessing"),
+  Value = c(ifelse(nzchar(patternInfo$leftUsed), patternInfo$leftUsed, "(none)"),
+            ifelse(nzchar(patternInfo$rightUsed), patternInfo$rightUsed, "(none)"),
+            ifelse(nzchar(patternInfo$leftGuess), patternInfo$leftGuess, "(none)"),
+            ifelse(nzchar(patternInfo$rightGuess), patternInfo$rightGuess, "(none)"),
+            as.character(patternInfo$spacerLength),
+            ifelse(isTRUE(patternInfo$guessPatterns), "on", "off")),
+  check.names = FALSE)
+knitr::kable(pt, caption = "Flanking patterns (used vs auto-detected) and spacer length.")
+```
+:::
+
+::: {.callout-note collapse="true" title="Exact read/mapping counts"}
+```{r stats-table}
+#| echo: false
+st <- data.frame(Identifier = names(unlist(stats)),
+                 Value = format(as.numeric(unlist(stats)), big.mark = ","),
+                 check.names = FALSE)
+knitr::kable(st, caption = "Read filtering and mapping counts.")
+```
+:::
+
+## Parameters & inputs
+
+```{r params-table}
+#| echo: false
+.pv <- c(
+  "Library (dictPath)"      = basename(dirname(as.character(param$dictPath))),
+  "Left pattern"            = as.character(param$leftPattern),
+  "Right pattern"           = as.character(param$rightPattern),
+  "Max mismatch (pattern)"  = as.character(param$maxMismatch),
+  "Spacer length"           = as.character(patternInfo$spacerLength),
+  "Significance threshold"  = paste0("+/- ", param$diffToLogMeanThreshold, " log2 from mean"),
+  "Min read length (fastp)" = as.character(param$length_required),
+  "Adapter trimming"        = as.character(param$trimAdapter))
+.pv <- .pv[!is.na(.pv) & nzchar(.pv)]
+knitr::kable(data.frame(Parameter = names(.pv), Value = unname(.pv),
+                        check.names = FALSE),
+             caption = "Processing parameters for this run.")
+```
+
+```{r input-summary}
+#| echo: false
+knitr::kable(data.frame(
+  Field = c("Sample", "sgRNAs in library", "Targeting sgRNAs",
+            "Non-targeting controls", "Targets / genes"),
+  Value = c(sampleName, format(nrow(dict), big.mark = ","),
+            format(nrow(res), big.mark = ","),
+            format(nrow(ctrl), big.mark = ","),
+            format(length(unique(res$TargetID)), big.mark = ",")),
+  check.names = FALSE), caption = "Inputs to this run.")
+```
+
+:::
+
+# Read structure
+
+The base composition of the trimmed reads. A pooled CRISPR read is a constant
+leading base (the U6 `G`), a **variable spacer** (mixed columns), then the
+constant scaffold (`GTTTT...`). The extracted spacer is the variable window; the
+flanking patterns above are read off the constant runs. If the "spacer" window
+does not line up with the library's spacer length, mapping collapses.
+
+```{r seqlogo}
+#| echo: false
+#| results: asis
+#| fig-width: !expr .seqlogoWidth
+#| fig-height: 3.4
+#| fig-dpi: 100
+#| out-width: "100%"
+#| fig-cap: "Per-position base composition of the trimmed reads (sequence logo). Tall single-letter columns are constant (leading base / scaffold); low columns are the variable spacer."
+if (!is.null(pwm)) {
+  seqLogo(pwm)
+} else {
+  cat("Read base-composition PWM not available for this run.\n")
+}
+```
+
+# Library representation
+
+How evenly is the library covered? The distribution should be a single tight
+peak; a long tail toward zero means many guides are under-represented. The
+**Lorenz curve** restates the Gini index (further below the diagonal = more
+skewed). Note counts here reflect the sequencing depth of this sample.
+
+```{r count-distribution}
+#| echo: false
+#| fig-width: 7.5
+#| fig-height: 4
+#| out-width: "72%"
+#| fig-cap: "Distribution of read counts per targeting sgRNA (log2 scale, +1 pseudocount)."
+ggplot(data.frame(v = log2(1 + res$Count)), aes(x = v)) +
+  geom_histogram(bins = 60, fill = .cvd[1], colour = "white", linewidth = 0.1) +
+  labs(x = "log2(1 + count) per sgRNA", y = "Number of sgRNAs")
+```
+
+```{r lorenz}
+#| echo: false
+#| fig-width: 5.5
+#| fig-height: 5
+#| out-width: "56%"
+#| fig-cap: "Lorenz curve of targeting-sgRNA counts. The dashed diagonal is perfectly even representation."
+lz <- .lorenz(res$Count)
+ggplot(lz, aes(p, L)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "grey50") +
+  geom_line(linewidth = 0.9, colour = .cvd[1]) +
+  coord_equal() +
+  annotate("text", x = 0.05, y = 0.95, hjust = 0,
+           label = sprintf("Gini = %.3f", giniVal)) +
+  labs(x = "Cumulative fraction of sgRNAs", y = "Cumulative fraction of reads")
+```
+
+```{r sorted-overview}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 4
+#| out-width: "76%"
+#| fig-cap: "Sorted log2 counts of targeting sgRNAs with the mean (solid) and +/- threshold (dashed). Points beyond the dashed lines are over- / under-represented."
+so <- data.frame(rank = seq_along(sc), val = sc)
+ggplot(so, aes(rank, val)) +
+  geom_point(size = 0.25, colour = .cvd[1]) +
+  geom_hline(yintercept = muC, colour = "grey30") +
+  geom_hline(yintercept = c(upC, loC), linetype = "dashed", colour = "grey40") +
+  annotate("text", x = nrow(so) * 0.1, y = upC, vjust = -0.5, size = 3,
+           label = sprintf("over: %d (%.1f%%)", nUp, 100 * nUp / nrow(so))) +
+  annotate("text", x = nrow(so) * 0.1, y = loC, vjust = 1.4, size = 3,
+           label = sprintf("under: %d (%.1f%%)", nDown, 100 * nDown / nrow(so))) +
+  labs(x = "sgRNA rank", y = "log2(1 + count)")
+```
+
+```{r control-vs-targeting}
+#| echo: false
+#| fig-width: 7.5
+#| fig-height: 4
+#| out-width: "72%"
+#| fig-cap: "Count distribution of non-targeting controls vs targeting sgRNAs (log2, +1). Controls should track the targeting bulk; a shift can indicate selection."
+cvt <- rbind(
+  data.frame(Group = "Targeting", v = log2(1 + res$Count)),
+  data.frame(Group = "Control",   v = log2(1 + ctrl$Count)))
+if (nrow(ctrl) > 0) {
+  ggplot(cvt, aes(v, colour = Group, fill = Group)) +
+    geom_density(alpha = 0.25) +
+    scale_colour_manual(values = .cvd[c(1, 2)]) +
+    scale_fill_manual(values = .cvd[c(1, 2)]) +
+    labs(x = "log2(1 + count) per sgRNA", y = "Density", colour = NULL, fill = NULL)
+} else {
+  ggplot(data.frame(v = log2(1 + res$Count)), aes(v)) +
+    geom_density(fill = .cvd[1], alpha = 0.25) +
+    labs(x = "log2(1 + count) per sgRNA", y = "Density")
+}
+```
+
+# Per-gene coverage
+
+Aggregated to the target/gene level (controls excluded). A well-represented
+sample detects most of a gene's sgRNAs; genes whose guides have largely dropped
+out are the ones to watch.
+
+```{r per-gene-detected}
+#| echo: false
+#| fig-width: 7
+#| fig-height: 4
+#| out-width: "68%"
+#| fig-cap: "Number of sgRNAs detected (count > 0) per target."
+nDet <- as.integer(targetView[["#sgRNAs > 0"]])
+gg <- as.data.frame(table(nDetected = nDet), stringsAsFactors = TRUE)
+colnames(gg) <- c("nDetected", "Freq")
+ggplot(gg, aes(x = nDetected, y = Freq)) +
+  geom_col(width = 0.7, fill = .cvd[3]) +
+  geom_text(aes(label = format(Freq, big.mark = ",")), vjust = -0.3, size = 3) +
+  labs(x = "sgRNAs detected per target", y = "Number of targets")
+```
+
+```{r per-gene-summary}
+#| echo: false
+maxG <- max(nDet)
+knitr::kable(data.frame(
+  Field = c("Targets", sprintf("Fully covered (all %d sgRNAs detected)", maxG),
+            "Partially dropped (>=1 sgRNA missing)",
+            "Under-represented (< 2 sgRNAs > threshold)"),
+  Value = c(format(nrow(targetView), big.mark = ","),
+            sprintf("%d (%.1f%%)", sum(nDet == maxG), 100 * mean(nDet == maxG)),
+            sprintf("%d (%.1f%%)", sum(nDet < maxG), 100 * mean(nDet < maxG)),
+            sprintf("%d (%.1f%%)",
+                    sum(targetView[["#sgRNAs > lowerCutOff"]] < 2),
+                    100 * mean(targetView[["#sgRNAs > lowerCutOff"]] < 2))),
+  check.names = FALSE), caption = "Per-target coverage summary.")
+```
+
+::: {.callout-note collapse="true" title="Under-represented targets"}
+```{r underrep-table}
+#| echo: false
+ur <- targetView[targetView[["#sgRNAs > lowerCutOff"]] < 2, ]
+ur <- ur[order(ur[["#sgRNAs > lowerCutOff"]], ur$Count_Sum), ]
+.dt(ur, caption = "Targets with fewer than 2 sgRNAs above the lower cutoff.",
+    pageLength = 20L)
+```
+:::
+
+# Data & methods
+
+```{r data-links}
+#| echo: false
+#| results: asis
+cat(sprintf("- Per-sgRNA counts: [%s-result.xlsx](%s-result.xlsx)\n", sampleName, sampleName))
+cat(sprintf("- Per-target counts: [%s-targetBasedResult.xlsx](%s-targetBasedResult.xlsx)\n", sampleName, sampleName))
+cat("- Under-represented targets: [underrepresentedTargets.html](underrepresentedTargets.html)\n")
+```
+
+**Method.** Reads were adapter/length-trimmed with fastp, the sgRNA spacer was
+extracted with the flanking pattern(s) shown in the Overview (anchored to a fixed
+spacer length of `r patternInfo$spacerLength` nt), and spacers were aligned to
+`r basename(dirname(as.character(param$dictPath)))` with bowtie.
+
+# Session Info
+
+::: {.panel-tabset}
+
+## Report provenance
+
+```{r report-metadata-marker}
+#| echo: false
+#| results: asis
+.attrs <- c(
+  if (nzchar(.fgcz_project)) sprintf(' data-project-id="%s"', .fgcz_project),
+  if (nzchar(.fgcz_order))   sprintf(' data-order-id="%s"',   .fgcz_order),
+  sprintf(' data-generated-by="%s"', "ezRun CountSpacer"),
+  sprintf(' data-generated-at="%s"', .fgcz_rendered))
+cat('<div id="fgcz-report-metadata" hidden', paste(.attrs, collapse = ""), '></div>')
+```
+
+```{r report-provenance}
+#| echo: false
+.prov <- c("Project" = .fgcz_project, "Order" = .fgcz_order,
+           "Sample" = sampleName, "Rendered by" = .fgcz_user,
+           "Rendered at" = .fgcz_rendered,
+           "Host" = unname(Sys.info()[["nodename"]]),
+           "R version" = paste(R.version$major, R.version$minor, sep = "."))
+.prov <- .prov[nzchar(.prov)]
+knitr::kable(data.frame(Field = names(.prov), Value = unname(.prov),
+                        check.names = FALSE),
+             caption = "Provenance for this rendered report.")
+```
+
+## R session info
+
+```{r session-info}
+#| echo: false
+ezSessionInfo()
+```
+
+:::
+
+:::
