@@ -10,113 +10,172 @@ ezMethodMageckCount <- function(input, output, param) {
   local_CondaEnv("gi_mageck", pathToMiniConda = "/usr/local/ngseq/miniforge3")
   sampleName <- input$getNames()
   inputFile <- input$getFullPaths("Read1")
+
+  ## Resolve the library dict / control-sgRNA files, materialising them from the
+  ## basic library csv on first use (idempotent + race-safe, see below).
   param <- getMageckReference(param)
-  if (identical(param[['ctrlFile']], character(0))) {
-    system2(
-      "mageck",
-      args = c(
-        "count",
-        "-l",
-        param[['dictFile']],
-        "--fastq",
-        inputFile,
-        "-n",
-        sampleName
-      )
+  if (length(param[['dictFile']]) != 1L) {
+    stop(
+      "expected exactly one MAGeCK dict file in library '",
+      param[['libName']],
+      "'; found ",
+      length(param[['dictFile']])
+    )
+  }
+
+  ## mageck count -- one of two flag variants (with/without control-sgRNA file) is
+  ## always run, selected internally, not by a user param. Run through ezSystem so
+  ## a non-zero exit stops the job (raw system2 does not) and the cmd is logged.
+  hasCtrl <- length(param[['ctrlFile']]) == 1L && nzchar(param[['ctrlFile']])
+  cmd <- paste(
+    "mageck count",
+    "-l",
+    shQuote(param[['dictFile']]),
+    if (hasCtrl) paste("--control-sgrna", shQuote(param[['ctrlFile']])) else "",
+    "--fastq",
+    paste(shQuote(inputFile), collapse = " "),
+    "-n",
+    shQuote(sampleName),
+    if (ezIsSpecified(param[['cmdOptions']])) param[['cmdOptions']] else ""
+  )
+  ezSystem(cmd)
+
+  ## Verify the expected outputs were actually produced before declaring success.
+  countFile <- paste0(sampleName, ".count.txt")
+  summaryFile <- paste0(sampleName, ".countsummary.txt")
+  if (!file.exists(countFile)) {
+    stop("mageck count did not produce the expected count file: ", countFile)
+  }
+
+  ## Per-sample count QC report from the countsummary mageck already writes
+  ## (Gini index, zero-count sgRNAs, %-mapped, total reads). Wrapped so a report
+  ## failure never discards an otherwise-good count.
+  if (file.exists(summaryFile)) {
+    param[['sampleName']] <- sampleName
+    tryCatch(
+      makeRmdReport(
+        param = param,
+        output = output,
+        rmdFile = "MageckCountQC.Rmd",
+        reportTitle = paste0("MAGeCK Count QC - ", sampleName),
+        selfContained = TRUE
+      ),
+      error = function(e) {
+        ezLog(paste("MageckCountQC report failed:", conditionMessage(e)))
+      }
     )
   } else {
-    system2(
-      "mageck",
-      args = c(
-        "count",
-        "-l",
-        param[['dictFile']],
-        "--control-sgrna",
-        param[['ctrlFile']],
-        "--fastq",
-        inputFile,
-        "-n",
-        sampleName
-      )
-    )
+    ezLog(paste("no countsummary file found, skipping QC report:", summaryFile))
   }
+
+  return("Success")
 }
 
+##' @title Locate the MAGeCK library dict / control-sgRNA files
+##' @description Returns \code{param} with \code{dictFile} and \code{ctrlFile}
+##'   pointing at the per-library \code{*_MAGeCK.csv} / \code{*_MAGeCK_Ctrl.csv}
+##'   files, materialising them from the basic library csv on first use.
 getMageckReference <- function(param) {
-  param[['dictFile']] <- list.files(
+  dictFile <- list.files(
     param[['libName']],
-    pattern = 'MAGeCK.csv$',
+    pattern = '_MAGeCK\\.csv$',
     full.names = TRUE
   )
-  param[['ctrlFile']] <- list.files(
-    param[['libName']],
-    pattern = 'MAGeCK_Ctrl.csv$',
-    full.names = TRUE
-  )
-
-  lockFile <- file.path(param[['libName']], "lock")
-  if (identical(param[['dictFile']], character(0)) & !file.exists(lockFile)) {
-    ###Create LockFile
-    ezWrite(Sys.info(), con = lockFile)
-
-    ###FIND csv file
-    basicFile <- list.files(
+  if (length(dictFile) == 0L) {
+    ## One-time bootstrap; idempotent and safe to call concurrently.
+    prepareMageckLibrary(param[['libName']])
+    dictFile <- list.files(
       param[['libName']],
-      pattern = '.csv$',
+      pattern = '_MAGeCK\\.csv$',
       full.names = TRUE
     )
-    if (length(basicFile) == 1L) {
-      myRef <- ezRead.table(
-        basicFile,
-        row.names = NULL,
-        sep = ',',
-        header = FALSE
-      )
-      colnames(myRef) <- c(
-        'TranscriptName',
-        'Sequence',
-        'GeneSymbol',
-        'isControl'
-      )
-
-      myRef[['ID']] <- paste(
-        myRef[['TranscriptName']],
-        myRef[['Sequence']],
-        sep = '_'
-      )
-      myRefList <- split(myRef, f = myRef$isControl)
-      refFile <- sub('.csv', '_MAGeCK.csv', basicFile)
-      ezWrite.table(
-        myRef[, c('ID', 'Sequence', 'GeneSymbol')],
-        refFile,
-        col.names = FALSE,
-        row.names = FALSE,
-        sep = ','
-      )
-      param[['dictFile']] <- refFile
-      if (length(myRefList) == 2L) {
-        ctrlFile <- sub('.csv', '_MAGeCK_Ctrl.csv', basicFile)
-        ezWrite.table(
-          myRefList[['TRUE']][, c('ID')],
-          ctrlFile,
-          col.names = FALSE,
-          row.names = FALSE
-        )
-        param[['ctrlFile']] <- ctrlFile
-      } else {
-        param[['ctrlFile']] <- list.files(
-          param[['libName']],
-          pattern = 'MAGeCK_Ctrl.csv$',
-          full.names = TRUE
-        )
-      }
-    } else {
-      file.remove(lockFile)
-      stop('no or multiple basic reference file(s) available')
-    }
-    file.remove(lockFile)
   }
+  param[['dictFile']] <- dictFile
+  param[['ctrlFile']] <- list.files(
+    param[['libName']],
+    pattern = '_MAGeCK_Ctrl\\.csv$',
+    full.names = TRUE
+  )
   return(param)
+}
+
+##' @title Build the MAGeCK library files from the basic library csv
+##' @description Converts the basic 4-column library csv
+##'   (TranscriptName, Sequence, GeneSymbol, isControl) into the MAGeCK dict file
+##'   (\code{*_MAGeCK.csv}) and, when control sgRNAs are flagged, the control file
+##'   (\code{*_MAGeCK_Ctrl.csv}). Idempotent: does nothing if the dict already
+##'   exists. Race-safe: writes are staged to a pid-suffixed temp file and moved
+##'   into place with an atomic rename, so concurrent count jobs cannot observe a
+##'   half-written file (no lock file, no stale-lock hazard).
+prepareMageckLibrary <- function(libName) {
+  dictFile <- list.files(libName, pattern = '_MAGeCK\\.csv$', full.names = TRUE)
+  if (length(dictFile) >= 1L) {
+    return(invisible(NULL)) # already prepared
+  }
+
+  ## The "basic" csv is any csv that is not one of the files we generate.
+  allCsv <- list.files(libName, pattern = '\\.csv$', full.names = TRUE)
+  generated <- list.files(
+    libName,
+    pattern = '_MAGeCK(_Ctrl)?\\.csv$',
+    full.names = TRUE
+  )
+  basicFile <- setdiff(allCsv, generated)
+  if (length(basicFile) != 1L) {
+    stop(
+      "no or multiple basic reference file(s) available in library: ",
+      libName
+    )
+  }
+
+  myRef <- ezRead.table(basicFile, row.names = NULL, sep = ',', header = FALSE)
+  if (ncol(myRef) < 4L) {
+    stop(
+      "basic library csv must have 4 columns ",
+      "(TranscriptName, Sequence, GeneSymbol, isControl); got ",
+      ncol(myRef),
+      ": ",
+      basicFile
+    )
+  }
+  myRef <- myRef[, 1:4]
+  colnames(myRef) <- c('TranscriptName', 'Sequence', 'GeneSymbol', 'isControl')
+  myRef[['ID']] <- paste(
+    myRef[['TranscriptName']],
+    myRef[['Sequence']],
+    sep = '_'
+  )
+
+  ## Normalise the control flag: accept TRUE/T/1/yes/y (any case) as control.
+  isControl <- tolower(trimws(as.character(myRef[['isControl']]))) %in%
+    c('true', 't', '1', 'yes', 'y')
+
+  refFile <- sub('\\.csv$', '_MAGeCK.csv', basicFile)
+  .mageckAtomicWrite(
+    myRef[, c('ID', 'Sequence', 'GeneSymbol')],
+    refFile,
+    col.names = FALSE,
+    row.names = FALSE,
+    sep = ','
+  )
+
+  if (any(isControl)) {
+    ctrlFile <- sub('\\.csv$', '_MAGeCK_Ctrl.csv', basicFile)
+    .mageckAtomicWrite(
+      data.frame(ID = myRef[['ID']][isControl]),
+      ctrlFile,
+      col.names = FALSE,
+      row.names = FALSE
+    )
+  }
+  invisible(NULL)
+}
+
+## Write a table via a pid-suffixed temp file, then atomically rename into place.
+.mageckAtomicWrite <- function(x, file, ...) {
+  tmp <- paste0(file, ".tmp.", Sys.getpid())
+  ezWrite.table(x, tmp, ...)
+  file.rename(tmp, file)
 }
 
 ##' @template app-template
@@ -143,6 +202,11 @@ EzAppMageckCount <-
             Type = "character",
             DefaultValue = "",
             Description = "sgRNA Library Name"
+          ),
+          cmdOptions = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "additional command line options passed to 'mageck count' (e.g. --sgrna-len, --count-n, --list-seq)"
           )
         )
       }
