@@ -1,0 +1,469 @@
+---
+params:
+  reportTitle: "ExploreMageckCounts"
+  project: ""
+  order: ""
+title: "`r params$reportTitle`"
+---
+
+<!-- Styling comes from the fgczQuartoTemplate assets staged next to this file by
+     ezRun::makeQuartoReport() -> fgczQuartoTemplate::fgcz_render(); no format:
+     block here. Tab colour/numbering and the toolbar are makeQuartoReport args. -->
+
+```{r setup}
+#| include: false
+library(ezRun)
+library(SummarizedExperiment)
+library(ggplot2)
+library(knitr)
+library(DT)
+library(scales)
+library(pheatmap)
+
+## ── Data loading (qs2 with rds fallback, checks data/ first) ──
+.fgcz_load <- function(name, nthreads = 4L) {
+  paths <- c(file.path("data", paste0(name, ".qs2")), paste0(name, ".qs2"),
+             file.path("data", paste0(name, ".rds")), paste0(name, ".rds"))
+  for (p in paths) {
+    if (file.exists(p)) {
+      if (grepl("\\.qs2$", p)) return(qs2::qs_read(p, nthreads = nthreads))
+      return(readRDS(p))
+    }
+  }
+  stop("No .qs2 or .rds file found for: ", name)
+}
+
+## ── Compact DT helper ─────────────────────────────────────────
+.dt <- function(df, caption = NULL, pageLength = 15L, filter = "none",
+                rownames = FALSE, escape = TRUE, ...) {
+  DT::datatable(df, caption = caption, filter = filter, rownames = rownames,
+    escape = escape, class = "compact stripe",
+    options = list(pageLength = pageLength, scrollX = TRUE, dom = "tip",
+      columnDefs = list(list(targets = "_all", className = "dt-left"))), ...)
+}
+
+## ── Colourblind-safe palette (Okabe-Ito; report author has red-green CVD) ──
+.cvd <- c("#0072B2", "#E69F00", "#009E73", "#CC79A7",
+          "#56B4E9", "#D55E00", "#F0E442", "#000000")
+
+## ── Gini (0 even, 1 skewed); x coerced to double to avoid 32-bit overflow ──
+.gini <- function(x) {
+  x <- as.numeric(sort(x[!is.na(x)])); n <- length(x)
+  if (n == 0L || sum(x) == 0) return(NA_real_)
+  sum((2 * seq_len(n) - n - 1) * x) / (n * sum(x))
+}
+.lorenz <- function(x) {
+  x <- as.numeric(sort(x[!is.na(x)]))
+  if (length(x) == 0L || sum(x) == 0) return(data.frame(p = c(0, 1), L = c(0, 1)))
+  data.frame(p = c(0, seq_along(x) / length(x)), L = c(0, cumsum(x) / sum(x)))
+}
+## Mann-Whitney AUC: P(score of a positive > score of a negative).
+.auc <- function(score, isPos) {
+  isPos <- isPos[!is.na(score)]; score <- score[!is.na(score)]
+  np <- sum(isPos); nn <- sum(!isPos)
+  if (np == 0 || nn == 0) return(NA_real_)
+  r <- rank(score)
+  (sum(r[isPos]) - np * (np + 1) / 2) / (np * nn)
+}
+
+theme_set(theme_bw(base_size = 12))
+```
+
+```{r load}
+#| include: false
+rawData <- .fgcz_load("rawData")
+param   <- metadata(rawData)$param
+counts  <- assays(rawData)$counts
+gene    <- rowData(rawData)$Gene
+isControl <- rowData(rawData)$isControl
+samples <- colnames(counts)
+nSamp   <- length(samples)
+conds   <- as.character(colData(rawData)$conds)
+if (is.null(conds) || all(is.na(conds))) conds <- rep("all", nSamp)
+bg      <- suppressWarnings(as.numeric(param$backgroundExpression)); if (is.na(bg)) bg <- 5
+normMethod <- if (!is.null(param$normMethod)) tolower(param$normMethod) else "deseq2"
+topN    <- suppressWarnings(as.integer(param$topGeneSize)); if (is.na(topN)) topN <- 100L
+
+## ── Normalisation (size factors = the median-of-ratios scheme MAGeCK uses) ──
+normFactors <- tryCatch({
+  if (normMethod %in% c("tmm", "cpm")) {
+    dge <- edgeR::DGEList(counts = counts)
+    dge <- edgeR::calcNormFactors(dge, method = if (normMethod == "tmm") "TMM" else "none")
+    (dge$samples$lib.size * dge$samples$norm.factors) / 1e6   # per-million scaling
+  } else if (normMethod == "logmean") {
+    colSums(counts) / mean(colSums(counts))
+  } else {
+    DESeq2::estimateSizeFactorsForMatrix(counts)              # deseq2 (default)
+  }
+}, error = function(e) colSums(counts) / mean(colSums(counts)))
+normFactors[!is.finite(normFactors) | normFactors <= 0] <- 1
+normCounts <- sweep(counts, 2, normFactors, "/")
+logNorm    <- log2(normCounts + bg)
+
+## Variance-stabilised matrix for ordination; fall back to logNorm if vst fails.
+mat <- tryCatch({
+  if (normMethod == "deseq2" && nSamp >= 2) {
+    dds <- DESeq2::DESeqDataSetFromMatrix(round(counts), DataFrame(row.names = samples), ~1)
+    SummarizedExperiment::assay(DESeq2::vst(dds, blind = TRUE))
+  } else logNorm
+}, error = function(e) logNorm)
+
+## ── Essential / non-essential reference gene sets (Hart CEGv2 / NEGv1) ──
+.readSet <- function(f) {
+  p <- system.file(file.path("extdata/crispr", f), package = "ezRun")
+  if (!nzchar(p) || !file.exists(p)) return(character(0))
+  d <- try(read.delim(p, stringsAsFactors = FALSE), silent = TRUE)
+  if (inherits(d, "try-error") || !nrow(d)) return(character(0))
+  toupper(trimws(d[[1]]))
+}
+essSet <- .readSet("CEGv2.txt")
+negSet <- .readSet("NEGv1.txt")
+geneU  <- toupper(trimws(gene))
+geneClass <- ifelse(isControl, "control",
+              ifelse(geneU %in% essSet, "essential",
+              ifelse(geneU %in% negSet, "non-essential", "other")))
+
+## ── Reference sample group (explicit param$refGroup) for essential depletion ──
+## Matched against the condition labels first, then any sample-annotation column
+## value, so the user can name the reference group as it appears in their design.
+refGroup <- if (!is.null(param$refGroup)) trimws(as.character(param$refGroup)) else ""
+refGroupSpecified <- nzchar(refGroup)
+refIdx <- integer(0)
+if (refGroupSpecified) {
+  refIdx <- which(conds == refGroup)
+  if (length(refIdx) == 0L) {
+    cd <- as.data.frame(colData(rawData))
+    hit <- apply(cd, 1, function(r) any(as.character(r) == refGroup))
+    refIdx <- which(hit)
+  }
+}
+hasRef <- length(refIdx) >= 1 && length(refIdx) < nSamp
+
+## Per-sample library-representation table (targeting sgRNAs only).
+repTab <- do.call(rbind, lapply(seq_len(nSamp), function(j) {
+  cj  <- counts[!isControl, j]
+  tot <- sum(counts[, j])
+  data.frame(
+    Sample = samples[j],
+    Condition = conds[j],
+    `Total reads` = tot,
+    `Targeting sgRNAs` = length(cj),
+    `Detected (%)` = 100 * mean(cj > 0),
+    `Zero-count (%)` = 100 * mean(cj == 0),
+    `Median reads/sgRNA` = stats::median(cj),
+    `Gini` = .gini(cj),
+    check.names = FALSE)
+}))
+```
+
+```{r provenance}
+#| include: false
+`%||%` <- function(a, b) if (is.null(a) || !length(a) || !nzchar(as.character(a)[1])) b else a
+.fgcz_rendered <- format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+.fgcz_user <- unname(Sys.info()[["user"]]); if (!nzchar(.fgcz_user %||% "")) .fgcz_user <- Sys.getenv("USER", "unknown")
+```
+
+::: {.panel-tabset}
+
+# Overview
+
+::: {.callout-note title="What this report is"}
+An exploratory QC overview of a pooled **CRISPR screen** after sgRNA counting
+(**MAGeCK count**), *before* differential hit-calling. It answers three questions:
+
+1. **Is the library well represented?** — evenness of guide counts (Gini, Lorenz),
+   zero-count guides, reads per guide.
+2. **Do the samples group as expected?** — sample correlation, clustering and PCA
+   on normalised counts (needs ≥ 3 samples for clustering/PCA).
+3. **Does the screen behave biologically?** — where known **core-essential**
+   (Hart CEGv2) and **non-essential** (NEGv1) genes and the library's control
+   guides fall, and (with a reference/T0 sample) whether essential genes deplete.
+:::
+
+```{r overview-summary}
+#| echo: false
+info <- data.frame(
+  Item = c("Samples", "sgRNAs (guides)", "Genes", "Control guides",
+           "Essential genes (CEGv2) present", "Non-essential (NEGv1) present",
+           "Normalisation", "Reference group (refGroup)"),
+  Value = c(
+    nSamp, nrow(counts), length(unique(gene[!isControl])), sum(isControl),
+    length(intersect(geneU[!isControl], essSet)),
+    length(intersect(geneU[!isControl], negSet)),
+    normMethod,
+    if (hasRef) sprintf("%s (%s)", refGroup, paste(samples[refIdx], collapse = ", "))
+    else if (refGroupSpecified) sprintf("'%s' (not matched)", refGroup)
+    else "not set"),
+  check.names = FALSE)
+knitr::kable(info)
+```
+
+```{r few-samples-callout}
+#| echo: false
+#| results: asis
+if (nSamp < 3) {
+  cat("::: {.callout-warning}\n",
+      sprintf("Only **%d** sample(s). Sample clustering and PCA need **≥ 3** samples; ", nSamp),
+      "those panels are skipped and only library representation",
+      if (nSamp == 2) " and pairwise correlation" else "",
+      " are shown.\n:::\n", sep = "")
+}
+```
+
+# Library representation
+
+::: {.callout-note}
+Even guide representation is a core quality signal: a low **Gini** (≈ 0 even, 1 skewed),
+few zero-count guides and adequate reads/guide indicate the library was not bottlenecked.
+Metrics below are for **targeting** guides (controls excluded).
+:::
+
+```{r rep-table}
+#| echo: false
+disp <- repTab
+disp$`Total reads` <- format(round(disp$`Total reads`), big.mark = ",")
+disp$`Detected (%)` <- sprintf("%.1f", disp$`Detected (%)`)
+disp$`Zero-count (%)` <- sprintf("%.1f", disp$`Zero-count (%)`)
+disp$Gini <- sprintf("%.3f", disp$Gini)
+.dt(disp, caption = "Per-sample library representation (targeting sgRNAs).")
+```
+
+```{r lorenz}
+#| echo: false
+#| fig-width: 7
+#| fig-height: 4.5
+#| out-width: "70%"
+#| fig-cap: "Lorenz curves of guide counts per sample. The diagonal is perfectly even representation; more sag = more skew (higher Gini)."
+lor <- do.call(rbind, lapply(seq_len(nSamp), function(j) {
+  d <- .lorenz(counts[!isControl, j]); d$Sample <- samples[j]; d
+}))
+ggplot(lor, aes(p, L, colour = Sample)) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "grey60") +
+  geom_line(linewidth = 0.7) +
+  scale_colour_manual(values = rep(.cvd, length.out = nSamp)) +
+  labs(x = "Cumulative fraction of sgRNAs (low → high count)",
+       y = "Cumulative fraction of reads")
+```
+
+# Controls & essential genes
+
+::: {.callout-note}
+Biological sanity checks. **Non-targeting/control** guides should behave neutrally.
+Known **core-essential** genes (positive controls for a viability screen) should be
+depleted relative to **non-essential** genes when a reference/T0 sample is present.
+:::
+
+```{r class-dist}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 4.5
+#| out-width: "85%"
+#| fig-cap: "Distribution of log2 normalised counts by gene class, per sample."
+long <- do.call(rbind, lapply(seq_len(nSamp), function(j)
+  data.frame(Sample = samples[j], class = geneClass, value = logNorm[, j])))
+long <- long[long$class != "other", ]
+long$class <- factor(long$class, levels = c("control", "non-essential", "essential"))
+ggplot(long, aes(class, value, fill = class)) +
+  geom_violin(scale = "width", alpha = 0.85) +
+  geom_boxplot(width = 0.12, outlier.shape = NA, fill = "white") +
+  facet_wrap(~ Sample) +
+  scale_fill_manual(values = c(control = .cvd[8], `non-essential` = .cvd[1], essential = .cvd[6]),
+                    guide = "none") +
+  labs(x = NULL, y = "log2 normalised count") +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+```{r essential-depletion}
+#| echo: false
+#| results: asis
+if (!hasRef) {
+  msg <- if (!refGroupSpecified) {
+    "No **refGroup** was set, so essential-gene **depletion** and the ROC are not computed. Set the `refGroup` parameter to the reference/plasmid/T0 condition to enable them."
+  } else if (length(refIdx) == 0L) {
+    sprintf("The specified **refGroup** '%s' matched no sample, so depletion/ROC are skipped. Available conditions: %s.",
+            refGroup, paste(unique(conds), collapse = ", "))
+  } else {
+    sprintf("The specified **refGroup** '%s' matched *all* samples; non-reference samples are needed too, so depletion/ROC are skipped.", refGroup)
+  }
+  cat(sprintf("::: {.callout-note}\n%s\n:::\n", msg))
+}
+```
+
+```{r essential-roc}
+#| echo: false
+#| eval: !expr "hasRef"
+#| fig-width: 5.5
+#| fig-height: 5
+#| out-width: "55%"
+#| fig-cap: "Separation of core-essential from non-essential genes by depletion vs the reference sample. A screen that worked pushes essentials to negative LFC (AUC → 1)."
+refMean <- rowMeans(logNorm[, refIdx, drop = FALSE])
+smpMean <- rowMeans(logNorm[, setdiff(seq_len(nSamp), refIdx), drop = FALSE])
+lfc <- smpMean - refMean                      # depletion is negative
+geneLFC <- tapply(lfc[!isControl], gene[!isControl], mean)
+gU <- toupper(trimws(names(geneLFC)))
+sel <- gU %in% essSet | gU %in% negSet
+score <- -geneLFC[sel]                          # higher score = more depleted
+isEss <- gU[sel] %in% essSet
+auc <- .auc(score, isEss)
+roc <- data.frame(lfc = geneLFC[sel], ess = ifelse(isEss, "essential", "non-essential"))
+ggplot(roc, aes(lfc, fill = ess)) +
+  geom_density(alpha = 0.6) +
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey50") +
+  scale_fill_manual(values = c(essential = .cvd[6], `non-essential` = .cvd[1]), name = NULL) +
+  labs(x = "gene mean log2 fold change vs reference",
+       title = sprintf("Essential-gene depletion (AUC = %.3f)", auc))
+```
+
+# Sample correlation
+
+```{r correlation}
+#| echo: false
+#| eval: !expr "nSamp >= 2"
+#| fig-width: !expr "max(5, min(12, 3 + 0.5 * nSamp))"
+#| fig-height: !expr "max(4.5, min(11, 2.5 + 0.5 * nSamp))"
+#| out-width: "75%"
+#| fig-cap: "Pearson correlation of samples on normalised counts (all targeting sgRNAs)."
+cm <- cor(mat[!isControl, ], use = "complete.obs")
+ann <- data.frame(Condition = conds, row.names = samples)
+pheatmap(cm, annotation_col = ann, annotation_row = ann,
+         display_numbers = nSamp <= 12, number_format = "%.2f",
+         color = colorRampPalette(c("#f7fbff", .cvd[1]))(50),
+         main = "Sample-sample Pearson correlation", silent = FALSE)
+```
+
+```{r correlation-skip}
+#| echo: false
+#| results: asis
+if (nSamp < 2) cat("Correlation needs at least 2 samples.\n")
+```
+
+# Clustering & PCA
+
+```{r clustering}
+#| echo: false
+#| eval: !expr "nSamp >= 3"
+#| fig-width: !expr "max(6, min(14, 4 + 0.4 * nSamp))"
+#| fig-height: 5
+#| out-width: "80%"
+#| fig-cap: "Hierarchical clustering of samples (Ward D2, 1 − Pearson on normalised counts)."
+d  <- as.dist(1 - cor(mat[!isControl, ], use = "complete.obs"))
+hc <- hclust(d, method = "ward.D2")
+op <- par(mar = c(7, 4, 3, 1)); plot(hc, main = "Sample clustering", xlab = "", sub = ""); par(op)
+```
+
+```{r pca}
+#| echo: false
+#| eval: !expr "nSamp >= 3"
+#| fig-width: 6.5
+#| fig-height: 5
+#| out-width: "65%"
+#| fig-cap: "PCA on the most variable sgRNAs (variance-stabilised counts)."
+v <- matrixStats::rowVars(mat[!isControl, ])
+sel <- head(order(v, decreasing = TRUE), min(2000L, sum(!isControl)))
+pc <- prcomp(t(mat[!isControl, ][sel, ]), scale. = FALSE)
+ve <- 100 * pc$sdev^2 / sum(pc$sdev^2)
+pcd <- data.frame(PC1 = pc$x[, 1], PC2 = pc$x[, 2], Sample = samples, Condition = conds)
+ggplot(pcd, aes(PC1, PC2, colour = Condition, label = Sample)) +
+  geom_point(size = 3) + ggrepel::geom_text_repel(size = 3, show.legend = FALSE) +
+  scale_colour_manual(values = rep(.cvd, length.out = length(unique(conds)))) +
+  labs(x = sprintf("PC1 (%.1f%%)", ve[1]), y = sprintf("PC2 (%.1f%%)", ve[2]))
+```
+
+```{r highvar-heatmap}
+#| echo: false
+#| eval: !expr "nSamp >= 3"
+#| fig-width: !expr "max(6, 3 + 0.4 * nSamp)"
+#| fig-height: 8
+#| out-width: "70%"
+#| fig-cap: "Top variable sgRNAs (row-centred normalised counts). Samples as columns."
+v <- matrixStats::rowVars(logNorm[!isControl, ])
+sel <- head(order(v, decreasing = TRUE), min(topN, sum(!isControl)))
+hm <- logNorm[!isControl, ][sel, ]
+hm <- hm - rowMeans(hm)
+nClust <- suppressWarnings(as.integer(param$nSampleClusters)); if (is.na(nClust)) nClust <- 6L
+pheatmap(hm, annotation_col = data.frame(Condition = conds, row.names = samples),
+         show_rownames = FALSE, scale = "none",
+         color = colorRampPalette(c(.cvd[1], "white", .cvd[6]))(50),
+         main = sprintf("Top %d variable sgRNAs", nrow(hm)), silent = FALSE)
+```
+
+```{r clustering-skip}
+#| echo: false
+#| results: asis
+if (nSamp < 3) cat("Clustering and PCA need at least 3 samples — skipped.\n")
+```
+
+# Gene level
+
+::: {.callout-note}
+Guide counts aggregated to genes (sum of targeting guides per gene). Controls are excluded.
+:::
+
+```{r gene-level}
+#| echo: false
+keep <- !isControl
+geneCounts <- rowsum(counts[keep, , drop = FALSE], group = gene[keep])
+geneNorm   <- sweep(geneCounts, 2, normFactors, "/")
+geneLog    <- log2(geneNorm + bg)
+gRep <- data.frame(
+  Sample = samples, Condition = conds,
+  `Genes` = nrow(geneCounts),
+  `Detected (%)` = sprintf("%.1f", 100 * colMeans(geneCounts > 0)),
+  `Gini` = sprintf("%.3f", apply(geneCounts, 2, .gini)),
+  check.names = FALSE)
+.dt(gRep, caption = "Per-sample gene-level representation.")
+```
+
+```{r gene-lorenz}
+#| echo: false
+#| fig-width: 7
+#| fig-height: 4.5
+#| out-width: "70%"
+#| fig-cap: "Gene-level Lorenz curves (summed guide counts per gene)."
+glor <- do.call(rbind, lapply(seq_len(nSamp), function(j) {
+  d <- .lorenz(geneCounts[, j]); d$Sample <- samples[j]; d
+}))
+ggplot(glor, aes(p, L, colour = Sample)) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "grey60") +
+  geom_line(linewidth = 0.7) +
+  scale_colour_manual(values = rep(.cvd, length.out = nSamp)) +
+  labs(x = "Cumulative fraction of genes", y = "Cumulative fraction of reads")
+```
+
+```{r gene-clustering}
+#| echo: false
+#| eval: !expr "nSamp >= 3"
+#| fig-width: !expr "max(6, min(14, 4 + 0.4 * nSamp))"
+#| fig-height: 5
+#| out-width: "80%"
+#| fig-cap: "Gene-level sample clustering (Ward D2, 1 − Pearson)."
+d  <- as.dist(1 - cor(geneLog, use = "complete.obs"))
+hc <- hclust(d, method = "ward.D2")
+op <- par(mar = c(7, 4, 3, 1)); plot(hc, main = "Gene-level sample clustering", xlab = "", sub = ""); par(op)
+```
+
+# Data & Session
+
+```{r write-data}
+#| include: false
+outDir <- "."
+sgFile <- "sgRNA_counts.xlsx"; geFile <- "gene_counts.xlsx"
+sgOut <- data.frame(sgRNA = rownames(counts), Gene = gene, isControl = isControl,
+                    counts, check.names = FALSE)
+geOut <- data.frame(Gene = rownames(geneCounts), geneCounts, check.names = FALSE)
+writexl::write_xlsx(sgOut, file.path(outDir, sgFile))
+writexl::write_xlsx(geOut, file.path(outDir, geFile))
+```
+
+Raw count tables: [`r sgFile`](`r sgFile`){target="_blank"} (sgRNA level) ·
+[`r geFile`](`r geFile`){target="_blank"} (gene level).
+
+**Rendered:** `r .fgcz_rendered` by `r .fgcz_user`.
+`r if (nzchar(params$project)) paste0("Project: ", params$project, ".")` `r if (nzchar(params$order)) paste0("Order: ", params$order, ".")`
+
+```{r session}
+#| echo: false
+ezSessionInfo()
+```
+
+:::
