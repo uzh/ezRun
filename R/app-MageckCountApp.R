@@ -7,7 +7,7 @@
 
 ezMethodMageckCount <- function(input, output, param) {
   require(Herper)
-  local_CondaEnv("gi_mageck", pathToMiniConda = "/usr/local/ngseq/miniforge3")
+  local_CondaEnv("gi_mageck2", pathToMiniConda = "/usr/local/ngseq/miniforge3")
   sampleName <- input$getNames()
   inputFile <- input$getFullPaths("Read1")
 
@@ -28,7 +28,7 @@ ezMethodMageckCount <- function(input, output, param) {
   ## a non-zero exit stops the job (raw system2 does not) and the cmd is logged.
   hasCtrl <- length(param[['ctrlFile']]) == 1L && nzchar(param[['ctrlFile']])
   cmd <- paste(
-    "mageck count",
+    "mageck2 count",
     "-l",
     shQuote(param[['dictFile']]),
     if (hasCtrl) paste("--control-sgrna", shQuote(param[['ctrlFile']])) else "",
@@ -44,7 +44,7 @@ ezMethodMageckCount <- function(input, output, param) {
   countFile <- paste0(sampleName, ".count.txt")
   summaryFile <- paste0(sampleName, ".countsummary.txt")
   if (!file.exists(countFile)) {
-    stop("mageck count did not produce the expected count file: ", countFile)
+    stop("mageck2 count did not produce the expected count file: ", countFile)
   }
 
   ## Per-sample count QC report from the countsummary mageck already writes
@@ -209,7 +209,7 @@ EzAppMageckCount <-
           cmdOptions = ezFrame(
             Type = "character",
             DefaultValue = "",
-            Description = "additional command line options passed to 'mageck count' (e.g. --sgrna-len, --count-n, --list-seq)"
+            Description = "additional command line options passed to 'mageck2 count' (e.g. --sgrna-len, --count-n, --list-seq)"
           )
         )
       }

@@ -55,7 +55,7 @@ ezMethodMageckTest = function(input = NA, output = NA, param = NA) {
   )
 
   # Load the conda environment
-  local_CondaEnv("gi_mageck", pathToMiniConda = "/usr/local/ngseq/miniforge3")
+  local_CondaEnv("gi_mageck2", pathToMiniConda = "/usr/local/ngseq/miniforge3")
 
   ctrlFile <- list.files(
     param$libName,
@@ -80,7 +80,7 @@ ezMethodMageckTest = function(input = NA, output = NA, param = NA) {
     opt <- c(opt, "--gene-lfc-method", param$geneLFCMethod)
   }
   # Execute the command
-  system2("mageck", args = opt)
+  system2("mageck2", args = opt)
 
   geneSummaryFile <- paste0(outputPrefix, ".gene_summary.txt")
   sgrnaSummaryFile <- paste0(outputPrefix, ".sgrna_summary.txt")
@@ -144,6 +144,11 @@ ezMethodMageckTest = function(input = NA, output = NA, param = NA) {
       nonDay0 <- setdiff(unique(cond), day0)
       dm <- data.frame(Samples = sampleNames, baseline = 1L, check.names = FALSE)
       for (cc in nonDay0) dm[[safe(cc)]] <- as.integer(cond == cc)
+      ## MAGeCK2 requires the FIRST design-matrix row to be a baseline sample
+      ## (all-zero condition columns); reorder day0 rows to the top. Rows are
+      ## name-matched to the count columns via the Samples column, so reordering
+      ## is safe.
+      dm <- dm[order(cond != day0), , drop = FALSE]
       designFile <- file.path(param$comparison, "mle_design.txt")
       ezWrite.table(dm, designFile, row.names = FALSE)
       mlePrefix <- file.path(param$comparison, paste0(output$getNames(), "_mle"))
@@ -151,7 +156,7 @@ ezMethodMageckTest = function(input = NA, output = NA, param = NA) {
       if (length(ctrlFile) == 1L && param$useControls) {
         mleOpt <- c(mleOpt, "--control-sgrna", ctrlFile)
       }
-      system2("mageck", args = mleOpt)
+      system2("mageck2", args = mleOpt)
       mleFile <- paste0(mlePrefix, ".gene_summary.txt")
       if (file.exists(mleFile)) {
         mleGeneRes <- ezRead.table(mleFile, row.names = NULL)
