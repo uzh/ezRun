@@ -68,6 +68,8 @@ param    <- .fgcz_load("param")
 mleGeneRes <- tryCatch(.fgcz_load("mleGeneRes"), error = function(e) NULL)
 mleAxes    <- tryCatch(.fgcz_load("mleAxes"),    error = function(e) NULL)
 hasMLE     <- !is.null(mleGeneRes) && !is.null(mleAxes)
+ccrInfo    <- tryCatch(.fgcz_load("ccrInfo"), error = function(e) NULL)
+hasCCR     <- !is.null(ccrInfo)
 
 id      <- as.character(geneRes$id)
 lfc     <- geneRes[["neg|lfc"]]                 # gene LFC (neg|lfc == pos|lfc)
@@ -252,6 +254,91 @@ qq <- ggplot(data.frame(exp, obs), aes(exp, obs)) +
   geom_point(size = 0.5, colour = .cvd[1]) +
   labs(title = "Gene p-value QQ (neg)", x = expression(-log[10]~expected), y = expression(-log[10]~observed))
 gg + qq
+```
+
+# CN correction (CRISPRcleanR)
+
+::: {.callout-note}
+**Copy-number-bias correction.** In CN-amplified regions Cas9 cuts many times, so
+guides there deplete regardless of gene function — false depletion clustered by
+locus. CRISPRcleanR segments guides along the genome and flattens biased segments,
+and the hit-calling tabs then use the **corrected** counts. Most valuable for
+**fitness/dropout** screens in aneuploid lines; for **positive-selection/resistance**
+screens it targets a bias that may not dominate — judge by the before/after below.
+:::
+
+```{r ccr-skip}
+#| echo: false
+#| results: asis
+if (!hasCCR) {
+  cat("CRISPRcleanR correction was **not applied** (enable `useCRISPRcleanR`; human screens with a coordinate-annotated library). The other tabs use the raw counts.\n")
+}
+```
+
+```{r ccr-summary}
+#| echo: false
+#| eval: !expr "hasCCR"
+st <- data.frame(
+  Item = c("Annotation source", "Baseline (control)", "Control replicates",
+           "sgRNAs analysed", "CBS segments", "Guides adjusted"),
+  Value = c(ccrInfo$annotationSource, ccrInfo$baseline, ccrInfo$ncontrols,
+            ccrInfo$nGuides, ccrInfo$nSegments, ccrInfo$nGuidesCorrected),
+  check.names = FALSE)
+knitr::kable(st, caption = "CRISPRcleanR correction summary")
+```
+
+```{r ccr-roc}
+#| echo: false
+#| eval: !expr "hasCCR"
+#| fig-width: 9
+#| fig-height: 4.2
+#| out-width: "95%"
+#| fig-cap: "Left: essential-gene recovery (ROC) before vs after correction. Right: per-gene mean logFC, raw vs corrected — points off the diagonal were moved by CN correction."
+library(patchwork)
+gU  <- toupper(trimws(names(ccrInfo$rawGeneFC)))
+cls <- ifelse(gU %in% essSet, "essential", ifelse(gU %in% negSet, "non-essential", "other"))
+sel <- cls %in% c("essential", "non-essential"); isE <- cls[sel] == "essential"
+rawSc  <- -as.numeric(ccrInfo$rawGeneFC)[sel]
+corrSc <- -as.numeric(ccrInfo$corrGeneFC)[sel]
+aucRaw <- .auc(rawSc, isE); aucCorr <- .auc(corrSc, isE)
+rocData <- function(score, isPos, lab) {
+  thr <- sort(unique(score), decreasing = TRUE)
+  d <- data.frame(FPR = sapply(thr, function(t) mean(score[!isPos] >= t)),
+                  TPR = sapply(thr, function(t) mean(score[isPos]  >= t)))
+  rbind(data.frame(FPR = 0, TPR = 0), d, data.frame(FPR = 1, TPR = 1)) -> d
+  d$set <- lab; d
+}
+roc <- rbind(rocData(rawSc, isE, sprintf("raw (AUC=%.3f)", aucRaw)),
+             rocData(corrSc, isE, sprintf("corrected (AUC=%.3f)", aucCorr)))
+p1 <- ggplot(roc, aes(FPR, TPR, colour = set)) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "grey60") +
+  geom_line(linewidth = 0.8) +
+  scale_colour_manual(values = c(.cvd[1], .cvd[6]), name = NULL) +
+  labs(title = "Essential-gene ROC", x = "FPR (non-essential)", y = "TPR (essential)") +
+  theme(legend.position = "bottom", plot.title = element_text(size = 11))
+sc <- data.frame(raw = as.numeric(ccrInfo$rawGeneFC), corr = as.numeric(ccrInfo$corrGeneFC), cls = cls)
+p2 <- ggplot(sc, aes(raw, corr, colour = cls)) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "grey60") +
+  geom_point(size = 0.6, alpha = 0.5) +
+  scale_colour_manual(values = c(essential = .cvd[6], `non-essential` = .cvd[1], other = "grey75"), name = NULL) +
+  labs(title = "Gene logFC: raw vs corrected", x = "raw mean logFC", y = "corrected mean logFC") +
+  theme(legend.position = "bottom", plot.title = element_text(size = 11))
+(p1 | p2)
+```
+
+```{r ccr-interp}
+#| echo: false
+#| eval: !expr "hasCCR"
+#| results: asis
+d <- aucCorr - aucRaw
+msg <- if (d > 0.02) {
+  sprintf("Correction **improved** essential-gene separation (AUC %.3f → %.3f) — consistent with removing copy-number artifacts.", aucRaw, aucCorr)
+} else if (d < -0.02) {
+  sprintf("Correction **reduced** essential-gene separation (AUC %.3f → %.3f). Expected for a positive-selection/resistance screen — CN correction targets depletion artifacts; interpret corrected hits accordingly.", aucRaw, aucCorr)
+} else {
+  sprintf("Correction changed essential-gene separation little (AUC %.3f → %.3f), suggesting limited copy-number bias in this screen.", aucRaw, aucCorr)
+}
+cat(sprintf("::: {.callout-note}\n%s\n:::\n", msg))
 ```
 
 # Gene results
