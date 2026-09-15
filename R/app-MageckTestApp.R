@@ -1,9 +1,6 @@
 ezMethodMageckTest = function(input = NA, output = NA, param = NA) {
   require(Herper)
   require(stringr)
-  require(MAGeCKFlute)
-  require(clusterProfiler)
-  require(ggplot2)
   require(limma)
 
   # Loading the variables
@@ -34,7 +31,6 @@ ezMethodMageckTest = function(input = NA, output = NA, param = NA) {
   # We give the design of the experiment as indices corresponding to the
   # columns (skipping the first 2 positions) which are sample vs ref groups
   fullColumnName <- paste(param$grouping, "[Factor]")
-  #which(input$getColumn(param$grouping) == param$refGroup)-1
   rId <- paste(
     which(dataset[[fullColumnName]] == param$refGroup) - 1,
     collapse = ","
@@ -86,15 +82,20 @@ ezMethodMageckTest = function(input = NA, output = NA, param = NA) {
   # Execute the command
   system2("mageck", args = opt)
 
-  # add official gene symbol to gene_summary file for human samples
-  if (param$species %in% c('hsa', 'mmu')) {
-    dat <- ezRead.table(
-      file.path(
-        param$comparison,
-        paste0(param$comparison, '.gene_summary.txt')
-      ),
-      row.names = NULL
+  geneSummaryFile <- paste0(outputPrefix, ".gene_summary.txt")
+  sgrnaSummaryFile <- paste0(outputPrefix, ".sgrna_summary.txt")
+  if (!file.exists(geneSummaryFile) || !file.exists(sgrnaSummaryFile)) {
+    stop(
+      "mageck test did not produce the expected summary files:\n",
+      geneSummaryFile,
+      "\n",
+      sgrnaSummaryFile
     )
+  }
+
+  # add official gene symbol to gene_summary file for human/mouse samples
+  if (param$species %in% c('hsa', 'mmu')) {
+    dat <- ezRead.table(geneSummaryFile, row.names = NULL)
     dat[['GeneSymbol_Addgene']] = dat[['id']]
     for (j in 1:nrow(dat)) {
       gene <- c()
@@ -108,14 +109,7 @@ ezMethodMageckTest = function(input = NA, output = NA, param = NA) {
       }
     }
     dat <- dat[!duplicated(dat$id), ]
-    ezWrite.table(
-      dat,
-      file.path(
-        param$comparison,
-        paste0(param$comparison, '.gene_summary.txt')
-      ),
-      row.names = FALSE
-    )
+    ezWrite.table(dat, geneSummaryFile, row.names = FALSE)
   }
 
   # We convert the raw outputs to xlsx files
@@ -127,32 +121,60 @@ ezMethodMageckTest = function(input = NA, output = NA, param = NA) {
     writexl::write_xlsx(dat, paste0(outputPrefix, fileComp, ".xlsx"))
   })
 
-  #run MAGECK FLUTE
-  setwd(param$comparison)
-  file1 = paste0(param$comparison, '.gene_summary.txt')
-  file2 = paste0(param$comparison, '.sgrna_summary.txt')
+  # Read the (symbol-annotated) results for the report
+  geneRes <- ezRead.table(geneSummaryFile, row.names = NULL)
+  sgrnaRes <- ezRead.table(sgrnaSummaryFile, row.names = NULL)
 
-  out <- tryCatch(
-    FluteRRA(
-      file1,
-      file2,
-      proj = "output",
-      organism = param$species,
-      outdir = "./",
-      omitEssential = FALSE
-    ),
-    error = function(e) {
-      ezLog('Error in running MAGECK FLUTE', level = 'error')
-      return(NULL)
+  # Optional MAGeCK MLE for the cross-condition nine-square (SquareView).
+  # RRA gives a single pairwise contrast; the nine-square needs comparable
+  # per-condition effect sizes (beta scores) relative to a shared baseline, which
+  # is exactly what MLE estimates. Only runs when a day0/baseline condition is set.
+  mleGeneRes <- NULL
+  mleAxes <- NULL
+  if (ezIsSpecified(param$day0Label)) {
+    cond <- dataset[[fullColumnName]] # per-sample condition, in count-column order
+    day0 <- param$day0Label
+    safe <- function(x) gsub("[^A-Za-z0-9_]", "_", x)
+    if (!(day0 %in% cond)) {
+      ezLog(paste0(
+        "day0Label '", day0, "' not found among '", param$grouping,
+        "' values; skipping MLE nine-square."
+      ))
+    } else {
+      nonDay0 <- setdiff(unique(cond), day0)
+      dm <- data.frame(Samples = sampleNames, baseline = 1L, check.names = FALSE)
+      for (cc in nonDay0) dm[[safe(cc)]] <- as.integer(cond == cc)
+      designFile <- file.path(param$comparison, "mle_design.txt")
+      ezWrite.table(dm, designFile, row.names = FALSE)
+      mlePrefix <- file.path(param$comparison, paste0(output$getNames(), "_mle"))
+      mleOpt <- c("mle", "-k", mergedCountFileLoc, "-d", designFile, "-n", mlePrefix)
+      if (length(ctrlFile) == 1L && param$useControls) {
+        mleOpt <- c(mleOpt, "--control-sgrna", ctrlFile)
+      }
+      system2("mageck", args = mleOpt)
+      mleFile <- paste0(mlePrefix, ".gene_summary.txt")
+      if (file.exists(mleFile)) {
+        mleGeneRes <- ezRead.table(mleFile, row.names = NULL)
+        # Nine-square axes: the two contrast conditions, each vs the day0 baseline.
+        mleAxes <- list(ctrl = safe(param$refGroup), treat = safe(param$sampleGroup))
+      } else {
+        ezLog("MAGeCK MLE did not produce a gene_summary; skipping nine-square.")
+      }
     }
-  )
+  }
 
-  saveRDS(param, 'param.rds')
-  makeRmdReport(
+  # The report is rendered inside the comparison folder (00index.html + xlsx links).
+  setwd(param$comparison)
+  makeQuartoReport(
+    geneRes = geneRes,
+    sgrnaRes = sgrnaRes,
+    mleGeneRes = mleGeneRes,
+    mleAxes = mleAxes,
     param = param,
     output = output,
-    rmdFile = "MageckTest.Rmd",
-    reportTitle = paste0(param$name)
+    qmdFile = "MageckTest.qmd",
+    reportTitle = param$comparison,
+    number = TRUE
   )
   return("Success")
 }
@@ -166,14 +188,18 @@ EzAppMageckTest <-
     "EzAppMageckTest",
     contains = "EzApp",
     methods = list(
-      ## mageck test and MAGeCKFlute (which internally uses clusterProfiler)
-      ## unconditional. limma::alias2Symbol gated on species being hsa/mmu.
-      ## EnhancedVolcano deliberately excluded: no dedicated paper, pure plotting.
+      ## mageck test unconditional. limma::alias2Symbol gated on species hsa/mmu.
+      ## Downstream biology (essential-gene QC via bundled CEGv2/NEGv1, GO/KEGG
+      ## over-representation, MSigDB GSEA, KEGG pathview) runs in MageckTest.qmd,
+      ## not here. MAGeCKFlute intentionally NOT used: its useful outputs (RankView,
+      ## essential-gene depletion, enrichment) are reproduced natively for styling
+      ## control + CVD-safe palettes; FluteRRA is a validation-only reference.
       citation = function() {
         c(
           "Li, W. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biology 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4",
-          "Wang, B. et al. Integrative analysis of pooled CRISPR genetic screens using MAGeCKFlute. Nature Protocols 14, 756-780 (2019). https://doi.org/10.1038/s41596-018-0113-7",
           "Wu, T. et al. clusterProfiler 4.0: A universal enrichment tool for interpreting omics data. The Innovation 2(3), 100141 (2021). https://doi.org/10.1016/j.xinn.2021.100141",
+          "Korotkevich, G. et al. Fast gene set enrichment analysis. bioRxiv (2021). https://doi.org/10.1101/060012",
+          "Hart, T. et al. Evaluation and Design of Genome-Wide CRISPR/SpCas9 Knockout Screens. G3 7(8), 2719-2727 (2017). https://doi.org/10.1534/g3.117.041277",
           "Ritchie, M.E. et al. limma powers differential expression analyses for RNA-sequencing and microarray studies. Nucleic Acids Research 43(7), e47 (2015). https://doi.org/10.1093/nar/gkv007"
         )
       },
@@ -201,6 +227,41 @@ EzAppMageckTest <-
             Type = "logical",
             DefaultValue = TRUE,
             Description = "Use control sgRNAs"
+          ),
+          fdrThreshold = ezFrame(
+            Type = "numeric",
+            DefaultValue = 0.05,
+            Description = "FDR cutoff for calling gene hits and labelling plots"
+          ),
+          nTopGenes = ezFrame(
+            Type = "numeric",
+            DefaultValue = 15,
+            Description = "number of top genes per direction to label in plots"
+          ),
+          runEnrichment = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "run GO/KEGG over-representation on the hit sets"
+          ),
+          runGSEA = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "run MSigDB Hallmark/C2 GSEA on the ranked gene list"
+          ),
+          runPathview = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "draw KEGG pathview maps for top pathways (needs KEGG network access)"
+          ),
+          positiveControlGenes = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "optional comma-separated known positive-control genes to highlight"
+          ),
+          day0Label = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "baseline/day0 condition (plasmid/T0) enabling the MAGeCK MLE cross-condition nine-square (SquareView); empty = RRA test only"
           )
         )
       }

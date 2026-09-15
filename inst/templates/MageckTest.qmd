@@ -1,0 +1,593 @@
+---
+params:
+  reportTitle: "MAGeCK Test"
+  project: ""
+  order: ""
+title: "`r params$reportTitle`"
+---
+
+<!-- Styling comes from the fgczQuartoTemplate assets staged next to this file by
+     ezRun::makeQuartoReport() -> fgczQuartoTemplate::fgcz_render(); no format:
+     block here. Per-chunk echo/include options control code display (the
+     doc-level execute: block does not propagate through fgcz_render). -->
+
+```{r setup}
+#| include: false
+library(ezRun)
+library(ggplot2)
+library(knitr)
+library(DT)
+library(scales)
+
+.fgcz_load <- function(name, nthreads = 4L) {
+  paths <- c(file.path("data", paste0(name, ".qs2")), paste0(name, ".qs2"),
+             file.path("data", paste0(name, ".rds")), paste0(name, ".rds"))
+  for (p in paths) {
+    if (file.exists(p)) {
+      if (grepl("\\.qs2$", p)) return(qs2::qs_read(p, nthreads = nthreads))
+      return(readRDS(p))
+    }
+  }
+  stop("No .qs2 or .rds file found for: ", name)
+}
+.dt <- function(df, caption = NULL, pageLength = 15L, filter = "top",
+                rownames = FALSE, escape = TRUE, ...) {
+  DT::datatable(df, caption = caption, filter = filter, rownames = rownames,
+    escape = escape, class = "compact stripe",
+    options = list(pageLength = pageLength, scrollX = TRUE, dom = "ftip",
+      columnDefs = list(list(targets = "_all", className = "dt-left"))), ...)
+}
+## Colourblind-safe palette (Okabe-Ito; report author has red-green CVD)
+.cvd <- c("#0072B2", "#E69F00", "#009E73", "#CC79A7",
+          "#56B4E9", "#D55E00", "#F0E442", "#000000")
+## Mann-Whitney AUC: P(score of a positive > score of a negative)
+.auc <- function(score, isPos) {
+  isPos <- isPos[!is.na(score)]; score <- score[!is.na(score)]
+  np <- sum(isPos); nn <- sum(!isPos)
+  if (np == 0 || nn == 0) return(NA_real_)
+  (sum(rank(score)[isPos]) - np * (np + 1) / 2) / (np * nn)
+}
+.readSet <- function(f) {
+  p <- system.file(file.path("extdata/crispr", f), package = "ezRun")
+  if (!nzchar(p) || !file.exists(p)) return(character(0))
+  d <- try(read.delim(p, stringsAsFactors = FALSE), silent = TRUE)
+  if (inherits(d, "try-error") || !nrow(d)) return(character(0))
+  toupper(trimws(d[[1]]))
+}
+`%||%` <- function(a, b) if (is.null(a) || !length(a) || !nzchar(as.character(a)[1])) b else a
+theme_set(theme_bw(base_size = 12))
+```
+
+```{r load}
+#| include: false
+geneRes  <- .fgcz_load("geneRes")
+sgrnaRes <- .fgcz_load("sgrnaRes")
+param    <- .fgcz_load("param")
+## MLE results for the nine-square are only present when day0Label was set
+## (makeQuartoReport skips NULL args, so the .qs2 may be absent).
+mleGeneRes <- tryCatch(.fgcz_load("mleGeneRes"), error = function(e) NULL)
+mleAxes    <- tryCatch(.fgcz_load("mleAxes"),    error = function(e) NULL)
+hasMLE     <- !is.null(mleGeneRes) && !is.null(mleAxes)
+
+id      <- as.character(geneRes$id)
+lfc     <- geneRes[["neg|lfc"]]                 # gene LFC (neg|lfc == pos|lfc)
+negFdr  <- geneRes[["neg|fdr"]];   posFdr  <- geneRes[["pos|fdr"]]
+negP    <- geneRes[["neg|p-value"]]; posP  <- geneRes[["pos|p-value"]]
+negScore<- geneRes[["neg|score"]]; posScore<- geneRes[["pos|score"]]
+numG    <- geneRes[["num"]]
+negGood <- geneRes[["neg|goodsgrna"]]; posGood <- geneRes[["pos|goodsgrna"]]
+
+thr  <- suppressWarnings(as.numeric(param$fdrThreshold)); if (is.na(thr)) thr <- 0.05
+nTop <- suppressWarnings(as.integer(param$nTopGenes));   if (is.na(nTop)) nTop <- 15L
+
+## Directional FDR / p (of the selection direction matching the LFC sign).
+dirFdr <- ifelse(lfc < 0, negFdr, posFdr)
+dirP   <- ifelse(lfc < 0, negP, posP)
+isNegHit <- negFdr < thr
+isPosHit <- posFdr < thr
+hitClass <- ifelse(isNegHit, "depleted", ifelse(isPosHit, "enriched", "n.s."))
+
+## Essential / non-essential reference classes (Hart CEGv2 / NEGv1).
+essSet <- .readSet("CEGv2.txt"); negSet <- .readSet("NEGv1.txt")
+geneU  <- toupper(trimws(id))
+geneClass <- ifelse(geneU %in% essSet, "essential",
+              ifelse(geneU %in% negSet, "non-essential", "other"))
+
+## Species -> annotation resources.
+sp    <- if (!is.null(param$species)) param$species else "hsa"
+orgdb <- if (sp == "mmu") "org.Mm.eg.db" else "org.Hs.eg.db"
+kegg  <- if (sp == "mmu") "mmu" else "hsa"
+msigSp<- if (sp == "mmu") "Mus musculus" else "Homo sapiens"
+
+runEnrichment <- isTRUE(as.logical(param$runEnrichment))
+runGSEA       <- isTRUE(as.logical(param$runGSEA))
+runPathview   <- isTRUE(as.logical(param$runPathview))
+posCtrl <- trimws(unlist(strsplit(as.character(param$positiveControlGenes %||% ""), "[,; ]+")))
+posCtrl <- posCtrl[nzchar(posCtrl)]
+
+## Ranked gene list for GSEA (finite; p floored so -log10 stays finite).
+pFloor <- max(min(c(negP, posP)[c(negP, posP) > 0], na.rm = TRUE), 1e-300)
+ranks  <- sign(lfc) * -log10(pmax(dirP, pFloor))
+names(ranks) <- id
+ranks  <- ranks[is.finite(ranks) & !is.na(names(ranks)) & !duplicated(names(ranks))]
+ranks  <- sort(ranks, decreasing = TRUE)
+```
+
+```{r provenance}
+#| include: false
+.fgcz_rendered <- format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+.fgcz_user <- unname(Sys.info()[["user"]]); if (!nzchar(.fgcz_user %||% "")) .fgcz_user <- Sys.getenv("USER", "unknown")
+```
+
+::: {.panel-tabset}
+
+# Overview
+
+::: {.callout-note title="What this report is"}
+**MAGeCK test** compares sgRNA abundance between two groups and ranks genes by
+consistent change across their guides (Robust Rank Aggregation). This contrast is
+**`r param$sampleGroup`** vs **`r param$refGroup`**:
+
+- **Negative selection (depleted)** — guides *lost* in `r param$sampleGroup`
+  (e.g. genes required for growth/the phenotype).
+- **Positive selection (enriched)** — guides *gained* (e.g. genes whose loss
+  confers an advantage/resistance).
+
+Each gene has one log2 fold-change and a separate FDR for each direction.
+:::
+
+```{r overview-tab}
+#| echo: false
+info <- data.frame(
+  Item = c("Comparison", "Treatment group (sampleGroup)", "Reference group (refGroup)",
+           "Species", "Normalisation", "Gene-LFC method", "Control sgRNAs used",
+           "Genes tested", "FDR threshold",
+           "Depleted genes (neg)", "Enriched genes (pos)"),
+  Value = c(param$comparison, param$sampleGroup, param$refGroup, sp,
+            param$normalizationMethod, param$geneLFCMethod, as.character(isTRUE(as.logical(param$useControls))),
+            nrow(geneRes), thr, sum(isNegHit, na.rm = TRUE), sum(isPosHit, na.rm = TRUE)),
+  check.names = FALSE)
+knitr::kable(info)
+```
+
+```{r overview-hitcallout}
+#| echo: false
+#| results: asis
+if (sum(isNegHit, na.rm = TRUE) + sum(isPosHit, na.rm = TRUE) == 0) {
+  cat("::: {.callout-warning}\n",
+      sprintf("No gene passes FDR < %.2g in either direction. With few replicates MAGeCK's permutation FDR is coarse; use the **rank plot** and **GSEA** (which need no cutoff) and treat individual gene calls cautiously.\n", thr),
+      ":::\n", sep = "")
+}
+```
+
+# Screen QC
+
+::: {.callout-note}
+Two screen types read this tab differently:
+
+- **Fitness / dropout screens** (reference = an early / T0 / plasmid sample): known
+  **core-essential** genes (Hart CEGv2) should be **depleted** vs **non-essential**
+  genes (NEGv1) — a high essential-gene AUC is the quality signal, and control guides
+  should sit near LFC 0.
+- **Selection / resistance screens** (treatment vs treatment, e.g. survival after a
+  challenge): the biology lives in the **enriched** hits; strong selection bottlenecks
+  the population, so control guides and essentials can shift together and the
+  essential-depletion AUC is *not* a meaningful quality axis.
+
+The panels below are annotated with which case the numbers suggest.
+:::
+
+```{r qc-essential}
+#| echo: false
+#| fig-width: 9
+#| fig-height: 4
+#| out-width: "95%"
+#| fig-cap: "Left: gene LFC by class — essentials should sit left (depleted). Right: ROC for recovering essential genes among depleted, with AUC."
+library(patchwork)
+dfc <- data.frame(lfc = lfc, class = geneClass)
+dfc <- dfc[dfc$class != "other", ]
+p1 <- ggplot(dfc, aes(lfc, fill = class)) +
+  geom_density(alpha = 0.6) + geom_vline(xintercept = 0, linetype = 2, colour = "grey50") +
+  scale_fill_manual(values = c(essential = .cvd[6], `non-essential` = .cvd[1]), name = NULL) +
+  labs(x = "gene log2 fold change", y = "density", title = "Essential vs non-essential")
+
+sel <- geneClass %in% c("essential", "non-essential")
+depScore <- -lfc                                  # higher = more depleted
+isEss <- geneClass[sel] == "essential"
+sc <- depScore[sel]
+auc <- .auc(sc, isEss)
+thrs <- sort(unique(sc), decreasing = TRUE)
+roc <- data.frame(
+  FPR = sapply(thrs, function(t) mean(sc[!isEss] >= t)),
+  TPR = sapply(thrs, function(t) mean(sc[isEss]  >= t)))
+roc <- rbind(data.frame(FPR = 0, TPR = 0), roc, data.frame(FPR = 1, TPR = 1))
+p2 <- ggplot(roc, aes(FPR, TPR)) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "grey60") +
+  geom_line(colour = .cvd[1], linewidth = 0.8) +
+  labs(title = "Essential-gene ROC", subtitle = sprintf("AUC = %.3f", auc),
+       x = "FPR (non-essential)", y = "TPR (essential)")
+(p1 + p2) & theme(plot.title = element_text(size = 11),
+                  plot.subtitle = element_text(size = 10))
+```
+
+```{r qc-essential-interp}
+#| echo: false
+#| results: asis
+ctrlMed <- {
+  ic <- grepl("non.?targeting|safe.?harbor|^control", sgrnaRes$Gene, ignore.case = TRUE)
+  if (any(ic)) stats::median(sgrnaRes$LFC[ic], na.rm = TRUE) else NA_real_
+}
+msg <- if (is.na(auc)) {
+  "Essential/non-essential gene sets could not be matched (check species / symbols)."
+} else if (auc >= 0.65) {
+  sprintf("**Essential AUC = %.3f** — core-essential genes are clearly depleted. Consistent with a **fitness/dropout screen** (reference is an early/T0/plasmid sample); the depletion axis is a valid quality signal here.", auc)
+} else if (auc <= 0.4) {
+  sprintf("**Essential AUC = %.3f** — core-essential genes are *not* the depleted class (they are relatively retained). Expected when the contrast is **not** against an early/T0 baseline, e.g. a **positive-selection/resistance screen**%s. Judge this screen by its **enriched** hits, not essential depletion.", auc,
+          if (!is.na(ctrlMed) && abs(ctrlMed) > 1) sprintf(" — and the control-guide median LFC of %.1f indicates a strong selection bottleneck", ctrlMed) else "")
+} else {
+  sprintf("**Essential AUC = %.3f** — essential and non-essential genes barely separate on depletion, as expected for a treatment-vs-treatment contrast; the essential-depletion axis is uninformative for this design.", auc)
+}
+cat("::: {.callout-", if (!is.na(auc) && auc >= 0.65) "note" else "warning", "}\n", msg, "\n:::\n", sep = "")
+```
+
+```{r qc-controls}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 3.6
+#| out-width: "85%"
+#| fig-cap: "Control-guide sgRNA LFCs (centre near 0 in a balanced screen; a large shift signals a strong selection bottleneck, not necessarily an error) and gene p-value QQ (tracks the diagonal under the null; upward departure at the left = real signal)."
+isCtrl <- grepl("non.?targeting|safe.?harbor|^control", sgrnaRes$Gene, ignore.case = TRUE)
+gg <- if (any(isCtrl)) {
+  ggplot(data.frame(LFC = sgrnaRes$LFC[isCtrl]), aes(LFC)) +
+    geom_histogram(bins = 60, fill = .cvd[1], alpha = 0.85) +
+    geom_vline(xintercept = 0, linetype = 2, colour = .cvd[6]) +
+    labs(title = sprintf("Control sgRNA LFC (n=%d)", sum(isCtrl)), x = "sgRNA log2 FC", y = "count")
+} else {
+  ggplot() + annotate("text", 0, 0, label = "no control guides detected") + theme_void()
+}
+obs <- -log10(sort(negP[!is.na(negP) & negP > 0]))
+exp <- -log10(ppoints(length(obs)))
+qq <- ggplot(data.frame(exp, obs), aes(exp, obs)) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "grey60") +
+  geom_point(size = 0.5, colour = .cvd[1]) +
+  labs(title = "Gene p-value QQ (neg)", x = expression(-log[10]~expected), y = expression(-log[10]~observed))
+gg + qq
+```
+
+# Gene results
+
+::: {.callout-note}
+Genes ranked by consistent depletion/enrichment. The **volcano** shows effect size
+vs significance; the **rank plot** orders genes by fold-change with the strongest
+hits at each end. Tables list genes passing FDR < `r thr` per direction.
+:::
+
+```{r gene-volcano}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 6
+#| out-width: "80%"
+#| fig-cap: "Gene volcano: log2 fold change vs −log10 FDR of the matching direction. Top genes are labelled; known controls (if given) are marked."
+library(ggrepel)
+dv <- data.frame(id = id, lfc = lfc, y = -log10(pmax(dirFdr, 1e-300)), hit = hitClass,
+                 stringsAsFactors = FALSE)
+lab <- rbind(
+  head(dv[order(negFdr, lfc), ], nTop),
+  head(dv[order(posFdr, -lfc), ], nTop))
+ggplot(dv, aes(lfc, y, colour = hit)) +
+  geom_point(size = 0.7, alpha = 0.6) +
+  scale_colour_manual(values = c(depleted = .cvd[1], enriched = .cvd[6], n.s. = "grey70"), name = NULL) +
+  ggrepel::geom_text_repel(data = lab, aes(label = id), size = 3, max.overlaps = 20, show.legend = FALSE) +
+  geom_hline(yintercept = -log10(thr), linetype = 2, colour = "grey50") +
+  labs(x = "gene log2 fold change", y = expression(-log[10]~FDR~(direction)))
+```
+
+```{r gene-rank}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 5
+#| out-width: "80%"
+#| fig-cap: "Rank plot (RankView): genes ordered by log2 fold change. Extremes are the strongest depleted (left) / enriched (right) hits."
+dr <- data.frame(id = id, lfc = lfc, hit = hitClass)
+dr <- dr[order(dr$lfc), ]; dr$rank <- seq_len(nrow(dr))
+labR <- rbind(head(dr, nTop), tail(dr, nTop))
+ggplot(dr, aes(rank, lfc, colour = hit)) +
+  geom_point(size = 0.6, alpha = 0.6) +
+  scale_colour_manual(values = c(depleted = .cvd[1], enriched = .cvd[6], n.s. = "grey70"), name = NULL) +
+  ggrepel::geom_text_repel(data = labR, aes(label = id), size = 3, max.overlaps = 30, show.legend = FALSE) +
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
+  labs(x = "gene rank (by log2 FC)", y = "gene log2 fold change")
+```
+
+```{r gene-table}
+#| echo: false
+gt <- data.frame(
+  Gene = id, Guides = numG, LFC = round(lfc, 3),
+  `neg score` = signif(negScore, 3), `neg FDR` = signif(negFdr, 3), `neg goodGuides` = negGood,
+  `pos score` = signif(posScore, 3), `pos FDR` = signif(posFdr, 3), `pos goodGuides` = posGood,
+  Class = geneClass, check.names = FALSE)
+gt <- gt[order(pmin(negFdr, posFdr, na.rm = TRUE), gt$LFC), ]
+.dt(gt, caption = "Gene-level MAGeCK results (sortable/searchable).", pageLength = 20L)
+```
+
+# sgRNA level
+
+::: {.callout-note}
+A real hit is driven by **several** consistent guides, not one outlier. Below,
+the individual sgRNA fold-changes for the top genes show whether guides agree.
+:::
+
+```{r sgrna-consistency}
+#| echo: false
+#| fig-width: 9
+#| fig-height: 6
+#| out-width: "90%"
+#| fig-cap: "Individual sgRNA log2 fold changes for the top depleted and enriched genes (each point one guide)."
+topN2 <- 12L
+negOrder <- order(negFdr, lfc); posOrder <- order(posFdr, -lfc)
+topIdxNeg <- head(negOrder, topN2); topIdxPos <- head(posOrder, topN2)
+topIdx <- unique(c(topIdxNeg, topIdxPos))
+## sgrna_summary$Gene uses the ORIGINAL library gene name (spaces -> "_" upstream),
+## which is GeneSymbol_Addgene; id may have been alias-converted.
+origName <- if (!is.null(geneRes$GeneSymbol_Addgene)) geneRes$GeneSymbol_Addgene else id
+origName <- gsub(" ", "_", origName)
+map <- data.frame(orig = origName[topIdx], label = id[topIdx],
+                  dir = ifelse(topIdx %in% topIdxNeg, "depleted", "enriched"),
+                  stringsAsFactors = FALSE)
+map <- map[!duplicated(map$orig), ]
+sd <- sgrnaRes[sgrnaRes$Gene %in% map$orig, ]
+if (nrow(sd) > 0) {
+  sd$label <- map$label[match(sd$Gene, map$orig)]
+  sd$dir   <- map$dir[match(sd$Gene, map$orig)]
+  ord <- tapply(sd$LFC, sd$label, stats::median)
+  sd$label <- factor(sd$label, levels = names(sort(ord)))
+  ggplot(sd, aes(LFC, label, colour = dir)) +
+    geom_vline(xintercept = 0, linetype = 2, colour = "grey60") +
+    geom_point(position = position_jitter(height = 0.15), size = 1.6, alpha = 0.8) +
+    scale_colour_manual(values = c(depleted = .cvd[1], enriched = .cvd[6]), name = NULL) +
+    labs(x = "sgRNA log2 fold change", y = NULL)
+} else {
+  ggplot() + annotate("text", x = 0, y = 0, label = "no sgRNA rows matched top genes") + theme_void()
+}
+```
+
+```{r sgrna-ma}
+#| echo: false
+#| fig-width: 7
+#| fig-height: 5
+#| out-width: "70%"
+#| fig-cap: "sgRNA MA-style plot: mean abundance vs log2 fold change; red = FDR < 0.05."
+ma <- data.frame(A = log1p(sgrnaRes$control_mean) + log1p(sgrnaRes$treat_mean),
+                 M = sgrnaRes$LFC, sig = sgrnaRes$FDR < 0.05)
+ggplot(ma, aes(A, M, colour = sig)) +
+  geom_point(size = 0.4, alpha = 0.4) +
+  scale_colour_manual(values = c(`TRUE` = .cvd[6], `FALSE` = "grey70"), name = "FDR<0.05") +
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
+  labs(x = "log abundance (control+treat)", y = "sgRNA log2 fold change")
+```
+
+# Nine-square (MLE)
+
+::: {.callout-note}
+**Cross-condition essentiality.** RRA (the other tabs) tests one pairwise contrast;
+this view instead uses **MAGeCK MLE beta scores** — a model-based effect size for
+each condition relative to the **day0 baseline** (`r if (hasMLE) param$day0Label else "not set"`),
+on a common scale. Each gene is plotted as its beta in **`r param$refGroup`** (x) vs
+**`r param$sampleGroup`** (y):
+
+- **bottom-left** — depleted in both → essential regardless of condition;
+- **centre-bottom / mid-left** — depleted in **one** condition only →
+  *condition-specific dependencies* (the interesting biology, e.g. genes required
+  only under the challenge);
+- **top / right** — enriched in one condition → resistance/advantage;
+- **centre** — unchanged.
+
+The dotted lines are auto-set effect-size cutoffs, and the **red number in each
+highlighted region is simply the count of genes falling in it** (not a gene id).
+Genes outside all regions are grey ("Others").
+:::
+
+```{r ninesquare-skip}
+#| echo: false
+#| results: asis
+if (!hasMLE) {
+  cat("::: {.callout-note}\n",
+      "No MLE run: set the **`day0Label`** parameter to the baseline/plasmid/T0 condition ",
+      "to enable this cross-condition nine-square. RRA alone (a single pairwise contrast) ",
+      "cannot produce comparable per-condition effect sizes for it.\n:::\n", sep = "")
+}
+```
+
+```{r ninesquare}
+#| echo: false
+#| eval: !expr "hasMLE"
+#| fig-width: 7
+#| fig-height: 6
+#| out-width: "70%"
+#| fig-cap: "MAGeCK MLE nine-square (SquareView): gene beta scores, each condition vs the day0 baseline. Off-diagonal genes behave differently between conditions."
+suppressMessages(library(MAGeCKFlute))
+ctrlBeta <- mleGeneRes[[paste0(mleAxes$ctrl, "|beta")]]
+treatBeta <- mleGeneRes[[paste0(mleAxes$treat, "|beta")]]
+df <- data.frame(Gene = as.character(mleGeneRes$Gene), Control = ctrlBeta, Treatment = treatBeta)
+df <- df[is.finite(df$Control) & is.finite(df$Treatment), ]
+## SquareView labels by rownames when label==0; give it the gene symbols so the
+## points are labelled by gene, not by row index.
+rownames(df) <- make.unique(df$Gene)
+p <- MAGeCKFlute::SquareView(df, ctrlname = "Control", treatname = "Treatment",
+                             label = "Gene", label.top = TRUE, top = 10)
+p + ggplot2::labs(x = paste0(param$refGroup, "  (beta vs ", param$day0Label, ")"),
+                  y = paste0(param$sampleGroup, "  (beta vs ", param$day0Label, ")"))
+```
+
+```{r ninesquare-table}
+#| echo: false
+#| eval: !expr "hasMLE"
+diff <- treatBeta - ctrlBeta
+dt <- data.frame(Gene = mleGeneRes$Gene,
+                 `beta (ref)` = round(ctrlBeta, 3),
+                 `beta (treat)` = round(treatBeta, 3),
+                 `delta (treat-ref)` = round(diff, 3),
+                 check.names = FALSE)
+dt <- dt[order(-abs(diff)), ]
+.dt(head(dt, 200), caption = sprintf(
+  "Genes ranked by condition-specific effect (delta of MLE betas, %s vs %s).",
+  param$sampleGroup, param$refGroup))
+```
+
+# Enrichment (GO / KEGG)
+
+```{r enrichment}
+#| echo: false
+#| results: asis
+#| fig-width: 8
+#| fig-height: 6
+#| out-width: "85%"
+if (!runEnrichment) {
+  cat("Enrichment disabled (`runEnrichment=false`).\n")
+} else {
+  suppressMessages(library(clusterProfiler))
+  ## Hit set per direction, with a top-N fallback when few genes pass FDR.
+  pick <- function(hit, ord) {
+    g <- id[hit & !is.na(hit)]
+    fell <- FALSE
+    if (length(g) < 10) { g <- head(id[ord], 100); fell <- TRUE }
+    list(genes = unique(g), fell = fell)
+  }
+  runOne <- function(genes, title, fell) {
+    cat(sprintf("\n### %s (%d genes%s)\n\n", title, length(genes),
+                if (fell) sprintf(", top-%d fallback — few passed FDR<%.2g", length(genes), thr) else ""))
+    eg <- tryCatch(clusterProfiler::bitr(genes, "SYMBOL", "ENTREZID", OrgDb = orgdb),
+                   error = function(e) NULL)
+    if (is.null(eg) || !nrow(eg)) { cat("No ID mapping.\n\n"); return(invisible()) }
+    ego <- tryCatch(clusterProfiler::enrichGO(eg$ENTREZID, OrgDb = orgdb, ont = "BP",
+             pvalueCutoff = 0.1, readable = TRUE), error = function(e) NULL)
+    if (!is.null(ego) && nrow(as.data.frame(ego))) {
+      print(enrichplot::dotplot(ego, showCategory = 12) + ggtitle(paste(title, "- GO:BP")))
+      cat("\n\n")
+    } else cat("No significant GO:BP terms.\n\n")
+    ek <- tryCatch(clusterProfiler::enrichKEGG(eg$ENTREZID, organism = kegg, pvalueCutoff = 0.1),
+                   error = function(e) NULL)
+    if (!is.null(ek) && nrow(as.data.frame(ek))) {
+      print(enrichplot::dotplot(ek, showCategory = 12) + ggtitle(paste(title, "- KEGG")))
+      cat("\n\n")
+    } else cat("No significant KEGG pathways (or KEGG network unavailable).\n\n")
+  }
+  neg <- pick(isNegHit, order(negFdr, lfc))
+  pos <- pick(isPosHit, order(posFdr, -lfc))
+  runOne(neg$genes, "Depleted genes", neg$fell)
+  runOne(pos$genes, "Enriched genes", pos$fell)
+}
+```
+
+# GSEA (Hallmark / C2)
+
+::: {.callout-note}
+GSEA uses the **whole ranked gene list** (no FDR cutoff), so it works even when no
+single gene is significant. Positive NES = enriched in `r param$sampleGroup`;
+negative = depleted.
+:::
+
+```{r gsea-compute}
+#| include: false
+gseaRes <- NULL; gseaSets <- NULL; gseaErr <- NULL
+if (runGSEA) {
+  gseaRes <- tryCatch({
+    suppressMessages({library(fgsea); library(msigdbr)})
+    h  <- msigdbr(species = msigSp, collection = "H")
+    c2 <- msigdbr(species = msigSp, collection = "C2")
+    c2 <- c2[grepl("^CP", c2$gs_subcollection), ]
+    md <- rbind(h[, c("gs_name", "gene_symbol")], c2[, c("gs_name", "gene_symbol")])
+    gseaSets <<- split(md$gene_symbol, md$gs_name)
+    fg <- fgsea::fgsea(pathways = gseaSets, stats = ranks, minSize = 10, maxSize = 500)
+    as.data.frame(fg[order(fg$padj), ])
+  }, error = function(e) { gseaErr <<- conditionMessage(e); NULL })
+}
+```
+
+```{r gsea-table}
+#| echo: false
+if (!runGSEA) {
+  cat("GSEA disabled (`runGSEA=false`).")
+} else if (is.null(gseaRes)) {
+  cat("GSEA failed:", gseaErr)
+} else {
+  tab <- gseaRes[, c("pathway", "NES", "pval", "padj", "size")]
+  tab$NES <- round(tab$NES, 2); tab$pval <- signif(tab$pval, 3); tab$padj <- signif(tab$padj, 3)
+  .dt(head(tab, 200), caption = "GSEA (MSigDB Hallmark + C2:CP), sorted by adjusted p.")
+}
+```
+
+```{r gsea-plots}
+#| echo: false
+#| results: asis
+#| fig-width: 8
+#| fig-height: 4
+#| out-width: "80%"
+if (runGSEA && !is.null(gseaRes)) {
+  topSets <- head(gseaRes$pathway[gseaRes$padj < 0.25], 4)
+  if (!length(topSets)) {
+    cat("No gene set reaches padj < 0.25.\n")
+  } else {
+    for (ps in topSets) {
+      print(fgsea::plotEnrichment(gseaSets[[ps]], ranks) +
+              ggplot2::labs(title = ps, subtitle = sprintf("NES=%.2f, padj=%.3g",
+                gseaRes$NES[gseaRes$pathway == ps], gseaRes$padj[gseaRes$pathway == ps])))
+      cat("\n\n")
+    }
+  }
+}
+```
+
+# KEGG maps
+
+```{r pathview}
+#| echo: false
+#| results: asis
+if (!runPathview) {
+  cat("KEGG pathway maps disabled (`runPathview=false`) — enable to draw them (needs KEGG network access at render).\n")
+} else {
+  ok <- tryCatch({
+    suppressMessages({library(clusterProfiler); library(pathview)})
+    eg <- clusterProfiler::bitr(id, "SYMBOL", "ENTREZID", OrgDb = orgdb)
+    lfcE <- setNames(lfc[match(eg$SYMBOL, id)], eg$ENTREZID)
+    hits <- id[isNegHit | isPosHit]; if (length(hits) < 10) hits <- head(id[order(pmin(negFdr, posFdr))], 100)
+    egh <- clusterProfiler::bitr(hits, "SYMBOL", "ENTREZID", OrgDb = orgdb)
+    ek <- clusterProfiler::enrichKEGG(egh$ENTREZID, organism = kegg, pvalueCutoff = 0.1)
+    ids <- head(as.data.frame(ek)$ID, 3)
+    for (pid in ids) {
+      try(pathview::pathview(gene.data = lfcE, pathway.id = sub("^", "", pid),
+            species = kegg, out.suffix = "mageck", low = list(gene = .cvd[1]),
+            high = list(gene = .cvd[6])), silent = TRUE)
+      png <- paste0(pid, ".mageck.png")
+      if (file.exists(png)) { cat(sprintf("\n**%s**\n\n![](%s)\n\n", pid, png)) }
+    }
+    length(ids) > 0
+  }, error = function(e) { cat("Pathview failed or KEGG unavailable:", conditionMessage(e), "\n"); FALSE })
+  if (!isTRUE(ok)) cat("No KEGG maps produced.\n")
+}
+```
+
+# Data & downloads
+
+```{r downloads}
+#| echo: false
+#| results: asis
+cmp <- param$comparison
+files <- c(
+  setNames(paste0(cmp, ".gene_summary.xlsx"),  "Gene summary (xlsx)"),
+  setNames(paste0(cmp, ".sgrna_summary.xlsx"), "sgRNA summary (xlsx)"),
+  setNames(paste0(cmp, ".pdf"),                "MAGeCK summary report (pdf)"),
+  setNames(paste0(cmp, ".merged.count.tsv"),   "Merged count table (tsv)"))
+for (i in seq_along(files)) {
+  if (file.exists(files[i])) cat(sprintf("- [%s](%s)\n", names(files)[i], files[i]))
+}
+```
+
+**Rendered:** `r .fgcz_rendered` by `r .fgcz_user`.
+
+```{r session}
+#| echo: false
+ezSessionInfo()
+```
+
+:::
