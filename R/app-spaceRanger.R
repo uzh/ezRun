@@ -291,17 +291,17 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
   if (!grepl('--unknown-slide', cmd)) {
     slideId <- input$getColumn("Slide")
     areaId <- input$getColumn("Area")
-    if (ezIsSpecified(slideId) && grepl('^(V[0-9]|H1-)', slideId)) {
+    if (ezIsSpecified(slideId) && grepl('^(V[0-9]|H1-|H2-)', slideId)) {
       cmd <- paste(
         cmd,
         paste0("--slide=", slideId),
         paste0("--area=", areaId)
       )
-    } else {
+    } #else {
       # 11mm CytAssist slides (H2-) use the large capture area.
-      slideType <- if (grepl('^H2-', slideId)) 'visium-2-large' else 'visium-2'
-      cmd <- paste(cmd, paste0("--unknown-slide=", slideType))
-    }
+     # slideType <- if (grepl('^H2-', slideId)) 'visium-2-large' else 'visium-2'
+     # cmd <- paste(cmd, paste0("--unknown-slide=", slideType))
+    #}
   }
 
   ezSystem(cmd)
