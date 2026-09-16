@@ -65,6 +65,20 @@ library(pheatmap)
   r <- rank(score)
   (sum(r[isPos]) - np * (np + 1) / 2) / (np * nn)
 }
+## Cohen's d (pooled SD) of essential vs non-essential LFCs (Kim & Hart 2021).
+## Signed: essentials are depleted so a good screen gives a large NEGATIVE d;
+## quality bands are read off |d| (>2 good, <1 poor).
+.cohend <- function(x, isEss) {
+  e <- x[isEss & is.finite(x)]; n <- x[!isEss & is.finite(x)]
+  if (length(e) < 2 || length(n) < 2) return(NA_real_)
+  sp <- sqrt(((length(e) - 1) * var(e) + (length(n) - 1) * var(n)) /
+             (length(e) + length(n) - 2))
+  if (!is.finite(sp) || sp == 0) return(NA_real_)
+  (mean(e) - mean(n)) / sp
+}
+.dband <- function(d) {
+  if (is.na(d)) "n/a" else if (abs(d) >= 2) "good" else if (abs(d) < 1) "poor" else "intermediate"
+}
 
 theme_set(theme_bw(base_size = 12))
 ```
@@ -312,6 +326,32 @@ ggplot(roc, aes(lfc, fill = ess)) +
   scale_fill_manual(values = c(essential = .cvd[6], `non-essential` = .cvd[1]), name = NULL) +
   labs(x = "gene mean log2 fold change vs reference",
        title = sprintf("Essential-gene depletion (AUC = %.3f)", auc))
+```
+
+```{r cohend-note}
+#| echo: false
+#| eval: !expr "hasRef"
+#| results: asis
+dOverall <- .cohend(geneLFC[sel], isEss)
+ct <- if (is.na(dOverall) || abs(dOverall) < 2) "warning" else "note"
+cat(sprintf(
+  "::: {.callout-%s}\n**Cohen's d = %.2f** (|d| = %.2f → **%s** separation). Standardised separation of core-essential (CEGv2) from non-essential (NEGv1) gene fold changes, d = (mean LFC CEGv2 − mean LFC NEGv1) / pooled SD (Kim & Hart 2021): **|d| > 2 good, |d| < 1 poor**. Essentials are depleted, so a healthy fitness screen gives a large *negative* d.\n:::\n",
+  ct, dOverall, abs(dOverall), .dband(dOverall)))
+```
+
+```{r cohend-table}
+#| echo: false
+#| eval: !expr "hasRef"
+nonRef <- setdiff(seq_len(nSamp), refIdx)
+perSample <- do.call(rbind, lapply(nonRef, function(j) {
+  lfcj  <- logNorm[, j] - refMean
+  gLFCj <- tapply(lfcj[!isControl], gene[!isControl], mean)
+  dj <- .cohend(gLFCj[sel], isEss)
+  data.frame(Sample = samples[j], `Cohen's d` = round(dj, 3),
+             `|d| band` = .dband(dj), check.names = FALSE)
+}))
+knitr::kable(perSample, caption = sprintf(
+  "Per-sample essential/non-essential separation (Cohen's d, each sample vs %s).", refGroup))
 ```
 
 # Sample correlation

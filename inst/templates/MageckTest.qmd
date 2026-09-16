@@ -47,6 +47,20 @@ library(scales)
   if (np == 0 || nn == 0) return(NA_real_)
   (sum(rank(score)[isPos]) - np * (np + 1) / 2) / (np * nn)
 }
+## Cohen's d (pooled SD) of essential vs non-essential gene LFCs (Kim & Hart 2021).
+## Signed: essentials deplete so a good dropout screen gives a large NEGATIVE d;
+## quality bands are read off |d| (>2 good, <1 poor).
+.cohend <- function(x, isEss) {
+  e <- x[isEss & is.finite(x)]; n <- x[!isEss & is.finite(x)]
+  if (length(e) < 2 || length(n) < 2) return(NA_real_)
+  sp <- sqrt(((length(e) - 1) * var(e) + (length(n) - 1) * var(n)) /
+             (length(e) + length(n) - 2))
+  if (!is.finite(sp) || sp == 0) return(NA_real_)
+  (mean(e) - mean(n)) / sp
+}
+.dband <- function(d) {
+  if (is.na(d)) "n/a" else if (abs(d) >= 2) "good" else if (abs(d) < 1) "poor" else "intermediate"
+}
 .readSet <- function(f) {
   p <- system.file(file.path("extdata/crispr", f), package = "ezRun")
   if (!nzchar(p) || !file.exists(p)) return(character(0))
@@ -219,6 +233,7 @@ ctrlMed <- {
   ic <- grepl("non.?targeting|safe.?harbor|^control", sgrnaRes$Gene, ignore.case = TRUE)
   if (any(ic)) stats::median(sgrnaRes$LFC[ic], na.rm = TRUE) else NA_real_
 }
+dEss <- .cohend(lfc[sel], isEss)   # essential vs non-essential separation
 msg <- if (is.na(auc)) {
   "Essential/non-essential gene sets could not be matched (check species / symbols)."
 } else if (auc >= 0.65) {
@@ -228,6 +243,11 @@ msg <- if (is.na(auc)) {
           if (!is.na(ctrlMed) && abs(ctrlMed) > 1) sprintf(" — and the control-guide median LFC of %.1f indicates a strong selection bottleneck", ctrlMed) else "")
 } else {
   sprintf("**Essential AUC = %.3f** — essential and non-essential genes barely separate on depletion, as expected for a treatment-vs-treatment contrast; the essential-depletion axis is uninformative for this design.", auc)
+}
+if (!is.na(dEss)) {
+  msg <- paste0(msg, sprintf(
+    " **Cohen's d = %.2f** (|d| = %.2f → %s) for essential-vs-non-essential separation (Kim & Hart 2021: |d| > 2 good, < 1 poor; a good fitness screen gives a large negative d).",
+    dEss, abs(dEss), .dband(dEss)))
 }
 cat("::: {.callout-", if (!is.na(auc) && auc >= 0.65) "note" else "warning", "}\n", msg, "\n:::\n", sep = "")
 ```
@@ -331,12 +351,19 @@ p2 <- ggplot(sc, aes(raw, corr, colour = cls)) +
 #| eval: !expr "hasCCR"
 #| results: asis
 d <- aucCorr - aucRaw
+dRaw  <- .cohend(as.numeric(ccrInfo$rawGeneFC)[sel], isE)
+dCorr <- .cohend(as.numeric(ccrInfo$corrGeneFC)[sel], isE)
 msg <- if (d > 0.02) {
   sprintf("Correction **improved** essential-gene separation (AUC %.3f → %.3f) — consistent with removing copy-number artifacts.", aucRaw, aucCorr)
 } else if (d < -0.02) {
   sprintf("Correction **reduced** essential-gene separation (AUC %.3f → %.3f). Expected for a positive-selection/resistance screen — CN correction targets depletion artifacts; interpret corrected hits accordingly.", aucRaw, aucCorr)
 } else {
   sprintf("Correction changed essential-gene separation little (AUC %.3f → %.3f), suggesting limited copy-number bias in this screen.", aucRaw, aucCorr)
+}
+if (!is.na(dRaw) && !is.na(dCorr)) {
+  msg <- paste0(msg, sprintf(
+    " **Cohen's d: %.2f → %.2f** (|d| %s → %s; Kim & Hart |d| > 2 good, < 1 poor).",
+    dRaw, dCorr, .dband(dRaw), .dband(dCorr)))
 }
 cat(sprintf("::: {.callout-note}\n%s\n:::\n", msg))
 ```
