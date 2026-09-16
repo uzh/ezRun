@@ -282,16 +282,26 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
     cmd <- paste(cmd, param$cmdOptions)
   }
 
-  # When --cytaimage is present, SpaceRanger reads slide+area from the
-  # CytAssist image metadata; passing --slide separately can be rejected for
-  # slide series (e.g. H2-...) outside SpaceRanger's hardcoded regex even when
-  # the cytaimage encodes a valid slide ID.
-  if (!grepl('--unknown-slide', cmd) && !grepl('--cytaimage', cmd)) {
-    cmd <- paste(
-      cmd,
-      paste0("--slide=", input$getColumn("Slide")),
-      paste0("--area=", input$getColumn("Area"))
-    )
+  # SpaceRanger requires slide+area even for CytAssist runs (--cytaimage does
+  # NOT supply them). Pass --slide/--area for accepted slide serials (V-series
+  # and H1- CytAssist 6.5mm). Some series (e.g. H2- 11mm) fall outside
+  # SpaceRanger's hardcoded --slide regex even when the cytaimage encodes a
+  # valid slide ID, so fall back to --unknown-slide with the matching slide
+  # type for those.
+  if (!grepl('--unknown-slide', cmd)) {
+    slideId <- input$getColumn("Slide")
+    areaId <- input$getColumn("Area")
+    if (ezIsSpecified(slideId) && grepl('^(V[0-9]|H1-)', slideId)) {
+      cmd <- paste(
+        cmd,
+        paste0("--slide=", slideId),
+        paste0("--area=", areaId)
+      )
+    } else {
+      # 11mm CytAssist slides (H2-) use the large capture area.
+      slideType <- if (grepl('^H2-', slideId)) 'visium-2-large' else 'visium-2'
+      cmd <- paste(cmd, paste0("--unknown-slide=", slideType))
+    }
   }
 
   ezSystem(cmd)
