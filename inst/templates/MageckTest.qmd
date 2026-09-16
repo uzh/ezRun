@@ -276,6 +276,28 @@ qq <- ggplot(data.frame(exp, obs), aes(exp, obs)) +
 gg + qq
 ```
 
+```{r qc-null-calibration}
+#| echo: false
+#| results: asis
+## Detect an anti-conservative RRA null (the classic --control-sgrna /
+## non-targeting-control pitfall): a calibrated null leaves a large fraction of
+## genes with p >= 0.5, and no "hit" should have the wrong LFC sign.
+nGene <- length(negFdr)
+fracNull <- mean(negP >= 0.5, na.rm = TRUE)
+nSig <- sum(negFdr < thr, na.rm = TRUE)
+wrongSign <- if (nSig > 0) sum(negFdr < thr & lfc >= 0, na.rm = TRUE) else 0L
+anticons <- (fracNull < 0.15 && nSig > 0.4 * nGene) ||
+  (nSig > 0 && wrongSign > 0.15 * nSig)
+if (anticons) {
+  cat(sprintf("::: {.callout-warning title=\"Null looks anti-conservative — treat FDR with caution\"}\nThe negative-selection p-values are **anti-conservative**: only **%.1f%%** of genes have p ≥ 0.5 (a calibrated null leaves ~40–50%%), and **%s of %s** genes pass FDR < %.2g — of which **%s (%.0f%%)** are *not even depleted* (gene LFC ≥ 0). This is the signature of using **non-targeting control sgRNAs as the RRA null** (`useControls = true` → `--control-sgrna`): non-targeting guides vary far less than targeting guides, so the null underestimates gene-level variance and almost every gene looks significant. **Prefer the permutation null (`useControls = false`)** or a proper control set (safe-harbor / non-essential genes); until then, rank genes by score/LFC rather than trusting the FDR cutoff.\n:::\n",
+    100 * fracNull, format(nSig, big.mark = ","), format(nGene, big.mark = ","),
+    thr, format(wrongSign, big.mark = ","), if (nSig > 0) 100 * wrongSign / nSig else 0))
+} else {
+  cat(sprintf("::: {.callout-note}\nNull calibration looks reasonable: %.0f%% of genes have a neg p-value ≥ 0.5, and %s of %s genes pass FDR < %.2g.\n:::\n",
+    100 * fracNull, format(nSig, big.mark = ","), format(nGene, big.mark = ","), thr))
+}
+```
+
 # CN correction (CRISPRcleanR)
 
 ::: {.callout-note}
