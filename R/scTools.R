@@ -278,15 +278,48 @@ cellsProportion <- function(object, groupVar1, groupVar2) {
   return(table)
 }
 
+##' @title Resolve the species from a refBuild string
+##' @description Maps a `refBuild` to "Human", "Mouse" or "other". This gates the
+##'   CellMarker2/AUCell annotation section, and "other" means NO annotation at
+##'   all, silently - so a parsing miss costs a run its annotation with no error.
+##'
+##'   Matching is on whole path SEGMENTS, not a prefix. The former
+##'   `startsWith(refBuild, "Homo_sapiens")` missed three spellings that occur in
+##'   live gStore results: an absolute reference path (13 mouse runs, p40923 and
+##'   p40924, Jan-Mar 2026), and a bare assembly name (3 runs). Segment matching
+##'   also keeps `Mus_minutoides` - which has a reference installed here - from
+##'   being read as mouse, which a `grepl("Mus_musculus", ...)` fix would not.
+##'
+##'   A `Chimera_*` reference is deliberately "other": the matrix mixes two
+##'   genomes and neither species' marker sets are valid on it.
+##' @param refBuild character(1), e.g. "Mus_musculus/GENCODE/GRCm39/Annotation/Release_M37-2025-07-03"
+##' @return "Human", "Mouse" or "other"
 getSpecies <- function(refBuild) {
-  if (startsWith(refBuild, "Homo_sapiens")) {
-    species <- "Human"
-  } else if (startsWith(refBuild, "Mus_musculus")) {
-    species <- "Mouse"
-  } else {
-    species <- "other"
+  if (length(refBuild) != 1L || is.na(refBuild) || !nzchar(refBuild)) {
+    return("other")
   }
-  return(species)
+  segments <- setdiff(strsplit(refBuild, "/", fixed = TRUE)[[1]], "")
+  if (!length(segments)) {
+    return("other")
+  }
+  ## a mixed-genome reference is not either of its parents
+  if (any(startsWith(segments, "Chimera"))) {
+    return("other")
+  }
+  if ("Homo_sapiens" %in% segments) {
+    return("Human")
+  }
+  if ("Mus_musculus" %in% segments) {
+    return("Mouse")
+  }
+  ## refBuild given as a bare assembly, with no genus directory
+  if (any(grepl("^GRCh[0-9]", segments))) {
+    return("Human")
+  }
+  if (any(grepl("^GRCm[0-9]", segments))) {
+    return("Mouse")
+  }
+  "other"
 }
 
 # Decide whether the Pan-Human Azimuth (CloudAzimuth) step should run, and say
