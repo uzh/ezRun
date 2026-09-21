@@ -627,11 +627,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       deDupBamFile,
       ' --log=',
       basename(bamFile),
-      '.log',
-      ' --output-stats=',
-      basename(bamFile),
-      '.stats'
-    )
+      '.log')
     ezSystem(cmd)
     ezSortIndexBam(
       deDupBamFile,
