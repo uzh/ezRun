@@ -1122,7 +1122,26 @@ cat("\n\n")
 
 ### AUCell
 
-Matching the cells to marker gene sets that are known to be characteristic for cell types. We use marker gene sets from the CellMarker database (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900). 
+Matching the cells to marker gene sets that are known to be characteristic for cell types. We use marker gene sets from the CellMarker database (Zhang X., Lan Y., Xu J., Quan F., Zhao E., Deng C., et al. (2019). CellMarker: a manually curated resource of cell markers in human and mouse. Nucleic Acids Res. 47, D721–d728. 10.1093/nar/gky900).
+
+```{r AUC skipped, eval= is.null(cells.AUC), results='asis'}
+## Without this, an unrun AUCell section leaves only the heading above and the
+## reader cannot tell whether it was skipped or found nothing. Say which, and why.
+if (!species %in% c("Human", "Mouse")) {
+  cat(sprintf(paste0("**Not run.** CellMarker2 covers only human and mouse, and this dataset's ",
+                     "reference (`%s`) resolves to neither. No cell type annotation was ",
+                     "attempted from marker gene sets.\n\n"), param$refBuild))
+} else if (!ezIsSpecified(param$tissue)) {
+  cat(paste0("**Not run.** No tissue was selected, so no CellMarker2 gene sets were loaded. ",
+             "Re-run the app with one or more tissues selected in the `tissue` parameter to ",
+             "get this section. Selecting every tissue is not recommended - it scores ~930 ",
+             "overlapping gene sets at once and measurably degrades the labels.\n\n"))
+} else {
+  cat(sprintf(paste0("**Not run.** No CellMarker2 gene sets with at least 3 genes were found ",
+                     "for %s in the selected tissue(s): %s.\n\n"),
+              species, paste(param$tissue, collapse = ", ")))
+}
+```
 
 ```{r AUC assigments, eval= !is.null(cells.AUC)}
 tab <- NULL
