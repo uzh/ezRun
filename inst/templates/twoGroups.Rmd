@@ -646,9 +646,23 @@ if (isTRUE(param$runGO)) {
         
         sigGeneIds <- enrichInput$selections[[sig]]
         log2Ratio <- enrichInput$log2Ratio[sigGeneIds]
-        names(log2Ratio) <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
+        geneLabels <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
+        ## fall back to the gene id when a gene has no symbol (e.g. some lncRNAs),
+        ## otherwise cnetplot builds a data.frame with NA/empty row names
+        naLabel <- is.na(geneLabels) | geneLabels == ""
+        geneLabels[naLabel] <- sigGeneIds[naLabel]
+        names(log2Ratio) <- geneLabels
         log2Ratio <- sort(log2Ratio, decreasing = T)
-        erp[["cnet"]] <- enrichplot::cnetplot(x = er, foldChange = log2Ratio)
+        ## cnetplot (enrichplot >= 1.32) errors out when the enrichResult holds no
+        ## category passing its significance cutoff (0 items) -- keep the rest of
+        ## the report instead of aborting it.
+        erp[["cnet"]] <- tryCatch(
+          enrichplot::cnetplot(x = er, foldChange = log2Ratio),
+          error = function(e) {
+            ezWrite("cnetplot skipped for ", onto, "/", sig, ": ", conditionMessage(e))
+            NULL
+          }
+        )
         enrichResultPlots[[onto]][[sig]] <- erp
       }
     }
@@ -726,7 +740,7 @@ Cut Offs:
         erp <- enrichResultPlots[[onto]][[sig]]
         # print( enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "table") ]] )
         print(erp$barplot)
-        print(erp$cnet)
+        if (!is.null(erp$cnet)) print(erp$cnet)
         print(kable(erp$df,
                     escape = FALSE, row.names = FALSE, format = "html", digits = 50
         ) %>%
@@ -802,9 +816,20 @@ enrichResultGSEAPlots <- list()
       
       sigGeneIds <- ce_list[!is.na(ce_list)]
       log2Ratio <- enrichInput$log2Ratio[sigGeneIds]
-      names(log2Ratio) <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
+      geneLabels <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
+      ## fall back to the gene id when a gene has no symbol (e.g. some lncRNAs)
+      naLabel <- is.na(geneLabels) | geneLabels == ""
+      geneLabels[naLabel] <- sigGeneIds[naLabel]
+      names(log2Ratio) <- geneLabels
       log2Ratio <- sort(log2Ratio, decreasing = T)
-      erp[["cnet"]] <- enrichplot::cnetplot(x = er, foldChange = log2Ratio)
+      ## keep the report alive if cnetplot cannot build a graph (see ORA note above)
+      erp[["cnet"]] <- tryCatch(
+        enrichplot::cnetplot(x = er, foldChange = log2Ratio),
+        error = function(e) {
+          ezWrite("cnetplot skipped for GSEA ", onto, ": ", conditionMessage(e))
+          NULL
+        }
+      )
 
       enrichResultGSEAPlots[[onto]] <- erp
     }
@@ -875,7 +900,7 @@ Gene Ranking:
       erp <- enrichResultGSEAPlots[[onto]]
       # print( enrichResultGSEAPlots[[ paste0(names(enrichResultGSEA)[onto], "_", names(enrichResultGSEA[[onto]])[sig], "_", "table") ]] )
       print(erp$ridgeplot)
-      print(erp$cnet)
+      if (!is.null(erp$cnet)) print(erp$cnet)
       print(kable(erp$df,
                   escape = FALSE, row.names = FALSE, format = "html", digits = 50
       ) %>%

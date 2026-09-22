@@ -163,6 +163,9 @@ makeCountResultSummary <- function(param, se) {
   settings["Analysis:"] <- metadata(se)$analysis
   settings["Reference:"] = param$refBuild
   settings["Feature level:"] <- metadata(se)$featureLevel
+  if (ezIsSpecified(param$transcriptTypes)) {
+    settings["Transcript types:"] <- paste(param$transcriptTypes, collapse = ", ")
+  }
   settings["Data Column Used:"] <- metadata(se)$countName
   settings["Method:"] <- metadata(se)$method
   if (
