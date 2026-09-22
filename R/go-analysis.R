@@ -668,6 +668,29 @@ ezGSEA <- function(enrichInput, param) {
   return(goResults)
 }
 
+### -----------------------------------------------------------------
+### ezIsEmptyEnrichResult
+###
+##' @title Test whether a clusterProfiler enrichment result is empty
+##' @description Returns \code{TRUE} when an \code{enrichResult}/\code{gseaResult}
+##'   object is absent (\code{NULL}), not an S4 object (e.g. a legacy \code{NA}
+##'   sentinel), or carries an empty (0-row) result table. Used to guard the
+##'   report chunks in \code{twoGroups.Rmd} against ontologies/selections with no
+##'   enriched terms, which happens e.g. for long-non-coding-genes-only analyses
+##'   where the GO annotation of the gene universe is essentially empty.
+##' @param x an \code{enrichResult}/\code{gseaResult} object, or \code{NULL}/\code{NA}.
+##' @return a logical of length one.
+##' @template roxygen-template
+##' @examples
+##' ezIsEmptyEnrichResult(NULL)
+ezIsEmptyEnrichResult <- function(x) {
+  if (is.null(x) || !isS4(x)) {
+    return(TRUE)
+  }
+  res <- x@result
+  is.null(res) || nrow(res) == 0L
+}
+
 ##' @title Groups GO terms and information
 ##' @description Groups GO terms and information.
 ##' @param selectedGenes a character vector containing the selected genes.
