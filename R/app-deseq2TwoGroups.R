@@ -123,7 +123,7 @@ EzAppDeseq2 <-
       methods_facts = function() {
         c(
           ## twoGroupCountComparison (twoGroups.R): isPresent / useProbe
-          "Genes were tested when present in at least half of the samples of the sample group or of the reference group.",
+          "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); all genes were fitted, but only genes present in at least half of the samples of the sample group or of the reference group were counted as tested.",
           ## runDeseq2 (twoGroups.R): estimateSizeFactors(controlGenes = isPresent)
           "DESeq2 size factors were estimated with the median-ratio method on the present genes only (controlGenes).",
           ## runDeseq2: design, DESeq(), results()

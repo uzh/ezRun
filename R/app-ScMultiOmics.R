@@ -17,6 +17,34 @@ EzAppScMultiOmics <-
     "EzAppScMultiOmics",
     contains = "EzApp",
     methods = list(
+      methods_facts = function() {
+        c(
+          ## ezMethodScMultiOmics loads scData.qs2 as is (app-ScMultiOmics.R:137-147); attachUpstreamAnnotations (multiOmicsUtils.R:500-590); pickCellTypeColumn (multiOmicsUtils.R:599-685)
+          "RNA normalization, RNA PCA, RNA clusters and cell-type labels were taken unchanged from the upstream ScSeurat object (Azimuth, SingleR fine-label and cellxgene results saved next to it were re-attached); no new cell-type annotation was run, and the cell-type labels shown were the first available of CyteTypeR, cellxgene, Azimuth Pan-Human, Azimuth tissue reference, scType, SingleR and manual labels, in that order.",
+          ## detectModalities (multiOmicsUtils.R:55-64); readADTCounts (multiOmicsUtils.R:186-195); processADT zero-count filter (multiOmicsUtils.R:1199-1206)
+          "ADT counts were the Antibody Capture features of the CellRanger filtered matrix; features listed as hashtag_ids in the CellRanger Multi configuration were removed (a sample with only hashtag antibodies was treated as RNA-only), and cells with zero total ADT counts were removed from the object.",
+          ## processADT ADTnorm branch (multiOmicsUtils.R:1212-1293), CLR branch (:1294-1303), non-finite -> 0 (:1307-1332); ADTnorm/Seurat defaults checked on the R 4.6 system library
+          "When adtNorm is ADTnorm, ADTnorm was run separately for each marker with all cells treated as a single batch (so no cross-sample landmark alignment) and exclude_zeroes = TRUE, other ADTnorm settings at their defaults; any marker on which ADTnorm failed kept its CLR value. When adtNorm is CLR, all markers were CLR-normalized per cell (Seurat NormalizeData, margin = 2). Non-finite normalized or scaled values were set to 0.",
+          ## processADT ScaleData/RunPCA/RunUMAP (multiOmicsUtils.R:1317-1339)
+          "ADT data were scaled and an exact PCA (approx = FALSE) was computed on all ADT features, with npcsADT components capped at the number of ADT features minus one; the ADT UMAP used all of these components with 30 neighbours (Seurat RunUMAP: uwot, cosine metric, seed 42).",
+          ## app-ScMultiOmics.R:193-214 (BD ADT); loadBDRhapsody (multiOmicsUtils.R:1009-1019)
+          "For BD Rhapsody input (SCDataOrigin = BDRhapsody) the object from the BD pipeline was used, its ADT assay was always CLR-normalized (margin = 2) regardless of adtNorm, and when it had no RNA PCA one was built by LogNormalize, 2000 vst variable features, 30 PCs, a k = 20 shared-nearest-neighbour graph on those 30 PCs and Louvain clustering at a fixed resolution of 0.5.",
+          ## processATAC (multiOmicsUtils.R:1120-1156); Signac 1.16.0 defaults checked
+          "ATAC peak counts came from the CellRanger ARC Peaks matrix, and the object was restricted to cells present in it; peaks were not filtered (min.cells = 0), Signac FindTopFeatures used min.cutoff q5, TF-IDF used method 1 (scale factor 10000), SVD computed 50 LSI components, and the ATAC UMAP used LSI components 2 to 30 (component 1 excluded).",
+          ## getATACAnnotation (multiOmicsUtils.R:1068-1080); processATAC GeneActivity (:1158-1169); Signac GeneActivity/GetGRangesFromEnsDb defaults checked
+          "Gene annotation for ATAC was EnsDb.Hsapiens.v86 when refBuild names a human build and EnsDb.Mmusculus.v79 when it names a mouse build (none otherwise, and then no gene activity was computed); gene activity was Signac GeneActivity (fragments over protein-coding gene bodies extended 2 kb upstream), log-normalized with a scale factor equal to the median total gene-activity count per cell.",
+          ## runWNN (multiOmicsUtils.R:773-818); FindMultiModalNeighbors / RunUMAP / FindClusters defaults checked on Seurat 5.5.1
+          "When runWNN is true and at least two of RNA PCA, ADT PCA and ATAC LSI exist, Seurat FindMultiModalNeighbors (k.nn = 20) combined RNA PCs 1-20 (fixed, independent of upstream npcs), ADT PCs 1 to at most 18 and LSI components 2-30; the WNN UMAP was built from the 20 weighted nearest neighbours (seed 42), and WNN clusters were found on the weighted SNN graph with the SLM algorithm (FindClusters algorithm = 3, random.seed 0) at wnnResolution. These WNN clusters replaced seurat_clusters and are the clusters used throughout the report.",
+          ## _scMultiOmics_wnn.Rmd:43-61 (FindAllMarkers); _scMultiOmics_adt.Rmd:214-262 (ADT-RNA correlation); FindAllMarkers defaults checked
+          "WNN cluster markers were found with Seurat FindAllMarkers (Wilcoxon test, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25) separately on the RNA, ADT and gene-activity assays, keeping markers with unadjusted p below 0.01 (FindAllMarkers default) and reporting Bonferroni-adjusted p-values; ADT-RNA agreement was the Spearman correlation of per-cluster average ADT and matched-gene RNA values, with isotype controls excluded.",
+          ## processVDJ (multiOmicsUtils.R:381-411); loadBDContigs (multiOmicsUtils.R:274-289); scRepertoire 2.8.0 defaults checked
+          "VDJ contigs were combined with scRepertoire combineTCR or combineBCR keeping cells with missing or extra chains (removeNA, removeMulti and filterMulti all FALSE) and dropping non-productive contigs (scRepertoire default); only one receptor type was attached per run, the TCR when TCR contigs were available and otherwise the BCR, even when vdjChain is both. For BD Rhapsody the dominant-contig AIRR table was used.",
+          ## processVDJ combineBCR / clonalCluster / effectiveClone (multiOmicsUtils.R:407-451); scRepertoire 2.8.0 combineBCR and clonalCluster defaults checked
+          "BCR clones were merged by combineBCR on IGH CDR3 nucleotide sequences with length-normalized Levenshtein similarity at bcrSimilarityThreshold, requiring the same V and J genes; clone identity in combineExpression then followed cloneCallTCR for both TCR and BCR data. When tcrSimilarityMerge is true, clonalCluster grouped TRB CDR3 amino-acid sequences sharing a V gene at tcrSimilarityThreshold, but if the log warns that no TRB_cluster column was produced, clones were defined by cloneCallTCR instead.",
+          ## processVDJ combineExpression (multiOmicsUtils.R:453-468); _scMultiOmics_vdj.Rmd:117, 142, 160
+          "Clone sizes were counted within each sample (combineExpression, proportion = FALSE) and binned as Single (1 cell), Small (2-5), Medium (6-20), Large (21-100) and Hyperexpanded (101-500), with cells lacking a clonotype labelled No clonotype; clonal overlap (Morisita-Horn) and clonal homeostasis in the report always used the scRepertoire strict clone definition (cloneCall = strict), regardless of cloneCallTCR."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodScMultiOmics

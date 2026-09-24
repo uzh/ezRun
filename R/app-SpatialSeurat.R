@@ -10,6 +10,36 @@ EzAppSpatialSeurat <-
     "EzAppSpatialSeurat",
     contains = "EzApp",
     methods = list(
+      ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6)
+      ## and are identical in 5.4.0 (Dev/R/4.5.0, which SpatialSeuratApp.rb loads).
+      methods_facts = function() {
+        c(
+          ## ezMethodSpatialSeurat set.seed(38) (app-SpatialSeurat.R:154); seuratStandardSCTPreprocessing seed = 38 (seuratUtils.R:12, 84)
+          "The random seed was set to 38 at the start of the analysis and passed to SCTransform (seed.use = 38).",
+          ## load10xSpatialData (ngsio.R:467-492)
+          "When spotClean is true, spot swapping was removed from the raw Space Ranger matrix with SpotClean and the decontaminated in-tissue spots were analysed; otherwise the Space Ranger filtered (in-tissue) spot matrix was used.",
+          ## runSpotSweeper (app-SpatialSeurat.R:346-386); filterCellsAndGenes.Seurat Spatial branch (scTools.R:687-733)
+          "For each of nreads, ngenes and perc_mito left empty, spots were flagged with SpotSweeper local outlier detection (localOutliers defaults: 36 nearest spots, cutoff 3, log scale) for low UMI count, low number of detected genes or high mitochondrial percentage; a value in one of these fields replaced the local test with a fixed threshold, and the nmad parameter was not used for spots.",
+          ## featInfo / PercentageFeatureSet patterns (app-SpatialSeurat.R:166-167; scTools.R:670-675); gene filter (scTools.R:751-760)
+          "Mitochondrial and ribosomal-protein genes were identified by the gene-name patterns ^MT- and ^RPS/^RPL (case-insensitive); spots were filtered on ribosomal-protein percentage only when perc_ribo is set, and after spot filtering genes were kept when they had at least nUMIs counts in at least the cellsFraction proportion of spots.",
+          ## runBasicProcessing -> addCellCycleToSeurat default method "cyclone" (app-SpatialSeurat.R:318; scTools.R:21-91)
+          "For human and mouse data, cell-cycle phase was assigned to each spot with scran cyclone using scran's bundled human or mouse marker pairs.",
+          ## seuratStandardSCTPreprocessing (seuratUtils.R:18-88)
+          "Counts were log-normalized (LogNormalize, scale factor 10000) and then normalized with SCTransform (vst.flavor = v2, 3000 variable features, the Seurat default; nfeatures is not passed to SCTransform), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true; the SCT assay was used for all downstream steps.",
+          ## seuratStandardWorkflow (seuratUtils.R:170-180): RunPCA without npcs/features; RunTSNE skipped when a Spatial assay exists
+          "PCA computed 50 components (Seurat default) on the SCTransform variable genes, and the first npcs were used for the neighbour graph and for UMAP (uwot, cosine metric, 30 neighbours, seed 42; RunUMAP defaults); t-SNE was not computed and pcGenes was not used.",
+          ## seuratStandardWorkflow (seuratUtils.R:181-235)
+          "The shared-nearest-neighbour graph used k = 20 (FindNeighbors default); clusters were found with the Louvain algorithm (FindClusters algorithm 1) at resolutions 0.2, 0.4, 0.6, 0.8 and 1.0 plus the resolution parameter, and the clustering at the resolution parameter is the one reported.",
+          ## posClusterMarkersSpatial (app-SpatialSeurat.R:571-607); pvalue_allMarkers appDefault 0.01, not declared in SpatialSeuratApp.rb
+          "Cluster markers were found with Seurat FindAllMarkers on the SCT data using the test in DE.method, positive markers only and no latent variables (also for LR); markers were kept at a Bonferroni-adjusted p-value (Seurat p_val_adj) below 0.01, the app default of pvalue_allMarkers, which the parameter form does not set.",
+          ## getSpatialSeuratMarkersAndAnnotate (app-SpatialSeurat.R:394-418); spatialMarkers (seuratUtils.R:601-615)
+          "Spatially variable genes were ranked among the SCTransform variable genes (on the SCT scaled data) with both Seurat markvariogram (r.metric = 5) and Moran's I (FindSpatiallyVariableFeatures); the top 2000 genes of each method (Seurat default nfeatures) were reported without a significance threshold, and cluster markers found in either list were flagged as spatial markers.",
+          ## app-SpatialSeurat.R:421-446; querySignificantClusterAnnotationEnrichR defaults (app-ScSeurat.R:1378-1440)
+          "For human and mouse data, up to 500 markers per cluster with the highest average log2 fold change were queried against the enrichrDatabase libraries with the Enrichr web service; terms with an adjusted p-value below 0.001 and more than 3 overlapping genes were kept, the top 5 per library and cluster.",
+          ## Azimuth block (app-SpatialSeurat.R:479-555); SingleR / AUCell commented out (lines 447-454)
+          "When Azimuth is not none, spots were annotated with Azimuth RunAzimuth against that reference using the raw Spatial counts, and prediction levels 1 to 4 were reported; SingleR and AUCell annotation were not run in this app."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSpatialSeurat

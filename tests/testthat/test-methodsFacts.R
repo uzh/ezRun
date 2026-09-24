@@ -24,7 +24,11 @@ withStubWriter <- function(code) {
 
 test_that("the base app has no facts and every drafted app has some", {
   expect_identical(EzApp$new()$methods_facts(), character(0))
-  for (cls in list(EzAppScSeurat, EzAppDeseq2)) {
+  drafted <- list(EzAppScSeurat, EzAppDeseq2, EzAppEdger, EzAppLimma, EzAppHomerDiffPeaks,
+                  EzAppCellBender, EzAppScSeuratCombine, EzAppScSeuratCombinedLabelClusters,
+                  EzAppScSeuratCompare, EzAppScMultiOmics, EzAppVeloCyto, EzAppSpatialSeurat,
+                  EzAppSpatialSeuratSlides, EzAppSpatialSeuratHD, EzAppVisiumHDSeurat, EzAppXeniumSeurat)
+  for (cls in drafted) {
     facts <- cls$new()$methods_facts()
     expect_type(facts, "character")
     expect_gt(length(facts), 0)

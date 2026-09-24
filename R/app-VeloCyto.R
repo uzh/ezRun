@@ -14,6 +14,26 @@ EzAppVeloCyto <-
     "EzAppVeloCyto",
     contains = "EzApp",
     methods = list(
+      methods_facts = function() {
+        c(
+          ## ezMethodVeloCyto (app-VeloCyto.R:92); velocyto run10x --help and source checked in the gi_velocyto env (velocyto 0.17.17)
+          "For 10x data, spliced and unspliced counts were obtained with velocyto run10x on the CellRanger output and the genes.gtf of refBuild, restricted to CellRanger's filtered cell barcodes, with samtools sorting on cores threads and velocyto's default 2048 MB per thread.",
+          ## app-VeloCyto.R:92 and :141-159 (no -l, -M or -m given); velocyto logic.py Default = Permissive10X
+          "Reads were assigned to spliced, unspliced and ambiguous molecules with velocyto's default logic (Permissive10X), counting only uniquely mapped reads (--multimap off) and without a repeat-mask annotation.",
+          ## app-VeloCyto.R:62-84
+          "For CellRanger Multi output, the per-sample alignment file and the per-sample filtered matrix were renamed to the cellranger count layout before velocyto was run, so the per-sample cell calls were used.",
+          ## convertCramToBam (app-VeloCyto.R:179-216)
+          "CRAM alignments were converted to BAM with samtools before counting.",
+          ## app-VeloCyto.R:92 (no -t) vs :141-159; velocyto run10x/run --help
+          "The loom layers were stored as uint16 for 10x data (run10x default) and uint32 for BD Rhapsody data (velocyto run default).",
+          ## app-VeloCyto.R:92 and :141-159 build the command without param$cmdOptions; param$featureLevel is not read
+          "The cmdOptions and featureLevel parameters were not passed to velocyto and had no effect.",
+          ## runVelocytoBD (app-VeloCyto.R:113-122)
+          "For BD Rhapsody data (SCDataOrigin = BDRhapsody), reads tagged XF:Z:__intergenic or XF:Z:SampleTag were removed from the BD alignment file, the BD molecule tag MA was renamed to UB, and only reads carrying a UB tag were kept.",
+          ## runVelocytoBD (app-VeloCyto.R:134-159)
+          "BD Rhapsody data were counted with velocyto run restricted to the cell barcodes of the BD filtered count matrix (CB tag), with samtools sorting on cores threads and 70% of the job memory divided across threads."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodVeloCyto

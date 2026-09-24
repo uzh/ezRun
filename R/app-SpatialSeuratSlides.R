@@ -10,6 +10,32 @@ EzAppSpatialSeuratSlides <-
     "EzAppSpatialSeuratSlides",
     contains = "EzApp",
     methods = list(
+      ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6)
+      ## and are identical in 5.1.0 (Dev/R/4.4.2, which SpatialSeuratSlidesApp.rb loads).
+      methods_facts = function() {
+        c(
+          ## ezMethodSpatialSeuratSlides (app-SpatialSeuratSlides.R:105-117)
+          "Each slide's final Seurat object from its single-slide SpatialSeurat analysis was loaded and its previous SCT-based cluster assignments were removed.",
+          ## seuratNormalizeSampleList SCTransform without seed.use; no set.seed in this app (seuratUtils.R:308-335)
+          "Each slide was re-normalized separately with SCTransform at Seurat defaults (vst.flavor = v2, 3000 variable features, Seurat's default seed 1448145; no global random seed was set), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true.",
+          ## cellClustNoCorrection (seuratUtils.R:354-378); kept as umap_noCorrected / ident_noCorrected (app-SpatialSeuratSlides.R:131-133)
+          "An uncorrected view was computed by merging the slides, using the union of the per-slide SCTransform variable genes, and running the same PCA, UMAP and clustering steps as for the corrected data; its UMAP and clusters were kept alongside the corrected ones.",
+          ## cellClustWithCorrection CCA branch (seuratUtils.R:381-446); integrationMethod appDefault "CCA", nfeatures appDefault 3000, neither declared in the Ruby app
+          "When batchCorrection is true, slides were integrated with Seurat CCA anchors (the app default integration method, not set on the form): 3000 integration features (SelectIntegrationFeatures), PrepSCTIntegration, FindIntegrationAnchors with SCT normalization and dimensions 1 to npcs (Seurat defaults k.anchor 5, k.filter 200, k.score 30), and IntegrateData with dimensions 1 to npcs (k.weight 100); the reported UMAP and clusters come from the integrated assay.",
+          ## seuratStandardWorkflow (seuratUtils.R:170-180)
+          "PCA computed 50 components (Seurat default) and the first npcs were used for the neighbour graph and for UMAP (uwot, cosine metric, 30 neighbours, seed 42; RunUMAP defaults); t-SNE was not computed and pcGenes was not used.",
+          ## seuratStandardWorkflow (seuratUtils.R:181-235)
+          "The shared-nearest-neighbour graph used k = 20 (FindNeighbors default); clusters were found with the Louvain algorithm (FindClusters algorithm 1) at resolutions 0.2, 0.4, 0.6, 0.8 and 1.0 plus the resolution parameter, and the clustering at the resolution parameter is the one reported.",
+          ## PrepSCTFindMarkers + posClusterMarkers (app-SpatialSeuratSlides.R:134-137; seuratUtils.R:516-548)
+          "Before marker detection the per-slide SCT models were reconciled with PrepSCTFindMarkers, and cluster markers were found with FindAllMarkers on the SCT data using the test in DE.method, positive markers only.",
+          ## posClusterMarkers passes neither min.pct nor logfc.threshold; latent.vars only for SCOneSample/SCReportMerging (seuratUtils.R:517-531)
+          "The min.pct and logfc.threshold values on the form were not passed to FindAllMarkers, so the Seurat defaults applied (min.pct 0.01, logfc.threshold 0.1), and DE.regress was not applied (no latent variables, also for LR).",
+          ## pvalue_allMarkers <- 0.05 (app-SpatialSeuratSlides.R:119) used as return.thresh; no p_val_adj filter (seuratUtils.R:530-547)
+          "Markers were reported at an unadjusted p-value below 0.05 (hardcoded), with no filter on the adjusted p-value.",
+          ## app-SpatialSeuratSlides.R:139-161
+          "Spatially variable genes were not recomputed; the spatially variable gene lists from the single-slide analyses were reused to flag cluster markers as spatial markers."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSpatialSeuratSlides

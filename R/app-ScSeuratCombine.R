@@ -27,6 +27,36 @@ EzAppScSeuratCombine <-
           "Schubert, M. et al. Perturbation-response genes reveal signaling footprints in cancer gene expression. Nature Communications 9, 20 (2018). https://doi.org/10.1038/s41467-017-02391-6"
         )
       },
+      ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6 system lib),
+      ## harmony 2.0.5, decoupleR 2.17.0, progeny 1.34.0, AUCell 1.34.0.
+      methods_facts = function() {
+        c(
+          ## ezMethodScSeuratCombine set.seed(38) (app-ScSeuratCombine.R:132); SCTransform seed.use 1448145, RunPCA/RunUMAP 42, FindClusters random.seed 0 are Seurat defaults
+          "The R random seed was set to 38 at the start; Seurat functions used their own default seeds (SCTransform 1448145, RunPCA and RunUMAP 42, FindClusters 0).",
+          ## Condition handling (app-ScSeuratCombine.R:182-199)
+          "When the loaded objects carried no Condition values, Condition was taken from the input dataset's Condition column, or set to the sample name if the dataset has none; when integrationMethod is Harmony and the input dataset has a single Condition value, Condition was replaced by the sample name.",
+          ## seuratNormalizeSampleList + seuratScaleMergedLogNorm + getSeuratVarsToRegress (seuratUtils.R:308-352, 781-793)
+          "Each sample was normalised separately from its RNA counts: with normalizationMethod SCTransform, SCTransform was re-run per sample (vst.flavor v2, 3000 variable features, Seurat defaults), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true; with LogNormalize, counts were log-normalised (scale factor 10000), variable genes selected per sample (vst), and the merged data scaled with the same optional cell-cycle regression.",
+          ## SelectIntegrationFeatures(nfeatures = param$nfeatures) (seuratUtils.R:395-398); nfeatures is an appDefault, not declared in ScSeuratCombineApp.rb
+          "For integration, 3000 features (nfeatures, an app default not on the parameter form) were selected across samples with Seurat SelectIntegrationFeatures.",
+          ## cellClustWithCorrection CCA/RPCA branch (seuratUtils.R:400-445); k.anchor 5, k.filter 200, k.score 30, k.weight 100 are Seurat defaults
+          "With integrationMethod CCA or RPCA, samples were integrated with Seurat FindIntegrationAnchors and IntegrateData (not IntegrateLayers) over dimensions 1 to npcs; RPCA used per-sample PCA on the integration features and k.anchor = 20, CCA the default k.anchor = 5 (k.filter 200, k.score 30, k.weight 100 were Seurat defaults), and PCA, neighbours and clusters were then computed on the integrated assay.",
+          ## cellClustWithCorrection Harmony branch (seuratUtils.R:446-511); harmony 2.0.5 defaults
+          "With integrationMethod Harmony, the normalised samples were merged, PCA was computed with npcs components on the integration features, and harmony RunHarmony corrected all npcs components for the harmonyGroupBy column(s) plus any additionalFactors, with harmony defaults (theta 2 per variable, automatic lambda, sigma 0.1, at most 10 iterations); Batch has one level per input sample.",
+          ## seuratIntegrateDataAndAnnotate calls cellClustNoCorrection unconditionally (app-ScSeuratCombine.R:310-328; seuratUtils.R:354-379)
+          "An uncorrected merge (variable features = union of the per-sample variable features) was always clustered too and kept for comparison plots; with integrationMethod none it is the reported result.",
+          ## seuratStandardWorkflow (seuratUtils.R:164-240)
+          "The shared-nearest-neighbour graph (k = 20), UMAP (uwot, cosine metric, 30 neighbours, seed 42) and t-SNE used dimensions 1 to npcs of the PCA, integrated PCA or Harmony embedding; clusters were found with the Louvain algorithm at resolutions 0.2, 0.4, 0.6, 0.8 and 1.0 plus the resolution parameter, and the clustering at the resolution parameter is the one reported.",
+          ## PrepSCTFindMarkers (app-ScSeuratCombine.R:329-332); getSeuratMarkers (seuratUtils.R:795-825); pvalue_allMarkers 0.05 from EZ_PARAM_DEFAULTS.txt, min.diff.pct 0 appDefault
+          "Cluster markers were found with Seurat FindAllMarkers on the SCT assay (after PrepSCTFindMarkers) or, with LogNormalize, on the RNA assay, using the test in DE.method and only positive markers; p-values were Bonferroni-adjusted over all genes (Seurat p_val_adj), and markers with p_val_adj below 0.05 (ezRun default pvalue_allMarkers, not on the form) and any detection-fraction difference (min.diff.pct 0, app default) were kept.",
+          ## getSeuratMarkers passes no latent.vars (seuratUtils.R:799-809)
+          "When DE.method is LR, cluster markers were tested without latent variables; DE.regress was not applied to marker detection.",
+          ## getSeuratMarkersAndAnnotate (seuratUtils.R:847-877); app-ScSeurat.R Enrichr query; scTools.R:521-660; AUCell aucMaxRank default 5%
+          "For human and mouse data, clusters were annotated with Enrichr on each cluster's significant markers (terms with adjusted p below 0.001 and more than 3 overlapping genes, top 5 per database), with AUCell (top 5% of ranked genes, AUCell default) using CellMarker 2.0 (2023-09-27 release) gene sets of at least 3 genes for the selected tissue, and, when a SingleR reference is set, with SingleR on the fine labels (label.fine) of that celldex reference, per cell and per cluster.",
+          ## computeTFActivityAnalysis / computePathwayActivityAnalysis (app-ScSeurat.R); run_wmean seed 42 default; get_progeny top 500, progeny::getModel top 100
+          "When computePathwayTFActivity is true (human and mouse), transcription-factor and pathway activities were inferred with decoupleR run_wmean (100 permutations, minsize 5, seed 42) on the normalised data, using DoRothEA regulons of confidence A-C and PROGENy models (top 500 genes per pathway for human, top 100 for mouse)."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodScSeuratCombine

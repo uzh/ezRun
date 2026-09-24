@@ -10,6 +10,38 @@ EzAppVisiumHDSeurat <-
     "EzAppVisiumHDSeurat",
     contains = "EzApp",
     methods = list(
+      ## Defaults quoted below were checked on R 4.6 against Seurat 5.5.1, SeuratWrappers
+      ## 0.4.0, Banksy 1.9.1 and spacexr 2.2.1 formals(), and rctd-py 0.3.8 cli.py.
+      methods_facts = function() {
+        c(
+          ## set.seed(38) app-VisiumHDSeurat.R:216; RunPCA/RunUMAP seed.use 42,
+          ## FindClusters random.seed 0, SketchData seed 123 (Seurat 5.5.1 formals)
+          "The random seed was set to 38 at the start of the analysis; PCA and UMAP used Seurat's fixed seed 42, clustering seed 0 and sketching seed 123 (Seurat defaults).",
+          ## Load10X_Spatial branches, app-VisiumHDSeurat.R:227-254; no gene subsetting anywhere
+          "When binSize is segmented_outputs, the SpaceRanger cell-segmentation polygons were analysed as cells (Load10X_Spatial bin.size = polygons); otherwise the square bins of the chosen size were used, and no genes were filtered out in either case.",
+          ## app-VisiumHDSeurat.R:291 (numis -> nUMI) -> addCellQcToSeurat app-ScSeurat.R
+          "Bins were removed when they had fewer UMIs than numis, fewer genes than ngenes, or a higher percentage of mitochondrial reads (gene names starting with MT-, case-insensitive) than perc_mito; for each of these left empty, bins more than nmad median absolute deviations from the median were removed instead (log scale for UMI and gene counts, scater isOutlier), no filter was applied when nmad was also empty, and bins with zero UMIs were always removed.",
+          ## addCellQcToSeurat reads param$perc_riboprot, the form sends perc_ribo;
+          ## scDblFinder gated on DefaultAssay == "RNA", assay here is Spatial / Spatial.Polygons
+          "The perc_ribo value was not used, so ribosomal-protein genes (RPS/RPL) were filtered only by the nmad rule, and no doublet detection was run on the spatial data.",
+          ## NormalizeData/FindVariableFeatures/ScaleData with defaults, app-VisiumHDSeurat.R:304-306
+          "Counts were log-normalized (LogNormalize, scale factor 10000), 2000 variable features were selected with the vst method and scaled without regressing out any covariate (Seurat defaults); SCTransform was not used.",
+          ## addCellCycleToSeurat(method = "seurat") app-VisiumHDSeurat.R:309-315 -> addSeuratCellCycle scTools.R:47-65
+          "For human and mouse data, cell-cycle phase and S and G2/M scores were assigned with Seurat CellCycleScoring using Seurat's cc.genes.updated.2019 gene lists (mouse-capitalised for mouse); the scores were not regressed out.",
+          ## app-VisiumHDSeurat.R:318-331; findClustersFast + reassignSingletons scTools.R:788-860
+          "With fewer than 50,000 bins after QC, PCA computed 80 components and the first npcs were used for the shared-nearest-neighbour graph (k = 20) and for UMAP (uwot, cosine metric, 30 neighbours); clusters were found with the Louvain algorithm (FindClusters algorithm 1) at clusterResolution, and singletons were assigned to the cluster with the highest mean SNN connectivity (Seurat's GroupSingletons rule).",
+          ## app-VisiumHDSeurat.R:332-395; ProjectData k.weight 50 default
+          "With 50,000 or more bins, 50,000 bins were sampled by leverage score (Seurat SketchData) on the variable features, variable features were recomputed on the sketch, PCA (80 components), neighbour graph, Louvain clustering and UMAP were run on the sketch as above, and PCA, UMAP and clusters were then projected to all bins with Seurat ProjectData; the projected clusters are the reported ones.",
+          ## FindAllMarkers app-VisiumHDSeurat.R:401-424 (return.thresh filters p_val) and :474-480
+          "Cluster markers were found with Seurat FindAllMarkers using the test in DE.method, only positive markers, keeping genes with unadjusted p below 0.01 and Bonferroni-adjusted p (p_val_adj) below 0.01 (the pvalue_allMarkers app default, not on the form); BANKSY niche markers used the Wilcoxon test regardless of DE.method, min.pct 0.25 and logfc.threshold 0.25 (fixed in the code) and only the unadjusted p below 0.01 filter.",
+          ## RunBanksy app-VisiumHDSeurat.R:440-448, RunPCA :450-457, FindNeighbors dims 1:12 :458-463, findClustersFast :464-470
+          "BANKSY (SeuratWrappers RunBanksy) was run on the log-normalized variable features with the lambda parameter, k_geom = 30 (fixed in the code) and package defaults otherwise (kNN_median neighbourhood, no azimuthal Gabor filter); PCA computed 30 components on the BANKSY matrix, the neighbour graph used the first 12 (fixed, independent of npcs), and niches were found with the Louvain algorithm at nicheResolution with the same singleton handling as the clusters.",
+          ## reference resolution app-VisiumHDSeurat.R:515-587; engine switch :624-647; rctdPyAvailable :749; runRctdPy CLI :784-787
+          "When an RCTD reference was set (rctdFile overrides rctdReference; a Seurat reference was converted with spacexr Reference, labels from the first of author_cell_type, cell_type, celltype or CellType), RCTD was run in doublet mode on the raw counts of all QC-passing bins, leaving bins below rctdUMImin unannotated; with rctdEngine = rctd-py the Python rctd-py 0.3.8 was used (GPU if the job had one, else CPU) only when its conda environment was installed, otherwise and with rctdEngine = spacexr the R package spacexr was used, and the job log line 'RCTD start, engine ...' records which one ran.",
+          ## max.col over normalized weights app-VisiumHDSeurat.R:650-659; results_df :678-680, runRctdPy :789-801
+          "The reported cell type per bin (RCTD_Main) was the cell type with the highest normalized RCTD weight, assigned to every annotated bin including bins RCTD classified as reject; RCTD's spot_class, first_type and second_type were stored alongside."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodVisiumHDSeurat

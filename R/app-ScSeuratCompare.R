@@ -10,6 +10,34 @@ EzAppScSeuratCompare <-
     "EzAppScSeuratCompare",
     contains = "EzApp",
     methods = list(
+      ## Defaults quoted here were checked on the R version this app loads (Dev/R/4.5.0:
+      ## Seurat 5.4.0, clusterProfiler 4.16.0, sccomp 2.1.30) and are identical on R 4.6 (Seurat 5.5.1).
+      methods_facts = function() {
+        c(
+          ## set.seed(38) (app-ScSeuratCompare.R:81); sccomp mcmc_seed default sample_seed() = sample(1e5, 1)
+          "The R random seed was set to 38 at the start, and sccomp's sampling seed was drawn from it.",
+          ## subset to the two groups (app-ScSeuratCompare.R:164-168)
+          "All analyses used only the cells whose grouping value is sampleGroup or refGroup.",
+          ## CellIdentity auto-detection loop (app-ScSeuratCompare.R:121-162)
+          "The cell identity used for per-group tests was chosen automatically as the first of the metadata columns celltype, celltypeintegrated, cellTypeIntegrated, manualAnnot or ident that has more than one value, overriding the CellIdentity parameter; seurat_clusters was used only when none qualified.",
+          ## refBuild inference from gene-name case (app-ScSeuratCompare.R:92-119); the app declares no refBuild parameter
+          "Species for GO and KEGG enrichment was inferred from gene-symbol capitalisation (human when most symbols are all upper case, otherwise mouse), as the app takes no reference parameter.",
+          ## sccomp block (app-ScSeuratCompare.R:170-235); sccomp 2.1.30 defaults
+          "When replicateGrouping names a metadata column with at least 3 replicates in every condition, cell-type composition was tested with sccomp (formula ~ grouping, pathfinder inference, variability formula ~1 so no differential-variability test), after removing outliers with sccomp_remove_outliers; sccomp_test called effects above a logit fold change of 0.1 at 5% false positives (sccomp defaults).",
+          ## non-pseudobulk branch: PrepSCTFindMarkers + diffExpressedGenes (app-ScSeuratCompare.R:289-301; seuratUtils.R:706-779)
+          "Without pseudobulk mode, PrepSCTFindMarkers was run on the subset, and within each cell identity genes were tested between sampleGroup and refGroup cells with Seurat FindMarkers on the SCT assay (RNA as fallback if SCT failed), using DE.method with DE.regress as latent variables when DE.method is LR, the Seurat defaults logfc.threshold 0.1 and min.pct 0.01, and both directions; p-values were Bonferroni-adjusted over all genes (Seurat p_val_adj).",
+          ## min.cells.group = 3 default; small_clusters computed but unused (app-ScSeuratCompare.R:239-249)
+          "A cell identity was skipped when either condition had fewer than 3 cells in it (Seurat min.cells.group); no other minimum size was applied.",
+          ## pseudobulk branch (app-ScSeuratCompare.R:260-288; seuratUtils.R:647-651, 715-719); Seurat DESeq2DETest
+          "With pseudoBulkMode true and replicateGrouping set, RNA counts were summed per condition, replicate and cell identity (Seurat AggregateExpression), and differential expression and conserved markers used the DESeq2 Wald test through Seurat FindMarkers (local dispersion fit), overriding DE.method, with Seurat's Bonferroni adjustment over all genes.",
+          ## conservedMarkers (seuratUtils.R:635-704); FindConservedMarkers meta.method default metap::minimump
+          "Conserved markers of each cell identity across the two conditions were found with Seurat FindConservedMarkers (positive markers only; Wilcoxon test regardless of DE.method, or DESeq2 in pseudobulk mode), combining per-condition p-values with the minimum-p method (metap minimump, Seurat default) and ranking by the mean of the per-condition log2 fold changes.",
+          ## ScSeuratCompare.Rmd diff-genes table and enrichment chunks; enrichGO/enrichKEGG defaults
+          "The reported differential expression table kept genes with p_val_adj below 0.05 (at most 1000, by absolute log2 fold change); for GO and KEGG, genes with p_val_adj below 0.05 and log2 fold change above 0.25 (up) or below -0.25 (down) in each cell identity were tested when at least 5, with clusterProfiler enrichGO (Biological Process, gene symbols, Benjamini-Hochberg, p cutoff 0.05, q cutoff 0.2, gene sets of 10-500 genes, all annotated genes of the organism database as background) and enrichKEGG after symbol-to-Entrez mapping (same cutoffs, KEGG data downloaded at run time).",
+          ## ScSeuratCompare.Rmd run_pseudobulk_pca and MSE chunks
+          "With at least 3 samples, the report's sample-level PCA used RNA counts summed per sample, log-normalised, on the top 2000 variable genes (vst) with up to 10 components, and per cell identity only samples with at least 5 cells, when at least 3 such samples existed; MSE distances used per-sample mean log-normalised RNA expression over up to 2000 variable features."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodScSeuratCompare

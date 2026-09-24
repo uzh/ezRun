@@ -12,6 +12,22 @@ EzAppLimma <-
     "EzAppLimma",
     contains = "EzApp",
     methods = list(
+      ## limma/edgeR defaults quoted here were checked against limma 3.68.4 and
+      ## edgeR 4.10.1 formals() (R 4.6.0 system lib).
+      methods_facts = function() {
+        c(
+          ## ngsio.R:117-127; twoGroupCountComparison (twoGroups.R:87-95, 143-147)
+          "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); all genes were fitted, but only genes present in at least half of the samples of the sample group or of the reference group were counted as tested, and the reported FDR is the Benjamini-Hochberg adjustment of the limma p-values over these genes, computed by ezRun rather than taken from limma's adj.P.Val.",
+          ## runLimma (twoGroups.R:421-431); calcNormFactors default method TMM
+          "Only the samples of the sample and reference groups were fitted, with TMM normalization factors (edgeR calcNormFactors default) computed on those samples.",
+          ## runLimma (twoGroups.R:433-455)
+          "The linear model used the design ~ group with the reference group as baseline, and the reported log2 fold change and moderated t-test p-value are for the sample-group coefficient; when grouping2 is set it was treated as a blocking factor, with a consensus within-block correlation from duplicateCorrelation, not as a fixed covariate.",
+          ## runLimma limma-trend branch (twoGroups.R:436-450); eBayes robust default FALSE
+          "When modelMethod is limma-trend, counts were converted to log2 CPM with cpm (TMM-normalized library sizes, prior.count = priorCount), fitted with lmFit and moderated with eBayes(trend = TRUE), without robust estimation.",
+          ## runLimma voom branch (twoGroups.R:451-460); voom normalize.method "none", eBayes trend/robust FALSE
+          "When modelMethod is voom, counts were transformed with voom using the TMM-normalized library sizes (no further between-array normalization), fitted with lmFit using the voom precision weights and moderated with eBayes without trend or robust estimation; priorCount was not used."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodLimma
