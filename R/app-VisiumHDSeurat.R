@@ -621,8 +621,14 @@ ezMethodVisiumHDSeurat <- function(
           20,
           as.numeric(param$rctdUMImin)
         )
-        logStep(paste("RCTD start, engine", param$rctdEngine))
-        if (identical(param$rctdEngine, "spacexr")) {
+        useRctdPy <- !identical(param$rctdEngine, "spacexr") && rctdPyAvailable()
+        if (!identical(param$rctdEngine, "spacexr") && !useRctdPy) {
+          futile.logger::flog.warn(
+            "rctd-py env %s not installed: falling back to spacexr", RCTD_PY_ENV
+          )
+        }
+        logStep(paste("RCTD start, engine", if (useRctdPy) "rctd-py" else "spacexr"))
+        if (!useRctdPy) {
           query.puck <- SpatialRNA(coords, counts, Matrix::colSums(counts))
           myRCTD <- create.RCTD(
             query.puck,
@@ -736,8 +742,16 @@ ezMethodVisiumHDSeurat <- function(
 ## weights (bins x types) and a results_df with spot_class / first_type /
 ## second_type. Bins under UMI_min are dropped, as spacexr drops them.
 ## RCTD_PY_BIN (a directory holding `rctd`) overrides the env, for testing.
-runRctdPy <- function(counts, coords, ref, umiMin,
-                      env = "gi_rctd-py_0.3.8") {
+RCTD_PY_ENV <- "gi_rctd-py_0.3.8"
+RCTD_PY_CONDA <- "/usr/local/ngseq/miniforge3"
+
+## TRUE when rctd-py can run: the test override is set or the env exists.
+rctdPyAvailable <- function() {
+  nzchar(Sys.getenv("RCTD_PY_BIN")) ||
+    file.exists(file.path(RCTD_PY_CONDA, "envs", RCTD_PY_ENV, "bin", "rctd"))
+}
+
+runRctdPy <- function(counts, coords, ref, umiMin, env = RCTD_PY_ENV) {
   wd <- file.path(getwd(), "rctd_py")
   dir.create(wd, showWarnings = FALSE)
   qFile <- file.path(wd, "query.h5ad")
@@ -765,7 +779,7 @@ runRctdPy <- function(counts, coords, ref, umiMin,
   if (nzchar(binDir)) {
     withr::local_path(binDir, action = "prefix")
   } else {
-    Herper::local_CondaEnv(env, pathToMiniConda = "/usr/local/ngseq/miniforge3")
+    Herper::local_CondaEnv(env, pathToMiniConda = RCTD_PY_CONDA)
   }
   ezSystem(paste(
     "rctd run", qFile, rFile, "--mode doublet --umi-min", umiMin,
