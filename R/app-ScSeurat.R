@@ -46,6 +46,37 @@ EzAppScSeurat <-
           "Satija Lab. Pan-Human Azimuth. https://satijalab.org/pan_human_azimuth/ [preprint referenced on this page could not be independently verified]"
         )
       },
+      ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals().
+      methods_facts = function() {
+        c(
+          ## ezMethodScSeurat set.seed(38); SCTransform seed.use = 38 (seuratUtils.R)
+          "The random seed was set to 38 at the start of the analysis, before doublet detection, and passed to SCTransform (seed.use = 38).",
+          ## addCellQcToSeurat
+          "Cells were flagged by fixed thresholds where nUMI, ngenes, perc_mito or perc_riboprot are set (fewer UMIs or genes, higher mitochondrial or ribosomal-protein percentage); for each of these left empty, cells more than nmad median absolute deviations from the median were flagged instead (log scale for UMI and gene counts, scater isOutlier). Cells with zero UMIs were always removed.",
+          "Mitochondrial, ribosomal-protein and haemoglobin genes were identified by the gene-name patterns ^MT-, ^RPS/^RPL and ^HB[^P] (case-insensitive).",
+          ## emptyDrops block in ezMethodScSeurat
+          "Where the raw matrix contained more barcodes than the filtered one, DropletUtils emptyDrops (niters = 1e5) was run once without mitochondrial and ribosomal-protein genes and once on all genes, keeping the less significant of the two p-values per barcode; when maxEmptyDropPValue is below 1, cells with a p-value above it were removed.",
+          ## addCellQcToSeurat -> scDblFinder(clusters = TRUE)
+          "Doublets were scored on the RNA counts with scDblFinder in cluster-based mode (clusters = TRUE) for every run; keepDoublets only decides whether cells called doublets are removed.",
+          "After cell filtering, genes were kept when detected with at least geneMinUMI UMIs in at least the cellsFraction proportion of cells.",
+          ## addCellCycleToSeurat default method = "cyclone" (scTools.R)
+          "For human and mouse data, cell-cycle phase was assigned with scran cyclone using scran's bundled human or mouse marker pairs.",
+          ## seuratStandardSCTPreprocessing (seuratUtils.R)
+          "Counts were log-normalized (LogNormalize, scale factor 10000) and then normalized with SCTransform (vst.flavor = v2, 3000 variable features, the Seurat default; nfeatures is not passed to SCTransform), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true; the SCT assay was used for all downstream steps.",
+          ## seuratStandardWorkflow (seuratUtils.R)
+          "PCA computed 50 components (Seurat default) and the first npcs were used for the neighbour graph, UMAP and t-SNE.",
+          "The shared-nearest-neighbour graph used k = 20 (FindNeighbors default); clusters were found with the Louvain algorithm (FindClusters algorithm 1) at resolutions 0.2, 0.4, 0.6, 0.8 and 1.0 plus the resolution parameter, and the clustering at the resolution parameter is the one reported.",
+          "UMAP used uwot with the cosine metric, 30 neighbours and seed 42 (RunUMAP defaults).",
+          ## getSeuratMarkers (seuratUtils.R)
+          "Cluster markers were found with Seurat FindAllMarkers using the test in DE.method and only positive markers (only.pos = TRUE); p-values were Bonferroni-adjusted over all genes (Seurat p_val_adj), and the reported markers have p_val_adj below pvalue_allMarkers and a difference in detection fraction of at least min.diff.pct.",
+          ## cellsLabelsWithSingleR (scTools.R)
+          "When a SingleR reference is set, cells and clusters were annotated with SingleR against the fine labels (label.fine) of that celldex reference.",
+          ## computeTFActivityAnalysis / computePathwayActivityAnalysis
+          "When computePathwayTFActivity is true (human and mouse), transcription-factor and pathway activities were inferred with decoupleR run_wmean (times = 100, minsize = 5) using DoRothEA regulons of confidence A-C and PROGENy.",
+          ## sc-estimateAmbient.R
+          "When estimateAmbient is true, ambient RNA was estimated with DecontX using the cluster labels, and additionally with SoupX where a raw matrix is available."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodScSeurat

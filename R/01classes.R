@@ -646,6 +646,13 @@ EzApp <-
       citation = function() {
         character(0)
       },
+      ## Fixed behaviour of the app's code that its parameter form does not show:
+      ## seeds, algorithm choices, hardcoded filters and corrections. The LLM only
+      ## reads the job script and logs, so without these it writes [not recorded] or
+      ## guesses. One plain sentence per fact; name the param when a fact depends on it.
+      methods_facts = function() {
+        character(0)
+      },
       ## Override this (not write_methods()) for an app whose Methods text is fixed
       ## and known rather than LLM-generated (e.g. EzAppFastqc). Default: call the LLM
       ## via llm_write_methods. Its response includes a "## References" header
@@ -658,6 +665,16 @@ EzApp <-
         args <- c("--output", file.path(output_dir, "methods.md"),
                   "--identity-file", identity_file,
                   "--task-file",     task_file)
+        facts <- methods_facts()
+        if (length(facts) > 0) {
+          facts_file <- file.path(output_dir, "app_facts.txt")
+          writeLines(c(paste0("Fixed behaviour of ", class(.self)[1], " in ezRun ",
+                              utils::packageVersion("ezRun"), ", read from its source code. ",
+                              "Applies to every run; a fact that names a parameter applies ",
+                              "only when the job's parameter form has that value."),
+                       facts), facts_file)
+          script_paths <- c(script_paths, facts_file)
+        }
         if (length(script_paths) > 0) args <- c(args, "--scripts", script_paths)
         if (length(log_paths)    > 0) args <- c(args, "--logs",    log_paths)
         candidates <- citation()

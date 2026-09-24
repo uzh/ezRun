@@ -118,6 +118,26 @@ EzAppDeseq2 <-
           "Kuleshov, M.V. et al. Enrichr: a comprehensive gene set enrichment analysis web server 2016 update. Nucleic Acids Research 44(W1), W90-W97 (2016). https://doi.org/10.1093/nar/gkw377"
         )
       },
+      ## DESeq2 / clusterProfiler defaults quoted here were checked against
+      ## DESeq2 1.52.0 and clusterProfiler 4.21.1 formals().
+      methods_facts = function() {
+        c(
+          ## twoGroupCountComparison (twoGroups.R): isPresent / useProbe
+          "Genes were tested when present in at least half of the samples of the sample group or of the reference group.",
+          ## runDeseq2 (twoGroups.R): estimateSizeFactors(controlGenes = isPresent)
+          "DESeq2 size factors were estimated with the median-ratio method on the present genes only (controlGenes).",
+          ## runDeseq2: design, DESeq(), results()
+          "The DESeq2 model used the design ~ grouping, or ~ grouping + grouping2 (additive, no interaction) when grouping2 is set, and was fitted with DESeq() using the Wald test with outlier replacement disabled (minReplicatesForReplace = Inf).",
+          "Log2 fold changes and p-values are for the sample group over the reference group (results() contrast); Cook's distance filtering of p-values was applied only when cooksCutoff is true.",
+          ## runDeseq2: lfcShrink
+          "When useLfcShrink is true, log2 fold changes were shrunk with lfcShrink using the ashr method.",
+          ## twoGroupCountComparison: fdr <- p.adjust(pValue[useProbe], method = "fdr")
+          "The reported FDR is the Benjamini-Hochberg adjustment of the DESeq2 Wald p-values over the tested (present) genes, computed by ezRun rather than taken from DESeq2's padj.",
+          ## compileEnrichmentInput / ezEnricher / ezGSEA (go-analysis.R)
+          "When runGO is true and GO annotation is available, genes with p-value at or below pValThreshGO and absolute log2 ratio above log2RatioThreshGO were tested for GO over-representation (BP, MF, CC; up-regulated, down-regulated and both separately) with clusterProfiler enricher, using the present genes as universe, Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes, cut-off fdrThreshORA and at least 3 genes per term.",
+          "When runGO is true, GO gene set enrichment analysis (BP, MF, CC) was run with clusterProfiler GSEA on the present genes ranked by rankMetric (log2 ratio, -log10 p-value, or signed -log10 p-value), with Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes and cut-off fdrThreshGSEA."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodDeseq2
