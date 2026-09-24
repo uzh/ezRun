@@ -52,17 +52,17 @@ EzAppScSeurat <-
           ## ezMethodScSeurat set.seed(38); SCTransform seed.use = 38 (seuratUtils.R)
           "The random seed was set to 38 at the start of the analysis, before doublet detection, and passed to SCTransform (seed.use = 38).",
           ## addCellQcToSeurat
-          "Cells were flagged by fixed thresholds where nUMI, ngenes, perc_mito or perc_riboprot are set (fewer UMIs or genes, higher mitochondrial or ribosomal-protein percentage); for each of these left empty, cells more than nmad median absolute deviations from the median were flagged instead (log scale for UMI and gene counts, scater isOutlier). Cells with zero UMIs were always removed.",
+          "Cells were flagged by fixed thresholds where nUMI, ngenes, perc_mito or perc_riboprot are set; for each of these left empty, cells more than nmad median absolute deviations from the median were flagged instead (nmad app default 3, not on the parameter form; log scale and lower side for UMI and gene counts, upper side for mitochondrial and ribosomal-protein percentage, scater isOutlier). Cells with zero UMIs were always removed.",
           "Mitochondrial, ribosomal-protein and haemoglobin genes were identified by the gene-name patterns ^MT-, ^RPS/^RPL and ^HB[^P] (case-insensitive).",
           ## emptyDrops block in ezMethodScSeurat
-          "Where the raw matrix contained more barcodes than the filtered one, DropletUtils emptyDrops (niters = 1e5) was run once without mitochondrial and ribosomal-protein genes and once on all genes, keeping the less significant of the two p-values per barcode; when maxEmptyDropPValue is below 1, cells with a p-value above it were removed.",
+          "For CellRanger directory inputs (not HDF5 inputs such as CellBender output) whose raw matrix had more barcodes than the filtered one, DropletUtils emptyDrops (niters = 1e5) was run once without mitochondrial and ribosomal-protein genes and once on all genes, keeping the larger p-value per barcode; cells were removed only when maxEmptyDropPValue is below 1 (app default 1, not on the parameter form), otherwise the p-values were reported as a QC metric only.",
           ## addCellQcToSeurat -> scDblFinder(clusters = TRUE)
-          "Doublets were scored on the RNA counts with scDblFinder in cluster-based mode (clusters = TRUE) for every run; keepDoublets only decides whether cells called doublets are removed.",
-          "After cell filtering, genes were kept when detected with at least geneMinUMI UMIs in at least the cellsFraction proportion of cells.",
+          "Doublets were scored with scDblFinder in cluster-based mode (clusters = TRUE) on the RNA counts of cells passing the QC thresholds, and cells called doublets were removed unless keepDoublets is true (app default false, not on the parameter form); if scDblFinder failed twice, no doublet filtering was applied.",
+          "Genes with no counts in the filtered matrix were dropped; after cell filtering, genes were additionally required to have at least geneMinUMI UMIs in at least the cellsFraction proportion of cells, which removes no gene when cellsFraction is 0.",
           ## addCellCycleToSeurat default method = "cyclone" (scTools.R)
           "For human and mouse data, cell-cycle phase was assigned with scran cyclone using scran's bundled human or mouse marker pairs.",
           ## seuratStandardSCTPreprocessing (seuratUtils.R)
-          "Counts were log-normalized (LogNormalize, scale factor 10000) and then normalized with SCTransform (vst.flavor = v2, 3000 variable features, the Seurat default; nfeatures is not passed to SCTransform), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true; the SCT assay was used for all downstream steps.",
+          "Counts were normalized with SCTransform on the raw counts (vst.flavor = v2, 3000 variable features, the Seurat default; nfeatures is not passed to SCTransform), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true; the SCT assay was used for all downstream steps (a LogNormalize layer, scale factor 10000, was also stored in the RNA assay).",
           ## seuratStandardWorkflow (seuratUtils.R)
           "PCA computed 50 components (Seurat default) and the first npcs were used for the neighbour graph, UMAP and t-SNE.",
           "The shared-nearest-neighbour graph used k = 20 (FindNeighbors default); clusters were found with the Louvain algorithm (FindClusters algorithm 1) at resolutions 0.2, 0.4, 0.6, 0.8 and 1.0 plus the resolution parameter, and the clustering at the resolution parameter is the one reported.",
@@ -74,7 +74,7 @@ EzAppScSeurat <-
           ## computeTFActivityAnalysis / computePathwayActivityAnalysis
           "When computePathwayTFActivity is true (human and mouse), transcription-factor and pathway activities were inferred with decoupleR run_wmean (times = 100, minsize = 5) using DoRothEA regulons of confidence A-C and PROGENy.",
           ## sc-estimateAmbient.R
-          "When estimateAmbient is true, ambient RNA was estimated with DecontX using the cluster labels, and additionally with SoupX where a raw matrix is available."
+          "When estimateAmbient is true, the per-cell ambient RNA contamination fraction was estimated, not removed, with DecontX using the cluster labels and with SoupX where a raw matrix is available; the counts used for the analysis were not corrected."
         )
       },
       initialize = function() {

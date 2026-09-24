@@ -25,7 +25,7 @@ EzAppSpatialSeurat <-
           ## runBasicProcessing -> addCellCycleToSeurat default method "cyclone" (app-SpatialSeurat.R:318; scTools.R:21-91)
           "For human and mouse data, cell-cycle phase was assigned to each spot with scran cyclone using scran's bundled human or mouse marker pairs.",
           ## seuratStandardSCTPreprocessing (seuratUtils.R:18-88)
-          "Counts were log-normalized (LogNormalize, scale factor 10000) and then normalized with SCTransform (vst.flavor = v2, 3000 variable features, the Seurat default; nfeatures is not passed to SCTransform), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true; the SCT assay was used for all downstream steps.",
+          "Spot counts were normalized with SCTransform on the raw counts (vst.flavor = v2, 3000 variable features, the Seurat default; nfeatures is not passed to SCTransform), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true; the SCT assay was used for all downstream steps (a LogNormalize layer, scale factor 10000, was also stored but not used downstream).",
           ## seuratStandardWorkflow (seuratUtils.R:170-180): RunPCA without npcs/features; RunTSNE skipped when a Spatial assay exists
           "PCA computed 50 components (Seurat default) on the SCTransform variable genes, and the first npcs were used for the neighbour graph and for UMAP (uwot, cosine metric, 30 neighbours, seed 42; RunUMAP defaults); t-SNE was not computed and pcGenes was not used.",
           ## seuratStandardWorkflow (seuratUtils.R:181-235)
@@ -37,7 +37,7 @@ EzAppSpatialSeurat <-
           ## app-SpatialSeurat.R:421-446; querySignificantClusterAnnotationEnrichR defaults (app-ScSeurat.R:1378-1440)
           "For human and mouse data, up to 500 markers per cluster with the highest average log2 fold change were queried against the enrichrDatabase libraries with the Enrichr web service; terms with an adjusted p-value below 0.001 and more than 3 overlapping genes were kept, the top 5 per library and cluster.",
           ## Azimuth block (app-SpatialSeurat.R:479-555); SingleR / AUCell commented out (lines 447-454)
-          "When Azimuth is not none, spots were annotated with Azimuth RunAzimuth against that reference using the raw Spatial counts, and prediction levels 1 to 4 were reported; SingleR and AUCell annotation were not run in this app."
+          "When Azimuth is not none, spots were annotated with Azimuth RunAzimuth against that reference using the raw Spatial counts, and up to four annotation levels (as many as the reference provides) were reported; SingleR and AUCell annotation were not run in this app."
         )
       },
       initialize = function() {

@@ -123,12 +123,12 @@ EzAppDeseq2 <-
       methods_facts = function() {
         c(
           ## twoGroupCountComparison (twoGroups.R): isPresent / useProbe
-          "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); all genes were fitted, but only genes present in at least half of the samples of the sample group or of the reference group were counted as tested.",
+          "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); all genes of the selected transcript types (transcriptTypes) were fitted, but only genes present in at least half of the samples of the sample group or of the reference group were counted as tested.",
           ## runDeseq2 (twoGroups.R): estimateSizeFactors(controlGenes = isPresent)
           "DESeq2 size factors were estimated with the median-ratio method on the present genes only (controlGenes).",
           ## runDeseq2: design, DESeq(), results()
           "The DESeq2 model used the design ~ grouping, or ~ grouping + grouping2 (additive, no interaction) when grouping2 is set, and was fitted with DESeq() using the Wald test with outlier replacement disabled (minReplicatesForReplace = Inf).",
-          "Log2 fold changes and p-values are for the sample group over the reference group (results() contrast); Cook's distance filtering of p-values was applied only when cooksCutoff is true.",
+          "Log2 fold changes and p-values are for the sample group over the reference group (results() contrast); Cook's distance filtering of p-values was applied only when cooksCutoff is true (default false, not on the parameter form).",
           ## runDeseq2: lfcShrink
           "When useLfcShrink is true, log2 fold changes were shrunk with lfcShrink using the ashr method.",
           ## twoGroupCountComparison: fdr <- p.adjust(pValue[useProbe], method = "fdr")

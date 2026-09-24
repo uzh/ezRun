@@ -15,7 +15,7 @@ EzAppSpatialSeuratSlides <-
       methods_facts = function() {
         c(
           ## ezMethodSpatialSeuratSlides (app-SpatialSeuratSlides.R:105-117)
-          "Each slide's final Seurat object from its single-slide SpatialSeurat analysis was loaded and its previous SCT-based cluster assignments were removed.",
+          "Each slide's Seurat object from its single-slide SpatialSeurat analysis (a SpatialSeurat version from before September 2025) was loaded and its previous SCT-based cluster assignments were removed.",
           ## seuratNormalizeSampleList SCTransform without seed.use; no set.seed in this app (seuratUtils.R:308-335)
           "Each slide was re-normalized separately with SCTransform at Seurat defaults (vst.flavor = v2, 3000 variable features, Seurat's default seed 1448145; no global random seed was set), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true.",
           ## cellClustNoCorrection (seuratUtils.R:354-378); kept as umap_noCorrected / ident_noCorrected (app-SpatialSeuratSlides.R:131-133)
@@ -33,7 +33,7 @@ EzAppSpatialSeuratSlides <-
           ## pvalue_allMarkers <- 0.05 (app-SpatialSeuratSlides.R:119) used as return.thresh; no p_val_adj filter (seuratUtils.R:530-547)
           "Markers were reported at an unadjusted p-value below 0.05 (hardcoded), with no filter on the adjusted p-value.",
           ## app-SpatialSeuratSlides.R:139-161
-          "Spatially variable genes were not recomputed; the spatially variable gene lists from the single-slide analyses were reused to flag cluster markers as spatial markers."
+          "Spatially variable genes were not recomputed; genes ranked by both markvariogram and Moran's I in a single-slide analysis (non-missing MeanRank) were reused to flag cluster markers as spatial markers."
         )
       },
       initialize = function() {

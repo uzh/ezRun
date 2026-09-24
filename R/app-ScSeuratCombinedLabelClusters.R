@@ -18,7 +18,7 @@ EzAppScSeuratCombinedLabelClusters <-
           ## ClusterAnnotationFile parsing (app-ScSeuratCombinedLabelClusters.R:116-126)
           "Cluster labels were read from the second (cluster) and third (label) columns of the ClusterAnnotationFile, ignoring the first column; clusters given the same label were merged into one group, and clusters not listed in the file were left without a label.",
           ## ezUpdateMissingParam(param, oldParams) + refBuild override (app-ScSeuratCombinedLabelClusters.R:99-101; util.R:1097-1109)
-          "Parameters not on this job's form (for example normalizationMethod, integrationMethod, npcs and resolution) were taken from the upstream ScSeuratCombine run's saved parameters, and refBuild was always taken from that run.",
+          "Parameters absent from both this job's form and ezRun's global defaults (for example normalizationMethod, integrationMethod, npcs and resolution) were taken from the upstream ScSeuratCombine run's saved parameters, and refBuild was always taken from that run.",
           ## getSeuratMarkers via getSeuratMarkersAndAnnotate (app-ScSeuratCombinedLabelClusters.R:129; seuratUtils.R:795-825)
           "Markers were recomputed for the new labels with Seurat FindAllMarkers on the object's default assay (SCT when the upstream run used SCTransform, RNA for LogNormalize), using the test in DE.method and only positive markers; p-values were Bonferroni-adjusted over all genes (Seurat p_val_adj), and markers with p_val_adj below 0.05 (ezRun default pvalue_allMarkers, not on the form) were kept.",
           ## getSeuratMarkers passes no latent.vars (seuratUtils.R:799-809)

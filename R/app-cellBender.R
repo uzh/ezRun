@@ -26,7 +26,7 @@ EzAppCellBender <-
       methods_facts = function() {
         c(
           ## ezMethodCellBender input path: UnfilteredCountMatrix, else raw_feature_bc_matrix of the multi output (app-cellBender.R:105-126)
-          "CellBender was run on each sample's unfiltered (raw) droplet count matrix, including empty droplets, not on the cell-filtered matrix.",
+          "CellBender was run on the unfiltered (raw) droplet count matrix including empty droplets (for CellRanger Multi input without an UnfilteredCountMatrix column, the library-level raw matrix of the pool), not on the cell-filtered matrix.",
           ## dropPeaksFromH5 (app-cellBender.R:54-91), called at app-cellBender.R:159
           "For multiome inputs, ATAC peak features were removed before CellBender; all other feature types (gene expression, antibody capture, multiplexing capture) were kept and processed together.",
           ## command line built at app-cellBender.R:161-176
@@ -38,7 +38,7 @@ EzAppCellBender <-
           ## consts.py RANDOM_SEED = 1234, applied in run.py (pyro.util.set_rng_seed); the app sets no seed
           "CellBender used its fixed internal random seed (1234); the app set no seed of its own.",
           ## --estimator default mckp (--help); consts.py CELL_PROB_CUTOFF = 0.5; outputs kept at app-cellBender.R:180-187
-          "Denoised counts were computed with the MCKP estimator (CellBender default), and two matrices were kept: all analysed droplets, and the droplets with a posterior cell probability above 0.5 (CellBender's filtered output)."
+          "Denoised counts were computed with the MCKP estimator (CellBender default), and two matrices were kept: the full matrix with every input barcode, and the droplets with a posterior cell probability above 0.5 (CellBender's filtered output)."
         )
       },
       initialize = function() {

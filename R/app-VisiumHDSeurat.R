@@ -23,7 +23,7 @@ EzAppVisiumHDSeurat <-
           "Bins were removed when they had fewer UMIs than numis, fewer genes than ngenes, or a higher percentage of mitochondrial reads (gene names starting with MT-, case-insensitive) than perc_mito; for each of these left empty, bins more than nmad median absolute deviations from the median were removed instead (log scale for UMI and gene counts, scater isOutlier), no filter was applied when nmad was also empty, and bins with zero UMIs were always removed.",
           ## addCellQcToSeurat reads param$perc_riboprot, the form sends perc_ribo;
           ## scDblFinder gated on DefaultAssay == "RNA", assay here is Spatial / Spatial.Polygons
-          "The perc_ribo value was not used, so ribosomal-protein genes (RPS/RPL) were filtered only by the nmad rule, and no doublet detection was run on the spatial data.",
+          "The perc_ribo value was not used: bins were removed for a high ribosomal-protein (RPS/RPL) percentage only by the nmad rule (more than nmad median absolute deviations above the median, when nmad is set), and no doublet detection was run on the spatial data.",
           ## NormalizeData/FindVariableFeatures/ScaleData with defaults, app-VisiumHDSeurat.R:304-306
           "Counts were log-normalized (LogNormalize, scale factor 10000), 2000 variable features were selected with the vst method and scaled without regressing out any covariate (Seurat defaults); SCTransform was not used.",
           ## addCellCycleToSeurat(method = "seurat") app-VisiumHDSeurat.R:309-315 -> addSeuratCellCycle scTools.R:47-65
