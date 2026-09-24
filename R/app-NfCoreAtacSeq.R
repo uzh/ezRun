@@ -6,59 +6,22 @@
 # www.fgcz.ch
 
 ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
-  refbuild = param$refBuild
   outFolder = output$getColumn("ATAC_Result") |> basename()
-
-  fullGenomeSize <- param$ezRef@refFastaFile %>%
-    Rsamtools::FaFile() %>%
-    GenomeInfoDb::seqlengths() %>%
-    sum()
-  effectiveGenomeSize <- (fullGenomeSize * 0.8) %>% round()
 
   nfSampleFile <- file.path('dataset.csv')
   nfSampleInfo = getAtacSampleSheet(input, param)
+  if (isTRUE(param$qcMode)) {
+    nfSampleInfo <- subsampleAtacFastqs(nfSampleInfo, input, param)
+  }
   write_csv(nfSampleInfo, nfSampleFile)
   prepNFCoreEnv()
   configFile <- writeNextflowLimits(param)
-  cmd = paste(
-    "/usr/local/ngseq/src/nextflow/nextflow run nf-core/atacseq",
-    ## i/o
-    "--input",
-    nfSampleFile,
-    "--outdir",
-    outFolder,
-    ## genome files
-    "--fasta",
-    param$ezRef@refFastaFile,
-    "--gtf",
-    param$ezRef@refFeatureFile,
-    "--gene_bed",
-    str_replace(
-      param$ezRef@refAnnotationFile,
-      basename(param$ezRef@refAnnotationFile),
-      'genes.bed'
-    ),
-    ## parameters
-    "--macs_gsize",
-    effectiveGenomeSize,
-    if (param[['peakStyle']] == 'broad') "" else "--narrow_peak",
-    if (param[['varStabilizationMethod']] != 'vst') {
-      "--deseq2_vst false"
-    } else {
-      ""
-    },
-    ## configuration
-    "-work-dir nfatacseq_work",
-    "-profile apptainer",
-    "-r",
-    param$pipelineVersion,
-    "-c",
-    configFile,
-    param$cmdOptions #,
-    # "-resume"  ## for testing
-  )
-  ezSystem(cmd)
+  ezSystem(buildNfCoreAtacCmd(param, nfSampleFile, outFolder, configFile))
   ezSystem(paste('mv', configFile, outFolder))
+  if (isTRUE(param$qcMode)) {
+    writeAtacQcModeInfo(nfSampleInfo, param, outFolder)
+  }
+
   ## multiple fastq files per library have been merged by the processing (if any)
   ## now we work with the library names and reduce the dataset
   nfSampleInfo$libName <- paste0(
@@ -68,7 +31,7 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
   )
   nfSampleInfo <- nfSampleInfo[!duplicated(nfSampleInfo$sid), ]
 
-  sampleCountFiles <- writePerSampleCountPeaksFiles(
+  writePerSampleCountPeaksFiles(
     nfSampleInfo,
     countDir = paste0(
       outFolder,
@@ -76,6 +39,10 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
       param$peakStyle,
       "_peak/consensus/"
     )
+  )
+  renameAtacBigwigs(
+    nfSampleInfo,
+    bigwigDir = file.path(outFolder, "bwa/merged_library/bigwig")
   )
 
   jsonFile <- writeAtacIgvSession(
@@ -93,13 +60,8 @@ ezMethodNfCoreAtacSeq <- function(input = NA, output = NA, param = NA) {
     htmlFileName = paste0(outFolder, "/igv_session.html")
   )
 
-    dirsToRemove <- c("genome", "trimgalore", "fastqc", "igv")
-  if (ezIsSpecified(param$keepBams)) {
-    keepBams <- param$keepBams
-  } else {
-    keepBams <- TRUE
-  }
-  cleanupAtacOutFolder(outFolder, dirsToRemove, keepBams)
+  dirsToRemove <- c("genome", "trimgalore", "fastqc", "igv")
+  cleanupAtacOutFolder(outFolder, dirsToRemove, isTRUE(param$keepBams))
 
   return("Success")
 }
@@ -114,11 +76,6 @@ EzAppNfCoreAtacSeq <- setRefClass(
       name <<- "EzAppNfCoreAtacSeq"
       ## minimum nf-core parameters
       appDefaults <<- rbind(
-        runTwoGroupAnalysis = ezFrame(
-          Type = "logical",
-          DefaultValue = TRUE,
-          Description = "Run two group analysis"
-        ),
         peakStyle = ezFrame(
           Type = "character",
           DefaultValue = "broad",
@@ -138,53 +95,236 @@ EzAppNfCoreAtacSeq <- setRefClass(
           Type = "character",
           DefaultValue = '2.1.2',
           Description = "specify pipeline version"
+        ),
+        qcMode = ezFrame(
+          Type = "logical",
+          DefaultValue = FALSE,
+          Description = "QC run: process only the first qcReadsPerSample reads (pairs) of each sample"
+        ),
+        qcReadsPerSample = ezFrame(
+          Type = "numeric",
+          DefaultValue = 1e7,
+          Description = "number of reads (pairs) per sample used in QC mode"
         )
       )
     }
   )
 )
 
-##' @description get an nf-core/atacseq-formatted csv file
+##' @description build the nextflow command line for nf-core/atacseq
+buildNfCoreAtacCmd <- function(param, nfSampleFile, outFolder, configFile) {
+  fullGenomeSize <- param$ezRef@refFastaFile %>%
+    Rsamtools::FaFile() %>%
+    GenomeInfoDb::seqlengths() %>%
+    sum()
+  effectiveGenomeSize <- (fullGenomeSize * 0.8) %>% round()
+  ## reuse the prebuilt reference index instead of building it in every run
+  bwaIndexDir <- file.path(param$ezRef@refBuildDir, "Sequence/BWAIndex")
+  hasBwaIndex <- file.exists(file.path(bwaIndexDir, "genome.fa.bwt")) &&
+    !file.exists(file.path(bwaIndexDir, "lock"))
+
+  paste(
+    "/usr/local/ngseq/src/nextflow/nextflow run nf-core/atacseq",
+    ## i/o
+    "--input",
+    nfSampleFile,
+    "--outdir",
+    outFolder,
+    ## genome files
+    "--fasta",
+    param$ezRef@refFastaFile,
+    "--gtf",
+    param$ezRef@refFeatureFile,
+    "--gene_bed",
+    str_replace(
+      param$ezRef@refAnnotationFile,
+      basename(param$ezRef@refAnnotationFile),
+      'genes.bed'
+    ),
+    if (hasBwaIndex) paste("--bwa_index", bwaIndexDir) else "",
+    ## parameters
+    "--macs_gsize",
+    sprintf("%.0f", effectiveGenomeSize),
+    if (param[['peakStyle']] == 'broad') "" else "--narrow_peak",
+    if (param[['varStabilizationMethod']] != 'vst') {
+      "--deseq2_vst false"
+    } else {
+      ""
+    },
+    ## configuration
+    "-work-dir nfatacseq_work",
+    "-profile apptainer",
+    "-r",
+    param$pipelineVersion,
+    "-c",
+    configFile,
+    param$cmdOptions
+  )
+}
+
+##' @description get an nf-core/atacseq-formatted sample sheet.
+##' nf-core uses the group (sample) and replicate columns to merge libraries and
+##' replicates; samples without a group are processed as their own group.
 getAtacSampleSheet <- function(input, param) {
-  groups <- input$getColumn(param$grouping)
-  if (any(groups == "") || any(is.na(groups))) {
-    stop(
-      "No conditions detected. Please add them in the dataset before calling NfCoreAtacSeqApp."
+  sampleNames <- input$getNames()
+  if (ezIsSpecified(param$grouping) && input$hasColumn(param$grouping)) {
+    groups <- as.character(input$getColumn(param$grouping))
+  } else {
+    ezLog(
+      "grouping column '",
+      param$grouping,
+      "' not available; every sample is processed as its own group",
+      level = "warn"
+    )
+    groups <- sampleNames
+  }
+  isMissing <- is.na(groups) | trimws(groups) %in% c("", "NA")
+  if (any(isMissing)) {
+    ezLog(
+      "no ",
+      param$grouping,
+      " for sample(s) ",
+      paste(sampleNames[isMissing], collapse = ", "),
+      "; using the sample name as group",
+      level = "warn"
+    )
+    groups[isMissing] <- sampleNames[isMissing]
+  }
+  ## nf-core requires sample (group) names without whitespace
+  groups <- gsub("[^[:alnum:]_.-]", "_", groups)
+
+  listFastq1 <- input$getFullPathsList("Read1")
+  if (isTRUE(param$paired)) {
+    fastq2 <- unlist(input$getFullPathsList("Read2"))
+  } else {
+    fastq2 <- ""
+  }
+
+  nfSampleInfo <- ezFrame(
+    sample = rep(groups, lengths(listFastq1)),
+    fastq_1 = unlist(listFastq1),
+    fastq_2 = fastq2,
+    replicate = rep(ezReplicateNumber(groups), lengths(listFastq1)),
+    sid = rep(sampleNames, lengths(listFastq1))
+  )
+  return(nfSampleInfo)
+}
+
+##' @description QC mode: keep only the first nReads reads (pairs) of each
+##' sample; multiple fastq files of a sample are concatenated.
+subsampleAtacFastqs <- function(
+  nfSampleInfo,
+  input,
+  param,
+  outDir = "qc_fastq"
+) {
+  nReads <- as.numeric(param$qcReadsPerSample)
+  stopifnot(length(nReads) == 1, !is.na(nReads), nReads > 0)
+  dir.create(outDir, showWarnings = FALSE)
+  if (input$hasColumn("Read Count")) {
+    readCounts <- input$getColumn("Read Count")
+    readCounts <- setNames(as.numeric(readCounts), names(readCounts))
+  } else {
+    readCounts <- setNames(rep(NA, input$getLength()), input$getNames())
+  }
+  paired <- isTRUE(param$paired)
+  sids <- unique(nfSampleInfo$sid)
+  toSubsample <- sids[is.na(readCounts[sids]) | readCounts[sids] > nReads]
+  if (length(toSubsample) < length(sids)) {
+    ezLog(
+      "QC mode: sample(s) with <= ",
+      format(nReads, big.mark = ",", scientific = FALSE),
+      " reads are used completely: ",
+      paste(setdiff(sids, toSubsample), collapse = ", ")
     )
   }
 
-  listFastq1 <- input$getFullPathsList("Read1")
-  listFastq2 <- input$getFullPathsList("Read2")
+  headFastq <- function(inFiles, outFile) {
+    ## head closes the pipe early; ezSystem runs with pipefail, so the SIGPIPE
+    ## of the decompressor is ignored here and the result is validated below
+    ezSystem(paste(
+      "(pigz -dc",
+      paste(inFiles, collapse = " "),
+      "|| true) | head -n",
+      sprintf("%.0f", 4 * nReads),
+      "| pigz -p 2 >",
+      outFile
+    ))
+    as.numeric(ezSystem(paste("pigz -dc", outFile, "| wc -l"), intern = TRUE))
+  }
 
-  nfSampleInfo <- ezFrame(
-    sample = rep(input$getColumn(param$grouping), lengths(listFastq1)),
-    fastq_1 = unlist(listFastq1),
-    fastq_2 = unlist(listFastq2),
-    replicate = rep(
-      ezReplicateNumber(input$getColumn(param$grouping)),
-      lengths(listFastq1)
-    ),
-    sid = rep(input$getNames(), lengths(listFastq1))
+  newRows <- parallel::mclapply(
+    toSubsample,
+    function(sid) {
+      rows <- nfSampleInfo[nfSampleInfo$sid == sid, , drop = FALSE]
+      r1 <- file.path(outDir, paste0(sid, "_R1.fastq.gz"))
+      nLines <- headFastq(rows$fastq_1, r1)
+      r2 <- ""
+      if (paired) {
+        r2 <- file.path(outDir, paste0(sid, "_R2.fastq.gz"))
+        nLines2 <- headFastq(rows$fastq_2, r2)
+        if (nLines2 != nLines) {
+          stop(
+            "QC mode: R1 and R2 of ",
+            sid,
+            " differ after subsampling (",
+            nLines,
+            " vs ",
+            nLines2,
+            " lines)"
+          )
+        }
+      }
+      if (nLines == 0 || nLines %% 4 != 0) {
+        stop("QC mode: invalid subsampled fastq for ", sid, ": ", nLines, " lines")
+      }
+      rows <- rows[1, , drop = FALSE]
+      rows$fastq_1 <- normalizePath(r1)
+      rows$fastq_2 <- if (paired) normalizePath(r2) else ""
+      rows$qcReads <- nLines / 4
+      rows
+    },
+    mc.cores = max(1, floor(as.numeric(param$cores) / 4)),
+    mc.preschedule = FALSE
   )
+  isError <- sapply(newRows, inherits, "try-error")
+  if (any(isError)) {
+    stop(as.character(newRows[[which(isError)[1]]]))
+  }
+  newRows <- do.call(rbind, newRows)
 
-  # input$meta |>
-  #   arrange(`Condition [Factor]`, `Read1 [File]`, `Read2 [File]`) |>
-  #   rownames_to_column(var = 'SampleID [Factor]') |>
-  #   group_by(`Condition [Factor]`) |>
-  #   mutate(`Replicate [Factor]` = row_number()) |>
-  #   ungroup() |>
-  #   select('Condition [Factor]', 'Read1 [File]', 'Read2 [File]', 'Replicate [Factor]', 'SampleID [Factor]') |>
-  #   ## the first 4 columns of the header must be: sample,fastq_1,fastq_2,replicate
-  #   rename(sample    = 'Condition [Factor]',
-  #          fastq_1   = 'Read1 [File]',
-  #          fastq_2   = 'Read2 [File]',
-  #          replicate = 'Replicate [Factor]',
-  #          sid       = 'SampleID [Factor]') |>
-  #   mutate(fastq_1 = replace(fastq_1, sid %in% names(input$getFullPaths('Read1')), input$getFullPaths('Read1')[sid]),
-  #          fastq_2 = replace(fastq_2, sid %in% names(input$getFullPaths('Read2')), input$getFullPaths('Read2')[sid])) |>
-  #   write_csv(csvPath)
+  keepRows <- nfSampleInfo[!nfSampleInfo$sid %in% toSubsample, , drop = FALSE]
+  if (nrow(keepRows) > 0) {
+    keepRows$qcReads <- readCounts[keepRows$sid]
+  }
+  result <- rbind(newRows, keepRows)
+  result <- result[order(match(result$sid, nfSampleInfo$sid)), , drop = FALSE]
+  for (i in which(!duplicated(result$sid))) {
+    ezLog(
+      "QC mode: ",
+      result$sid[i],
+      " uses ",
+      format(result$qcReads[i], big.mark = ",", scientific = FALSE),
+      " reads"
+    )
+  }
+  result$qcReads <- NULL
+  rownames(result) <- NULL
+  return(result)
+}
 
-  return(nfSampleInfo)
+##' @description document in the result folder that this is a QC run
+writeAtacQcModeInfo <- function(nfSampleInfo, param, outFolder) {
+  lines <- c(
+    paste(
+      "QC run: only the first",
+      sprintf("%.0f", as.numeric(param$qcReadsPerSample)),
+      "reads (pairs) of each sample were processed."
+    ),
+    "Samples with fewer reads were processed completely.",
+    paste("Samples:", paste(unique(nfSampleInfo$sid), collapse = ", "))
+  )
+  writeLines(lines, file.path(outFolder, "qc_mode.txt"))
 }
 
 writePerSampleCountPeaksFiles <- function(nfSampleInfo, countDir = ".") {
@@ -205,56 +345,21 @@ writePerSampleCountPeaksFiles <- function(nfSampleInfo, countDir = ".") {
 }
 
 
-writeHtmlWrapper <- function(htmlFile, igvAppLink) {
-  library(htmltools)
-
-  page <- htmlTemplate(
-    text_ = "
-  <!DOCTYPE html>
-  <html>
-    <head><title>{{title}}</title></head>
-    <body>
-      <h1>{{header}}</h1>
-      <a href={{igvAppLink}}>{{igvAppLink}}</a>
-    </body>
-  </html>
-  ",
-    title = "IGV Starter",
-    header = "IGV Starter Link",
-    igvAppLink = igvAppLink
-  )
-
-  # Save to file
-  save_html(page, htmlFile)
-}
-
-
-getDdsFromConcensusPeaks <- function(output, param, grouping) {
-  nfCoreOutDir <- paste0(
-    param$name,
-    '_results',
-    '/bwa/merged_replicate/macs2/',
-    param$peakStyle,
-    '_peak/consensus'
-  )
-
-  dds <- readRDS(paste0(nfCoreOutDir, '/deseq2/consensus_peaks.mRp.clN.rds'))
-
-  featureCounts <- vroom::vroom(
-    paste0(nfCoreOutDir, '/consensus_peaks.mRp.clN.featureCounts.txt'),
-    delim = "\t",
-    comment = "#",
-    col_types = cols()
-  )
-
-  rowData(dds) <- featureCounts[, c("Chr", "Start", "End", "Strand", "Length")]
-  ## samples and grouping must be in the same order
-  samples <- colData(dds)$sample %>% str_remove(., '_REP\\d+')
-  grouping <- grouping[match(samples, grouping)]
-  dds$Condition <- grouping %>% as.factor()
-  design(dds) <- ~Condition
-
-  return(dds)
+##' @description nf-core names the bigwigs by library (<group>_REP<n>); rename
+##' them to the sample names that SUSHI links in the grandchild datasets
+renameAtacBigwigs <- function(nfSampleInfo, bigwigDir) {
+  from <- file.path(bigwigDir, paste0(nfSampleInfo$libName, ".mLb.clN.bigWig"))
+  to <- file.path(bigwigDir, paste0(nfSampleInfo$sid, ".bigWig"))
+  isMissing <- !file.exists(from)
+  if (any(isMissing)) {
+    ezLog(
+      "bigwig files not found: ",
+      paste(basename(from[isMissing]), collapse = ", "),
+      level = "warn"
+    )
+  }
+  file.rename(from[!isMissing], to[!isMissing])
+  return(invisible(to[!isMissing]))
 }
 
 ##' @description clean up NfCoreAtacSeq_result directory
@@ -292,37 +397,37 @@ writeAtacIgvSession <- function(
   faiUrl = paste0(fastaUrl, ".fai")
 
   bigwigPath = file.path(outFolder, bigwigRelPath)
-  bigwigFiles <- dir(path = bigwigPath, pattern = "*.bigWig$")
-  trackNames <- bigwigFiles |> str_replace("\\..*", "")
-  tracks <- list()
-  tracks[[1]] <- list(type = "sequence")
-  for (i in 1:length(bigwigFiles)) {
-    tracks[[i + 1]] <- list(
+  bigwigFiles <- dir(path = bigwigPath, pattern = "\\.bigWig$")
+  trackNames <- sub("(\\.mLb\\.clN)?\\.bigWig$", "", bigwigFiles)
+  bigwigTracks <- lapply(seq_along(bigwigFiles), function(i) {
+    list(
       id = trackNames[[i]],
       url = paste0(baseUrl, file.path(bigwigRelPath, bigwigFiles[[i]])),
       format = "bigWig",
       name = trackNames[[i]]
     )
-  }
-  tracks[[i + 2]] <- list(
-    id = "genes",
-    url = file.path(
-      REF_HOST,
-      param$ezRef@refBuild,
-      'Genes/transcripts.only.gtf'
+  })
+  annotationTracks <- list(
+    list(
+      id = "genes",
+      url = file.path(
+        REF_HOST,
+        param$ezRef@refBuild,
+        'Genes/transcripts.only.gtf'
+      ),
+      format = "gtf",
+      type = "annotation",
+      name = "genes"
     ),
-    format = "gtf",
-    type = "annotation",
-    name = "genes"
+    list(
+      id = "exons",
+      url = file.path(REF_HOST, param$ezRef@refBuild, 'Genes/genes.bed'),
+      format = "bed",
+      type = "annotation",
+      name = "exons"
+    )
   )
-
-  tracks[[i + 3]] <- list(
-    id = "exons",
-    url = file.path(REF_HOST, param$ezRef@refBuild, 'Genes/genes.bed'),
-    format = "bed",
-    type = "annotation",
-    name = "exons"
-  )
+  tracks <- c(list(list(type = "sequence")), bigwigTracks, annotationTracks)
   jsonLines <- list(
     version = "3.5.3",
     showSampleNames = FALSE,
