@@ -785,19 +785,55 @@ runRctdPy <- function(counts, coords, ref, umiMin, env = RCTD_PY_ENV) {
     "rctd run", qFile, rFile, "--mode doublet --umi-min", umiMin,
     "--device auto -o", outFile
   ))
-  res <- anndataR::read_h5ad(outFile)
-  kept <- as.character(res$obs$rctd_spot_class) != "filtered"
-  weights <- as.matrix(res$obsm[["rctd_weights"]])[kept, , drop = FALSE]
-  dimnames(weights) <- list(res$obs_names[kept],
-                            as.character(res$uns[["rctd_cell_type_names"]]))
+  res <- readRctdPyResult(outFile)
+  cells <- rctdResultCells(res$obsNames, colnames(counts))
+  kept <- res$spot_class != "filtered"
+  weights <- res$weights[kept, , drop = FALSE]
+  dimnames(weights) <- list(cells[kept], res$cellTypes)
   weights <- weights / rowSums(weights)
   results_df <- data.frame(
-    spot_class = factor(as.character(res$obs$rctd_spot_class[kept]),
+    spot_class = factor(res$spot_class[kept],
                         levels = c("reject", "singlet", "doublet_certain",
                                    "doublet_uncertain")),
-    first_type = as.character(res$obs$rctd_first_type[kept]),
-    second_type = as.character(res$obs$rctd_second_type[kept]),
-    row.names = res$obs_names[kept]
+    first_type = res$first_type[kept],
+    second_type = res$second_type[kept],
+    row.names = cells[kept]
   )
   list(weights = weights, results_df = results_df)
+}
+
+## The fields of an rctd-py doublet result h5ad, read with rhdf5. Not
+## anndataR: anndata >= 0.13 writes obs/_index as a nullable-string-array,
+## which anndataR 1.2 cannot decode, and it then drops the whole obs table.
+readRctdPyResult <- function(file) {
+  rd <- function(path) rhdf5::h5read(file, path)
+  categorical <- function(col) {
+    codes <- as.integer(rd(paste0("obs/", col, "/codes")))
+    cats <- as.character(rd(paste0("obs/", col, "/categories")))
+    cats[replace(codes + 1L, codes < 0L, NA)]
+  }
+  obsNames <- rd("obs/_index")
+  if (is.list(obsNames)) {
+    obsNames <- obsNames$values # nullable-string-array: values + mask
+  }
+  list(
+    obsNames = as.character(obsNames),
+    weights = t(rd("obsm/rctd_weights")), # h5 row-major -> R column-major
+    cellTypes = as.character(rd("uns/rctd_cell_type_names")),
+    spot_class = categorical("rctd_spot_class"),
+    first_type = categorical("rctd_first_type"),
+    second_type = categorical("rctd_second_type")
+  )
+}
+
+## rctd-py keeps the query's row order; refuse a result that does not.
+rctdResultCells <- function(obsNames, queryCells) {
+  if (length(obsNames) != length(queryCells)) {
+    stop(sprintf("rctd-py returned %d rows for %d query bins",
+                 length(obsNames), length(queryCells)))
+  }
+  if (!identical(as.character(obsNames), queryCells)) {
+    stop("rctd-py result rows are not in query order")
+  }
+  queryCells
 }
