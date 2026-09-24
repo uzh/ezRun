@@ -172,6 +172,11 @@ EzAppVisiumHDSeurat <-
             Type = "numeric",
             DefaultValue = 20,
             Description = "Minimum UMI count for RCTD annotation"
+          ),
+          rctdEngine = ezFrame(
+            Type = "character",
+            DefaultValue = "rctd-py",
+            Description = "RCTD implementation: rctd-py (GPU if the job has one, else CPU) or spacexr (R)"
           )
         )
       }
@@ -212,6 +217,11 @@ ezMethodVisiumHDSeurat <- function(
   future.seed = TRUE
   options(future.rng.onMisuse = "ignore")
   options(future.globals.maxSize = param$ram * 1024^3)
+
+  ## Phase timings: one line per step so a slow run shows where the time went.
+  logStep <- function(step) {
+    futile.logger::flog.info("VisiumHD: %s (%d bins)", step, ncol(scData))
+  }
 
   # Handle segmented vs binned outputs
   if (grepl("segmented", param$binSize, ignore.case = TRUE)) {
@@ -277,6 +287,7 @@ ezMethodVisiumHDSeurat <- function(
   )
   scData@meta.data$Sample <- input$getNames()
 
+  logStep("loaded")
   param$nUMI <- as.numeric(param$numis) ## needed by addCellQcToSeurat
   scData <- addCellQcToSeurat(
     scData,
@@ -289,22 +300,28 @@ ezMethodVisiumHDSeurat <- function(
   scData_unfiltered <- scData
   scData <- subset(scData_unfiltered, cells = which(scData_unfiltered$useCell)) # %>% head(n=1000))
 
+  logStep("QC done")
   scData <- NormalizeData(scData)
   scData <- FindVariableFeatures(scData)
   scData <- ScaleData(scData)
+  logStep("normalised and scaled")
 
   scData <- addCellCycleToSeurat(
     scData,
     param$refBuild,
     BPPARAM,
-    assay = DefaultAssay(scData)
+    assay = DefaultAssay(scData),
+    method = "seurat"
   )
+  logStep("cell cycle done")
 
   if (nrow(scData@meta.data) < 50000) {
     scData <- RunPCA(scData, npcs = 80)
     stopifnot(param$npcs <= 80)
     scData <- FindNeighbors(scData, dims = 1:param$npcs)
-    scData <- FindClusters(scData, resolution = param$clusterResolution)
+    logStep("neighbours done")
+    scData <- findClustersFast(scData, resolution = param$clusterResolution)
+    logStep("clustering done")
     scData <- RunUMAP(
       scData,
       reduction = "pca",
@@ -339,11 +356,14 @@ ezMethodVisiumHDSeurat <- function(
       reduction = "pca.sketch",
       dims = 1:param$npcs
     )
-    scData <- FindClusters(
+    logStep("sketch neighbours done")
+    scData <- findClustersFast(
       scData,
       resolution = param$clusterResolution,
+      graph.name = "sketch_snn",
       cluster.name = "seurat_clusters.sketched"
     )
+    logStep("sketch clustering done")
     #scData$seurat_clusters.sketched <- scData$seurat_clusters
     scData <- RunUMAP(
       scData,
@@ -374,6 +394,8 @@ ezMethodVisiumHDSeurat <- function(
     DefaultAssay(scData) <- myAssay
   }
 
+  logStep("UMAP done")
+
   # get markers and annotations
   vars.to.regress = NULL
   posMarkers <- FindAllMarkers(
@@ -402,6 +424,7 @@ ezMethodVisiumHDSeurat <- function(
   posMarkers <- posMarkers[posMarkers$p_val_adj < param$pvalue_allMarkers, ]
   rownames(posMarkers) <- NULL
   writexl::write_xlsx(posMarkers, path = "posMarkers.xlsx")
+  logStep("cluster markers done")
 
   ## BANKSY
   lambda <- ifelse(is.null(param$lambda), 0.8, as.numeric(param$lambda))
@@ -413,6 +436,7 @@ ezMethodVisiumHDSeurat <- function(
 
   myDefAssay <- DefaultAssay(scData)
   myIdents <- Idents(scData)
+  myClusters <- scData$seurat_clusters
   scData <- RunBanksy(
     scData,
     lambda = lambda,
@@ -437,12 +461,14 @@ ezMethodVisiumHDSeurat <- function(
     dims = 1:12,
     verbose = FALSE
   )
-  scData <- FindClusters(
+  scData <- findClustersFast(
     scData,
+    graph.name = "BANKSY_snn",
     cluster.name = "banksy_cluster",
     resolution = niche_res,
     verbose = FALSE
   )
+  logStep("BANKSY clustering done")
   # Use original assay for marker identification (not BANKSY augmented features)
   DefaultAssay(scData) <- myDefAssay
   posMarkersBanksy <- FindAllMarkers(
@@ -472,10 +498,14 @@ ezMethodVisiumHDSeurat <- function(
     ]
   }
   writexl::write_xlsx(posMarkersBanksy, "posMarkersBanksy.xlsx")
+  logStep("BANKSY markers done")
 
-  # Reset default assay
+  # Reset default assay and the transcriptional clusters: on Seurat 5.5.1
+  # FindClusters() overwrites seurat_clusters even with a cluster.name (see
+  # the XeniumSeurat fix and tests/testthat/test_xeniumSeuratClusters.R).
   DefaultAssay(scData) <- myDefAssay
   Idents(scData) <- myIdents
+  scData$seurat_clusters <- myClusters
   # }, error = function(e) {
   #   ezLog("banksy failed", e)
   #   #writexl::write_xlsx(data.frame(), "posMarkersBanksy.xlsx")
@@ -586,26 +616,29 @@ ezMethodVisiumHDSeurat <- function(
         counts <- counts[, common_cells, drop = FALSE]
         coords <- coords[common_cells, , drop = FALSE]
 
-        # Create SpatialRNA object
-        query.puck <- SpatialRNA(coords, counts, Matrix::colSums(counts))
-
-        # Run RCTD
         umi_min <- ifelse(
           is.null(param$rctdUMImin),
           20,
           as.numeric(param$rctdUMImin)
         )
-        myRCTD <- create.RCTD(
-          query.puck,
-          ref_obj,
-          max_cores = param$cores,
-          UMI_min = umi_min
-        )
-        myRCTD <- run.RCTD(myRCTD, doublet_mode = 'doublet')
-
-        # Extract results
-        results <- myRCTD@results
-        norm_weights <- normalize_weights(results$weights)
+        logStep(paste("RCTD start, engine", param$rctdEngine))
+        if (identical(param$rctdEngine, "spacexr")) {
+          query.puck <- SpatialRNA(coords, counts, Matrix::colSums(counts))
+          myRCTD <- create.RCTD(
+            query.puck,
+            ref_obj,
+            max_cores = param$cores,
+            UMI_min = umi_min
+          )
+          myRCTD <- run.RCTD(myRCTD, doublet_mode = 'doublet')
+          norm_weights <- normalize_weights(myRCTD@results$weights)
+          results_df <- myRCTD@results$results_df
+        } else {
+          ## rctd-py: same model, 14-48 h -> minutes on p32810/p42441-sized runs
+          rctdRes <- runRctdPy(counts, coords, ref_obj, umi_min)
+          norm_weights <- rctdRes$weights
+          results_df <- rctdRes$results_df
+        }
 
         # Add to Seurat metadata - Primary cell type assignment
         max_type <- colnames(norm_weights)[max.col(
@@ -636,12 +669,12 @@ ezMethodVisiumHDSeurat <- function(
         }
 
         # Add doublet/singlet classification
-        if (!is.null(results$results_df)) {
-          sdata_rctd <- AddMetaData(scData, metadata = results$results_df)
-          scData <- sdata_rctd
+        if (!is.null(results_df)) {
+          scData <- AddMetaData(scData, metadata = results_df)
         }
 
         cat("RCTD annotation completed\n", file = "log.txt", append = TRUE)
+        logStep("RCTD done")
       }
     }
   }
@@ -681,6 +714,7 @@ ezMethodVisiumHDSeurat <- function(
   )
   writexl::write_xlsx(bulkSignalPerSample, path = "bulkSignalPerSample.xlsx")
 
+  logStep("rendering report")
   makeRmdReport(
     param = param,
     output = output,
@@ -692,6 +726,64 @@ ezMethodVisiumHDSeurat <- function(
     use.qs2 = TRUE
   )
 
+  logStep("report done")
   gc()
   return("Success")
+}
+
+## rctd-py doublet mode through its CLI, in the gi_rctd-py env (GPU when the
+## job has one, else CPU). Returns what spacexr's path yields: row-normalised
+## weights (bins x types) and a results_df with spot_class / first_type /
+## second_type. Bins under UMI_min are dropped, as spacexr drops them.
+## RCTD_PY_BIN (a directory holding `rctd`) overrides the env, for testing.
+runRctdPy <- function(counts, coords, ref, umiMin,
+                      env = "gi_rctd-py_0.3.8") {
+  wd <- file.path(getwd(), "rctd_py")
+  dir.create(wd, showWarnings = FALSE)
+  qFile <- file.path(wd, "query.h5ad")
+  rFile <- file.path(wd, "reference.h5ad")
+  outFile <- file.path(wd, "result.h5ad")
+  anndataR::write_h5ad(
+    anndataR::AnnData(
+      X = Matrix::t(counts),
+      obs = data.frame(row.names = colnames(counts)),
+      var = data.frame(row.names = rownames(counts)),
+      obsm = list(spatial = as.matrix(coords[colnames(counts), c("x", "y")]))
+    ),
+    qFile, mode = "w"
+  )
+  anndataR::write_h5ad(
+    anndataR::AnnData(
+      X = Matrix::t(ref@counts),
+      obs = data.frame(cell_type = as.character(ref@cell_types),
+                       row.names = colnames(ref@counts)),
+      var = data.frame(row.names = rownames(ref@counts))
+    ),
+    rFile, mode = "w"
+  )
+  binDir <- Sys.getenv("RCTD_PY_BIN")
+  if (nzchar(binDir)) {
+    withr::local_path(binDir, action = "prefix")
+  } else {
+    Herper::local_CondaEnv(env, pathToMiniConda = "/usr/local/ngseq/miniforge3")
+  }
+  ezSystem(paste(
+    "rctd run", qFile, rFile, "--mode doublet --umi-min", umiMin,
+    "--device auto -o", outFile
+  ))
+  res <- anndataR::read_h5ad(outFile)
+  kept <- as.character(res$obs$rctd_spot_class) != "filtered"
+  weights <- as.matrix(res$obsm[["rctd_weights"]])[kept, , drop = FALSE]
+  dimnames(weights) <- list(res$obs_names[kept],
+                            as.character(res$uns[["rctd_cell_type_names"]]))
+  weights <- weights / rowSums(weights)
+  results_df <- data.frame(
+    spot_class = factor(as.character(res$obs$rctd_spot_class[kept]),
+                        levels = c("reject", "singlet", "doublet_certain",
+                                   "doublet_uncertain")),
+    first_type = as.character(res$obs$rctd_first_type[kept]),
+    second_type = as.character(res$obs$rctd_second_type[kept]),
+    row.names = res$obs_names[kept]
+  )
+  list(weights = weights, results_df = results_df)
 }
