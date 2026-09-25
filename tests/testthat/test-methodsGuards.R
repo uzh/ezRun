@@ -181,3 +181,18 @@ test_that("an off step is retried then templated with the run's parameters, fact
     expect_match(md, "https://doi.org/10.12688/f1000research.73600.2", fixed = TRUE)  # a candidate
   })
 })
+
+test_that("config.csv is read for the example sample only", {
+  res <- tempfile("res")
+  for (s in c("CTCL_PBMCs3", "PBMCs3", "P7")) {
+    dir.create(file.path(res, s), recursive = TRUE)
+    writeLines("[gene-expression]", file.path(res, s, "config.csv"))
+  }
+  pick <- function(script) basename(dirname(methodsConfigCsv(res, script)))
+  expect_identical(pick("SingleCell_CTCL_PBMCs3_CTCL_blood_input_114700.sh"), "CTCL_PBMCs3")
+  expect_identical(pick("SingleCell_PBMCs3.sh"), "PBMCs3")
+  expect_identical(pick("SingleCell_P7_run_1.sh"), "P7")
+  expect_identical(pick("SingleCell_unknown.sh"), "CTCL_PBMCs3")   # no match: first only
+  expect_length(methodsConfigCsv(res, NULL), 3)
+  expect_length(methodsConfigCsv(tempfile(), "x.sh"), 0)
+})

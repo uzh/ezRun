@@ -259,3 +259,18 @@ methodsGuardedWrite <- function(app, script_paths, log_paths, sample_count, outp
   }
   template(sprintf("guards: %d numbers, %d steps", length(numbers), length(steps)))
 }
+
+## CellRanger(-Multi) writes <resultDir>/<sample>/config.csv. SUSHI names a SAMPLE-mode job
+## script <category>_<sample>.sh or <category>_<sample>_<dataset>_<id>.sh, so the example
+## sample's config is the one whose directory name sits between underscores in the script
+## name; the longest such name wins ("CTCL_PBMCs3" over "PBMCs3"). No match: the first one
+## only. Without an example script (DATASET mode) every config.csv is read, as the scripts are.
+methodsConfigCsv <- function(result_dir, example_script = NULL) {
+  csv <- sort(Sys.glob(file.path(result_dir, "*", "config.csv")))
+  if (is.null(example_script) || length(csv) <= 1) return(csv)
+  samples <- basename(dirname(csv))
+  script <- paste0("_", sub("\\.sh$", "_", basename(example_script)))
+  hit <- vapply(samples, function(s) grepl(paste0("_", s, "_"), script, fixed = TRUE), logical(1))
+  if (!any(hit)) return(csv[1])
+  csv[hit][which.max(nchar(samples[hit]))]
+}

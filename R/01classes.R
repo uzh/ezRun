@@ -780,12 +780,10 @@ EzApp <-
           ## chemistry, probe set and reference. A Flex run carried
           ## includeIntrons=true in its script, but ezRun never passes that for
           ## fixedRNA, and the generated Methods claimed intronic counting anyway.
-          ## Absent for every other app, in which case this glob returns nothing.
-          ## NOT YET scoped to one sample like scripts/logs above: a multi-sample
-          ## CellRanger-family batch could still read every sample's config.csv here.
+          ## Absent for every other app, in which case this finds nothing. Scoped to
+          ## the example sample like the scripts and logs above (methodsConfigCsv).
           script_paths <- c(script_paths,
-                            Sys.glob(file.path(dirname(gstore_script_dir),
-                                               "*", "config.csv")))
+                            methodsConfigCsv(dirname(gstore_script_dir), example_script))
         }
         param_file <- if (!is.null(gstore_script_dir)) file.path(dirname(gstore_script_dir), "parameters.tsv")
         param <- methods_param(param_file)
