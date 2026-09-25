@@ -249,3 +249,19 @@ test_that("a DATASET-mode run takes its sample count from the input dataset", {
   })
   expect_true(any(grepl("backgroundExpression (4) is not a filter", EzAppDeseq2$new()$methods_facts(list(backgroundExpression = 4)), fixed = TRUE)))
 })
+
+test_that("a run of another ezRun version is cited from the parameters it recorded, not today's defaults", {
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    writeLines("echo job", file.path(sd, "job.sh"))
+    writeLines("[1] ezRun_3.18.1", file.path(sd, "job.sh_sushiID1_x_o.log"))
+    writeLines(c("refBuild\tHomo_sapiens/GENCODE/GRCh38.p14/Annotation/Release_48-2025-07-03", "SingleR\tnone"),
+               file.path(d, "parameters.tsv"))
+    out <- tempfile("out"); dir.create(out)
+    EzAppScSeurat$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                                      example_script = "job.sh", sample_count = 1)
+    cand <- readLines(file.path(out, "citations_candidates.txt"))
+    expect_false(any(grepl("Large language model consensus", cand)))   # mLLMCelltype default is on today
+    expect_true(any(grepl("Hao, Y. et al. Dictionary learning", cand, fixed = TRUE)))
+  })
+})

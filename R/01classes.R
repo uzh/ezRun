@@ -830,6 +830,11 @@ EzApp <-
         okVersion <- getOption("ezRun.methodsFactsVersion",
                                paste0("^ezRun_", gsub(".", "\\.", utils::packageVersion("ezRun"), fixed = TRUE), "$"))
         use_facts <- !failed && any(grepl(okVersion, ran))
+        ## A run of another ezRun version only had the parameters it recorded: today's
+        ## defaults would offer citations (and guard rules) for steps it never had, e.g.
+        ## mLLMCelltype, whose default is on, for a 2024 ScSeurat run.
+        if (!use_facts && !is.null(param_file) && file.exists(param_file))
+          param <- structure(methodsParamTable(param_file), input = attr(param, "input"))
         ## A DATASET-mode run has one job script for all samples, so SUSHI's sample_count is 1;
         ## the input dataset has the real number (a review found "267 samples" for 269).
         nInput <- NROW(attr(param, "input"))
