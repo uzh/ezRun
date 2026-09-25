@@ -168,6 +168,15 @@ methods_check_offsteps <- function(description, class_name, param) {
   out
 }
 
+## Compute resources and job modes, which the task already forbids and the writer still
+## wrote into about 1 text in 10 ("four cores and 12 GB of RAM", "8 threads", "dataset mode").
+METHODS_RESOURCE_PATTERN <- paste0("\\b\\d+\\s*(cores?|cpus?|threads?)\\b|\\b\\d+\\s*gb?\\b[^.;]{0,20}\\b(ram|memory)\\b|",
+                                   "\\bscratch\\b|\\b(dataset|sample) mode\\b|process_mode")
+methods_check_resources <- function(description) {
+  text <- tolower(paste(description, collapse = "\n"))
+  unique(regmatches(text, gregexpr(METHODS_RESOURCE_PATTERN, text, perl = TRUE))[[1]])
+}
+
 ## Keys left out of the template's parameter list: scheduler, bookkeeping and credentials.
 METHODS_TEMPLATE_SKIP_PARAMS <- c("cores", "ram", "scratch", "partition", "process_mode", "samples",
                                   "name", "mail", "adminMail", "sushi_app", "sushiApp", "specialOptions",
@@ -254,14 +263,18 @@ methodsGuardedWrite <- function(app, script_paths, log_paths, sample_count, outp
     ## counts, tool defaults on command lines, reference sizes), and the retry deleted them.
     numbers <- methods_check_numbers(description, all, all, sample_count)
     steps <- methods_check_offsteps(description, cls, param)
-    if (!length(numbers) && !length(steps)) return(list(raw = raw))
-    message("write_methods: guards flagged ", length(numbers), " numbers, ", length(steps), " steps",
-            if (attempt == 1) "; retrying")
+    ## resources are asked out once; a text that keeps them is still delivered, not templated
+    resources <- methods_check_resources(description)
+    if (!length(numbers) && !length(steps) && (!length(resources) || attempt == 2)) return(list(raw = raw))
+    message("write_methods: guards flagged ", length(numbers), " numbers, ", length(steps), " steps, ",
+            length(resources), " resources", if (attempt == 1) "; retrying")
     extra <- paste(c(
       if (length(numbers)) paste0("These values are not in the run's configuration; remove them or the ",
                                   "sentence that states them: ", paste(numbers, collapse = ", "), "."),
       if (length(steps)) paste0("These steps were not run in this job; do not describe them: ",
-                                paste(sub("^(.*):(.*)$", "\\2 (\\1 off)", steps), collapse = ", "), ".")),
+                                paste(sub("^(.*):(.*)$", "\\2 (\\1 off)", steps), collapse = ", "), "."),
+      if (length(resources)) paste0("Remove the compute resources and job settings, which are not part of ",
+                                    "the method: ", paste(resources, collapse = ", "), ".")),
       collapse = "\n")
   }
   template(sprintf("guards: %d numbers, %d steps", length(numbers), length(steps)))
