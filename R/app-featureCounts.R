@@ -266,15 +266,15 @@ EzAppFeatureCounts <-
           ## app-featureCounts.R:108-146
           if (ezIsSpecified(param$transcriptTypes) && !isTRUE(as.logical(param$aroundTSSCounting))) "The annotation was restricted to transcripts of the selected transcriptTypes; transcripts without a type in the reference annotation (e.g. spike-ins) were kept.",
           ## app-featureCounts.R:223-225: countMultiMappingReads, fraction, primaryOnly
-          if (isTRUE(multi) && isTRUE(primary)) "Multi-mapping reads were counted once, at their primary alignment (countMultiMappingReads and primaryOnly true, no fractional counting).",
-          if (isTRUE(multi) && isFALSE(primary)) "Every alignment of a multi-mapping read was counted with a fractional count of 1/n, n being its number of alignments (featureCounts fraction = TRUE).",
+          if (isTRUE(multi) && isTRUE(primary)) "Multi-mapping reads were counted once, at their primary alignment (countMultiMappingReads and primaryOnly true, no fractional counting); alignments with mapping quality below minMapQuality were not counted, which with STAR input (MAPQ 0-3 for multi-mappers) removes multi-mapping reads.",
+          if (isTRUE(multi) && isFALSE(primary)) "Every alignment of a multi-mapping read was counted with a fractional count of 1/n, n being its number of alignments (featureCounts fraction = TRUE); alignments with mapping quality below minMapQuality were not counted, which with STAR input removes multi-mapping reads.",
           if (isFALSE(multi)) "Multi-mapping reads were not counted (countMultiMappingReads = FALSE).",
           ## app-featureCounts.R:202
           if (isTRUE(as.logical(param$allowMultiOverlap))) "A read overlapping several features was counted once for each of them (allowMultiOverlap, no fractional or largest-overlap assignment).",
           ## app-featureCounts.R:42-65
           if (isTRUE(as.logical(param$aroundTSSCounting))) "Reads were counted in gene-level windows from upstreamFlanking bases upstream to downstreamFlanking bases downstream of each gene start (ezRun defaults 250 and 250, not on the parameter form); the windows are built only when transcriptTypes is set, otherwise whole genes were counted.",
           ## app-featureCounts.R:148-184 -> makeExtraControlSeqGR (annotation.R:566)
-          if (ezIsSpecified(param$secondRef)) "Features for the secondRef sequences were added to the annotation, from the GTF of the same name next to secondRef when present, otherwise one gene, transcript and exon spanning each whole sequence on the plus strand."
+          if (ezIsSpecified(param$secondRef) && !isTRUE(as.logical(param$aroundTSSCounting))) "Features for the secondRef sequences were added to the annotation, from the GTF of the same name next to secondRef when present, otherwise one gene, transcript and exon spanning each whole sequence on the plus strand."
         )
       },
       initialize = function() {

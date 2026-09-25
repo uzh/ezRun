@@ -226,7 +226,7 @@ EzAppFastqScreen <-
           ## runKraken (app-fastqscreen.R:386-433)
           "Trimmed reads were classified with Kraken 2 against the MiniKraken2 8 GB database (build of 2020-03-12); the report lists the ten species-level taxa with the largest read percentage and leaves out unclassified reads.",
           ## app-fastqscreen.R:17-24, 101-114 -> map_and_count_virus (app-fastqscreen.R:436)
-          "When virusCheck is true, and always when the dataset's Species is human, reads without a FastQ Screen hit were aligned with Bowtie 2 (with cmdOptions) to RefSeq genomes of human pathogenic viruses (download of 2017-04-19) and summarised like the RefSeq mRNA hits.",
+          "When virusCheck is true, and always when the dataset's Species is human, reads without a FastQ Screen hit were aligned with Bowtie 2 (with cmdOptions) to RefSeq genomes of human pathogenic viruses (download of 2017-04-19) and summarised like the RefSeq mRNA hits, but as a percentage of the reads without a FastQ Screen hit.",
           ## app-fastqscreen.R:35-43 (Read2 only swapped in for Read2), 88-124 (screens get Read1), 138-151
           if (identical(param$readFileToUse, "both")) "Although readFileToUse is both, all screens used Read1 only; Read2 was used only for the base-composition logo in the report."
         )

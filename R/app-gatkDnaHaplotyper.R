@@ -183,9 +183,9 @@ EzAppGatkDnaHaplotyper <-
           if (isTRUE(as.logical(param$knownSitesAvailable))) "Base quality scores were recalibrated with GATK BaseRecalibrator and ApplyBQSR using the dbSNP VCF of the reference build as the only known-sites set, and HaplotypeCaller took variant IDs from the same dbSNP file (--dbsnp).",
           if (isFALSE(as.logical(param$knownSitesAvailable))) "No base quality score recalibration was applied.",
           ## app-gatkDnaHaplotyper.R:80-82, 102-104, 117-119, 143-145
-          if (ezIsSpecified(param$targetFile)) "Base recalibration and variant calling were restricted to the intervals of targetFile (-L).",
+          if (ezIsSpecified(param$targetFile)) "Variant calling (and base recalibration, when run) was restricted to the intervals of targetFile (-L).",
           ## app-gatkDnaHaplotyper.R:126-151
-          "Variants were called per sample with GATK HaplotypeCaller in GVCF mode (-ERC GVCF) with at most 2 alternate alleles per site (--max-alternate-alleles 2, GATK default 6); the other thresholds were GATK defaults (calling confidence 30, minimum base quality 10, minimum mapping quality 20).",
+          "Variants were called per sample with GATK HaplotypeCaller in GVCF mode (-ERC GVCF) with at most 2 alternate alleles per site (--max-alternate-alleles 2, GATK default 6); in GVCF mode HaplotypeCaller sets the calling confidence to 0 (the default 30 applies at joint genotyping), and minimum base quality 10 and minimum mapping quality 20 were GATK defaults.",
           "The output is an unfiltered per-sample gVCF intended for joint genotyping; no variant filtering was applied in this step."
         )
       },

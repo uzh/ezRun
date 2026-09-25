@@ -331,7 +331,7 @@ methodsFastpFacts <- function(param, before, adapterForced = FALSE) {
     if (length(param) > 0 && !ezIsSpecified(param$length_required)) "Reads shorter than 15 bases after trimming were discarded (fastp default length_required, not set by the wrapper).",
     ## app-trim.R:261-263: --trim_poly_x only when poly_x_min_len is set; no polyG option
     paste0(if (ezIsSpecified(param$poly_x_min_len)) "PolyX tail trimming was switched on (fastp --trim_poly_x) with the minimum length poly_x_min_len; ",
-           "fastp polyG tail trimming was not set by the wrapper, so fastp enabled it automatically for reads it recognised as Illumina NextSeq or NovaSeq data.")
+           "fastp polyG tail trimming was not set by the wrapper; fastp enables it automatically only for reads whose names start with @NS, @NB, @NDX or @A0 (NextSeq 500/550, NovaSeq 6000), not for NovaSeq X, NextSeq 1000/2000 or AVITI data.")
   )
 }
 

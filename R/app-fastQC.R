@@ -656,7 +656,7 @@ EzAppFastqc <-
       methods_facts = function(param = list()) {
         c(
           ## ezMethodFastQC (app-fastQC.R:101-113)
-          "FastQC was run on every read file with the FGCZ adapter list for the adapter content module (-a) and a k-mer length of 7 (--kmers 7).",
+          "FastQC was run on every read file with the FGCZ adapter list for the adapter content module (-a); the Kmer Content module is disabled by FastQC's default limits, so no k-mer analysis was done.",
           ## app-fastQC.R:80-83 -> ezMethodSubsampleFastq / subsampleFastqFile (fastqIO.R:367, 438)
           "When the whole dataset held more than 1 billion reads, FastQC was run on a random subsample of 1,000,000 reads per file (ShortRead FastqSampler, seed 123).",
           ## app-fastQC.R:29-31: ezMethodFastpTrim only when max_len1 > 0 (ezRun default 0, not on the parameter form)

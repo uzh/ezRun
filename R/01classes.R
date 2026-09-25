@@ -675,7 +675,11 @@ EzApp <-
         tab <- utils::read.delim(param_file, header = FALSE, colClasses = "character",
                                  quote = "", comment.char = "")
         userParam <- stats::setNames(as.list(tab[[2]]), tab[[1]])
-        tryCatch(ezParam(userParam, appDefaults = appDefaults), error = function(e) userParam)
+        ## ezParam() fails when it cannot build the ezRef (reference not reachable from this
+        ## node); a placeholder ezRef skips that step and keeps the typed global/app defaults.
+        tryCatch(ezParam(userParam, appDefaults = appDefaults), error = function(e)
+          tryCatch(ezParam(c(userParam, list(ezRef = NA)), appDefaults = appDefaults),
+                   error = function(e) userParam))
       },
       ## Override this (not write_methods()) for an app whose Methods text is fixed
       ## and known rather than LLM-generated (e.g. EzAppFastqc). Default: call the LLM

@@ -889,7 +889,7 @@ EzAppSTAR <-
           ## app-mapping.R:682-702 -> getDupRateFromBam (app-RnaBamStats.R:1220)
           "Duplication rate as a function of expression level was computed with dupRadar on the delivered BAM, using strandMode and paired; when the BAM was not already duplicate-marked, Picard MarkDuplicates marked a temporary copy first.",
           ## app-mapping.R:510-523 and getSTARReference (app-mapping.R:734-767, 826-843)
-          if (ezIsSpecified(param$secondRef)) "The secondRef sequences were added to the reference: when a GTF of the same name exists next to the FASTA, a combined STAR index was built for the job from the genome plus secondRef and both annotations (--sjdbOverhang 150, --genomeSAsparseD 2); otherwise the sequences were inserted at mapping time with --genomeFastaFiles, without annotation."
+          if (ezIsSpecified(param$secondRef)) "The secondRef sequences were inserted into the genome at mapping time with STAR --genomeFastaFiles, without annotation."
         )
       },
       initialize = function() {
@@ -1626,7 +1626,7 @@ EzAppBismark <-
           ## app-mapping.R:1451-1464 -> bam2bw(method = "Bioconductor") (bamUtils.R)
           if (isTRUE(as.logical(param$generateBigWig))) "The bigWig file holds raw per-base read coverage of all alignments (not methylation levels, not normalised), computed with GenomicAlignments coverage and exported with rtracklayer.",
           ## app-mapping.R:1499-1528
-          if (isTRUE(grepl("Lambda", param$refBuild))) "For the Lambda control genome, CpG methylation levels at positions covered by at least 20 reads were plotted as a box plot per reference sequence, as a bisulfite-conversion check."
+          if (isTRUE(as.logical(param$EM_QC)) && isTRUE(grepl("Lambda", param$refBuild))) "For the Lambda control genome, CpG methylation levels at positions covered by at least 20 reads were plotted as a box plot per reference sequence, as a conversion check."
         )
       },
       initialize = function() {

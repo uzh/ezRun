@@ -136,11 +136,11 @@ EzAppKallisto <-
           if (identical(param$strandMode, "both")) "Reads were quantified without strand information (no kallisto strand option).",
           ## app-kallisto.R:16-23, 55-66
           if (isFALSE(as.logical(param$paired))) "Single-end reads were quantified with kallisto --single; a fragment-length or sd of 0 was replaced by a mean fragment length of 180 and a standard deviation of 50.",
-          if (isTRUE(as.logical(param$paired))) "For paired-end reads the fragment-length distribution was estimated by kallisto from the read pairs (a fragment-length or sd of 0 is not passed to kallisto).",
+          if (isTRUE(as.logical(param$paired)) && isTRUE(as.numeric(param$"fragment-length") == 0) && isTRUE(as.numeric(param$sd) == 0)) "For paired-end reads the fragment-length distribution was estimated by kallisto from the read pairs (a fragment-length or sd of 0 is not passed to kallisto).",
           ## app-kallisto.R:10-14
           if (isTRUE(as.numeric(param$gpu) > 0)) "In GPU mode the number of bootstrap samples was forced to 0, so no bootstrap estimates were produced.",
           ## getKallistoReference (app-kallisto.R:192-326)
-          "The kallisto index (default k-mer length 31) was built from transcript sequences extracted from the reference genome and annotation, restricted to transcripts of the selected transcriptTypes, or from transcriptFasta when given; secondRef sequences were appended when set."
+          "The kallisto index (default k-mer length 31) was built from transcript sequences extracted from the reference genome and annotation, restricted to transcripts of the selected transcriptTypes, or from transcriptFasta when given; secondRef sequences were appended when set, except when transcriptFasta was given."
         )
       },
       initialize = function() {
