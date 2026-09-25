@@ -874,9 +874,12 @@ EzApp <-
             if (length(m) > 0) m else entry
           }, character(1))
           ## The first entry of citation() is the app's own tool (DESeq2 for EzAppDeseq2, ...);
-          ## reviewers found the writer dropping it, so it is always kept.
+          ## reviewers found the writer dropping it, so it is always kept. A citation(param)
+          ## already offers only the steps that ran, and the writer dropped some of those
+          ## (SPLIT, scater, EmptyDrops): its candidates are all kept.
+          gated <- "param" %in% names(formals(citation))
           kept <- candidates[vapply(anchors, function(a) grepl(a, raw, fixed = TRUE), logical(1)) |
-                             seq_along(candidates) == 1]
+                             seq_along(candidates) == 1 | gated]
           references <- if (length(kept) > 0) paste(kept, collapse = "\n") else "pending"
         } else {
           description <- raw
