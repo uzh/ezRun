@@ -12,6 +12,19 @@ EzAppHomerDiffPeaks <-
     methods = list(
       ## HOMER behaviour quoted here was checked against the HOMER 5.1 usage text
       ## and getDifferentialPeaksReplicates.pl source; ChIPpeakAnno against 3.46.0.
+      ## HOMER + samtools unconditional; DESeq2 (inside getDifferentialPeaksReplicates.pl) gated on
+      ## >= 2 samples in a group; bedtools gated on non-empty results; ChIPpeakAnno + rtracklayer
+      ## gated on the no-replicate path.
+      citation = function() {
+        c(
+          "Heinz, S. et al. Simple combinations of lineage-determining transcription factors prime cis-regulatory elements required for macrophage and B cell identities. Molecular Cell 38, 576-589 (2010). https://doi.org/10.1016/j.molcel.2010.05.004",
+          "Love, M.I., Huber, W. & Anders, S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 15, 550 (2014). https://doi.org/10.1186/s13059-014-0550-8",
+          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+          "Quinlan, A.R. & Hall, I.M. BEDTools: a flexible suite of utilities for comparing genomic features. Bioinformatics 26, 841-842 (2010). https://doi.org/10.1093/bioinformatics/btq033",
+          "Zhu, L.J. et al. ChIPpeakAnno: a Bioconductor package to annotate ChIP-seq and ChIP-chip data. BMC Bioinformatics 11, 237 (2010). https://doi.org/10.1186/1471-2105-11-237",
+          "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328"
+        )
+      },
       methods_facts = function(param = list()) {
         known <- length(param) > 0
         peakMode <- as.logical(param$peakMode)

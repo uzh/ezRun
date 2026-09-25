@@ -12,6 +12,18 @@ EzAppSpatialSeuratHD <-
     methods = list(
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6)
       ## and are identical in 5.4.0 (Dev/R/4.5.0, which SpatialSeuratHDApp.rb loads).
+      ## Seurat v5 and BANKSY via SeuratWrappers (report) unconditional; scater isOutlier gated on empty
+      ## QC thresholds; cyclone gated on human/mouse; Enrichr = website links only.
+      citation = function() {
+        c(
+          "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
+          "McCarthy, D.J. et al. Scater: pre-processing, quality control, normalization and visualization of single-cell RNA-seq data in R. Bioinformatics 33, 1179-1186 (2017). https://doi.org/10.1093/bioinformatics/btw777",
+          "Scialdone, A. et al. Computational assignment of cell-cycle stage from single-cell transcriptome data. Methods 85, 54-61 (2015). https://doi.org/10.1016/j.ymeth.2015.06.021",
+          "Singhal, V. et al. BANKSY unifies cell typing and tissue domain segmentation for scalable spatial omics data analysis. Nature Genetics 56, 431-441 (2024). https://doi.org/10.1038/s41588-024-01664-3",
+          "Satija Lab. SeuratWrappers: Community-Provided Methods and Extensions for the Seurat Object. https://github.com/satijalab/seurat-wrappers",
+          "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128"
+        )
+      },
       methods_facts = function(param = list()) {
         humanMouse <- methodsSpeciesIs(param, c("Human", "Mouse"))
         qc <- methodsQcFields(param, c("nreads", "ngenes", "perc_mito", "perc_ribo"))

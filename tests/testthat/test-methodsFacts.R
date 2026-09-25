@@ -27,7 +27,13 @@ test_that("the base app has no facts and every drafted app has some", {
   drafted <- list(EzAppScSeurat, EzAppDeseq2, EzAppEdger, EzAppLimma, EzAppHomerDiffPeaks,
                   EzAppCellBender, EzAppScSeuratCombine, EzAppScSeuratCombinedLabelClusters,
                   EzAppScSeuratCompare, EzAppScMultiOmics, EzAppVeloCyto, EzAppSpatialSeurat,
-                  EzAppSpatialSeuratSlides, EzAppSpatialSeuratHD, EzAppVisiumHDSeurat, EzAppXeniumSeurat)
+                  EzAppSpatialSeuratSlides, EzAppSpatialSeuratHD, EzAppVisiumHDSeurat, EzAppXeniumSeurat,
+                  ## CellRanger and CellRangerMulti are left out: every fact they have is gated
+                  ## on TenXLibrary, so they return none without the run's parameters.
+                  EzAppCellRangerARC, EzAppSpaceRanger, EzAppXeniumQC, EzAppKraken, EzAppMetaPhlAn,
+                  EzAppSamsa2, EzAppHifiasm, EzAppJoinGenoTypes, EzAppSTAR, EzAppBismark, EzAppKallisto,
+                  EzAppFeatureCounts, EzAppFastqc, EzAppFastqScreen, EzAppFlash, EzAppCrisprScreenQC,
+                  EzAppGatkDnaHaplotyper)
   for (cls in drafted) {
     facts <- cls$new()$methods_facts()
     expect_type(facts, "character")
@@ -93,4 +99,17 @@ test_that("write_methods demotes headings the model wrote into the description",
     expect_equal(sum(grepl("^## ", md)), 1)          # only the analysis header
     expect_true(any(md == "#### Methods"))
   })
+})
+
+test_that("every citation() entry ends with exactly one URL, the anchor write_methods matches", {
+  for (cls in ls(asNamespace("ezRun"), pattern = "^EzApp")) {
+    gen <- get(cls, envir = asNamespace("ezRun"))
+    if (!inherits(gen, "refObjectGenerator") || cls == "EzAppSCEVANApp") next  # SCEVAN cannot be instantiated (pre-existing)
+    cits <- tryCatch(gen$new()$methods_citations(list()), error = function(e) character(0))
+    for (x in cits) {
+      urls <- regmatches(x, gregexpr("https?://\\S+", x))[[1]]
+      expect_length(urls, 1)
+      expect_true(endsWith(x, urls), label = paste(cls, substr(x, 1, 40)))
+    }
+  }
 })

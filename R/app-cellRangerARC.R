@@ -289,6 +289,12 @@ EzAppCellRangerARC <-
     "EzAppCellRangerARC",
     contains = "EzApp",
     methods = list(
+      ## cellranger-arc count unconditional (no paper; 10x product page, as for Cell Ranger).
+      citation = function() {
+        c(
+          "10x Genomics. Cell Ranger ARC. https://www.10xgenomics.com/support/software/cell-ranger-arc"
+        )
+      },
       methods_facts = function(param = list()) {
         c(
           ## getCellRangerARCReference (app-cellRangerARC.R:168); same inputs as the GEX builder

@@ -60,6 +60,13 @@ EzAppFlash <-
     contains = "EzApp",
     methods = list(
       ## FLASH defaults checked against FLASH 1.2.11 --help.
+      ## fastp unconditional; FLASH gated on skipFlash = FALSE (paired only).
+      citation = function() {
+        c(
+          "Magoč, T. & Salzberg, S.L. FLASH: fast length adjustment of short reads to improve genome assemblies. Bioinformatics 27, 2957-2963 (2011). https://doi.org/10.1093/bioinformatics/btr507",
+          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
+        )
+      },
       methods_facts = function(param = list()) {
         c(
           ## ezMethodFlash -> ezMethodFastpTrim (app-flash.R:12)

@@ -12,6 +12,21 @@ EzAppScSeuratCompare <-
     methods = list(
       ## Defaults quoted here were checked on the R version this app loads (Dev/R/4.5.0:
       ## Seurat 5.4.0, clusterProfiler 4.16.0, sccomp 2.1.30) and are identical on R 4.6 (Seurat 5.5.1).
+      ## Seurat v5 + metap unconditional; sccomp gated on replicateGrouping with >= 3 replicates;
+      ## DESeq2 gated on pseudoBulkMode + replicateGrouping; clusterProfiler/KEGG/org.*.eg.db (report)
+      ## gated on >= 5 significant genes.
+      citation = function() {
+        c(
+          "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
+          "Mangiola, S. et al. sccomp: Robust differential composition and variability analysis for single-cell data. PNAS 120, e2203828120 (2023). https://doi.org/10.1073/pnas.2203828120",
+          "Love, M.I., Huber, W. & Anders, S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 15, 550 (2014). https://doi.org/10.1186/s13059-014-0550-8",
+          "Dewey, M. metap: Meta-Analysis of Significance Values. R package. https://doi.org/10.32614/CRAN.package.metap",
+          "Wu, T. et al. clusterProfiler 4.0: A universal enrichment tool for interpreting omics data. The Innovation 2(3), 100141 (2021). https://doi.org/10.1016/j.xinn.2021.100141",
+          "Kanehisa, M. & Goto, S. KEGG: Kyoto Encyclopedia of Genes and Genomes. Nucleic Acids Research 28, 27-30 (2000). https://doi.org/10.1093/nar/28.1.27",
+          "Carlson, M. org.Hs.eg.db: Genome wide annotation for Human. R package. https://doi.org/10.18129/B9.bioc.org.Hs.eg.db",
+          "Carlson, M. org.Mm.eg.db: Genome wide annotation for Mouse. R package. https://doi.org/10.18129/B9.bioc.org.Mm.eg.db"
+        )
+      },
       methods_facts = function(param = list()) {
         ## mirrors ezMethodScSeuratCompare: pseudoBulkMode is compared to the string "true"
         pb <- ezIsSpecified(param$replicateGrouping) && isTRUE(param$pseudoBulkMode == "true")

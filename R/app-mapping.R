@@ -1597,6 +1597,17 @@ EzAppBismark <-
     methods = list(
       ## Bismark defaults checked against Bismark 0.24.2 --help (bismark,
       ## bismark_methylation_extractor, bismark2bedGraph, deduplicate_bismark).
+      ## fastp, Bismark, Bowtie 2 (Bismark backend) and samtools unconditional; deduplicate_bismark
+      ## gated on deduplicate; rtracklayer (bam2bw) gated on generateBigWig.
+      citation = function() {
+        c(
+          "Krueger, F. & Andrews, S.R. Bismark: a flexible aligner and methylation caller for Bisulfite-Seq applications. Bioinformatics 27, 1571-1572 (2011). https://doi.org/10.1093/bioinformatics/btr167",
+          "Langmead, B. & Salzberg, S.L. Fast gapped-read alignment with Bowtie 2. Nat Methods 9, 357-359 (2012). https://doi.org/10.1038/nmeth.1923",
+          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
+          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+          "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328"
+        )
+      },
       methods_facts = function(param = list()) {
         c(
           ## ezMethodBismark -> ezMethodFastpTrim (app-mapping.R:1360)

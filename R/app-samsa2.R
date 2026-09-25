@@ -87,6 +87,18 @@ EzAppSamsa2 <-
       ## The pipeline is the installed SAMSA2 master script, run unmodified; its steps
       ## are not in the job log, only the one `bash master_script.sh` call.
       ## Lines below refer to /usr/local/ngseq/src/samsa2/bash_scripts/master_script.sh.
+      ## SAMSA2 master_script.sh: Trimmomatic, SortMeRNA, DIAMOND vs RefSeq unconditional; PEAR gated
+      ## on paired input.
+      citation = function() {
+        c(
+          "Westreich, S.T. et al. SAMSA2: a standalone metatranscriptome analysis pipeline. BMC Bioinformatics 19, 175 (2018). https://doi.org/10.1186/s12859-018-2189-z",
+          "Bolger, A.M. et al. Trimmomatic: a flexible trimmer for Illumina sequence data. Bioinformatics 30, 2114-2120 (2014). https://doi.org/10.1093/bioinformatics/btu170",
+          "Zhang, J. et al. PEAR: a fast and accurate Illumina Paired-End reAd mergeR. Bioinformatics 30, 614-620 (2014). https://doi.org/10.1093/bioinformatics/btt593",
+          "Kopylova, E. et al. SortMeRNA: fast and accurate filtering of ribosomal RNAs in metatranscriptomic data. Bioinformatics 28, 3211-3217 (2012). https://doi.org/10.1093/bioinformatics/bts611",
+          "Buchfink, B. et al. Fast and sensitive protein alignment using DIAMOND. Nature Methods 12, 59-60 (2015). https://doi.org/10.1038/nmeth.3176",
+          "O'Leary, N.A. et al. Reference sequence (RefSeq) database at NCBI: current status, taxonomic expansion, and functional annotation. Nucleic Acids Research 44, D733-D745 (2016). https://doi.org/10.1093/nar/gkv1189"
+        )
+      },
       methods_facts = function(param = list()) {
         c(
           ## master_script.sh:113-115
