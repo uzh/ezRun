@@ -210,6 +210,27 @@ EzAppFastqScreen <-
           "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
         )
       },
+      ## Database paths: EZ_GLOBAL_VARIABLES.txt (FASTQSCREEN_*_CONF, REFSEQ_*, KRAKEN2_DB).
+      methods_facts = function(param = list()) {
+        c(
+          ## ezMethodFastqScreen -> ezMethodSubsampleFastq / subsampleFastqFile (fastqIO.R:367, 438)
+          "Each read file was randomly subsampled to at most nReads reads with ShortRead FastqSampler (seed 123) before screening.",
+          ## app-fastqscreen.R:83-85: ezMethodFastpTrim with trimAdapter forced TRUE
+          methodsFastpFacts(param, "screening", adapterForced = TRUE),
+          ## getFastqScreenStats (app-fastqscreen.R:283) called at app-fastqscreen.R:88-100
+          "FastQ Screen (Bowtie 2 aligner, --nohits) was run twice: on the untrimmed reads against an adapter database, and on the trimmed reads against an FGCZ set of human, mouse, Arabidopsis, PhiX, Lambda, Mycoplasma and UniVec sequences plus rRNA and tRNA databases (SILVA release 123 rRNA).",
+          ## get_rRNA_Strandness (app-fastqscreen.R:333-384)
+          "rRNA strandedness was measured by aligning the trimmed reads with Bowtie 2 (with cmdOptions) to the SILVA 123.1 LSU and SSU sequences, keeping each read's best-scoring alignments with an alignment score of at least minAlignmentScore, and counting forward- against reverse-strand hits.",
+          ## map_and_count_refseq (app-fastqscreen.R:476) + collectBowtie2Output (app-fastqscreen.R:562)
+          "Trimmed reads were aligned with Bowtie 2 (with cmdOptions) to RefSeq mRNA sequences (download of 2017-05-10); per read only the best-scoring alignments with a score of at least minAlignmentScore were kept, reads whose hits all came from one species were counted as unique and the others as multiple, and the nTopSpecies species with most unique reads were reported as a percentage of all reads.",
+          ## runKraken (app-fastqscreen.R:386-433)
+          "Trimmed reads were classified with Kraken 2 against the MiniKraken2 8 GB database (build of 2020-03-12); the report lists the ten species-level taxa with the largest read percentage and leaves out unclassified reads.",
+          ## app-fastqscreen.R:17-24, 101-114 -> map_and_count_virus (app-fastqscreen.R:436)
+          "When virusCheck is true, and always when the dataset's Species is human, reads without a FastQ Screen hit were aligned with Bowtie 2 (with cmdOptions) to RefSeq genomes of human pathogenic viruses (download of 2017-04-19) and summarised like the RefSeq mRNA hits.",
+          ## app-fastqscreen.R:35-43 (Read2 only swapped in for Read2), 88-124 (screens get Read1), 138-151
+          if (identical(param$readFileToUse, "both")) "Although readFileToUse is both, all screens used Read1 only; Read2 was used only for the base-composition logo in the report."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodFastqScreen

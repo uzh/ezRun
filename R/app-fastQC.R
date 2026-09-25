@@ -652,6 +652,22 @@ EzAppFastqc <-
           "Morgan, M., Anders, S., Lawrence, M., Aboyoun, P., Pagès, H. & Gentleman, R. ShortRead: a bioconductor package for input, quality assessment and exploration of high-throughput sequence data. Bioinformatics 25(19), 2607-2608 (2009). https://doi.org/10.1093/bioinformatics/btp450",
           "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
         )
+      },
+      methods_facts = function(param = list()) {
+        c(
+          ## ezMethodFastQC (app-fastQC.R:101-113)
+          "FastQC was run on every read file with the FGCZ adapter list for the adapter content module (-a) and a k-mer length of 7 (--kmers 7).",
+          ## app-fastQC.R:80-83 -> ezMethodSubsampleFastq / subsampleFastqFile (fastqIO.R:367, 438)
+          "When the whole dataset held more than 1 billion reads, FastQC was run on a random subsample of 1,000,000 reads per file (ShortRead FastqSampler, seed 123).",
+          ## app-fastQC.R:29-31: ezMethodFastpTrim only when max_len1 > 0 (ezRun default 0, not on the parameter form)
+          if (isTRUE(as.numeric(param$max_len1) > 0)) methodsFastpFacts(param, "FastQC (reads longer than max_len1 were truncated to max_len1 bases)"),
+          ## app-fastQC.R:291
+          "The FastQC results of all samples were combined into one report with MultiQC.",
+          ## app-fastQC.R:253, 292-301
+          if (isTRUE(as.logical(param$generate_ai_summary))) "The MultiQC report includes an AI-generated summary of the whole report (MultiQC --ai-summary-full) written by the language model DeepSeek-V4-Flash-DSpark hosted at FGCZ.",
+          ## app-fastQC.R:363-470
+          if (isTRUE(as.logical(param$per_section_ai_summaries))) "Each MultiQC section also received one or two AI-generated summary bullet points from the language model DeepSeek-V4-Flash-DSpark hosted at FGCZ, one request per section with the section's data."
+        )
       }
       # write_methods = function(gstore_script_dir = NULL, output_dir = ".", ...) {
       #   md_path <- file.path(output_dir, "methods.md")

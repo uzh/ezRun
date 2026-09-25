@@ -125,6 +125,24 @@ EzAppKallisto <-
           "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
         )
       },
+      ## kallisto defaults checked against kallisto 0.51.1 (the Aligner/kallisto module default).
+      methods_facts = function(param = list()) {
+        c(
+          ## ezMethodKallisto -> ezMethodFastpTrim (app-kallisto.R:69)
+          methodsFastpFacts(param, "quantification"),
+          ## app-kallisto.R:59-64
+          if (identical(param$strandMode, "sense")) "Reads were quantified strand-specifically with the first read on the transcript strand (kallisto --fr-stranded).",
+          if (identical(param$strandMode, "antisense")) "Reads were quantified strand-specifically with the first read on the opposite strand of the transcript (kallisto --rf-stranded).",
+          if (identical(param$strandMode, "both")) "Reads were quantified without strand information (no kallisto strand option).",
+          ## app-kallisto.R:16-23, 55-66
+          if (isFALSE(as.logical(param$paired))) "Single-end reads were quantified with kallisto --single; a fragment-length or sd of 0 was replaced by a mean fragment length of 180 and a standard deviation of 50.",
+          if (isTRUE(as.logical(param$paired))) "For paired-end reads the fragment-length distribution was estimated by kallisto from the read pairs (a fragment-length or sd of 0 is not passed to kallisto).",
+          ## app-kallisto.R:10-14
+          if (isTRUE(as.numeric(param$gpu) > 0)) "In GPU mode the number of bootstrap samples was forced to 0, so no bootstrap estimates were produced.",
+          ## getKallistoReference (app-kallisto.R:192-326)
+          "The kallisto index (default k-mer length 31) was built from transcript sequences extracted from the reference genome and annotation, restricted to transcripts of the selected transcriptTypes, or from transcriptFasta when given; secondRef sequences were appended when set."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodKallisto

@@ -59,6 +59,17 @@ EzAppFlash <-
     "EzAppFlash",
     contains = "EzApp",
     methods = list(
+      ## FLASH defaults checked against FLASH 1.2.11 --help.
+      methods_facts = function(param = list()) {
+        c(
+          ## ezMethodFlash -> ezMethodFastpTrim (app-flash.R:12)
+          methodsFastpFacts(param, "read merging"),
+          ## app-flash.R:13-33
+          if (isFALSE(as.logical(param$skipFlash))) "Overlapping mates were merged with FLASH using its defaults unless cmdOptions set them (minimum overlap 10 bp, maximum overlap 65 bp, maximum mismatch density 0.25, innie orientation only), and only the merged reads were delivered; pairs FLASH could not merge were discarded.",
+          ## app-flash.R:34-46
+          if (isTRUE(as.logical(param$skipFlash))) "FLASH was skipped and the fastp-trimmed reads were delivered unmerged."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodFlash

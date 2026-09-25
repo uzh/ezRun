@@ -179,6 +179,21 @@ EzAppCrisprScreenQC <-
           "Bembom, O. & Ivanek, R. seqLogo: Sequence logos for DNA sequence alignments. R package version 1.78.0. https://doi.org/10.18129/B9.bioc.seqLogo"
         )
       },
+      ## MAGeCK defaults checked against mageck 0.5.9.5 (gi_mageck) count -h.
+      methods_facts = function(param = list()) {
+        c(
+          ## ezMethodCrisprScreenQC -> ezMethodSubsampleFastq / subsampleFastqFile (fastqIO.R:367, 438)
+          "Each read file was randomly subsampled to at most nReads reads with ShortRead FastqSampler (seed 123).",
+          ## app-CrisprScreenQCApp.R:45-50: ezMethodFastpTrim with trimAdapter forced TRUE
+          methodsFastpFacts(param, "sgRNA counting", adapterForced = TRUE),
+          ## app-CrisprScreenQCApp.R:15-38, 70-80
+          "All sgRNA libraries installed under libPath (one *_MAGeCK.csv file per library) were merged into one reference, each sgRNA ID prefixed with its library name, and each sample was counted against it with mageck count on Read1 only, with MAGeCK defaults (5' trimming length determined automatically, sgRNA length taken from the library).",
+          ## app-CrisprScreenQCApp.R:81-100 and CrisprScreenQC.qmd per-sample QC table
+          "For each sample the library with the highest total count was taken as the matched library, and mapping rate, zero-count sgRNA fraction, mean reads per sgRNA, the zero fraction expected from Poisson sampling and the Gini index were computed on the raw counts of that library only.",
+          ## app-CrisprScreenQCApp.R:70-80: --fastq gets Read1 only
+          if (isTRUE(as.logical(param$paired))) "Read2 was trimmed along with Read1 but not used for sgRNA counting."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCrisprScreenQC

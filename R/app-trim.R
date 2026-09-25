@@ -313,6 +313,28 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
   return(output)
 }
 
+## For methods_facts() of the apps that run ezMethodFastpTrim before their own step
+## (`before`, e.g. "alignment"): what fastp did beyond the parameter values the job
+## script shows. fastp defaults quoted here were checked against fastp 0.23.4 --help.
+methodsFastpFacts <- function(param, before, adapterForced = FALSE) {
+  c(
+    paste0("Reads were trimmed and filtered with fastp before ", before, ", using the fastp parameters of the job."),
+    ## ezMethodFastpTrim adapter block (app-trim.R:146-181), TRIMMOMATIC_ADAPTERS
+    if (adapterForced || isTRUE(as.logical(param$trimAdapter))) "fastp trimmed adapters against the FGCZ collection of Illumina adapter sequences (allIllumina-forTrimmomatic-20160202.fa) plus any Adapter1/Adapter2 sequences given in the dataset; for paired-end reads fastp also trimmed adapters found by read-pair overlap analysis (its default).",
+    ## app-trim.R:245-250: --average_qual when set, else --disable_quality_filtering
+    if (ezIsSpecified(param$average_qual)) {
+      "fastp's default per-read quality filter stayed on, so reads with more than 40% of bases below Q15 or with more than 5 N bases were discarded (fastp defaults, not set by the wrapper)."
+    } else if (length(param) > 0) {
+      "fastp quality filtering was disabled (--disable_quality_filtering) because average_qual was not set."
+    },
+    ## app-trim.R:264-267: --length_required only when set
+    if (length(param) > 0 && !ezIsSpecified(param$length_required)) "Reads shorter than 15 bases after trimming were discarded (fastp default length_required, not set by the wrapper).",
+    ## app-trim.R:261-263: --trim_poly_x only when poly_x_min_len is set; no polyG option
+    paste0(if (ezIsSpecified(param$poly_x_min_len)) "PolyX tail trimming was switched on (fastp --trim_poly_x) with the minimum length poly_x_min_len; ",
+           "fastp polyG tail trimming was not set by the wrapper, so fastp enabled it automatically for reads it recognised as Illumina NextSeq or NovaSeq data.")
+  )
+}
+
 ##' @title EzAppFastp app
 ##' @description fast read pre-processing.
 ##' @author Miquel Anglada Girotto

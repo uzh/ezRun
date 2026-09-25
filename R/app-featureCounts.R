@@ -251,6 +251,32 @@ EzAppFeatureCounts <-
           "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352"
         )
       },
+      methods_facts = function(param = list()) {
+        multi <- as.logical(param$keepMultiHits)
+        primary <- as.logical(param$countPrimaryAlignmentsOnly)
+        c(
+          ## ezMethodFeatureCounts featureCounts(strandSpecific = switch(strandMode)) (app-featureCounts.R:209-215)
+          if (identical(param$strandMode, "both")) "Reads were counted without strand information (featureCounts strandSpecific = 0).",
+          if (identical(param$strandMode, "sense")) "Reads were counted strand-specifically, the read (first mate) on the feature strand (featureCounts strandSpecific = 1).",
+          if (identical(param$strandMode, "antisense")) "Reads were counted strand-specifically, the read (first mate) on the opposite strand of the feature (featureCounts strandSpecific = 2).",
+          ## app-featureCounts.R:14-33, 203-205, 226
+          if (isTRUE(as.logical(param$paired))) "Paired-end reads were counted as fragments after name-sorting the BAM with samtools; fragments with only one aligned mate were still counted (requireBothEndsMapped = FALSE), fragment length was not checked, and chimeric fragments were counted (countChimericFragments = TRUE).",
+          ## app-featureCounts.R:190-201: GTF.attrType from featureLevel, useMetaFeatures
+          if (!isTRUE(as.logical(param$aroundTSSCounting))) "Reads were assigned to GTF features of type gtfFeatureType and summarised per gene_id, transcript_id or exon_id according to featureLevel (useMetaFeatures, ezRun default true, not on the parameter form).",
+          ## app-featureCounts.R:108-146
+          if (ezIsSpecified(param$transcriptTypes) && !isTRUE(as.logical(param$aroundTSSCounting))) "The annotation was restricted to transcripts of the selected transcriptTypes; transcripts without a type in the reference annotation (e.g. spike-ins) were kept.",
+          ## app-featureCounts.R:223-225: countMultiMappingReads, fraction, primaryOnly
+          if (isTRUE(multi) && isTRUE(primary)) "Multi-mapping reads were counted once, at their primary alignment (countMultiMappingReads and primaryOnly true, no fractional counting).",
+          if (isTRUE(multi) && isFALSE(primary)) "Every alignment of a multi-mapping read was counted with a fractional count of 1/n, n being its number of alignments (featureCounts fraction = TRUE).",
+          if (isFALSE(multi)) "Multi-mapping reads were not counted (countMultiMappingReads = FALSE).",
+          ## app-featureCounts.R:202
+          if (isTRUE(as.logical(param$allowMultiOverlap))) "A read overlapping several features was counted once for each of them (allowMultiOverlap, no fractional or largest-overlap assignment).",
+          ## app-featureCounts.R:42-65
+          if (isTRUE(as.logical(param$aroundTSSCounting))) "Reads were counted in gene-level windows from upstreamFlanking bases upstream to downstreamFlanking bases downstream of each gene start (ezRun defaults 250 and 250, not on the parameter form); the windows are built only when transcriptTypes is set, otherwise whole genes were counted.",
+          ## app-featureCounts.R:148-184 -> makeExtraControlSeqGR (annotation.R:566)
+          if (ezIsSpecified(param$secondRef)) "Features for the secondRef sequences were added to the annotation, from the GTF of the same name next to secondRef when present, otherwise one gene, transcript and exon spanning each whole sequence on the plus strand."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodFeatureCounts

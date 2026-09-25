@@ -870,6 +870,28 @@ EzAppSTAR <-
           "Wang, L., Wang, S. & Li, W. RSeQC: quality control of RNA-seq experiments. Bioinformatics 28(16), 2184-2185 (2012). https://doi.org/10.1093/bioinformatics/bts356"
         )
       },
+      ## umi_tools defaults checked against umi_tools 1.1.6 (gi_umi_tools) --help.
+      methods_facts = function(param = list()) {
+        c(
+          ## ezMethodSTAR -> ezMethodFastpTrim (app-mapping.R:453)
+          methodsFastpFacts(param, "alignment"),
+          ## ezMethodSTAR (app-mapping.R:500-506, 539-541); ezSortIndexBam (bamio.R:50) at app-mapping.R:552-590
+          "STAR was run with --outSAMattributes All appended to cmdOptions (unless cmdOptions already set --outSAMattributes) and with a read group whose ID and SM are the sample name; its unsorted output was coordinate-sorted and indexed with samtools.",
+          ## app-mapping.R:532-533
+          if (isTRUE(as.logical(param$twopassMode))) "STAR ran in per-sample two-pass mode (--twopassMode Basic).",
+          if (isFALSE(as.logical(param$twopassMode))) "STAR ran in one-pass mode (--twopassMode None).",
+          ## app-mapping.R:565-590 -> dupBam (bamUtils.R:142)
+          if (isTRUE(as.logical(param$markDuplicates))) "Duplicate reads were flagged, not removed, in the delivered BAM with Picard MarkDuplicates (REMOVE_DUPLICATES=false, OPTICAL_DUPLICATE_PIXEL_DISTANCE set to dupDistance, ezRun default 2500, not on the parameter form).",
+          ## app-mapping.R:455-497 (extract), app-trim.R:195-208 (trim_front forced 0), app-mapping.R:618-640 (dedup)
+          if (ezIsSpecified(param$barcodePattern)) "UMIs were extracted before alignment with umi_tools extract (regex method: the N positions of barcodePattern were taken from Read2, and those of barcodePattern2 from Read1 when set, and appended to the read name; X positions were discarded), fastp trim_front was forced to 0 on the UMI-carrying mate, and the delivered BAM was deduplicated after alignment with umi_tools dedup (default directional method, edit distance 1).",
+          ## app-mapping.R:654-680
+          "Library strandedness was checked with RSeQC infer_experiment.py on 1,000,000 sampled reads against the reference gene BED file; the result is reported only and does not change strandMode.",
+          ## app-mapping.R:682-702 -> getDupRateFromBam (app-RnaBamStats.R:1220)
+          "Duplication rate as a function of expression level was computed with dupRadar on the delivered BAM, using strandMode and paired; when the BAM was not already duplicate-marked, Picard MarkDuplicates marked a temporary copy first.",
+          ## app-mapping.R:510-523 and getSTARReference (app-mapping.R:734-767, 826-843)
+          if (ezIsSpecified(param$secondRef)) "The secondRef sequences were added to the reference: when a GTF of the same name exists next to the FASTA, a combined STAR index was built for the job from the genome plus secondRef and both annotations (--sjdbOverhang 150, --genomeSAsparseD 2); otherwise the sequences were inserted at mapping time with --genomeFastaFiles, without annotation."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSTAR
@@ -1573,6 +1595,29 @@ EzAppBismark <-
     "EzAppBismark",
     contains = "EzApp",
     methods = list(
+      ## Bismark defaults checked against Bismark 0.24.2 --help (bismark,
+      ## bismark_methylation_extractor, bismark2bedGraph, deduplicate_bismark).
+      methods_facts = function(param = list()) {
+        c(
+          ## ezMethodBismark -> ezMethodFastpTrim (app-mapping.R:1360)
+          methodsFastpFacts(param, "alignment"),
+          ## app-mapping.R:1361-1389: only cmdOptions, --gzip and the thread count are passed
+          "Bismark was run with Bowtie 2 and no library-type or scoring option added by the wrapper, so unless cmdOptions set them Bismark's defaults applied: directional library, end-to-end alignment with minimum alignment score L,0,-0.2, seed length 20 and no seed mismatch.",
+          ## app-mapping.R:1394-1407
+          if (isTRUE(as.logical(param$deduplicate))) "Alignments were deduplicated with deduplicate_bismark, which keeps one alignment per chromosome, start position and strand (for paired-end reads per fragment start and end), and methylation was extracted from the deduplicated alignments.",
+          ## app-mapping.R:1409-1417
+          paste0("Methylation calls were extracted with bismark_methylation_extractor --comprehensive, which merges the strand-specific outputs into one file per context (CpG, CHG, CHH)",
+                 if (isTRUE(as.logical(param$paired))) "; calls in the overlapping part of the two mates were counted once (--no_overlap, the default for paired-end data)", "."),
+          ## app-mapping.R:1481-1487
+          "The bedGraph and coverage files were produced with bismark2bedGraph from the CpG context only, without a minimum coverage (--cutoff default 1); CHG and CHH calls were extracted but not summarised.",
+          ## app-mapping.R:1419-1449
+          "The delivered BAM was given a read group (ID, SM, LB and PU set to the sample name, PL ILLUMINA), coordinate-sorted and indexed with samtools.",
+          ## app-mapping.R:1451-1464 -> bam2bw(method = "Bioconductor") (bamUtils.R)
+          if (isTRUE(as.logical(param$generateBigWig))) "The bigWig file holds raw per-base read coverage of all alignments (not methylation levels, not normalised), computed with GenomicAlignments coverage and exported with rtracklayer.",
+          ## app-mapping.R:1499-1528
+          if (isTRUE(grepl("Lambda", param$refBuild))) "For the Lambda control genome, CpG methylation levels at positions covered by at least 20 reads were plotted as a box plot per reference sequence, as a bisulfite-conversion check."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBismark

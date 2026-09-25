@@ -161,6 +161,23 @@ EzAppGatkDnaHaplotyper <-
     "EzAppGatkDnaHaplotyper",
     contains = "EzApp",
     methods = list(
+      ## HaplotypeCaller defaults checked against GATK 4.6.1.0 (the Variants/GATK module default) --help.
+      methods_facts = function(param = list()) {
+        c(
+          ## ezMethodGatkDnaHaplotyper (app-gatkDnaHaplotyper.R:23-45)
+          if (isTRUE(as.logical(param$addReadGroup))) "Read groups were set with Picard AddOrReplaceReadGroups (ID and SM the sample name, LB RGLB_<sample>, PU RGPU_<sample>, PL illumina) and the BAM was coordinate-sorted.",
+          ## app-gatkDnaHaplotyper.R:47-65
+          if (isTRUE(as.logical(param$markDuplicates))) "Duplicate reads were flagged, not removed, with Picard MarkDuplicates (REMOVE_DUPLICATES=false); HaplotypeCaller then skips flagged duplicates through its default read filters.",
+          ## app-gatkDnaHaplotyper.R:85-124, 139-141
+          if (isTRUE(as.logical(param$knownSitesAvailable))) "Base quality scores were recalibrated with GATK BaseRecalibrator and ApplyBQSR using the dbSNP VCF of the reference build as the only known-sites set, and HaplotypeCaller took variant IDs from the same dbSNP file (--dbsnp).",
+          if (isFALSE(as.logical(param$knownSitesAvailable))) "No base quality score recalibration was applied.",
+          ## app-gatkDnaHaplotyper.R:80-82, 102-104, 117-119, 143-145
+          if (ezIsSpecified(param$targetFile)) "Base recalibration and variant calling were restricted to the intervals of targetFile (-L).",
+          ## app-gatkDnaHaplotyper.R:126-151
+          "Variants were called per sample with GATK HaplotypeCaller in GVCF mode (-ERC GVCF) with at most 2 alternate alleles per site (--max-alternate-alleles 2, GATK default 6); the other thresholds were GATK defaults (calling confidence 30, minimum base quality 10, minimum mapping quality 20).",
+          "The output is an unfiltered per-sample gVCF intended for joint genotyping; no variant filtering was applied in this step."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodGatkDnaHaplotyper
