@@ -216,7 +216,10 @@ EzAppFastqScreen <-
           ## ezMethodFastqScreen -> ezMethodSubsampleFastq / subsampleFastqFile (fastqIO.R:367, 438)
           "Each read file was randomly subsampled to at most nReads reads with ShortRead FastqSampler (seed 123) before screening.",
           ## app-fastqscreen.R:83-85: ezMethodFastpTrim with trimAdapter forced TRUE
-          methodsFastpFacts(param, "screening", adapterForced = TRUE),
+          ## app-fastqscreen.R:35-42: readFileToUse other than both runs single-end
+          if (length(param) && !identical(param$readFileToUse, "both")) paste0("Only ", param$readFileToUse, " was used, processed as single-end reads (readFileToUse)."),
+          methodsFastpFacts(if (length(param) && !identical(param$readFileToUse, "both")) modifyList(param, list(paired = FALSE)) else param,
+                            "screening", adapterForced = TRUE),
           ## getFastqScreenStats (app-fastqscreen.R:283) called at app-fastqscreen.R:88-100
           "FastQ Screen (Bowtie 2 aligner, --nohits) was run twice: on the untrimmed reads against an adapter database, and on the trimmed reads against an FGCZ set of human, mouse, Arabidopsis, PhiX, Lambda, Mycoplasma and UniVec sequences plus rRNA and tRNA databases (SILVA release 123 rRNA).",
           ## get_rRNA_Strandness (app-fastqscreen.R:333-384)

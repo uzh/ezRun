@@ -320,7 +320,7 @@ methodsFastpFacts <- function(param, before, adapterForced = FALSE) {
   c(
     paste0("Reads were trimmed and filtered with fastp before ", before, ", using the fastp parameters of the job."),
     ## ezMethodFastpTrim adapter block (app-trim.R:146-181), TRIMMOMATIC_ADAPTERS
-    if (adapterForced || isTRUE(as.logical(param$trimAdapter))) "fastp trimmed adapters against the FGCZ collection of Illumina adapter sequences (allIllumina-forTrimmomatic-20160202.fa) plus any Adapter1/Adapter2 sequences given in the dataset; for paired-end reads fastp also trimmed adapters found by read-pair overlap analysis (its default).",
+    if (adapterForced || isTRUE(as.logical(param$trimAdapter))) paste0("fastp trimmed adapters against the FGCZ collection of Illumina adapter sequences (allIllumina-forTrimmomatic-20160202.fa) plus any Adapter1/Adapter2 sequences given in the dataset", if (isTRUE(as.logical(param$paired))) "; fastp also trimmed adapters found by read-pair overlap analysis (its default for paired-end reads)", "."),
     ## app-trim.R:245-250: --average_qual when set, else --disable_quality_filtering
     if (ezIsSpecified(param$average_qual)) {
       "fastp's default per-read quality filter stayed on, so reads with more than 40% of bases below Q15 or with more than 5 N bases were discarded (fastp defaults, not set by the wrapper)."

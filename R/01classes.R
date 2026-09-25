@@ -688,7 +688,7 @@ EzApp <-
       ## via llm_write_methods. Its response includes a "## References" header
       ## followed by references; write_methods() splits and filters that itself.
       methods_description = function(script_paths, log_paths, sample_count, output_dir,
-                                     param = list()) {
+                                     param = list(), use_facts = TRUE) {
         identity_file <- file.path(output_dir, "methods_identity.txt")
         task_file     <- file.path(output_dir, "methods_task.txt")
         writeLines(methods_identity(), identity_file)
@@ -696,19 +696,12 @@ EzApp <-
         args <- c("--output", file.path(output_dir, "methods.md"),
                   "--identity-file", identity_file,
                   "--task-file",     task_file)
-        facts <- methods_facts(param)
+        facts <- if (use_facts) methods_facts(param) else character(0)
         if (length(facts) > 0) {
           facts_file <- file.path(output_dir, "app_facts.txt")
-          ## The run may have used an older ezRun than this Methods job (apps pin their own R);
-          ## name both so the writer lets the record win where they disagree.
-          ran <- unique(unlist(lapply(log_paths, function(f) regmatches(
-            x <- paste(readLines(f, warn = FALSE), collapse = " "),
-            regexpr("ezRun_[0-9]+(\\.[0-9]+)+", x)))))
-          here <- as.character(utils::packageVersion("ezRun"))
-          skew <- if (length(ran) && !paste0("ezRun_", here) %in% ran)
-            paste0(" The run itself used ", sub("_", " ", ran[1]), "; where its record disagrees with a fact below, the record is correct.") else ""
-          writeLines(c(paste0("Fixed behaviour of ", class(.self)[1], " in ezRun ", here,
-                              ", read from its source code and the run's parameters.", skew),
+          writeLines(c(paste0("Fixed behaviour of ", class(.self)[1], " in ezRun ",
+                              utils::packageVersion("ezRun"),
+                              ", read from its source code and the run's parameters."),
                        facts), facts_file)
           script_paths <- c(script_paths, facts_file)
         }
@@ -794,7 +787,16 @@ EzApp <-
         }
         param <- if (is.null(gstore_script_dir)) list() else
           methods_param(file.path(dirname(gstore_script_dir), "parameters.tsv"))
-        raw <- methods_description(script_paths, log_paths, sample_count, output_dir, param)
+        ## Facts describe this ezRun's code for a run that finished. Leave them out when the
+        ## run's log shows another ezRun version (apps pin their own R) or an R error: a
+        ## review found facts turning failed runs and older code into steps that never ran.
+        logText <- unlist(lapply(log_paths, readLines, warn = FALSE))
+        ran <- unique(regmatches(logText, regexpr("ezRun_[0-9]+(\\.[0-9]+)+", logText)))
+        failed <- any(grepl("^Execution halted|^Error in |^Error: ", logText))
+        use_facts <- !failed && length(ran) > 0 &&
+          paste0("ezRun_", utils::packageVersion("ezRun")) %in% ran
+        raw <- methods_description(script_paths, log_paths, sample_count, output_dir, param,
+                                   use_facts = use_facts)
 
         ## For each known citation, check whether its DOI/URL appears anywhere in the
         ## raw response, rather than trusting the model's copy of the text verbatim.

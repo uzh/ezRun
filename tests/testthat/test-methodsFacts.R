@@ -119,3 +119,22 @@ test_that("every citation() entry ends with exactly one URL, the anchor write_me
     }
   }
 })
+
+test_that("write_methods gives facts only to a finished run of this ezRun version", {
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    sh <- file.path(sd, "job.sh"); writeLines("echo job", sh)
+    log <- paste0(sh, "_sushiID1_x_o.log")
+    here <- paste0("ezRun_", utils::packageVersion("ezRun"))
+    run <- function(lines) {
+      writeLines(lines, log); out <- tempfile("out"); dir.create(out)
+      EzAppScSeurat$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                                        example_script = "job.sh", sample_count = 1)
+      file.exists(file.path(out, "app_facts.txt"))
+    }
+    expect_true(run(c("other attached packages:", paste0("[1] ", here))))
+    expect_false(run(c("[1] ezRun_0.0.1")))                                 # other version
+    expect_false(run(c(paste0("[1] ", here), "Error in foo(): bar", "Execution halted")))  # failed
+    expect_false(run("no session info"))                                   # version unknown
+  })
+})
