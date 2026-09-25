@@ -12,6 +12,11 @@ EzAppScSeuratCombinedLabelClusters <-
     methods = list(
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6 system lib).
       methods_facts = function(param = list()) {
+        ## refBuild is not on this app's form: the job reads it from the upstream run
+        ## (param.rds), so species stays conditional prose unless the parameters carry it.
+        speciesKnown <- ezIsSpecified(param$refBuild)
+        annotate <- !speciesKnown || methodsSpeciesIs(param, c("Human", "Mouse"))
+        onlyHM <- if (speciesKnown) "." else " (human and mouse data only)."
         c(
           ## ezMethodScSeuratCombinedLabelClusters loads the saved object and only relabels (app-ScSeuratCombinedLabelClusters.R:98, 123-126)
           "No normalisation, integration, embedding or clustering was recomputed; the integrated object from the upstream ScSeuratCombine run was reused with its clusters and embeddings.",
@@ -19,14 +24,23 @@ EzAppScSeuratCombinedLabelClusters <-
           "Cluster labels were read from the second (cluster) and third (label) columns of the ClusterAnnotationFile, ignoring the first column; clusters given the same label were merged into one group, and clusters not listed in the file were left without a label.",
           ## ezUpdateMissingParam(param, oldParams) + refBuild override (app-ScSeuratCombinedLabelClusters.R:99-101; util.R:1097-1109)
           "Parameters absent from both this job's form and ezRun's global defaults (for example normalizationMethod, integrationMethod, npcs and resolution) were taken from the upstream ScSeuratCombine run's saved parameters, and refBuild was always taken from that run.",
-          ## getSeuratMarkers via getSeuratMarkersAndAnnotate (app-ScSeuratCombinedLabelClusters.R:129; seuratUtils.R:795-825)
-          "Markers were recomputed for the new labels with Seurat FindAllMarkers on the object's default assay (SCT when the upstream run used SCTransform, RNA for LogNormalize), using the test in DE.method and only positive markers; p-values were Bonferroni-adjusted over all genes (Seurat p_val_adj), and markers with p_val_adj below 0.05 (ezRun default pvalue_allMarkers, not on the form) were kept.",
+          ## getSeuratMarkers via getSeuratMarkersAndAnnotate (app-ScSeuratCombinedLabelClusters.R:129; seuratUtils.R:795-825); the assay depends on the upstream run, so it stays conditional
+          sprintf("Markers were recomputed for the new labels with Seurat FindAllMarkers on the object's default assay (SCT when the upstream run used SCTransform, RNA for LogNormalize), using the test in DE.method and only positive markers; p-values were Bonferroni-adjusted over all genes (Seurat p_val_adj), and markers with p_val_adj below %s (pvalue_allMarkers, ezRun default, not on the form) were kept.",
+                  if (ezIsSpecified(param$pvalue_allMarkers)) param$pvalue_allMarkers else 0.05),
           ## getSeuratMarkers passes no latent.vars (seuratUtils.R:799-809)
-          "When DE.method is LR, markers were tested without latent variables; DE.regress was not applied.",
-          ## getSeuratMarkersAndAnnotate (seuratUtils.R:847-877); scTools.R:521-660
-          "For human and mouse data, the labelled groups were annotated with Enrichr on each group's significant markers (terms with adjusted p below 0.001 and more than 3 overlapping genes, top 5 per database), with AUCell using CellMarker 2.0 (2023-09-27 release) gene sets of at least 3 genes for the selected tissue, and, when a SingleR reference is set, with SingleR on the fine labels (label.fine) of that celldex reference, per cell and per group.",
+          if ("LR" %in% param$DE.method) "Markers were tested with the LR test without latent variables; DE.regress was not applied.",
+          ## getSeuratMarkersAndAnnotate (seuratUtils.R:847-877); Enrichr skipped without a database (app-ScSeurat.R)
+          if (annotate && ezIsSpecified(param$enrichrDatabase)) paste0("The labelled groups were annotated with Enrichr on each group's significant markers (terms with adjusted p below 0.001 and more than 3 overlapping genes, top 5 per database)", onlyHM),
+          ## cellsLabelsWithAUC skipped without a tissue (scTools.R:521-560)
+          if (annotate && ezIsSpecified(param$tissue)) paste0("The labelled groups were annotated with AUCell using CellMarker 2.0 (2023-09-27 release) gene sets of at least 3 genes for the selected tissue", onlyHM),
+          ## cellsLabelsWithSingleR skipped when SingleR is unset or none (scTools.R:630-660)
+          if (annotate && ezIsSpecified(param$SingleR) && !("none" %in% param$SingleR)) paste0("Cells and labelled groups were annotated with SingleR on the fine labels (label.fine) of the celldex reference named in SingleR, per cell and per group", onlyHM),
           ## computeTFActivityAnalysis / computePathwayActivityAnalysis (app-ScSeurat.R)
-          "When computePathwayTFActivity is true (human and mouse), transcription-factor and pathway activities were inferred with decoupleR run_wmean (100 permutations, minsize 5, seed 42) using DoRothEA regulons of confidence A-C and PROGENy models (top 500 genes per pathway for human, top 100 for mouse)."
+          if (annotate && isTRUE(as.logical(param$computePathwayTFActivity))) paste0(sprintf(
+            "Transcription-factor and pathway activities were inferred with decoupleR run_wmean (100 permutations, minsize 5, seed 42) using DoRothEA regulons of confidence A-C and PROGENy models (%s)",
+            if (methodsSpeciesIs(param, "Human")) "top 500 genes per pathway"
+            else if (methodsSpeciesIs(param, "Mouse")) "top 100 genes per pathway"
+            else "top 500 genes per pathway for human, top 100 for mouse"), onlyHM)
         )
       },
       initialize = function() {
