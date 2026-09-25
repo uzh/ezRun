@@ -793,8 +793,11 @@ EzApp <-
         logText <- unlist(lapply(log_paths, readLines, warn = FALSE))
         ran <- unique(regmatches(logText, regexpr("ezRun_[0-9]+(\\.[0-9]+)+", logText)))
         failed <- any(grepl("^Execution halted|^Error in |^Error: ", logText))
-        use_facts <- !failed && length(ran) > 0 &&
-          paste0("ezRun_", utils::packageVersion("ezRun")) %in% ran
+        ## option ezRun.methodsFactsVersion (a regex on "ezRun_x.y.z") widens the match, for
+        ## evaluating facts on archived runs; the default accepts this exact version only.
+        okVersion <- getOption("ezRun.methodsFactsVersion",
+                               paste0("^ezRun_", gsub(".", "\\.", utils::packageVersion("ezRun"), fixed = TRUE), "$"))
+        use_facts <- !failed && any(grepl(okVersion, ran))
         raw <- methods_description(script_paths, log_paths, sample_count, output_dir, param,
                                    use_facts = use_facts)
 
