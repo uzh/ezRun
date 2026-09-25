@@ -568,10 +568,7 @@ EzApp <-
           "  not appear, say nothing about it or mark it [not recorded]; never deny it.",
           "- Tie every version to the tool it belongs to. Session listings and dependency dumps",
           "  contain many versions; if you cannot tell which tool a version describes, leave it out.",
-          "- A module that was loaded but never invoked is not part of the analysis. Neither is a",
-          "  package that appears only in a sessionInfo listing: being installed and loaded as a",
-          "  dependency is not evidence that it was used. Report a tool only where the record",
-          "  shows it running -- a command line, its own log output, or an output file.",
+          "- A module that was loaded but never invoked is not part of the analysis.",
           "- Attach every parameter to the tool that actually received it. A correct value quoted",
           "  against the wrong tool, or reformatted into scheduler directives the record never",
           "  contained, is a fabrication even though the number itself appears somewhere.",
@@ -582,30 +579,12 @@ EzApp <-
           "- Report the numbers that shaped the result (thresholds, dimensions, seeds), not the",
           "  numbers the analysis produced. Anything the run measured or reported is a Result,",
           "  not Methods: for example counts of reads, cells, files or report sections,",
-          "  contamination estimates and convergence values.",
-          "",
-          "What counts as a tool:",
-          "- A tool is software that processed or analysed the data, for example an aligner, a",
-          "  quantifier, a quality-control program or a statistical package.",
-          "- The framework that set up and launched the tools, such as the ezRun package, is not",
-          "  a tool of the analysis. Neither are the job scheduler and the commands that only",
-          "  copy, move, link, compress, extract or concatenate files. Do not describe them.",
-          "- Name the R interpreter, with its version, only where analysis packages ran in it.",
-          "  If R only launched external programs, leave it out.",
-          "- A language model is a tool only where its output is used as a result of the",
-          "  analysis, for example cell-type labels. Where it only wrote text to help read a",
-          "  report, such as summaries inside a quality-control report, it is not part of the",
-          "  analysis: do not mention it or its model name.",
-          "",
-          "Which settings to report:",
-          "- Report a setting only if a different value would change the result. Leave out",
-          "  settings that only affect how the job ran, for example compute resources, threads,",
-          "  memory, output and temporary locations, logging or verbosity, and whether reports",
-          "  are unpacked or compressed.",
-          "- Module load lines and scheduler directives are a source of tool versions, not",
-          "  settings to report.",
+          "  percentages, rates, contamination estimates, warnings the run emitted, and whether",
+          "  it completed. Leave these out even where the logs state them plainly.",
           "",
           "Style:",
+          "- Leave out settings that only affect how the job ran, for example compute resources,",
+          "  threads, memory, output and temporary locations, and logging.",
           "- Past tense, third person, continuous academic prose. No bullet lists, no bold tool",
           "  headings, no per-tool catalogue.",
           "- Plain text only: no Markdown and no code formatting, including backticks.",
@@ -629,8 +608,7 @@ EzApp <-
         paste(
           "Write the Methods text for this processing step as continuous prose. It describes",
           "one step of a larger analysis and will be combined with the text for the other",
-          "steps, so do not introduce the analysis as a whole or describe the framework that",
-          "ran it.",
+          "steps, so do not introduce the analysis as a whole.",
           "",
           "Order it by the flow of the data, not by the order the tools appear in the scripts.",
           "",
@@ -639,32 +617,16 @@ EzApp <-
           "read-quality screen, a splicing analysis and a vendor single-cell pipeline have little",
           "in common, and there is no fixed list of stages a Methods section must account for. Do",
           "not describe, and do not account for the absence of, a stage this analysis did not",
-          "perform: a stage that did not happen is simply not mentioned. A vendor pipeline often",
-          "runs steps such as clustering or differential expression inside itself without",
-          "recording the method or settings it used. Say the step was performed and write [not",
-          "recorded] for the settings; do not drop it. The step did happen, so this is a real",
-          "gap, not an absent stage. Report an item only where the run record states it; where it",
-          "does not, write [not recorded] and move on. Never close a gap with a tool's documented",
-          "default.",
+          "perform: a stage that did not happen is simply not mentioned.",
           "",
-          "Completeness matters as much as accuracy: every tool, in the sense defined above, that",
-          "the record shows running must appear somewhere in the text, including ones that fit",
-          "none of the stages cleanly. Before finishing, check your draft against the tools the",
-          "scripts and logs show being invoked.",
-          "",
-          "For every tool, give its version and the settings that shape the result, as defined",
-          "above. Where the record does not show how a tool was invoked, its settings are",
+          "For every tool, give its version and the settings that shape the result. Where the",
+          "record does not show how a tool was invoked, its settings are",
           "[not recorded]; do not describe them as defaults. Where the record shows any step",
           "being given a random seed, report it; where it shows none, say nothing about seeds.",
           "",
           "Describe the input as samples, not files, and state a number of samples only where",
           "the prompt or the record gives it. Where several samples were processed identically,",
           "describe the procedure once.",
-          "",
-          "Describe how the analysis was configured, not what it produced. Anything the run",
-          "measured or reported is a Result, not Methods: for example counts of reads, cells,",
-          "features, files or report sections, percentages, rates, warnings the run emitted,",
-          "and whether it completed. Leave these out even where the logs state them plainly.",
           sep = "\n"
         )
       },
@@ -685,7 +647,8 @@ EzApp <-
       ## and known rather than LLM-generated (e.g. EzAppFastqc). Default: call the LLM
       ## via llm_write_methods. Its response includes a "## References" header
       ## followed by references; write_methods() splits and filters that itself.
-      methods_description = function(script_paths, log_paths, sample_count, output_dir) {
+      methods_description = function(script_paths, log_paths, sample_count, output_dir,
+                                     app_doc = NULL) {
         identity_file <- file.path(output_dir, "methods_identity.txt")
         task_file     <- file.path(output_dir, "methods_task.txt")
         writeLines(methods_identity(), identity_file)
@@ -704,6 +667,11 @@ EzApp <-
         if (!is.null(sample_count) && sample_count > 1) {
           args <- c(args, "--sample-count", as.character(sample_count))
         }
+        ## Per-app documentation, staged by SUSHI into the run's scripts/ folder. No doc
+        ## for this app: no flag, and the prompt is exactly as before.
+        if (!is.null(app_doc) && nzchar(app_doc) && file.exists(app_doc)) {
+          args <- c(args, "--app-doc", app_doc)
+        }
         ## llm_write_methods is provided by the AI/llm_methods_caller module,
         ## which must be in the app's module list so it is on PATH.
         ret <- system2("llm_write_methods", args = args)
@@ -711,7 +679,8 @@ EzApp <-
         trimws(paste(readLines(file.path(output_dir, "methods.md"), warn = FALSE), collapse = "\n"), "right")
       },
       write_methods = function(gstore_script_dir = NULL, output_dir = ".", analysis_name = NULL,
-                               example_script = NULL, sample_count = NULL, ...) {
+                               example_script = NULL, sample_count = NULL, app_doc = NULL,
+                               ...) {
         script_paths <- c()
         log_paths    <- c()
         if (!is.null(gstore_script_dir)) {
@@ -773,7 +742,7 @@ EzApp <-
                             Sys.glob(file.path(dirname(gstore_script_dir),
                                                "*", "config.csv")))
         }
-        raw <- methods_description(script_paths, log_paths, sample_count, output_dir)
+        raw <- methods_description(script_paths, log_paths, sample_count, output_dir, app_doc)
 
         ## For each known citation, check whether its DOI/URL appears anywhere in the
         ## raw response, rather than trusting the model's copy of the text verbatim.
