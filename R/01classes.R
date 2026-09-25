@@ -810,7 +810,11 @@ EzApp <-
         markerIdx  <- which(grepl("^## References", rawLines))
         candidates <- methods_citations(param)
         if (length(markerIdx) > 0) {
-          description <- trimws(paste(rawLines[seq_len(markerIdx[1] - 1)], collapse = "\n"), "right")
+          ## The model may put its References block first or last; it echoes candidate entries,
+          ## each of which ends in a URL, and the prose itself carries no URLs. So the
+          ## description is every line except the header and the URL-bearing entry lines.
+          isRef <- grepl("^## References", rawLines) | grepl("https?://", rawLines)
+          description <- trimws(paste(rawLines[!isRef], collapse = "\n"))
           anchors <- vapply(candidates, function(entry) {
             m <- regmatches(entry, regexpr("https?://\\S+", entry))
             if (length(m) > 0) m else entry

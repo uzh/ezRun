@@ -153,3 +153,17 @@ test_that("write_methods fails on an empty description and always keeps the app'
     expect_true(any(grepl("s13059-014-0550-8", readLines(file.path(out, "methods.md")), fixed = TRUE)))
   })
 })
+
+test_that("write_methods keeps the prose when the model writes References first", {
+  withStubWriter(function(argsFile) {
+    stub <- file.path(dirname(argsFile), "llm_write_methods")
+    writeLines(c("#!/bin/sh", "while [ $# -gt 0 ]; do [ \"$1\" = --output ] && out=$2; shift; done",
+                 "printf '## References\\nLove et al. https://doi.org/10.1186/s13059-014-0550-8\\n\\nCounts were tested with DESeq2.\\n' > \"$out\""), stub)
+    out <- tempfile("out"); dir.create(out)
+    EzAppDeseq2$new()$write_methods(output_dir = out, analysis_name = "T")
+    md <- readLines(file.path(out, "methods.md"))
+    desc <- md[seq(which(md == "### Description") + 1, which(md == "### References") - 1)]
+    expect_true(any(grepl("Counts were tested with DESeq2", desc)))
+    expect_false(any(grepl("doi.org", desc)))
+  })
+})
