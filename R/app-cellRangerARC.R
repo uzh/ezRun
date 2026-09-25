@@ -298,11 +298,13 @@ EzAppCellRangerARC <-
       methods_facts = function(param = list()) {
         c(
           ## getCellRangerARCReference (app-cellRangerARC.R:168); same inputs as the GEX builder
-          sub("with mkref", "with cellranger-arc mkref", cellRangerRefFacts(param, extendable = FALSE)),
+          ## ezRun cannot build an ARC index in the job (mkref --genome/--fasta/--genes is rejected by
+          ## cellranger-arc 2.x, which takes --config only), so successful runs used the prebuilt index.
+          "The cellranger-arc reference was the prebuilt FGCZ index for this annotation release (built with cellranger-arc mkref from a configuration file), restricted to genes of the selected transcriptTypes.",
           ## ezMethodCellRangerARC --gex-exclude-introns (app-cellRangerARC.R:94)
           if (isTRUE(as.logical(param$excludeIntrons))) "Gene-expression reads mapping to introns were not counted (--gex-exclude-introns)." else if (isFALSE(as.logical(param$excludeIntrons))) "Gene-expression reads mapping to introns were counted (the cellranger-arc default; --gex-exclude-introns not set).",
           ## ezMethodCellRangerARC (app-cellRangerARC.R:124)
-          if (isFALSE(as.logical(param$keepBam))) "The GEX and ATAC BAM files were deleted after the run."
+          if (isFALSE(as.logical(param$keepBam))) "No BAM files were written (--create-bam false)."
         )
       },
       initialize = function() {

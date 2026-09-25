@@ -719,13 +719,13 @@ EzAppCellRanger <-
           ## cellRangerAnnotatableRef (app-cellRanger.R:348)
           if (gex && isTRUE(crVersion >= "10.1.0") && methodsSpeciesIs(param, "Human")) "Cell Ranger was given an alias of the reference whose reference.json declares the genome as GRCh38, so that its built-in local Pan-Human Azimuth cell-type annotation ran (the FGCZ reference name is not recognised by Cell Ranger); the index itself was unchanged.",
           ## subsample (app-cellRanger.R:210), RawDataDir input only
-          if (isTRUE(as.numeric(param$nReads) > 0)) "For tar (RawDataDir) input, each FASTQ file was subsampled to nReads reads with seqtk sample (seed 42, two-pass mode) before Cell Ranger.",
+          if (isTRUE(as.numeric(param$nReads) > 0)) paste0("For tar (RawDataDir) input only, each FASTQ file was subsampled to ", param$nReads, " reads with seqtk sample (seed 42, two-pass mode) before Cell Ranger; FASTQ input was not subsampled."),
           ## ezMethodCellRanger step 8 (app-cellRanger.R:173-199); --create-bam only for Cell Ranger >= 8
           if (gex && isTRUE(keep) && !custom) "The Cell Ranger BAM was converted to CRAM with samtools against the genome FASTA and the BAM was deleted.",
           if (gex && isTRUE(keep) && custom) "The Cell Ranger BAM was kept as BAM (no CRAM conversion, because the reference had added sequences).",
           if (gex && isFALSE(keep)) "No alignment file was kept: the BAM was not created (--create-bam false, Cell Ranger 8 and later) or was deleted after the run.",
           ## computeBamStatsSC (app-cellRanger.R:256), called at app-cellRanger.R:161
-          if (gex && isTRUE(as.logical(param$bamStats))) "Per-cell alignment statistics (CellAlignStats.txt) were computed by ezRun from the BAM tags CB, UB, ts, pa and RE: reads, distinct UMIs, reads with more than 3 bases of TSO or poly(A) sequence, and exonic, intronic and intergenic reads per cell barcode; this step was skipped when no BAM was written or the BAM had more than 20 million alignments per GB of the ram parameter.",
+          if (gex && isTRUE(as.logical(param$bamStats)) && (isTRUE(keep) || isTRUE(crVersion < "8"))) "Per-cell alignment statistics (CellAlignStats.txt) were computed by ezRun from the BAM tags CB, UB, ts, pa and RE: reads, distinct UMIs, reads with more than 3 bases of TSO or poly(A) sequence, and exonic, intronic and intergenic reads per cell barcode; this step was skipped when no BAM was written or the BAM had more than 20 million alignments per GB of the ram parameter.",
           ## ezMethodCellRanger step 6 (app-cellRanger.R:122)
           if (isTRUE(as.logical(param$runVeloCyto))) "Spliced and unspliced counts for RNA velocity were computed with velocyto run10x on the Cell Ranger output and the reference GTF."
         )
@@ -800,7 +800,7 @@ cellRangerRefFacts <- function(param, extendable = TRUE) {
     ),
     ## getControlSeqs (02references.R:381), makeExtraControlSeqGR (annotation.R:566)
     if (control) "The control sequences named in controlSeqs (FGCZ controlSeqs.fa) were appended to the genome FASTA, each annotated as one protein-coding gene with a single exon spanning the whole sequence.",
-    if (second && !control) "The sequences in secondRef were appended to the genome FASTA and annotated from the GTF of the same name next to it if one exists, otherwise each as one protein-coding gene with a single exon spanning the whole sequence.",
+    if (second && !control) "The sequences in secondRef were appended to the genome FASTA and annotated from the file named by replacing the first '.fa' in the secondRef path with '.gtf' if that file exists, otherwise each as one protein-coding gene with a single exon spanning the whole sequence.",
     if (second && control) "secondRef was not used, because controlSeqs was also set and ezRun adds only the control sequences.",
     ## extendGtfThreePrime (gff.R:112)
     if (extendable && ezIsSpecified(param$extendThreePrime)) "The 3' ends of protein-coding genes (gene, transcript, 3' UTR and last exon records) were extended by extendThreePrime bases in the GTF, stopping before the next transcript on the same strand."

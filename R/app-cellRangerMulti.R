@@ -882,7 +882,7 @@ EzAppCellRangerMulti <-
           if (isFALSE(keep)) "The per-sample BAM files were deleted after the run.",
           if (isTRUE(keep) && ezIsSpecified(param$secondRef)) "The per-sample BAM files were converted to CRAM with samtools against the genome FASTA without the secondRef sequences and the BAM files were then deleted; a CRAM exists only where that conversion succeeded.",
           ## subsample (app-cellRanger.R:210) via prepareFastqData, RawDataDir input only
-          if (isTRUE(as.numeric(param$nReads) > 0)) "For tar (RawDataDir) input, each FASTQ file was subsampled to nReads reads with seqtk sample (seed 42, two-pass mode) before Cell Ranger."
+          if (isTRUE(as.numeric(param$nReads) > 0)) paste0("For tar (RawDataDir) input only, each FASTQ file was subsampled to ", param$nReads, " reads with seqtk sample (seed 42, two-pass mode) before Cell Ranger; FASTQ input was not subsampled.")
         )
       },
       initialize = function() {
