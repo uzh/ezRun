@@ -847,9 +847,12 @@ EzApp <-
         if (!use_facts && !is.null(param_file) && file.exists(param_file))
           param <- structure(methodsParamTable(param_file), input = attr(param, "input"))
         ## A DATASET-mode run has one job script for all samples, so SUSHI's sample_count is 1;
-        ## the input dataset has the real number (a review found "267 samples" for 269).
-        nInput <- NROW(attr(param, "input"))
-        if (nInput > (sample_count %||% 0)) sample_count <- nInput
+        ## the samples it ran are the "samples" parameter, else the input rows (a review found
+        ## "267 samples" for 269). Only for a single job: a SAMPLE-mode run on 3 of 16 input
+        ## rows has 3 job scripts, and SUSHI's count is right.
+        userSamples <- methodsParamTable(param_file)$samples
+        nRun <- if (ezIsSpecified(userSamples)) length(strsplit(userSamples, ",")[[1]]) else NROW(attr(param, "input"))
+        if ((sample_count %||% 1) <= 1 && nRun > 1) sample_count <- nRun
         ## A job that failed gets a statement, not a Methods text: every review found the
         ## writer narrating failed runs as completed analyses.
         if (failed) {
@@ -883,12 +886,11 @@ EzApp <-
             if (length(m) > 0) m else entry
           }, character(1))
           ## The first entry of citation() is the app's own tool (DESeq2 for EzAppDeseq2, ...);
-          ## reviewers found the writer dropping it, so it is always kept. A citation(param)
-          ## already offers only the steps that ran, and the writer dropped some of those
-          ## (SPLIT, scater, EmptyDrops): its candidates are all kept.
-          gated <- "param" %in% names(formals(citation))
+          ## reviewers found the writer dropping it, so it is always kept. Keeping every
+          ## candidate of a citation(param) was tried and reverted: its unconditional entries
+          ## include data-dependent steps (Signac without ATAC, rtracklayer with a reused index).
           kept <- candidates[vapply(anchors, function(a) grepl(a, raw, fixed = TRUE), logical(1)) |
-                             seq_along(candidates) == 1 | gated]
+                             seq_along(candidates) == 1]
           references <- if (length(kept) > 0) paste(kept, collapse = "\n") else "pending"
         } else {
           description <- raw

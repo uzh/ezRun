@@ -331,6 +331,15 @@ test_that("a DATASET-mode run takes its sample count from the input dataset", {
                               example_script = "job.sh", sample_count = 1)
     a <- readLines(argsFile)
     expect_identical(a[which(a == "--sample-count") + 1], "5")
+    writeLines("samples\tS1,S3", file.path(d, "parameters.tsv"))      # a run on 2 of the 5 rows
+    EzApp$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                              example_script = "job.sh", sample_count = 1)
+    a <- readLines(argsFile)
+    expect_identical(a[which(a == "--sample-count") + 1], "2")
+    EzApp$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                              example_script = "job.sh", sample_count = 3)   # SAMPLE mode: SUSHI's count
+    a <- readLines(argsFile)
+    expect_identical(a[which(a == "--sample-count") + 1], "3")
   })
   expect_true(any(grepl("backgroundExpression (4) is not a filter", EzAppDeseq2$new()$methods_facts(list(backgroundExpression = 4)), fixed = TRUE)))
 })
@@ -366,4 +375,12 @@ test_that("a caught error is not a failure; one halted job of several gives a no
     expect_no_match(md, "did not complete")
     expect_match(md, "Note: 1 of 3 jobs of this run stopped with an error (first: \"Error in plot_layout(): boom\")", fixed = TRUE)
   })
+})
+
+test_that("FastQC cites ShortRead only when it subsampled (or when the input is unknown)", {
+  q <- list(); attr(q, "input") <- data.frame(`Read Count` = "100000", check.names = FALSE)
+  expect_false(any(grepl("ShortRead", EzAppFastqc$new()$citation(q))))
+  attr(q, "input")$`Read Count` <- "2000000000"
+  expect_true(any(grepl("ShortRead", EzAppFastqc$new()$citation(q))))
+  expect_true(any(grepl("ShortRead", EzAppFastqc$new()$citation(list()))))
 })
