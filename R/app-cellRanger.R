@@ -702,6 +702,34 @@ EzAppCellRanger <-
           "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package version 2.80.1. https://doi.org/10.18129/B9.bioc.Biostrings"
         )
       },
+      methods_facts = function(param = list()) {
+        gex <- identical(param$TenXLibrary, "GEX")
+        crVersion <- tryCatch(numeric_version(basename(as.character(param$CellRangerVersion))),
+                              error = function(e) NULL)
+        keep <- as.logical(param$keepAlignment)
+        custom <- ezIsSpecified(param$controlSeqs) || ezIsSpecified(param$secondRef)
+        c(
+          if (gex) cellRangerRefFacts(param),
+          ## getCellRangerVDJReference (app-cellRanger.R:566)
+          if (identical(param$TenXLibrary, "VDJ")) "The VDJ reference was built by ezRun with cellranger mkvdjref from the FGCZ genome FASTA and gene GTF (or a previously built one for the same annotation was reused).",
+          ## ezMethodCellRanger --include-introns (app-cellRanger.R:90)
+          if (gex && isTRUE(as.logical(param$includeIntrons))) "Reads mapping to introns were counted (--include-introns=true)." else if (gex && isFALSE(as.logical(param$includeIntrons))) "Reads mapping to introns were not counted (--include-introns=false).",
+          ## ezMethodCellRanger --chemistry (app-cellRanger.R:83)
+          if (gex && identical(param$chemistry, "auto")) "The assay chemistry was detected automatically by Cell Ranger (--chemistry=auto).",
+          ## cellRangerAnnotatableRef (app-cellRanger.R:348)
+          if (gex && isTRUE(crVersion >= "10.1.0") && methodsSpeciesIs(param, "Human")) "Cell Ranger was given an alias of the reference whose reference.json declares the genome as GRCh38, so that its built-in local Pan-Human Azimuth cell-type annotation ran (the FGCZ reference name is not recognised by Cell Ranger); the index itself was unchanged.",
+          ## subsample (app-cellRanger.R:210), RawDataDir input only
+          if (isTRUE(as.numeric(param$nReads) > 0)) "For tar (RawDataDir) input, each FASTQ file was subsampled to nReads reads with seqtk sample (seed 42, two-pass mode) before Cell Ranger.",
+          ## ezMethodCellRanger step 8 (app-cellRanger.R:173-199); --create-bam only for Cell Ranger >= 8
+          if (gex && isTRUE(keep) && !custom) "The Cell Ranger BAM was converted to CRAM with samtools against the genome FASTA and the BAM was deleted.",
+          if (gex && isTRUE(keep) && custom) "The Cell Ranger BAM was kept as BAM (no CRAM conversion, because the reference had added sequences).",
+          if (gex && isFALSE(keep)) "No alignment file was kept: the BAM was not created (--create-bam false, Cell Ranger 8 and later) or was deleted after the run.",
+          ## computeBamStatsSC (app-cellRanger.R:256), called at app-cellRanger.R:161
+          if (gex && isTRUE(as.logical(param$bamStats))) "Per-cell alignment statistics (CellAlignStats.txt) were computed by ezRun from the BAM tags CB, UB, ts, pa and RE: reads, distinct UMIs, reads with more than 3 bases of TSO or poly(A) sequence, and exonic, intronic and intergenic reads per cell barcode; this step was skipped when no BAM was written or the BAM had more than 20 million alignments per GB of the ram parameter.",
+          ## ezMethodCellRanger step 6 (app-cellRanger.R:122)
+          if (isTRUE(as.logical(param$runVeloCyto))) "Spliced and unspliced counts for RNA velocity were computed with velocyto run10x on the Cell Ranger output and the reference GTF."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCellRanger
@@ -751,3 +779,30 @@ EzAppCellRanger <-
       }
     )
   )
+
+## methods_facts() sentences about the 10x reference that ezRun builds, shared by
+## CellRanger count and multi, SpaceRanger and CellRangerARC. `extendable` is FALSE
+## for ARC, whose builder (getCellRangerARCReference) ignores extendThreePrime.
+cellRangerRefFacts <- function(param, extendable = TRUE) {
+  control <- ezIsSpecified(param$controlSeqs)
+  second <- ezIsSpecified(param$secondRef)
+  c(
+    ## getCellRangerGEXReference (app-cellRanger.R:432), gtfByTxTypes (gff.R:982)
+    paste0(
+      "The 10x reference index was built by ezRun with mkref from the FGCZ genome FASTA and gene GTF",
+      if (ezIsSpecified(param$transcriptTypes)) {
+        paste0(", keeping only genes whose FGCZ annotation type is one of ",
+               paste(sort(param$transcriptTypes), collapse = ", "))
+      },
+      "; it was built within the job when ",
+      if (extendable) "controlSeqs, secondRef or extendThreePrime" else "controlSeqs or secondRef",
+      " was set, and otherwise a previously built shared index for the same annotation release and transcript types was reused."
+    ),
+    ## getControlSeqs (02references.R:381), makeExtraControlSeqGR (annotation.R:566)
+    if (control) "The control sequences named in controlSeqs (FGCZ controlSeqs.fa) were appended to the genome FASTA, each annotated as one protein-coding gene with a single exon spanning the whole sequence.",
+    if (second && !control) "The sequences in secondRef were appended to the genome FASTA and annotated from the GTF of the same name next to it if one exists, otherwise each as one protein-coding gene with a single exon spanning the whole sequence.",
+    if (second && control) "secondRef was not used, because controlSeqs was also set and ezRun adds only the control sequences.",
+    ## extendGtfThreePrime (gff.R:112)
+    if (extendable && ezIsSpecified(param$extendThreePrime)) "The 3' ends of protein-coding genes (gene, transcript, 3' UTR and last exon records) were extended by extendThreePrime bases in the GTF, stopping before the next transcript on the same strand."
+  )
+}

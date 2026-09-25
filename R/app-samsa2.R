@@ -84,6 +84,25 @@ EzAppSamsa2 <-
     "EzAppSamsa2",
     contains = "EzApp",
     methods = list(
+      ## The pipeline is the installed SAMSA2 master script, run unmodified; its steps
+      ## are not in the job log, only the one `bash master_script.sh` call.
+      ## Lines below refer to /usr/local/ngseq/src/samsa2/bash_scripts/master_script.sh.
+      methods_facts = function(param = list()) {
+        c(
+          ## master_script.sh:113-115
+          "Reads were quality-trimmed with Trimmomatic (SLIDINGWINDOW:4:15, MINLEN:70, phred33), in paired-end mode when an R2 file matching the R1 file name was present.",
+          ## master_script.sh:149
+          if (isTRUE(as.logical(param$paired))) "Paired reads were merged with PEAR and only the merged (assembled) reads were carried forward; unmerged pairs were not analysed further.",
+          ## master_script.sh:209
+          "Ribosomal RNA reads were removed with SortMeRNA against the SILVA bacterial 16S database (silva-bac-16s-id90) only.",
+          ## master_script.sh:239
+          "The remaining reads were aligned with DIAMOND blastx against the SAMSA2 RefSeq bacterial protein database, keeping only the best hit per read (-k 1).",
+          ## master_script.sh:265-266
+          "Hits were aggregated into organism-level and function-level read counts with the SAMSA2 script DIAMOND_analysis_counter.py.",
+          ## master_script.sh:280 exits before the Subsystems and DESeq2 steps
+          "The SEED Subsystems annotation and the SAMSA2 DESeq2 statistics were not run: the installed script stops after the RefSeq annotation, whatever useSubsystemDB was set to."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSamsa2

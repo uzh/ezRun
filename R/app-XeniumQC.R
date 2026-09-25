@@ -277,6 +277,21 @@ EzAppXeniumQC <-
     "EzAppXeniumQC",
     contains = "EzApp",
     methods = list(
+      ## Thresholds are the reference lines of inst/templates/XeniumQC.Rmd.
+      methods_facts = function(param = list()) {
+        c(
+          ## ezMethodXeniumQC (app-XeniumQC.R:49-56, 208-213)
+          "No metric was recomputed: the per-sample values are those of the Xenium Onboard Analysis metrics_summary.csv of each output directory, rounded to 3 decimals, and samples without that file were skipped with a warning.",
+          ## extractXeniumAlarms (app-XeniumQC.R:8)
+          "Instrument alerts were taken from the alarms embedded in each sample's analysis_summary.html.",
+          ## ezMethodXeniumQC (app-XeniumQC.R:58-173)
+          "The gene panel name and design ID were read from gene_panel.json, the protein panel and its targets (excluding placeholder markers) from protein_panel.json, and the numbers of gene and protein features from cell_feature_matrix/features.tsv.gz.",
+          ## XeniumQC.Rmd:127-132, 145-149, 162-166, 180-184, 229-260
+          "The report marks, without excluding any sample, a warning below 0.60 and an error below 0.50 for the fraction of transcripts decoded at Q20 (also for predesigned and custom genes separately), a warning below 0.50 for the fraction of transcripts assigned to cells, an error above 0.10 for the fraction of empty cells, and a warning below 10 and an error below 1 for nuclear transcripts per 100 um2.",
+          ## XeniumQC.Rmd:196-208, 274-279, 478-483
+          "It also marks a warning above 0.025 and an error above 0.05 negative-control probe counts per control per cell, a warning above 0.01 and an error above 0.02 genomic-control probe counts per control per cell (Xenium Prime), and a warning below 0.70 and an error below 0.50 for the fraction of cells segmented with the stain-based method."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodXeniumQC

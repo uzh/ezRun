@@ -23,6 +23,27 @@ EzAppSpaceRanger <-
           "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328"
         )
       },
+      methods_facts = function(param = list()) {
+        srMajor <- suppressWarnings(as.numeric(sub("\\..*", "", basename(as.character(param$SpaceRangerVersion)))))
+        brightfield <- isFALSE(as.logical(param$darkImage))
+        keep <- as.logical(param$keepAlignment)
+        c(
+          cellRangerRefFacts(param),
+          ## ezMethodSpaceRanger probe-set filtering (app-spaceRanger.R:213-268)
+          if (ezIsSpecified(param$probesetFile)) paste0("The probe set ", param$probesetFile, " (FGCZ copy of the 10x Visium probe sets) was filtered to the probes whose gene ID is in the reference, and its #reference_genome header was set to the reference name, before being passed as --probe-set."),
+          if (ezIsSpecified(param$probesetFile) && ezIsSpecified(param$customProbesFile)) "The probes in customProbesFile were appended after that filtering, with a 'Gene_' prefix added to gene_id and probe_id where missing.",
+          ## ezMethodSpaceRanger image handling (app-spaceRanger.R:163-192)
+          if (brightfield && isTRUE(as.logical(param$splitTif))) "For slides whose serial starts with H and whose brightfield TIFF was under 4 GB, the multi-page TIFF was split with tiffsplit and its largest page was passed as --image.",
+          if (brightfield && isFALSE(as.logical(param$runSegmentation)) && isTRUE(srMajor >= 4)) "For slides whose serial starts with H, Space Ranger nucleus segmentation was switched off (--nucleus-segmentation=false).",
+          ## ezMethodSpaceRanger antibody panel (app-spaceRanger.R:270-288)
+          if (ezIsSpecified(param$panelFile)) "The protein panel panelFile (FGCZ 10x Visium panel directory) was passed as --feature-ref, with the gene-expression and Antibody Capture FASTQs listed in a libraries.csv.",
+          ## ezMethodSpaceRanger BAM handling (app-spaceRanger.R:345-377); --create-bam true always
+          if (isTRUE(keep)) "The Space Ranger BAM was converted to CRAM with samtools against the genome FASTA; the BAM was deleted only if the CRAM was written.",
+          if (isFALSE(keep)) "The Space Ranger BAM files were deleted after the run.",
+          ## ezMethodSpaceRanger pseudo-bulk counts (app-spaceRanger.R:379-406)
+          "ezRun wrote <sample>-counts.txt with each gene's counts summed over all spots of the filtered feature-barcode matrix (for Visium HD, over the 16 um bins)."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSpaceRanger

@@ -69,6 +69,21 @@ EzAppMetaPhlAn <-
     "EzAppMetaPhlAn",
     contains = "EzApp",
     methods = list(
+      ## MetaPhlAn defaults checked against `metaphlan --help` of Tools/MetaPhlAn/4.2.4,
+      ## the module MetaPhlAnApp.rb loads.
+      methods_facts = function(param = list()) {
+        c(
+          ## ezMethodMetaPhlAn -> ezMethodFastpTrim (app-metaphlan.R:15)
+          "Reads were preprocessed with fastp (ezRun FastpTrim with the trimming parameters of the job) and the trimmed reads, not the raw reads, were profiled with MetaPhlAn.",
+          ## ezMethodFastpTrim adapter FASTA (app-trim.R:140-178)
+          if (isTRUE(as.logical(param$trimAdapter)) && !isTRUE(as.logical(param$onlyAdapterFromDataset))) "fastp trimmed adapters given as a FASTA file of Illumina adapter sequences (the FGCZ Trimmomatic adapter set) plus any adapter named in the dataset.",
+          ## ezMethodMetaPhlAn readArg (app-metaphlan.R:30-33)
+          if (isTRUE(as.logical(param$paired))) "The two mates were given to MetaPhlAn as one comma-separated input, so they were mapped as independent single reads (MetaPhlAn -1/-2 paired mode was not used).",
+          ## ezMethodMetaPhlAn analysisType (app-metaphlan.R:40-42)
+          if (isTRUE(as.logical(param$estimateReadCounts))) "MetaPhlAn ran with -t rel_ab_w_read_stats, so the profile also gives the estimated number of reads per clade." else if (isFALSE(as.logical(param$estimateReadCounts))) "MetaPhlAn ran in its default relative-abundance mode (-t rel_ab).",
+          "ezRun left the MetaPhlAn profiling settings at their defaults unless cmdOptions set them: reads shorter than 70 nt ignored, minimum mapping quality 5 for short reads, and clade abundance as the marker average truncated at the 0.2 quantile (--stat tavg_g, --stat_q 0.2)."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodMetaPhlAn

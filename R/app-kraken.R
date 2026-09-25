@@ -260,6 +260,22 @@ EzAppKraken <-
           "Ondov, B.D., Bergman, N.H. & Phillippy, A.M. Interactive metagenomic visualization in a Web browser. BMC Bioinformatics 12, 385 (2011). https://doi.org/10.1186/1471-2105-12-385"
         )
       },
+      methods_facts = function(param = list()) {
+        dbs <- trimws(unlist(strsplit(paste(param$krakenDBOpt, collapse = ","), ",")))
+        dbs <- dbs[nzchar(dbs)]
+        multi <- isTRUE(as.logical(param$multiDB))
+        c(
+          ## ezMethodKraken -> ezMethodFastpTrim (app-kraken.R:132)
+          "Reads were preprocessed with fastp (ezRun FastpTrim with the trimming parameters of the job) and the trimmed reads, not the raw reads, were classified with Kraken2.",
+          ## ezMethodFastpTrim adapter FASTA (app-trim.R:140-178)
+          if (isTRUE(as.logical(param$trimAdapter)) && !isTRUE(as.logical(param$onlyAdapterFromDataset))) "fastp trimmed adapters given as a FASTA file of Illumina adapter sequences (the FGCZ Trimmomatic adapter set) plus any adapter named in the dataset.",
+          ## ezMethodKraken DB selection (app-kraken.R:61-72)
+          if (length(dbs) > 1 && !multi) paste0("Only the first selected Kraken2 database (", dbs[1], ") was used, because multiDB was false."),
+          if (length(dbs) > 1 && multi) "The selected Kraken2 databases were searched together in one k2 classify run (Kraken2 multi-database mode), so --report-minimizer-data was not used.",
+          ## reportToKronaText (app-kraken.R:15), ezMethodKraken step 3/4
+          "The Krona chart was built by ezRun from the Kraken2 report (its taxon hierarchy and the reads assigned directly to each taxon) with ktImportText, not from the per-read classifications."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodKraken

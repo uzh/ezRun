@@ -845,6 +845,46 @@ EzAppCellRangerMulti <-
           "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package version 2.80.1. https://doi.org/10.18129/B9.bioc.Biostrings"
         )
       },
+      ## The applied config.csv is in the record; these cover what ezRun did to the
+      ## files it points to and how it chose the values it wrote.
+      methods_facts = function(param = list()) {
+        libs <- trimws(unlist(strsplit(paste(param$TenXLibrary, collapse = ","), ",")))
+        fixed <- "fixedRNA" %in% libs
+        mult <- "Multiplexing" %in% libs
+        muxType <- if (ezIsSpecified(param$MultiplexingType)) param$MultiplexingType else ""
+        probes <- if (ezIsSpecified(param$probesetFile)) param$probesetFile else ""
+        autoChem <- !ezIsSpecified(param$chemistry) || identical(param$chemistry, "auto")
+        v2 <- grepl("v2\\.", probes)
+        flexChem <- if (!v2) {
+          if (mult) "MFRP (multiplexed Flex v1)" else "SFRP (singleplex Flex v1)"
+        } else if (!mult) {
+          "Flex-v2-singleplex"
+        } else {
+          "Flex-v2-R1 if the first Read 1 of the Gene Expression FASTQs was longer than 28 nt, otherwise Flex-v2-RNA-R2"
+        }
+        keep <- as.logical(param$keepBam)
+        c(
+          if (any(c("GEX", "fixedRNA") %in% libs)) cellRangerRefFacts(param),
+          ## getCellRangerVDJReference (app-cellRanger.R:566)
+          if (any(c("VDJ-T", "VDJ-B") %in% libs)) "The VDJ reference was built by ezRun with cellranger mkvdjref from the FGCZ genome FASTA and gene GTF (or a previously built one for the same annotation was reused).",
+          ## buildMultiConfigFile probe-set filtering (app-cellRangerMulti.R:461-534)
+          if (fixed && nzchar(probes)) paste0("The Flex probe set ", probes, " (FGCZ copy of the 10x probe sets) was filtered to the probes whose gene ID and gene name both match a gene of the Cell Ranger reference (star/geneInfo.tab), and its #reference_genome header was set to the reference name; this filtered copy is the probe-set file named in config.csv."),
+          if (fixed && nzchar(probes) && ezIsSpecified(param$customProbesFile)) "The probes in customProbesFile were added to the probe set before that filtering, with a 'Gene_' prefix added to gene_id and probe_id where missing, so they were kept only if the reference has a matching gene (as created from controlSeqs or secondRef).",
+          ## buildMultiConfigFile Flex chemistry choice (app-cellRangerMulti.R:544-581)
+          if (fixed && nzchar(probes) && autoChem) paste0("Because chemistry was left on auto, ezRun set the Flex chemistry in config.csv from the probe-set version and multiplexing design: ", flexChem, "."),
+          ## buildMultiConfigFile [samples] + barcode reference (app-cellRangerMulti.R:616-653, 758-803)
+          if (mult && !fixed && identical(muxType, "antibody")) paste0("For hashtag (HTO) multiplexing, the feature reference given to Cell Ranger contained only those hashtags of the barcode set MultiplexBarcodeSet that are listed in the order's Sample2Barcode file",
+            if ("FeatureBarcoding" %in% libs) ", appended to the ADT reference FeatureBarcodeFile in one combined [feature] reference (Cell Ranger accepts a single feature reference), with one Antibody Capture library carrying both" else ", with the hashtag library as the Antibody Capture library",
+            "; cells were assigned to samples by hashtag_ids."),
+          if (mult && !fixed && !(muxType %in% c("antibody", "ocm"))) "For CellPlex (CMO) multiplexing, the cmo-set given to Cell Ranger contained only those CMOs of the barcode set MultiplexBarcodeSet that are listed in the order's Sample2Barcode file; cells were assigned to samples by cmo_ids.",
+          if (mult && !fixed && identical(muxType, "ocm")) "For On-Chip Multiplexing (OCM), no multiplexing library and no barcode reference were given to Cell Ranger (the OCM barcode is read from the Gene Expression library); cells were assigned to samples by the ocm_barcode_ids of the order's Sample2Barcode file.",
+          ## ezMethodCellRangerMulti step 8 (app-cellRangerMulti.R:56-84); config.csv always has create-bam,true
+          if (isFALSE(keep)) "The per-sample BAM files were deleted after the run.",
+          if (isTRUE(keep) && ezIsSpecified(param$secondRef)) "The per-sample BAM files were converted to CRAM with samtools against the genome FASTA without the secondRef sequences and the BAM files were then deleted; a CRAM exists only where that conversion succeeded.",
+          ## subsample (app-cellRanger.R:210) via prepareFastqData, RawDataDir input only
+          if (isTRUE(as.numeric(param$nReads) > 0)) "For tar (RawDataDir) input, each FASTQ file was subsampled to nReads reads with seqtk sample (seed 42, two-pass mode) before Cell Ranger."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCellRangerMulti

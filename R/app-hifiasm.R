@@ -77,6 +77,16 @@ EzAppHifiasm <-
     "EzAppHifiasm",
     contains = "EzApp",
     methods = list(
+      methods_facts = function(param = list()) {
+        c(
+          ## ezMethodHifiasm (app-hifiasm.R:8-69)
+          "The reads were given to hifiasm without any trimming or filtering by ezRun.",
+          "hifiasm ran in --primary mode (a primary and an alternate assembly instead of the default haplotype-resolved assemblies), with --n-hap set to the ploidy parameter.",
+          if (identical(param$inputType, "ONT")) "The reads were assembled as Oxford Nanopore simplex reads (--ont).",
+          ## awk on <sample>.p_ctg.gfa (app-hifiasm.R:31-40, 57-66), run with system(), not logged
+          "The primary contigs were written to FASTA by ezRun directly from the segment (S) lines of hifiasm's p_ctg.gfa, without further polishing or filtering."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodHifiasm

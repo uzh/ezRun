@@ -313,6 +313,27 @@ EzAppJoinGenoTypes <-
     "EzAppJoinGenoTypes",
     contains = "EzApp",
     methods = list(
+      methods_facts = function(param = list()) {
+        human <- methodsSpeciesIs(param, "Human")
+        other <- ezIsSpecified(param$refBuild) && !human
+        snpEff <- ezIsSpecified(param$snpEffDB)
+        c(
+          ## ezMethodJoinGenoTypes / runGatkPipeline (app-joinGenoTypes.R:26-83)
+          "The gVCFs were genotyped jointly per group of the grouping column: GATK CombineGVCFs merged the gVCFs of a group with more than one sample, then GenotypeGVCFs produced one VCF per group, with --dbsnp when the reference's variant directory holds exactly one dbSNP VCF.",
+          "No hard filter on read depth or alternative-allele count was applied (the vcfFilt.minReadDepth and vcfFilt.minAltCount defaults are not used by the code).",
+          ## runGatkPipeline SNP VQSR (app-joinGenoTypes.R:102-151)
+          if (human && isTRUE(as.logical(param$recalibrateVariants))) "SNPs were recalibrated with GATK VQSR using HapMap (truth, prior 15), 1000G Omni (prior 12), 1000G phase 1 (prior 10) and dbSNP (known, prior 2) as resources, the annotations QD, FS, ReadPosRankSum and DP and at most 4 Gaussians; ApplyVQSR at truth sensitivity 99.0 marked failing SNPs in the FILTER column without removing them.",
+          ## runGatkPipeline INDEL VQSR (app-joinGenoTypes.R:154-198)
+          if (human && isTRUE(as.logical(param$recalibrateInDels))) "Indels were recalibrated with GATK VQSR using the Mills gold-standard indels (truth, prior 12), the annotations QD, FS, ReadPosRankSum and DP, at most 4 Gaussians and at least 500 bad variants; ApplyVQSR at truth sensitivity 99.0 marked failing indels in the FILTER column without removing them.",
+          if (other && (isTRUE(as.logical(param$recalibrateVariants)) || isTRUE(as.logical(param$recalibrateInDels)))) "Variant recalibration (VQSR) was not run, because ezRun runs it only for human references, although it was requested.",
+          ## runGatkPipeline SnpSift dbnsfp (app-joinGenoTypes.R:219-235)
+          if (human) "Human variants were annotated with SnpSift dbnsfp from the dbNSFP file dbNSFP_file with the fields in dbNSFP_fields.",
+          ## runGatkPipeline SnpEff (app-joinGenoTypes.R:239-299); the sed runs via system(), not logged
+          if (snpEff) "Before SnpEff annotation, every occurrence of the text 'chr' in the VCF was deleted so that chromosome names match the SnpEff database.",
+          if (snpEff && isTRUE(as.logical(param$proteinCodingTranscriptsOnly))) "SnpEff annotation was restricted (-onlyTr) to the protein-coding transcripts of the reference GTF.",
+          if (snpEff) "Variant effects were annotated with SnpEff using the database snpEffDB."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodJoinGenoTypes

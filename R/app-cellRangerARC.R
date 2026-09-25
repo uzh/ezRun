@@ -289,6 +289,16 @@ EzAppCellRangerARC <-
     "EzAppCellRangerARC",
     contains = "EzApp",
     methods = list(
+      methods_facts = function(param = list()) {
+        c(
+          ## getCellRangerARCReference (app-cellRangerARC.R:168); same inputs as the GEX builder
+          sub("with mkref", "with cellranger-arc mkref", cellRangerRefFacts(param, extendable = FALSE)),
+          ## ezMethodCellRangerARC --gex-exclude-introns (app-cellRangerARC.R:94)
+          if (isTRUE(as.logical(param$excludeIntrons))) "Gene-expression reads mapping to introns were not counted (--gex-exclude-introns)." else if (isFALSE(as.logical(param$excludeIntrons))) "Gene-expression reads mapping to introns were counted (the cellranger-arc default; --gex-exclude-introns not set).",
+          ## ezMethodCellRangerARC (app-cellRangerARC.R:124)
+          if (isFALSE(as.logical(param$keepBam))) "The GEX and ATAC BAM files were deleted after the run."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCellRangerARC
