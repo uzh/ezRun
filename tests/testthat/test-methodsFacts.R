@@ -139,13 +139,15 @@ test_that("write_methods gives facts only to a finished run of this ezRun versio
   })
 })
 
-test_that("write_methods fails on an empty description and always keeps the app's own citation", {
+test_that("an empty description gives the template, and the app's own citation is always kept", {
   withStubWriter(function(argsFile) {
     stub <- file.path(dirname(argsFile), "llm_write_methods")
     writeLines(c("#!/bin/sh", "while [ $# -gt 0 ]; do [ \"$1\" = --output ] && out=$2; shift; done",
                  "printf '## Methods\\n\\n## References\\n' > \"$out\""), stub)
     out <- tempfile("out"); dir.create(out)
-    expect_error(EzApp$new()$write_methods(output_dir = out, analysis_name = "T"), "no Methods text")
+    expect_message(EzApp$new()$write_methods(output_dir = out, analysis_name = "T"),
+                   "template fallback \\(empty description\\)")
+    expect_true(any(grepl(METHODS_TEMPLATE_DECLARATION, readLines(file.path(out, "methods.md")), fixed = TRUE)))
     writeLines(c("#!/bin/sh", "while [ $# -gt 0 ]; do [ \"$1\" = --output ] && out=$2; shift; done",
                  "printf 'Counts were tested.\\n\\n## References\\n' > \"$out\""), stub)
     out <- tempfile("out"); dir.create(out)

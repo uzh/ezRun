@@ -72,7 +72,7 @@ methods_check_numbers <- function(description, config_text, all_text, sample_cou
 
 ## A parameter value meaning "step off". "None" is rctdReference's off value.
 METHODS_OFF_VALUE <- "^(false|FALSE|False|0|none|None|NONE|)$"
-METHODS_NEGATION <- "\\b(not|no|without|neither|nor|disabled|skipped|omitted)\\b"
+METHODS_NEGATION <- "\\b(not|no|without|neither|nor|disabled|skipped|omitted|single-pass)\\b"
 
 ## Per app class: parameter -> lower-case regex of the tool that step runs. When the job's
 ## value is off, a Description sentence naming the tool, not negated, is flagged.
@@ -82,7 +82,7 @@ METHODS_OFFSTEP_RULES <- list(
   ## annotation, ambient-RNA and pathway steps (facts + citation gates)
   EzAppScSeurat = c(computePathwayTFActivity = "decoupler|dorothea|progeny", SingleR = "singler",
                     estimateAmbient = "decontx|soupx", enrichrDatabase = "enrichr",
-                    tissue = "aucell|cellmarker", Azimuth = "(?<!pan-human )azimuth",
+                    tissue = "aucell|cellmarker", Azimuth = "(?<!pan-human )azimuth(?!_\\d)",
                     AzimuthPanHuman = "pan-human azimuth", sctype.enabled = "\\bsctype\\b|sc-type",
                     mLLMCelltype = "mllmcelltype", CyteTypeR = "cytetype",
                     SCT.regress.CellCycle = "regress\\w*[^.;]*cell.cycle|cell.cycle[^.;]*regress"),
@@ -96,7 +96,7 @@ METHODS_OFFSTEP_RULES <- list(
                                          SingleR = "singler", enrichrDatabase = "enrichr",
                                          tissue = "aucell|cellmarker"),
   ## SpotClean, Azimuth and Enrichr
-  EzAppSpatialSeurat = c(spotClean = "spotclean", Azimuth = "azimuth", enrichrDatabase = "enrichr",
+  EzAppSpatialSeurat = c(spotClean = "spotclean", Azimuth = "azimuth(?!_\\d)", enrichrDatabase = "enrichr",
                          SCT.regress.CellCycle = "regress\\w*[^.;]*cell.cycle|cell.cycle[^.;]*regress"),
   ## batch correction by CCA
   EzAppSpatialSeuratSlides = c(batchCorrection = "\\bcca\\b|integrat",
@@ -182,7 +182,7 @@ methodsParamTable <- function(param_file) {
   if (is.null(param_file) || !file.exists(param_file)) return(list())
   tab <- utils::read.delim(param_file, header = FALSE, colClasses = "character",
                            quote = "", comment.char = "")
-  stats::setNames(as.list(tab[[2]]), tab[[1]])
+  stats::setNames(as.list(sub('^"(.*)"$', "\\1", tab[[2]])), tab[[1]])
 }
 
 ## Fallback Description when the writer fails or its text fails the guards twice:
@@ -207,10 +207,13 @@ methods_template <- function(class_name, param, facts, citations, sample_count, 
        references = if (length(citations)) paste(citations, collapse = "\n") else "pending")
 }
 
+## The Description of a writer response. The model may put its References block first or
+## last; it echoes candidate entries, each ending in a URL, and the prose carries no URLs.
+## So with a "## References" header the Description is every other non-URL line.
 methodsDescriptionPart <- function(raw) {
   lines <- strsplit(raw, "\n", fixed = TRUE)[[1]]
-  marker <- which(grepl("^## References", lines))
-  paste(if (length(marker)) lines[seq_len(marker[1] - 1)] else lines, collapse = "\n")
+  if (!any(grepl("^## References", lines))) return(raw)
+  trimws(paste(lines[!(grepl("^## References", lines) | grepl("https?://", lines))], collapse = "\n"))
 }
 
 methodsParamText <- function(param) {
@@ -223,11 +226,11 @@ methodsParamText <- function(param) {
 ## otherwise list(template = methods_template(...)). A methods_description() override
 ## without extra_task (static text) is returned unchecked.
 methodsGuardedWrite <- function(app, script_paths, log_paths, sample_count, output_dir,
-                                param = list(), user_param = list()) {
+                                param = list(), user_param = list(), use_facts = TRUE) {
   if (!"extra_task" %in% names(formals(app$methods_description)))
     return(list(raw = app$methods_description(script_paths, log_paths, sample_count, output_dir, param)))
   cls <- class(app)[1]
-  facts <- app$methods_facts(param)
+  facts <- if (use_facts) app$methods_facts(param) else character(0)
   citations <- app$methods_citations(param)
   readAll <- function(paths) unlist(lapply(Filter(file.exists, as.character(paths)), readLines, warn = FALSE))
   config <- c(readAll(script_paths), methodsParamText(param), methodsParamText(user_param),
@@ -240,12 +243,16 @@ methodsGuardedWrite <- function(app, script_paths, log_paths, sample_count, outp
   extra <- NULL
   for (attempt in 1:2) {
     raw <- tryCatch(app$methods_description(script_paths, log_paths, sample_count, output_dir,
-                                            param, extra_task = extra),
+                                            param, use_facts = use_facts, extra_task = extra),
                     error = function(e) e)
     if (inherits(raw, "error")) return(template(conditionMessage(raw)))
     description <- methodsDescriptionPart(raw)
-    if (!nzchar(trimws(description))) return(template("empty description"))
-    numbers <- methods_check_numbers(description, config, all, sample_count)
+    ## headings alone (the model's "## Methods") are no Description either
+    if (!nzchar(trimws(gsub("(^|\n)#+[^\n]*", "", description)))) return(template("empty description"))
+    ## Plain numbers are checked against the logs too: on 140 archived runs, matching the
+    ## configuration only flagged 57 texts, all but one for values the logs do hold (sample
+    ## counts, tool defaults on command lines, reference sizes), and the retry deleted them.
+    numbers <- methods_check_numbers(description, all, all, sample_count)
     steps <- methods_check_offsteps(description, cls, param)
     if (!length(numbers) && !length(steps)) return(list(raw = raw))
     message("write_methods: guards flagged ", length(numbers), " numbers, ", length(steps), " steps",

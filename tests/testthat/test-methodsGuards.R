@@ -112,12 +112,12 @@ withTextWriter <- function(text, code, exit = 0) {
 nCalls <- function(bin) length(readLines(file.path(bin, "calls.txt")))
 
 ## A result dir with parameters.tsv, one job script and its log, as write_methods reads it.
-fakeResultDir <- function(params) {
+fakeResultDir <- function(params, ezrun = paste0("ezRun_", utils::packageVersion("ezRun"))) {
   res <- tempfile("res"); dir.create(file.path(res, "scripts"), recursive = TRUE)
   writeLines(paste(names(params), params, sep = "\t"), file.path(res, "parameters.tsv"))
   writeLines(c("#!/bin/bash", paste0("param[['", names(params), "']] = '", params, "'")),
              file.path(res, "scripts", "ScSeurat_S1.sh"))
-  writeLines(c("loading ezRun", "ezRun_3.1.4 Seurat_5.1.0"),
+  writeLines(c("loading ezRun", paste(ezrun, "Seurat_5.1.0"), "Cells after QC: 4,321"),
              file.path(res, "scripts", "ScSeurat_S1.sh_sushiID1_2026-01-01--00-00-00_o.log"))
   res
 }
@@ -177,7 +177,8 @@ test_that("an off step is retried then templated with the run's parameters, fact
     expect_match(paste(readLines(file.path(bin, "task_last.txt")), collapse = "\n"),
                  "do not describe them: singler (SingleR off).", fixed = TRUE)
     md <- readMd(out)
-    expect_match(md, "app ScSeurat (ezRun 3.1.4) on 3 samples. Parameters: SingleR = none; npcs = 20.", fixed = TRUE)
+    expect_match(md, paste0("app ScSeurat (ezRun ", utils::packageVersion("ezRun"),
+                            ") on 3 samples. Parameters: SingleR = none; npcs = 20."), fixed = TRUE)
     expect_no_match(md, "hidden|cores")
     expect_match(md, "The random seed was set to 38", fixed = TRUE)   # a fact
     expect_match(md, "https://doi.org/10.12688/f1000research.73600.2", fixed = TRUE)  # a candidate
@@ -197,4 +198,34 @@ test_that("config.csv is read for the example sample only", {
   expect_identical(pick("SingleCell_unknown.sh"), "CTCL_PBMCs3")   # no match: first only
   expect_length(methodsConfigCsv(res, NULL), 3)
   expect_length(methodsConfigCsv(tempfile(), "x.sh"), 0)
+})
+
+test_that("merged with the facts guard: no facts for another ezRun version, empty values unlisted", {
+  res <- fakeResultDir(c(name = "ScSeurat", SingleR = "none", tissue = '""'), ezrun = "ezRun_0.0.1")
+  withTextWriter("Cells were annotated with SingleR.", function(bin) {
+    out <- tempfile("out"); dir.create(out)
+    suppressMessages(EzAppScSeurat$new()$write_methods(file.path(res, "scripts"), out, "T",
+                                                       example_script = "ScSeurat_S1.sh", sample_count = 1))
+    md <- readMd(out)
+    expect_match(md, METHODS_TEMPLATE_DECLARATION, fixed = TRUE)
+    expect_no_match(md, "The random seed was set to 38")   # facts withheld: run used ezRun 0.0.1
+    expect_no_match(md, "tissue =")                          # "" is empty, not a value
+  })
+})
+
+test_that("numbers the logs hold pass, and the corpus false positives stay unflagged", {
+  res <- fakeResultDir(c(name = "ScSeurat", SingleR = "none"))
+  withTextWriter("After quality control 4,321 cells were kept.", function(bin) {
+    out <- tempfile("out"); dir.create(out)
+    EzAppScSeurat$new()$write_methods(file.path(res, "scripts"), out, "T",
+                                      example_script = "ScSeurat_S1.sh", sample_count = 1)
+    expect_equal(nCalls(bin), 1)
+    expect_match(readMd(out), "4,321 cells were kept", fixed = TRUE)
+  })
+  expect_length(methods_check_offsteps("Markers were queried against the Enrichr library Azimuth_2023.",
+                                       "EzAppScSeurat", list(Azimuth = "none")), 0)
+  expect_length(methods_check_offsteps("Reads were aligned in single-pass mode (twopassMode = None).",
+                                       "EzAppSTAR", list(twopassMode = FALSE)), 0)
+  expect_length(methods_check_offsteps("Cells were mapped to the Azimuth reference.",
+                                       "EzAppScSeurat", list(Azimuth = "none")), 1)  # positive control
 })
