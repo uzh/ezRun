@@ -822,7 +822,7 @@ EzApp <-
         ## any sample's job failing counts, not only the example one's (a review found 3 of 4
         ## kallisto samples failed while the example sample's log was clean)
         allLogs <- if (is.null(gstore_script_dir)) character(0) else
-          grep("^methods_", Sys.glob(file.path(gstore_script_dir, "*_e.log")), value = TRUE, invert = TRUE)
+          Filter(function(f) !grepl("^methods_", basename(f)), Sys.glob(file.path(gstore_script_dir, "*_e.log")))
         ## A job failed when R stopped ("Execution halted"); an "Error in" line alone can be
         ## a caught error (SoupX autoEstCont in a ScSeurat run that delivered).
         jobLogs <- unique(c(log_paths[grepl("_e\\.log$", log_paths)], allLogs))

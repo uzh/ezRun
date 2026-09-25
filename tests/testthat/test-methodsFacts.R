@@ -358,6 +358,7 @@ test_that("a caught error is not a failure; one halted job of several gives a no
     writeLines(c("Error in autoEstCont(sc): caught", "done"), file.path(sd, "job.sh_sushiID1_x_e.log"))
     writeLines(c("Error in plot_layout(): boom", "Execution halted"), file.path(sd, "job2.sh_sushiID2_x_e.log"))
     writeLines("done", file.path(sd, "job3.sh_sushiID3_x_e.log"))
+    writeLines("done", file.path(sd, "methods_dataset_1.sh_sushiID9_x_e.log"))   # the Methods job itself: not a job of the run
     out <- tempfile("out"); dir.create(out)
     EzApp$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
                               example_script = "job.sh", sample_count = 3)
