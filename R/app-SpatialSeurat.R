@@ -5,6 +5,17 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+## For methods_facts(): the QC `fields` left empty on the form (NA after ezParam)
+## and those holding a fixed threshold (a named numeric). A field missing from
+## param, or at an infinite appDefault, is in neither.
+methodsQcFields <- function(param, fields) {
+  v <- vapply(fields, function(f) {
+    x <- param[[f]]
+    if (length(x) == 1) suppressWarnings(as.numeric(x)) else Inf
+  }, numeric(1))
+  list(empty = fields[is.na(v)], fixed = v[is.finite(v)])
+}
+
 EzAppSpatialSeurat <-
   setRefClass(
     "EzAppSpatialSeurat",
@@ -13,31 +24,49 @@ EzAppSpatialSeurat <-
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6)
       ## and are identical in 5.4.0 (Dev/R/4.5.0, which SpatialSeuratApp.rb loads).
       methods_facts = function(param = list()) {
+        humanMouse <- methodsSpeciesIs(param, c("Human", "Mouse"))
+        spotClean <- as.logical(param$spotClean)
+        qc <- methodsQcFields(param, c("nreads", "ngenes", "perc_mito", "perc_ribo"))
+        sweep <- c(nreads = "low UMI count", ngenes = "low number of detected genes",
+                   perc_mito = "high mitochondrial percentage")[intersect(qc$empty, c("nreads", "ngenes", "perc_mito"))]
+        fixed <- sprintf(c(nreads = "fewer than %s UMIs", ngenes = "fewer than %s detected genes",
+                           perc_mito = "more than %s%% mitochondrial counts",
+                           perc_ribo = "more than %s%% ribosomal-protein counts")[names(qc$fixed)], qc$fixed)
+        pvalMarkers <- param$pvalue_allMarkers %||% 0.01
         c(
-          ## ezMethodSpatialSeurat set.seed(38) (app-SpatialSeurat.R:154); seuratStandardSCTPreprocessing seed = 38 (seuratUtils.R:12, 84)
+          ## ezMethodSpatialSeurat set.seed(38); seuratStandardSCTPreprocessing seed = 38 (seuratUtils.R:12, 84)
           "The random seed was set to 38 at the start of the analysis and passed to SCTransform (seed.use = 38).",
           ## load10xSpatialData (ngsio.R:467-492)
-          "When spotClean is true, spot swapping was removed from the raw Space Ranger matrix with SpotClean and the decontaminated in-tissue spots were analysed; otherwise the Space Ranger filtered (in-tissue) spot matrix was used.",
-          ## runSpotSweeper (app-SpatialSeurat.R:346-386); filterCellsAndGenes.Seurat Spatial branch (scTools.R:687-733)
-          "For each of nreads, ngenes and perc_mito left empty, spots were flagged with SpotSweeper local outlier detection (localOutliers defaults: 36 nearest spots, cutoff 3, log scale) for low UMI count, low number of detected genes or high mitochondrial percentage; a value in one of these fields replaced the local test with a fixed threshold, and the nmad parameter was not used for spots.",
-          ## featInfo / PercentageFeatureSet patterns (app-SpatialSeurat.R:166-167; scTools.R:670-675); gene filter (scTools.R:751-760)
-          "Mitochondrial and ribosomal-protein genes were identified by the gene-name patterns ^MT- and ^RPS/^RPL (case-insensitive); spots were filtered on ribosomal-protein percentage only when perc_ribo is set, and after spot filtering genes were kept when they had at least nUMIs counts in at least the cellsFraction proportion of spots.",
-          ## runBasicProcessing -> addCellCycleToSeurat default method "cyclone" (app-SpatialSeurat.R:318; scTools.R:21-91)
-          "For human and mouse data, cell-cycle phase was assigned to each spot with scran cyclone using scran's bundled human or mouse marker pairs.",
+          if (isTRUE(spotClean)) "Spot swapping was removed from the raw Space Ranger matrix with SpotClean and the decontaminated in-tissue spots were analysed.",
+          if (isFALSE(spotClean)) "The Space Ranger filtered (in-tissue) spot matrix was used, without SpotClean decontamination.",
+          ## runSpotSweeper; filterCellsAndGenes.Seurat Spatial branch (scTools.R:687-733):
+          ## an empty (NA) nreads/ngenes/perc_mito uses the SpotSweeper flag, a value a fixed threshold
+          if (length(sweep) > 0) paste0("Spots were flagged with SpotSweeper local outlier detection (localOutliers defaults: 36 nearest spots, cutoff 3, log scale) for ", paste(sweep, collapse = ", "), "."),
+          if (length(fixed) > 0) paste0("Spots with ", paste(fixed, collapse = " or "), " were removed (fixed thresholds)."),
+          "The nmad parameter was not used for spots.",
+          ## featInfo / PercentageFeatureSet patterns (scTools.R:670-675); gene filter (scTools.R:751-760)
+          "Mitochondrial and ribosomal-protein genes were identified by the gene-name patterns ^MT- and ^RPS/^RPL (case-insensitive); after spot filtering genes were kept when they had at least nUMIs counts in at least the cellsFraction proportion of spots.",
+          if ("perc_ribo" %in% qc$empty) "Spots were not filtered on ribosomal-protein percentage (perc_ribo empty).",
+          ## runBasicProcessing -> addCellCycleToSeurat default method "cyclone" (scTools.R:21-91)
+          if (humanMouse) "Cell-cycle phase was assigned to each spot with scran cyclone using scran's bundled human or mouse marker pairs.",
           ## seuratStandardSCTPreprocessing (seuratUtils.R:18-88)
-          "Spot counts were normalized with SCTransform on the raw counts (vst.flavor = v2, 3000 variable features, the Seurat default; nfeatures is not passed to SCTransform), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true; the SCT assay was used for all downstream steps (a LogNormalize layer, scale factor 10000, was also stored but not used downstream).",
+          "Spot counts were normalized with SCTransform on the raw counts (vst.flavor = v2, 3000 variable features, the Seurat default; nfeatures is not passed to SCTransform); the SCT assay was used for all downstream steps (a LogNormalize layer, scale factor 10000, was also stored but not used downstream).",
+          ## getSeuratVarsToRegress (seuratUtils.R:781-793)
+          if (isTRUE(as.logical(param$SCT.regress.CellCycle))) "The cell-cycle score difference (S minus G2M) was regressed out in SCTransform.",
           ## seuratStandardWorkflow (seuratUtils.R:170-180): RunPCA without npcs/features; RunTSNE skipped when a Spatial assay exists
           "PCA computed 50 components (Seurat default) on the SCTransform variable genes, and the first npcs were used for the neighbour graph and for UMAP (uwot, cosine metric, 30 neighbours, seed 42; RunUMAP defaults); t-SNE was not computed and pcGenes was not used.",
           ## seuratStandardWorkflow (seuratUtils.R:181-235)
           "The shared-nearest-neighbour graph used k = 20 (FindNeighbors default); clusters were found with the Louvain algorithm (FindClusters algorithm 1) at resolutions 0.2, 0.4, 0.6, 0.8 and 1.0 plus the resolution parameter, and the clustering at the resolution parameter is the one reported.",
-          ## posClusterMarkersSpatial (app-SpatialSeurat.R:571-607); pvalue_allMarkers appDefault 0.01, not declared in SpatialSeuratApp.rb
-          "Cluster markers were found with Seurat FindAllMarkers on the SCT data using the test in DE.method, positive markers only and no latent variables (also for LR); markers were kept at a Bonferroni-adjusted p-value (Seurat p_val_adj) below 0.01, the app default of pvalue_allMarkers, which the parameter form does not set.",
-          ## getSpatialSeuratMarkersAndAnnotate (app-SpatialSeurat.R:394-418); spatialMarkers (seuratUtils.R:601-615)
+          ## posClusterMarkersSpatial; pvalue_allMarkers appDefault 0.01, not declared in SpatialSeuratApp.rb
+          paste0("Cluster markers were found with Seurat FindAllMarkers on the SCT data using the test in DE.method, positive markers only and no latent variables (also for LR); markers were kept at a Bonferroni-adjusted p-value (Seurat p_val_adj) below ", pvalMarkers, " (pvalue_allMarkers, an app default the parameter form does not set)."),
+          ## getSpatialSeuratMarkersAndAnnotate; spatialMarkers (seuratUtils.R:601-615)
           "Spatially variable genes were ranked among the SCTransform variable genes (on the SCT scaled data) with both Seurat markvariogram (r.metric = 5) and Moran's I (FindSpatiallyVariableFeatures); the top 2000 genes of each method (Seurat default nfeatures) were reported without a significance threshold, and cluster markers found in either list were flagged as spatial markers.",
-          ## app-SpatialSeurat.R:421-446; querySignificantClusterAnnotationEnrichR defaults (app-ScSeurat.R:1378-1440)
-          "For human and mouse data, up to 500 markers per cluster with the highest average log2 fold change were queried against the enrichrDatabase libraries with the Enrichr web service; terms with an adjusted p-value below 0.001 and more than 3 overlapping genes were kept, the top 5 per library and cluster.",
-          ## Azimuth block (app-SpatialSeurat.R:479-555); SingleR / AUCell commented out (lines 447-454)
-          "When Azimuth is not none, spots were annotated with Azimuth RunAzimuth against that reference using the raw Spatial counts, and up to four annotation levels (as many as the reference provides) were reported; SingleR and AUCell annotation were not run in this app."
+          ## getSpatialSeuratMarkersAndAnnotate human/mouse branch; querySignificantClusterAnnotationEnrichR defaults (app-ScSeurat.R)
+          if (humanMouse) "Up to 500 markers per cluster with the highest average log2 fold change were queried against the enrichrDatabase libraries with the Enrichr web service; terms with an adjusted p-value below 0.001 and more than 3 overlapping genes were kept, the top 5 per library and cluster.",
+          ## getSpatialSeuratMarkersAndAnnotate Azimuth block
+          if (ezIsSpecified(param$Azimuth) && !identical(param$Azimuth, "none")) "Spots were annotated with Azimuth RunAzimuth against the reference named in Azimuth using the raw Spatial counts, and up to four annotation levels (as many as the reference provides) were reported.",
+          ## SingleR / AUCell commented out in getSpatialSeuratMarkersAndAnnotate
+          "SingleR and AUCell annotation were not run in this app."
         )
       },
       initialize = function() {

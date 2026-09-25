@@ -13,15 +13,19 @@ EzAppSpatialSeuratSlides <-
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6)
       ## and are identical in 5.1.0 (Dev/R/4.4.2, which SpatialSeuratSlidesApp.rb loads).
       methods_facts = function(param = list()) {
+        batchCorrection <- as.logical(param$batchCorrection)
         c(
           ## ezMethodSpatialSeuratSlides (app-SpatialSeuratSlides.R:105-117)
           "Each slide's Seurat object from its single-slide SpatialSeurat analysis (a SpatialSeurat version from before September 2025) was loaded and its previous SCT-based cluster assignments were removed.",
           ## seuratNormalizeSampleList SCTransform without seed.use; no set.seed in this app (seuratUtils.R:308-335)
-          "Each slide was re-normalized separately with SCTransform at Seurat defaults (vst.flavor = v2, 3000 variable features, Seurat's default seed 1448145; no global random seed was set), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true.",
+          "Each slide was re-normalized separately with SCTransform at Seurat defaults (vst.flavor = v2, 3000 variable features, Seurat's default seed 1448145; no global random seed was set).",
+          ## getSeuratVarsToRegress (seuratUtils.R:781-793)
+          if (isTRUE(as.logical(param$SCT.regress.CellCycle))) "The cell-cycle score difference (S minus G2M) was regressed out in SCTransform.",
           ## cellClustNoCorrection (seuratUtils.R:354-378); kept as umap_noCorrected / ident_noCorrected (app-SpatialSeuratSlides.R:131-133)
-          "An uncorrected view was computed by merging the slides, using the union of the per-slide SCTransform variable genes, and running the same PCA, UMAP and clustering steps as for the corrected data; its UMAP and clusters were kept alongside the corrected ones.",
+          "An uncorrected view was computed by merging the slides, using the union of the per-slide SCTransform variable genes, and running the PCA, UMAP and clustering steps below.",
+          if (isFALSE(batchCorrection)) "Batch correction was not applied (batchCorrection false), so the reported UMAP and clusters are the uncorrected ones.",
           ## cellClustWithCorrection CCA branch (seuratUtils.R:381-446); integrationMethod appDefault "CCA", nfeatures appDefault 3000, neither declared in the Ruby app
-          "When batchCorrection is true, slides were integrated with Seurat CCA anchors (the app default integration method, not set on the form): 3000 integration features (SelectIntegrationFeatures), PrepSCTIntegration, FindIntegrationAnchors with SCT normalization and dimensions 1 to npcs (Seurat defaults k.anchor 5, k.filter 200, k.score 30), and IntegrateData with dimensions 1 to npcs (k.weight 100); the reported UMAP and clusters come from the integrated assay.",
+          if (isTRUE(batchCorrection) && identical(param$integrationMethod, "CCA")) paste0("Slides were integrated with Seurat CCA anchors (integrationMethod, an app default not set on the form): ", param$nfeatures %||% 3000, " integration features (SelectIntegrationFeatures), PrepSCTIntegration, FindIntegrationAnchors with SCT normalization and dimensions 1 to npcs (Seurat defaults k.anchor 5, k.filter 200, k.score 30), and IntegrateData with dimensions 1 to npcs (k.weight 100); the reported UMAP and clusters come from the integrated assay, and the uncorrected UMAP and clusters were kept alongside."),
           ## seuratStandardWorkflow (seuratUtils.R:170-180)
           "PCA computed 50 components (Seurat default) and the first npcs were used for the neighbour graph and for UMAP (uwot, cosine metric, 30 neighbours, seed 42; RunUMAP defaults); t-SNE was not computed and pcGenes was not used.",
           ## seuratStandardWorkflow (seuratUtils.R:181-235)

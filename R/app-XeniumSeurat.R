@@ -1213,32 +1213,42 @@ EzAppXeniumSeurat <- setRefClass(
     ## Defaults quoted below were checked on R 4.6 against Seurat 5.5.1, Banksy 1.9.1
     ## and spacexr 2.2.1 formals(). This app runs spacexr only (no rctd-py).
     methods_facts = function(param = list()) {
+      rctd <- methodsRctdSet(param)
+      ## doSPLIT stops the job without a reference; splitMode NULL -> "neighborhood" in the code
+      splitMode <- if (rctd && isTRUE(as.logical(param$doSPLIT))) as.character(param$splitMode %||% "neighborhood")
+      coocFdr <- as.logical(param$coocFdr)
       c(
         ## only set.seed in ezMethodXeniumSeurat is app-XeniumSeurat.R:658; RunPCA/RunUMAP seed.use 42,
         ## FindClusters random.seed 0 (Seurat 5.5.1 formals)
-        "No random seed was set at the start of the analysis; PCA and UMAP used Seurat's fixed seed 42 and clustering seed 0 (Seurat defaults), and the seed was set to 42 immediately before RCTD.",
+        "No random seed was set at the start of the analysis; PCA and UMAP used Seurat's fixed seed 42 and clustering seed 0 (Seurat defaults).",
+        if (rctd) "The seed was set to 42 immediately before RCTD.",
         ## app-XeniumSeurat.R:377-427; addXeniumCellQc xeniumQcMetrics.R:120 only adds outlier.* flags
-        "Cells were removed only for having fewer total counts than minCounts or fewer detected genes than minFeatures; the qcNmads outlier flags were reported but removed no cells, and no gene filtering, cell-cycle scoring or dedicated doublet detection (such as scDblFinder) was done; singlet and doublet classes come only from RCTD's doublet mode when a reference was set.",
+        "Cells were removed only for having fewer total counts than minCounts or fewer detected genes than minFeatures; the qcNmads outlier flags were reported but removed no cells, and no gene filtering, cell-cycle scoring or dedicated doublet detection (such as scDblFinder) was done.",
+        if (rctd) "Singlet and doublet classes come only from RCTD's doublet mode.",
         ## NormalizeData scale.factor = median app-XeniumSeurat.R:435; VariableFeatures <- all :444; ScaleData :446
         "Counts were log-normalized (Seurat LogNormalize) with the median total count per cell after QC as scale factor, all panel genes were used as variable features (no highly variable gene selection), and all genes were scaled without regressing out any covariate.",
         ## RunPCA :449, RunUMAP dims 1:30 :450, FindNeighbors dims 1:30 :458, FindClusters :459
         "PCA computed 50 components (Seurat default) and the first 30 (fixed in the code) were used for UMAP (uwot, cosine metric, 30 neighbours) and for the shared-nearest-neighbour graph (k = 20); clusters were found with the Louvain algorithm (FindClusters algorithm 1) at clusterResolution with Seurat's default singleton grouping.",
         ## FindAllMarkers app-XeniumSeurat.R:933-939, :1035-1041, :1079-1082 (return.thresh 0.01 filters p_val)
-        "Markers for clusters, BANKSY niches and RCTD cell types were found on the log-normalized Xenium assay with Seurat FindAllMarkers using the Wilcoxon test, only positive markers, min.pct 0.25 and logfc.threshold 0.25 (fixed in the code), keeping genes with unadjusted p below 0.01 (Seurat default); p_val_adj is Bonferroni-adjusted and was not used as a filter.",
+        paste0("Markers for clusters, BANKSY niches", if (rctd) " and RCTD cell types", " were found on the log-normalized Xenium assay with Seurat FindAllMarkers using the Wilcoxon test, only positive markers, min.pct 0.25 and logfc.threshold 0.25 (fixed in the code), keeping genes with unadjusted p below 0.01 (Seurat default); p_val_adj is Bonferroni-adjusted and was not used as a filter."),
         ## RunBanksy_v5 app-XeniumSeurat.R:24-261 (getM(FALSE, NULL) = 0, getLambdas -> sqrt(1-l), sqrt(l)); call :978-1007
         "BANKSY was computed with ezRun's port of SeuratWrappers RunBanksy on the log-normalized values of all panel genes with k_geom = banksyKgeom, the kNN_median neighbourhood and no azimuthal Gabor filter (own expression weighted by sqrt(1 - lambda), neighbourhood mean by sqrt(lambda), each gene z-scaled with zero-variance genes set to 0); PCA computed 30 components on this matrix (fixed in the code), the neighbour graph used the first banksyDims, and niches were found with the Louvain algorithm at nicheResolution.",
         ## reference resolution app-XeniumSeurat.R:462-520 (spacexr::Reference n_max_cells 10000 per type, min_UMI 100); create.RCTD/run.RCTD :659-667
-        "When an RCTD reference was set (rctdFile overrides rctdReference; a Seurat reference was converted with spacexr Reference defaults, at most 10,000 cells per cell type and at least 100 UMIs per cell, labels from the first of author_cell_type, cell_type, celltype or CellType), RCTD was run with the R package spacexr in doublet mode on the raw counts of QC-passing cells, leaving cells below rctdUMImin unannotated.",
+        if (rctd) "Cells were annotated with the RCTD reference in rctdFile, or rctdReference when rctdFile is empty (a Seurat reference was converted with spacexr Reference defaults, at most 10,000 cells per cell type and at least 100 UMIs per cell, labels from the first of author_cell_type, cell_type, celltype or CellType); RCTD was run with the R package spacexr in doublet mode on the raw counts of QC-passing cells, leaving cells below rctdUMImin unannotated.",
         ## UMI_min_sigma fallback app-XeniumSeurat.R:631-653 (logged to log.txt, not the job log)
-        "If fewer than 100 cells exceeded rctdUMIminSigma, the UMI threshold for the cells used to fit RCTD's sigma was lowered to the 75th percentile of the per-cell UMI counts; the app's log.txt records when this happened.",
+        if (rctd) "If fewer than 100 cells exceeded rctdUMIminSigma, the UMI threshold for the cells used to fit RCTD's sigma was lowered to the 75th percentile of the per-cell UMI counts; the app's log.txt records when this happened.",
         ## RCTD_Main = results_df$first_type, reject -> NA, app-XeniumSeurat.R:679-689; weights :692-701
-        "The reported cell type (RCTD_Main) was RCTD's doublet-mode first_type, set to missing for cells RCTD classified as reject; normalized weights, spot_class and second_type were stored alongside.",
-        ## SPLIT branches app-XeniumSeurat.R:773-828
-        "When doSPLIT is true, SPLIT purified the counts from the RCTD fit: in splitMode neighborhood a cell's counts were replaced by the purified profile where the secondary type's RCTD weight share among its 20 nearest spatial neighbours (edges over 15 um pruned) exceeded splitNeighborThreshold, and always for doublet_uncertain cells, while RCTD rejects were removed from the purified object; shift mode applied the same rule on a 100-nearest-neighbour transcriptomic network built on the PCA and swapped primary and secondary labels where the neighbourhood's class matched the secondary type; full mode purified every cell with more than one cell type.",
-        ## purified re-annotation app-XeniumSeurat.R:845-889 (no UMI_min_sigma, no set.seed; NormalizeData default)
-        "SPLIT-purified counts were rounded to integers and re-annotated with spacexr RCTD in doublet mode with the same reference, rctdUMImin and class mapping but spacexr's default sigma threshold (300 UMIs) and without resetting the seed, and the purified object was log-normalized with scale factor 10000 and 2000 variable features, unlike the main object.",
-        ## computeCelltypeCooccurrence xeniumCooccurrence.R:43-140 (min_cells 20, max_cells 1e5, seed 42); BH XeniumSeurat.Rmd:1805-1810, star q < 0.05 :1830
-        "Cell-type co-occurrence was computed in the report on RCTD_Main: a fixed-radius (coocRadius, microns) neighbour graph, cell types with fewer than 20 cells dropped, a random subsample of 100,000 cells when larger (seed 42), coocNperm label permutations on the fixed graph, log2((observed + 1) / (expected + 1)) as effect size and two-sided empirical p-values, Benjamini-Hochberg-adjusted over cell-type pairs when coocFdr is true and marked below 0.05."
+        if (rctd) "The reported cell type (RCTD_Main) was RCTD's doublet-mode first_type, set to missing for cells RCTD classified as reject; normalized weights, spot_class and second_type were stored alongside.",
+        ## SPLIT branches (split_mode in ezMethodXeniumSeurat): neighborhood / shift / full
+        if (identical(splitMode, "neighborhood")) "SPLIT purified the counts from the RCTD fit in neighbourhood mode: a cell's counts were replaced by the purified profile where the secondary type's RCTD weight share among its 20 nearest spatial neighbours (edges over 15 um pruned) exceeded splitNeighborThreshold, and always for doublet_uncertain cells, while RCTD rejects were removed from the purified object.",
+        if (identical(splitMode, "shift")) "SPLIT purified the counts from the RCTD fit in shift mode: on a 100-nearest-neighbour transcriptomic network built on the PCA, a cell's counts were replaced by the purified profile where the secondary type's RCTD weight share among its neighbours exceeded splitNeighborThreshold, and always for doublet_uncertain cells, primary and secondary labels were swapped where the neighbourhood's class matched the secondary type, and RCTD rejects were removed from the purified object.",
+        if (identical(splitMode, "full")) "SPLIT purified the counts from the RCTD fit in full mode: every cell with more than one cell type was purified.",
+        ## purified re-annotation (no UMI_min_sigma, no set.seed; NormalizeData default)
+        if (!is.null(splitMode)) "SPLIT-purified counts were rounded to integers and re-annotated with spacexr RCTD in doublet mode with the same reference, rctdUMImin and class mapping but spacexr's default sigma threshold (300 UMIs) and without resetting the seed, and the purified object was log-normalized with scale factor 10000 and 2000 variable features, unlike the main object.",
+        ## computeCelltypeCooccurrence xeniumCooccurrence.R:43-140 (min_cells 20, max_cells 1e5, seed 42); cooc_fdr BH XeniumSeurat.Rmd:1805-1810, star < 0.05 :1830
+        if (rctd) "Cell-type co-occurrence was computed in the report on RCTD_Main: a fixed-radius (coocRadius, microns) neighbour graph, cell types with fewer than 20 cells dropped, a random subsample of 100,000 cells when larger (seed 42), coocNperm label permutations on the fixed graph, log2((observed + 1) / (expected + 1)) as effect size and two-sided empirical p-values.",
+        if (rctd && isTRUE(coocFdr)) "Co-occurrence p-values were Benjamini-Hochberg-adjusted over the cell-type pairs (coocFdr true), and pairs with an adjusted p-value below 0.05 were marked.",
+        if (rctd && isFALSE(coocFdr)) "Co-occurrence p-values were not adjusted for multiple testing (coocFdr false), and pairs with an unadjusted p-value below 0.05 were marked."
       )
     },
     initialize = function() {

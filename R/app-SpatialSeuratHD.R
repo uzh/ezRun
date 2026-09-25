@@ -13,17 +13,28 @@ EzAppSpatialSeuratHD <-
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6)
       ## and are identical in 5.4.0 (Dev/R/4.5.0, which SpatialSeuratHDApp.rb loads).
       methods_facts = function(param = list()) {
+        humanMouse <- methodsSpeciesIs(param, c("Human", "Mouse"))
+        qc <- methodsQcFields(param, c("nreads", "ngenes", "perc_mito", "perc_ribo"))
+        madFlags <- c(nreads = "low UMI count (log scale)", ngenes = "low number of detected genes (log scale)",
+                      perc_mito = "high mitochondrial percentage (linear scale)",
+                      perc_ribo = "high ribosomal-protein percentage (linear scale)")[qc$empty]
+        fixed <- sprintf(c(nreads = "fewer than %s UMIs", ngenes = "fewer than %s detected genes",
+                           perc_mito = "more than %s%% mitochondrial counts",
+                           perc_ribo = "more than %s%% ribosomal-protein counts")[names(qc$fixed)], qc$fixed)
+        pvalMarkers <- param$pvalue_allMarkers %||% 0.01
         c(
           ## ezMethodSpatialSeuratHD set.seed(38) (app-SpatialSeuratHD.R:164)
           "The random seed was set to 38 at the start of the analysis.",
           ## binSize -> binned_outputs/square_0XXum; Load10X_Spatial default filtered_feature_bc_matrix.h5 (app-SpatialSeuratHD.R:168-181)
           "Counts were read from the Space Ranger square-bin output at the binSize resolution in micrometres, using the filtered in-tissue bin matrix.",
-          ## filterCellsAndGenesHD (app-SpatialSeuratHD.R:419-473)
-          "For each of nreads, ngenes, perc_mito and perc_ribo left empty, bins more than nmad median absolute deviations from the median were flagged (scater isOutlier; low UMI and gene counts on the log scale, high mitochondrial and ribosomal-protein percentage on the linear scale); a value in one of these fields replaced the outlier test with a fixed threshold.",
+          ## filterCellsAndGenesHD: an empty (NA) nreads/ngenes/perc_mito/perc_ribo uses the
+          ## nmad outlier test, a value a fixed threshold
+          if (length(madFlags) > 0) paste0("Bins more than nmad median absolute deviations from the median were flagged with scater isOutlier for ", paste(madFlags, collapse = ", "), "."),
+          if (length(fixed) > 0) paste0("Bins with ", paste(fixed, collapse = " or "), " were removed (fixed thresholds)."),
           ## app-SpatialSeuratHD.R:189-190, 410-415 (patterns); 477-486 (gene filter)
           "Mitochondrial and ribosomal-protein genes were identified by the gene-name patterns ^MT- and ^RPS/^RPL (case-insensitive); after bin filtering, genes were kept when they had at least nUMIs counts in at least the cellsFraction proportion of bins.",
           ## runBasicProcessingHD -> addCellCycleToSeurat default method "cyclone" (app-SpatialSeuratHD.R:304; scTools.R:21-91)
-          "For human and mouse data, cell-cycle phase was assigned to each bin with scran cyclone using scran's bundled human or mouse marker pairs.",
+          if (humanMouse) "Cell-cycle phase was assigned to each bin with scran cyclone using scran's bundled human or mouse marker pairs.",
           ## runBasicProcessingHD (app-SpatialSeuratHD.R:317-319): NormalizeData/FindVariableFeatures/ScaleData with defaults
           "Counts were log-normalized (LogNormalize, scale factor 10000), 2000 variable genes were selected with the vst method (FindVariableFeatures defaults; the nfeatures app default is not used) and scaled without regressing out any variable; SCTransform was not used.",
           ## app-SpatialSeuratHD.R:320-334
@@ -31,7 +42,7 @@ EzAppSpatialSeuratHD <-
           ## app-SpatialSeuratHD.R:335-395; SketchData default seed 123
           "With 50,000 bins or more, 50,000 bins were sampled by leverage score (Seurat SketchData, default seed 123); variable-gene selection, scaling, 80-component PCA, neighbour graph, Louvain clustering and UMAP were run on this sketch, and all bins were then projected onto the sketch PCA and UMAP with ProjectData, which transferred the sketch cluster labels to every bin as the reported clusters.",
           ## posClusterMarkersSpatialHD (app-SpatialSeuratHD.R:500-528); pvalue_allMarkers appDefault 0.01, not declared in SpatialSeuratHDApp.rb
-          "Cluster markers were found with FindAllMarkers on the log-normalized data of all bins using the test in DE.method, positive markers only and no latent variables (also for LR); markers were kept at a Bonferroni-adjusted p-value (Seurat p_val_adj) below 0.01, the app default of pvalue_allMarkers, which the parameter form does not set.",
+          paste0("Cluster markers were found with FindAllMarkers on the log-normalized data of all bins using the test in DE.method, positive markers only and no latent variables (also for LR); markers were kept at a Bonferroni-adjusted p-value (Seurat p_val_adj) below ", pvalMarkers, " (pvalue_allMarkers, an app default the parameter form does not set)."),
           ## SpatialSeuratHD.Rmd:50 (lambda), 1208-1250 (RunBanksy, RunPCA, FindNeighbors dims 1:30, FindClusters)
           "Spatial niches were found in the report with BANKSY (SeuratWrappers RunBanksy, non-AGF mode, lambda = 0.8, k_geom = 50, on the log-normalized variable genes), followed by a PCA with npcs components on the BANKSY assay, a neighbour graph on the first 30 components and Louvain clustering at the same resolution value as the expression clusters.",
           ## no spatial-variable-feature or annotation step (app-SpatialSeuratHD.R:494-498); enrichRout <- NULL (SpatialSeuratHD.Rmd:79)
