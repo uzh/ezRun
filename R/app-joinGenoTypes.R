@@ -313,16 +313,18 @@ EzAppJoinGenoTypes <-
     "EzAppJoinGenoTypes",
     contains = "EzApp",
     methods = list(
-      ## GATK CombineGVCFs/GenotypeGVCFs + bgzip/tabix unconditional; VQSR and SnpSift dbnsfp gated on
-      ## Homo_sapiens; SnpEff gated on snpEffDB set.
-      citation = function() {
+      ## GATK CombineGVCFs/GenotypeGVCFs + bgzip/tabix unconditional; SnpSift dbnsfp + dbNSFP only
+      ## for Homo_sapiens (VQSR, also human-only, has no separate reference); SnpEff only when
+      ## snpEffDB is set. Same gates as methods_facts.
+      citation = function(param = list()) {
+        human <- methodsSpeciesIs(param, "Human")
         c(
           "McKenna, A. et al. The Genome Analysis Toolkit: a MapReduce framework for analyzing next-generation DNA sequencing data. Genome Research 20, 1297-1303 (2010). https://doi.org/10.1101/gr.107524.110",
           "Poplin, R. et al. Scaling accurate genetic variant discovery to tens of thousands of samples. bioRxiv (2017) [preprint, not peer-reviewed]. https://doi.org/10.1101/201178",
           "DePristo, M.A. et al. A framework for variation discovery and genotyping using next-generation DNA sequencing data. Nature Genetics 43, 491-498 (2011). https://doi.org/10.1038/ng.806",
-          "Cingolani, P. et al. Using Drosophila melanogaster as a model for genotoxic chemical mutational studies with a new program, SnpSift. Frontiers in Genetics 3, 35 (2012). https://doi.org/10.3389/fgene.2012.00035",
-          "Liu, X. et al. dbNSFP v4: a comprehensive database of transcript-specific functional predictions and annotations for human nonsynonymous and splice-site SNVs. Genome Medicine 12, 103 (2020). https://doi.org/10.1186/s13073-020-00803-9",
-          "Cingolani, P. et al. A program for annotating and predicting the effects of single nucleotide polymorphisms, SnpEff. Fly 6, 80-92 (2012). https://doi.org/10.4161/fly.19695",
+          if (human) "Cingolani, P. et al. Using Drosophila melanogaster as a model for genotoxic chemical mutational studies with a new program, SnpSift. Frontiers in Genetics 3, 35 (2012). https://doi.org/10.3389/fgene.2012.00035",
+          if (human) "Liu, X. et al. dbNSFP v4: a comprehensive database of transcript-specific functional predictions and annotations for human nonsynonymous and splice-site SNVs. Genome Medicine 12, 103 (2020). https://doi.org/10.1186/s13073-020-00803-9",
+          if (ezIsSpecified(param$snpEffDB)) "Cingolani, P. et al. A program for annotating and predicting the effects of single nucleotide polymorphisms, SnpEff. Fly 6, 80-92 (2012). https://doi.org/10.4161/fly.19695",
           "Bonfield, J.K. et al. HTSlib: C library for reading/writing high-throughput sequencing data. GigaScience 10, giab007 (2021). https://doi.org/10.1093/gigascience/giab007",
           "Li, H. Tabix: fast retrieval of sequence features from generic TAB-delimited files. Bioinformatics 27, 718-719 (2011). https://doi.org/10.1093/bioinformatics/btq671"
         )

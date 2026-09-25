@@ -107,11 +107,96 @@ test_that("write_methods demotes headings the model wrote into the description",
   })
 })
 
+## Every character constant in a citation() body (references and the strings its gates compare to).
+citationLiterals <- function(e) {
+  if (is.character(e)) e else if (is.call(e) || is.pairlist(e)) unlist(lapply(as.list(e), citationLiterals))
+}
+
+## The generators whose citation() takes param, i.e. offers only the references of steps that ran.
+gatedCitationClasses <- function() {
+  ns <- asNamespace("ezRun")
+  Filter(function(cls) {
+    gen <- get(cls, envir = ns)
+    if (!inherits(gen, "refObjectGenerator") || cls == "EzAppSCEVANApp") return(FALSE)
+    f <- tryCatch(gen$new()$citation, error = function(e) NULL)
+    "param" %in% names(formals(f))
+  }, ls(ns, pattern = "^EzApp"))
+}
+
+test_that("citation(list()) keeps the app's own first reference for every gated citation()", {
+  classes <- gatedCitationClasses()
+  expect_gt(length(classes), 25)
+  for (cls in classes) {
+    f <- get(cls, envir = asNamespace("ezRun"))$new()$citation
+    b <- body(f)
+    first <- b[[length(b)]][[2]]          # first argument of the final c(...)
+    expect_type(first, "character")        # entry 1 is unconditional (write_methods always keeps it)
+    expect_identical(f(list())[1], first, label = cls)
+  }
+})
+
+test_that("gated citations follow the job's parameters", {
+  has <- function(cits, pattern) any(grepl(pattern, cits))
+  hs <- "Homo_sapiens/GENCODE/GRCh38.p14/Annotation/Release_48-2025-07-03"
+
+  de <- EzAppDeseq2$new()
+  expect_false(has(de$citation(list(runGO = FALSE)), "clusterProfiler|Enrichr"))
+  expect_true(has(de$citation(list(runGO = TRUE)), "clusterProfiler"))
+  expect_false(has(de$citation(list(useLfcShrink = FALSE)), "ashr|new deal"))
+  expect_true(has(de$citation(list(useLfcShrink = TRUE)), "new deal"))
+
+  ed <- EzAppEdger$new()
+  expect_false(has(ed$citation(list(testMethod = "glm")), "DESeq2|limma powers"))
+  expect_true(has(ed$citation(list(testMethod = "deseq2")), "DESeq2"))
+
+  li <- EzAppLimma$new()
+  expect_false(has(li$citation(list(modelMethod = "limma-trend")), "voom"))
+  expect_true(has(li$citation(list(modelMethod = "voom")), "voom"))
+
+  cr <- EzAppCellRanger$new()
+  expect_false(has(cr$citation(list(TenXLibrary = "GEX", runVeloCyto = FALSE)), "RNA velocity"))
+  expect_true(has(cr$citation(list(TenXLibrary = "GEX", runVeloCyto = TRUE)), "RNA velocity"))
+  expect_false(has(cr$citation(list(TenXLibrary = "GEX", controlSeqs = "")), "Biostrings"))
+  expect_true(has(cr$citation(list(TenXLibrary = "GEX", controlSeqs = "ERCC")), "Biostrings"))
+
+  star <- EzAppSTAR$new()
+  expect_false(has(star$citation(list(barcodePattern = "", markDuplicates = FALSE)), "UMI-tools|Picard"))
+  expect_true(has(star$citation(list(barcodePattern = "NNNNNNNN", markDuplicates = TRUE)), "UMI-tools"))
+  expect_true(has(star$citation(list(markDuplicates = TRUE)), "Picard"))
+
+  macs <- EzAppMacs3$new()
+  expect_false(has(macs$citation(list(annotatePeaks = FALSE)), "ChIPseeker"))
+  expect_true(has(macs$citation(list(annotatePeaks = TRUE)), "ChIPseeker"))
+  expect_true(has(macs$citation(list(mode = "ATAC-seq")), "deepTools"))
+  expect_false(has(macs$citation(list(mode = "ChIP-seq", useControl = TRUE)), "deepTools"))
+
+  sp <- EzAppSpatialSeurat$new()
+  expect_false(has(sp$citation(list(refBuild = hs, spotClean = FALSE, Azimuth = "none")), "SpotClean|Integrated analysis"))
+  expect_true(has(sp$citation(list(refBuild = hs, spotClean = TRUE)), "SpotClean"))
+  expect_true(has(sp$citation(list(refBuild = hs, Azimuth = "pbmcref")), "Integrated analysis"))
+
+  xe <- EzAppXeniumSeurat$new()
+  expect_false(has(xe$citation(list(rctdReference = "None", rctdFile = "", doSPLIT = TRUE)), "Robust decomposition|Bilous"))
+  expect_false(has(xe$citation(list(rctdReference = "allen/ref.rds", doSPLIT = FALSE)), "Bilous"))
+  expect_true(has(xe$citation(list(rctdReference = "allen/ref.rds", doSPLIT = TRUE)), "Bilous"))
+
+  mo <- EzAppScMultiOmics$new()
+  expect_false(has(mo$citation(list(runWNN = FALSE, adtNorm = "CLR")), "Integrated analysis|ADTnorm"))
+  expect_true(has(mo$citation(list(runWNN = TRUE, adtNorm = "ADTnorm")), "ADTnorm"))
+
+  mg <- EzAppMageckTest$new()
+  expect_false(has(mg$citation(list(runGSEA = FALSE, species = "dre")), "Fast gene set|limma"))
+  expect_true(has(mg$citation(list(runGSEA = TRUE, species = "hsa")), "limma"))
+})
+
 test_that("every citation() entry ends with exactly one URL, the anchor write_methods matches", {
   for (cls in ls(asNamespace("ezRun"), pattern = "^EzApp")) {
     gen <- get(cls, envir = asNamespace("ezRun"))
     if (!inherits(gen, "refObjectGenerator") || cls == "EzAppSCEVANApp") next  # SCEVAN cannot be instantiated (pre-existing)
     cits <- tryCatch(gen$new()$methods_citations(list()), error = function(e) character(0))
+    ## gated entries are absent from citation(list()): check every reference literal in the body too
+    f <- tryCatch(gen$new()$citation, error = function(e) NULL)
+    if ("param" %in% names(formals(f))) cits <- union(cits, Filter(function(s) nchar(s) > 60, citationLiterals(body(f))))
     for (x in cits) {
       urls <- regmatches(x, gregexpr("https?://\\S+", x))[[1]]
       expect_length(urls, 1)

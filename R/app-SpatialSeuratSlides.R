@@ -12,13 +12,14 @@ EzAppSpatialSeuratSlides <-
     methods = list(
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6)
       ## and are identical in 5.1.0 (Dev/R/4.4.2, which SpatialSeuratSlidesApp.rb loads).
-      ## Seurat v5 + SCTransform v2 unconditional; Seurat CCA anchor integration gated on batchCorrection.
-      citation = function() {
+      ## Seurat v5 + SCTransform v2 unconditional; Seurat CCA anchor integration only when
+      ## batchCorrection is true and integrationMethod is CCA (both appDefaults, not on the form).
+      citation = function(param = list()) {
         c(
           "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
           "Hafemeister, C. & Satija, R. Normalization and variance stabilization of single-cell RNA-seq data using regularized negative binomial regression. Genome Biology 20, 296 (2019). https://doi.org/10.1186/s13059-019-1874-1",
           "Choudhary, S. & Satija, R. Comparison and evaluation of statistical error models for scRNA-seq. Genome Biology 23, 27 (2022). https://doi.org/10.1186/s13059-021-02584-9",
-          "Stuart, T. et al. Comprehensive integration of single-cell data. Cell 177, 1888-1902 (2019). https://doi.org/10.1016/j.cell.2019.05.031"
+          if (isTRUE(as.logical(param$batchCorrection)) && identical(param$integrationMethod, "CCA")) "Stuart, T. et al. Comprehensive integration of single-cell data. Cell 177, 1888-1902 (2019). https://doi.org/10.1016/j.cell.2019.05.031"
         )
       },
       methods_facts = function(param = list()) {

@@ -17,13 +17,14 @@ EzAppScMultiOmics <-
     "EzAppScMultiOmics",
     contains = "EzApp",
     methods = list(
-      ## Seurat v5 unconditional; ADTnorm gated on ADT + adtNorm = ADTnorm; Signac + ensembldb gated on
-      ## ATAC; scRepertoire gated on VDJ contigs; WNN (Hao 2021) gated on runWNN + >= 2 modalities.
-      citation = function() {
+      ## Seurat v5 unconditional; ADTnorm only when adtNorm is ADTnorm; WNN (Hao 2021) only when
+      ## runWNN is true. Whether ADT, ATAC (Signac + ensembldb) or VDJ (scRepertoire) run, and
+      ## whether >= 2 modalities exist for WNN, depends on the input files, so those stay unconditional.
+      citation = function(param = list()) {
         c(
           "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
-          "Hao, Y. et al. Integrated analysis of multimodal single-cell data. Cell 184, 3573-3587 (2021). https://doi.org/10.1016/j.cell.2021.04.048",
-          "Zheng, Y. et al. ADTnorm: robust integration of single-cell protein measurement across CITE-seq datasets. Nature Communications 16, 5852 (2025). https://doi.org/10.1038/s41467-025-61023-6",
+          if (isTRUE(as.logical(param$runWNN))) "Hao, Y. et al. Integrated analysis of multimodal single-cell data. Cell 184, 3573-3587 (2021). https://doi.org/10.1016/j.cell.2021.04.048",
+          if ("ADTnorm" %in% param$adtNorm) "Zheng, Y. et al. ADTnorm: robust integration of single-cell protein measurement across CITE-seq datasets. Nature Communications 16, 5852 (2025). https://doi.org/10.1038/s41467-025-61023-6",
           "Stuart, T. et al. Single-cell chromatin state analysis with Signac. Nature Methods 18, 1333-1341 (2021). https://doi.org/10.1038/s41592-021-01282-5",
           "Rainer, J. et al. ensembldb: an R package to create and use Ensembl-based annotation resources. Bioinformatics 35, 3151-3153 (2019). https://doi.org/10.1093/bioinformatics/btz031",
           "Yang, Q. et al. scRepertoire 2: Enhanced and efficient toolkit for single-cell immune profiling. PLOS Computational Biology 21, e1012760 (2025). https://doi.org/10.1371/journal.pcbi.1012760"
