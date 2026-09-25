@@ -674,7 +674,9 @@ EzApp <-
         if (is.null(param_file) || !file.exists(param_file)) return(list())
         tab <- utils::read.delim(param_file, header = FALSE, colClasses = "character",
                                  quote = "", comment.char = "")
-        userParam <- stats::setNames(as.list(tab[[2]]), tab[[1]])
+        ## SUSHI writes an empty value as a literal "" (quote = "" keeps the quotes), which
+        ## ezIsSpecified() would count as set; strip one pair of surrounding double quotes.
+        userParam <- stats::setNames(as.list(sub('^"(.*)"$', "\\1", tab[[2]])), tab[[1]])
         ## ezParam() fails when it cannot build the ezRef (reference not reachable from this
         ## node); a placeholder ezRef skips that step and keeps the typed global/app defaults.
         tryCatch(ezParam(userParam, appDefaults = appDefaults), error = function(e)

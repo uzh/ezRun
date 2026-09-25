@@ -84,6 +84,12 @@ test_that("methods_param reads parameters.tsv and fills app defaults", {
   expect_identical(p$computePathwayTFActivity, FALSE)
   expect_equal(p$nmad, 3)          # appDefault, not in the file
   expect_identical(EzApp$new()$methods_param(file.path(tempdir(), "absent.tsv")), list())
+  ## SUSHI writes empty values as a literal "": they must not count as set
+  g <- tempfile(fileext = ".tsv")
+  writeLines(c("name\tCellRangerMulti", "secondRef\t\"\"", "controlSeqs\t\"\""), g)
+  q <- EzAppCellRangerMulti$new()$methods_param(g)
+  expect_false(ezIsSpecified(q$secondRef))
+  expect_false(ezIsSpecified(q$controlSeqs))
 })
 
 test_that("write_methods demotes headings the model wrote into the description", {
