@@ -12,16 +12,21 @@ EzAppVisiumHDSeurat <-
     methods = list(
       ## Defaults quoted below were checked on R 4.6 against Seurat 5.5.1, SeuratWrappers
       ## 0.4.0, Banksy 1.9.1 and spacexr 2.2.1 formals(), and rctd-py 0.3.8 cli.py.
-      ## Seurat v5 and BANKSY via SeuratWrappers unconditional; scater isOutlier gated on nmad + empty
-      ## thresholds; RCTD (spacexr or rctd-py per rctdEngine) gated on rctdReference/rctdFile.
-      citation = function() {
+      ## Seurat v5 and BANKSY via SeuratWrappers unconditional; scater isOutlier only when nmad is set
+      ## and a QC threshold (numis/ngenes/perc_mito) or perc_riboprot is empty; RCTD (Cable) whenever
+      ## rctdReference/rctdFile is set (spacexr runs for rctdEngine spacexr and as the fallback when
+      ## rctd-py is not installed); rctd-py only for RCTD with rctdEngine other than spacexr. Enrichr
+      ## (report links/query) runs every time, so unconditional.
+      citation = function(param = list()) {
+        rctd <- methodsRctdSet(param)
+        mad <- ezIsSpecified(param$nmad) && (length(methodsQcFields(param, c("numis", "ngenes", "perc_mito"))$empty) > 0 || !ezIsSpecified(param$perc_riboprot))
         c(
           "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
-          "McCarthy, D.J. et al. Scater: pre-processing, quality control, normalization and visualization of single-cell RNA-seq data in R. Bioinformatics 33, 1179-1186 (2017). https://doi.org/10.1093/bioinformatics/btw777",
+          if (mad) "McCarthy, D.J. et al. Scater: pre-processing, quality control, normalization and visualization of single-cell RNA-seq data in R. Bioinformatics 33, 1179-1186 (2017). https://doi.org/10.1093/bioinformatics/btw777",
           "Singhal, V. et al. BANKSY unifies cell typing and tissue domain segmentation for scalable spatial omics data analysis. Nature Genetics 56, 431-441 (2024). https://doi.org/10.1038/s41588-024-01664-3",
           "Satija Lab. SeuratWrappers: Community-Provided Methods and Extensions for the Seurat Object. https://github.com/satijalab/seurat-wrappers",
-          "Cable, D.M. et al. Robust decomposition of cell type mixtures in spatial transcriptomics. Nature Biotechnology 40, 517-526 (2022). https://doi.org/10.1038/s41587-021-00830-w",
-          "Gueguen, P. rctd-py: GPU-accelerated Python implementation of RCTD. https://github.com/p-gueguen/rctd-py",
+          if (rctd) "Cable, D.M. et al. Robust decomposition of cell type mixtures in spatial transcriptomics. Nature Biotechnology 40, 517-526 (2022). https://doi.org/10.1038/s41587-021-00830-w",
+          if (rctd && !identical(param$rctdEngine, "spacexr")) "Gueguen, P. rctd-py: GPU-accelerated Python implementation of RCTD. https://github.com/p-gueguen/rctd-py",
           "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128"
         )
       },

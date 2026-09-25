@@ -10,12 +10,12 @@ EzAppSCTrajectoryInference <-
     "EzAppSCTrajectoryInference",
     contains = "EzApp",
     methods = list(
-      ## dyno unconditional; Slingshot gated on TI_method = none or chosen explicitly; other TI methods
-      ## picked at run time are not listed.
-      citation = function() {
+      ## dyno unconditional; Slingshot when TI_method is none (the default: dyno's guidelines with
+      ## slingshot forced first) or names slingshot; other TI methods picked at run time are not listed.
+      citation = function(param = list()) {
         c(
           "Saelens, W. et al. A comparison of single-cell trajectory inference methods. Nature Biotechnology 37, 547-554 (2019). https://doi.org/10.1038/s41587-019-0071-9",
-          "Street, K. et al. Slingshot: cell lineage and pseudotime inference for single-cell transcriptomics. BMC Genomics 19, 477 (2018). https://doi.org/10.1186/s12864-018-4772-0"
+          if (!ezIsSpecified(param$TI_method) || any(c("none", "slingshot") %in% param$TI_method)) "Street, K. et al. Slingshot: cell lineage and pseudotime inference for single-cell transcriptomics. BMC Genomics 19, 477 (2018). https://doi.org/10.1186/s12864-018-4772-0"
         )
       },
       initialize = function() {

@@ -643,14 +643,13 @@ EzAppFastqc <-
       },
       ## FastQC has no peer-reviewed paper -- its own homepage is the only citable
       ## source, and that's the de facto standard citation used across the field.
-      ## MultiQC/ShortRead run unconditionally; fastp only if param$max_len1 > 0 --
-      ## listed regardless of gating.
-      citation = function() {
+      ## MultiQC/ShortRead run unconditionally; fastp only when max_len1 > 0 (ezMethodFastQC).
+      citation = function(param = list()) {
         c(
           "Andrews, S. FastQC: A Quality Control Tool for High Throughput Sequence Data. (2010). http://www.bioinformatics.babraham.ac.uk/projects/fastqc/",
           "Ewels, P., Magnusson, M., Lundin, S. & Käller, M. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics 32(19), 3047-3048 (2016). https://doi.org/10.1093/bioinformatics/btw354",
           "Morgan, M., Anders, S., Lawrence, M., Aboyoun, P., Pagès, H. & Gentleman, R. ShortRead: a bioconductor package for input, quality assessment and exploration of high-throughput sequence data. Bioinformatics 25(19), 2607-2608 (2009). https://doi.org/10.1093/bioinformatics/btp450",
-          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
+          if (isTRUE(as.numeric(param$max_len1) > 0)) "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
         )
       },
       methods_facts = function(param = list()) {

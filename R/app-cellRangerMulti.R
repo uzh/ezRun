@@ -831,18 +831,21 @@ EzAppCellRangerMulti <-
     "EzAppCellRangerMulti",
     contains = "EzApp",
     methods = list(
-      ## cellranger multi unconditional; samtools (CRAM) gated on keepBam+secondRef;
-      ## seqtk gated on nReads; rtracklayer/Biostrings gated on extendThreePrime
-      ## (real GTF coordinate extension via getCellRangerGEXReference, computed not
-      ## copied). No Rsamtools::scanBam/bamStats here, unlike CellRangerApp.
-      citation = function() {
+      ## cellranger multi unconditional; samtools (CRAM) only for keepBam + secondRef; seqtk only when
+      ## nReads > 0; rtracklayer for any GEX/fixedRNA library (getCellRangerGEXReference exports the
+      ## transcriptTypes GTF whenever it builds a reference; a cache hit is data-dependent);
+      ## Biostrings only with a customised reference (controlSeqs, secondRef or extendThreePrime). No Rsamtools::scanBam/bamStats here, unlike CellRangerApp.
+      citation = function(param = list()) {
+        libs <- trimws(unlist(strsplit(paste(param$TenXLibrary, collapse = ","), ",")))
+        gexRef <- any(c("GEX", "fixedRNA") %in% libs)
+        custom <- gexRef && (ezIsSpecified(param$controlSeqs) || ezIsSpecified(param$secondRef) || ezIsSpecified(param$extendThreePrime))
         c(
           "10x Genomics. Cell Ranger. https://www.10xgenomics.com/support/software/cell-ranger",
           "Zheng, G.X.Y. et al. Massively parallel digital transcriptional profiling of single cells. Nature Communications 8, 14049 (2017). https://doi.org/10.1038/ncomms14049",
-          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
-          "Li, H. seqtk: a fast and lightweight tool for processing FASTA or FASTQ sequences. https://github.com/lh3/seqtk",
-          "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328",
-          "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package. https://doi.org/10.18129/B9.bioc.Biostrings"
+          if (isTRUE(as.logical(param$keepBam)) && ezIsSpecified(param$secondRef)) "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+          if (isTRUE(as.numeric(param$nReads) > 0)) "Li, H. seqtk: a fast and lightweight tool for processing FASTA or FASTQ sequences. https://github.com/lh3/seqtk",
+          if (gexRef) "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328",
+          if (custom) "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package. https://doi.org/10.18129/B9.bioc.Biostrings"
         )
       },
       ## The applied config.csv is in the record; these cover what ezRun did to the
