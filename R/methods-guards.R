@@ -3,13 +3,13 @@
 ## and a template Description for when the writer fails or keeps failing a guard.
 
 ## A standalone number: not glued to letters (GRCh38, CD45, 10x, log2FC, p28409), except
-## a unit suffix or %. Thousands commas, scientific forms (1e5, 10^-5) and ranges
+## a unit suffix or %; nor a partial match of a longer one (2.7 of STAR 2.7.11b). Thousands commas, scientific forms (1e5, 10^-5) and ranges
 ## (1-20, 1:20, "1 to 20": each endpoint is its own token) are read as numbers.
 METHODS_NUMBER_CORE <- paste0("(?:\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|\\d+(?:\\.\\d+)*)",
                               "(?:[eE][-+]?\\d+|\\^[-+]?\\d+)?")
 METHODS_NUMBER_TOKEN <- paste0("(?<![A-Za-z0-9_.])(?:[vV](?=\\d))?", METHODS_NUMBER_CORE,
                                "(?:%|\\s?(?:kb|Kb|bp|Mb|Gb)(?![A-Za-z0-9_])|(?:k|K|M)(?![A-Za-z0-9_]))?",
-                               "(?![A-Za-z0-9_])")
+                               "(?![A-Za-z0-9_]|[.,]\\d)")
 METHODS_UNIT_SCALE <- c(kb = 1e3, Kb = 1e3, bp = 1, Mb = 1e6, Gb = 1e9, k = 1e3, K = 1e3, M = 1e6)
 
 ## The values a number token can stand for: "5%" is 5 or 0.05, "2 kb" is 2000.

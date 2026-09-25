@@ -24,6 +24,8 @@ test_that("configured values in other spellings, identifiers and small integers 
   expect_length(checkNum("The neighbour graph used PCs 1 to 20 (1:20, 1-20, 1–20)."), 0)
   expect_length(checkNum("Reads were aligned to GRCh38 from 10x Genomics libraries with log2FC and CD45."), 0)
   expect_length(checkNum("All 24 samples were processed in 3 batches."), 0)
+  ## a glued version is skipped whole, not read as its first digits (2.7 of 2.7.11b)
+  expect_length(checkNum("Reads were aligned with STAR 2.7.11b and HISAT2 2.2.1a."), 0)
 })
 
 test_that("number normalisation covers units, percentages and scientific forms", {
