@@ -833,7 +833,7 @@ EzApp <-
           ## "Error in ezSystem(cmd) :" carries its message on the next line
           e <- if (is.na(i)) "Execution halted" else
             paste(trimws(l[i:(i + (grepl(":\\s*$", l[i]) && i < length(l)))]), collapse = " ")
-          substr(e, 1, 200)
+          substr(gsub("(/[^ /]+)+/([^ /]*)", "\\2", e), 1, 200)   # no paths in a Methods file
         }
         failed <- length(jobLogs) > 0 && length(haltedLogs) == length(jobLogs)   # every job stopped
         partialNote <- if (!failed && length(haltedLogs) > 0)

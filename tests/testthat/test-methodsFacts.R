@@ -277,14 +277,15 @@ test_that("a failed run gets a statement, not a Methods text, and the writer is 
   withStubWriter(function(argsFile) {
     d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
     writeLines("echo job", file.path(sd, "job.sh"))
-    writeLines(c("Error in EzRef(userParam) :", "  reference missing", "Execution halted"),
+    writeLines(c("Error in EzRef(userParam) :", "  reference missing in /srv/GT/reference/Genes/genes.gtf", "Execution halted"),
                file.path(sd, "job.sh_sushiID1_x_e.log"))
     out <- tempfile("out"); dir.create(out)
     EzAppScSeurat$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
                                       example_script = "job.sh", sample_count = 2)
     md <- paste(readLines(file.path(out, "methods.md")), collapse = "\n")
     expect_match(md, "The analysis did not complete: its job stopped with an error", fixed = TRUE)
-    expect_match(md, "Error in EzRef(userParam) : reference missing", fixed = TRUE)
+    expect_match(md, "Error in EzRef(userParam) : reference missing in genes.gtf", fixed = TRUE)
+    expect_no_match(md, "/srv/GT")
     expect_false(file.exists(argsFile))                      # llm_write_methods never ran
   })
 })
