@@ -823,13 +823,24 @@ EzApp <-
         ## kallisto samples failed while the example sample's log was clean)
         allLogs <- if (is.null(gstore_script_dir)) character(0) else
           grep("^methods_", Sys.glob(file.path(gstore_script_dir, "*_e.log")), value = TRUE, invert = TRUE)
-        allText <- unlist(lapply(allLogs, readLines, warn = FALSE))
-        failed <- any(grepl("^Execution halted|^Error in |^Error: ", c(logText, allText)))
+        ## A job failed when R stopped ("Execution halted"); an "Error in" line alone can be
+        ## a caught error (SoupX autoEstCont in a ScSeurat run that delivered).
+        jobLogs <- unique(c(log_paths[grepl("_e\\.log$", log_paths)], allLogs))
+        haltedLogs <- Filter(function(f) any(grepl("^Execution halted", readLines(f, warn = FALSE))), jobLogs)
+        firstError <- function(fs) {
+          l <- unlist(lapply(fs, readLines, warn = FALSE))
+          e <- grep("^Error", l, value = TRUE)
+          substr(if (length(e)) e[1] else "Execution halted", 1, 200)
+        }
+        failed <- length(jobLogs) > 0 && length(haltedLogs) == length(jobLogs)   # every job stopped
+        partialNote <- if (!failed && length(haltedLogs) > 0)
+          paste0("Note: ", length(haltedLogs), " of ", length(jobLogs), " jobs of this run stopped with an error (first: \"",
+                 firstError(haltedLogs), "\"); this description applies to the samples whose jobs completed.")
         ## option ezRun.methodsFactsVersion (a regex on "ezRun_x.y.z") widens the match, for
         ## evaluating facts on archived runs; the default accepts this exact version only.
         okVersion <- getOption("ezRun.methodsFactsVersion",
                                paste0("^ezRun_", gsub(".", "\\.", utils::packageVersion("ezRun"), fixed = TRUE), "$"))
-        use_facts <- !failed && any(grepl(okVersion, ran))
+        use_facts <- !failed && !any(grepl("^Execution halted", logText)) && any(grepl(okVersion, ran))
         ## A run of another ezRun version only had the parameters it recorded: today's
         ## defaults would offer citations (and guard rules) for steps it never had, e.g.
         ## mLLMCelltype, whose default is on, for a 2024 ScSeurat run.
@@ -842,12 +853,10 @@ EzApp <-
         ## A job that failed gets a statement, not a Methods text: every review found the
         ## writer narrating failed runs as completed analyses.
         if (failed) {
-          errs <- grep("^Execution halted|^Error in |^Error: ", c(logText, allText), value = TRUE)
-          nFailed <- sum(vapply(unique(c(log_paths[grepl("_e\\.log$", log_paths)], allLogs)), function(f)
-            any(grepl("^Execution halted|^Error in |^Error: ", readLines(f, warn = FALSE))), logical(1)))
           guarded <- list(template = list(
-            description = paste0("The analysis did not complete: ", nFailed, " of ", max(sample_count, nFailed),
-                                 " job(s) of this run recorded an error (first: \"", substr(errs[1], 1, 200),
+            description = paste0("The analysis did not complete: ",
+                                 if (length(jobLogs) == 1) "its job" else paste("all", length(jobLogs), "jobs"),
+                                 " stopped with an error (first: \"", firstError(haltedLogs),
                                  "\"). No Methods text was generated; describe this analysis once it has been rerun successfully."),
             references = "pending"))
           raw <- ""
@@ -899,6 +908,7 @@ EzApp <-
         ## The model sometimes opens with its own "## Methods" heading, which reads as a
         ## second analysis once chained under a parent's methods.md. Keep "##" for the
         ## per-analysis headers and "###" for sections; demote anything the model wrote.
+        if (!is.null(partialNote)) description <- paste0(description, "\n\n", partialNote)
         description <- sub("^\\s*#+ *(Materials and )?Methods *\n+", "", description, perl = TRUE)
         description <- gsub("(^|\n)#{1,3} +", "\\1#### ", description, perl = TRUE)
         document <- paste0(

@@ -223,7 +223,7 @@ test_that("write_methods gives facts only to a finished run of this ezRun versio
     expect_false(run(c(paste0("[1] ", here), "Error in foo(): bar", "Execution halted")))  # failed
     expect_false(run("no session info"))                                   # version unknown
     other <- file.path(sd, "job2.sh_sushiID2_x_e.log")                    # another sample failed
-    writeLines(c("Error: incompatible indices"), other)
+    writeLines(c("Error: incompatible indices", "Execution halted"), other)
     expect_false(run(c("other attached packages:", paste0("[1] ", here))))
     unlink(other)
   })
@@ -283,7 +283,7 @@ test_that("a failed run gets a statement, not a Methods text, and the writer is 
     EzAppScSeurat$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
                                       example_script = "job.sh", sample_count = 2)
     md <- paste(readLines(file.path(out, "methods.md")), collapse = "\n")
-    expect_match(md, "The analysis did not complete: 1 of 2 job(s)", fixed = TRUE)
+    expect_match(md, "The analysis did not complete: its job stopped with an error", fixed = TRUE)
     expect_match(md, "Error in EzRef(userParam)", fixed = TRUE)
     expect_false(file.exists(argsFile))                      # llm_write_methods never ran
   })
@@ -348,5 +348,21 @@ test_that("a run of another ezRun version is cited from the parameters it record
     cand <- readLines(file.path(out, "citations_candidates.txt"))
     expect_false(any(grepl("Large language model consensus", cand)))   # mLLMCelltype default is on today
     expect_true(any(grepl("Hao, Y. et al. Dictionary learning", cand, fixed = TRUE)))
+  })
+})
+
+test_that("a caught error is not a failure; one halted job of several gives a note", {
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    writeLines("echo job", file.path(sd, "job.sh"))
+    writeLines(c("Error in autoEstCont(sc): caught", "done"), file.path(sd, "job.sh_sushiID1_x_e.log"))
+    writeLines(c("Error in plot_layout(): boom", "Execution halted"), file.path(sd, "job2.sh_sushiID2_x_e.log"))
+    writeLines("done", file.path(sd, "job3.sh_sushiID3_x_e.log"))
+    out <- tempfile("out"); dir.create(out)
+    EzApp$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                              example_script = "job.sh", sample_count = 3)
+    md <- paste(readLines(file.path(out, "methods.md")), collapse = "\n")
+    expect_no_match(md, "did not complete")
+    expect_match(md, "Note: 1 of 3 jobs of this run stopped with an error (first: \"Error in plot_layout(): boom\")", fixed = TRUE)
   })
 })
