@@ -662,6 +662,11 @@ EzApp <-
       methods_facts = function(param = list()) {
         character(0)
       },
+      ## citation() may take the run's param (like methods_facts) so that references for
+      ## steps that did not run are not offered; lists without a param argument still work.
+      methods_citations = function(param = list()) {
+        if ("param" %in% names(formals(citation))) citation(param) else citation()
+      },
       ## The job's parameters as the app saw them: <resultDir>/parameters.tsv typed and
       ## completed with appDefaults (values left out of the SUSHI form, e.g. nmad).
       ## Falls back to the untyped values if ezParam() fails (e.g. an unreachable refBuild).
@@ -697,7 +702,7 @@ EzApp <-
         }
         if (length(script_paths) > 0) args <- c(args, "--scripts", script_paths)
         if (length(log_paths)    > 0) args <- c(args, "--logs",    log_paths)
-        candidates <- citation()
+        candidates <- methods_citations(param)
         if (length(candidates) > 0) {
           citations_file <- file.path(output_dir, "citations_candidates.txt")
           writeLines(candidates, citations_file)
@@ -786,7 +791,7 @@ EzApp <-
         ## involved) falls back to the full candidate list.
         rawLines   <- strsplit(raw, "\n", fixed = TRUE)[[1]]
         markerIdx  <- which(grepl("^## References", rawLines))
-        candidates <- citation()
+        candidates <- methods_citations(param)
         if (length(markerIdx) > 0) {
           description <- trimws(paste(rawLines[seq_len(markerIdx[1] - 1)], collapse = "\n"), "right")
           anchors <- vapply(candidates, function(entry) {
