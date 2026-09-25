@@ -98,12 +98,13 @@ test_that("write_methods demotes headings the model wrote into the description",
     stub <- file.path(dirname(argsFile), "llm_write_methods")
     writeLines(c("#!/bin/sh",
                  "while [ $# -gt 0 ]; do [ \"$1\" = --output ] && out=$2; shift; done",
-                 "printf '## Methods\\n\\nReads were aligned.\\n' > \"$out\""), stub)
+                 "printf '## Methods\\n\\nReads were aligned.\\n\\n## Alignment\\n\\nWith STAR.\\n' > \"$out\""), stub)
     out <- tempfile("out"); dir.create(out)
     EzApp$new()$write_methods(output_dir = out, analysis_name = "Test")
     md <- readLines(file.path(out, "methods.md"))
     expect_equal(sum(grepl("^## ", md)), 1)          # only the analysis header
-    expect_true(any(md == "#### Methods"))
+    expect_false(any(grepl("Methods$", md)))         # the model's own Methods heading is dropped
+    expect_true(any(md == "#### Alignment"))         # its section headings are demoted
   })
 })
 
@@ -136,6 +137,10 @@ test_that("write_methods gives facts only to a finished run of this ezRun versio
     expect_false(run(c("[1] ezRun_0.0.1")))                                 # other version
     expect_false(run(c(paste0("[1] ", here), "Error in foo(): bar", "Execution halted")))  # failed
     expect_false(run("no session info"))                                   # version unknown
+    other <- file.path(sd, "job2.sh_sushiID2_x_e.log")                    # another sample failed
+    writeLines(c("Error: incompatible indices"), other)
+    expect_false(run(c("other attached packages:", paste0("[1] ", here))))
+    unlink(other)
   })
 })
 
@@ -167,5 +172,18 @@ test_that("write_methods keeps the prose when the model writes References first"
     desc <- md[seq(which(md == "### Description") + 1, which(md == "### References") - 1)]
     expect_true(any(grepl("Counts were tested with DESeq2", desc)))
     expect_false(any(grepl("doi.org", desc)))
+  })
+})
+
+test_that("the facts header names the ezRun version the run used", {
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    writeLines("echo job", file.path(sd, "job.sh"))
+    writeLines("[1] ezRun_3.23.1", file.path(sd, "job.sh_sushiID1_x_o.log"))
+    out <- tempfile("out"); dir.create(out)
+    withr::with_options(list(ezRun.methodsFactsVersion = "^ezRun_3\\.23\\."),
+      EzAppScSeurat$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                                        example_script = "job.sh", sample_count = 1))
+    expect_match(readLines(file.path(out, "app_facts.txt"))[1], "in ezRun 3.23.1,", fixed = TRUE)
   })
 })

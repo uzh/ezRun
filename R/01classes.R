@@ -701,8 +701,10 @@ EzApp <-
         facts <- if (use_facts) methods_facts(param) else character(0)
         if (length(facts) > 0) {
           facts_file <- file.path(output_dir, "app_facts.txt")
+          ran <- unlist(lapply(log_paths, function(f) regmatches(x <- readLines(f, warn = FALSE),
+                                                                 regexpr("ezRun_[0-9]+(\\.[0-9]+)+", x))))
           writeLines(c(paste0("Fixed behaviour of ", class(.self)[1], " in ezRun ",
-                              utils::packageVersion("ezRun"),
+                              if (length(ran)) sub("ezRun_", "", ran[1]) else utils::packageVersion("ezRun"),
                               ", read from its source code and the run's parameters."),
                        facts), facts_file)
           script_paths <- c(script_paths, facts_file)
@@ -792,7 +794,12 @@ EzApp <-
         ## review found facts turning failed runs and older code into steps that never ran.
         logText <- unlist(lapply(log_paths, readLines, warn = FALSE))
         ran <- unique(regmatches(logText, regexpr("ezRun_[0-9]+(\\.[0-9]+)+", logText)))
-        failed <- any(grepl("^Execution halted|^Error in |^Error: ", logText))
+        ## any sample's job failing counts, not only the example one's (a review found 3 of 4
+        ## kallisto samples failed while the example sample's log was clean)
+        allLogs <- if (is.null(gstore_script_dir)) character(0) else
+          grep("^methods_", Sys.glob(file.path(gstore_script_dir, "*_e.log")), value = TRUE, invert = TRUE)
+        allText <- unlist(lapply(allLogs, readLines, warn = FALSE))
+        failed <- any(grepl("^Execution halted|^Error in |^Error: ", c(logText, allText)))
         ## option ezRun.methodsFactsVersion (a regex on "ezRun_x.y.z") widens the match, for
         ## evaluating facts on archived runs; the default accepts this exact version only.
         okVersion <- getOption("ezRun.methodsFactsVersion",
@@ -841,6 +848,7 @@ EzApp <-
         ## The model sometimes opens with its own "## Methods" heading, which reads as a
         ## second analysis once chained under a parent's methods.md. Keep "##" for the
         ## per-analysis headers and "###" for sections; demote anything the model wrote.
+        description <- sub("^\\s*#+ *(Materials and )?Methods *\n+", "", description, perl = TRUE)
         description <- gsub("(^|\n)#{1,3} +", "\\1#### ", description, perl = TRUE)
         document <- paste0(
           sprintf("## %s | %s\n\n", analysis_name, format(Sys.time(), "%Y-%m-%d %H:%M")),

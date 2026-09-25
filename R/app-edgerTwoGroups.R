@@ -89,7 +89,7 @@ EzAppEdger <-
         c(
           ## ngsio.R:117-127 presentFlag = counts > sigThresh (EZ_PARAM_DEFAULTS sigThresh 10);
           ## twoGroupCountComparison (twoGroups.R:87-95, 143-147)
-          "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); all genes of the selected transcript types (transcriptTypes) were fitted, but only genes present in at least half of the samples of the sample group or of the reference group were counted as tested, and the reported FDR is the Benjamini-Hochberg adjustment of the edgeR p-values over these genes, computed by ezRun.",
+          "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); every gene passing the gene-level transcriptTypes filter (genes whose type is in transcriptTypes, applied after any transcript-to-gene summing) was fitted and tested and has a p-value; presence in at least half of the samples of the sample group or of the reference group only decides which genes enter the reported FDR, the Benjamini-Hochberg adjustment of the edgeR p-values computed by ezRun over the present genes.",
           ## runGlm (twoGroups.R:338-350) / runEdger (twoGroups.R:283-284)
           paste0("Normalization factors were computed with edgeR calcNormFactors using the normMethod method on all genes",
                  if (glm) ", on the samples of the compared groups only" else if (exact) ", on all samples of the dataset",

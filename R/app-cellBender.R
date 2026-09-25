@@ -47,7 +47,7 @@ EzAppCellBender <-
           ## ezMethodCellBender input path: UnfilteredCountMatrix, else raw_feature_bc_matrix of the multi output (app-cellBender.R:150-171)
           "CellBender was run on the unfiltered (raw) droplet count matrix including empty droplets (for CellRanger Multi input without an UnfilteredCountMatrix column, the library-level raw matrix of the pool), not on the cell-filtered matrix.",
           ## dropPeaksFromH5 (app-cellBender.R:99-136), called at app-cellBender.R:204
-          "For multiome inputs, ATAC peak features were removed before CellBender; all other feature types (gene expression, antibody capture, multiplexing capture) were kept and processed together.",
+          "Only if the input contained ATAC Peaks features (the log then says \"Dropping Peaks (ATAC) for CellBender\"; otherwise this step did nothing and must not be described): those were removed before CellBender, and all other feature types were kept and processed together.",
           ## command line built at app-cellBender.R:206-221
           if (known) paste0("The app passed only the input, the output and ",
                             if (isTRUE(as.numeric(param$gpu) > 0)) "--cuda (gpu above 0)" else "--cpu-threads (gpu 0)",

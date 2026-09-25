@@ -171,7 +171,7 @@ methods_check_offsteps <- function(description, class_name, param) {
 ## Compute resources and job modes, which the task already forbids and the writer still
 ## wrote into about 1 text in 10 ("four cores and 12 GB of RAM", "8 threads", "dataset mode").
 METHODS_RESOURCE_PATTERN <- paste0("\\b\\d+\\s*(cores?|cpus?|threads?)\\b|\\b\\d+\\s*gb?\\b[^.;]{0,20}\\b(ram|memory)\\b|",
-                                   "\\bscratch\\b|\\b(dataset|sample) mode\\b|process_mode")
+                                   "\\bscratch\\b|\\b(dataset|sample) mode\\b|process_mode|--local(mem|cores)\\b|\\b\\d+ workers\\b")
 methods_check_resources <- function(description) {
   text <- tolower(paste(description, collapse = "\n"))
   unique(regmatches(text, gregexpr(METHODS_RESOURCE_PATTERN, text, perl = TRUE))[[1]])

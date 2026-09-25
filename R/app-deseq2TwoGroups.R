@@ -127,7 +127,7 @@ EzAppDeseq2 <-
         cooks <- ezIsSpecified(param$cooksCutoff) && isTRUE(as.logical(param$cooksCutoff))
         c(
           ## twoGroupCountComparison (twoGroups.R): isPresent / useProbe
-          "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); all genes of the selected transcript types (transcriptTypes) were fitted, but only genes present in at least half of the samples of the sample group or of the reference group were counted as tested.",
+          "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); every gene passing the gene-level transcriptTypes filter (genes whose type is in transcriptTypes, applied after any transcript-to-gene summing) was fitted and tested and has a p-value; presence in at least half of the samples of the sample group or of the reference group only decides which genes enter the reported FDR (see below).",
           ## runDeseq2 (twoGroups.R): estimateSizeFactors(controlGenes = isPresent)
           "DESeq2 size factors were estimated with the median-ratio method on the present genes only (controlGenes).",
           ## runDeseq2: design, DESeq(), results()
