@@ -138,3 +138,18 @@ test_that("write_methods gives facts only to a finished run of this ezRun versio
     expect_false(run("no session info"))                                   # version unknown
   })
 })
+
+test_that("write_methods fails on an empty description and always keeps the app's own citation", {
+  withStubWriter(function(argsFile) {
+    stub <- file.path(dirname(argsFile), "llm_write_methods")
+    writeLines(c("#!/bin/sh", "while [ $# -gt 0 ]; do [ \"$1\" = --output ] && out=$2; shift; done",
+                 "printf '## Methods\\n\\n## References\\n' > \"$out\""), stub)
+    out <- tempfile("out"); dir.create(out)
+    expect_error(EzApp$new()$write_methods(output_dir = out, analysis_name = "T"), "no Methods text")
+    writeLines(c("#!/bin/sh", "while [ $# -gt 0 ]; do [ \"$1\" = --output ] && out=$2; shift; done",
+                 "printf 'Counts were tested.\\n\\n## References\\n' > \"$out\""), stub)
+    out <- tempfile("out"); dir.create(out)
+    EzAppDeseq2$new()$write_methods(output_dir = out, analysis_name = "T")
+    expect_true(any(grepl("s13059-014-0550-8", readLines(file.path(out, "methods.md")), fixed = TRUE)))
+  })
+})

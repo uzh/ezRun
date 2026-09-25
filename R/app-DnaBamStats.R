@@ -2045,7 +2045,7 @@ EzAppDnaBamStats <-
           "Okonechnikov, K., Conesa, A. & García-Alcalde, F. Qualimap 2: advanced multi-sample quality control for high-throughput sequencing data. Bioinformatics 32(2), 292-294 (2016). https://doi.org/10.1093/bioinformatics/btv566",
           "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
           "Ou, J. et al. ATACseqQC: a Bioconductor package for post-alignment quality assessment of ATAC-seq data. BMC Genomics 19, 169 (2018). https://doi.org/10.1186/s12864-018-4559-3",
-          "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package version 2.28.0. https://doi.org/10.18129/B9.bioc.Rsamtools"
+          "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package. https://doi.org/10.18129/B9.bioc.Rsamtools"
         )
       },
       initialize = function() {

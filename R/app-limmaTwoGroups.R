@@ -27,7 +27,7 @@ EzAppLimma <-
           "Chen, Y. et al. edgeR v4: powerful differential analysis of sequencing data with expanded functionality and improved support for small counts and larger datasets. Nucleic Acids Research 53, gkaf018 (2025). https://doi.org/10.1093/nar/gkaf018",
           "Robinson, M.D. & Oshlack, A. A scaling normalization method for differential expression analysis of RNA-seq data. Genome Biology 11, R25 (2010). https://doi.org/10.1186/gb-2010-11-3-r25",
           "Young, M.D. et al. Gene ontology analysis for RNA-seq: accounting for selection bias. Genome Biology 11, R14 (2010). https://doi.org/10.1186/gb-2010-11-2-r14",
-          "Bioconductor. GO.db: A set of annotation maps describing the entire Gene Ontology. R package version 3.23.1. https://doi.org/10.18129/B9.bioc.GO.db",
+          "Bioconductor. GO.db: A set of annotation maps describing the entire Gene Ontology. R package. https://doi.org/10.18129/B9.bioc.GO.db",
           "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128",
           "Kuleshov, M.V. et al. Enrichr: a comprehensive gene set enrichment analysis web server 2016 update. Nucleic Acids Research 44(W1), W90-W97 (2016). https://doi.org/10.1093/nar/gkw377"
         )

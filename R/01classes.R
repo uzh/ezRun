@@ -815,13 +815,20 @@ EzApp <-
             m <- regmatches(entry, regexpr("https?://\\S+", entry))
             if (length(m) > 0) m else entry
           }, character(1))
-          kept <- candidates[vapply(anchors, function(a) grepl(a, raw, fixed = TRUE), logical(1))]
+          ## The first entry of citation() is the app's own tool (DESeq2 for EzAppDeseq2, ...);
+          ## reviewers found the writer dropping it, so it is always kept.
+          kept <- candidates[vapply(anchors, function(a) grepl(a, raw, fixed = TRUE), logical(1)) |
+                             seq_along(candidates) == 1]
           references <- if (length(kept) > 0) paste(kept, collapse = "\n") else "pending"
         } else {
           description <- raw
           references  <- if (length(candidates) > 0) paste(candidates, collapse = "\n") else "pending"
         }
 
+        ## An empty Description is a failed generation, not a Methods section: fail the job so
+        ## it is visible instead of delivering a methods.md with no text.
+        if (!nzchar(trimws(gsub("(^|\n)#+[^\n]*", "", description))))
+          stop("llm_write_methods returned no Methods text")
         ## The model sometimes opens with its own "## Methods" heading, which reads as a
         ## second analysis once chained under a parent's methods.md. Keep "##" for the
         ## per-analysis headers and "###" for sections; demote anything the model wrote.

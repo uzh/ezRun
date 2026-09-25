@@ -289,7 +289,7 @@ EzAppMacs3 <-
         c(
           "Zhang, Y. et al. Model-based Analysis of ChIP-Seq (MACS). Genome Biology 9, R137 (2008). https://doi.org/10.1186/gb-2008-9-9-r137",
           "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
-          "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package version 2.28.0. https://doi.org/10.18129/B9.bioc.Rsamtools",
+          "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package. https://doi.org/10.18129/B9.bioc.Rsamtools",
           "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
           "Ramírez, F. et al. deepTools2: a next generation web server for deep-sequencing data analysis. Nucleic Acids Research 44, W160-W165 (2016). https://doi.org/10.1093/nar/gkw257",
           "Kent, W.J. et al. BigWig and BigBed: enabling browsing of large distributed datasets. Bioinformatics 26, 2204-2207 (2010). https://doi.org/10.1093/bioinformatics/btq351",
