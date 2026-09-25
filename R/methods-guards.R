@@ -37,7 +37,7 @@ methodsConfigValues <- function(config_text) {
                                            config_text, perl = TRUE))[[1]]
   vals <- unlist(lapply(toks, function(t) c(methodsNumberValues(t),
                                             methodsNumberValues(sub("[^0-9]+$", "", t)))))
-  unique(vals[is.finite(vals)])
+  unique(as.numeric(vals[is.finite(vals)]))
 }
 
 ## Numbers in the Description that the run's configuration does not contain. config_text is
@@ -166,4 +166,96 @@ methods_check_offsteps <- function(description, class_name, param) {
       out <- c(out, paste0(p, ":", regmatches(text, regexpr(rules[[p]], text, perl = TRUE))))
   }
   out
+}
+
+## Keys left out of the template's parameter list: scheduler, bookkeeping and credentials.
+METHODS_TEMPLATE_SKIP_PARAMS <- c("cores", "ram", "scratch", "partition", "process_mode", "samples",
+                                  "name", "mail", "adminMail", "sushi_app", "sushiApp", "specialOptions",
+                                  "dataRoot", "resultDir", "Rversion", "isLastJob", "inputDatasetName",
+                                  "projectId", "node", "nodes", "gpu_feature", "appName")
+METHODS_TEMPLATE_DECLARATION <- paste(
+  "This description is template text assembled by ezRun from the run's parameters and",
+  "the app's recorded behaviour; no language model was used.")
+
+## The untyped key/value pairs of <resultDir>/parameters.tsv, i.e. what the job was given.
+methodsParamTable <- function(param_file) {
+  if (is.null(param_file) || !file.exists(param_file)) return(list())
+  tab <- utils::read.delim(param_file, header = FALSE, colClasses = "character",
+                           quote = "", comment.char = "")
+  stats::setNames(as.list(tab[[2]]), tab[[1]])
+}
+
+## Fallback Description when the writer fails or its text fails the guards twice:
+## app, ezRun version (from the logs' ezRun_x.y.z), sample count, parameters, app facts.
+methods_template <- function(class_name, param, facts, citations, sample_count, log_paths) {
+  ver <- character(0)
+  for (f in Filter(file.exists, as.character(log_paths))) {
+    l <- readLines(f, warn = FALSE)
+    ver <- regmatches(l, regexpr("ezRun_\\d+(\\.\\d+)+", l))
+    if (length(ver)) break
+  }
+  keep <- vapply(param, function(v) is.atomic(v) && any(nzchar(as.character(v))), logical(1)) &
+    !(names(param) %in% METHODS_TEMPLATE_SKIP_PARAMS) &
+    !grepl("apikey|password|token|secret", names(param), ignore.case = TRUE)
+  kv <- paste(names(param)[keep], vapply(param[keep], paste, "", collapse = ", "), sep = " = ")
+  description <- paste0("The analysis was run with the FGCZ SUSHI app ", sub("^EzApp(.)", "\\1", class_name),
+                        if (length(ver)) paste0(" (ezRun ", sub("ezRun_", "", ver[1]), ")"),
+                        if (isTRUE(sample_count > 1)) paste0(" on ", sample_count, " samples"), ".",
+                        if (length(kv)) paste0(" Parameters: ", paste(kv, collapse = "; "), "."))
+  if (length(facts)) description <- paste0(description, "\n\n", paste(facts, collapse = " "))
+  list(description = description,
+       references = if (length(citations)) paste(citations, collapse = "\n") else "pending")
+}
+
+methodsDescriptionPart <- function(raw) {
+  lines <- strsplit(raw, "\n", fixed = TRUE)[[1]]
+  marker <- which(grepl("^## References", lines))
+  paste(if (length(marker)) lines[seq_len(marker[1] - 1)] else lines, collapse = "\n")
+}
+
+methodsParamText <- function(param) {
+  vapply(param, function(v) tryCatch(paste(as.character(unlist(v)), collapse = " "),
+                                     error = function(e) ""), "")
+}
+
+## write_methods() calls this instead of methods_description(): the writer's text if it
+## passes the number and off-step guards (after at most one retry told what failed),
+## otherwise list(template = methods_template(...)). A methods_description() override
+## without extra_task (static text) is returned unchecked.
+methodsGuardedWrite <- function(app, script_paths, log_paths, sample_count, output_dir,
+                                param = list(), user_param = list()) {
+  if (!"extra_task" %in% names(formals(app$methods_description)))
+    return(list(raw = app$methods_description(script_paths, log_paths, sample_count, output_dir, param)))
+  cls <- class(app)[1]
+  facts <- app$methods_facts(param)
+  citations <- app$methods_citations(param)
+  readAll <- function(paths) unlist(lapply(Filter(file.exists, as.character(paths)), readLines, warn = FALSE))
+  config <- c(readAll(script_paths), methodsParamText(param), methodsParamText(user_param),
+              as.character(unlist(app$appDefaults$DefaultValue)), facts, citations)
+  all <- c(config, readAll(log_paths))
+  template <- function(reason) {
+    message("write_methods: template fallback (", reason, ")")
+    list(template = methods_template(cls, user_param, facts, citations, sample_count, log_paths))
+  }
+  extra <- NULL
+  for (attempt in 1:2) {
+    raw <- tryCatch(app$methods_description(script_paths, log_paths, sample_count, output_dir,
+                                            param, extra_task = extra),
+                    error = function(e) e)
+    if (inherits(raw, "error")) return(template(conditionMessage(raw)))
+    description <- methodsDescriptionPart(raw)
+    if (!nzchar(trimws(description))) return(template("empty description"))
+    numbers <- methods_check_numbers(description, config, all, sample_count)
+    steps <- methods_check_offsteps(description, cls, param)
+    if (!length(numbers) && !length(steps)) return(list(raw = raw))
+    message("write_methods: guards flagged ", length(numbers), " numbers, ", length(steps), " steps",
+            if (attempt == 1) "; retrying")
+    extra <- paste(c(
+      if (length(numbers)) paste0("These values are not in the run's configuration; remove them or the ",
+                                  "sentence that states them: ", paste(numbers, collapse = ", "), "."),
+      if (length(steps)) paste0("These steps were not run in this job; do not describe them: ",
+                                paste(sub("^(.*):(.*)$", "\\2 (\\1 off)", steps), collapse = ", "), ".")),
+      collapse = "\n")
+  }
+  template(sprintf("guards: %d numbers, %d steps", length(numbers), length(steps)))
 }
