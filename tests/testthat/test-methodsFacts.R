@@ -187,3 +187,65 @@ test_that("the facts header names the ezRun version the run used", {
     expect_match(readLines(file.path(out, "app_facts.txt"))[1], "in ezRun 3.23.1,", fixed = TRUE)
   })
 })
+
+test_that("a failed run gets a statement, not a Methods text, and the writer is not called", {
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    writeLines("echo job", file.path(sd, "job.sh"))
+    writeLines(c("Error in EzRef(userParam): reference missing", "Execution halted"),
+               file.path(sd, "job.sh_sushiID1_x_e.log"))
+    out <- tempfile("out"); dir.create(out)
+    EzAppScSeurat$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                                      example_script = "job.sh", sample_count = 2)
+    md <- paste(readLines(file.path(out, "methods.md")), collapse = "\n")
+    expect_match(md, "The analysis did not complete: 1 of 2 job(s)", fixed = TRUE)
+    expect_match(md, "Error in EzRef(userParam)", fixed = TRUE)
+    expect_false(file.exists(argsFile))                      # llm_write_methods never ran
+  })
+})
+
+test_that("facts and citations that depend on the input dataset read it", {
+  p <- list(refBuild = "Homo_sapiens/GENCODE/GRCh38.p14/Annotation/Release_48-2025-07-03",
+            maxEmptyDropPValue = 1, tissue = "Blood", sctype.enabled = TRUE, sctype.tissue = "auto")
+  h5 <- p; attr(h5, "input") <- data.frame(`CountMatrix [Link]` = "a/cellbender_filtered_seurat.h5", check.names = FALSE)
+  dirIn <- p; attr(dirIn, "input") <- data.frame(`CountMatrix [Link]` = "a/filtered_feature_bc_matrix", check.names = FALSE)
+  app <- EzAppScSeurat$new()
+  expect_false(any(grepl("emptyDrops", app$methods_facts(h5))))
+  expect_false(any(grepl("EmptyDrops", app$citation(h5))))
+  expect_true(any(grepl("removed no cells", app$methods_facts(dirIn))))
+  expect_true(any(grepl("EmptyDrops", app$citation(dirIn))))
+  expect_true(any(grepl("emptyDrops", app$methods_facts(p))))    # input unknown: stated
+  f <- app$methods_facts(p)
+  expect_true(any(grepl("for the tissue Blood.", f, fixed = TRUE)))
+  expect_true(any(grepl("Immune system (sctype.tissue auto)", f, fixed = TRUE)))
+  q <- list(); attr(q, "input") <- data.frame(`Read Count` = c("600000000", "600000000"), check.names = FALSE)
+  expect_true(any(grepl("1 billion", EzAppFastqc$new()$methods_facts(q))))
+  attr(q, "input")$`Read Count` <- c("100000", "100000")
+  expect_false(any(grepl("1 billion", EzAppFastqc$new()$methods_facts(q))))
+})
+
+test_that("job logs archived before the sushiID naming are found", {
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    writeLines("echo job", file.path(sd, "job.sh"))
+    writeLines("[1] ezRun_0.0.1", file.path(sd, "job.sh_20240329103602628_o.log"))
+    out <- tempfile("out"); dir.create(out)
+    EzApp$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                              example_script = "job.sh", sample_count = 1)
+    expect_true(any(grepl("20240329103602628_o.log", readLines(argsFile), fixed = TRUE)))
+  })
+})
+
+test_that("a DATASET-mode run takes its sample count from the input dataset", {
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    writeLines("echo job", file.path(sd, "job.sh"))
+    writeLines(c("Name\tRead Count", paste0("S", 1:5, "\t100")), file.path(d, "input_dataset.tsv"))
+    out <- tempfile("out"); dir.create(out)
+    EzApp$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                              example_script = "job.sh", sample_count = 1)
+    a <- readLines(argsFile)
+    expect_identical(a[which(a == "--sample-count") + 1], "5")
+  })
+  expect_true(any(grepl("backgroundExpression (4) is not a filter", EzAppDeseq2$new()$methods_facts(list(backgroundExpression = 4)), fixed = TRUE)))
+})

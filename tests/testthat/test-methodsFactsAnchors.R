@@ -96,7 +96,7 @@ anchors <- list(
   list("EzAppCellBender", list(cmdOptions = "", gpu = 1), "--cuda \\(gpu above 0\\)", "R/app-cellBender.R",
        "param\\$gpu > 0\\) \\{\\s*cmd <- paste\\(cmd, \"--cuda\"\\)"),
   list("EzAppSTAR", list(), "infer_experiment\\.py on 1,000,000 sampled reads", "R/app-mapping.R", "\"-s 1000000\""),
-  list("EzAppFastqc", list(), "ShortRead FastqSampler, seed 123", "R/fastqIO.R",
+  list("EzAppFastqc", structure(list(), input = data.frame(`Read Count` = "2000000000", check.names = FALSE)), "ShortRead FastqSampler, seed 123", "R/fastqIO.R",
        "subsampleFastqFile <- function\\([^)]*seed = 123L\\)")
 )
 

@@ -366,6 +366,22 @@ METHODS_LLM_MODEL_NAME <- "DeepSeek-V4-Flash-DSpark"
 
 ## For methods_facts(): TRUE when the job's refBuild names one of `species`
 ## (e.g. c("Human", "Mouse")); FALSE when refBuild is missing or unparseable.
+## For methods_facts()/citation(): a column of the job's input dataset (write_methods()
+## attaches input_dataset.tsv to param), or NULL when unknown.
+methodsInput <- function(param, column) {
+  input <- attr(param, "input")
+  if (is.null(input)) return(NULL)
+  hit <- names(input)[sub(" \\[.*\\]$", "", names(input)) == column]
+  if (length(hit)) input[[hit[1]]] else NULL
+}
+
+## TRUE when every input CountMatrix is an HDF5 file (ScSeurat then skips emptyDrops),
+## NA when the input dataset is unknown.
+methodsH5Input <- function(param) {
+  cm <- methodsInput(param, "CountMatrix")
+  if (is.null(cm)) NA else all(grepl("\\.h5$", cm))
+}
+
 methodsSpeciesIs <- function(param, species) {
   isTRUE(tryCatch(getSpecies(param$refBuild) %in% species, error = function(e) FALSE))
 }
@@ -767,6 +783,9 @@ EzApp <-
               Sys.glob(file.path(gstore_script_dir,
                                  paste0(example_script, "_sushiID*_[oe].log")))
             })
+            ## job logs archived before the sushiID naming: <script>_<timestamp>_[oe].log
+            if (!length(log_paths))
+              log_paths <- Sys.glob(file.path(gstore_script_dir, paste0(example_script, "_*_[oe].log")))
           } else {
             all_sh       <- Sys.glob(file.path(gstore_script_dir, "*.sh"))
             script_paths <- all_sh[!isOwnJob(all_sh)]
@@ -789,6 +808,12 @@ EzApp <-
         }
         param_file <- if (!is.null(gstore_script_dir)) file.path(dirname(gstore_script_dir), "parameters.tsv")
         param <- methods_param(param_file)
+        ## the input dataset, for facts that depend on the data rather than a parameter
+        ## (methodsInput()): e.g. HDF5 vs CellRanger-directory count matrices, read counts
+        input_file <- if (!is.null(param_file)) file.path(dirname(param_file), "input_dataset.tsv")
+        if (!is.null(input_file) && file.exists(input_file))
+          attr(param, "input") <- tryCatch(utils::read.delim(input_file, check.names = FALSE, quote = "",
+                                                             colClasses = "character"), error = function(e) NULL)
         ## Facts describe this ezRun's code for a run that finished. Leave them out when the
         ## run's log shows another ezRun version (apps pin their own R) or an R error: a
         ## review found facts turning failed runs and older code into steps that never ran.
@@ -805,11 +830,29 @@ EzApp <-
         okVersion <- getOption("ezRun.methodsFactsVersion",
                                paste0("^ezRun_", gsub(".", "\\.", utils::packageVersion("ezRun"), fixed = TRUE), "$"))
         use_facts <- !failed && any(grepl(okVersion, ran))
-        ## Writer failures, an empty Description, or steps the guards still flag after one
-        ## retry give the template Description instead of no methods.md at all.
-        guarded <- methodsGuardedWrite(.self, script_paths, log_paths, sample_count, output_dir,
-                                       param, methodsParamTable(param_file), use_facts = use_facts)
-        raw <- if (is.null(guarded$raw)) "" else guarded$raw
+        ## A DATASET-mode run has one job script for all samples, so SUSHI's sample_count is 1;
+        ## the input dataset has the real number (a review found "267 samples" for 269).
+        nInput <- NROW(attr(param, "input"))
+        if (nInput > (sample_count %||% 0)) sample_count <- nInput
+        ## A job that failed gets a statement, not a Methods text: every review found the
+        ## writer narrating failed runs as completed analyses.
+        if (failed) {
+          errs <- grep("^Execution halted|^Error in |^Error: ", c(logText, allText), value = TRUE)
+          nFailed <- sum(vapply(unique(c(log_paths[grepl("_e\\.log$", log_paths)], allLogs)), function(f)
+            any(grepl("^Execution halted|^Error in |^Error: ", readLines(f, warn = FALSE))), logical(1)))
+          guarded <- list(template = list(
+            description = paste0("The analysis did not complete: ", nFailed, " of ", max(sample_count, nFailed),
+                                 " job(s) of this run recorded an error (first: \"", substr(errs[1], 1, 200),
+                                 "\"). No Methods text was generated; describe this analysis once it has been rerun successfully."),
+            references = "pending"))
+          raw <- ""
+        } else {
+          ## Writer failures, an empty Description, or steps the guards still flag after one
+          ## retry give the template Description instead of no methods.md at all.
+          guarded <- methodsGuardedWrite(.self, script_paths, log_paths, sample_count, output_dir,
+                                         param, methodsParamTable(param_file), use_facts = use_facts)
+          raw <- if (is.null(guarded$raw)) "" else guarded$raw
+        }
 
         ## For each known citation, check whether its DOI/URL appears anywhere in the
         ## raw response, rather than trusting the model's copy of the text verbatim.

@@ -35,6 +35,9 @@ EzAppLimma <-
       methods_facts = function(param = list()) {
         runGO <- isTRUE(as.logical(param$runGO))
         c(
+          ## backgroundExpression: twoGroups.Rmd:392 log2(xNorm + backgroundExpression); plots-reports.R:31
+          paste0("backgroundExpression (", param$backgroundExpression %||% 10, ") is not a filter and removed no genes: it is added to the normalized counts before they are log2-transformed for the report's heatmaps and plots",
+                 "; gene filtering is the sigThresh presence rule above."),
           ## runGO -> twoGroupCountComparison ORA/GSEA (twoGroups.R:171-177), shared with DESeq2/edgeR
           if (runGO) "When GO annotation is available, genes with p-value at or below pValThreshGO and absolute log2 ratio above log2RatioThreshGO were tested for GO over-representation (BP, MF, CC; up-regulated, down-regulated and both separately) with clusterProfiler enricher, using the present genes as universe, Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes, cut-off fdrThreshORA and at least 3 genes per term.",
           if (runGO) "GO gene set enrichment analysis (BP, MF, CC) was run with clusterProfiler GSEA on the present genes ranked by rankMetric (log2 ratio, -log10 p-value, or signed -log10 p-value), with Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes and cut-off fdrThreshGSEA.",

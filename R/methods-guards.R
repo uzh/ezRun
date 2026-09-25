@@ -37,7 +37,9 @@ methodsConfigValues <- function(config_text) {
                                            config_text, perl = TRUE))[[1]]
   vals <- unlist(lapply(toks, function(t) c(methodsNumberValues(t),
                                             methodsNumberValues(sub("[^0-9]+$", "", t)))))
-  unique(as.numeric(vals[is.finite(vals)]))
+  ## digit runs inside identifiers too (dbsnp.157.gencode_compatible gives 157)
+  runs <- as.numeric(regmatches(config_text, gregexpr("[0-9]+", config_text))[[1]])
+  unique(c(as.numeric(vals[is.finite(vals)]), runs))
 }
 
 ## Numbers in the Description that the run's configuration does not contain. config_text is
@@ -149,6 +151,27 @@ methodsParamOff <- function(param, names) {
 }
 
 ## TRUE when some sentence names the tool and not every such sentence is negated.
+## raw with every Description sentence removed that states one of `numbers`, names one of the
+## step regexes `steps` without negating it, or states one of the `resources` phrases.
+## Headings and URL (reference) lines are left alone.
+methodsDropSentences <- function(raw, numbers = character(0), steps = character(0), resources = character(0)) {
+  esc <- function(t) gsub("([][{}()+*^$|\\\\.?])", "\\\\\\1", t, perl = TRUE)
+  numRe <- if (length(numbers)) paste0("(?<![0-9.,])(", paste(esc(numbers), collapse = "|"), ")(?![0-9])")
+  bad <- function(x) {
+    lx <- tolower(x)
+    (!is.null(numRe) && grepl(numRe, x, perl = TRUE)) ||
+      any(vapply(tolower(resources), grepl, logical(1), x = lx, fixed = TRUE)) ||
+      (any(vapply(steps, grepl, logical(1), x = lx, perl = TRUE)) && !grepl(METHODS_NEGATION, lx, perl = TRUE))
+  }
+  lines <- strsplit(raw, "\n", fixed = TRUE)[[1]]
+  prose <- !grepl("^#|https?://", lines) & nzchar(trimws(lines))
+  lines[prose] <- vapply(lines[prose], function(l) {
+    sents <- strsplit(l, "(?<=[.;])\\s+", perl = TRUE)[[1]]
+    paste(sents[!vapply(sents, bad, logical(1))], collapse = " ")
+  }, "", USE.NAMES = FALSE)
+  paste(lines, collapse = "\n")
+}
+
 methodsClaims <- function(text, keyword) {
   sents <- strsplit(tolower(paste(text, collapse = "\n")), "(?<=[.;])\\s+", perl = TRUE)[[1]]
   hit <- sents[grepl(keyword, sents, perl = TRUE)]
@@ -222,7 +245,9 @@ methods_template <- function(class_name, param, facts, citations, sample_count, 
 methodsDescriptionPart <- function(raw) {
   lines <- strsplit(raw, "\n", fixed = TRUE)[[1]]
   if (!any(grepl("^## References", lines))) return(raw)
-  trimws(paste(lines[!(grepl("^## References", lines) | grepl("https?://", lines))], collapse = "\n"))
+  ## the header, URL (reference) lines and a bare "None" the model writes for no references
+  drop <- grepl("^## References", lines) | grepl("https?://", lines) | grepl("^\\s*(none|n/a)\\.?\\s*$", lines, ignore.case = TRUE)
+  trimws(paste(lines[!drop], collapse = "\n"))
 }
 
 methodsParamText <- function(param) {
@@ -263,9 +288,8 @@ methodsGuardedWrite <- function(app, script_paths, log_paths, sample_count, outp
     ## counts, tool defaults on command lines, reference sizes), and the retry deleted them.
     numbers <- methods_check_numbers(description, all, all, sample_count)
     steps <- methods_check_offsteps(description, cls, param)
-    ## resources are asked out once; a text that keeps them is still delivered, not templated
     resources <- methods_check_resources(description)
-    if (!length(numbers) && !length(steps) && (!length(resources) || attempt == 2)) return(list(raw = raw))
+    if (!length(numbers) && !length(steps) && !length(resources)) return(list(raw = raw))
     message("write_methods: guards flagged ", length(numbers), " numbers, ", length(steps), " steps, ",
             length(resources), " resources", if (attempt == 1) "; retrying")
     extra <- paste(c(
@@ -276,6 +300,14 @@ methodsGuardedWrite <- function(app, script_paths, log_paths, sample_count, outp
       if (length(resources)) paste0("Remove the compute resources and job settings, which are not part of ",
                                     "the method: ", paste(resources, collapse = ", "), ".")),
       collapse = "\n")
+  }
+  ## Still flagged after the retry: drop just those sentences, so one bad sentence does not
+  ## cost the whole text; the template only when nothing is left.
+  kept <- methodsDropSentences(raw, numbers, METHODS_OFFSTEP_RULES[[cls]][sub(":.*$", "", steps)], resources)
+  if (nzchar(trimws(gsub("(^|\n)#+[^\n]*", "", methodsDescriptionPart(kept))))) {
+    message(sprintf("write_methods: dropped the sentences with %d numbers, %d steps, %d resources",
+                    length(numbers), length(steps), length(resources)))
+    return(list(raw = kept))
   }
   template(sprintf("guards: %d numbers, %d steps", length(numbers), length(steps)))
 }

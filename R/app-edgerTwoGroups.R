@@ -87,6 +87,9 @@ EzAppEdger <-
         robust <- ezIsSpecified(param$robust) && isTRUE(as.logical(param$robust))
         baselines <- ezIsSpecified(param$sampleGroupBaseline) && ezIsSpecified(param$refGroupBaseline)
         c(
+          ## backgroundExpression: twoGroups.Rmd:392 log2(xNorm + backgroundExpression); plots-reports.R:31
+          paste0("backgroundExpression (", param$backgroundExpression %||% 10, ") is not a filter and removed no genes: it is added to the normalized counts before they are log2-transformed for the report's heatmaps and plots",
+                 ", and it is also the prior count of the edgeR GLM fit", "; gene filtering is the sigThresh presence rule above."),
           ## ngsio.R:117-127 presentFlag = counts > sigThresh (EZ_PARAM_DEFAULTS sigThresh 10);
           ## twoGroupCountComparison (twoGroups.R:87-95, 143-147)
           "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); every gene passing the gene-level transcriptTypes filter (genes whose type is in transcriptTypes, applied after any transcript-to-gene summing) was fitted and tested and has a p-value; presence in at least half of the samples of the sample group or of the reference group only decides which genes enter the reported FDR, the Benjamini-Hochberg adjustment of the edgeR p-values computed by ezRun over the present genes.",

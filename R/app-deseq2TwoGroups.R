@@ -126,6 +126,9 @@ EzAppDeseq2 <-
         ## twoGroupCountComparison: cooksCutoff = ezIsSpecified(param$cooksCutoff) && param$cooksCutoff
         cooks <- ezIsSpecified(param$cooksCutoff) && isTRUE(as.logical(param$cooksCutoff))
         c(
+          ## backgroundExpression: twoGroups.Rmd:392 log2(xNorm + backgroundExpression); plots-reports.R:31
+          paste0("backgroundExpression (", param$backgroundExpression %||% 10, ") is not a filter and removed no genes: it is added to the normalized counts before they are log2-transformed for the report's heatmaps and plots",
+                 "; gene filtering is the sigThresh presence rule above."),
           ## twoGroupCountComparison (twoGroups.R): isPresent / useProbe
           "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); every gene passing the gene-level transcriptTypes filter (genes whose type is in transcriptTypes, applied after any transcript-to-gene summing) was fitted and tested and has a p-value; presence in at least half of the samples of the sample group or of the reference group only decides which genes enter the reported FDR (see below).",
           ## runDeseq2 (twoGroups.R): estimateSizeFactors(controlGenes = isPresent)

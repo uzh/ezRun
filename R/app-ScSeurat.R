@@ -31,7 +31,7 @@ EzAppScSeurat <-
         c(
           "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
           "Germain, P.-L. et al. Doublet identification in single-cell sequencing data using scDblFinder. F1000Research 10, 979 (2022). https://doi.org/10.12688/f1000research.73600.2",
-          "Lun, A.T.L. et al. EmptyDrops: distinguishing cells from empty droplets in droplet-based single-cell RNA sequencing data. Genome Biology 20, 63 (2019). https://doi.org/10.1186/s13059-019-1662-y",
+          if (!isTRUE(methodsH5Input(param))) "Lun, A.T.L. et al. EmptyDrops: distinguishing cells from empty droplets in droplet-based single-cell RNA sequencing data. Genome Biology 20, 63 (2019). https://doi.org/10.1186/s13059-019-1662-y",
           if (humanMouse) "Scialdone, A. et al. Computational assignment of cell-cycle stage from single-cell transcriptome data. Methods 85, 54-61 (2015). https://doi.org/10.1016/j.ymeth.2015.06.021",
           if (on(param$estimateAmbient)) "Yang, S. et al. Decontamination of ambient RNA in single-cell RNA-seq with DecontX. Genome Biology 21, 57 (2020). https://doi.org/10.1186/s13059-020-1950-6",
           if (on(param$estimateAmbient)) "Young, M.D. & Behjati, S. SoupX removes ambient RNA contamination from droplet-based single-cell RNA sequencing data. GigaScience 9(12), giaa151 (2020). https://doi.org/10.1093/gigascience/giaa151",
@@ -52,6 +52,7 @@ EzAppScSeurat <-
       },
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals().
       methods_facts = function(param = list()) {
+        h5Input <- methodsH5Input(param)  # HDF5 count matrix (e.g. CellBender): no emptyDrops
         humanMouse <- methodsSpeciesIs(param, c("Human", "Mouse"))
         qc <- methodsQcFields(param, c("nUMI", "ngenes", "perc_mito", "perc_riboprot"))
         on <- function(x) isTRUE(as.logical(x))
@@ -59,11 +60,11 @@ EzAppScSeurat <-
           ## getSeuratMarkersAndAnnotate -> querySignificantClusterAnnotationEnrichR (app-ScSeurat.R)
           if (humanMouse && ezIsSpecified(param$enrichrDatabase)) "Each cluster's significant markers were queried against the enrichrDatabase libraries with the Enrichr web service; terms with an adjusted p-value below 0.001 and more than 3 overlapping genes were kept, the top 5 per library and cluster.",
           ## cellsLabelsWithAUC + createCellMarker2_GeneSets (scTools.R)
-          if (humanMouse && ezIsSpecified(param$tissue)) "Cells were scored with AUCell (top 5% of ranked genes) against CellMarker 2.0 (2023-09-27 release) gene sets of at least 3 genes for the tissue given in tissue.",
+          if (humanMouse && ezIsSpecified(param$tissue)) paste0("Cells were scored with AUCell (top 5% of ranked genes) against CellMarker 2.0 (2023-09-27 release) gene sets of at least 3 genes for the tissue ", paste(param$tissue, collapse = ", "), "."),
           ## seuratUtils.R Azimuth::RunAzimuth
           if (ezIsSpecified(param$Azimuth) && !identical(param$Azimuth, "none")) "Cells were mapped with Azimuth RunAzimuth to the Azimuth reference named in Azimuth, using the RNA counts.",
           ## sc-type block (app-ScSeurat.R)
-          if (on(param$sctype.enabled)) "Clusters were annotated with scType using the ScTypeDB_full marker database fetched from the sc-type GitHub repository at run time, for the tissue in sctype.tissue (Immune system when it is auto).",
+          if (on(param$sctype.enabled)) paste0("Clusters were annotated with scType using the ScTypeDB_full marker database fetched from the sc-type GitHub repository at run time, for the tissue ", if (identical(param$sctype.tissue, "auto") || !ezIsSpecified(param$sctype.tissue)) "Immune system (sctype.tissue auto)" else param$sctype.tissue, "."),
           ## annotateClustersWithMLLMCelltype / registerFgczVllmProvider (app-ScSeurat.R)
           if (on(param$mLLMCelltype)) "Clusters were annotated with mLLMCelltype from their 10 top markers by average log2 fold change, using the FGCZ-hosted language model (temperature 0, seed 42).",
           ## CyteTypeR block (app-ScSeurat.R)
@@ -79,7 +80,9 @@ EzAppScSeurat <-
           "Cells with zero UMIs were always removed.",
           "Mitochondrial, ribosomal-protein and haemoglobin genes were identified by the gene-name patterns ^MT-, ^RPS/^RPL and ^HB[^P] (case-insensitive).",
           ## emptyDrops block in ezMethodScSeurat
-          "For CellRanger directory inputs (not HDF5 inputs such as CellBender output) whose raw matrix had more barcodes than the filtered one, DropletUtils emptyDrops (niters = 1e5) was run once without mitochondrial and ribosomal-protein genes and once on all genes, keeping the larger p-value per barcode; cells were removed only when maxEmptyDropPValue is below 1 (app default 1, not on the parameter form), otherwise the p-values were reported as a QC metric only.",
+          if (!isTRUE(h5Input)) paste0("For a CellRanger directory input whose raw matrix had more barcodes than the filtered one, DropletUtils emptyDrops (niters = 1e5) was run once without mitochondrial and ribosomal-protein genes and once on all genes, keeping the larger p-value per barcode; ",
+            if (isTRUE(as.numeric(param$maxEmptyDropPValue) < 1)) paste0("barcodes whose emptyDrops p-value exceeded maxEmptyDropPValue = ", param$maxEmptyDropPValue, " were removed.")
+            else "these p-values were reported as a QC metric only and removed no cells (maxEmptyDropPValue = 1, the app default)."),
           ## addCellQcToSeurat -> scDblFinder(clusters = TRUE)
           paste0("Doublets were scored with scDblFinder in cluster-based mode (clusters = TRUE) on the RNA counts of cells passing the QC thresholds, and cells called doublets were ", if (isTRUE(as.logical(param$keepDoublets))) "kept (keepDoublets true)" else "removed", "; if scDblFinder failed twice, no doublet filtering was applied."),
           "Genes with no counts in the filtered matrix were dropped; after cell filtering, genes were additionally required to have at least geneMinUMI UMIs in at least the cellsFraction proportion of cells, which removes no gene when cellsFraction is 0.",
