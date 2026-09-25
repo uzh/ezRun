@@ -699,10 +699,16 @@ EzApp <-
         facts <- methods_facts(param)
         if (length(facts) > 0) {
           facts_file <- file.path(output_dir, "app_facts.txt")
-          writeLines(c(paste0("Fixed behaviour of ", class(.self)[1], " in ezRun ",
-                              utils::packageVersion("ezRun"), ", read from its source code. ",
-                              "Applies to every run; a fact that names a parameter applies ",
-                              "only when the job's parameter form has that value."),
+          ## The run may have used an older ezRun than this Methods job (apps pin their own R);
+          ## name both so the writer lets the record win where they disagree.
+          ran <- unique(unlist(lapply(log_paths, function(f) regmatches(
+            x <- paste(readLines(f, warn = FALSE), collapse = " "),
+            regexpr("ezRun_[0-9]+(\\.[0-9]+)+", x)))))
+          here <- as.character(utils::packageVersion("ezRun"))
+          skew <- if (length(ran) && !paste0("ezRun_", here) %in% ran)
+            paste0(" The run itself used ", sub("_", " ", ran[1]), "; where its record disagrees with a fact below, the record is correct.") else ""
+          writeLines(c(paste0("Fixed behaviour of ", class(.self)[1], " in ezRun ", here,
+                              ", read from its source code and the run's parameters.", skew),
                        facts), facts_file)
           script_paths <- c(script_paths, facts_file)
         }
