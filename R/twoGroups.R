@@ -447,7 +447,7 @@ runLimma <- function(
       fit <- lmFit(logCPM, design)
     }
     fit <- eBayes(fit, trend = TRUE)
-    topDT <- topTable(fit, num = Inf, coef = ncol(design))
+    topDT <- topTable(fit, num = Inf, coef = ncol(design), sort.by = "none")  # input gene order: the caller assigns by position
   } else if (modelMethod == "voom") {
     v <- voom(cds, design, plot = FALSE)
     if (ezIsSpecified(grouping2)) {
@@ -457,7 +457,7 @@ runLimma <- function(
       fit <- lmFit(v, design)
     }
     fit <- eBayes(fit)
-    topDT <- topTable(fit, num = Inf, coef = ncol(design))
+    topDT <- topTable(fit, num = Inf, coef = ncol(design), sort.by = "none")  # input gene order: the caller assigns by position
   }
   res <- list()
   res$id <- rownames(topDT)
