@@ -12,7 +12,7 @@ EzAppSpatialSeuratHD <-
     methods = list(
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6)
       ## and are identical in 5.4.0 (Dev/R/4.5.0, which SpatialSeuratHDApp.rb loads).
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## ezMethodSpatialSeuratHD set.seed(38) (app-SpatialSeuratHD.R:164)
           "The random seed was set to 38 at the start of the analysis.",

@@ -12,7 +12,7 @@ EzAppVisiumHDSeurat <-
     methods = list(
       ## Defaults quoted below were checked on R 4.6 against Seurat 5.5.1, SeuratWrappers
       ## 0.4.0, Banksy 1.9.1 and spacexr 2.2.1 formals(), and rctd-py 0.3.8 cli.py.
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## set.seed(38) app-VisiumHDSeurat.R:216; RunPCA/RunUMAP seed.use 42,
           ## FindClusters random.seed 0, SketchData seed 123 (Seurat 5.5.1 formals)

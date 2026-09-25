@@ -17,7 +17,7 @@ EzAppScMultiOmics <-
     "EzAppScMultiOmics",
     contains = "EzApp",
     methods = list(
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## ezMethodScMultiOmics loads scData.qs2 as is (app-ScMultiOmics.R:137-147); attachUpstreamAnnotations (multiOmicsUtils.R:500-590); pickCellTypeColumn (multiOmicsUtils.R:599-685)
           "RNA normalization, RNA PCA, RNA clusters and cell-type labels were taken unchanged from the upstream ScSeurat object (Azimuth, SingleR fine-label and cellxgene results saved next to it were re-attached); no new cell-type annotation was run, and the cell-type labels shown were the first available of CyteTypeR, cellxgene, Azimuth Pan-Human, Azimuth tissue reference, scType, SingleR and manual labels, in that order.",

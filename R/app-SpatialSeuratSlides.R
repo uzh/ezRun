@@ -12,7 +12,7 @@ EzAppSpatialSeuratSlides <-
     methods = list(
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6)
       ## and are identical in 5.1.0 (Dev/R/4.4.2, which SpatialSeuratSlidesApp.rb loads).
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## ezMethodSpatialSeuratSlides (app-SpatialSeuratSlides.R:105-117)
           "Each slide's Seurat object from its single-slide SpatialSeurat analysis (a SpatialSeurat version from before September 2025) was loaded and its previous SCT-based cluster assignments were removed.",

@@ -14,7 +14,7 @@ EzAppVeloCyto <-
     "EzAppVeloCyto",
     contains = "EzApp",
     methods = list(
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## ezMethodVeloCyto (app-VeloCyto.R:92); velocyto run10x --help and source checked in the gi_velocyto env (velocyto 0.17.17)
           "For 10x data, spliced and unspliced counts were obtained with velocyto run10x on the CellRanger output and the genes.gtf of refBuild, restricted to CellRanger's filtered cell barcodes, with samtools sorting on cores threads and velocyto's default 2048 MB per thread.",

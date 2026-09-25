@@ -47,7 +47,8 @@ EzAppScSeurat <-
         )
       },
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals().
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
+        humanMouse <- methodsSpeciesIs(param, c("Human", "Mouse"))
         c(
           ## ezMethodScSeurat set.seed(38); SCTransform seed.use = 38 (seuratUtils.R)
           "The random seed was set to 38 at the start of the analysis, before doublet detection, and passed to SCTransform (seed.use = 38).",
@@ -60,7 +61,7 @@ EzAppScSeurat <-
           "Doublets were scored with scDblFinder in cluster-based mode (clusters = TRUE) on the RNA counts of cells passing the QC thresholds, and cells called doublets were removed unless keepDoublets is true (app default false, not on the parameter form); if scDblFinder failed twice, no doublet filtering was applied.",
           "Genes with no counts in the filtered matrix were dropped; after cell filtering, genes were additionally required to have at least geneMinUMI UMIs in at least the cellsFraction proportion of cells, which removes no gene when cellsFraction is 0.",
           ## addCellCycleToSeurat default method = "cyclone" (scTools.R)
-          "For human and mouse data, cell-cycle phase was assigned with scran cyclone using scran's bundled human or mouse marker pairs.",
+          if (humanMouse) "Cell-cycle phase was assigned with scran cyclone using scran's bundled human or mouse marker pairs.",
           ## seuratStandardSCTPreprocessing (seuratUtils.R)
           "Counts were normalized with SCTransform on the raw counts (vst.flavor = v2, 3000 variable features, the Seurat default; nfeatures is not passed to SCTransform), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true; the SCT assay was used for all downstream steps (a LogNormalize layer, scale factor 10000, was also stored in the RNA assay).",
           ## seuratStandardWorkflow (seuratUtils.R)
@@ -70,11 +71,11 @@ EzAppScSeurat <-
           ## getSeuratMarkers (seuratUtils.R)
           "Cluster markers were found with Seurat FindAllMarkers using the test in DE.method and only positive markers (only.pos = TRUE); p-values were Bonferroni-adjusted over all genes (Seurat p_val_adj), and the reported markers have p_val_adj below pvalue_allMarkers and a difference in detection fraction of at least min.diff.pct.",
           ## cellsLabelsWithSingleR (scTools.R)
-          "When a SingleR reference is set, cells and clusters were annotated with SingleR against the fine labels (label.fine) of that celldex reference.",
+          if (humanMouse && isTRUE(nzchar(param$SingleR)) && !identical(param$SingleR, "none")) "Cells and clusters were annotated with SingleR against the fine labels (label.fine) of the celldex reference named in SingleR.",
           ## computeTFActivityAnalysis / computePathwayActivityAnalysis
-          "When computePathwayTFActivity is true (human and mouse), transcription-factor and pathway activities were inferred with decoupleR run_wmean (times = 100, minsize = 5) using DoRothEA regulons of confidence A-C and PROGENy.",
+          if (humanMouse && isTRUE(as.logical(param$computePathwayTFActivity))) "Transcription-factor and pathway activities were inferred with decoupleR run_wmean (times = 100, minsize = 5) using DoRothEA regulons of confidence A-C and PROGENy.",
           ## sc-estimateAmbient.R
-          "When estimateAmbient is true, the per-cell ambient RNA contamination fraction was estimated, not removed, with DecontX using the cluster labels and with SoupX where a raw matrix is available; the counts used for the analysis were not corrected."
+          if (isTRUE(as.logical(param$estimateAmbient))) "The per-cell ambient RNA contamination fraction was estimated, not removed, with DecontX using the cluster labels and with SoupX where a raw matrix is available; the counts used for the analysis were not corrected."
         )
       },
       initialize = function() {

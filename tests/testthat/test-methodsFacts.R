@@ -56,3 +56,26 @@ test_that("methods_description passes app_facts.txt only when there are facts", 
     expect_false(any(grepl("app_facts.txt", readLines(argsFile), fixed = TRUE)))
   })
 })
+
+test_that("gated facts follow the job's parameters", {
+  app <- EzAppScSeurat$new()
+  on  <- list(refBuild = "Homo_sapiens/GENCODE/GRCh38.p14/Annotation/Release_48-2025-07-03",
+              computePathwayTFActivity = TRUE, estimateAmbient = TRUE, SingleR = "HumanPrimaryCellAtlasData")
+  off <- modifyList(on, list(computePathwayTFActivity = FALSE, estimateAmbient = FALSE, SingleR = "none"))
+  expect_true(any(grepl("decoupleR", app$methods_facts(on))))
+  expect_false(any(grepl("decoupleR", app$methods_facts(off))))
+  expect_false(any(grepl("DecontX", app$methods_facts(off))))
+  expect_false(any(grepl("SingleR against", app$methods_facts(off))))
+  ## unknown species or no parameters at all: species- and param-gated facts are dropped
+  expect_false(any(grepl("decoupleR|cyclone", app$methods_facts(list()))))
+  expect_false(any(grepl("cyclone", app$methods_facts(modifyList(on, list(refBuild = "Danio_rerio/Ensembl/GRCz11"))))))
+})
+
+test_that("methods_param reads parameters.tsv and fills app defaults", {
+  f <- tempfile(fileext = ".tsv")
+  writeLines(c("name\tScSeurat", "computePathwayTFActivity\tfalse", "refBuild\tHomo_sapiens/GENCODE/GRCh38.p14/Annotation/Release_48-2025-07-03"), f)
+  p <- EzAppScSeurat$new()$methods_param(f)
+  expect_identical(p$computePathwayTFActivity, FALSE)
+  expect_equal(p$nmad, 3)          # appDefault, not in the file
+  expect_identical(EzApp$new()$methods_param(file.path(tempdir(), "absent.tsv")), list())
+})

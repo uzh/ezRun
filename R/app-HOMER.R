@@ -12,7 +12,7 @@ EzAppHomerDiffPeaks <-
     methods = list(
       ## HOMER behaviour quoted here was checked against the HOMER 5.1 usage text
       ## and getDifferentialPeaksReplicates.pl source; ChIPpeakAnno against 3.46.0.
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## ezMethodHomerDiffPeaks (app-HOMER.R:74-96); makeTagDirectory (app-HOMER.R:388-415)
           "A HOMER tag directory was made from each BAM file with makeTagDirectory (SAM input, refBuildHOMER genome, no GC check); samples of the sample group were the target and samples of the reference group the background, and fold changes are target over background.",

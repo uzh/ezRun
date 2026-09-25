@@ -14,7 +14,7 @@ EzAppLimma <-
     methods = list(
       ## limma/edgeR defaults quoted here were checked against limma 3.68.4 and
       ## edgeR 4.10.1 formals() (R 4.6.0 system lib).
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## ngsio.R:117-127; twoGroupCountComparison (twoGroups.R:87-95, 143-147)
           "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); all genes were fitted, but only genes present in at least half of the samples of the sample group or of the reference group were counted as tested, and the reported FDR is the Benjamini-Hochberg adjustment of the limma p-values over these genes, computed by ezRun rather than taken from limma's adj.P.Val.",

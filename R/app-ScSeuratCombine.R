@@ -29,7 +29,7 @@ EzAppScSeuratCombine <-
       },
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6 system lib),
       ## harmony 2.0.5, decoupleR 2.17.0, progeny 1.34.0, AUCell 1.34.0.
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## ezMethodScSeuratCombine set.seed(38) (app-ScSeuratCombine.R:132); SCTransform seed.use 1448145, RunPCA/RunUMAP 42, FindClusters random.seed 0 are Seurat defaults
           "The R random seed was set to 38 at the start; Seurat functions used their own default seeds (SCTransform 1448145, RunPCA and RunUMAP 42, FindClusters 0).",

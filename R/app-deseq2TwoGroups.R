@@ -120,7 +120,7 @@ EzAppDeseq2 <-
       },
       ## DESeq2 / clusterProfiler defaults quoted here were checked against
       ## DESeq2 1.52.0 and clusterProfiler 4.21.1 formals().
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## twoGroupCountComparison (twoGroups.R): isPresent / useProbe
           "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); all genes of the selected transcript types (transcriptTypes) were fitted, but only genes present in at least half of the samples of the sample group or of the reference group were counted as tested.",

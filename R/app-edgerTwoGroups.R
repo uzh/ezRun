@@ -75,7 +75,7 @@ EzAppEdger <-
       },
       ## edgeR defaults quoted here were checked against edgeR 4.10.1 formals()
       ## and function bodies (R 4.6.0 system lib).
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## ngsio.R:117-127 presentFlag = counts > sigThresh (EZ_PARAM_DEFAULTS sigThresh 10);
           ## twoGroupCountComparison (twoGroups.R:87-95, 143-147)

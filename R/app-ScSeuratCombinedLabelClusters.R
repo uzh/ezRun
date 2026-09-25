@@ -11,7 +11,7 @@ EzAppScSeuratCombinedLabelClusters <-
     contains = "EzApp",
     methods = list(
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6 system lib).
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## ezMethodScSeuratCombinedLabelClusters loads the saved object and only relabels (app-ScSeuratCombinedLabelClusters.R:98, 123-126)
           "No normalisation, integration, embedding or clustering was recomputed; the integrated object from the upstream ScSeuratCombine run was reused with its clusters and embeddings.",

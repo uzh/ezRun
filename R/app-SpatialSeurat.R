@@ -12,7 +12,7 @@ EzAppSpatialSeurat <-
     methods = list(
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals() (R 4.6)
       ## and are identical in 5.4.0 (Dev/R/4.5.0, which SpatialSeuratApp.rb loads).
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## ezMethodSpatialSeurat set.seed(38) (app-SpatialSeurat.R:154); seuratStandardSCTPreprocessing seed = 38 (seuratUtils.R:12, 84)
           "The random seed was set to 38 at the start of the analysis and passed to SCTransform (seed.use = 38).",

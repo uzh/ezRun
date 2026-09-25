@@ -23,7 +23,7 @@ EzAppCellBender <-
       ## Defaults quoted here were read from `cellbender remove-background --help` and
       ## cellbender/remove_background/consts.py in conda env gi_cellbender_0.3.2
       ## (the package installed there is CellBender 0.3.0).
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## ezMethodCellBender input path: UnfilteredCountMatrix, else raw_feature_bc_matrix of the multi output (app-cellBender.R:105-126)
           "CellBender was run on the unfiltered (raw) droplet count matrix including empty droplets (for CellRanger Multi input without an UnfilteredCountMatrix column, the library-level raw matrix of the pool), not on the cell-filtered matrix.",

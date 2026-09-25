@@ -1212,7 +1212,7 @@ EzAppXeniumSeurat <- setRefClass(
   methods = list(
     ## Defaults quoted below were checked on R 4.6 against Seurat 5.5.1, Banksy 1.9.1
     ## and spacexr 2.2.1 formals(). This app runs spacexr only (no rctd-py).
-    methods_facts = function() {
+    methods_facts = function(param = list()) {
       c(
         ## only set.seed in ezMethodXeniumSeurat is app-XeniumSeurat.R:658; RunPCA/RunUMAP seed.use 42,
         ## FindClusters random.seed 0 (Seurat 5.5.1 formals)

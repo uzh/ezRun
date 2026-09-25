@@ -364,6 +364,12 @@ ezTagListFromNames = function(names) {
 ## Source: LLM_CALLER_MODEL in the AI/llm_methods_caller module.
 METHODS_LLM_MODEL_NAME <- "DeepSeek-V4-Flash-DSpark"
 
+## For methods_facts(): TRUE when the job's refBuild names one of `species`
+## (e.g. c("Human", "Mouse")); FALSE when refBuild is missing or unparseable.
+methodsSpeciesIs <- function(param, species) {
+  isTRUE(tryCatch(getSpecies(param$refBuild) %in% species, error = function(e) FALSE))
+}
+
 EzApp <-
   setRefClass(
     "EzApp",
@@ -649,15 +655,29 @@ EzApp <-
       ## Fixed behaviour of the app's code that its parameter form does not show:
       ## seeds, algorithm choices, hardcoded filters and corrections. The LLM only
       ## reads the job script and logs, so without these it writes [not recorded] or
-      ## guesses. One plain sentence per fact; name the param when a fact depends on it.
-      methods_facts = function() {
+      ## guesses. One plain sentence per fact. `param` is the job's typed parameters
+      ## (methods_param()); a fact that only holds for some settings is emitted only
+      ## when they apply, e.g. if (isTRUE(param$runGO)) "...". param is an empty list
+      ## when the run's parameters.tsv is missing, so such facts are then left out.
+      methods_facts = function(param = list()) {
         character(0)
+      },
+      ## The job's parameters as the app saw them: <resultDir>/parameters.tsv typed and
+      ## completed with appDefaults (values left out of the SUSHI form, e.g. nmad).
+      ## Falls back to the untyped values if ezParam() fails (e.g. an unreachable refBuild).
+      methods_param = function(param_file) {
+        if (is.null(param_file) || !file.exists(param_file)) return(list())
+        tab <- utils::read.delim(param_file, header = FALSE, colClasses = "character",
+                                 quote = "", comment.char = "")
+        userParam <- stats::setNames(as.list(tab[[2]]), tab[[1]])
+        tryCatch(ezParam(userParam, appDefaults = appDefaults), error = function(e) userParam)
       },
       ## Override this (not write_methods()) for an app whose Methods text is fixed
       ## and known rather than LLM-generated (e.g. EzAppFastqc). Default: call the LLM
       ## via llm_write_methods. Its response includes a "## References" header
       ## followed by references; write_methods() splits and filters that itself.
-      methods_description = function(script_paths, log_paths, sample_count, output_dir) {
+      methods_description = function(script_paths, log_paths, sample_count, output_dir,
+                                     param = list()) {
         identity_file <- file.path(output_dir, "methods_identity.txt")
         task_file     <- file.path(output_dir, "methods_task.txt")
         writeLines(methods_identity(), identity_file)
@@ -665,7 +685,7 @@ EzApp <-
         args <- c("--output", file.path(output_dir, "methods.md"),
                   "--identity-file", identity_file,
                   "--task-file",     task_file)
-        facts <- methods_facts()
+        facts <- methods_facts(param)
         if (length(facts) > 0) {
           facts_file <- file.path(output_dir, "app_facts.txt")
           writeLines(c(paste0("Fixed behaviour of ", class(.self)[1], " in ezRun ",
@@ -755,7 +775,9 @@ EzApp <-
                             Sys.glob(file.path(dirname(gstore_script_dir),
                                                "*", "config.csv")))
         }
-        raw <- methods_description(script_paths, log_paths, sample_count, output_dir)
+        param <- if (is.null(gstore_script_dir)) list() else
+          methods_param(file.path(dirname(gstore_script_dir), "parameters.tsv"))
+        raw <- methods_description(script_paths, log_paths, sample_count, output_dir, param)
 
         ## For each known citation, check whether its DOI/URL appears anywhere in the
         ## raw response, rather than trusting the model's copy of the text verbatim.

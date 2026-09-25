@@ -12,7 +12,7 @@ EzAppScSeuratCompare <-
     methods = list(
       ## Defaults quoted here were checked on the R version this app loads (Dev/R/4.5.0:
       ## Seurat 5.4.0, clusterProfiler 4.16.0, sccomp 2.1.30) and are identical on R 4.6 (Seurat 5.5.1).
-      methods_facts = function() {
+      methods_facts = function(param = list()) {
         c(
           ## set.seed(38) (app-ScSeuratCompare.R:81); sccomp mcmc_seed default sample_seed() = sample(1e5, 1)
           "The R random seed was set to 38 at the start, and sccomp's sampling seed was drawn from it.",
