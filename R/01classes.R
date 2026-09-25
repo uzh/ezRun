@@ -800,6 +800,10 @@ EzApp <-
           references  <- if (length(candidates) > 0) paste(candidates, collapse = "\n") else "pending"
         }
 
+        ## The model sometimes opens with its own "## Methods" heading, which reads as a
+        ## second analysis once chained under a parent's methods.md. Keep "##" for the
+        ## per-analysis headers and "###" for sections; demote anything the model wrote.
+        description <- gsub("(^|\n)#{1,3} +", "\\1#### ", description, perl = TRUE)
         document <- paste0(
           sprintf("## %s | %s\n\n", analysis_name, format(Sys.time(), "%Y-%m-%d %H:%M")),
           "### Description\n\n", description, "\n\n",

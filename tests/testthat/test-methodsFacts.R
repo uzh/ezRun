@@ -79,3 +79,18 @@ test_that("methods_param reads parameters.tsv and fills app defaults", {
   expect_equal(p$nmad, 3)          # appDefault, not in the file
   expect_identical(EzApp$new()$methods_param(file.path(tempdir(), "absent.tsv")), list())
 })
+
+test_that("write_methods demotes headings the model wrote into the description", {
+  withStubWriter(function(argsFile) {
+    ## stub writes a description that starts with its own "## Methods" heading
+    stub <- file.path(dirname(argsFile), "llm_write_methods")
+    writeLines(c("#!/bin/sh",
+                 "while [ $# -gt 0 ]; do [ \"$1\" = --output ] && out=$2; shift; done",
+                 "printf '## Methods\\n\\nReads were aligned.\\n' > \"$out\""), stub)
+    out <- tempfile("out"); dir.create(out)
+    EzApp$new()$write_methods(output_dir = out, analysis_name = "Test")
+    md <- readLines(file.path(out, "methods.md"))
+    expect_equal(sum(grepl("^## ", md)), 1)          # only the analysis header
+    expect_true(any(md == "#### Methods"))
+  })
+})
