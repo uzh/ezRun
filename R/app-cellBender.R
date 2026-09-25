@@ -24,21 +24,45 @@ EzAppCellBender <-
       ## cellbender/remove_background/consts.py in conda env gi_cellbender_0.3.2
       ## (the package installed there is CellBender 0.3.0).
       methods_facts = function(param = list()) {
+        known <- length(param) > 0
+        cmd <- if (ezIsSpecified(param$cmdOptions)) param$cmdOptions else ""
+        given <- function(flag) grepl(paste0("(^|\\s)", flag, "(=|\\s|$)"), cmd)
+        ## remove-background --help defaults, each kept only while its flag is absent from cmdOptions
+        defaults <- c(
+          "--model" = "the full model (ambient RNA plus barcode swapping)",
+          "--epochs" = "150 training epochs",
+          "--learning-rate" = "a learning rate of 1e-4",
+          "--constant-learning-rate" = "a one-cycle learning-rate schedule",
+          "--fpr" = "a target false positive rate (--fpr) of 0.01",
+          "--z-dim" = "a 64-dimensional latent space",
+          "--z-layers" = "one 512-unit encoder layer",
+          "--training-fraction" = "90% of droplets for training",
+          "--low-count-threshold" = "excluded droplets with fewer than 5 UMIs"
+        )
+        defaults <- defaults[!vapply(names(defaults), given, logical(1))]
+        estimated <- c("--expected-cells" = "the expected number of cells",
+                       "--total-droplets-included" = "the number of droplets included in the analysis")
+        estimated <- estimated[!vapply(names(estimated), given, logical(1))]
         c(
-          ## ezMethodCellBender input path: UnfilteredCountMatrix, else raw_feature_bc_matrix of the multi output (app-cellBender.R:105-126)
+          ## ezMethodCellBender input path: UnfilteredCountMatrix, else raw_feature_bc_matrix of the multi output (app-cellBender.R:150-171)
           "CellBender was run on the unfiltered (raw) droplet count matrix including empty droplets (for CellRanger Multi input without an UnfilteredCountMatrix column, the library-level raw matrix of the pool), not on the cell-filtered matrix.",
-          ## dropPeaksFromH5 (app-cellBender.R:54-91), called at app-cellBender.R:159
+          ## dropPeaksFromH5 (app-cellBender.R:99-136), called at app-cellBender.R:204
           "For multiome inputs, ATAC peak features were removed before CellBender; all other feature types (gene expression, antibody capture, multiplexing capture) were kept and processed together.",
-          ## command line built at app-cellBender.R:161-176
-          "The app passed only the input, the output and either --cuda (when gpu is above 0) or --cpu-threads, plus any flags given in cmdOptions; every other setting was the CellBender default unless cmdOptions overrode it.",
+          ## command line built at app-cellBender.R:206-221
+          if (known) paste0("The app passed only the input, the output and ",
+                            if (isTRUE(as.numeric(param$gpu) > 0)) "--cuda (gpu above 0)" else "--cpu-threads (gpu 0)",
+                            if (nzchar(cmd)) sprintf(", plus the flags given in cmdOptions (%s); every other setting was the CellBender default.", cmd)
+                            else "; every other setting was the CellBender default."),
           ## CellBender defaults from remove-background --help
-          "Unless overridden in cmdOptions, CellBender used the full model (ambient RNA plus barcode swapping), 150 training epochs, a learning rate of 1e-4 with a one-cycle schedule, a target false positive rate (--fpr) of 0.01, a 64-dimensional latent space with one 512-unit encoder layer, 90% of droplets for training, and excluded droplets with fewer than 5 UMIs.",
-          ## app never sets --expected-cells / --total-droplets-included (app-cellBender.R:161-170)
-          "Unless given in cmdOptions, the expected number of cells and the number of droplets included in the analysis were estimated by CellBender's own heuristic from the ranked UMI-count curve.",
+          if (known && length(defaults)) paste0("CellBender used its defaults: ", paste(defaults, collapse = "; "), "."),
+          ## app never sets --expected-cells / --total-droplets-included (app-cellBender.R:206-215)
+          if (known && length(estimated)) paste0(sub("^t", "T", paste(estimated, collapse = " and ")), " ", if (length(estimated) > 1) "were" else "was",
+                                                 " estimated by CellBender's own heuristic from the ranked UMI-count curve."),
           ## consts.py RANDOM_SEED = 1234, applied in run.py (pyro.util.set_rng_seed); the app sets no seed
           "CellBender used its fixed internal random seed (1234); the app set no seed of its own.",
-          ## --estimator default mckp (--help); consts.py CELL_PROB_CUTOFF = 0.5; outputs kept at app-cellBender.R:180-187
-          "Denoised counts were computed with the MCKP estimator (CellBender default), and two matrices were kept: the full matrix with every input barcode, and the droplets with a posterior cell probability above 0.5 (CellBender's filtered output)."
+          ## --estimator default mckp (--help); consts.py CELL_PROB_CUTOFF = 0.5; outputs kept at app-cellBender.R:225-232
+          if (known && !given("--estimator")) "Denoised counts were computed with the MCKP estimator (CellBender default).",
+          "Two matrices were kept: the full matrix with every input barcode, and the droplets with a posterior cell probability above 0.5 (CellBender's filtered output)."
         )
       },
       initialize = function() {

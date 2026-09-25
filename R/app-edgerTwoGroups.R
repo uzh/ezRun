@@ -76,28 +76,47 @@ EzAppEdger <-
       ## edgeR defaults quoted here were checked against edgeR 4.10.1 formals()
       ## and function bodies (R 4.6.0 system lib).
       methods_facts = function(param = list()) {
+        known <- length(param) > 0
+        runGO <- isTRUE(as.logical(param$runGO))
+        ## twoGroupCountComparison: a NULL testMethod means glm; deTest is used only for glm
+        testMethod <- if (!known) NA else if (is.null(param$testMethod)) "glm" else param$testMethod
+        glm <- identical(testMethod, "glm")
+        exact <- identical(testMethod, "exactTest")
+        g2 <- ezIsSpecified(param$grouping2)
+        ## twoGroupCountComparison: robust = ezIsSpecified(param$robust) && param$robust
+        robust <- ezIsSpecified(param$robust) && isTRUE(as.logical(param$robust))
+        baselines <- ezIsSpecified(param$sampleGroupBaseline) && ezIsSpecified(param$refGroupBaseline)
         c(
           ## ngsio.R:117-127 presentFlag = counts > sigThresh (EZ_PARAM_DEFAULTS sigThresh 10);
           ## twoGroupCountComparison (twoGroups.R:87-95, 143-147)
           "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); all genes of the selected transcript types (transcriptTypes) were fitted, but only genes present in at least half of the samples of the sample group or of the reference group were counted as tested, and the reported FDR is the Benjamini-Hochberg adjustment of the edgeR p-values over these genes, computed by ezRun.",
           ## runGlm (twoGroups.R:338-350) / runEdger (twoGroups.R:283-284)
-          "Normalization factors were computed with edgeR calcNormFactors using the normMethod method on all genes; when testMethod is glm they were computed on the samples of the compared groups only, and when testMethod is exactTest on all samples of the dataset.",
+          paste0("Normalization factors were computed with edgeR calcNormFactors using the normMethod method on all genes",
+                 if (glm) ", on the samples of the compared groups only" else if (exact) ", on all samples of the dataset",
+                 "."),
           ## runGlm (twoGroups.R:344-360); ezMethodEdger numeric grouping2 (app-edgerTwoGroups.R:22-25)
-          "When testMethod is glm, samples outside the sample group, the reference group and any sampleGroupBaseline or refGroupBaseline were removed, and the model used the no-intercept design ~0 + group, or ~0 + group + grouping2 (additive, no interaction) when grouping2 is set, with a grouping2 made only of numbers entered as a continuous covariate.",
+          if (glm) paste0("Samples outside the sample group, the reference group and any sampleGroupBaseline or refGroupBaseline were removed, and the model used the no-intercept design ",
+                          if (g2) "~0 + group + grouping2 (additive, no interaction), with a grouping2 made only of numbers entered as a continuous covariate." else "~0 + group."),
           ## runGlm contrastsIndices (twoGroups.R:376-380, 385-389); prior.count = backgroundExpression (twoGroups.R:117, 128)
-          "Log2 fold changes are for the sample group over the reference group (for glm, the contrast sample group minus reference group, or (sample group minus sampleGroupBaseline) minus (reference group minus refGroupBaseline) when both baselines are set), computed by edgeR with a prior count equal to backgroundExpression (prior.count).",
+          paste0("Log2 fold changes are for the sample group over the reference group",
+                 if (glm) paste0(" (the glm contrast ",
+                                 if (baselines) "(sample group minus sampleGroupBaseline) minus (reference group minus refGroupBaseline)" else "sample group minus reference group",
+                                 ")"),
+                 ", computed by edgeR with a prior count equal to backgroundExpression (prior.count)."),
           ## runGlm deTest == "QL" (twoGroups.R:373-381); glmQLFit.DGEList legacy = FALSE, dispersion = NULL
-          "When testMethod is glm and deTest is QL, genes were tested with the quasi-likelihood F-test (glmQLFit, glmQLFTest) in edgeR's default non-legacy mode, in which glmQLFit estimates its own negative-binomial dispersion from the most abundant genes, so the estimateDisp dispersions were not used by this test.",
+          if (glm && identical(param$deTest, "QL")) "Genes were tested with the quasi-likelihood F-test (glmQLFit, glmQLFTest) in edgeR's default non-legacy mode, in which glmQLFit estimates its own negative-binomial dispersion from the most abundant genes, so the estimateDisp dispersions were not used by this test.",
           ## runGlm deTest == "LR" (twoGroups.R:363-368, 382-391); estimateDisp defaults trend.method = "locfit", tagwise = TRUE
-          "When testMethod is glm and deTest is LR, dispersions were estimated with estimateDisp on the design matrix (common, locfit-trended and tagwise) and genes were tested with glmFit and glmLRT using the tagwise dispersions; robust dispersion estimation (estimateGLMRobustDisp) was used only when robust is true.",
+          if (glm && identical(param$deTest, "LR")) paste0(
+            "Dispersions were estimated with estimateDisp on the design matrix (common, locfit-trended and tagwise) and genes were tested with glmFit and glmLRT using the tagwise dispersions; robust dispersion estimation (estimateGLMRobustDisp) was ",
+            if (robust) "used (robust true)." else "not used (robust false)."),
           ## runEdger (twoGroups.R:283-297); exactTest dispersion = "auto"
-          "When testMethod is exactTest, dispersions were estimated with estimateDisp over all groups of the dataset and the reference and sample groups were compared with the edgeR exact test using the tagwise dispersions.",
+          if (exact) "Dispersions were estimated with estimateDisp over all groups of the dataset and the reference and sample groups were compared with the edgeR exact test using the tagwise dispersions.",
           ## runEdger (twoGroups.R:288-292) / runGlm (twoGroups.R:363-371)
           "When the sample group or the reference group had fewer than two samples, the negative-binomial dispersion was fixed at 0.1 instead of being estimated (used by the exact test and the likelihood-ratio test; the QL fit estimates its own).",
           ## compileEnrichmentInput / ezEnricher / ezGSEA (go-analysis.R:153-157, 568-600) -- shared with DESeq2
-          "When runGO is true and GO annotation is available, genes with p-value at or below pValThreshGO and absolute log2 ratio above log2RatioThreshGO were tested for GO over-representation (BP, MF, CC; up-regulated, down-regulated and both separately) with clusterProfiler enricher, using the present genes as universe, Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes, cut-off fdrThreshORA and at least 3 genes per term.",
+          if (runGO) "When GO annotation is available, genes with p-value at or below pValThreshGO and absolute log2 ratio above log2RatioThreshGO were tested for GO over-representation (BP, MF, CC; up-regulated, down-regulated and both separately) with clusterProfiler enricher, using the present genes as universe, Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes, cut-off fdrThreshORA and at least 3 genes per term.",
           ## ezGSEA (go-analysis.R:617-660) -- shared with DESeq2
-          "When runGO is true, GO gene set enrichment analysis (BP, MF, CC) was run with clusterProfiler GSEA on the present genes ranked by rankMetric (log2 ratio, -log10 p-value, or signed -log10 p-value), with Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes and cut-off fdrThreshGSEA."
+          if (runGO) "GO gene set enrichment analysis (BP, MF, CC) was run with clusterProfiler GSEA on the present genes ranked by rankMetric (log2 ratio, -log10 p-value, or signed -log10 p-value), with Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes and cut-off fdrThreshGSEA."
         )
       },
       initialize = function() {

@@ -13,23 +13,36 @@ EzAppHomerDiffPeaks <-
       ## HOMER behaviour quoted here was checked against the HOMER 5.1 usage text
       ## and getDifferentialPeaksReplicates.pl source; ChIPpeakAnno against 3.46.0.
       methods_facts = function(param = list()) {
+        known <- length(param) > 0
+        peakMode <- as.logical(param$peakMode)
+        ## ezMethodHomerDiffPeaks refBuildHOMER -> GENCODE annotation switch (app-HOMER.R:224-230)
+        gencode <- c(hg38 = "release 37 for hg38", mm10 = "release M23 for mm10", mm39 = "release M37 for mm39")
+        gencode <- if (known && isTRUE(param$refBuildHOMER %in% names(gencode))) gencode[[param$refBuildHOMER]]
+                   else "release 37 for hg38, M23 for mm10 and M37 for mm39"
         c(
-          ## ezMethodHomerDiffPeaks (app-HOMER.R:74-96); makeTagDirectory (app-HOMER.R:388-415)
+          ## ezMethodHomerDiffPeaks (app-HOMER.R:108-130); makeTagDirectory (app-HOMER.R:422-449)
           "A HOMER tag directory was made from each BAM file with makeTagDirectory (SAM input, refBuildHOMER genome, no GC check); samples of the sample group were the target and samples of the reference group the background, and fold changes are target over background.",
-          ## app-HOMER.R:98 (||), 101-119
+          ## app-HOMER.R:132 (||), 135-153
           "When the sample group or the reference group had at least two samples, differential peaks were computed with getDifferentialPeaksReplicates.pl using DESeq2 (-DESeq2, fixed regardless of degMethod); otherwise the replicate-free getDifferentialPeaks was used.",
           ## getDifferentialPeaksReplicates.pl Step1/Step2 (no -i, -p or -use given)
           "With replicates, putative peaks were called with findPeaks (-style style) on one pooled tag directory of all target samples, without an input control, and reads per sample were counted in these peaks with annotatePeaks.pl and annotated against the HOMER genome.",
-          ## app-HOMER.R:106; getDifferentialPeaksReplicates.pl $norm2total
-          "With replicates, when balanced is true, signal was normalized across the peaks by DESeq2 (-balanced) rather than to the total mapped reads per sample, which is used otherwise.",
-          ## app-HOMER.R:105 (-all), 132-135
+          ## app-HOMER.R:140; getDifferentialPeaksReplicates.pl $norm2total
+          if (known) {
+            if (isTRUE(as.logical(param$balanced))) "With replicates, signal was normalized across the peaks by DESeq2 (-balanced) rather than to the total mapped reads per sample."
+            else "With replicates, signal was normalized to the total mapped reads per sample rather than across the peaks by DESeq2 (-balanced)."
+          },
+          ## app-HOMER.R:139 (-all), 166-169
           "With replicates, HOMER reported all peaks (-all) and ezRun kept those with absolute log2 fold change at least log2(repFoldChange) and DESeq2 adjusted p-value at most repFDR, in both directions.",
-          ## app-HOMER.R:219-277; mergePeaks -d, getDifferentialPeaks -F/-P usage
-          "Without replicates and with peakMode true (set only through specialOptions), peaks were called with findPeaks in each sample separately and merged with mergePeaks at a maximum centre distance of 100 bp before comparison with getDifferentialPeaks (-F 0 -P 1), keeping peaks higher in the target with fold change at least repFoldChange and uncorrected Poisson p-value at most repFDR; this path reads peaks.txt, which findPeaks writes only for style factor or dnase, so with other styles (including the default histone) no differential peaks were produced.",
-          ## app-HOMER.R:279-326; annotatePeaks.pl tss default size 4000 bp
-          "Without replicates and with peakMode false, transcription start site regions of 4000 bp (plus or minus 2 kb, HOMER annotatePeaks.pl tss default) were compared with getDifferentialPeaks in both directions (-F 0 -P 1), keeping regions with fold change at least repFoldChange and uncorrected Poisson p-value at most repFDR.",
-          ## app-HOMER.R:190-218, 328-345; ChIPpeakAnno nearestStart -> nearestLocation, PeakLocForDistance default "start"
-          "Without replicates, peaks were assigned to the gene with the nearest transcription start site (ChIPpeakAnno annotatePeakInBatch, one gene per peak, distance from peak start) using GENCODE gene annotation release 37 for hg38, M23 for mm10 and M37 for mm39."
+          ## app-HOMER.R:253-311; mergePeaks -d, getDifferentialPeaks -F/-P usage
+          if (isTRUE(peakMode)) paste0(
+            "Without replicates (peakMode true, set only through specialOptions), peaks were called with findPeaks in each sample separately and merged with mergePeaks at a maximum centre distance of 100 bp before comparison with getDifferentialPeaks (-F 0 -P 1), keeping peaks higher in the target with fold change at least repFoldChange and uncorrected Poisson p-value at most repFDR",
+            if (isTRUE(param$style %in% c("factor", "dnase"))) "."
+            else sprintf("; this path reads peaks.txt, which findPeaks writes only for style factor or dnase, so with style %s no differential peaks were produced.", param$style)
+          ),
+          ## app-HOMER.R:313-360; annotatePeaks.pl tss default size 4000 bp
+          if (known && isFALSE(peakMode)) "Without replicates (peakMode false), transcription start site regions of 4000 bp (plus or minus 2 kb, HOMER annotatePeaks.pl tss default) were compared with getDifferentialPeaks in both directions (-F 0 -P 1), keeping regions with fold change at least repFoldChange and uncorrected Poisson p-value at most repFDR.",
+          ## app-HOMER.R:224-252, 362-379; ChIPpeakAnno nearestStart -> nearestLocation, PeakLocForDistance default "start"
+          paste0("Without replicates, peaks were assigned to the gene with the nearest transcription start site (ChIPpeakAnno annotatePeakInBatch, one gene per peak, distance from peak start) using GENCODE gene annotation ", gencode, ".")
         )
       },
       initialize = function() {

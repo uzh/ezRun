@@ -21,11 +21,12 @@ EzAppLimma <-
           ## runLimma (twoGroups.R:421-431); calcNormFactors default method TMM
           "Only the samples of the sample and reference groups were fitted, with TMM normalization factors (edgeR calcNormFactors default) computed on those samples.",
           ## runLimma (twoGroups.R:433-455)
-          "The linear model used the design ~ group with the reference group as baseline, and the reported log2 fold change and moderated t-test p-value are for the sample-group coefficient; when grouping2 is set it was treated as a blocking factor, with a consensus within-block correlation from duplicateCorrelation, not as a fixed covariate.",
+          "The linear model used the design ~ group with the reference group as baseline, and the reported log2 fold change and moderated t-test p-value are for the sample-group coefficient.",
+          if (ezIsSpecified(param$grouping2)) "grouping2 was treated as a blocking factor, with a consensus within-block correlation from duplicateCorrelation, not as a fixed covariate.",
           ## runLimma limma-trend branch (twoGroups.R:436-450); eBayes robust default FALSE
-          "When modelMethod is limma-trend, counts were converted to log2 CPM with cpm (TMM-normalized library sizes, prior.count = priorCount), fitted with lmFit and moderated with eBayes(trend = TRUE), without robust estimation.",
+          if (identical(param$modelMethod, "limma-trend")) "Counts were converted to log2 CPM with cpm (TMM-normalized library sizes, prior.count = priorCount), fitted with lmFit and moderated with eBayes(trend = TRUE), without robust estimation.",
           ## runLimma voom branch (twoGroups.R:451-460); voom normalize.method "none", eBayes trend/robust FALSE
-          "When modelMethod is voom, counts were transformed with voom using the TMM-normalized library sizes (no further between-array normalization), fitted with lmFit using the voom precision weights and moderated with eBayes without trend or robust estimation; priorCount was not used."
+          if (identical(param$modelMethod, "voom")) "Counts were transformed with voom using the TMM-normalized library sizes (no further between-array normalization), fitted with lmFit using the voom precision weights and moderated with eBayes without trend or robust estimation; priorCount was not used."
         )
       },
       initialize = function() {
