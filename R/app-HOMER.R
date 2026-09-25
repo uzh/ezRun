@@ -33,6 +33,8 @@ EzAppHomerDiffPeaks <-
         gencode <- if (known && isTRUE(param$refBuildHOMER %in% names(gencode))) gencode[[param$refBuildHOMER]]
                    else "release 37 for hg38, M23 for mm10 and M37 for mm39"
         c(
+          ## cmdOptions is appended to getDifferentialPeaksReplicates.pl / getDifferentialPeaks
+          if (known && isTRUE(nzchar(param$cmdOptions))) paste0("Additional options were passed to HOMER through cmdOptions (", param$cmdOptions, "), which can override the settings described here."),
           ## ezMethodHomerDiffPeaks (app-HOMER.R:108-130); makeTagDirectory (app-HOMER.R:422-449)
           "A HOMER tag directory was made from each BAM file with makeTagDirectory (SAM input, refBuildHOMER genome, no GC check); samples of the sample group were the target and samples of the reference group the background, and fold changes are target over background.",
           ## app-HOMER.R:132 (||), 135-153

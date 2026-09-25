@@ -79,7 +79,7 @@ EzAppSpatialSeurat <-
           ## getSpatialSeuratMarkersAndAnnotate; spatialMarkers (seuratUtils.R:601-615)
           "Spatially variable genes were ranked among the SCTransform variable genes (on the SCT scaled data) with both Seurat markvariogram (r.metric = 5) and Moran's I (FindSpatiallyVariableFeatures); the top 2000 genes of each method (Seurat default nfeatures) were reported without a significance threshold, and cluster markers found in either list were flagged as spatial markers.",
           ## getSpatialSeuratMarkersAndAnnotate human/mouse branch; querySignificantClusterAnnotationEnrichR defaults (app-ScSeurat.R)
-          if (humanMouse) "Up to 500 markers per cluster with the highest average log2 fold change were queried against the enrichrDatabase libraries with the Enrichr web service; terms with an adjusted p-value below 0.001 and more than 3 overlapping genes were kept, the top 5 per library and cluster.",
+          if (humanMouse && ezIsSpecified(param$enrichrDatabase)) "Up to 500 markers per cluster with the highest average log2 fold change were queried against the enrichrDatabase libraries with the Enrichr web service; terms with an adjusted p-value below 0.001 and more than 3 overlapping genes were kept, the top 5 per library and cluster.",
           ## getSpatialSeuratMarkersAndAnnotate Azimuth block
           if (ezIsSpecified(param$Azimuth) && !identical(param$Azimuth, "none")) "Spots were annotated with Azimuth RunAzimuth against the reference named in Azimuth using the raw Spatial counts, and up to four annotation levels (as many as the reference provides) were reported.",
           ## SingleR / AUCell commented out in getSpatialSeuratMarkersAndAnnotate

@@ -46,27 +46,48 @@ EzAppScSeurat <-
           if (on(param$sctype.enabled)) "Ianevski, A., Giri, A.K. & Aittokallio, T. Fully-automated and ultra-fast cell-type identification using specific marker combinations from single-cell transcriptomic data. Nature Communications 13, 1246 (2022). https://doi.org/10.1038/s41467-022-28803-w",
           if (on(param$mLLMCelltype)) "Yang et al. Large language model consensus substantially improves the cell type annotation accuracy for scRNA-seq data. Communications Biology (2026). https://doi.org/10.1038/s42003-026-10420-8",
           if (on(param$CyteTypeR)) "Ahuja, G. et al. Multi-agent AI enables evidence-based cell annotation in single-cell transcriptomics. bioRxiv (2025) [preprint, not peer-reviewed]. https://doi.org/10.1101/2025.11.06.686964",
+          if (ezIsSpecified(param$Azimuth) && !identical(param$Azimuth, "none")) "Hao, Y. et al. Integrated analysis of multimodal single-cell data. Cell 184, 3573-3587 (2021). https://doi.org/10.1016/j.cell.2021.04.048",
           if (on(param$AzimuthPanHuman) && methodsSpeciesIs(param, "Human")) "Satija Lab. Pan-Human Azimuth. https://satijalab.org/pan_human_azimuth/ [preprint referenced on this page could not be independently verified]"
         )
       },
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals().
       methods_facts = function(param = list()) {
         humanMouse <- methodsSpeciesIs(param, c("Human", "Mouse"))
+        qc <- methodsQcFields(param, c("nUMI", "ngenes", "perc_mito", "perc_riboprot"))
+        on <- function(x) isTRUE(as.logical(x))
         c(
+          ## getSeuratMarkersAndAnnotate -> querySignificantClusterAnnotationEnrichR (app-ScSeurat.R)
+          if (humanMouse && ezIsSpecified(param$enrichrDatabase)) "Each cluster's significant markers were queried against the enrichrDatabase libraries with the Enrichr web service; terms with an adjusted p-value below 0.001 and more than 3 overlapping genes were kept, the top 5 per library and cluster.",
+          ## cellsLabelsWithAUC + createCellMarker2_GeneSets (scTools.R)
+          if (humanMouse && ezIsSpecified(param$tissue)) "Cells were scored with AUCell (top 5% of ranked genes) against CellMarker 2.0 (2023-09-27 release) gene sets of at least 3 genes for the tissue given in tissue.",
+          ## seuratUtils.R Azimuth::RunAzimuth
+          if (ezIsSpecified(param$Azimuth) && !identical(param$Azimuth, "none")) "Cells were mapped with Azimuth RunAzimuth to the Azimuth reference named in Azimuth, using the RNA counts.",
+          ## sc-type block (app-ScSeurat.R)
+          if (on(param$sctype.enabled)) "Clusters were annotated with scType using the ScTypeDB_full marker database fetched from the sc-type GitHub repository at run time, for the tissue in sctype.tissue (Immune system when it is auto).",
+          ## annotateClustersWithMLLMCelltype / registerFgczVllmProvider (app-ScSeurat.R)
+          if (on(param$mLLMCelltype)) "Clusters were annotated with mLLMCelltype from their 10 top markers by average log2 fold change, using the FGCZ-hosted language model (temperature 0, seed 42).",
+          ## CyteTypeR block (app-ScSeurat.R)
+          if (on(param$CyteTypeR)) "Clusters were annotated with CyteTypeR from markers with Bonferroni-adjusted p below 0.05 and log2 fold change above 0.5; clusters with fewer than 5 such markers were not submitted.",
+          ## panHumanAzimuthPlan / CellRanger-local reuse (scTools.R, app-ScSeurat.R)
+          if (on(param$AzimuthPanHuman) && methodsSpeciesIs(param, "Human")) "Cells were annotated with Pan-Human Azimuth, reusing Cell Ranger's own Pan-Human Azimuth annotation when it covered at least 50% of the barcodes, otherwise through the Azimuth web service.",
           ## ezMethodScSeurat set.seed(38); SCTransform seed.use = 38 (seuratUtils.R)
           "The random seed was set to 38 at the start of the analysis, before doublet detection, and passed to SCTransform (seed.use = 38).",
           ## addCellQcToSeurat
-          "Cells were flagged by fixed thresholds where nUMI, ngenes, perc_mito or perc_riboprot are set; for each of these left empty, cells more than nmad median absolute deviations from the median were flagged instead (nmad app default 3, not on the parameter form; log scale and lower side for UMI and gene counts, upper side for mitochondrial and ribosomal-protein percentage, scater isOutlier). Cells with zero UMIs were always removed.",
+          if (length(qc$fixed)) paste0("Cells were removed at fixed thresholds: ", paste(names(qc$fixed), qc$fixed, sep = " = ", collapse = ", "), " (nUMI and ngenes as minimums, perc_mito and perc_riboprot as maximum percentages)."),
+          if (length(qc$empty) && ezIsSpecified(param$nmad)) paste0("For ", paste(qc$empty, collapse = ", "), ", cells more than ", param$nmad, " median absolute deviations from the median were removed (nmad; log scale and lower side for UMI and gene counts, upper side for percentages; scater isOutlier)."),
+          if (length(qc$empty) && !ezIsSpecified(param$nmad)) paste0("No filter was applied on ", paste(qc$empty, collapse = ", "), " (neither a threshold nor nmad was set)."),
+          "Cells with zero UMIs were always removed.",
           "Mitochondrial, ribosomal-protein and haemoglobin genes were identified by the gene-name patterns ^MT-, ^RPS/^RPL and ^HB[^P] (case-insensitive).",
           ## emptyDrops block in ezMethodScSeurat
           "For CellRanger directory inputs (not HDF5 inputs such as CellBender output) whose raw matrix had more barcodes than the filtered one, DropletUtils emptyDrops (niters = 1e5) was run once without mitochondrial and ribosomal-protein genes and once on all genes, keeping the larger p-value per barcode; cells were removed only when maxEmptyDropPValue is below 1 (app default 1, not on the parameter form), otherwise the p-values were reported as a QC metric only.",
           ## addCellQcToSeurat -> scDblFinder(clusters = TRUE)
-          "Doublets were scored with scDblFinder in cluster-based mode (clusters = TRUE) on the RNA counts of cells passing the QC thresholds, and cells called doublets were removed unless keepDoublets is true (app default false, not on the parameter form); if scDblFinder failed twice, no doublet filtering was applied.",
+          paste0("Doublets were scored with scDblFinder in cluster-based mode (clusters = TRUE) on the RNA counts of cells passing the QC thresholds, and cells called doublets were ", if (isTRUE(as.logical(param$keepDoublets))) "kept (keepDoublets true)" else "removed", "; if scDblFinder failed twice, no doublet filtering was applied."),
           "Genes with no counts in the filtered matrix were dropped; after cell filtering, genes were additionally required to have at least geneMinUMI UMIs in at least the cellsFraction proportion of cells, which removes no gene when cellsFraction is 0.",
           ## addCellCycleToSeurat default method = "cyclone" (scTools.R)
           if (humanMouse) "Cell-cycle phase was assigned with scran cyclone using scran's bundled human or mouse marker pairs.",
           ## seuratStandardSCTPreprocessing (seuratUtils.R)
-          "Counts were normalized with SCTransform on the raw counts (vst.flavor = v2, 3000 variable features, the Seurat default; nfeatures is not passed to SCTransform), regressing out the cell-cycle score difference (S minus G2M) when SCT.regress.CellCycle is true; the SCT assay was used for all downstream steps (a LogNormalize layer, scale factor 10000, was also stored in the RNA assay).",
+          "Counts were normalized with SCTransform on the raw counts (vst.flavor = v2, 3000 variable features, the Seurat default; nfeatures is not passed to SCTransform); the SCT assay was used for all downstream steps (a LogNormalize layer, scale factor 10000, was also stored in the RNA assay).",
+          if (isTRUE(as.logical(param$SCT.regress.CellCycle))) "SCTransform regressed out the cell-cycle score difference (S minus G2M).",
           ## seuratStandardWorkflow (seuratUtils.R)
           "PCA computed 50 components (Seurat default) and the first npcs were used for the neighbour graph, UMAP and t-SNE.",
           "The shared-nearest-neighbour graph used k = 20 (FindNeighbors default); clusters were found with the Louvain algorithm (FindClusters algorithm 1) at resolutions 0.2, 0.4, 0.6, 0.8 and 1.0 plus the resolution parameter, and the clustering at the resolution parameter is the one reported.",
