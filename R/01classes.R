@@ -829,8 +829,10 @@ EzApp <-
         haltedLogs <- Filter(function(f) any(grepl("^Execution halted", readLines(f, warn = FALSE))), jobLogs)
         firstError <- function(fs) {
           l <- unlist(lapply(fs, readLines, warn = FALSE))
-          e <- grep("^Error", l, value = TRUE)
-          substr(if (length(e)) e[1] else "Execution halted", 1, 200)
+          i <- grep("^Error", l)[1]
+          ## "Error in ezSystem(cmd) :" carries its message on the next line
+          e <- if (is.na(i)) "Execution halted" else paste(trimws(l[i:min(i + 1, length(l))]), collapse = " ")
+          substr(e, 1, 200)
         }
         failed <- length(jobLogs) > 0 && length(haltedLogs) == length(jobLogs)   # every job stopped
         partialNote <- if (!failed && length(haltedLogs) > 0)
