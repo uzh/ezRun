@@ -69,3 +69,101 @@ methods_check_numbers <- function(description, config_text, all_text, sample_cou
   }, logical(1))
   unique(toks[flagged])
 }
+
+## A parameter value meaning "step off". "None" is rctdReference's off value.
+METHODS_OFF_VALUE <- "^(false|FALSE|False|0|none|None|NONE|)$"
+METHODS_NEGATION <- "\\b(not|no|without|neither|nor|disabled|skipped|omitted)\\b"
+
+## Per app class: parameter -> lower-case regex of the tool that step runs. When the job's
+## value is off, a Description sentence naming the tool, not negated, is flagged.
+## "a+b" means the step is off only when both are off. Ported from the facts A/B
+## gated.py and extended from the params each methods_facts()/citation() gates on.
+METHODS_OFFSTEP_RULES <- list(
+  ## annotation, ambient-RNA and pathway steps (facts + citation gates)
+  EzAppScSeurat = c(computePathwayTFActivity = "decoupler|dorothea|progeny", SingleR = "singler",
+                    estimateAmbient = "decontx|soupx", enrichrDatabase = "enrichr",
+                    tissue = "aucell|cellmarker", Azimuth = "(?<!pan-human )azimuth",
+                    AzimuthPanHuman = "pan-human azimuth", sctype.enabled = "\\bsctype\\b|sc-type",
+                    mLLMCelltype = "mllmcelltype", CyteTypeR = "cytetype",
+                    SCT.regress.CellCycle = "regress\\w*[^.;]*cell.cycle|cell.cycle[^.;]*regress"),
+  ## integration method and annotation steps
+  EzAppScSeuratCombine = c(computePathwayTFActivity = "decoupler|dorothea|progeny", SingleR = "singler",
+                           enrichrDatabase = "enrichr", tissue = "aucell|cellmarker",
+                           integrationMethod = "harmony|\\bcca\\b|\\brpca\\b|reciprocal pca",
+                           SCT.regress.CellCycle = "regress\\w*[^.;]*cell.cycle|cell.cycle[^.;]*regress"),
+  ## relabelling only; annotation steps
+  EzAppScSeuratCombinedLabelClusters = c(computePathwayTFActivity = "decoupler|dorothea|progeny",
+                                         SingleR = "singler", enrichrDatabase = "enrichr",
+                                         tissue = "aucell|cellmarker"),
+  ## SpotClean, Azimuth and Enrichr
+  EzAppSpatialSeurat = c(spotClean = "spotclean", Azimuth = "azimuth", enrichrDatabase = "enrichr",
+                         SCT.regress.CellCycle = "regress\\w*[^.;]*cell.cycle|cell.cycle[^.;]*regress"),
+  ## batch correction by CCA
+  EzAppSpatialSeuratSlides = c(batchCorrection = "\\bcca\\b|integrat",
+                               SCT.regress.CellCycle = "regress\\w*[^.;]*cell.cycle|cell.cycle[^.;]*regress"),
+  ## SPLIT, co-occurrence FDR, RCTD
+  EzAppXeniumSeurat = c(doSPLIT = "\\bsplit\\b(?! into)", coocFdr = "benjamini",
+                        "rctdFile+rctdReference" = "\\brctd\\b|spacexr"),
+  ## RCTD
+  EzAppVisiumHDSeurat = c("rctdFile+rctdReference" = "\\brctd\\b|spacexr|rctd-py"),
+  ## GO enrichment, LFC shrinkage
+  EzAppDeseq2 = c(runGO = "enricher|\\bgsea\\b|over-representation", useLfcShrink = "\\bashr\\b|lfcshrink"),
+  EzAppEdger = c(runGO = "enricher|\\bgsea\\b|over-representation"),
+  EzAppLimma = c(runGO = "enricher|\\bgsea\\b|over-representation"),
+  ## WNN and TCR clonalCluster
+  EzAppScMultiOmics = c(runWNN = "\\bwnn\\b|weighted nearest", tcrSimilarityMerge = "clonalcluster"),
+  ## sccomp needs replicateGrouping; the DESeq2 test only runs in pseudobulk mode
+  EzAppScSeuratCompare = c(replicateGrouping = "sccomp", pseudoBulkMode = "deseq2|aggregateexpression"),
+  ## velocyto, CRAM, FASTQ subsampling
+  EzAppCellRanger = c(runVeloCyto = "velocyto", keepAlignment = "\\bcram\\b", nReads = "seqtk|subsampl"),
+  EzAppCellRangerMulti = c(keepBam = "\\bcram\\b", nReads = "seqtk|subsampl",
+                           customProbesFile = "customprobesfile|custom probe"),
+  ## probe set, protein panel, CRAM, TIFF splitting
+  EzAppSpaceRanger = c(probesetFile = "probe.set", panelFile = "feature-ref|antibody capture|protein panel",
+                       keepAlignment = "\\bcram\\b", splitTif = "tiffsplit"),
+  ## two-pass mapping, UMI extraction
+  EzAppSTAR = c(twopassMode = "two-pass|twopass", barcodePattern = "umi_tools|\\bumis?\\b"),
+  ## deduplication, bigWig
+  EzAppBismark = c(deduplicate = "deduplicat", generateBigWig = "bigwig"),
+  ## read groups, duplicate marking, BQSR
+  EzAppGatkDnaHaplotyper = c(addReadGroup = "addorreplacereadgroups", markDuplicates = "markduplicates",
+                             knownSitesAvailable = "baserecalibrator|applybqsr|\\bbqsr\\b|recalibrat"),
+  ## VQSR, SnpEff
+  EzAppJoinGenoTypes = c("recalibrateVariants+recalibrateInDels" = "\\bvqsr\\b|variantrecalibrator",
+                         snpEffDB = "snpeff"),
+  ## read-count estimation mode
+  EzAppMetaPhlAn = c(estimateReadCounts = "rel_ab_w_read_stats"),
+  ## AI summaries in the MultiQC report
+  EzAppFastqc = c("generate_ai_summary+per_section_ai_summaries" = "language model|ai-generated|ai summar"),
+  ## PEAR merging of pairs
+  EzAppSamsa2 = c(paired = "\\bpear\\b"),
+  ## GPU
+  EzAppCellBender = c(gpu = "cuda")
+)
+
+methodsParamOff <- function(param, names) {
+  all(vapply(names, function(p) {
+    v <- param[[p]]
+    !is.null(v) && grepl(METHODS_OFF_VALUE, paste(as.character(unlist(v)), collapse = ","))
+  }, logical(1)))
+}
+
+## TRUE when some sentence names the tool and not every such sentence is negated.
+methodsClaims <- function(text, keyword) {
+  sents <- strsplit(tolower(paste(text, collapse = "\n")), "(?<=[.;])\\s+", perl = TRUE)[[1]]
+  hit <- sents[grepl(keyword, sents, perl = TRUE)]
+  length(hit) > 0 && !all(grepl(METHODS_NEGATION, hit, perl = TRUE))
+}
+
+## "param:tool" for each step described in the Description whose parameter was off.
+methods_check_offsteps <- function(description, class_name, param) {
+  rules <- METHODS_OFFSTEP_RULES[[class_name]]
+  if (is.null(rules) || length(param) == 0) return(character(0))
+  text <- tolower(paste(description, collapse = "\n"))
+  out <- character(0)
+  for (p in names(rules)) {
+    if (methodsParamOff(param, strsplit(p, "+", fixed = TRUE)[[1]]) && methodsClaims(text, rules[[p]]))
+      out <- c(out, paste0(p, ":", regmatches(text, regexpr(rules[[p]], text, perl = TRUE))))
+  }
+  out
+}
