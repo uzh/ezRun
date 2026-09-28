@@ -66,6 +66,8 @@ anchors <- list(
        "min\\.pct = ifelse\\(ezIsSpecified\\(param\\$min\\.pct\\), param\\$min\\.pct, 0\\.1\\)", "getSeuratMarkers"),
   list("EzAppScSeurat", list(), "at least 0\\.25 \\(logfc\\.threshold\\)", "R/seuratUtils.R",
        "param\\$logfc\\.threshold,\\s*0\\.25\\s*\\)", "getSeuratMarkers"),
+  list("EzAppDeseq2", list(), "Only the samples of the sample group and the reference group were used in the DESeq2 fit", "R/twoGroups.R",
+       "isSample <- grouping == sampleGroup[\\s\\S]{0,80}x <- x\\[, isSample \\| isRef\\][\\s\\S]*estimateSizeFactors\\(dds, controlGenes = isPresent\\)\\s*dds <- DESeq\\(", "runDeseq2"),
   list("EzAppCellRanger", list(TenXLibrary = "GEX", expectedCells = ""), "no --expect-cells", "R/app-cellRanger.R",
        "if \\(ezIsSpecified\\(param\\$expectedCells\\)\\) \\{\\s*paste0\\(\"--expect-cells=\"", "ezMethodCellRanger"),
   list("EzAppCellRangerMulti", list(TenXLibrary = "GEX", expectedCells = ""), "no expect-cells in config\\.csv", "R/app-cellRangerMulti.R",

@@ -225,7 +225,7 @@ METHODS_STYLE_PATTERN <- paste0(
   "\\bezrun\\b|\\bsushi\\b|",
   "(?<![\\w.])[\\w-]+\\.(?:tsv|csv|h5|h5ad|qs2|rds|html|bam|cram|fastq|fq|gz|txt|json|mtx|loom|bed|gtf|fa|fasta)\\b|",
   "(?<![\\w:/])/[\\w.-]+/[\\w./-]+|(?<![\\w-])--[a-z][\\w-]+|",
-  "\\[not recorded[^]]*\\b(?:any (?:other|additional|further)|beyond)\\b[^]]*\\]|",
+  "\\[not recorded[^]]*\\b(?:any (?:other|additional|further)|beyond)\\b[^]]*\\]|\\[not recorded\\][^.;]*\\bbeyond\\b|",
   "\\b(?:any (?:other|additional|further)|beyond)\\b[^.;]*\\[not recorded\\]")
 methods_check_style <- function(description) {
   text <- tolower(paste(description, collapse = "\n"))
@@ -278,8 +278,9 @@ methodsRunSummary <- function(user_param, input = NULL, sample_count = 1, o_logs
   rb <- strsplit(user_param$refBuild %||% "", "/", fixed = TRUE)[[1]]
   sp <- if ("Species" %in% names(input)) unique(input$Species[nzchar(input$Species)])
   stages <- methodsMartianStages(o_logs)
-  c(if (identical(mode, "DATASET"))
-      paste0(if (n > 1) paste("All", n, "samples were") else "The sample was", " analysed together, in one job.")
+  ## DATASET: no count, an app may use a subset of the input rows (a DE fit keeps two groups;
+  ## a review found "all 43 samples" for a fit on 25)
+  c(if (identical(mode, "DATASET")) "The samples were analysed together, in one job."
     else if (identical(mode, "SAMPLE") && n > 1)
       paste0("Each of the ", n, " samples was analysed separately, in its own job, with the same settings."),
     if (length(rb) >= 3)
@@ -382,9 +383,11 @@ methodsGuardedWrite <- function(app, script_paths, log_paths, sample_count, outp
     resources <- methods_check_resources(description)
     vendor <- methods_check_vendor(description, stages)
     style <- methods_check_style(description)
-    ## style is asked out once, never dropped: its sentences carry the tool and its version
+    ## style is asked out once, not dropped (except a sweeping [not recorded]): its sentences carry the tool and its version
     ## ("DESeq2 1.52.0 within the ezRun framework"), so it is left when the retry keeps it
-    if (!length(numbers) && !length(steps) && !length(resources) && !length(vendor) &&
+    ## a sweeping [not recorded] sentence says nothing, so it is dropped like the others
+    notrec <- grep("not recorded", style, value = TRUE)
+    if (!length(numbers) && !length(steps) && !length(resources) && !length(vendor) && !length(notrec) &&
         (!length(style) || attempt == 2))
       return(list(raw = raw))
     message("write_methods: guards flagged ", length(numbers), " numbers, ", length(steps), " steps, ",
@@ -408,7 +411,7 @@ methodsGuardedWrite <- function(app, script_paths, log_paths, sample_count, outp
   ## cost the whole text; the template only when nothing is left.
   kept <- methodsDropSentences(raw, numbers, c(METHODS_OFFSTEP_RULES[[cls]][sub(":.*$", "", steps)],
                                                vapply(METHODS_MARTIAN_STEPS[vendor], `[`, "", 2)),
-                               resources)
+                               c(resources, notrec))
   if (nzchar(trimws(gsub("(^|\n)#+[^\n]*", "", methodsDescriptionPart(kept))))) {
     message(sprintf("write_methods: dropped the sentences with %d numbers, %d steps, %d resources, %d vendor steps",
                     length(numbers), length(steps), length(resources), length(vendor)))
