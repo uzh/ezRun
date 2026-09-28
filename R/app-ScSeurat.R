@@ -47,7 +47,7 @@ EzAppScSeurat <-
           if (on(param$mLLMCelltype)) "Yang et al. Large language model consensus substantially improves the cell type annotation accuracy for scRNA-seq data. Communications Biology (2026). https://doi.org/10.1038/s42003-026-10420-8",
           if (on(param$CyteTypeR)) "Ahuja, G. et al. Multi-agent AI enables evidence-based cell annotation in single-cell transcriptomics. bioRxiv (2025) [preprint, not peer-reviewed]. https://doi.org/10.1101/2025.11.06.686964",
           if (ezIsSpecified(param$Azimuth) && !identical(param$Azimuth, "none")) "Hao, Y. et al. Integrated analysis of multimodal single-cell data. Cell 184, 3573-3587 (2021). https://doi.org/10.1016/j.cell.2021.04.048",
-          if (on(param$AzimuthPanHuman) && methodsSpeciesIs(param, "Human")) "Satija Lab. Pan-Human Azimuth [preprint referenced on this page could not be independently verified]. https://satijalab.org/pan_human_azimuth/"
+          if (on(param$AzimuthPanHuman) && methodsSpeciesIs(param, "Human")) "Sarkar, S. et al. Organism-scale annotation with Pan-human Azimuth. bioRxiv (2026) [preprint, not peer-reviewed]. https://doi.org/10.64898/2026.07.16.738997"
         )
       },
       ## Seurat defaults quoted here were checked against Seurat 5.5.1 formals().

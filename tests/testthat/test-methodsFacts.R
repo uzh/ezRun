@@ -289,18 +289,141 @@ test_that("gated citations follow the job's parameters", {
   expect_true(has(mg$citation(list(runGSEA = TRUE, species = "hsa")), "limma"))
 })
 
-test_that("every citation() entry ends with exactly one URL, the anchor write_methods matches", {
+## Every reference an app can offer, by class: citation(list()) plus, for a gated
+## citation(param), every long literal of its body (gated entries are absent from list()).
+allCitationEntries <- function() {
+  out <- list()
   for (cls in ls(asNamespace("ezRun"), pattern = "^EzApp")) {
     gen <- get(cls, envir = asNamespace("ezRun"))
     if (!inherits(gen, "refObjectGenerator") || cls == "EzAppSCEVANApp") next  # SCEVAN cannot be instantiated (pre-existing)
     cits <- tryCatch(gen$new()$methods_citations(list()), error = function(e) character(0))
-    ## gated entries are absent from citation(list()): check every reference literal in the body too
     f <- tryCatch(gen$new()$citation, error = function(e) NULL)
     if ("param" %in% names(formals(f))) cits <- union(cits, Filter(function(s) nchar(s) > 60, citationLiterals(body(f))))
+    if (length(cits)) out[[cls]] <- cits
+  }
+  out
+}
+
+test_that("no citation() entry carries an editor's note", {
+  entries <- allCitationEntries()
+  expect_gt(length(entries), 40)
+  for (cls in names(entries)) for (x in entries[[cls]]) {
+    ## "[preprint, not peer-reviewed]" is the one bracket meant for the customer
+    y <- gsub("[preprint, not peer-reviewed]", "", x, fixed = TRUE)
+    expect_false(grepl("[", y, fixed = TRUE) || grepl("could not be|verified", y, ignore.case = TRUE),
+                 label = paste(cls, substr(x, 1, 60)))
+  }
+})
+
+test_that("gated citations offer no reference for a step the app code skips", {
+  has <- function(cits, pattern) any(grepl(pattern, cits))
+  hs <- "Homo_sapiens/GENCODE/GRCh38.p14/Annotation/Release_48-2025-07-03"
+  mm <- "Mus_musculus/GENCODE/GRCm39/Annotation/Release_M37-2025-07-03"
+  dr <- "Danio_rerio/Ensembl/GRCz11/Annotation/Release_110-2023-10-30"
+  sc <- "Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_110-2023-10-30"
+  ## ScSeuratCompare.Rmd: org.Hs/KEGG hsa for Human, org.Mm/mmu for Mouse, no enrichment otherwise
+  cmp <- EzAppScSeuratCompare$new()
+  expect_false(has(cmp$citation(list(refBuild = hs)), "org.Mm.eg.db"))
+  expect_true(has(cmp$citation(list(refBuild = hs)), "org.Hs.eg.db"))
+  expect_false(has(cmp$citation(list(refBuild = mm)), "org.Hs.eg.db"))
+  expect_false(has(cmp$citation(list(refBuild = dr)), "clusterProfiler|KEGG|org\\.(Hs|Mm)"))
+  expect_true(has(cmp$citation(list()), "clusterProfiler"))   # no refBuild: the app infers Human or Mouse
+  ## twoGroups.Rmd: Enrichr results only with runGO, doEnrichr (organism, featureLevel gene) and doPrecomputeEnrichr
+  on <- list(refBuild = hs, featureLevel = "gene", runGO = TRUE, doPrecomputeEnrichr = TRUE)
+  for (app in list(EzAppDeseq2$new(), EzAppEdger$new(), EzAppLimma$new())) {
+    expect_true(has(app$citation(on), "Enrichr"))
+    expect_false(has(app$citation(modifyList(on, list(doPrecomputeEnrichr = FALSE))), "Enrichr"))
+    expect_false(has(app$citation(modifyList(on, list(refBuild = sc))), "Enrichr"))
+    expect_false(has(app$citation(modifyList(on, list(featureLevel = "isoform"))), "Enrichr"))
+    expect_true(has(app$citation(modifyList(on, list(refBuild = sc))), "clusterProfiler"))
+  }
+  ## ScMultiOmics: Signac/ensembldb only when the CountMatrix has ATAC files next to it (findATACFiles)
+  rna <- file.path(tempfile("mo"), "filtered_feature_bc_matrix"); dir.create(rna, recursive = TRUE)
+  atac <- file.path(tempfile("mo"), "filtered_feature_bc_matrix"); dir.create(atac, recursive = TRUE)
+  file.create(file.path(dirname(atac), c("atac_fragments.tsv.gz", "atac_peaks.bed")))
+  mo <- EzAppScMultiOmics$new()
+  pr <- list(refBuild = hs, dataRoot = ""); attr(pr, "input") <- data.frame(`CountMatrix [Link]` = rna, check.names = FALSE)
+  pa <- pr; attr(pa, "input") <- data.frame(`CountMatrix [Link]` = atac, check.names = FALSE)
+  expect_false(has(mo$citation(pr), "Signac|ensembldb"))
+  expect_true(has(mo$citation(pa), "Signac"))
+  expect_true(has(mo$citation(pa), "ensembldb"))
+  expect_true(has(mo$citation(list(refBuild = hs)), "Signac"))  # input unknown: kept
+})
+
+## write_methods always keeps entry 1, so it must be a tool that runs whatever the parameters.
+test_that("the always-kept first citation is a tool that ran, even with the optional step off", {
+  dna <- EzAppDnaBamStats$new()$methods_citations(list(runQualimap = FALSE))
+  expect_match(dna[1], "Rsamtools")                       # getBamMultiMatching, every sample
+  expect_false(any(grepl("Qualimap", dna)))
+  expect_true(any(grepl("Qualimap", EzAppDnaBamStats$new()$methods_citations(list(runQualimap = TRUE)))))
+  fl <- EzAppFlash$new()$methods_citations(list(skipFlash = TRUE))
+  expect_match(fl[1], "fastp")                            # ezMethodFastpTrim, every sample
+  expect_false(any(grepl("FLASH", fl)))
+  expect_true(any(grepl("FLASH", EzAppFlash$new()$methods_citations(list(skipFlash = FALSE)))))
+})
+
+test_that("citations name the registered author and the paper of the step that ran", {
+  has <- function(cits, pattern) any(grepl(pattern, cits))
+  hs <- "Homo_sapiens/GENCODE/GRCh38.p14/Annotation/Release_48-2025-07-03"
+  ## package DOIs: first author as registered (DataCite for 10.18129, Crossref for 10.32614), 2026-09-28
+  creator <- c("10.18129/B9.bioc.Biostrings" = "Pagès", "10.18129/B9.bioc.celldex" = "Aran",
+               "10.18129/B9.bioc.GO.db" = "Carlson", "10.18129/B9.bioc.org.Hs.eg.db" = "Carlson",
+               "10.18129/B9.bioc.org.Mm.eg.db" = "Carlson", "10.18129/B9.bioc.rhdf5" = "Fischer",
+               "10.18129/B9.bioc.Rsamtools" = "Morgan", "10.18129/B9.bioc.seqLogo" = "Bembom",
+               "10.32614/CRAN.package.metap" = "Dewey")
+  entries <- unlist(allCitationEntries(), use.names = FALSE)
+  pkg <- grep("doi.org/10\\.(18129|32614)/", entries, value = TRUE)
+  expect_gt(length(pkg), 8)
+  for (x in pkg) {
+    doi <- sub(".*doi.org/", "", x)
+    expect_true(doi %in% names(creator), label = doi)
+    expect_true(startsWith(x, creator[doi]), label = substr(x, 1, 50))
+  }
+  ## CellBender reads/writes 10x files with DropletUtils but never runs emptyDrops
+  expect_false(has(EzAppCellBender$new()$methods_citations(list()), "EmptyDrops"))
+  ## the nanopore paper only for ONT input
+  hi <- EzAppHifiasm$new()
+  expect_false(has(hi$methods_citations(list(inputType = "HiFi")), "nanopore"))
+  expect_true(has(hi$methods_citations(list(inputType = "ONT")), "nanopore"))
+  ## ScSeuratCombine: the paper of the integration that ran
+  co <- EzAppScSeuratCombine$new()
+  expect_false(has(co$methods_citations(list(integrationMethod = "Harmony")), "Comprehensive Integration"))
+  expect_true(has(co$methods_citations(list(integrationMethod = "Harmony")), "Harmony"))
+  expect_false(has(co$methods_citations(list(integrationMethod = "CCA")), "Harmony"))
+  expect_true(has(co$methods_citations(list(integrationMethod = "RPCA")), "Comprehensive Integration"))
+  expect_false(has(co$methods_citations(list(integrationMethod = "none")), "Harmony|Comprehensive Integration"))
+  expect_false(has(co$methods_citations(list(refBuild = hs, computePathwayTFActivity = FALSE, enrichrDatabase = "")),
+                   "decoupleR|Enrichr"))
+  expect_true(has(co$methods_citations(list(refBuild = hs, computePathwayTFActivity = TRUE, enrichrDatabase = "x")),
+                  "decoupleR"))
+})
+
+## Software with no paper and no registered DOI (checked 2026-09-28 on Crossref,
+## DataCite, Zenodo and the CRAN DOI prefix): the entry ends in its web page instead.
+citationUrlAllowList <- c(
+  "https://www.10xgenomics.com/support/software/cell-ranger",
+  "https://www.10xgenomics.com/support/software/cell-ranger-arc",
+  "https://www.10xgenomics.com/support/software/space-ranger",
+  "https://broadinstitute.github.io/picard/",
+  "https://www.bioinformatics.babraham.ac.uk/projects/fastqc/",
+  "https://github.com/lh3/seqtk",
+  "https://github.com/uzh/ezRun",
+  "https://github.com/10XGenomics/loupeR",
+  "https://github.com/satijalab/seurat-wrappers",
+  "https://github.com/p-gueguen/rctd-py"
+)
+
+test_that("every citation() entry ends with exactly one URL, the anchor write_methods matches", {
+  entries <- allCitationEntries()
+  for (cls in names(entries)) {
+    cits <- entries[[cls]]
     for (x in cits) {
       urls <- regmatches(x, gregexpr("https?://\\S+", x))[[1]]
       expect_length(urls, 1)
       expect_true(endsWith(x, urls), label = paste(cls, substr(x, 1, 40)))
+      ## a DOI where the tool has one; a web page only for allow-listed software
+      expect_true(grepl("^https://doi\\.org/10\\.[0-9]+/\\S+$", urls[1]) || urls[1] %in% citationUrlAllowList,
+                  label = paste(cls, urls[1]))
     }
   }
 })

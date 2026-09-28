@@ -78,10 +78,10 @@ EzAppHifiasm <-
     contains = "EzApp",
     methods = list(
       ## hifiasm unconditional (Cheng 2021); ONT mode (inputType = ONT) is the Cheng 2026 paper.
-      citation = function() {
+      citation = function(param = list()) {
         c(
           "Cheng, H. et al. Haplotype-resolved de novo assembly using phased assembly graphs with hifiasm. Nature Methods 18, 170-175 (2021). https://doi.org/10.1038/s41592-020-01056-5",
-          "Cheng, H. et al. Efficient near-telomere-to-telomere assembly of nanopore simplex reads. Nature 655, 166-173 (2026). https://doi.org/10.1038/s41586-026-10105-6"
+          if (identical(param$inputType, "ONT")) "Cheng, H. et al. Efficient near-telomere-to-telomere assembly of nanopore simplex reads. Nature 655, 166-173 (2026). https://doi.org/10.1038/s41586-026-10105-6"
         )
       },
       methods_facts = function(param = list()) {
