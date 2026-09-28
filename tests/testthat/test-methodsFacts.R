@@ -436,6 +436,23 @@ test_that("a job rerun after a halted attempt counts once, by its latest attempt
                    c("s/x.sh_20220615164150845_e.log", "s/y.sh_sushiID3_2026-01-01--00-00-00_e.log"))
 })
 
+test_that("the writer reads only the latest attempt of the example job", {
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    writeLines("echo job", file.path(sd, "job.sh"))
+    for (st in c("2025-10-14--14-41-53", "2025-10-14--16-50-51")) for (k in c("o", "e"))
+      writeLines(if (st < "2025-10-14--16") c("Error in f(): boom", "Execution halted") else "done",
+                 file.path(sd, sprintf("job.sh_sushiID1_%s_%s.log", st, k)))
+    out <- tempfile("out"); dir.create(out)
+    EzApp$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                              example_script = "job.sh", sample_count = 1)
+    a <- readLines(argsFile)
+    expect_true(any(grepl("16-50-51_e.log", a, fixed = TRUE)))
+    expect_true(any(grepl("16-50-51_o.log", a, fixed = TRUE)))
+    expect_false(any(grepl("14-41-53", a, fixed = TRUE)))   # the superseded, halted attempt
+  })
+})
+
 test_that("a job SLURM killed, or whose traced script stopped before the copy to gStore, failed", {
   ## fixture logs shaped like the archived ones: SUSHI's `set -eux` trace starts with
   ## "+ umask 0002" and a finished job's _e.log ends with the footer's "+ rm -rf <scratch>"

@@ -802,6 +802,9 @@ EzApp <-
             ## job logs archived before the sushiID naming: <script>_<timestamp>_[oe].log
             if (!length(log_paths))
               log_paths <- Sys.glob(file.path(gstore_script_dir, paste0(example_script, "_*_[oe].log")))
+            ## a resubmitted job leaves its halted attempt next to the rerun: send the latest only
+            latest <- sub("_e\\.log$", "", methodsLatestJobLogs(log_paths[grepl("_e\\.log$", log_paths)]))
+            if (length(latest)) log_paths <- log_paths[sub("_[oe]\\.log$", "", log_paths) %in% latest]
           } else {
             all_sh       <- Sys.glob(file.path(gstore_script_dir, "*.sh"))
             script_paths <- all_sh[!isOwnJob(all_sh)]
