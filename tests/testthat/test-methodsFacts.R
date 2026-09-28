@@ -216,6 +216,21 @@ test_that("no citation() entry carries an editor's note", {
   }
 })
 
+## Software with no paper and no registered DOI (checked 2026-09-28 on Crossref,
+## DataCite, Zenodo and the CRAN DOI prefix): the entry ends in its web page instead.
+citationUrlAllowList <- c(
+  "https://www.10xgenomics.com/support/software/cell-ranger",
+  "https://www.10xgenomics.com/support/software/cell-ranger-arc",
+  "https://www.10xgenomics.com/support/software/space-ranger",
+  "https://broadinstitute.github.io/picard/",
+  "https://www.bioinformatics.babraham.ac.uk/projects/fastqc/",
+  "https://github.com/lh3/seqtk",
+  "https://github.com/uzh/ezRun",
+  "https://github.com/10XGenomics/loupeR",
+  "https://github.com/satijalab/seurat-wrappers",
+  "https://github.com/p-gueguen/rctd-py"
+)
+
 test_that("every citation() entry ends with exactly one URL, the anchor write_methods matches", {
   entries <- allCitationEntries()
   for (cls in names(entries)) {
@@ -224,6 +239,9 @@ test_that("every citation() entry ends with exactly one URL, the anchor write_me
       urls <- regmatches(x, gregexpr("https?://\\S+", x))[[1]]
       expect_length(urls, 1)
       expect_true(endsWith(x, urls), label = paste(cls, substr(x, 1, 40)))
+      ## a DOI where the tool has one; a web page only for allow-listed software
+      expect_true(grepl("^https://doi\\.org/10\\.[0-9]+/\\S+$", urls[1]) || urls[1] %in% citationUrlAllowList,
+                  label = paste(cls, urls[1]))
     }
   }
 })

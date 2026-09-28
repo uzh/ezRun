@@ -646,7 +646,7 @@ EzAppFastqc <-
       ## MultiQC/ShortRead run unconditionally; fastp only when max_len1 > 0 (ezMethodFastQC).
       citation = function(param = list()) {
         c(
-          "Andrews, S. FastQC: A Quality Control Tool for High Throughput Sequence Data. (2010). http://www.bioinformatics.babraham.ac.uk/projects/fastqc/",
+          "Andrews, S. FastQC: A Quality Control Tool for High Throughput Sequence Data. (2010). https://www.bioinformatics.babraham.ac.uk/projects/fastqc/",
           "Ewels, P., Magnusson, M., Lundin, S. & Käller, M. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics 32(19), 3047-3048 (2016). https://doi.org/10.1093/bioinformatics/btw354",
           if (is.null(methodsInput(param, "Read Count")) || isTRUE(sum(as.numeric(methodsInput(param, "Read Count"))) > 1e9)) "Morgan, M., Anders, S., Lawrence, M., Aboyoun, P., Pagès, H. & Gentleman, R. ShortRead: a bioconductor package for input, quality assessment and exploration of high-throughput sequence data. Bioinformatics 25(19), 2607-2608 (2009). https://doi.org/10.1093/bioinformatics/btp450",
           if (isTRUE(as.numeric(param$max_len1) > 0)) "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
