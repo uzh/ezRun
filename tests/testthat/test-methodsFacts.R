@@ -719,4 +719,7 @@ test_that("FastQC cites ShortRead only when it subsampled (or when the input is 
   attr(q, "input")$`Read Count` <- "2000000000"
   expect_true(any(grepl("ShortRead", EzAppFastqc$new()$citation(q))))
   expect_true(any(grepl("ShortRead", EzAppFastqc$new()$citation(list()))))
+  ## a known input without a Read Count column: sum(NULL) = 0, ezMethodFastQC never subsamples
+  attr(q, "input") <- data.frame(Name = "S1", `Read1 [File]` = "S1.fastq.gz", check.names = FALSE)
+  expect_false(any(grepl("ShortRead", EzAppFastqc$new()$citation(q))))
 })
