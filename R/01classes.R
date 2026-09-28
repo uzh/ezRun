@@ -869,8 +869,7 @@ EzApp <-
         ## the samples it ran are the "samples" parameter, else the input rows (a review found
         ## "267 samples" for 269). Only for a single job: a SAMPLE-mode run on 3 of 16 input
         ## rows has 3 job scripts, and SUSHI's count is right.
-        userSamples <- methodsParamTable(param_file)$samples
-        nRun <- if (ezIsSpecified(userSamples)) length(strsplit(userSamples, ",")[[1]]) else NROW(attr(param, "input"))
+        nRun <- methodsSamplesRun(methodsParamTable(param_file), attr(param, "input"))
         if ((sample_count %||% 1) <= 1 && nRun > 1) sample_count <- nRun
         ## Facts read from the run's record (methodsRunSummary), for any ezRun version
         summary <- methodsRunSummary(methodsParamTable(param_file), attr(param, "input"), sample_count,

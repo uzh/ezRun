@@ -269,6 +269,22 @@ methods_check_vendor <- function(description, stages) {
   Filter(function(s) methodsClaims(text, METHODS_MARTIAN_STEPS[[s]][2]), stages$skipped)
 }
 
+## The samples a single (DATASET) job ran on: the "samples" parameter, else the input rows;
+## for a two-group comparison only the rows of the compared groups (and baselines), which is
+## all a DE fit uses (a review found "all 43 samples" for a DESeq2 fit on 25).
+methodsSamplesRun <- function(user_param, input = NULL) {
+  s <- user_param$samples
+  rows <- if (ezIsSpecified(s)) strsplit(s, ",")[[1]] else input$Name
+  groups <- unlist(user_param[c("sampleGroup", "refGroup", "sampleGroupBaseline", "refGroupBaseline")])
+  groups <- groups[nzchar(groups)]
+  col <- intersect(c(user_param$grouping, paste(user_param$grouping, "[Factor]")), names(input))
+  if (length(groups) >= 2 && length(col) && "Name" %in% names(input)) {
+    inGroups <- input$Name[input[[col[1]]] %in% groups]
+    return(length(intersect(if (length(rows)) rows else input$Name, inGroups)))
+  }
+  if (length(rows)) length(rows) else NROW(input)
+}
+
 ## Facts about the run itself, read from its record rather than from the code, so they hold
 ## for any ezRun version: how the samples were run (a review found "applied to all 12
 ## samples" for one DATASET job), organism and reference, and the vendor steps that ran.
