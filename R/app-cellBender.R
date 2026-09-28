@@ -10,13 +10,12 @@ EzAppCellBender <-
     "EzAppCellBender",
     contains = "EzApp",
     methods = list(
-      ## CellBender unconditional. DropletUtils gated on either the raw .h5 needing
-      ## to be created, or on multimodal (ATAC "Peaks") input needing filtering.
-      ## rhdf5 unconditional (feature-type inspection runs for every sample).
+      ## CellBender unconditional. rhdf5 unconditional (feature-type inspection runs for
+      ## every sample). DropletUtils is used only to read/write 10x files (read10xCounts,
+      ## write10xCounts); emptyDrops never runs here, so the EmptyDrops paper is not cited.
       citation = function() {
         c(
           "Fleming, S.J. et al. Unsupervised removal of systematic background noise from droplet-based single-cell experiments using CellBender. Nature Methods 20, 1323-1335 (2023). https://doi.org/10.1038/s41592-023-01943-7",
-          "Lun, A.T.L. et al. EmptyDrops: distinguishing cells from empty droplets in droplet-based single-cell RNA sequencing data. Genome Biology 20, 63 (2019). https://doi.org/10.1186/s13059-019-1662-y",
           "Fischer, B. & Pau, G. rhdf5: R Interface to HDF5. R package. https://doi.org/10.18129/B9.bioc.rhdf5"
         )
       },

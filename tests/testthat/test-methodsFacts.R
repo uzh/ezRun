@@ -216,6 +216,42 @@ test_that("no citation() entry carries an editor's note", {
   }
 })
 
+test_that("citations name the registered author and the paper of the step that ran", {
+  has <- function(cits, pattern) any(grepl(pattern, cits))
+  hs <- "Homo_sapiens/GENCODE/GRCh38.p14/Annotation/Release_48-2025-07-03"
+  ## package DOIs: first author as registered (DataCite for 10.18129, Crossref for 10.32614), 2026-09-28
+  creator <- c("10.18129/B9.bioc.Biostrings" = "Pagès", "10.18129/B9.bioc.celldex" = "Aran",
+               "10.18129/B9.bioc.GO.db" = "Carlson", "10.18129/B9.bioc.org.Hs.eg.db" = "Carlson",
+               "10.18129/B9.bioc.org.Mm.eg.db" = "Carlson", "10.18129/B9.bioc.rhdf5" = "Fischer",
+               "10.18129/B9.bioc.Rsamtools" = "Morgan", "10.18129/B9.bioc.seqLogo" = "Bembom",
+               "10.32614/CRAN.package.metap" = "Dewey")
+  entries <- unlist(allCitationEntries(), use.names = FALSE)
+  pkg <- grep("doi.org/10\\.(18129|32614)/", entries, value = TRUE)
+  expect_gt(length(pkg), 8)
+  for (x in pkg) {
+    doi <- sub(".*doi.org/", "", x)
+    expect_true(doi %in% names(creator), label = doi)
+    expect_true(startsWith(x, creator[doi]), label = substr(x, 1, 50))
+  }
+  ## CellBender reads/writes 10x files with DropletUtils but never runs emptyDrops
+  expect_false(has(EzAppCellBender$new()$methods_citations(list()), "EmptyDrops"))
+  ## the nanopore paper only for ONT input
+  hi <- EzAppHifiasm$new()
+  expect_false(has(hi$methods_citations(list(inputType = "HiFi")), "nanopore"))
+  expect_true(has(hi$methods_citations(list(inputType = "ONT")), "nanopore"))
+  ## ScSeuratCombine: the paper of the integration that ran
+  co <- EzAppScSeuratCombine$new()
+  expect_false(has(co$methods_citations(list(integrationMethod = "Harmony")), "Comprehensive Integration"))
+  expect_true(has(co$methods_citations(list(integrationMethod = "Harmony")), "Harmony"))
+  expect_false(has(co$methods_citations(list(integrationMethod = "CCA")), "Harmony"))
+  expect_true(has(co$methods_citations(list(integrationMethod = "RPCA")), "Comprehensive Integration"))
+  expect_false(has(co$methods_citations(list(integrationMethod = "none")), "Harmony|Comprehensive Integration"))
+  expect_false(has(co$methods_citations(list(refBuild = hs, computePathwayTFActivity = FALSE, enrichrDatabase = "")),
+                   "decoupleR|Enrichr"))
+  expect_true(has(co$methods_citations(list(refBuild = hs, computePathwayTFActivity = TRUE, enrichrDatabase = "x")),
+                  "decoupleR"))
+})
+
 ## Software with no paper and no registered DOI (checked 2026-09-28 on Crossref,
 ## DataCite, Zenodo and the CRAN DOI prefix): the entry ends in its web page instead.
 citationUrlAllowList <- c(
