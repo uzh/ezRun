@@ -204,6 +204,16 @@ test_that("a retry returns the second draft only: the appending writer's file is
   })
 })
 
+test_that("backticks the writer adds are removed from the Description", {
+  withTextWriter("Reads were sorted by name with `samtools sort -n` and counted with ``featureCounts``.", function(bin) {
+    out <- tempfile("out"); dir.create(out)
+    EzApp$new()$write_methods(output_dir = out, analysis_name = "T")
+    md <- readMd(out)
+    expect_match(md, "Reads were sorted by name with samtools sort -n and counted with featureCounts.", fixed = TRUE)
+    expect_no_match(md, "`", fixed = TRUE)
+  })
+})
+
 test_that("clean text is kept and the Declaration names LLM_CALLER_MODEL, else the fallback", {
   withTextWriter("Reads were aligned with 3 mismatches.", function(bin) {
     out <- tempfile("out"); dir.create(out)

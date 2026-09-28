@@ -912,6 +912,8 @@ EzApp <-
         if (!is.null(partialNote)) description <- paste0(description, "\n\n", partialNote)
         description <- sub("^\\s*#+ *(Materials and )?Methods *\n+", "", description, perl = TRUE)
         description <- gsub("(^|\n)#{1,3} +", "\\1#### ", description, perl = TRUE)
+        ## the Description is plain prose for a manuscript: no code formatting
+        description <- gsub("`", "", description, fixed = TRUE)
         document <- paste0(
           sprintf("## %s | %s\n\n", analysis_name, format(Sys.time(), "%Y-%m-%d %H:%M")),
           "### Description\n\n", description, "\n\n",
