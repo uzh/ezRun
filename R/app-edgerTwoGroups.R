@@ -81,6 +81,10 @@ EzAppEdger <-
       methods_facts = function(param = list()) {
         known <- length(param) > 0
         runGO <- isTRUE(as.logical(param$runGO))
+        ## twoGroupCountComparison runs ORA then GSEA only when doGo() (runGO and GO columns in the annotation);
+        ## ezGSEA ranks by param$rankMetric and stops for any other value, so no GO fact without one of these
+        rankLabel <- c(log2Ratio = "log2 ratio", pValue = "-log10 p-value", signedPValue = "-log10 p-value signed by the log2 ratio")
+        go <- runGO && length(param$rankMetric) == 1 && isTRUE(param$rankMetric %in% names(rankLabel))
         ## twoGroupCountComparison: a NULL testMethod means glm; deTest is used only for glm
         testMethod <- if (!known) NA else if (is.null(param$testMethod)) "glm" else param$testMethod
         glm <- identical(testMethod, "glm")
@@ -92,7 +96,7 @@ EzAppEdger <-
         c(
           ## backgroundExpression: twoGroups.Rmd:392 log2(xNorm + backgroundExpression); plots-reports.R:31
           paste0("backgroundExpression (", param$backgroundExpression %||% 10, ") is not a filter and removed no genes: it is added to the normalized counts before they are log2-transformed for the report's heatmaps and plots",
-                 ", and it is also the prior count of the edgeR GLM fit", "; gene filtering is the sigThresh presence rule above."),
+                 ", and it is also the prior count of the edgeR GLM fit", "; gene filtering is the sigThresh presence rule described below."),
           ## ngsio.R:117-127 presentFlag = counts > sigThresh (EZ_PARAM_DEFAULTS sigThresh 10);
           ## twoGroupCountComparison (twoGroups.R:87-95, 143-147)
           "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); every gene passing the gene-level transcriptTypes filter (genes whose type is in transcriptTypes, applied after any transcript-to-gene summing) was fitted and tested and has a p-value; presence in at least half of the samples of the sample group or of the reference group only decides which genes enter the reported FDR, the Benjamini-Hochberg adjustment of the edgeR p-values computed by ezRun over the present genes.",
@@ -120,9 +124,9 @@ EzAppEdger <-
           ## runEdger (twoGroups.R:288-292) / runGlm (twoGroups.R:363-371)
           "When the sample group or the reference group had fewer than two samples, the negative-binomial dispersion was fixed at 0.1 instead of being estimated (used by the exact test and the likelihood-ratio test; the QL fit estimates its own).",
           ## compileEnrichmentInput / ezEnricher / ezGSEA (go-analysis.R:153-157, 568-600) -- shared with DESeq2
-          if (runGO) "When GO annotation is available, genes with p-value at or below pValThreshGO and absolute log2 ratio above log2RatioThreshGO were tested for GO over-representation (BP, MF, CC; up-regulated, down-regulated and both separately) with clusterProfiler enricher, using the present genes as universe, Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes, cut-off fdrThreshORA and at least 3 genes per term.",
+          if (go) "When GO annotation was available for the reference, genes with p-value at or below pValThreshGO and absolute log2 ratio above log2RatioThreshGO were tested for GO over-representation (BP, MF, CC; up-regulated, down-regulated and both separately) with clusterProfiler enricher, using the present genes as universe, Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes, cut-off fdrThreshORA and at least 3 genes per term.",
           ## ezGSEA (go-analysis.R:617-660) -- shared with DESeq2
-          if (runGO) "GO gene set enrichment analysis (BP, MF, CC) was run with clusterProfiler GSEA on the present genes ranked by rankMetric (log2 ratio, -log10 p-value, or signed -log10 p-value), with Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes and cut-off fdrThreshGSEA."
+          if (go) paste0("When GO annotation was available for the reference, GO gene set enrichment analysis (BP, MF, CC) was run with clusterProfiler GSEA on the present genes ranked by ", rankLabel[[param$rankMetric]], " (rankMetric ", param$rankMetric, "), with Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes and cut-off fdrThreshGSEA.")
         )
       },
       initialize = function() {

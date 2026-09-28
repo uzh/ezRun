@@ -35,8 +35,8 @@ EzAppScSeuratCompare <-
         noPb <- !is.null(param$pseudoBulkMode) && !pb
         lr <- "LR" %in% param$DE.method
         c(
-          ## set.seed(38) (app-ScSeuratCompare.R:81); sccomp mcmc_seed default sample_seed() = sample(1e5, 1)
-          "The R random seed was set to 38 at the start, and sccomp's sampling seed was drawn from it.",
+          ## set.seed(38) at the start of ezMethodScSeuratCompare
+          "The R random seed was set to 38 at the start.",
           ## subset to the two groups (app-ScSeuratCompare.R:164-168)
           "All analyses used only the cells whose grouping value is sampleGroup or refGroup.",
           ## CellIdentity auto-detection loop (app-ScSeuratCompare.R:121-162)
@@ -44,7 +44,7 @@ EzAppScSeuratCompare <-
           ## refBuild inference from gene-name case (app-ScSeuratCompare.R:92-119); the app declares no refBuild parameter
           "Species for GO and KEGG enrichment was inferred from gene-symbol capitalisation (human when most symbols are all upper case, otherwise mouse), as the app takes no reference parameter.",
           ## sccomp block (app-ScSeuratCompare.R:170-235); sccomp 2.1.30 defaults; column presence and replicate count are data, so they stay conditional
-          if (ezIsSpecified(param$replicateGrouping)) "When the replicateGrouping column is present in the metadata with at least 3 replicates in every condition, cell-type composition was tested with sccomp (formula ~ grouping, pathfinder inference, variability formula ~1 so no differential-variability test), after removing outliers with sccomp_remove_outliers; sccomp_test called effects above a logit fold change of 0.1 at 5% false positives (sccomp defaults).",
+          if (ezIsSpecified(param$replicateGrouping)) "When the replicateGrouping column is present in the metadata with at least 3 replicates in every condition, cell-type composition was tested with sccomp (formula ~ grouping, pathfinder inference, variability formula ~1 so no differential-variability test), after removing outliers with sccomp_remove_outliers; sccomp_test called effects above a logit fold change of 0.1 at 5% false positives (sccomp defaults); sccomp's sampling seed was drawn from the R seed 38 (sccomp's default mcmc_seed is sample(1e5, 1)).",
           ## non-pseudobulk branch: PrepSCTFindMarkers + diffExpressedGenes (app-ScSeuratCompare.R:289-301; seuratUtils.R:706-779)
           if (noPb) sprintf("PrepSCTFindMarkers was run on the subset, and within each cell identity genes were tested between sampleGroup and refGroup cells with Seurat FindMarkers on the SCT assay (RNA as fallback if SCT failed), using %s, the Seurat defaults logfc.threshold 0.1 and min.pct 0.01, and both directions; p-values were Bonferroni-adjusted over all genes (Seurat p_val_adj).",
                             if (lr) "the LR test with DE.regress as latent variables" else "the test in DE.method"),

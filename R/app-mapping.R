@@ -881,7 +881,7 @@ EzAppSTAR <-
           "STAR was run with --outSAMattributes All appended to cmdOptions (unless cmdOptions already set --outSAMattributes) and with a read group whose ID and SM are the sample name; its unsorted output was coordinate-sorted and indexed with samtools.",
           ## app-mapping.R:532-533
           if (isTRUE(as.logical(param$twopassMode))) "STAR ran in per-sample two-pass mode (--twopassMode Basic).",
-          if (isFALSE(as.logical(param$twopassMode))) "STAR ran in one-pass mode (--twopassMode None).",
+          if (isFALSE(as.logical(param$twopassMode))) "STAR ran single-pass (--twopassMode None).",
           ## app-mapping.R:565-590 -> dupBam (bamUtils.R:142)
           if (isTRUE(as.logical(param$markDuplicates))) "Duplicate reads were flagged, not removed, in the delivered BAM with Picard MarkDuplicates (REMOVE_DUPLICATES=false, OPTICAL_DUPLICATE_PIXEL_DISTANCE set to dupDistance, ezRun default 2500, not on the parameter form).",
           ## app-mapping.R:455-497 (extract), app-trim.R:195-208 (trim_front forced 0), app-mapping.R:618-640 (dedup)

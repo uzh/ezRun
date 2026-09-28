@@ -36,13 +36,17 @@ EzAppLimma <-
       },
       methods_facts = function(param = list()) {
         runGO <- isTRUE(as.logical(param$runGO))
+        ## twoGroupCountComparison runs ORA then GSEA only when doGo() (runGO and GO columns in the annotation);
+        ## ezGSEA ranks by param$rankMetric and stops for any other value, so no GO fact without one of these
+        rankLabel <- c(log2Ratio = "log2 ratio", pValue = "-log10 p-value", signedPValue = "-log10 p-value signed by the log2 ratio")
+        go <- runGO && length(param$rankMetric) == 1 && isTRUE(param$rankMetric %in% names(rankLabel))
         c(
           ## backgroundExpression: twoGroups.Rmd:392 log2(xNorm + backgroundExpression); plots-reports.R:31
           paste0("backgroundExpression (", param$backgroundExpression %||% 10, ") is not a filter and removed no genes: it is added to the normalized counts before they are log2-transformed for the report's heatmaps and plots",
-                 "; gene filtering is the sigThresh presence rule above."),
+                 "; gene filtering is the sigThresh presence rule described below."),
           ## runGO -> twoGroupCountComparison ORA/GSEA (twoGroups.R:171-177), shared with DESeq2/edgeR
-          if (runGO) "When GO annotation is available, genes with p-value at or below pValThreshGO and absolute log2 ratio above log2RatioThreshGO were tested for GO over-representation (BP, MF, CC; up-regulated, down-regulated and both separately) with clusterProfiler enricher, using the present genes as universe, Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes, cut-off fdrThreshORA and at least 3 genes per term.",
-          if (runGO) "GO gene set enrichment analysis (BP, MF, CC) was run with clusterProfiler GSEA on the present genes ranked by rankMetric (log2 ratio, -log10 p-value, or signed -log10 p-value), with Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes and cut-off fdrThreshGSEA.",
+          if (go) "When GO annotation was available for the reference, genes with p-value at or below pValThreshGO and absolute log2 ratio above log2RatioThreshGO were tested for GO over-representation (BP, MF, CC; up-regulated, down-regulated and both separately) with clusterProfiler enricher, using the present genes as universe, Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes, cut-off fdrThreshORA and at least 3 genes per term.",
+          if (go) paste0("When GO annotation was available for the reference, GO gene set enrichment analysis (BP, MF, CC) was run with clusterProfiler GSEA on the present genes ranked by ", rankLabel[[param$rankMetric]], " (rankMetric ", param$rankMetric, "), with Benjamini-Hochberg adjustment, gene sets of 10 to 500 genes and cut-off fdrThreshGSEA."),
           ## ngsio.R:117-127; twoGroupCountComparison (twoGroups.R:87-95, 143-147)
           "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); every gene was fitted and tested and has a p-value; presence in at least half of the samples of the sample group or of the reference group only decides which genes enter the reported FDR, which is the Benjamini-Hochberg adjustment of the limma p-values over these genes, computed by ezRun rather than taken from limma's adj.P.Val.",
           ## runLimma (twoGroups.R:421-431); calcNormFactors default method TMM
