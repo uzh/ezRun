@@ -41,6 +41,11 @@ EzAppLimma <-
             Type = "numeric",
             DefaultValue = 10,
             Description = "prior count to be added to shrink the log-fold-changes"
+          ),
+          rankMetric = ezFrame(
+            Type = "character",
+            DefaultValue = 'log2Ratio',
+            Description = "how to rank genes for GSEA"
           )
         )
       }

@@ -10,3 +10,10 @@ test_that("runLimma returns statistics in the input gene order", {
     expect_gt(res$log2FoldChange[50], 3)
   }
 })
+
+test_that("LimmaApp has a rankMetric default, which ezGSEA needs when runGO is on", {
+  ## LimmaApp.rb sends no rankMetric; without an appDefaults entry ezGSEA stops at
+  ## go-analysis.R `if(param$rankMetric == "log2Ratio")` (argument of length zero).
+  p <- ezParam(list(runGO = "true"), appDefaults = EzAppLimma$new()$appDefaults)
+  expect_identical(p$rankMetric, "log2Ratio")
+})
