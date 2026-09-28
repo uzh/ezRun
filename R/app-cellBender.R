@@ -44,8 +44,8 @@ EzAppCellBender <-
                        "--total-droplets-included" = "the number of droplets included in the analysis")
         estimated <- estimated[!vapply(names(estimated), given, logical(1))]
         c(
-          ## ezMethodCellBender input path: UnfilteredCountMatrix, else raw_feature_bc_matrix of the multi output (app-cellBender.R:150-171)
-          "CellBender was run on the unfiltered (raw) droplet count matrix including empty droplets (for CellRanger Multi input without an UnfilteredCountMatrix column, the library-level raw matrix of the pool), not on the cell-filtered matrix.",
+          ## ezMethodCellBender input path: UnfilteredCountMatrix, else multi/count/raw_feature_bc_matrix, else count/sample_raw_feature_bc_matrix
+          "CellBender was run on the unfiltered (raw) droplet count matrix including empty droplets (for CellRanger Multi input without an UnfilteredCountMatrix column, the library-level raw matrix of the pool, or the sample's raw matrix when the pool has none), not on the cell-filtered matrix.",
           ## dropPeaksFromH5 (app-cellBender.R:99-136), called at app-cellBender.R:204
           "Only if the input contained ATAC Peaks features (the log then says \"Dropping Peaks (ATAC) for CellBender\"; otherwise this step did nothing and must not be described): those were removed before CellBender, and all other feature types were kept and processed together.",
           ## command line built at app-cellBender.R:206-221

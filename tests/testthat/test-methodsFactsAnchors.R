@@ -333,7 +333,10 @@ anchors <- list(
   list("EzAppScMultiOmics", list(), "Clone identity in combineExpression followed cloneCallTCR for both TCR and BCR", "R/multiOmicsUtils.R",
        "effectiveClone <- cloneCallTCR[\\s\\S]*cloneCall = effectiveClone", "processVDJ"),
   list("EzAppSTAR", list(), "fastp polyG tail trimming was not set by the wrapper", "R/app-trim.R", "!trim_poly_g|poly_g_min_len", "ezMethodFastpTrim"),
-  list("EzAppKallisto", list(), "fastp polyG tail trimming was not set by the wrapper", "R/app-trim.R", "!trim_poly_g|poly_g_min_len", "ezMethodFastpTrim")
+  list("EzAppKallisto", list(), "fastp polyG tail trimming was not set by the wrapper", "R/app-trim.R", "!trim_poly_g|poly_g_min_len", "ezMethodFastpTrim"),
+  list("EzAppCellBender", list(cmdOptions = "", gpu = 0), "without an UnfilteredCountMatrix column, the library-level raw matrix of the pool, or the sample's raw matrix when the pool has none",
+       "R/app-cellBender.R", "\"UnfilteredCountMatrix\" %in% input\\$colNames[\\s\\S]*\"multi/count/raw_feature_bc_matrix\"[\\s\\S]*if \\(!file\\.exists\\(cmDir\\)\\)[\\s\\S]*\"count/sample_raw_feature_bc_matrix\"",
+       "ezMethodCellBender")
 )
 
 test_that("every fact that states a literal code value still matches the code", {
