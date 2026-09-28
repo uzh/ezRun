@@ -74,37 +74,44 @@ methods_check_numbers <- function(description, config_text, all_text, sample_cou
 
 ## A parameter value meaning "step off". "None" is rctdReference's off value.
 METHODS_OFF_VALUE <- "^(false|FALSE|False|0|none|None|NONE|)$"
-METHODS_NEGATION <- "\\b(not|no|without|neither|nor|disabled|skipped|omitted|single-pass)\\b"
+## "none"/"= false"/"switched off": the tool named with its off value ("SingleR was set to
+## 'none'") is a true sentence, not a claim; "false" only as a value, so a false discovery
+## rate still reads as a claim.
+METHODS_NEGATION <- paste0("\\b(not|no|none|without|neither|nor|disabled|skipped|omitted|single-pass)\\b|",
+                           "(=|\\bset to|\\bwas|\\bwere)\\s*['\"]?false\\b|\\b(switched|turned|set) off\\b")
 
 ## Per app class: parameter -> lower-case regex of the tool that step runs. When the job's
 ## value is off, a Description sentence naming the tool, not negated, is flagged.
 ## "a+b" means the step is off only when both are off. Ported from the facts A/B
 ## gated.py and extended from the params each methods_facts()/citation() gates on.
+## Tool names inside Enrichr library names (Azimuth_Cell_Types_2021, CellMarker_2024) and
+## generic words (split, integrated, UMI, Benjamini-Hochberg) are not claims.
 METHODS_OFFSTEP_RULES <- list(
   ## annotation, ambient-RNA and pathway steps (facts + citation gates)
   EzAppScSeurat = c(computePathwayTFActivity = "decoupler|dorothea|progeny", SingleR = "singler",
                     estimateAmbient = "decontx|soupx", enrichrDatabase = "enrichr",
-                    tissue = "aucell|cellmarker", Azimuth = "(?<!pan-human )azimuth(?!_\\d)",
+                    tissue = "aucell|(?<!_)cellmarker(?!_)", Azimuth = "(?<!pan-human )(?<!_)azimuth(?![_\\w]|[ _]cell[ _]types)",
                     AzimuthPanHuman = "pan-human azimuth", sctype.enabled = "\\bsctype\\b|sc-type",
                     mLLMCelltype = "mllmcelltype", CyteTypeR = "cytetype",
                     SCT.regress.CellCycle = "regress\\w*[^.;]*cell.cycle|cell.cycle[^.;]*regress"),
   ## integration method and annotation steps
   EzAppScSeuratCombine = c(computePathwayTFActivity = "decoupler|dorothea|progeny", SingleR = "singler",
-                           enrichrDatabase = "enrichr", tissue = "aucell|cellmarker",
+                           enrichrDatabase = "enrichr", tissue = "aucell|(?<!_)cellmarker(?!_)",
                            integrationMethod = "harmony|\\bcca\\b|\\brpca\\b|reciprocal pca",
                            SCT.regress.CellCycle = "regress\\w*[^.;]*cell.cycle|cell.cycle[^.;]*regress"),
   ## relabelling only; annotation steps
   EzAppScSeuratCombinedLabelClusters = c(computePathwayTFActivity = "decoupler|dorothea|progeny",
                                          SingleR = "singler", enrichrDatabase = "enrichr",
-                                         tissue = "aucell|cellmarker"),
+                                         tissue = "aucell|(?<!_)cellmarker(?!_)"),
   ## SpotClean, Azimuth and Enrichr
-  EzAppSpatialSeurat = c(spotClean = "spotclean", Azimuth = "azimuth(?!_\\d)", enrichrDatabase = "enrichr",
+  EzAppSpatialSeurat = c(spotClean = "spotclean", Azimuth = "(?<!_)azimuth(?![_\\w]|[ _]cell[ _]types)", enrichrDatabase = "enrichr",
                          SCT.regress.CellCycle = "regress\\w*[^.;]*cell.cycle|cell.cycle[^.;]*regress"),
   ## batch correction by CCA
-  EzAppSpatialSeuratSlides = c(batchCorrection = "\\bcca\\b|integrat",
+  EzAppSpatialSeuratSlides = c(batchCorrection = "\\bcca\\b|canonical correlation|integration anchors|findintegrationanchors|integratedata|integratelayers|batch.correct",
                                SCT.regress.CellCycle = "regress\\w*[^.;]*cell.cycle|cell.cycle[^.;]*regress"),
   ## SPLIT, co-occurrence FDR, RCTD
-  EzAppXeniumSeurat = c(doSPLIT = "\\bsplit\\b(?! into)", coocFdr = "benjamini",
+  EzAppXeniumSeurat = c(doSPLIT = "spatial purification|split-purified|\\bsplit (\\(|version|algorithm|method|spatial|purif)|(using|with|after|via) (the )?split\\b",
+                        coocFdr = "co-?occurrence[^.;]*benjamini|benjamini[^.;]*co-?occurrence",
                         "rctdFile+rctdReference" = "\\brctd\\b|spacexr"),
   ## RCTD
   EzAppVisiumHDSeurat = c("rctdFile+rctdReference" = "\\brctd\\b|spacexr|rctd-py"),
@@ -124,7 +131,7 @@ METHODS_OFFSTEP_RULES <- list(
   EzAppSpaceRanger = c(probesetFile = "probe.set", panelFile = "feature-ref|antibody capture|protein panel",
                        keepAlignment = "\\bcram\\b", splitTif = "tiffsplit"),
   ## two-pass mapping, UMI extraction
-  EzAppSTAR = c(twopassMode = "two-pass|twopass", barcodePattern = "umi_tools|\\bumis?\\b"),
+  EzAppSTAR = c(twopassMode = "two-pass|twopassmode\\W+basic", barcodePattern = "umi_tools|umi-tools|umitools"),
   ## deduplication, bigWig
   EzAppBismark = c(deduplicate = "deduplicat", generateBigWig = "bigwig"),
   ## read groups, duplicate marking, BQSR

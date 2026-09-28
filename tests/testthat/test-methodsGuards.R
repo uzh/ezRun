@@ -90,6 +90,42 @@ test_that("a step described while its parameter was off is flagged, per class", 
                                        list(Azimuth = "none", AzimuthPanHuman = TRUE)), 0)
 })
 
+test_that("true sentences about an off step are not flagged, and the step's claims still are", {
+  ## class, parameters set off, true sentences (guards-7, eval-2, facts-2: archived texts), a claim
+  cases <- list(
+    list("EzAppScSeurat", list(SingleR = "none", Azimuth = "none"),
+         c("SingleR was set to 'none'.", "SingleR annotation was set to \"none\".", "Azimuth and SingleR annotation were both set to none.",
+           "Cell-type annotation used Azimuth (set to 'none') and SingleR (set to 'none').", "SingleR = none; Azimuth was switched off."),
+         "Cells were annotated with SingleR."),
+    list("EzAppSpatialSeurat", list(Azimuth = "none", spotClean = FALSE),
+         c("Markers were queried against the Enrichr databases Azimuth_Cell_Types_2021 and PanglaoDB_Augmented_2021.",
+           "Markers were queried against the Azimuth Cell Types 2021 and Human Gene Atlas databases.",
+           "The Azimuth reference-based label transfer was set to none.", "spotClean = false;"),
+         "Cells were mapped to the Azimuth reference."),
+    list("EzAppScSeurat", list(tissue = ""), "Markers were queried against the Enrichr library CellMarker_Augmented_2021.",
+         "Cells were scored with AUCell against CellMarker gene sets."),
+    list("EzAppSTAR", list(twopassMode = FALSE, barcodePattern = ""),
+         c("STAR ran in one-pass mode (--twopassMode None).", "Reads were aligned in one-pass mode.",
+           "Reads with fewer than 10 UMIs were counted by STARsolo."),
+         c("STAR ran in two-pass mode (--twopassMode Basic).", "UMIs were extracted with umi_tools.")),
+    list("EzAppXeniumSeurat", list(doSPLIT = FALSE, coocFdr = FALSE),
+         c("The data were split by sample before clustering.", "Marker p-values were corrected with the Benjamini-Hochberg method."),
+         c("Spatial purification was performed using SPLIT (version 0.1.2).", "The purified counts were re-annotated with RCTD after SPLIT.",
+           "Co-occurrence p-values were corrected with the Benjamini-Hochberg method.")),
+    list("EzAppSpatialSeuratSlides", list(batchCorrection = FALSE),
+         "The reported UMAP and clusters came from the integrated assay.",
+         c("Slides were integrated with Seurat CCA anchors.", "Slides were combined with FindIntegrationAnchors and IntegrateData.")),
+    list("EzAppGatkDnaHaplotyper", list(markDuplicates = FALSE), "markDuplicates = false;", "Duplicates were marked with MarkDuplicates.")
+  )
+  for (x in cases) {
+    for (t in x[[3]]) expect_identical(methods_check_offsteps(t, x[[1]], x[[2]]), character(0), label = t)
+    for (t in x[[4]]) expect_length(methods_check_offsteps(t, x[[1]], x[[2]]), 1)
+  }
+  ## a false discovery rate is not a negation: the one real arm-A hit (eval-2) stays flagged
+  expect_length(methods_check_offsteps("The false discovery rate threshold for over-representation analysis was set to 0.05.",
+                                       "EzAppDeseq2", list(runGO = FALSE)), 1)
+})
+
 ## Stand-in for llm_write_methods that writes `text` to methods.md and exits with `exit`;
 ## call n writes text[n] (the last one once they run out). Like the deployed CLI
 ## (llm_write_methods 0.9:320-322) it APPENDS to --output, after a 72-dash rule when the
