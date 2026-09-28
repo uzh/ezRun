@@ -190,14 +190,36 @@ test_that("gated citations follow the job's parameters", {
   expect_true(has(mg$citation(list(runGSEA = TRUE, species = "hsa")), "limma"))
 })
 
-test_that("every citation() entry ends with exactly one URL, the anchor write_methods matches", {
+## Every reference an app can offer, by class: citation(list()) plus, for a gated
+## citation(param), every long literal of its body (gated entries are absent from list()).
+allCitationEntries <- function() {
+  out <- list()
   for (cls in ls(asNamespace("ezRun"), pattern = "^EzApp")) {
     gen <- get(cls, envir = asNamespace("ezRun"))
     if (!inherits(gen, "refObjectGenerator") || cls == "EzAppSCEVANApp") next  # SCEVAN cannot be instantiated (pre-existing)
     cits <- tryCatch(gen$new()$methods_citations(list()), error = function(e) character(0))
-    ## gated entries are absent from citation(list()): check every reference literal in the body too
     f <- tryCatch(gen$new()$citation, error = function(e) NULL)
     if ("param" %in% names(formals(f))) cits <- union(cits, Filter(function(s) nchar(s) > 60, citationLiterals(body(f))))
+    if (length(cits)) out[[cls]] <- cits
+  }
+  out
+}
+
+test_that("no citation() entry carries an editor's note", {
+  entries <- allCitationEntries()
+  expect_gt(length(entries), 40)
+  for (cls in names(entries)) for (x in entries[[cls]]) {
+    ## "[preprint, not peer-reviewed]" is the one bracket meant for the customer
+    y <- gsub("[preprint, not peer-reviewed]", "", x, fixed = TRUE)
+    expect_false(grepl("[", y, fixed = TRUE) || grepl("could not be|verified", y, ignore.case = TRUE),
+                 label = paste(cls, substr(x, 1, 60)))
+  }
+})
+
+test_that("every citation() entry ends with exactly one URL, the anchor write_methods matches", {
+  entries <- allCitationEntries()
+  for (cls in names(entries)) {
+    cits <- entries[[cls]]
     for (x in cits) {
       urls <- regmatches(x, gregexpr("https?://\\S+", x))[[1]]
       expect_length(urls, 1)
