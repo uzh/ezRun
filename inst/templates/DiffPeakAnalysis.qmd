@@ -6,7 +6,9 @@ title: "`r params$reportTitle`"
 
 <!-- Styling comes from the fgczQuartoTemplate assets staged next to this file
      (_metadata.yml is applied by Quarto automatically). ezRun stages them via
-     makeQuartoReport(), which calls fgczQuartoTemplate::fgcz_render(). -->
+     makeQuartoReport(), which calls fgczQuartoTemplate::fgcz_render().
+     All statistics are computed in ezMethodDiffPeakAnalysis; this report only
+     reads the saved objects and draws them. -->
 
 ```{r setup}
 #| include: false
@@ -24,8 +26,8 @@ library(RColorBrewer)
 library(DT)
 library(htmltools)
 
-## ── Data loading (qs2 with rds fallback, checks data/ first) ──────────────
-.fgcz_load <- function(name, nthreads = 4L) {
+## -- Data loading (qs2 with rds fallback, checks data/ first) ---------------
+.fgcz_load <- function(name, nthreads = 4L, optional = FALSE) {
   paths <- c(
     file.path("data", paste0(name, ".qs2")),
     paste0(name, ".qs2"),
@@ -38,52 +40,47 @@ library(htmltools)
       return(readRDS(p))
     }
   }
+  if (optional) return(NULL)
   stop("No .qs2 or .rds file found for: ", name)
 }
 
-dds      <- .fgcz_load("dds")
-peakAnno <- .fgcz_load("peakAnno")
-param    <- .fgcz_load("param")
-output   <- .fgcz_load("output")
+mlDds     <- .fgcz_load("dds")
+vsd       <- .fgcz_load("vsd")
+peakTable <- .fgcz_load("peakTable")
+deseqInfo <- .fgcz_load("deseqInfo")
+param     <- .fgcz_load("param")
+output    <- .fgcz_load("output")
+normDiag  <- .fgcz_load("normDiag", optional = TRUE)
+peakGc    <- .fgcz_load("peakGc", optional = TRUE)
+motifRes  <- .fgcz_load("motifRes", optional = TRUE)
+goRes     <- .fgcz_load("goRes", optional = TRUE)
+profiles  <- .fgcz_load("profiles", optional = TRUE)
 
-sampleGroup  <- param$sampleGroup
-refGroup     <- param$refGroup
-lfcThreshold <- 1
-fdrThreshold <- 0.05
-
-## Robust fit (handles comparisons without replicates and an optional blocking
-## factor for paired testing); see ezRun app code.
-deseqOut     <- runDiffPeakDESeq(dds, sampleGroup, refGroup, peakAnno,
-                                 grouping2Name = param$grouping2)
-mlDds        <- deseqOut$dds
-res          <- deseqOut$res
-noReplicates <- deseqOut$noReplicates
-blockingUsed <- isTRUE(deseqOut$blockingUsed)
-grouping2Name <- deseqOut$grouping2Name
-
-peakTable <- makeDiffPeakTable(res, noReplicates, lfcThreshold, fdrThreshold)
-hasAnno   <- "geneName" %in% colnames(peakTable)
-
-## Variance-stabilized signal, computed once and reused by PCA and the heatmap.
-vsd <- diffPeakVST(mlDds, noReplicates)
+sampleGroup   <- param$sampleGroup
+refGroup      <- param$refGroup
+lfcThreshold  <- param$lfcThreshold
+fdrThreshold  <- param$fdrThreshold
+noReplicates  <- isTRUE(deseqInfo$noReplicates)
+blockingUsed  <- isTRUE(deseqInfo$blockingUsed)
+grouping2Name <- deseqInfo$grouping2Name
+hasAnno       <- "geneName" %in% colnames(peakTable)
+hasShrunk     <- "log2FoldChange_shrunk" %in% colnames(peakTable) &&
+  any(!is.na(peakTable$log2FoldChange_shrunk))
 
 groupColors <- c("#009E73", "#CC79A7")
 names(groupColors) <- c(refGroup, sampleGroup)
+dirColors <- c("up" = "#D55E00", "down" = "#0072B2")
 
-## ── Summary counts ────────────────────────────────────────────────────────
+## -- Summary counts ---------------------------------------------------------
 nTested   <- sum(!is.na(peakTable$log2FoldChange))
 nCand     <- sum(peakTable$candidate, na.rm = TRUE)
 nUp       <- sum(peakTable$candidate & peakTable$direction == "up", na.rm = TRUE)
 nDown     <- sum(peakTable$candidate & peakTable$direction == "down", na.rm = TRUE)
 
-## ── Full result table for download ────────────────────────────────────────
+## Full result table for download, written by the app
 resultsFile <- "differential_peaks.txt"
-utils::write.table(
-  peakTable |> dplyr::arrange(padj),
-  file = resultsFile, sep = "\t", quote = FALSE, row.names = FALSE
-)
 
-## ── Candidate gene lists for Enrichr ──────────────────────────────────────
+## -- Candidate gene lists for Enrichr ---------------------------------------
 candGenes <- function(dir = NULL) {
   if (!hasAnno) return(character(0))
   tbl <- peakTable |> dplyr::filter(candidate)
@@ -110,12 +107,12 @@ enrichrForm <- function(genes, description, label, maxGenes = 500L) {
     tags$button(
       type = "submit",
       style = "padding:6px 12px; cursor:pointer; border-radius:6px; border:1px solid #888;",
-      paste0(label, " (", length(genes), " genes) → Enrichr")
+      paste0(label, " (", length(genes), " genes) &rarr; Enrichr") |> HTML()
     )
   )
 }
 
-## ── Plot helpers (right-sized, single comparison) ─────────────────────────
+## -- Plot helpers (right-sized, single comparison) --------------------------
 compLabel <- paste(sampleGroup, "vs", refGroup)
 
 plotVolcano <- function() {
@@ -162,6 +159,9 @@ plotMA <- function() {
     geom_hline(yintercept = c(-lfcThreshold, lfcThreshold),
                linetype = "dashed", color = "grey40") +
     geom_hline(yintercept = 0, color = "grey30") +
+    geom_smooth(aes(group = 1), method = "loess", se = FALSE, color = "black",
+                linewidth = 0.8,
+                data = d[sample(nrow(d), min(nrow(d), 20000)), ]) +
     labs(x = expression(Log[10]~mean~normalized~count),
          y = expression(Log[2]~fold~change), title = paste("MA:", compLabel)) +
     theme_bw(base_size = 11) + theme(plot.title = element_text(hjust = 0.5))
@@ -171,9 +171,9 @@ plotPca <- function() {
   pcaData <- DESeq2::plotPCA(vsd, intgroup = "Condition", returnData = TRUE)
   pv <- round(100 * attr(pcaData, "percentVar"))
   ## when a blocking factor was used, encode it as point shape
-  if (blockingUsed && "grouping2" %in% colnames(SummarizedExperiment::colData(mlDds))) {
+  if (blockingUsed && "grouping2" %in% colnames(SummarizedExperiment::colData(vsd))) {
     pcaData$block <- as.character(
-      SummarizedExperiment::colData(mlDds)[pcaData$name, "grouping2"])
+      SummarizedExperiment::colData(vsd)[pcaData$name, "grouping2"])
     p <- ggplot(pcaData, aes(PC1, PC2, color = group, shape = block, label = name)) +
       geom_point(size = 3) +
       scale_shape_discrete(name = grouping2Name)
@@ -210,7 +210,7 @@ plotHeat <- function() {
   rowSd <- apply(mat, 1, stats::sd)
   mat <- mat[is.finite(rowSd) & rowSd > 0, , drop = FALSE]
   if (nrow(mat) < 2) return(NULL)
-  annotation_col <- data.frame(Condition = mlDds$Condition,
+  annotation_col <- data.frame(Condition = vsd$Condition,
                                row.names = colnames(mat))
   caption <- if (capped) {
     paste0("Row z-scored VST of the top ", nrow(mat), " of ", nCandTotal,
@@ -272,6 +272,119 @@ plotTssDist <- function() {
          title = "Distance of peaks to nearest TSS") +
     theme_bw(base_size = 11) + theme(plot.title = element_text(hjust = 0.5))
 }
+
+## -- Motifs -----------------------------------------------------------------
+plotMotifDots <- function(tab, direction, nTop = 20) {
+  if (is.null(tab) || nrow(tab) == 0) return(NULL)
+  d <- head(tab[order(-tab$log10P), ], nTop)
+  d$label <- factor(d$motif, levels = rev(unique(d$motif)))
+  ggplot(d, aes(log2(enrichment), label)) +
+    geom_segment(aes(x = 0, xend = log2(enrichment), yend = label),
+                 color = "grey80") +
+    geom_point(aes(size = pctTarget, fill = pmin(log10P, 300)), shape = 21,
+               color = "white") +
+    scale_fill_gradient(low = "#C6DBEF", high = "#08306B",
+                        name = expression(-log[10]~p)) +
+    scale_size_area(max_size = 7, name = "% targets") +
+    guides(size = guide_legend(override.aes = list(fill = "grey50"))) +
+    geom_vline(xintercept = 0, color = "grey50") +
+    labs(x = expression(log[2]~("% targets" / "% background")), y = NULL,
+         title = paste0("Top known motifs, ", direction, " candidates")) +
+    theme_bw(base_size = 11) + theme(plot.title = element_text(hjust = 0.5))
+}
+
+motifTable <- function(tab, nTop = 100) {
+  if (is.null(tab) || nrow(tab) == 0) return(NULL)
+  d <- head(tab[order(-tab$log10P), ], nTop)
+  d <- d[, c("rank", "motif", "family", "consensus", "log10P", "qValue",
+             "pctTarget", "pctBackground", "enrichment", "source")]
+  colnames(d) <- c("Rank", "Motif", "Family", "Consensus", "-log10 p", "q-value",
+                   "% targets", "% background", "Enrichment", "Source")
+  ezInteractiveTableRmd(d, digits = 3)
+}
+
+motifLink <- function(direction) {
+  dirName <- motifRes$dirs[[direction]]
+  links <- list()
+  if (file.exists(file.path(dirName, "knownResults.html"))) {
+    links <- c(links, list(tags$a(href = file.path(dirName, "knownResults.html"),
+      target = "_blank", "HOMER known-motif report (with logos)")))
+  }
+  if (file.exists(file.path(dirName, "homerResults.html"))) {
+    links <- c(links, list(" | ", tags$a(href = file.path(dirName, "homerResults.html"),
+      target = "_blank", "HOMER de novo motifs")))
+  }
+  if (length(links) == 0) return(NULL)
+  tags$p(links)
+}
+
+## -- Signal profiles --------------------------------------------------------
+plotMetaProfile <- function() {
+  if (is.null(profiles)) return(NULL)
+  d <- dplyr::bind_rows(lapply(c("up", "down"), function(dir) {
+    p <- profiles[[dir]]
+    if (is.null(p)) return(NULL)
+    dplyr::mutate(p$meta, direction = paste0(dir, " candidates (n = ",
+                                            length(p$peakIds), ")"))
+  }))
+  if (nrow(d) == 0) return(NULL)
+  ggplot(d, aes(position / 1e3, signal, color = group, group = sample)) +
+    geom_line(linewidth = 0.6, alpha = 0.8) +
+    scale_color_manual(values = groupColors, name = "Group") +
+    facet_wrap(~direction, scales = "free_y") +
+    labs(x = "Distance to peak centre (kb)", y = "Mean BigWig signal",
+         title = "Signal around differential peaks (one line per sample)") +
+    theme_bw(base_size = 11) + theme(plot.title = element_text(hjust = 0.5))
+}
+
+drawProfileHeatmaps <- function(dir) {
+  p <- profiles[[dir]]
+  if (is.null(p)) return(NULL)
+  mats <- p$groupMats[intersect(c(refGroup, sampleGroup), names(p$groupMats))]
+  upper <- stats::quantile(unlist(lapply(mats, unclass)), 0.99, na.rm = TRUE)
+  colFun <- circlize::colorRamp2(c(0, upper), c("white", "#08306B"))
+  hl <- NULL
+  for (g in names(mats)) {
+    h <- EnrichedHeatmap::EnrichedHeatmap(
+      mats[[g]], col = colFun, name = g, column_title = g,
+      show_heatmap_legend = identical(g, names(mats)[1]),
+      heatmap_legend_param = list(title = "signal"),
+      top_annotation = ComplexHeatmap::HeatmapAnnotation(
+        lines = EnrichedHeatmap::anno_enriched(gp = grid::gpar(col = groupColors[[g]]))),
+      axis_name = c(paste0("-", profiles$extend / 1e3, "kb"), "centre",
+                    paste0(profiles$extend / 1e3, "kb")),
+      use_raster = TRUE)
+    hl <- if (is.null(hl)) h else hl + h
+  }
+  ComplexHeatmap::draw(hl, column_title = paste0(dir, " candidates, ranked by significance"))
+}
+
+## -- Diagnostics ------------------------------------------------------------
+binnedLfc <- function(x, lfc, nBins = 20) {
+  ok <- is.finite(x) & is.finite(lfc)
+  br <- unique(stats::quantile(x[ok], probs = seq(0, 1, length.out = nBins + 1)))
+  bin <- cut(x[ok], br, include.lowest = TRUE)
+  d <- data.frame(x = x[ok], lfc = lfc[ok], bin = bin)
+  d |> dplyr::group_by(bin) |>
+    dplyr::summarise(x = stats::median(x), median = stats::median(lfc),
+                     q25 = stats::quantile(lfc, 0.25), q75 = stats::quantile(lfc, 0.75),
+                     n = dplyr::n(), .groups = "drop")
+}
+
+plotBias <- function(var, label) {
+  if (is.null(peakGc)) return(NULL)
+  d <- dplyr::inner_join(peakTable[, c("peakId", "log2FoldChange")], peakGc, by = "peakId")
+  b <- binnedLfc(d[[var]], d$log2FoldChange)
+  p <- ggplot(b, aes(x, median)) +
+    geom_hline(yintercept = 0, color = "grey50") +
+    geom_ribbon(aes(ymin = q25, ymax = q75), fill = "#C6DBEF") +
+    geom_line(color = "#08519C", linewidth = 0.8) + geom_point(color = "#08519C", size = 1.5) +
+    labs(x = label, y = "log2 fold change (median, IQR)",
+         title = paste("Fold change vs", label)) +
+    theme_bw(base_size = 11) + theme(plot.title = element_text(hjust = 0.5))
+  if (var == "width") p <- p + scale_x_log10()
+  p
+}
 ```
 
 :::::: {.panel-tabset}
@@ -285,7 +398,7 @@ Differential accessibility/binding analysis of consensus peaks with **DESeq2**,
 comparing **`r sampleGroup`** over **`r refGroup`**
 (grouping column *`r param$grouping`*, annotation *`r param$annotationMethod`*).
 Peak counts were variance-stabilized (VST). A peak is called a **candidate** at
-|log2 fold change| ≥ `r lfcThreshold`
+|log2 fold change| &ge; `r lfcThreshold`
 `r if (noReplicates) "" else paste0("and adjusted p-value < ", fdrThreshold)`.
 Positive log2 fold change means higher signal in **`r sampleGroup`**.
 :::
@@ -293,7 +406,7 @@ Positive log2 fold change means higher signal in **`r sampleGroup`**.
 ```{r design-note}
 #| output: asis
 if (blockingUsed) {
-  cat("**Design:** paired/blocked — `~ group + ", grouping2Name, "`.\n", sep = "")
+  cat("**Design:** paired/blocked - `~ group + ", grouping2Name, "`.\n", sep = "")
 } else if (ezIsSpecified(param$grouping2)) {
   cat("**Design:** single-factor `~ group`. The requested second factor **",
       param$grouping2, "** was dropped (single level, confounded with the ",
@@ -314,7 +427,7 @@ if (noReplicates) {
     "blind (`~1`) design that treats the two conditions as one group, which ",
     "makes the Wald test **conservative**: adjusted p-values are typically not ",
     "significant and should not be trusted. Candidates below are therefore ",
-    "ranked by **fold change only** (|log2FC| ≥ ", lfcThreshold, "). ",
+    "ranked by **fold change only** (|log2FC| &ge; ", lfcThreshold, "). ",
     "Add replicates for a statistically robust analysis.\n",
     "::::\n", sep = ""
   )
@@ -329,6 +442,26 @@ summaryTab <- data.frame(
 )
 DT::datatable(summaryTab, rownames = FALSE, options = list(dom = "t"),
               caption = "Peak-level summary")
+```
+
+```{r settings-table}
+settingsTab <- data.frame(
+  Setting = c("Size factors (normMethod)", "Samples in the fit",
+              "Test", "Fold-change shrinkage (extra column)",
+              "|log2FC| threshold", "FDR threshold",
+              "Motif / GO input (top candidates per direction)"),
+  Value = c(
+    deseqInfo$normMethod,
+    paste0(deseqInfo$nFitSamples,
+           if (isTRUE(deseqInfo$fitAllSamples)) " (all samples of the dataset)" else " (the two groups)"),
+    if (isTRUE(deseqInfo$lfcTest)) paste0("Wald, H0: |log2FC| <= ", lfcThreshold) else "Wald, H0: log2FC = 0",
+    deseqInfo$lfcShrinkType,
+    lfcThreshold, fdrThreshold,
+    param$enrichMaxPeaks
+  )
+)
+DT::datatable(settingsTab, rownames = FALSE, options = list(dom = "t"),
+              caption = "Analysis settings")
 ```
 
 # Explorative analysis
@@ -388,7 +521,7 @@ plotVolcano()
 ```{r ma}
 #| fig-width: 8
 #| fig-height: 6
-#| fig-cap: "MA plot of log2 fold change against mean normalized count."
+#| fig-cap: "MA plot of log2 fold change against mean normalized count. The black line is a loess fit; it should stay close to 0 unless the size factors do not match a global shift (see Diagnostics)."
 plotMA()
 ```
 
@@ -399,7 +532,7 @@ plotMA()
 #| fig-height: 8
 h <- tryCatch(plotHeat(), error = function(e) NULL)
 if (is.null(h)) {
-  cat("**No candidate peaks — the heatmap is only shown when differential candidates exist.**")
+  cat("**No candidate peaks - the heatmap is only shown when differential candidates exist.**")
 } else {
   ComplexHeatmap::draw(h$plot)
 }
@@ -410,13 +543,159 @@ if (is.null(h)) {
 if (!is.null(h)) cat("*", h$caption, "*\n", sep = "")
 ```
 
+## Signal profiles
+
+```{r meta-profile}
+#| fig-width: 10
+#| fig-height: 4
+#| out-width: "80%"
+#| fig-cap: "Mean BigWig signal +-2 kb around the centre of the top up and down candidates. The groups should separate in the expected direction."
+mp <- tryCatch(plotMetaProfile(), error = function(e) NULL)
+if (is.null(mp)) cat("BigWig tracks are not available for this dataset.") else mp
+```
+
+```{r profile-heat-up}
+#| fig-width: 6
+#| fig-height: 7
+#| out-width: "45%"
+if (!is.null(profiles) && !is.null(profiles$up)) {
+  tryCatch(drawProfileHeatmaps("up"), error = function(e) cat("Heatmap failed:", conditionMessage(e)))
+}
+```
+
+```{r profile-heat-down}
+#| fig-width: 6
+#| fig-height: 7
+#| out-width: "45%"
+if (!is.null(profiles) && !is.null(profiles$down)) {
+  tryCatch(drawProfileHeatmaps("down"), error = function(e) cat("Heatmap failed:", conditionMessage(e)))
+}
+```
+
+:::
+
+# Motifs
+
+```{r motif-intro}
+#| output: asis
+if (is.null(motifRes)) {
+  cat("Motif enrichment was not run (or failed) for this comparison.\n")
+} else {
+  cat("Known-motif enrichment with **HOMER** (`findMotifsGenome.pl`, motif set *",
+      motifRes$motifSet, "*) in 200 bp windows centred on the top ",
+      param$enrichMaxPeaks, " candidates per direction. The background is ",
+      format(motifRes$nBackground, big.mark = ","), " tested, non-candidate ",
+      "consensus peaks, so enrichment is relative to other accessible regions ",
+      "rather than the whole genome. Motifs of one family (e.g. HIF-1a/HIF2a, ",
+      "AP-1 members) share a consensus and cannot be told apart.\n", sep = "")
+}
+```
+
+::: {.panel-tabset}
+
+## Up in `r sampleGroup`
+
+```{r motif-up-plot}
+#| fig-width: 8
+#| fig-height: 6
+#| out-width: "60%"
+mu <- if (!is.null(motifRes)) plotMotifDots(motifRes$up, "up") else NULL
+if (is.null(mu)) cat("No motif results for up candidates (too few candidates or not run).") else mu
+```
+
+```{r motif-up-link}
+if (!is.null(motifRes)) motifLink("up")
+```
+
+```{r motif-up-table}
+if (!is.null(motifRes)) motifTable(motifRes$up)
+```
+
+## Down in `r sampleGroup`
+
+```{r motif-down-plot}
+#| fig-width: 8
+#| fig-height: 6
+#| out-width: "60%"
+md <- if (!is.null(motifRes)) plotMotifDots(motifRes$down, "down") else NULL
+if (is.null(md)) cat("No motif results for down candidates (too few candidates or not run).") else md
+```
+
+```{r motif-down-link}
+if (!is.null(motifRes)) motifLink("down")
+```
+
+```{r motif-down-table}
+if (!is.null(motifRes)) motifTable(motifRes$down)
+```
+
 :::
 
 # Pathway enrichment
 
+```{r go-intro}
+#| output: asis
+if (is.null(goRes)) {
+  cat("GO over-representation was not run (only mouse and human are supported, ",
+      "or no gene annotation was available).\n\n", sep = "")
+} else {
+  cat("GO ", goRes$ont, " over-representation (clusterProfiler, ", goRes$orgDb,
+      ") of the nearest genes of the top ", param$enrichMaxPeaks,
+      " candidates per direction. The universe is the ",
+      format(goRes$nUniverse, big.mark = ","), " nearest genes of all tested ",
+      "peaks, which corrects for genes that simply carry many peaks.\n\n", sep = "")
+}
+```
+
+::: {.panel-tabset}
+
+## GO: up in `r sampleGroup`
+
+```{r go-up}
+#| fig-width: 9
+#| fig-height: 8
+#| out-width: "60%"
+goPlot <- function(ego, dir) {
+  if (is.null(ego) || nrow(as.data.frame(ego)) == 0) {
+    cat("No significant GO terms for", dir, "candidates.")
+    return(invisible(NULL))
+  }
+  print(enrichplot::dotplot(ego, showCategory = 20, label_format = 50) +
+          ggtitle(paste("GO", goRes$ont, "-", dir, "candidates")) +
+          theme(axis.text.y = element_text(size = 9)))
+}
+if (!is.null(goRes)) goPlot(goRes$up, "up")
+```
+
+```{r go-up-table}
+goTable <- function(ego) {
+  if (is.null(ego) || nrow(as.data.frame(ego)) == 0) return(NULL)
+  d <- as.data.frame(ego)[, c("ID", "Description", "GeneRatio", "BgRatio",
+                              "pvalue", "p.adjust", "geneID")]
+  ezInteractiveTableRmd(head(d, 200), digits = 3)
+}
+if (!is.null(goRes)) goTable(goRes$up)
+```
+
+## GO: down in `r sampleGroup`
+
+```{r go-down}
+#| fig-width: 9
+#| fig-height: 8
+#| out-width: "60%"
+if (!is.null(goRes)) goPlot(goRes$down, "down")
+```
+
+```{r go-down-table}
+if (!is.null(goRes)) goTable(goRes$down)
+```
+
+## Enrichr
+
 Submit the candidate genes associated with differential peaks to
 [Enrichr](https://maayanlab.cloud/Enrichr/) (opens in a new tab). Up to 500
-genes per list are sent.
+genes per list are sent. Enrichr uses its own background, not the peak
+universe used above.
 
 ```{r enrichr-buttons}
 if (!hasAnno) {
@@ -431,17 +710,94 @@ if (!hasAnno) {
 }
 ```
 
+:::
+
+# Diagnostics
+
+::: {.panel-tabset}
+
+## Normalisation
+
+```{r norm-intro}
+#| output: asis
+cat("Size factors decide what \"no change\" means. DESeq2 median-of-ratios ",
+    "assumes most peaks do not change; reads-in-peaks assumes the total signal ",
+    "in peaks is comparable; TMM trims extreme peaks. When the methods disagree, ",
+    "a global shift of accessibility is likely and the number and direction of ",
+    "candidates depend on the choice. The table below approximates the ",
+    "candidate counts under each method **without refitting** (all fold changes ",
+    "shift by the same offset; Wald statistics are recomputed with the fitted ",
+    "standard errors). Used here: **", deseqInfo$normMethod, "**.\n", sep = "")
+```
+
+```{r norm-balance}
+if (!is.null(normDiag)) {
+  b <- normDiag$balance
+  b$lfcOffset <- round(b$lfcOffset, 3)
+  b$medianLfc <- round(b$medianLfc, 3)
+  colnames(b) <- c("Size factors", "log2FC offset vs used", "Median log2FC",
+                   "Up candidates (approx.)", "Down candidates (approx.)")
+  DT::datatable(b, rownames = FALSE, options = list(dom = "t"),
+                caption = "Candidate balance under alternative size factors")
+}
+```
+
+```{r norm-sf}
+#| fig-width: 8
+#| fig-height: 4
+#| out-width: "60%"
+#| fig-cap: "Size factors per sample under the three methods (geometric mean 1 for reads-in-peaks and TMM)."
+if (!is.null(normDiag)) {
+  sf <- normDiag$sizeFactors
+  sfLong <- tidyr::pivot_longer(sf, cols = c("DESeq2", "readsInPeaks", "TMM"),
+                                names_to = "method", values_to = "sizeFactor")
+  ggplot(sfLong, aes(sample, sizeFactor, color = method, group = method)) +
+    geom_point(size = 2) + geom_line(alpha = 0.5) +
+    scale_color_manual(values = c("DESeq2" = "#0072B2", "readsInPeaks" = "#E69F00",
+                                  "TMM" = "#009E73"), name = "Method") +
+    facet_grid(~group, scales = "free_x", space = "free_x") +
+    labs(x = NULL, y = "Size factor") +
+    theme_bw(base_size = 11) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+```
+
+## GC and width
+
+```{r gc-bias}
+#| fig-width: 7
+#| fig-height: 4
+#| out-width: "50%"
+#| fig-cap: "Median log2 fold change per GC-content bin (ribbon: interquartile range). A monotone trend indicates a GC-dependent technical difference between the groups (e.g. PCR or Tn5 batch)."
+g1 <- tryCatch(plotBias("gc", "peak GC content"), error = function(e) NULL)
+if (is.null(g1)) cat("GC content not available.") else g1
+```
+
+```{r width-bias}
+#| fig-width: 7
+#| fig-height: 4
+#| out-width: "50%"
+#| fig-cap: "Median log2 fold change per peak-width bin. Narrow peaks are noisier; a strong trend points to differences in fragment-size distribution between the groups."
+g2 <- tryCatch(plotBias("width", "peak width (bp)"), error = function(e) NULL)
+if (is.null(g2)) cat("Peak width not available.") else g2
+```
+
+:::
+
 # Results table
 
 The interactive table lists the top 1000 candidate peaks. The complete table
 for all tested peaks is written to
 [`differential_peaks.txt`](differential_peaks.txt).
+`r if (hasShrunk) paste0("The column *log2FoldChange_shrunk* holds the ", deseqInfo$lfcShrinkType, "-shrunken estimate; candidates use the unshrunken *log2FoldChange*.") else ""`
 
 ```{r results-table}
 displayCols <- intersect(
   c("peakId", "geneName", featureCol, distCol, "baseMean",
-    "log2FoldChange", "lfcSE", "stat", "pvalue", "padj", "direction"),
+    "log2FoldChange", "log2FoldChange_shrunk", "lfcSE", "stat", "pvalue",
+    "padj", "direction"),
   colnames(peakTable))
+if (!hasShrunk) displayCols <- setdiff(displayCols, "log2FoldChange_shrunk")
 tableTib <- peakTable |>
   dplyr::filter(candidate) |>
   ## rank by fold change without replicates (p-values unreliable), else by FDR
