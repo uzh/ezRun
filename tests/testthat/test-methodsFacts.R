@@ -216,6 +216,18 @@ test_that("no citation() entry carries an editor's note", {
   }
 })
 
+## write_methods always keeps entry 1, so it must be a tool that runs whatever the parameters.
+test_that("the always-kept first citation is a tool that ran, even with the optional step off", {
+  dna <- EzAppDnaBamStats$new()$methods_citations(list(runQualimap = FALSE))
+  expect_match(dna[1], "Rsamtools")                       # getBamMultiMatching, every sample
+  expect_false(any(grepl("Qualimap", dna)))
+  expect_true(any(grepl("Qualimap", EzAppDnaBamStats$new()$methods_citations(list(runQualimap = TRUE)))))
+  fl <- EzAppFlash$new()$methods_citations(list(skipFlash = TRUE))
+  expect_match(fl[1], "fastp")                            # ezMethodFastpTrim, every sample
+  expect_false(any(grepl("FLASH", fl)))
+  expect_true(any(grepl("FLASH", EzAppFlash$new()$methods_citations(list(skipFlash = FALSE)))))
+})
+
 test_that("citations name the registered author and the paper of the step that ran", {
   has <- function(cits, pattern) any(grepl(pattern, cits))
   hs <- "Homo_sapiens/GENCODE/GRCh38.p14/Annotation/Release_48-2025-07-03"
