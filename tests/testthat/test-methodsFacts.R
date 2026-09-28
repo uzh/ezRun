@@ -216,6 +216,41 @@ test_that("no citation() entry carries an editor's note", {
   }
 })
 
+test_that("gated citations offer no reference for a step the app code skips", {
+  has <- function(cits, pattern) any(grepl(pattern, cits))
+  hs <- "Homo_sapiens/GENCODE/GRCh38.p14/Annotation/Release_48-2025-07-03"
+  mm <- "Mus_musculus/GENCODE/GRCm39/Annotation/Release_M37-2025-07-03"
+  dr <- "Danio_rerio/Ensembl/GRCz11/Annotation/Release_110-2023-10-30"
+  sc <- "Saccharomyces_cerevisiae/Ensembl/R64/Annotation/Release_110-2023-10-30"
+  ## ScSeuratCompare.Rmd: org.Hs/KEGG hsa for Human, org.Mm/mmu for Mouse, no enrichment otherwise
+  cmp <- EzAppScSeuratCompare$new()
+  expect_false(has(cmp$citation(list(refBuild = hs)), "org.Mm.eg.db"))
+  expect_true(has(cmp$citation(list(refBuild = hs)), "org.Hs.eg.db"))
+  expect_false(has(cmp$citation(list(refBuild = mm)), "org.Hs.eg.db"))
+  expect_false(has(cmp$citation(list(refBuild = dr)), "clusterProfiler|KEGG|org\\.(Hs|Mm)"))
+  expect_true(has(cmp$citation(list()), "clusterProfiler"))   # no refBuild: the app infers Human or Mouse
+  ## twoGroups.Rmd: Enrichr results only with runGO, doEnrichr (organism, featureLevel gene) and doPrecomputeEnrichr
+  on <- list(refBuild = hs, featureLevel = "gene", runGO = TRUE, doPrecomputeEnrichr = TRUE)
+  for (app in list(EzAppDeseq2$new(), EzAppEdger$new(), EzAppLimma$new())) {
+    expect_true(has(app$citation(on), "Enrichr"))
+    expect_false(has(app$citation(modifyList(on, list(doPrecomputeEnrichr = FALSE))), "Enrichr"))
+    expect_false(has(app$citation(modifyList(on, list(refBuild = sc))), "Enrichr"))
+    expect_false(has(app$citation(modifyList(on, list(featureLevel = "isoform"))), "Enrichr"))
+    expect_true(has(app$citation(modifyList(on, list(refBuild = sc))), "clusterProfiler"))
+  }
+  ## ScMultiOmics: Signac/ensembldb only when the CountMatrix has ATAC files next to it (findATACFiles)
+  rna <- file.path(tempfile("mo"), "filtered_feature_bc_matrix"); dir.create(rna, recursive = TRUE)
+  atac <- file.path(tempfile("mo"), "filtered_feature_bc_matrix"); dir.create(atac, recursive = TRUE)
+  file.create(file.path(dirname(atac), c("atac_fragments.tsv.gz", "atac_peaks.bed")))
+  mo <- EzAppScMultiOmics$new()
+  pr <- list(refBuild = hs, dataRoot = ""); attr(pr, "input") <- data.frame(`CountMatrix [Link]` = rna, check.names = FALSE)
+  pa <- pr; attr(pa, "input") <- data.frame(`CountMatrix [Link]` = atac, check.names = FALSE)
+  expect_false(has(mo$citation(pr), "Signac|ensembldb"))
+  expect_true(has(mo$citation(pa), "Signac"))
+  expect_true(has(mo$citation(pa), "ensembldb"))
+  expect_true(has(mo$citation(list(refBuild = hs)), "Signac"))  # input unknown: kept
+})
+
 ## write_methods always keeps entry 1, so it must be a tool that runs whatever the parameters.
 test_that("the always-kept first citation is a tool that ran, even with the optional step off", {
   dna <- EzAppDnaBamStats$new()$methods_citations(list(runQualimap = FALSE))

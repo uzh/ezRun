@@ -18,15 +18,25 @@ EzAppScMultiOmics <-
     contains = "EzApp",
     methods = list(
       ## Seurat v5 unconditional; ADTnorm only when adtNorm is ADTnorm; WNN (Hao 2021) only when
-      ## runWNN is true. Whether ADT, ATAC (Signac + ensembldb) or VDJ (scRepertoire) run, and
-      ## whether >= 2 modalities exist for WNN, depends on the input files, so those stay unconditional.
+      ## runWNN is true. Signac only when ATAC files sit next to the input CountMatrix
+      ## (detectModalities/findATACFiles, `if (isTRUE(mod$hasATAC))`), ensembldb (EnsDb gene
+      ## annotation, getATACAnnotation) only then and for Human/Mouse; kept when the input is unknown,
+      ## unreachable or BD Rhapsody (ATAC read from the object's assays). Whether ADT or VDJ
+      ## (scRepertoire) run, and whether >= 2 modalities exist for WNN, stays unconditional.
       citation = function(param = list()) {
+        cm <- methodsInput(param, "CountMatrix")
+        root <- if (ezIsSpecified(param$dataRoot)) param$dataRoot else "/srv/gstore/projects"
+        paths <- if (is.null(cm)) character(0) else ifelse(startsWith(cm, "/"), cm, file.path(root, cm))
+        bd <- !is.null(methodsInput(param, "BDRhapsodyPath")) || "BDRhapsody" %in% methodsInput(param, "SCDataOrigin")
+        atac <- if (bd || !length(paths) || !all(file.exists(paths))) NA else
+          any(vapply(paths, function(p) !is.null(findATACFiles(p)), logical(1)))
+        atac <- !isFALSE(atac)
         c(
           "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
           if (isTRUE(as.logical(param$runWNN))) "Hao, Y. et al. Integrated analysis of multimodal single-cell data. Cell 184, 3573-3587 (2021). https://doi.org/10.1016/j.cell.2021.04.048",
           if ("ADTnorm" %in% param$adtNorm) "Zheng, Y. et al. ADTnorm: robust integration of single-cell protein measurement across CITE-seq datasets. Nature Communications 16, 5852 (2025). https://doi.org/10.1038/s41467-025-61023-6",
-          "Stuart, T. et al. Single-cell chromatin state analysis with Signac. Nature Methods 18, 1333-1341 (2021). https://doi.org/10.1038/s41592-021-01282-5",
-          "Rainer, J. et al. ensembldb: an R package to create and use Ensembl-based annotation resources. Bioinformatics 35, 3151-3153 (2019). https://doi.org/10.1093/bioinformatics/btz031",
+          if (atac) "Stuart, T. et al. Single-cell chromatin state analysis with Signac. Nature Methods 18, 1333-1341 (2021). https://doi.org/10.1038/s41592-021-01282-5",
+          if (atac && (!ezIsSpecified(param$refBuild) || methodsSpeciesIs(param, c("Human", "Mouse")))) "Rainer, J. et al. ensembldb: an R package to create and use Ensembl-based annotation resources. Bioinformatics 35, 3151-3153 (2019). https://doi.org/10.1093/bioinformatics/btz031",
           "Yang, Q. et al. scRepertoire 2: Enhanced and efficient toolkit for single-cell immune profiling. PLOS Computational Biology 21, e1012760 (2025). https://doi.org/10.1371/journal.pcbi.1012760"
         )
       },

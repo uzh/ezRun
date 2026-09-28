@@ -16,10 +16,12 @@ EzAppLimma <-
       ## edgeR 4.10.1 formals() (R 4.6.0 system lib).
       ## limma, Smyth 2004 (lmFit/eBayes) and edgeR DGEList/TMM/cpm unconditional; voom only for
       ## modelMethod voom (default limma-trend); duplicateCorrelation (Smyth 2005) only when
-      ## grouping2 is set; clusterProfiler/GO.db/Enrichr unless runGO is false (default TRUE): the
-      ## GO step is clusterProfiler ezEnricher/ezGSEA (twoGroupCountComparison), as in DESeq2/edgeR.
+      ## grouping2 is set; clusterProfiler/GO.db unless runGO is false (default TRUE): the
+      ## GO step is clusterProfiler ezEnricher/ezGSEA (twoGroupCountComparison), as in DESeq2/edgeR;
+      ## Enrichr only when twoGroups.Rmd precomputes it (methodsEnrichrRan).
       citation = function(param = list()) {
         runGO <- !isFALSE(as.logical(param$runGO))
+        enrichr <- methodsEnrichrRan(param)
         c(
           "Ritchie, M.E. et al. limma powers differential expression analyses for RNA-sequencing and microarray studies. Nucleic Acids Research 43, e47 (2015). https://doi.org/10.1093/nar/gkv007",
           "Smyth, G.K. Linear models and empirical Bayes methods for assessing differential expression in microarray experiments. Statistical Applications in Genetics and Molecular Biology 3, 1-25 (2004). https://doi.org/10.2202/1544-6115.1027",
@@ -30,8 +32,8 @@ EzAppLimma <-
           "Robinson, M.D. & Oshlack, A. A scaling normalization method for differential expression analysis of RNA-seq data. Genome Biology 11, R25 (2010). https://doi.org/10.1186/gb-2010-11-3-r25",
           if (runGO) "Wu, T. et al. clusterProfiler 4.0: A universal enrichment tool for interpreting omics data. The Innovation 2(3), 100141 (2021). https://doi.org/10.1016/j.xinn.2021.100141",
           if (runGO) "Carlson, M. GO.db: A set of annotation maps describing the entire Gene Ontology. R package. https://doi.org/10.18129/B9.bioc.GO.db",
-          if (runGO) "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128",
-          if (runGO) "Kuleshov, M.V. et al. Enrichr: a comprehensive gene set enrichment analysis web server 2016 update. Nucleic Acids Research 44(W1), W90-W97 (2016). https://doi.org/10.1093/nar/gkw377"
+          if (enrichr) "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128",
+          if (enrichr) "Kuleshov, M.V. et al. Enrichr: a comprehensive gene set enrichment analysis web server 2016 update. Nucleic Acids Research 44(W1), W90-W97 (2016). https://doi.org/10.1093/nar/gkw377"
         )
       },
       methods_facts = function(param = list()) {
