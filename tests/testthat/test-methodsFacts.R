@@ -54,7 +54,7 @@ test_that("methods_description passes app_facts.txt only when there are facts", 
     scriptsAt <- which(args == "--scripts")
     expect_true(factsFile %in% args[-seq_len(scriptsAt)])
     expect_true(all(EzAppScSeurat$new()$methods_facts() %in% readLines(factsFile)))
-    expect_match(readLines(factsFile)[1], "EzAppScSeurat")
+    expect_match(readLines(factsFile)[1], "^Fixed behaviour of this app's code")   # the header, then the facts
 
     out2 <- tempfile("out"); dir.create(out2)
     EzApp$new()$methods_description(script, character(0), 1, out2)
@@ -286,7 +286,7 @@ test_that("write_methods keeps the prose when the model writes References first"
   })
 })
 
-test_that("the facts header names the ezRun version the run used", {
+test_that("the facts header says what the facts are without an ezRun version the writer would repeat", {
   withStubWriter(function(argsFile) {
     d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
     writeLines("echo job", file.path(sd, "job.sh"))
@@ -295,7 +295,10 @@ test_that("the facts header names the ezRun version the run used", {
     withr::with_options(list(ezRun.methodsFactsVersion = "^ezRun_3\\.23\\."),
       EzAppScSeurat$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
                                         example_script = "job.sh", sample_count = 1))
-    expect_match(readLines(file.path(out, "app_facts.txt"))[1], "in ezRun 3.23.1,", fixed = TRUE)
+    head <- readLines(file.path(out, "app_facts.txt"))[1]
+    expect_identical(head, paste("Fixed behaviour of this app's code, read from its source and the run's parameters.",
+                                 "It may name options and code values; describe them in words."))
+    expect_no_match(head, "ezRun|3\\.23")
   })
 })
 
