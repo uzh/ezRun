@@ -77,6 +77,105 @@ test_that("gated facts follow the job's parameters", {
   expect_false(any(grepl("cyclone", app$methods_facts(modifyList(on, list(refBuild = "Danio_rerio/Ensembl/GRCz11"))))))
 })
 
+test_that("no fact names a step that the parameter SUSHI sets to off switched off", {
+  hs <- "Homo_sapiens/GENCODE/GRCh38.p14/Annotation/Release_48-2025-07-03"
+  ## the off value SUSHI's form offers; otherwise FALSE for a logical default and "" for the rest
+  sushiOff <- list(SingleR = "none", Azimuth = "none", integrationMethod = "none", rctdReference = "None")
+  hits <- character(0)
+  for (cls in names(METHODS_OFFSTEP_RULES)) {
+    app <- get(cls)$new()
+    def <- suppressMessages(suppressWarnings(ezParam(list(), appDefaults = app$appDefaults)))
+    for (p in unique(unlist(strsplit(names(METHODS_OFFSTEP_RULES[[cls]]), "+", fixed = TRUE)))) {
+      q <- list(refBuild = hs)
+      q[[p]] <- if (!is.null(sushiOff[[p]])) sushiOff[[p]] else if (is.logical(def[[p]])) FALSE else ""
+      h <- methods_check_offsteps(suppressWarnings(app$methods_facts(q)), cls, q)
+      if (length(h)) hits <- c(hits, paste(cls, h))
+    }
+  }
+  expect_identical(hits, character(0))
+  ## positive control: the check does flag a fact that names the switched-off step
+  expect_length(methods_check_offsteps("STAR ran in two-pass mode.", "EzAppSTAR", list(twopassMode = FALSE)), 1)
+  expect_true(any(grepl("--twopassMode None", EzAppSTAR$new()$methods_facts(list(twopassMode = FALSE)), fixed = TRUE)))
+})
+
+test_that("ScSeuratCompare names sccomp only when replicateGrouping is set", {
+  app <- EzAppScSeuratCompare$new()
+  off <- app$methods_facts(list(replicateGrouping = ""))
+  expect_false(any(grepl("sccomp", off)))
+  expect_true(any(grepl("seed was set to 38", off)))
+  expect_true(any(grepl("sccomp's sampling seed was drawn from", app$methods_facts(list(replicateGrouping = "Replicate")))))
+})
+
+test_that("ScMultiOmics states BD Rhapsody and ATAC facts only where they apply", {
+  app <- EzAppScMultiOmics$new()
+  p <- list(runWNN = TRUE, adtNorm = "ADTnorm", vdjChain = "auto")
+  bd <- p; attr(bd, "input") <- data.frame(`SCDataOrigin [Factor]` = "BDRhapsody", check.names = FALSE)
+  tenx <- p; attr(tenx, "input") <- data.frame(`CountMatrix [Link]` = "a/filtered_feature_bc_matrix", check.names = FALSE)
+  for (q in list(p, tenx)) {
+    f <- app$methods_facts(q)
+    expect_false(any(grepl("BD Rhapsody input", f)))
+    expect_true(any(grepl("upstream ScSeurat object", f)))
+  }
+  f <- app$methods_facts(bd)
+  expect_true(any(grepl("BD Rhapsody input", f)))
+  expect_false(any(grepl("upstream ScSeurat object|Antibody Capture features of the count-matrix H5|normalized with ADTnorm", f)))
+  ## WNN: LSI components only when ATAC was present
+  wnn <- grep("FindMultiModalNeighbors", app$methods_facts(tenx), value = TRUE)
+  expect_length(wnn, 1)
+  expect_match(wnn, "LSI components 2-30 only when ATAC was present", fixed = TRUE)
+})
+
+test_that("VeloCyto and FastqScreen state input-dependent steps from the input dataset", {
+  vc <- EzAppVeloCyto$new()
+  bd <- list(); attr(bd, "input") <- data.frame(`SCDataOrigin [Factor]` = "BDRhapsody", check.names = FALSE)
+  tenx <- list(); attr(tenx, "input") <- data.frame(ResultDir = "a/cellranger", check.names = FALSE)
+  expect_false(any(grepl("run10x on the CellRanger output|CellRanger Multi output|CRAM alignments", vc$methods_facts(bd))))
+  expect_true(any(grepl("XF:Z:__intergenic", vc$methods_facts(bd))))
+  expect_false(any(grepl("BD Rhapsody data", vc$methods_facts(tenx))))
+  expect_true(any(grepl("run10x on the CellRanger output", vc$methods_facts(tenx))))
+  expect_true(all(c(any(grepl("run10x", vc$methods_facts())), any(grepl("XF:Z", vc$methods_facts())))))   # input unknown
+
+  fs <- EzAppFastqScreen$new()
+  virus <- function(q) grep("pathogenic viruses", fs$methods_facts(q), value = TRUE)
+  mouse <- list(virusCheck = FALSE); attr(mouse, "input") <- data.frame(`Species` = "Mus musculus (mouse)", check.names = FALSE)
+  human <- list(virusCheck = FALSE); attr(human, "input") <- data.frame(`Species` = "Homo sapiens (human)", check.names = FALSE)
+  expect_length(virus(mouse), 0)
+  expect_length(virus(human), 1)
+  expect_no_match(virus(human), "When virusCheck")
+  expect_length(virus(list(virusCheck = TRUE)), 1)
+  expect_match(virus(list(virusCheck = FALSE)), "always when the dataset's Species is human")   # input unknown
+})
+
+test_that("DE facts state GO enrichment only as the code runs it", {
+  for (cls in c("EzAppDeseq2", "EzAppEdger", "EzAppLimma")) {
+    app <- get(cls)$new()
+    f <- app$methods_facts(list(runGO = TRUE, rankMetric = "pValue", testMethod = "glm", deTest = "QL"))
+    gsea <- grep("GSEA", f, value = TRUE)
+    expect_length(gsea, 1)
+    expect_match(gsea, "^When GO annotation was available for the reference", label = cls)
+    expect_match(gsea, "ranked by -log10 p-value (rankMetric pValue)", fixed = TRUE, label = cls)
+    ## ezGSEA reads param$rankMetric; without it the run stops, so no GO fact
+    expect_false(any(grepl("GSEA|over-representation", app$methods_facts(list(runGO = TRUE)))), label = cls)
+    ## the backgroundExpression sentence points at the sigThresh sentence where it is
+    bg <- grep("presence rule", f); pres <- grep("called present in a sample", f)
+    expect_true(grepl("below", f[bg]) && bg < pres || grepl("above", f[bg]) && bg > pres, label = cls)
+  }
+  ## Limma declares no rankMetric default: a Limma run with runGO gets no GO facts
+  typed <- function(app) suppressMessages(suppressWarnings(ezParam(list(runGO = "true"), appDefaults = app$appDefaults)))
+  lim <- EzAppLimma$new()
+  expect_false(any(grepl("GSEA|over-representation", lim$methods_facts(typed(lim)))))
+  de <- EzAppDeseq2$new()          # control: its appDefaults set rankMetric log2Ratio
+  expect_true(any(grepl("ranked by log2 ratio (rankMetric log2Ratio)", de$methods_facts(typed(de)), fixed = TRUE)))
+})
+
+test_that("ScSeurat says which clustering is reported for a resolution with two decimals", {
+  app <- EzAppScSeurat$new()
+  expect_true(any(grepl("lowest-resolution clustering was reported instead", app$methods_facts(list(resolution = 0.25)))))
+  expect_true(any(grepl("lowest-resolution clustering was reported instead", app$methods_facts(list(resolution = "[0.25, 0.2, 0.4]")))))
+  expect_false(any(grepl("lowest-resolution", app$methods_facts(list(resolution = 0.6)))))
+  expect_true(any(grepl("plus the resolution parameter rounded to one decimal", app$methods_facts(list()))))
+})
+
 test_that("methods_param reads parameters.tsv and fills app defaults", {
   f <- tempfile(fileext = ".tsv")
   writeLines(c("name\tScSeurat", "computePathwayTFActivity\tfalse", "refBuild\tHomo_sapiens/GENCODE/GRCh38.p14/Annotation/Release_48-2025-07-03"), f)

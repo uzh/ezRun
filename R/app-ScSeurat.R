@@ -56,6 +56,9 @@ EzAppScSeurat <-
         humanMouse <- methodsSpeciesIs(param, c("Human", "Mouse"))
         qc <- methodsQcFields(param, c("nUMI", "ngenes", "perc_mito", "perc_riboprot"))
         on <- function(x) isTRUE(as.logical(x))
+        ## seuratStandardWorkflow parses resolution like this; its first positive value is the user's
+        res <- suppressWarnings(as.numeric(unlist(strsplit(gsub("\\[|\\]", "", as.character(param$resolution)), "[,[:space:]]+"))))
+        res <- res[!is.na(res) & res > 0][1]
         c(
           ## getSeuratMarkersAndAnnotate -> querySignificantClusterAnnotationEnrichR (app-ScSeurat.R)
           if (humanMouse && ezIsSpecified(param$enrichrDatabase)) "Each cluster's significant markers were queried against the enrichrDatabase libraries with the Enrichr web service; terms with an adjusted p-value below 0.001 and more than 3 overlapping genes were kept, the top 5 per library and cluster.",
@@ -93,7 +96,9 @@ EzAppScSeurat <-
           if (isTRUE(as.logical(param$SCT.regress.CellCycle))) "SCTransform regressed out the cell-cycle score difference (S minus G2M).",
           ## seuratStandardWorkflow (seuratUtils.R)
           "PCA computed 50 components (Seurat default) and the first npcs were used for the neighbour graph, UMAP and t-SNE.",
-          "The shared-nearest-neighbour graph used k = 20 (FindNeighbors default); clusters were found with the Louvain algorithm (FindClusters algorithm 1) at resolutions 0.2, 0.4, 0.6, 0.8 and 1.0 plus the resolution parameter, and the clustering at the resolution parameter is the one reported.",
+          "The shared-nearest-neighbour graph used k = 20 (FindNeighbors default); clusters were found with the Louvain algorithm (FindClusters algorithm 1) at resolutions 0.2, 0.4, 0.6, 0.8 and 1.0 plus the resolution parameter rounded to one decimal, and the clustering at the resolution parameter is the one reported.",
+          ## seuratStandardWorkflow: the <assay>_snn_res.<resolution> column is missing for an unrounded value -> candidates[1]
+          if (isTRUE(res != round(res, 1))) "Because the resolution has more than one decimal, the lowest-resolution clustering was reported instead.",
           "UMAP used uwot with the cosine metric, 30 neighbours and seed 42 (RunUMAP defaults).",
           ## getSeuratMarkers (seuratUtils.R)
           "Cluster markers were found with Seurat FindAllMarkers using the test in DE.method and only positive markers (only.pos = TRUE); p-values were Bonferroni-adjusted over all genes (Seurat p_val_adj), and the reported markers have p_val_adj below pvalue_allMarkers and a difference in detection fraction of at least min.diff.pct.",
