@@ -737,7 +737,10 @@ EzApp <-
           args <- c(args, "--sample-count", as.character(sample_count))
         }
         ## llm_write_methods is provided by the AI/llm_methods_caller module,
-        ## which must be in the app's module list so it is on PATH.
+        ## which must be in the app's module list so it is on PATH. It APPENDS to
+        ## --output (a 72-dash rule between sections), so a retry would read back both
+        ## drafts: start each attempt from no file.
+        unlink(file.path(output_dir, "methods.md"))
         ret <- system2("llm_write_methods", args = args)
         if (ret != 0) stop("llm_write_methods failed with exit code ", ret)
         trimws(paste(readLines(file.path(output_dir, "methods.md"), warn = FALSE), collapse = "\n"), "right")
