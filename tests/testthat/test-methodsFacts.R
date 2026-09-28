@@ -212,20 +212,46 @@ test_that("write_methods gives facts only to a finished run of this ezRun versio
     sh <- file.path(sd, "job.sh"); writeLines("echo job", sh)
     log <- paste0(sh, "_sushiID1_x_o.log")
     here <- paste0("ezRun_", utils::packageVersion("ezRun"))
-    run <- function(lines) {
-      writeLines(lines, log); out <- tempfile("out"); dir.create(out)
+    ## R writes "Execution halted" to stderr, i.e. the job's _e.log (as in the archived runs)
+    run <- function(lines, err = "done") {
+      writeLines(lines, log); writeLines(err, sub("_o\\.log$", "_e.log", log))
+      out <- tempfile("out"); dir.create(out)
       EzAppScSeurat$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
                                         example_script = "job.sh", sample_count = 1)
       file.exists(file.path(out, "app_facts.txt"))
     }
     expect_true(run(c("other attached packages:", paste0("[1] ", here))))
     expect_false(run(c("[1] ezRun_0.0.1")))                                 # other version
-    expect_false(run(c(paste0("[1] ", here), "Error in foo(): bar", "Execution halted")))  # failed
+    expect_false(run(paste0("[1] ", here), err = c("Error in foo(): bar", "Execution halted")))  # failed
     expect_false(run("no session info"))                                   # version unknown
     other <- file.path(sd, "job2.sh_sushiID2_x_e.log")                    # another sample failed
     writeLines(c("Error: incompatible indices", "Execution halted"), other)
     expect_false(run(c("other attached packages:", paste0("[1] ", here))))
     unlink(other)
+  })
+})
+
+test_that("facts are withheld when any job's latest attempt failed, and kept after a successful rerun", {
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    writeLines("echo job", file.path(sd, "job.sh")); writeLines("echo job", file.path(sd, "job2.sh"))
+    writeLines(c("other attached packages:", paste0("[1] ezRun_", utils::packageVersion("ezRun"))),
+               file.path(sd, "job.sh_sushiID1_2025-10-14--16-50-51_o.log"))
+    writeLines("done", file.path(sd, "job.sh_sushiID1_2025-10-14--16-50-51_e.log"))
+    other <- file.path(sd, "job2.sh_sushiID2_2025-10-14--14-41-50_e.log")
+    facts <- function() {
+      out <- tempfile("out"); dir.create(out)
+      suppressMessages(EzAppScSeurat$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                                                         example_script = "job.sh", sample_count = 2))
+      file.exists(file.path(out, "app_facts.txt"))
+    }
+    writeLines("done", other)
+    expect_true(facts())                                                  # positive control
+    writeLines(c("Error: incompatible indices", "Execution halted"), other)  # another job failed
+    expect_false(facts())
+    writeLines("done", other)                                            # the example job was rerun
+    writeLines(c("Error: boom", "Execution halted"), file.path(sd, "job.sh_sushiID1_2025-10-14--14-41-53_e.log"))
+    expect_true(facts())
   })
 })
 

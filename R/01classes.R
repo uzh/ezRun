@@ -846,7 +846,8 @@ EzApp <-
         ## evaluating facts on archived runs; the default accepts this exact version only.
         okVersion <- getOption("ezRun.methodsFactsVersion",
                                paste0("^ezRun_", gsub(".", "\\.", utils::packageVersion("ezRun"), fixed = TRUE), "$"))
-        use_facts <- !failed && !any(grepl("^Execution halted", logText)) && any(grepl(okVersion, ran))
+        ## any job whose latest attempt failed withholds them, the example job or another
+        use_facts <- length(haltedLogs) == 0 && any(grepl(okVersion, ran))
         ## A run of another ezRun version only had the parameters it recorded: today's
         ## defaults would offer citations (and guard rules) for steps it never had, e.g.
         ## mLLMCelltype, whose default is on, for a 2024 ScSeurat run.
