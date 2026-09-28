@@ -723,3 +723,28 @@ test_that("FastQC cites ShortRead only when it subsampled (or when the input is 
   attr(q, "input") <- data.frame(Name = "S1", `Read1 [File]` = "S1.fastq.gz", check.names = FALSE)
   expect_false(any(grepl("ShortRead", EzAppFastqc$new()$citation(q))))
 })
+
+test_that("round-5 gaps: marker pre-filters, mLLMCelltype tissue, MAD fields, gene summing, cell calling", {
+  sc <- EzAppScSeurat$new()
+  has <- function(fs, x) any(grepl(x, fs, fixed = TRUE))
+  expect_true(has(sc$methods_facts(list()), "at least a fraction 0.1 of either group (min.pct) with an average log2 fold change of at least 0.25"))
+  expect_true(has(sc$methods_facts(list(min.pct = 0.2, logfc.threshold = 0.5)), "fraction 0.2 of either group (min.pct) with an average log2 fold change of at least 0.5"))
+  expect_true(has(sc$methods_facts(list(mLLMCelltype = TRUE, mLLMCelltype.tissue = "PBMC")), "with the tissue context 'PBMC'."))
+  expect_true(has(sc$methods_facts(list(mLLMCelltype = TRUE, mLLMCelltype.tissue = "auto", sctype.tissue = "Immune system")),
+                  "with the tissue context 'Immune system' (sctype.tissue"))
+  expect_true(has(sc$methods_facts(list(mLLMCelltype = TRUE, mLLMCelltype.tissue = "auto")), "without a tissue context"))
+  ## p40607a: perc_riboprot fixed, the other three empty -> only those three by MAD
+  fs <- sc$methods_facts(list(nUMI = "", ngenes = "", perc_mito = "", perc_riboprot = 70, nmad = 3))
+  expect_true(has(fs, "Cells were removed at fixed thresholds: perc_riboprot = 70"))
+  expect_true(has(fs, "For nUMI, ngenes, perc_mito, cells more than 3 median absolute deviations"))
+  for (app in list(EzAppDeseq2$new(), EzAppEdger$new()))
+    expect_true(has(app$methods_facts(list()), "transcript-level counts were first summed per gene over all of its transcripts"))
+  cr <- EzAppCellRanger$new()
+  expect_true(has(cr$methods_facts(list(TenXLibrary = "GEX", expectedCells = "")), "so Cell Ranger called cells automatically"))
+  expect_false(has(cr$methods_facts(list(TenXLibrary = "GEX", expectedCells = 5000)), "called cells automatically"))
+  crm <- EzAppCellRangerMulti$new()
+  fs <- crm$methods_facts(list(TenXLibrary = "GEX,VDJ-T", expectedCells = "", chemistry = "auto"))
+  expect_true(has(fs, "no expect-cells in config.csv"))
+  expect_true(has(fs, "Chemistry was left on auto, so Cell Ranger detected it"))
+  expect_false(has(crm$methods_facts(list(TenXLibrary = "GEX", expectedCells = 3000, chemistry = "SC5P-R2")), "left on auto"))
+})

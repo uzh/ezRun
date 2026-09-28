@@ -720,6 +720,8 @@ EzAppCellRanger <-
           if (identical(param$TenXLibrary, "VDJ")) "The VDJ reference was built by ezRun with cellranger mkvdjref from the FGCZ genome FASTA and gene GTF (or a previously built one for the same annotation was reused).",
           ## ezMethodCellRanger --include-introns (app-cellRanger.R:90)
           if (gex && isTRUE(as.logical(param$includeIntrons))) "Reads mapping to introns were counted (--include-introns=true)." else if (gex && isFALSE(as.logical(param$includeIntrons))) "Reads mapping to introns were not counted (--include-introns=false).",
+          ## ezMethodCellRanger --expect-cells only when expectedCells is set (app-cellRanger.R:87)
+          if (gex && length(param) && !ezIsSpecified(param$expectedCells)) "No expected cell number was given (no --expect-cells), so Cell Ranger called cells automatically.",
           ## ezMethodCellRanger --chemistry (app-cellRanger.R:83)
           if (gex && identical(param$chemistry, "auto")) "The assay chemistry was detected automatically by Cell Ranger (--chemistry=auto).",
           ## cellRangerAnnotatableRef (app-cellRanger.R:348)

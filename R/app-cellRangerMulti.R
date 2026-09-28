@@ -881,6 +881,9 @@ EzAppCellRangerMulti <-
             "; cells were assigned to samples by hashtag_ids."),
           if (mult && !fixed && !(muxType %in% c("antibody", "ocm"))) "For CellPlex (CMO) multiplexing, the cmo-set given to Cell Ranger contained only those CMOs of the barcode set MultiplexBarcodeSet that are listed in the order's Sample2Barcode file; cells were assigned to samples by cmo_ids.",
           if (mult && !fixed && identical(muxType, "ocm")) "For On-Chip Multiplexing (OCM), no multiplexing library and no barcode reference were given to Cell Ranger (the OCM barcode is read from the Gene Expression library); cells were assigned to samples by the ocm_barcode_ids of the order's Sample2Barcode file.",
+          ## buildMultiConfigFile: expect-cells and chemistry lines only when set (app-cellRangerMulti.R:436-447)
+          if (any(c("GEX", "fixedRNA") %in% libs) && length(param) && !ezIsSpecified(param$expectedCells)) "No expected cell number was given (no expect-cells in config.csv), so Cell Ranger called cells automatically.",
+          if (!fixed && length(param) && autoChem) "Chemistry was left on auto, so Cell Ranger detected it (no chemistry line in config.csv).",
           ## ezMethodCellRangerMulti step 8 (app-cellRangerMulti.R:56-84); config.csv always has create-bam,true
           if (isFALSE(keep)) "The per-sample BAM files were deleted after the run.",
           if (isTRUE(keep) && ezIsSpecified(param$secondRef)) "The per-sample BAM files were converted to CRAM with samtools against the genome FASTA without the secondRef sequences and the BAM files were then deleted; a CRAM exists only where that conversion succeeded.",

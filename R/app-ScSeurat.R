@@ -69,7 +69,10 @@ EzAppScSeurat <-
           ## sc-type block (app-ScSeurat.R)
           if (on(param$sctype.enabled)) paste0("Clusters were annotated with scType using the ScTypeDB_full marker database fetched from the sc-type GitHub repository at run time, for the tissue ", if (identical(param$sctype.tissue, "auto") || !ezIsSpecified(param$sctype.tissue)) "Immune system (sctype.tissue auto)" else param$sctype.tissue, "."),
           ## annotateClustersWithMLLMCelltype / registerFgczVllmProvider (app-ScSeurat.R)
-          if (on(param$mLLMCelltype)) "Clusters were annotated with mLLMCelltype from their 10 top markers by average log2 fold change, using the FGCZ-hosted language model (temperature 0, seed 42).",
+          if (on(param$mLLMCelltype)) paste0("Clusters were annotated with mLLMCelltype from their 10 top markers by average log2 fold change, using the FGCZ-hosted language model (temperature 0, seed 42) ",
+            if (ezIsSpecified(param$mLLMCelltype.tissue) && param$mLLMCelltype.tissue != "auto") paste0("with the tissue context '", param$mLLMCelltype.tissue, "'.")
+            else if (ezIsSpecified(param$sctype.tissue) && param$sctype.tissue != "auto") paste0("with the tissue context '", param$sctype.tissue, "' (sctype.tissue, as mLLMCelltype.tissue was auto).")
+            else "without a tissue context (mLLMCelltype.tissue auto)."),
           ## CyteTypeR block (app-ScSeurat.R)
           if (on(param$CyteTypeR)) "Clusters were annotated with CyteTypeR from markers with Bonferroni-adjusted p below 0.05 and log2 fold change above 0.5; clusters with fewer than 5 such markers were not submitted.",
           ## panHumanAzimuthPlan / CellRanger-local reuse (scTools.R, app-ScSeurat.R)
@@ -101,7 +104,9 @@ EzAppScSeurat <-
           if (isTRUE(res != round(res, 1))) "Because the resolution has more than one decimal, the lowest-resolution clustering was reported instead.",
           "UMAP used uwot with the cosine metric, 30 neighbours and seed 42 (RunUMAP defaults).",
           ## getSeuratMarkers (seuratUtils.R)
-          "Cluster markers were found with Seurat FindAllMarkers using the test in DE.method and only positive markers (only.pos = TRUE); p-values were Bonferroni-adjusted over all genes (Seurat p_val_adj), and the reported markers have p_val_adj below pvalue_allMarkers and a difference in detection fraction of at least min.diff.pct.",
+          paste0("Cluster markers were found with Seurat FindAllMarkers using the test in DE.method and only positive markers (only.pos = TRUE), testing genes detected in at least a fraction ",
+                 if (ezIsSpecified(param$min.pct)) param$min.pct else 0.1, " of either group (min.pct) with an average log2 fold change of at least ",
+                 if (ezIsSpecified(param$logfc.threshold)) param$logfc.threshold else 0.25, " (logfc.threshold); p-values were Bonferroni-adjusted over all genes (Seurat p_val_adj), and the reported markers have p_val_adj below pvalue_allMarkers and a difference in detection fraction of at least min.diff.pct."),
           ## cellsLabelsWithSingleR (scTools.R)
           if (humanMouse && isTRUE(nzchar(param$SingleR)) && !identical(param$SingleR, "none")) "Cells and clusters were annotated with SingleR against the fine labels (label.fine) of the celldex reference named in SingleR.",
           ## computeTFActivityAnalysis / computePathwayActivityAnalysis

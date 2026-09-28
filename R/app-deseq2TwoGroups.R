@@ -148,7 +148,7 @@ EzAppDeseq2 <-
           paste0("backgroundExpression (", param$backgroundExpression %||% 10, ") is not a filter and removed no genes: it is added to the normalized counts before they are log2-transformed for the report's heatmaps and plots",
                  "; gene filtering is the sigThresh presence rule described below."),
           ## twoGroupCountComparison (twoGroups.R): isPresent / useProbe
-          "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); every gene passing the gene-level transcriptTypes filter (genes whose type is in transcriptTypes, applied after any transcript-to-gene summing) was fitted and tested and has a p-value; presence in at least half of the samples of the sample group or of the reference group only decides which genes enter the reported FDR (see below).",
+          "A gene was called present in a sample when its count exceeded sigThresh (ezRun default 10); every gene passing the gene-level transcriptTypes filter (transcript-level counts were first summed per gene over all of its transcripts, then genes whose gene type is in transcriptTypes were kept) was fitted and tested and has a p-value; presence in at least half of the samples of the sample group or of the reference group only decides which genes enter the reported FDR (see below).",
           ## runDeseq2 (twoGroups.R): estimateSizeFactors(controlGenes = isPresent)
           "DESeq2 size factors were estimated with the median-ratio method on the present genes only (controlGenes).",
           ## runDeseq2: design, DESeq(), results()
