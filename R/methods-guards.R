@@ -226,7 +226,7 @@ METHODS_STYLE_PATTERN <- paste0(
   "(?<![\\w.])[\\w-]+\\.(?:tsv|csv|h5|h5ad|qs2|rds|html|bam|cram|fastq|fq|gz|txt|json|mtx|loom|bed|gtf|fa|fasta)\\b|",
   "(?<![\\w:/])/[\\w.-]+/[\\w./-]+|(?<![\\w-])--[a-z][\\w-]+|",
   "\\[not recorded[^]]*\\b(?:any (?:other|additional|further)|beyond)\\b[^]]*\\]|\\[not recorded\\][^.;]*\\bbeyond\\b|",
-  "\\b(?:any (?:other|additional|further)|beyond)\\b[^.;]*\\[not recorded\\]")
+  "\\b(?:any (?:other|additional|further)|other|additional|beyond|otherwise)\\b[^.;]*\\[not recorded\\]")
 methods_check_style <- function(description) {
   text <- tolower(paste(description, collapse = "\n"))
   unique(regmatches(text, gregexpr(METHODS_STYLE_PATTERN, text, perl = TRUE))[[1]])

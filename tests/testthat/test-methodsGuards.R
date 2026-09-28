@@ -389,11 +389,13 @@ test_that("framework names, files, paths, flags and sweeping [not recorded] are 
               "Reads in /srv/gstore/projects/p1 were used.", "fastp was run with --length_required 25.",
               "[not recorded: any additional FastQC parameters beyond the adapter list].",
               "Any additional settings used internally by these steps are [not recorded].",
-              "The settings for chimeric fragments were [not recorded] beyond the behaviour described above."))
+              "The settings for chimeric fragments were [not recorded] beyond the behaviour described above.",
+              "Additional assembly parameters were [not recorded].", "The counting parameters were otherwise [not recorded]."))
     expect_gt(length(methods_check_style(x)), 0, label = x)
   for (x in c("Reads were aligned to GRCh38.p14 with STAR 2.7.11b.", "Genes and/or transcripts were counted.",
               "Reads were counted with featureCounts -t exon.", "The minimum UMI count was [not recorded].",
-              "Libraries were prepared with the 10x Genomics 5' kit (v2).", "Log2 fold changes -- shrunken -- were used."))
+              "Libraries were prepared with the 10x Genomics 5' kit (v2).", "Log2 fold changes -- shrunken -- were used.",
+              "Bins were further filtered with scater isOutlier at a threshold [not recorded]."))
     expect_length(methods_check_style(x), 0)
 })
 
