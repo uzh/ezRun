@@ -368,12 +368,16 @@ METHODS_SLURM_KILL <- "\\*\\*\\* (JOB|STEP) \\S+ ON \\S+ CANCELLED AT|Detected \
 ## trace opens with "+ umask 0002"), so the footer's last command, "+ rm -rf <scratch dir>",
 ## is traced only when every command before it succeeded: on p2220 + p28409 it ends all 535
 ## traced _e.logs without a halt or a kill message and none of the 18 others (13 stopped
-## in the g-req copy). Untraced (older) logs have no such marker, so only the first two apply.
+## in the g-req copy, which does not count as failed, see below). Untraced (older) logs have
+## no such marker, so only the first two apply.
 methodsJobFailed <- function(e_log) {
   l <- readLines(e_log, warn = FALSE)
   if (any(grepl("^Execution halted", l)) || any(grepl(METHODS_SLURM_KILL, l))) return(TRUE)
   traced <- any(grepl("^\\+ umask ", utils::head(l, 5)))
-  traced && !any(grepl("^\\+ rm -rf ", utils::tail(l[nzchar(trimws(l))], 3)))
+  ## The footer copies the results with g-req before that rm -rf. A trace that reached the copy
+  ## means the analysis itself finished; a failed copy (SUSHI marks the job FAILED, routine for
+  ## Cell Ranger with complete outputs) is a delivery problem, not a run that did not complete.
+  traced && !any(grepl("^\\+ rm -rf ", utils::tail(l[nzchar(trimws(l))], 3))) && !any(grepl("^\\+ g-req ", l))
 }
 
 ## Why the jobs of these _e.logs failed, for the failed-run statement and note: SLURM's

@@ -436,7 +436,7 @@ test_that("a job rerun after a halted attempt counts once, by its latest attempt
                    c("s/x.sh_20220615164150845_e.log", "s/y.sh_sushiID3_2026-01-01--00-00-00_e.log"))
 })
 
-test_that("a job SLURM killed, or whose traced script never reached its end, failed", {
+test_that("a job SLURM killed, or whose traced script stopped before the copy to gStore, failed", {
   ## fixture logs shaped like the archived ones: SUSHI's `set -eux` trace starts with
   ## "+ umask 0002" and a finished job's _e.log ends with the footer's "+ rm -rf <scratch>"
   traced <- c("+ set -o pipefail", "+ umask 0002", "+ SCRATCH_DIR=/scratch/r_S1_temp1", "+ R --vanilla --slave",
@@ -446,7 +446,10 @@ test_that("a job SLURM killed, or whose traced script never reached its end, fai
   oom <- c("Loading ezRun", "Killed", paste("slurmstepd-fgcz-h-1: error: Detected 8 oom-kill event(s) in step 898.batch cgroup.",
                                             "Some of your processes may have been killed by the cgroup out-of-memory handler."))
   cancelled <- c(traced, "slurmstepd-fgcz-h-151: error: *** JOB 220315 ON fgcz-h-151 CANCELLED AT 2026-07-21T13:53:04 ***")
-  cut <- c(traced, "Error while processing request: Destination path already exists!")   # stopped in the copy
+  ## the analysis finished and only the trailing g-req copy failed: SUSHI marks it FAILED, but the
+  ## outputs exist (routine for Cell Ranger jobs), so it is written up, not reported as not completed
+  copyFailed <- c(traced, "+ g-req -w copy S1 /srv/gstore/projects/p1/r", "Error while processing request: Destination path already exists!")
+  cut <- c(traced, "+ samtools index S1.bam", "bash: line 12: samtools: command not found")   # stopped before the copy
   old <- c("Loading ezRun", "done")                                                      # before the trace: no marker
   f <- function(lines) { x <- tempfile(fileext = "_e.log"); writeLines(lines, x); methodsJobFailed(x) }
   expect_false(f(done))
@@ -455,6 +458,7 @@ test_that("a job SLURM killed, or whose traced script never reached its end, fai
   expect_true(f(oom))
   expect_true(f(cancelled))
   expect_true(f(cut))
+  expect_false(f(copyFailed))
   expect_true(f(c(done[-length(done)], "Execution halted")))
   withStubWriter(function(argsFile) {
     d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
