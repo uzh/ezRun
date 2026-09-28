@@ -35,3 +35,12 @@ test_that("the prompt keeps the sessionInfo, vendor-pipeline and completeness ru
     "Do not complete a partial identifier."))
     expect_true(grepl(rule, p, fixed = TRUE), label = rule)
 })
+
+test_that("[not recorded] is for one specific setting, and vendor steps follow run_summary.txt", {
+  p <- flatPrompt(EzApp$new()$methods_task())
+  for (rule in c(
+    "[not recorded] names one specific setting a reader would need; never write it for 'any other' or 'additional' settings",
+    "never for a setting listed in the parameters: an empty value there means the app's own rule applied",
+    "Where run_summary.txt lists the steps a vendor pipeline ran and did not run, describe only the ones it ran."))
+    expect_true(grepl(rule, p, fixed = TRUE), label = rule)
+})

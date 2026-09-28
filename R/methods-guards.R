@@ -218,6 +218,78 @@ methods_check_resources <- function(description) {
   unique(regmatches(text, gregexpr(METHODS_RESOURCE_PATTERN, text, perl = TRUE))[[1]])
 }
 
+## What the prompt forbids and the writer still wrote in round 5 (3 of 12 texts named ezRun,
+## 1 a file): the framework, file names, paths, command-line options, and a [not recorded]
+## that covers "any additional" settings rather than one a reader needs.
+METHODS_STYLE_PATTERN <- paste0(
+  "\\bezrun\\b|\\bsushi\\b|",
+  "(?<![\\w.])[\\w-]+\\.(?:tsv|csv|h5|h5ad|qs2|rds|html|bam|cram|fastq|fq|gz|txt|json|mtx|loom|bed|gtf|fa|fasta)\\b|",
+  "(?<![\\w:/])/[\\w.-]+/[\\w./-]+|(?<![\\w-])--[a-z][\\w-]+|",
+  "\\[not recorded[^]]*\\b(?:any (?:other|additional|further)|beyond)\\b[^]]*\\]|",
+  "\\b(?:any (?:other|additional|further)|beyond)\\b[^.;]*\\[not recorded\\]")
+methods_check_style <- function(description) {
+  text <- tolower(paste(description, collapse = "\n"))
+  unique(regmatches(text, gregexpr(METHODS_STYLE_PATTERN, text, perl = TRUE))[[1]])
+}
+
+## 10x martian pipelines (Cell Ranger, Space Ranger) log each stage "(ready)" when scheduled
+## and "(run:local)" when it runs; a disabled stage is scheduled and never run. The writer
+## described vendor steps from memory (hierarchical clustering, cell typing that never ran).
+## Steps a reader would name: the stage that produces each (it ran when that stage ran in any
+## subpipeline) and the words that describe it.
+METHODS_MARTIAN_STEPS <- list(
+  "PCA" = c("RUN_PCA", "\\bpca\\b|principal component"),
+  "UMAP" = c("RUN_UMAP", "\\bumap\\b"),
+  "t-SNE" = c("RUN_TSNE", "\\bt-?sne\\b"),
+  "graph-based clustering" = c("RUN_GRAPH_CLUSTERING", "graph-based clustering"),
+  "k-means clustering" = c("RUN_KMEANS", "k-means"),
+  "hierarchical clustering" = c("RUN_HIERARCHICAL_CLUSTERING", "hierarchical clustering"),
+  "differential expression between clusters" = c("RUN_DIFFERENTIAL_EXPRESSION", "differential expression[^.;]*clusters"),
+  "cell type annotation" = c("WRITE_CELL_TYPES_H5", "cell[- ]typing|cell[- ]type (?:annotation|assignment|calls?)|(?:annotated|assigned)[^.;]*cell types"),
+  "differential expression between cell types" = c("TIDY_CELLTYPE_DIFFEXP", "differential[^.;]*between (?:the )?cell types"),
+  "clonotype grouping" = c("RUN_ENCLONE", "enclone|clonotype"),
+  "chemistry batch correction" = c("CORRECT_CHEMISTRY_BATCH", "chemistry batch|batch[- ]correct"))
+
+## list(ran, skipped) of METHODS_MARTIAN_STEPS names, from the _o.logs; NULL without martian lines.
+methodsMartianStages <- function(o_logs) {
+  l <- unlist(lapply(Filter(file.exists, as.character(o_logs)), readLines, warn = FALSE))
+  m <- regmatches(l, regexec("\\[runtime\\] \\((ready|run:\\w+)\\)\\s+(\\S+)", l))
+  m <- do.call(rbind, m[lengths(m) == 3])
+  if (is.null(m)) return(NULL)
+  stage <- sub("^.*\\.", "", sub("\\.fork.*$", "", m[, 3]))
+  ran <- unique(stage[m[, 2] != "ready"])
+  st <- vapply(METHODS_MARTIAN_STEPS, `[`, "", 1)
+  list(ran = names(st)[st %in% ran], skipped = names(st)[st %in% setdiff(stage, ran)])
+}
+
+## Vendor steps the Description names although the pipeline did not run them.
+methods_check_vendor <- function(description, stages) {
+  if (!length(stages$skipped)) return(character(0))
+  text <- tolower(paste(description, collapse = "\n"))
+  Filter(function(s) methodsClaims(text, METHODS_MARTIAN_STEPS[[s]][2]), stages$skipped)
+}
+
+## Facts about the run itself, read from its record rather than from the code, so they hold
+## for any ezRun version: how the samples were run (a review found "applied to all 12
+## samples" for one DATASET job), organism and reference, and the vendor steps that ran.
+methodsRunSummary <- function(user_param, input = NULL, sample_count = 1, o_logs = character(0)) {
+  n <- sample_count %||% 1
+  mode <- user_param$process_mode
+  rb <- strsplit(user_param$refBuild %||% "", "/", fixed = TRUE)[[1]]
+  sp <- if ("Species" %in% names(input)) unique(input$Species[nzchar(input$Species)])
+  stages <- methodsMartianStages(o_logs)
+  c(if (identical(mode, "DATASET"))
+      paste0(if (n > 1) paste("All", n, "samples were") else "The sample was", " analysed together, in one job.")
+    else if (identical(mode, "SAMPLE") && n > 1)
+      paste0("Each of the ", n, " samples was analysed separately, in its own job, with the same settings."),
+    if (length(rb) >= 3)
+      paste0("Reference: ", gsub("_", " ", rb[1]), ", ", rb[2], " ", rb[3],
+             if (length(rb) >= 5 && grepl("^Release_", rb[5])) paste0(", annotation release ", sub("^Release_([^-]+).*$", "\\1", rb[5])), ".")
+    else if (length(sp) == 1) paste0("Organism: ", sp, "."),
+    if (length(stages$ran)) paste0("The vendor pipeline ran these steps: ", paste(stages$ran, collapse = ", "), "."),
+    if (length(stages$skipped)) paste0("It did not run these steps, so do not describe them: ", paste(stages$skipped, collapse = ", "), "."))
+}
+
 ## Keys left out of the template's parameter list: scheduler, bookkeeping and credentials.
 METHODS_TEMPLATE_SKIP_PARAMS <- c("cores", "ram", "scratch", "partition", "process_mode", "samples",
                                   "name", "mail", "adminMail", "sushi_app", "sushiApp", "specialOptions",
@@ -288,6 +360,7 @@ methodsGuardedWrite <- function(app, script_paths, log_paths, sample_count, outp
   config <- c(readAll(script_paths), methodsParamText(param), methodsParamText(user_param),
               as.character(unlist(app$appDefaults$DefaultValue)), facts, citations)
   all <- c(config, readAll(log_paths))
+  stages <- methodsMartianStages(log_paths[grepl("_o\\.log$", log_paths)])
   template <- function(reason) {
     message("write_methods: template fallback (", reason, ")")
     list(template = methods_template(cls, user_param, facts, citations, sample_count, log_paths))
@@ -307,24 +380,38 @@ methodsGuardedWrite <- function(app, script_paths, log_paths, sample_count, outp
     numbers <- methods_check_numbers(description, all, all, sample_count)
     steps <- methods_check_offsteps(description, cls, param)
     resources <- methods_check_resources(description)
-    if (!length(numbers) && !length(steps) && !length(resources)) return(list(raw = raw))
+    vendor <- methods_check_vendor(description, stages)
+    style <- methods_check_style(description)
+    ## style is asked out once, never dropped: its sentences carry the tool and its version
+    ## ("DESeq2 1.52.0 within the ezRun framework"), so it is left when the retry keeps it
+    if (!length(numbers) && !length(steps) && !length(resources) && !length(vendor) &&
+        (!length(style) || attempt == 2))
+      return(list(raw = raw))
     message("write_methods: guards flagged ", length(numbers), " numbers, ", length(steps), " steps, ",
-            length(resources), " resources", if (attempt == 1) "; retrying")
+            length(resources), " resources, ", length(vendor), " vendor steps, ", length(style), " style",
+            if (attempt == 1) "; retrying")
     extra <- paste(c(
       if (length(numbers)) paste0("These values are not in the run's configuration; remove them or the ",
                                   "sentence that states them: ", paste(numbers, collapse = ", "), "."),
       if (length(steps)) paste0("These steps were not run in this job; do not describe them: ",
                                 paste(sub("^(.*):(.*)$", "\\2 (\\1 off)", steps), collapse = ", "), "."),
       if (length(resources)) paste0("Remove the compute resources, job settings and statements that the ",
-                                    "run completed, which are not part of the method: ", paste(resources, collapse = ", "), ".")),
+                                    "run completed, which are not part of the method: ", paste(resources, collapse = ", "), "."),
+      if (length(vendor)) paste0("The vendor pipeline did not run these steps in this job; do not describe them: ",
+                                 paste(vendor, collapse = ", "), "."),
+      if (length(style)) paste0("Remove the framework names (ezRun, SUSHI), file names, paths and command-line ",
+                                "options, and any [not recorded] that is not about one specific setting: ",
+                                paste(style, collapse = ", "), ".")),
       collapse = "\n")
   }
   ## Still flagged after the retry: drop just those sentences, so one bad sentence does not
   ## cost the whole text; the template only when nothing is left.
-  kept <- methodsDropSentences(raw, numbers, METHODS_OFFSTEP_RULES[[cls]][sub(":.*$", "", steps)], resources)
+  kept <- methodsDropSentences(raw, numbers, c(METHODS_OFFSTEP_RULES[[cls]][sub(":.*$", "", steps)],
+                                               vapply(METHODS_MARTIAN_STEPS[vendor], `[`, "", 2)),
+                               resources)
   if (nzchar(trimws(gsub("(^|\n)#+[^\n]*", "", methodsDescriptionPart(kept))))) {
-    message(sprintf("write_methods: dropped the sentences with %d numbers, %d steps, %d resources",
-                    length(numbers), length(steps), length(resources)))
+    message(sprintf("write_methods: dropped the sentences with %d numbers, %d steps, %d resources, %d vendor steps",
+                    length(numbers), length(steps), length(resources), length(vendor)))
     return(list(raw = kept))
   }
   template(sprintf("guards: %d numbers, %d steps", length(numbers), length(steps)))
