@@ -830,18 +830,10 @@ EzApp <-
         ## the jobs whose latest attempt failed (methodsJobFailed, R/methods-guards.R).
         jobLogs <- methodsLatestJobLogs(unique(c(log_paths[grepl("_e\\.log$", log_paths)], allLogs)))
         haltedLogs <- Filter(methodsJobFailed, jobLogs)
-        firstError <- function(fs) {
-          l <- unlist(lapply(fs, readLines, warn = FALSE))
-          i <- grep("^Error", l)[1]
-          ## "Error in ezSystem(cmd) :" carries its message on the next line
-          e <- if (is.na(i)) "Execution halted" else
-            paste(trimws(l[i:(i + (grepl(":\\s*$", l[i]) && i < length(l)))]), collapse = " ")
-          substr(gsub("(/[^ /]+)+/([^ /]*)", "\\2", e), 1, 200)   # no paths in a Methods file
-        }
         failed <- length(jobLogs) > 0 && length(haltedLogs) == length(jobLogs)   # every job stopped
         partialNote <- if (!failed && length(haltedLogs) > 0)
           paste0("Note: ", length(haltedLogs), " of ", length(jobLogs), " jobs of this run stopped with an error (first: \"",
-                 firstError(haltedLogs), "\"); this description applies to the samples whose jobs completed.")
+                 methodsJobError(haltedLogs), "\"); this description applies to the samples whose jobs completed.")
         ## option ezRun.methodsFactsVersion (a regex on "ezRun_x.y.z") widens the match, for
         ## evaluating facts on archived runs; the default accepts this exact version only.
         okVersion <- getOption("ezRun.methodsFactsVersion",
@@ -866,7 +858,7 @@ EzApp <-
           guarded <- list(template = list(
             description = paste0("The analysis did not complete: ",
                                  if (length(jobLogs) == 1) "its job" else paste("all", length(jobLogs), "jobs"),
-                                 " stopped with an error (first: \"", firstError(haltedLogs),
+                                 " stopped with an error (first: \"", methodsJobError(haltedLogs),
                                  "\"). No Methods text was generated; describe this analysis once it has been rerun successfully."),
             references = "pending"))
           raw <- ""

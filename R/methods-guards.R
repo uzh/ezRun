@@ -340,8 +340,36 @@ methodsLatestJobLogs <- function(logs) {
   logs[sort(o[!duplicated(script[o])])]
 }
 
-## A job failed when R stopped ("Execution halted"); an "Error in" line alone can be a
-## caught error (SoupX autoEstCont in a ScSeurat run that delivered).
+## SLURM's own lines in a job's _e.log when it killed the job: a cancel (time limit, scancel)
+## or an out-of-memory kill. Neither leaves "Execution halted".
+METHODS_SLURM_KILL <- "\\*\\*\\* (JOB|STEP) \\S+ ON \\S+ CANCELLED AT|Detected \\d+ oom[-_]kill event"
+
+## A job failed when R stopped ("Execution halted"; an "Error in" line alone can be a caught
+## error, SoupX autoEstCont in a ScSeurat run that delivered), when SLURM killed it, or when
+## its traced script did not reach its end. SUSHI job scripts run under `set -eux` (the
+## trace opens with "+ umask 0002"), so the footer's last command, "+ rm -rf <scratch dir>",
+## is traced only when every command before it succeeded: on p2220 + p28409 it ends all 535
+## traced _e.logs without a halt or a kill message and none of the 18 others (13 stopped
+## in the g-req copy). Untraced (older) logs have no such marker, so only the first two apply.
 methodsJobFailed <- function(e_log) {
-  any(grepl("^Execution halted", readLines(e_log, warn = FALSE)))
+  l <- readLines(e_log, warn = FALSE)
+  if (any(grepl("^Execution halted", l)) || any(grepl(METHODS_SLURM_KILL, l))) return(TRUE)
+  traced <- any(grepl("^\\+ umask ", utils::head(l, 5)))
+  traced && !any(grepl("^\\+ rm -rf ", utils::tail(l[nzchar(trimws(l))], 3)))
+}
+
+## Why the jobs of these _e.logs failed, for the failed-run statement and note: SLURM's
+## kill, else the first "Error" line (with the next line when it ends in a colon, as
+## "Error in ezSystem(cmd) :" does), with paths reduced to file names.
+methodsJobError <- function(e_logs) {
+  l <- unlist(lapply(e_logs, readLines, warn = FALSE))
+  k <- grep(METHODS_SLURM_KILL, l, value = TRUE)[1]
+  i <- grep("^Error", l)[1]
+  e <- if (!is.na(k)) {
+    if (grepl("oom", k)) "SLURM killed the job for exceeding its memory" else
+      paste0("SLURM cancelled the job", if (grepl("DUE TO", k)) paste0(" due to ", tolower(sub(".*DUE TO (.*?) *\\*+.*$", "\\1", k))))
+  } else if (!is.na(i)) {
+    paste(trimws(l[i:(i + (grepl(":\\s*$", l[i]) && i < length(l)))]), collapse = " ")
+  } else if (any(grepl("^Execution halted", l))) "Execution halted" else "the job ended before its last step"
+  substr(gsub("(/[^ /]+)+/([^ /]*)", "\\2", e), 1, 200)   # no paths in a Methods file
 }

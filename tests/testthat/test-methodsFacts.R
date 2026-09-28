@@ -433,6 +433,40 @@ test_that("a job rerun after a halted attempt counts once, by its latest attempt
                    c("s/x.sh_20220615164150845_e.log", "s/y.sh_sushiID3_2026-01-01--00-00-00_e.log"))
 })
 
+test_that("a job SLURM killed, or whose traced script never reached its end, failed", {
+  ## fixture logs shaped like the archived ones: SUSHI's `set -eux` trace starts with
+  ## "+ umask 0002" and a finished job's _e.log ends with the footer's "+ rm -rf <scratch>"
+  traced <- c("+ set -o pipefail", "+ umask 0002", "+ SCRATCH_DIR=/scratch/r_S1_temp1", "+ R --vanilla --slave",
+              "INFO (ezRun) [2026-01-01 00:00:00] Starting\tEzAppX")
+  done <- c(traced, "+ g-req -w copy S1 /srv/gstore/projects/p1/r", "OK", "+ cd /scratch", "+ rm -rf /scratch/r_S1_temp1", "")
+  timeLimit <- c(traced, "slurmstepd: error: *** JOB 123 ON fgcz-c-1 CANCELLED AT 2026-01-01T02:00:00 DUE TO TIME LIMIT ***")
+  oom <- c("Loading ezRun", "Killed", paste("slurmstepd-fgcz-h-1: error: Detected 8 oom-kill event(s) in step 898.batch cgroup.",
+                                            "Some of your processes may have been killed by the cgroup out-of-memory handler."))
+  cancelled <- c(traced, "slurmstepd-fgcz-h-151: error: *** JOB 220315 ON fgcz-h-151 CANCELLED AT 2026-07-21T13:53:04 ***")
+  cut <- c(traced, "Error while processing request: Destination path already exists!")   # stopped in the copy
+  old <- c("Loading ezRun", "done")                                                      # before the trace: no marker
+  f <- function(lines) { x <- tempfile(fileext = "_e.log"); writeLines(lines, x); methodsJobFailed(x) }
+  expect_false(f(done))
+  expect_false(f(old))
+  expect_true(f(timeLimit))
+  expect_true(f(oom))
+  expect_true(f(cancelled))
+  expect_true(f(cut))
+  expect_true(f(c(done[-length(done)], "Execution halted")))
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    writeLines("echo job", file.path(sd, "job.sh"))
+    writeLines(c(traced, "Error in autoEstCont(sc): caught", timeLimit[length(timeLimit)]),
+               file.path(sd, "job.sh_sushiID1_2026-01-01--00-00-00_e.log"))
+    out <- tempfile("out"); dir.create(out)
+    EzApp$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                              example_script = "job.sh", sample_count = 1)
+    md <- paste(readLines(file.path(out, "methods.md")), collapse = "\n")
+    expect_match(md, "The analysis did not complete: its job stopped with an error (first: \"SLURM cancelled the job due to time limit\")", fixed = TRUE)
+    expect_false(file.exists(argsFile))
+  })
+})
+
 test_that("FastQC cites ShortRead only when it subsampled (or when the input is unknown)", {
   q <- list(); attr(q, "input") <- data.frame(`Read Count` = "100000", check.names = FALSE)
   expect_false(any(grepl("ShortRead", EzAppFastqc$new()$citation(q))))
