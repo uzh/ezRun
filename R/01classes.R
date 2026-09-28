@@ -826,10 +826,10 @@ EzApp <-
         ## kallisto samples failed while the example sample's log was clean)
         allLogs <- if (is.null(gstore_script_dir)) character(0) else
           Filter(function(f) !grepl("^methods_", basename(f)), Sys.glob(file.path(gstore_script_dir, "*_e.log")))
-        ## A job failed when R stopped ("Execution halted"); an "Error in" line alone can be
-        ## a caught error (SoupX autoEstCont in a ScSeurat run that delivered).
-        jobLogs <- unique(c(log_paths[grepl("_e\\.log$", log_paths)], allLogs))
-        haltedLogs <- Filter(function(f) any(grepl("^Execution halted", readLines(f, warn = FALSE))), jobLogs)
+        ## One _e.log per job, its latest attempt (a rerun supersedes a halted attempt), and
+        ## the jobs whose latest attempt failed (methodsJobFailed, R/methods-guards.R).
+        jobLogs <- methodsLatestJobLogs(unique(c(log_paths[grepl("_e\\.log$", log_paths)], allLogs)))
+        haltedLogs <- Filter(methodsJobFailed, jobLogs)
         firstError <- function(fs) {
           l <- unlist(lapply(fs, readLines, warn = FALSE))
           i <- grep("^Error", l)[1]

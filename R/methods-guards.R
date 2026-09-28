@@ -326,3 +326,22 @@ methodsConfigCsv <- function(result_dir, example_script = NULL) {
   if (!any(hit)) return(csv[1])
   csv[hit][which.max(nchar(samples[hit]))]
 }
+
+## The _e.log of each job's latest attempt. SUSHI names a job log
+## <script>.sh_sushiID<n>_<YYYY-MM-DD--HH-MM-SS>_e.log (before the sushiID naming:
+## <script>.sh_<stamp>_e.log); a resubmitted job keeps its script and sushiID and gets a
+## newer stamp, so counting log files counted a job that was rerun successfully as stopped.
+methodsLatestJobLogs <- function(logs) {
+  if (!length(logs)) return(character(0))
+  b <- basename(logs)
+  script <- sub("\\.sh_.*$", ".sh", b)
+  stamp <- sub("^sushiID\\d+_", "", sub("_e\\.log$", "", substring(b, nchar(script) + 2)))
+  o <- order(script, stamp, decreasing = TRUE)
+  logs[sort(o[!duplicated(script[o])])]
+}
+
+## A job failed when R stopped ("Execution halted"); an "Error in" line alone can be a
+## caught error (SoupX autoEstCont in a ScSeurat run that delivered).
+methodsJobFailed <- function(e_log) {
+  any(grepl("^Execution halted", readLines(e_log, warn = FALSE)))
+}

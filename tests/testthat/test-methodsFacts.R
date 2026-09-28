@@ -378,6 +378,35 @@ test_that("a caught error is not a failure; one halted job of several gives a no
   })
 })
 
+test_that("a job rerun after a halted attempt counts once, by its latest attempt", {
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    writeLines("echo job", file.path(sd, "job.sh"))
+    halted <- c("Error in plot_layout(): boom", "Execution halted")
+    early <- file.path(sd, "job.sh_sushiID1_2025-10-14--14-41-53_e.log")
+    late <- file.path(sd, "job.sh_sushiID1_2025-10-14--16-50-51_e.log")   # resubmitted: same sushiID
+    md <- function() {
+      out <- tempfile("out"); dir.create(out)
+      EzApp$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                                example_script = "job.sh", sample_count = 1)
+      paste(readLines(file.path(out, "methods.md")), collapse = "\n")
+    }
+    writeLines(halted, early); writeLines("done", late)                  # the rerun succeeded
+    x <- md()
+    expect_no_match(x, "did not complete")
+    expect_no_match(x, "Note:")
+    writeLines("done", early); writeLines(halted, late)                  # the rerun halted
+    expect_match(md(), "The analysis did not complete: its job stopped", fixed = TRUE)
+    writeLines("echo job", file.path(sd, "job2.sh"))                     # one of two jobs failed
+    writeLines(c("done"), file.path(sd, "job2.sh_sushiID2_2025-10-14--14-41-50_e.log"))
+    expect_match(md(), "Note: 1 of 2 jobs of this run stopped", fixed = TRUE)
+  })
+  ## logs archived before the sushiID naming group the same way
+  expect_identical(methodsLatestJobLogs(c("s/x.sh_20220615164150845_e.log", "s/x.sh_20220614164150845_e.log",
+                                          "s/y.sh_sushiID3_2026-01-01--00-00-00_e.log")),
+                   c("s/x.sh_20220615164150845_e.log", "s/y.sh_sushiID3_2026-01-01--00-00-00_e.log"))
+})
+
 test_that("FastQC cites ShortRead only when it subsampled (or when the input is unknown)", {
   q <- list(); attr(q, "input") <- data.frame(`Read Count` = "100000", check.names = FALSE)
   expect_false(any(grepl("ShortRead", EzAppFastqc$new()$citation(q))))
