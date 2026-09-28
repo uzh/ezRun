@@ -250,8 +250,20 @@ test_that("numbers the logs hold pass, and the corpus false positives stay unfla
 
 test_that("compute resources are asked out once, then their sentences dropped", {
   expect_setequal(methods_check_resources("It used four cores, 8 threads and 12 GB of RAM in dataset mode with 100 GB scratch."),
-                  c("8 threads", "12 gb of ram", "dataset mode", "scratch"))
+                  c("four cores", "8 threads", "12 gb of ram", "dataset mode", "scratch"))
   expect_length(methods_check_resources("Clusters were annotated using the FGCZ-hosted language model with 30 PCs."), 0)
+  ## the phrasings that reached final texts (guards-2, ronald-1), and their neighbours
+  for (x in c("Assembly was run with eight threads.", "It used sixty-four threads.", "It used twenty four cores.",
+              "Local memory was set to 100 GB, and 8 local cores were used.", "A memory of 16 GB was requested.",
+              "Reads were sorted with samtools sort -n -m 3500M -@ 4.", "BWA ran with --threads 8.",
+              "samtools used a memory limit of 2048 MB per thread.", "It ran with 16 parallel threads.",
+              "The pipeline completed successfully.", "All jobs finished successfully.", "The job ran to completion."))
+    expect_gt(length(methods_check_resources(x)), 0, label = x)
+  for (x in c("STAR aligned the reads in one-pass mode.", "Two samples were compared.",
+              "The first 4 principal components were used.", "Genes expressed in at least three cells were kept.",
+              "Reads were counted with featureCounts -t exon -g gene_id.", "Twenty clusters were found at resolution 0.5.",
+              "The core promoter set was used.", "A 5 Mb window was used."))
+    expect_length(methods_check_resources(x), 0)
   withTextWriter("Reads were aligned with STAR. The job used 8 threads.", function(bin) {
     out <- tempfile("out"); dir.create(out)
     expect_message(EzApp$new()$write_methods(output_dir = out, analysis_name = "T"), "1 resources; retrying")

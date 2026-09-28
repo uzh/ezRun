@@ -191,10 +191,21 @@ methods_check_offsteps <- function(description, class_name, param) {
   out
 }
 
-## Compute resources and job modes, which the task already forbids and the writer still
-## wrote into about 1 text in 10 ("four cores and 12 GB of RAM", "8 threads", "dataset mode").
-METHODS_RESOURCE_PATTERN <- paste0("\\b\\d+\\s*(cores?|cpus?|threads?)\\b|\\b\\d+\\s*gb?\\b[^.;]{0,20}\\b(ram|memory)\\b|",
-                                   "\\bscratch\\b|\\b(dataset|sample) mode\\b|process_mode|--local(mem|cores)\\b|\\b\\d+ workers\\b")
+## Compute resources, job modes and run outcome, which the task already forbids and the
+## writer still wrote into about 1 text in 10 ("four cores and 12 GB of RAM", "8 threads",
+## "dataset mode"). Numbers may be spelled out (one to sixty-four) and have a word before
+## the unit ("8 local cores"); memory may come before its amount ("memory was set to
+## 100 GB"), in MB or M; thread flags may be quoted ("-@ 4", "--threads 8").
+METHODS_NUMBER_WORDS <- paste0("(?:(?:twenty|thirty|forty|fifty|sixty)(?:[- ](?:one|two|three|four|five|six|seven|eight|nine))?|",
+                               "ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|",
+                               "one|two|three|four|five|six|seven|eight|nine)")
+METHODS_RESOURCE_PATTERN <- paste0(
+  "\\b(?:\\d+|", METHODS_NUMBER_WORDS, ")(?:[\\s-]+[a-z]+)?[\\s-]*(?:cores?|cpus?|threads?|workers)\\b|",
+  "\\b\\d+(?:\\.\\d+)?\\s*[gm]i?b?\\b[^.;]{0,20}\\b(?:ram|memory)\\b|",
+  "\\b(?:ram|memory)\\b[^.;]{0,30}?\\b\\d+(?:\\.\\d+)?\\s*[gm]i?b?\\b|",
+  "(?<!\\S)-@\\s*\\d+|--(?:threads|runthreadn|num[-_]?threads|nthreads|cores|cpus|local(?:mem|cores))\\b|",
+  "\\b(?:completed|finished) successfully\\b|\\bran to completion\\b|",
+  "\\bscratch\\b|\\b(?:dataset|sample) mode\\b|process_mode")
 methods_check_resources <- function(description) {
   text <- tolower(paste(description, collapse = "\n"))
   unique(regmatches(text, gregexpr(METHODS_RESOURCE_PATTERN, text, perl = TRUE))[[1]])
@@ -297,8 +308,8 @@ methodsGuardedWrite <- function(app, script_paths, log_paths, sample_count, outp
                                   "sentence that states them: ", paste(numbers, collapse = ", "), "."),
       if (length(steps)) paste0("These steps were not run in this job; do not describe them: ",
                                 paste(sub("^(.*):(.*)$", "\\2 (\\1 off)", steps), collapse = ", "), "."),
-      if (length(resources)) paste0("Remove the compute resources and job settings, which are not part of ",
-                                    "the method: ", paste(resources, collapse = ", "), ".")),
+      if (length(resources)) paste0("Remove the compute resources, job settings and statements that the ",
+                                    "run completed, which are not part of the method: ", paste(resources, collapse = ", "), ".")),
       collapse = "\n")
   }
   ## Still flagged after the retry: drop just those sentences, so one bad sentence does not
