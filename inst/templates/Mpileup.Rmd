@@ -37,6 +37,38 @@ samples = input$getNames()
 
 conds = ezConditionsFromDataset(dataset, param=param)
 sampleColors = getSampleColors(conds, colorNames = names(conds))
+## only written by the GATK RNA-seq joint genotyping app
+hasVarSummary = !is.null(ezFindRobj("varSummary"))
+```
+
+```{r variant processing, echo=FALSE, results='asis', eval=hasVarSummary}
+varSummary <- ezLoadRobj("varSummary")
+cat("## Variant Processing\n\n")
+cat("Final VCF: [", param$name, ".vcf.gz](", param$name, ".vcf.gz)", sep = "")
+if (!is.null(varSummary$passFile)) {
+  cat(" &mdash; PASS only: [", varSummary$passFile, "](", varSummary$passFile, ")", sep = "")
+}
+cat("\n\n")
+print(kable(varSummary$counts, format.args = list(big.mark = "'")) %>%
+  kable_styling(full_width = FALSE, position = "left"))
+cat("\n\n")
+if (!is.null(varSummary$filterCriteria)) {
+  cat("Hard filters (GATK RNA-seq best practices); records failing a filter keep",
+      "the filter name in the FILTER column, all others are PASS:\n\n")
+  cat(paste0("- ", varSummary$filterCriteria, "\n"), sep = "")
+  cat("\n")
+}
+if (!is.null(varSummary$snpEffDb)) {
+  cat("### SnpEff impact\n\n")
+  cat("Effects were annotated with SnpEff (database ", varSummary$snpEffDb,
+      ", built from the reference annotation) in the ANN field. ",
+      "[SnpEff summary](", varSummary$snpEffHtml, ")\n\n", sep = "")
+  if (!is.null(varSummary$impact)) {
+    print(kable(varSummary$impact, format.args = list(big.mark = "'")) %>%
+      kable_styling(full_width = FALSE, position = "left"))
+  }
+  cat("\n\n")
+}
 ```
 
 ## Sample Clustering 
@@ -55,7 +87,7 @@ if (all(!is.na(d))){
 
 ## Variants by Chromosomes
 
-```{r chrom variants, echo=FALSE, eval=nrow(gt) >0, fig.width=min(5 + length(samples)*0.33, 20), fig.height = min(5 + length(samples)*0.2, 15)}
+```{r chrom variants, echo=FALSE, eval=!is.null(gt) && nrow(gt) > 0, fig.width=min(5 + length(samples)*0.33, 20), fig.height = min(5 + length(samples)*0.2, 15)}
 
 chrom = sub(":.*", "", rownames(gt))
 pos = as.integer(sub("_.*", "", sub(".*:", "", rownames(gt))))
