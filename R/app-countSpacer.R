@@ -440,6 +440,52 @@ EzAppCountSpacer <-
           "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package. https://doi.org/10.18129/B9.bioc.Biostrings"
         )
       },
+      methods_facts = function(param = list()) {
+        known <- length(param) > 0
+        val <- function(name, default) {
+          v <- param[[name]]
+          if (known && length(v) == 1 && !is.na(v)) v else paste("ezRun default", default)
+        }
+        ## ezMethodCountSpacer: patterns are guessed only when guessPatterns and a pattern is empty
+        left <- param$leftPattern %||% ""
+        right <- param$rightPattern %||% ""
+        guess <- known && isTRUE(as.logical(param$guessPatterns)) && (!nzchar(left) || !nzchar(right))
+        sl <- suppressWarnings(as.integer(param$spacerLength))
+        fixedLen <- known && length(sl) == 1 && !is.na(sl) && sl > 0
+        lenTxt <- if (!known) {
+          "a fixed spacer length (spacerLength, or when it is 0 the library's single sgRNA length if all its sgRNAs have one length)"
+        } else if (fixedLen) {
+          paste0("a fixed spacer length of ", sl, " (spacerLength)")
+        } else {
+          "the library's single sgRNA length (spacerLength 0) when all its sgRNAs have one length"
+        }
+        thr <- val("diffToLogMeanThreshold", 2)
+        c(
+          ## ezMethodCountSpacer: *final.csv, else the csv not matching MAGeCK; bowtie index = the .ebwt files next to it
+          paste0("The sgRNA library",
+                 if (known && ezIsSpecified(param$dictPath)) paste0(" (dictPath ", param$dictPath, ")"),
+                 " is the library folder's final.csv file, or else its CSV file whose name does not contain MAGeCK, read as target ID, spacer sequence, gene symbol and control flag, and spacers were aligned to the bowtie index stored in that folder."),
+          ## ezMethodCountSpacer: ezMethodFastpTrim, then trimmedInput$getColumn("Read1")
+          "Reads were first trimmed with fastp (the app's fastp parameters) and only Read1 was used for spacer extraction.",
+          ## guessFlankingPatterns: nSample 1e5, constFreq 0.9, varFreq 0.5, minSpacerRun 10, maxFlank 12
+          if (guess) "Because a flanking pattern was left empty and guessPatterns was true, the missing pattern was inferred from the per-position base composition of the first 100,000 trimmed reads: the leading run of positions where one base has at least 90% frequency became the left pattern, and the first such run after a stretch of at least 10 variable positions (top base below 50%) became the right pattern, each at most 12 bases long.",
+          ## twoPatternReadFilter: vmatchPattern(max.mismatch), first match; right-anchored, left-anchored or legacy branch
+          paste0("Flanking patterns were matched with up to ", val("maxMismatch", 1),
+                 " mismatches (maxMismatch), using the first match in each read; with ", lenTxt,
+                 " and a right pattern, the spacer is that many bases immediately 5' of the right pattern, with only a left pattern that many bases right after it, and otherwise the sequence between the two patterns (the whole read when neither pattern was set); reads in which a required pattern was not found were dropped."),
+          ## ezMethodCountSpacer: reads[width(reads) >= param$minReadLength]
+          paste0("Extracted spacers shorter than ", val("minReadLength", 18), " bases (minReadLength) were discarded."),
+          ## ezMethodCountSpacer: bowtie <index> <fa> -f -p <cores> | cut -f3,8; table(result_bowtie$target)
+          "Spacers were aligned as FASTA with bowtie (version 1, not Bowtie2) with only -f and the thread count set, so bowtie's own default alignment and mismatch settings applied; every alignment bowtie reported counted one read for its sgRNA, and the 0-3 mismatch tallies in the statistics count those alignments.",
+          ## ezMethodCountSpacer: dict Count (NA -> 0); targetView Count_Sum over non-control sgRNAs
+          "The counts are raw read counts per sgRNA (0 for sgRNAs without an aligned read), not normalized; target-level counts are the sums over each target's sgRNAs, control sgRNAs excluded.",
+          ## ezMethodCountSpacer: sortedCounts, lowerCutOff, #sgRNAs > lowerCutOff < 2; CountSpacer.qmd derive
+          paste0("Over- and under-representation is relative, not a statistical test: the log2(1 + count) of the targeting sgRNAs is compared with its mean plus or minus ", thr,
+                 " (diffToLogMeanThreshold), and a target is listed as under-represented when fewer than 2 of its sgRNAs have a count above 2 to the power of that mean minus the threshold."),
+          ## ezMethodCountSpacer: makeQuartoReport(qmdFile = "CountSpacer.qmd"); CountSpacer.qmd derive (mappingRate, .gini)
+          "The HTML report is rendered by ezRun from its CountSpacer Quarto template; its mapping rate is the aligned reads divided by the valid spacer reads, and its Gini index and Lorenz curve are computed on the targeting sgRNAs' counts."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCountSpacer
