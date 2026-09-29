@@ -233,6 +233,85 @@ EzAppDiffPeakAnalysis <-
     "EzAppDiffPeakAnalysis",
     contains = "EzApp",
     methods = list(
+      methods_facts = function(param = list()) {
+        known <- length(param) > 0
+        lfc <- if (known && length(param$lfcThreshold) == 1) format(param$lfcThreshold) else "lfcThreshold"
+        fdr <- if (known && length(param$fdrThreshold) == 1) format(param$fdrThreshold) else "fdrThreshold"
+        nTop <- if (known && length(param$enrichMaxPeaks) == 1) format(param$enrichMaxPeaks) else "enrichMaxPeaks"
+        refBuild <- if (known && ezIsSpecified(param$refBuild)) param$refBuild else ""
+        ## diffPeakGoOra: org.Mm.eg.db / org.Hs.eg.db by the species part of refBuild
+        orgDb <- c(Mus_musculus = "org.Mm.eg.db", Homo_sapiens = "org.Hs.eg.db")[sub("/.*", "", refBuild)]
+        ## ezMethodDiffPeakAnalysis: BigWig profiles only when the first BigWig/BigWigFile column has
+        ## existing files for the comparison samples; NA when the input dataset is unknown
+        bw <- NA
+        if (!is.null(attr(param, "input"))) {
+          root <- if (ezIsSpecified(param$dataRoot)) param$dataRoot else "/srv/gstore/projects"
+          col <- Filter(Negate(is.null), lapply(c("BigWig", "BigWigFile"), function(cc) methodsInput(param, cc)))
+          grp <- if (known && ezIsSpecified(param$grouping)) methodsInput(param, param$grouping)
+          comp <- if (is.null(grp)) TRUE else grp %in% c(param$sampleGroup, param$refGroup)
+          bw <- length(col) > 0 && any(file.exists(file.path(root, col[[1]][comp & !is.na(col[[1]]) & nzchar(col[[1]])])))
+        }
+        sizeFactors <- c(
+          DESeq2 = "DESeq2 median-of-ratios factors computed over the peaks",
+          readsInPeaks = "the total reads in consensus peaks per sample, scaled to a geometric mean of 1",
+          TMM = "edgeR TMM normalisation factors on the peak counts multiplied by the reads in peaks per sample, scaled to a geometric mean of 1")
+        shrink <- if (known) as.character(param$lfcShrink %||% "none") else ""
+        anno <- if (known) as.character(param$annotationMethod %||% "") else ""
+        c(
+          ## loadCountFiles / generateDESeqDS (round, no filter); runDiffPeakDESeq (fitAllSamples subset, grouping2 usability check)
+          paste0("DESeq2 was fitted on the consensus-peak read counts of the input Count tables, rounded to integers and with no count prefiltering of peaks, ",
+                 if (!known) "using the samples of sampleGroup and refGroup (or, with fitAllSamples, every sample with a group label)."
+                 else paste0(if (isTRUE(param$fitAllSamples)) "using every sample with a label in the grouping column and extracting the sampleGroup over refGroup contrast (fitAllSamples true)"
+                             else "using only the samples of sampleGroup and refGroup (fitAllSamples false)",
+                             if (ezIsSpecified(param$grouping2)) paste0(", with the design ~ group + ", param$grouping2, " when that second factor had at least two levels, was not confounded with the groups and left residual degrees of freedom, otherwise ~ group.")
+                             else ", with the design ~ group (no second factor).")),
+          ## setDiffPeakSizeFactors / diffPeakSizeFactors (DESeq() keeps them); diffPeakNormDiagnostic (no refit, BH)
+          if (known && isTRUE(param$normMethod %in% names(sizeFactors))) paste0(
+            "Size factors were ", sizeFactors[[param$normMethod]], " (normMethod ", param$normMethod, "), set before the DESeq2 fit; the report's normalisation diagnostic only approximates the candidate counts under the other two size-factor methods without refitting (fold changes shifted by the difference of the groups' mean log2 size factors, Wald statistics recomputed with the fitted standard errors, Benjamini-Hochberg)."),
+          ## runDiffPeakDESeq: results(contrast), lfcThreshold + altHypothesis greaterAbs only when useLfcTest
+          paste0("p-values are DESeq2 Wald tests of sampleGroup over refGroup (results() contrast; positive log2 fold change means higher in sampleGroup) with DESeq2's own adjusted p-values (padj)",
+                 if (!known) "; with lfcTest true and replicates they test |log2 fold change| > lfcThreshold (altHypothesis greaterAbs) instead of 0."
+                 else if (isTRUE(param$lfcTest)) paste0("; with replicates they test |log2 fold change| > ", lfc, " (lfcTest true, altHypothesis greaterAbs), without replicates against 0.")
+                 else "; they test log2 fold change = 0 (lfcTest false), so lfcThreshold only selects candidates."),
+          ## runDiffPeakDESeq noReplicates branch: blind ~1 dispersions, nbinomWaldTest; makeDiffPeakTable fold change only
+          "When the design left no residual degrees of freedom (a group without replicates), dispersions were estimated from a blind design ~ 1 that treats both groups as one, the Wald test was run with nbinomWaldTest, no lfcTest or shrinkage was applied, and candidates were called by fold change alone.",
+          ## makeDiffPeakTable; the report's plots and topDiffPeaks use log2FoldChange, never log2FoldChange_shrunk
+          paste0("A peak was a candidate when its unshrunken DESeq2 log2 fold change was at least ", lfc, " in absolute value and, with replicates, its padj was below ", fdr,
+                 "; candidates, the volcano, MA and heatmap plots and the ranking of top candidates all use the unshrunken log2 fold change."),
+          ## runDiffPeakDESeq -> shrinkDiffPeakLfc (apeglm on the coefficient, ashr fallback), only with replicates
+          if (known) {
+            if (shrink == "apeglm") "With replicates, an apeglm-shrunken log2 fold change (DESeq2 lfcShrink on the group coefficient, ashr on the contrast if apeglm failed) was added only as the extra column log2FoldChange_shrunk (lfcShrink apeglm)."
+            else if (shrink == "ashr") "With replicates, an ashr-shrunken log2 fold change (DESeq2 lfcShrink on the contrast) was added only as the extra column log2FoldChange_shrunk (lfcShrink ashr)."
+            else paste0("No log2 fold change shrinkage was computed (lfcShrink ", shrink, ").")
+          },
+          ## annotateConsensusPeaks(tool = annotationMethod)
+          switch(anno,
+            homer = "Peaks were annotated with HOMER annotatePeaks.pl on the genome FASTA with the reference GTF (-gtf) (annotationMethod homer).",
+            chipseeker = "Peaks were annotated with ChIPseeker annotatePeak using a TxDb built from the reference GTF and a TSS region of -1000 to +1000 bp (annotationMethod chipseeker).",
+            chippeakanno = "Peaks were annotated with ChIPpeakAnno annotatePeakInBatch against the GTF gene features (transcripts or start codons when the GTF has no genes), one gene per peak by distance to its TSS (output nearestStart, annotationMethod chippeakanno).",
+            NULL),
+          ## runHomerKnownMotifs(size 200, minPeaks 20, maxBackground 50000, set.seed 42), resolveHomerMotifSet, topDiffPeaks
+          if (known && isTRUE(param$runMotifs)) paste0(
+            "Known-motif enrichment ran with HOMER findMotifsGenome.pl on the genome FASTA (-size 200), motif set ",
+            if (nzchar(refBuild)) resolveHomerMotifSet(refBuild) else "vertebrates for vertebrate references and all otherwise",
+            ", separately for the top ", nTop, " up and down candidates (ranked by padj, by absolute fold change without replicates; a direction with fewer than 20 was skipped), against a background of the tested non-candidate peaks (a random 50,000 with seed 42 when there were more)",
+            if (isTRUE(param$motifDeNovo)) "; de novo motif discovery also ran (motifDeNovo true)." else "; no de novo motif discovery (-nomotif, motifDeNovo false)."),
+          ## diffPeakGoOra(ont = "BP"): enrichGO BH, pvalueCutoff 0.05, qvalueCutoff 0.2, gene sets 10-500, >= 10 genes
+          if (known) {
+            if (!isTRUE(param$runGoOra)) "No GO over-representation was computed (runGoOra false)."
+            else if (is.na(orgDb)) "No GO over-representation was computed: runGoOra supports only mouse and human references."
+            else paste0("GO biological-process over-representation was tested with clusterProfiler enrichGO (", orgDb, ") on the nearest genes of the top ", nTop,
+                        " up and down candidates separately, against the nearest genes of all tested peaks as universe, with Benjamini-Hochberg adjustment, p-value cutoff 0.05, q-value cutoff 0.2 and gene sets of 10 to 500 genes; a direction with fewer than 10 genes was not tested.")
+          },
+          ## DiffPeakAnalysis.qmd enrichrForm(maxGenes = 500L): an HTML form posting to maayanlab.cloud/Enrichr
+          "The report's Enrichr buttons only send up to 500 candidate gene names per list (up, down, all) to the external Enrichr website when clicked; the app computes no Enrichr results.",
+          ## diffPeakVST(blind = noReplicates), subset to the comparison samples
+          "The PCA and candidate heatmap use DESeq2 varianceStabilizingTransformation of the counts of the two comparison groups (blind = FALSE with replicates, blind = TRUE without).",
+          ## bigwigPeakProfiles(maxPeaks 1000, extend 2000, binSize 50)
+          if (!isFALSE(bw)) paste0(if (is.na(bw)) "When the input dataset had BigWig tracks, " else "",
+                                   "BigWig signal profiles were the mean signal in 50 bp bins over plus or minus 2 kb around the centre of the top 1000 up and down candidates per sample, averaged per group (EnrichedHeatmap normalizeToMatrix).")
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodDiffPeakAnalysis
