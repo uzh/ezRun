@@ -2049,6 +2049,35 @@ EzAppDnaBamStats <-
           if (isTRUE(as.logical(param$paired))) "Ou, J. et al. ATACseqQC: a Bioconductor package for post-alignment quality assessment of ATAC-seq data. BMC Genomics 19, 169 (2018). https://doi.org/10.1186/s12864-018-4559-3"
         )
       },
+      ## Qualimap -c meaning checked against Qualimap 2.3.0 `qualimap bamqc` usage.
+      methods_facts = function(param = list()) {
+        paired <- isTRUE(as.logical(param$paired))
+        c(
+          ## get_dna_bamstats_skeleton -> getBamMultiMatching (bamio.R: FromNH, FromQnames)
+          "For each sample with a Read Count, Rsamtools counted the reads per number of reported alignments from the NH tag of the primary mapped alignments or, when the BAM has no NH tag (the job log then says 'counting the read names instead'), by counting the mapped alignment records per read name with no filter on secondary or supplementary records; Read Count minus the counted reads was reported as 0 hits.",
+          ## getBamMultiMatchingFromNH/FromQnames: isFirstMateRead, isProperPair = keepProperPairsOnly
+          if (paired) paste0(
+            "For paired-end data ",
+            if (isFALSE(as.logical(param$keepProperPairsOnly))) "only first mates were counted" else
+              "only first mates in a proper pair were counted (keepProperPairsOnly, ezRun default TRUE, not on the parameter form), so mapped reads outside a proper pair fall into the 0 hits class",
+            "."),
+          ## get_dna_qualimap_stats, get_dna_qualimap_multi_sample_summary
+          if (isTRUE(as.logical(param$runQualimap))) "Qualimap bamqc ran on each whole BAM without a feature file (-gff not passed; refFeatureFile is not used), with -c, which only paints chromosome limits in the charts, and qualimap multi-bamqc combined the per-sample results.",
+          ## get_dna_qualimap_stats: mappingRate, dupRate and the parsed genome_results.txt fields
+          if (isTRUE(as.logical(param$runQualimap))) paste0(
+            "The report's MappingRate is Qualimap's total 'number of reads' in the BAM", if (paired) " divided by 2", " over the dataset's Read Count, not Qualimap's 'number of mapped reads'; DuplicationRate, mean coverage, the percent of the reference at 1x, 10x and 20x or more, insert size, mapping quality, GC content and error and indel rates are the Qualimap values."),
+          ## get_dna_picard_dup_stats, dna_bamstats_can_reuse_dup_metrics
+          if (isTRUE(as.logical(param$runPicard))) paste0(
+            "When the input dataset's DupMetrics file (the upstream aligner's MarkDuplicates metrics) records OPTICAL_DUPLICATE_PIXEL_DISTANCE equal to pixelDist (", param$pixelDist,
+            "), those metrics were reused and MarkDuplicates was not rerun (no Picard command in the job log); otherwise Picard MarkDuplicates ran on the BAM for metrics only (REMOVE_DUPLICATES=false, OPTICAL_DUPLICATE_PIXEL_DISTANCE=pixelDist) and its output BAM was deleted."),
+          ## parse_dna_picard_dup_metrics_file / get_dna_picard_dup_stats
+          if (isTRUE(as.logical(param$runPicard))) "OpticalDupRate is 100 x READ_PAIR_OPTICAL_DUPLICATES / READ_PAIRS_EXAMINED from the Picard metrics, so it counts read pairs only.",
+          ## get_dna_paired_end_plots, ez_dna_lib_complexity
+          if (paired) "For paired-end data each sample got a fragment-size plot (ATACseqQC fragSizeDist) and a library-complexity curve (ATACseqQC readsDupFreq and ds.rSAC.bootstrap, 100 bootstraps, seed 42, extrapolated to 5, 10, 15 and 20 times the sequenced fragments); these are plots only and feed no metric of the summary table.",
+          ## get_dna_bamstats_qc_thresholds, get_dna_bamstats_full_summary_table
+          "Samples were flagged for review, never removed, at mapping rate below 70%, average coverage below 10x, duplication rate above 50% or optical duplication rate above 20%; a missing metric raises no flag, and the input BAMs were not modified."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodDnaBamStats

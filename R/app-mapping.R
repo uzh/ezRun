@@ -247,6 +247,38 @@ getBowtie2Reference <- function(param) {
   return(refBase)
 }
 
+## For methods_facts() of the DNA aligners that call ezMethodFastpTrim with the job's
+## nReads / subsampleReads: ezMethodFastpTrim (app-trim.R:100-111) -> ezMethodSubsampleFastq
+## -> subsampleFastqFile (fastqIO.R), one FastqSampler draw per read file.
+methodsSubsampleFacts <- function(param) {
+  files <- if (isTRUE(as.logical(param$paired))) "each read file (Read1 and Read2 separately, same seed)" else "the read file"
+  if (isTRUE(as.numeric(param$nReads) > 0)) {
+    paste0("Before fastp, ", files, " was randomly subsampled to ",
+           format(as.numeric(param$nReads), big.mark = ",", scientific = FALSE),
+           " reads (nReads), or kept whole when the sample's Read Count was lower, with ShortRead FastqSampler and seed 123.")
+  } else if (isTRUE(as.numeric(param$subsampleReads) > 1)) {
+    paste0("Before fastp, ", files, " was randomly subsampled to Read Count / ", param$subsampleReads,
+           " reads (subsampleReads) with ShortRead FastqSampler and seed 123, not by taking every ",
+           param$subsampleReads, "th read.")
+  }
+}
+
+## For methods_facts() of EzAppBWA and EzAppBowtie2: the sort / MarkDuplicates branch of
+## ezMethodBWA and ezMethodBowtie2 (ezSortIndexBam bamio.R, dupBam bamUtils.R), and the
+## absence of any post-alignment filter.
+methodsMappingBamFacts <- function(param) {
+  dist <- if (ezIsSpecified(param$dupDistance)) param$dupDistance else "dupDistance"
+  c(
+    if (isTRUE(as.logical(param$markDuplicates))) paste0(
+      "The aligner output was coordinate-sorted with samtools sort, then duplicate reads were flagged, not removed, ",
+      "with Picard MarkDuplicates (REMOVE_DUPLICATES=false, OPTICAL_DUPLICATE_PIXEL_DISTANCE=", dist,
+      " from dupDistance, ezRun default 2500, not on the parameter form), which wrote its metrics to <sample>_metrics.txt; ",
+      "the marked BAM was indexed with Rsamtools."),
+    if (isFALSE(as.logical(param$markDuplicates))) "Duplicates were not marked (markDuplicates false): the aligner output was only coordinate-sorted and indexed with samtools.",
+    "The wrapper applied no filter to the alignments (no mapping-quality, proper-pair or duplicate filter): the delivered BAM holds every record the aligner wrote."
+  )
+}
+
 ##' @template app-template
 ##' @templateVar method ezMethodBowtie2(input=NA, output=NA, param=NA)
 ##' @description Use this reference class to run
@@ -272,6 +304,25 @@ EzAppBowtie2 <-
           if (second || bigWig) "Lawrence, M. et al. Software for Computing and Annotating Genomic Ranges. PLoS Computational Biology 9(8), e1003118 (2013). https://doi.org/10.1371/journal.pcbi.1003118",
           if (second) "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package. https://doi.org/10.18129/B9.bioc.Rsamtools",
           if (bigWig) "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328"
+        )
+      },
+      methods_facts = function(param = list()) {
+        paired <- as.logical(param$paired)
+        c(
+          ## ezMethodBowtie2 -> ezMethodFastpTrim (subsampling first, then fastp)
+          methodsFastpFacts(param, "alignment"),
+          methodsSubsampleFacts(param),
+          ## ezMethodBowtie2 readGroupOpt and cmd
+          "The bowtie2 command line held only the job's cmdOptions, the thread count (-p), the read-group tags (--rg-id and SM set to the sample name, LB RGLB_<sample>, PL illumina, PU RGPU_<sample>), the index and the trimmed reads; the wrapper set no alignment mode or scoring option itself.",
+          ## ezMethodBowtie2 -> ezSortIndexBam / dupBam
+          methodsMappingBamFacts(param),
+          ## ezMethodBowtie2 -> bam2bw(method = "Bioconductor") (bamUtils.R)
+          if (isTRUE(as.logical(param$generateBigWig))) paste0(
+            "The bigWig track (generateBigWig) is the raw per-base coverage of the delivered BAM, computed with GenomicAlignments coverage() on its ",
+            if (isTRUE(paired)) "read pairs (readGAlignmentPairs)" else if (isFALSE(paired)) "reads (readGAlignments)" else "read pairs (readGAlignmentPairs) for paired-end data, reads (readGAlignments) otherwise",
+            " and exported with rtracklayer export.bw: no CPM or other normalisation, no binning, and no read filter passed."),
+          ## getBowtie2Reference (secondRef branch) and ezMethodBowtie2 secondRef block
+          if (ezIsSpecified(param$secondRef) && param$secondRef != "") "With secondRef, a Bowtie2 index of the genome plus the secondRef sequences was built for this job (bowtie2-build --seed 42), the per-base coverage of each added sequence was plotted (Coverage_<sample>_secondRef.png), and a table of read count, length and mean coverage (reads x mean read length / sequence length) for every reference sequence was appended to the Bowtie2 log."
         )
       },
       initialize = function() {
@@ -1222,6 +1273,24 @@ EzAppBWA <-
     "EzAppBWA",
     contains = "EzApp",
     methods = list(
+      methods_facts = function(param = list()) {
+        alg <- param$algorithm
+        c(
+          ## ezMethodBWA -> ezMethodFastpTrim (subsampling first, then fastp)
+          methodsFastpFacts(param, "alignment"),
+          methodsSubsampleFacts(param),
+          ## ezMethodBWA cmd (all three algorithm branches)
+          "The bwa command line held only the job's cmdOptions, a read-group string (-R) and the thread count (-t); the wrapper added no other BWA option.",
+          ## ezMethodBWA readGroupOpt, mem branch
+          if (identical(alg, "mem")) "bwa mem was given the read group with ID, SM and LB set to the sample name and PL ILLUMINA (-R).",
+          ## ezMethodBWA aln branch
+          if (identical(alg, "aln")) paste0(
+            "With algorithm aln, ", if (isTRUE(as.logical(param$paired))) "each read file was searched separately with bwa aln and the hits were paired with bwa sampe" else "the reads were searched with bwa aln and converted with bwa samse",
+            ", which received neither cmdOptions nor the read-group string."),
+          ## ezMethodBWA -> ezSortIndexBam / dupBam
+          methodsMappingBamFacts(param)
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBWA
