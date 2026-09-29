@@ -264,6 +264,26 @@ EzAppPeakCombiner <-
     "EzAppPeakCombiner",
     contains = "EzApp",
     methods = list(
+      methods_facts = function(param = list()) {
+        known <- length(param) > 0
+        c(
+          ## ezMethodCombinePeaks: support = number of samples with an overlapping peak; keep support >= minSamples
+          paste0("Each sample's peaks were read from its BED file (narrowPeak columns); a peak was kept when it overlapped peaks in the peak sets of at least ",
+                 if (known) param$minSamples else "minSamples", " samples, counting its own sample."),
+          ## ezMethodCombinePeaks: GenomicRanges::reduce(filtered, with.revmap = TRUE); name peak_<n>
+          "The kept peaks were merged into consensus peaks with GenomicRanges reduce (overlapping peaks joined into one interval, the union), named peak_1, peak_2, ... and annotated with the samples they came from and the maximum and mean MACS fold enrichment of the merged peaks.",
+          ## ezMethodCombinePeaks: skipExtraChr -> nchar(seqnames) <= 5
+          if (known && isTRUE(as.logical(param$skipExtraChr))) "Consensus peaks on sequences whose names are longer than 5 characters were removed before counting.",
+          ## ezMethodCombinePeaks: Rsubread featureCounts on the consensus peaks (SAF)
+          "Reads of each sample's BAM file were counted in the consensus peaks with Rsubread featureCounts: minMQS 10, minOverlap 5 bases, allowMultiOverlap TRUE, countMultiMappingReads TRUE with primaryOnly TRUE, ignoreDup FALSE (duplicates are counted if the BAM still has them), strandSpecific 0, no read extension, and isPairedEnd from the dataset's paired column with requireBothEndsMapped FALSE and checkFragLength FALSE.",
+          ## ezMethodCombinePeaks: peakCountStats.txt peakFraction = Assigned / sum(all featureCounts categories)
+          "peakCountStats.txt gives per sample the reads assigned to consensus peaks, the total reads over all featureCounts categories, and their ratio peakFraction.",
+          ## ezMethodCombinePeaks: only builds and counts consensus peaks
+          "The app only builds and counts the consensus peaks: no normalization, no filtering of the counts and no differential test is done here.",
+          ## writeIgvSessionFile: sample bigWigs + consensus peaks + genes
+          "An IGV session shows the input bigWig coverage tracks of all samples with the consensus peaks and the gene annotation."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCombinePeaks

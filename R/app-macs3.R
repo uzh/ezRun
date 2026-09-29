@@ -305,6 +305,53 @@ EzAppMacs3 <-
           if (annotate) "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328"
         )
       },
+      methods_facts = function(param = list()) {
+        known <- length(param) > 0
+        opt <- if (known && ezIsSpecified(param$cmdOptions)) param$cmdOptions else ""
+        mode <- if (known) param$mode
+        atac <- identical(mode, "ATAC-seq")
+        chip <- identical(mode, "ChIP-seq")
+        paired <- isTRUE(as.logical(param$paired))
+        control <- chip && isTRUE(as.logical(param$useControl))
+        dedup <- known && !isFALSE(as.logical(param$removeDuplicates))
+        gsize0 <- known && isTRUE(as.numeric(param$genomeSize) == 0)
+        c(
+          ## ezMethodMacs3: opt = cmdOptions + -q qValue (+ -f BAMPE when paired)
+          if (!known) "MACS3 callpeak was run with the q-value cutoff -q qValue, plus -f BAMPE for paired-end data.",
+          if (known) paste0("MACS3 callpeak was run with the q-value cutoff -q ", param$qValue,
+                            if (paired) " and the paired-end BAM input format -f BAMPE", "."),
+          ## ezMethodMacs3: --keep-dup all unless cmdOptions has --keep-dup
+          if (!grepl("--keep-dup", opt)) paste0("ezRun added --keep-dup all to MACS3, so MACS3 itself removed no duplicate reads",
+                                                if (known) (if (dedup) "; duplicates were removed before peak calling as described below" else "; duplicates were not removed before either (removeDuplicates false)"), "."),
+          ## ezMethodMacs3: genomeSize == 0 -> -g round(0.8 * sum(fasta.seqlengths))
+          if (gsize0) "The MACS3 genome size (-g) was set by ezRun to 80% of the summed sequence lengths of the reference genome FASTA (genomeSize 0).",
+          if (known && !gsize0 && !grepl("(^|\\s)-g\\s", opt)) paste0("The genomeSize ", param$genomeSize, " was not passed to MACS3: ezRun adds -g only when genomeSize is 0, and cmdOptions had no -g."),
+          ## ezMethodMacs3 / atacBamProcess -> removeDuplicatesFromBam (bamHasMarkedDuplicates -> samtools -F 1024, else dupBam)
+          if (dedup && (atac || chip)) "Before peak calling, duplicate reads were removed: when the BAM header showed duplicates already marked (a MarkDuplicates or markdup program record), the flagged reads were dropped with samtools view -F 1024; otherwise Picard MarkDuplicates was run with REMOVE_DUPLICATES=true.",
+          if (known && !dedup && (atac || chip)) "The input BAM was used without duplicate removal (removeDuplicates false), so duplicate reads were not removed.",
+          ## atacBamProcess -> filteroutBam(chrs = M, MT, chrM, chrMT; mapQ = 10)
+          if (atac) "In ATAC-seq mode (paired-end only), the reads on the mitochondrial chromosomes (M, MT, chrM, chrMT) were removed and only alignments with a MAPQ of at least 10 were kept (samtools view -q 10) before peak calling.",
+          ## atacBamProcess: shiftATAC -> alignmentSieve --ATACshift, then sortBam + indexBam
+          if (atac && isTRUE(as.logical(param$shiftATAC))) "The filtered ATAC-seq reads were then shifted with deepTools alignmentSieve --ATACshift and sorted again.",
+          ## ezMethodMacs3 ChIP-seq branch: no filteroutBam
+          if (chip) "In ChIP-seq mode there was no mapping-quality or mitochondrial filter: peaks were called on the input BAM after the duplicate step only.",
+          ## ezMethodMacs3 ATAC-seq: --extsize 200 added, or --extsize 147 replaced by 200
+          if (atac && !grepl("--extsize", opt)) "In ATAC-seq mode --extsize 200 was added to the MACS3 options.",
+          if (atac && grepl("--extsize 147", opt, fixed = TRUE)) "In ATAC-seq mode the --extsize 147 given in cmdOptions was replaced by --extsize 200.",
+          ## ezMethodMacs3 ChIP-seq: --nomodel without --extsize -> --extsize 147
+          if (chip && grepl("--nomodel", opt) && !grepl("--extsize", opt)) "Because cmdOptions had --nomodel without --extsize, --extsize 147 was added to the MACS3 options.",
+          ## ezMethodMacs3 ChIP-seq with useControl: callpeak -c -B, bdgcmp -m FE, bedSort, bedGraphToBigWig
+          if (control) "Peaks were called against the Control BAM (-c) with pileup tracks (-B); the coverage bigWig is the fold enrichment of treatment over control (macs3 bdgcmp -m FE), converted with bedSort and bedGraphToBigWig.",
+          ## bam2bw(method = "deepTools"): bamCoverage --binSize 10 --normalizeUsing CPM
+          if (atac || (chip && !control)) "The coverage bigWig was made from the peak-calling BAM with deepTools bamCoverage in 10 bp bins normalized to counts per million (--binSize 10, --normalizeUsing CPM).",
+          ## ezMethodMacs3: BED = broadPeak when the options contain 'broad', else narrowPeak
+          if (known && grepl("broad", opt)) "The BED output holds MACS3's broadPeak file.",
+          ## ezMethodMacs3: bedtools getfasta -name on the peaks BED
+          "The DNA sequence of every peak was extracted with bedtools getfasta -name from the reference genome FASTA.",
+          ## annotatePeaks(): ChIPseeker annotatePeak(tssRegion = c(-1000, 1000)), ChIPpeakAnno annotatePeakInBatch(nearestStart, TSS), dustyScore
+          if (known && !isFALSE(as.logical(param$annotatePeaks))) "Peaks were annotated with ChIPseeker annotatePeak (TxDb built from the GTF, tssRegion -1000 to 1000) and with ChIPpeakAnno annotatePeakInBatch (output nearestStart, distance to the TSS, one gene per peak), plus a low-complexity dustyScore of each peak sequence (ShortRead); the peak table is sorted by -log10 p-value."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodMacs3
