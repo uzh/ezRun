@@ -70,6 +70,55 @@ EzAppNfCoreAtacSeq <- setRefClass(
   "EzAppNfCoreAtacSeq",
   contains = "EzApp",
   methods = list(
+    methods_facts = function(param = list()) {
+      known <- length(param) > 0
+      version <- if (known && ezIsSpecified(param$pipelineVersion)) param$pipelineVersion
+      grouping <- if (known && ezIsSpecified(param$grouping)) param$grouping
+      groups <- if (!is.null(grouping) && !is.null(attr(param, "input"))) {
+        g <- methodsInput(param, grouping)
+        if (is.null(g)) rep(NA, nrow(attr(param, "input"))) else as.character(g)
+      }
+      isMissing <- is.na(groups) | trimws(groups) %in% c("", "NA")
+      sampleNames <- methodsInput(param, "Name")
+      qc <- known && isTRUE(as.logical(param$qcMode))
+      nReads <- sprintf("%.0f", as.numeric(param$qcReadsPerSample %||% 1e7))
+      c(
+        ## buildNfCoreAtacCmd: nextflow run nf-core/atacseq -profile apptainer -r param$pipelineVersion
+        paste0("ezRun ran the nf-core/atacseq pipeline with Nextflow (-profile apptainer, -r ",
+               if (is.null(version)) "set by the pipelineVersion parameter, ezRun default 2.1.2" else version,
+               "); Nextflow's resource limits were set to the job's cores and ram (maxResources.config)."),
+        ## buildNfCoreAtacCmd: --fasta, --gtf, --gene_bed genes.bed, --bwa_index <refBuildDir>/Sequence/BWAIndex
+        "ezRun gave the pipeline the reference genome FASTA and GTF of refBuild, the genes.bed file of that annotation (--gene_bed) and, when the reference has a prebuilt BWA index, that index (--bwa_index), so the pipeline did not build its own.",
+        ## buildNfCoreAtacCmd: effectiveGenomeSize = round(0.8 * sum(seqlengths(refFastaFile))) -> --macs_gsize
+        "The MACS2 effective genome size (--macs_gsize) was set by ezRun to 80% of the summed sequence lengths of the reference genome FASTA.",
+        ## buildNfCoreAtacCmd: only these options and cmdOptions are passed; the rest is the pipeline's
+        paste0("ezRun passes no other pipeline option",
+               if (known && ezIsSpecified(param$cmdOptions)) paste0(" apart from cmdOptions (", param$cmdOptions, ")"),
+               ": which tools run inside nf-core/atacseq (trimming, alignment, BAM filtering, coverage tracks, QC) is decided by that pipeline version, not by ezRun, and the processes and tool versions that ran are listed in the pipeline's pipeline_info/software_versions.yml."),
+        ## buildNfCoreAtacCmd: --narrow_peak unless peakStyle == 'broad'; ezMethodNfCoreAtacSeq reads macs2/<peakStyle>_peak/consensus
+        if (known && identical(param$peakStyle, "broad")) "Peaks were called in broadPeak mode (no --narrow_peak), and the per-sample counts come from the consensus peaks of that broad peak set.",
+        if (known && ezIsSpecified(param$peakStyle) && !identical(param$peakStyle, "broad")) "Peaks were called in narrowPeak mode (--narrow_peak), and the per-sample counts come from the consensus peaks of that narrow peak set.",
+        ## buildNfCoreAtacCmd: --deseq2_vst false unless varStabilizationMethod == 'vst'
+        if (known && identical(param$varStabilizationMethod, "vst")) "The pipeline's DESeq2 QC of the consensus-peak counts was left at its vst setting (ezRun passes --deseq2_vst false only for another varStabilizationMethod).",
+        if (known && ezIsSpecified(param$varStabilizationMethod) && !identical(param$varStabilizationMethod, "vst")) "ezRun passed --deseq2_vst false, so the pipeline's DESeq2 QC of the consensus-peak counts used the rlog transformation instead of vst.",
+        ## getAtacSampleSheet: nf-core sample = grouping value, replicate = ezReplicateNumber(groups); a missing value -> sample name
+        if (is.null(groups) || !any(isMissing)) paste0("In the pipeline's sample sheet the nf-core sample is the value of the grouping column",
+               if (!is.null(grouping)) paste0(" (", grouping, ")"),
+               ", and the samples sharing a value are numbered as replicates of it; the FASTQ files of one sample are listed as one library, which the pipeline merges",
+               if (is.null(groups)) "; a sample without a grouping value is processed as its own group under its sample name", "."),
+        if (length(groups) && all(isMissing)) paste0("The grouping column ", grouping, " was empty for every sample, so each sample was processed as its own group under its sample name (one replicate each)."),
+        if (length(groups) && any(isMissing) && !all(isMissing)) paste0("Samples sharing a value of ", grouping, " were numbered as replicates of one nf-core sample; ", grouping,
+               " was empty for sample(s) ", paste(sampleNames[isMissing], collapse = ", "), ", which were processed as their own group under their sample name."),
+        ## ezMethodNfCoreAtacSeq qcMode -> subsampleAtacFastqs: head -n 4*nReads of the concatenated FASTQs
+        if (qc) paste0("This was a QC run (qcMode): before the pipeline, ezRun kept the first ", nReads,
+                       " reads (pairs) of each sample (the first reads of its FASTQ files, concatenated; not a random subsample); samples whose Read Count was at most that were used completely."),
+        ## ezMethodNfCoreAtacSeq: writePerSampleCountPeaksFiles, renameAtacBigwigs, writeAtacIgvSession
+        "After the pipeline, ezRun only split the pipeline's consensus-peak featureCounts table into one count file per sample, renamed the bigWig files to the sample names and wrote an IGV session; it did no further analysis.",
+        ## ezMethodNfCoreAtacSeq -> cleanupAtacOutFolder(dirsToRemove = genome, trimgalore, fastqc, igv; keepBams)
+        paste0("The pipeline's genome, trimgalore, fastqc and igv output folders were deleted from the delivered result",
+               if (known && !isTRUE(as.logical(param$keepBams))) ", and all BAM and BAI files were deleted from its bwa folder (keepBams false)", ".")
+      )
+    },
     initialize = function() {
       "Initializes the application using its specific defaults."
       runMethod <<- ezMethodNfCoreAtacSeq
