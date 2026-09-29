@@ -161,12 +161,13 @@ methodsParamOff <- function(param, names) {
 ## raw with every Description sentence removed that states one of `numbers`, names one of the
 ## step regexes `steps` without negating it, or states one of the `resources` phrases.
 ## Headings and URL (reference) lines are left alone.
-methodsDropSentences <- function(raw, numbers = character(0), steps = character(0), resources = character(0)) {
+methodsDropSentences <- function(raw, numbers = character(0), steps = character(0), resources = character(0),
+                                 sentences = character(0)) {
   esc <- function(t) gsub("([][{}()+*^$|\\\\.?])", "\\\\\\1", t, perl = TRUE)
   numRe <- if (length(numbers)) paste0("(?<![0-9.,])(", paste(esc(numbers), collapse = "|"), ")(?![0-9])")
   bad <- function(x) {
     lx <- tolower(x)
-    (!is.null(numRe) && grepl(numRe, x, perl = TRUE)) ||
+    x %in% sentences || (!is.null(numRe) && grepl(numRe, x, perl = TRUE)) ||
       any(vapply(tolower(resources), grepl, logical(1), x = lx, fixed = TRUE)) ||
       (any(vapply(steps, grepl, logical(1), x = lx, perl = TRUE)) && !grepl(METHODS_NEGATION, lx, perl = TRUE))
   }
@@ -177,6 +178,59 @@ methodsDropSentences <- function(raw, numbers = character(0), steps = character(
     paste(sents[!vapply(sents, bad, logical(1))], collapse = " ")
   }, "", USE.NAMES = FALSE)
   paste(lines, collapse = "\n")
+}
+
+## The Description's sentences in the order methodsDropSentences() sees them (headings and
+## reference lines left out), so a sentence can be dropped by its text.
+methodsSentences <- function(raw) {
+  lines <- strsplit(raw, "\n", fixed = TRUE)[[1]]
+  lines <- lines[!grepl("^#|https?://", lines) & nzchar(trimws(lines))]
+  s <- unlist(strsplit(lines, "(?<=[.;])\\s+", perl = TRUE))
+  s[nzchar(trimws(s))]
+}
+
+## A second call that checks every sentence against the same evidence and drops the ones it
+## cannot support: the pattern guards only catch error kinds seen before, and a review of
+## round 6 found the rest were misreadings (a fixed threshold described as data-driven, a
+## vendor output described from memory). Fails open: a failed call or an answer that does not
+## cover every sentence keeps the text. On only with option ezRun.methodsVerify = TRUE.
+METHODS_VERIFY_IDENTITY <- paste(
+  "You check a Methods text sentence by sentence against the record of the analysis it describes.",
+  "You are strict: general knowledge of a tool is not evidence; only the record counts.")
+methodsVerifySentences <- function(raw, script_paths, log_paths, output_dir) {
+  sents <- methodsSentences(raw)
+  if (!length(sents)) return(list(raw = raw, dropped = character(0)))
+  task <- c(
+    "Below are the numbered sentences of a Methods text written from the record that follows (scripts,",
+    "configuration, app_facts.txt, run_summary.txt and logs). For each sentence decide whether every",
+    "statement in it is supported by the record: stated there, or following directly from it. What a",
+    "tool usually does, or its documented default, is not support unless the record or app_facts.txt",
+    "states it. A '[not recorded]' marker is supported only if the record really does not show that",
+    "setting. A sentence that is only partly supported is not supported.",
+    "Answer with exactly one line per sentence and nothing else:",
+    "<number>: KEEP",
+    "<number>: DROP: <the statement the record does not support>",
+    "", "Sentences:", paste0(seq_along(sents), ". ", sents))
+  idf <- file.path(output_dir, "verify_identity.txt"); tf <- file.path(output_dir, "verify_task.txt")
+  out <- file.path(output_dir, "verify.txt")
+  writeLines(METHODS_VERIFY_IDENTITY, idf); writeLines(task, tf); unlink(out)
+  args <- c("--output", out, "--identity-file", idf, "--task-file", tf,
+            if (length(script_paths)) c("--scripts", script_paths), if (length(log_paths)) c("--logs", log_paths))
+  ret <- tryCatch(system2("llm_write_methods", args = args, stdout = FALSE), error = function(e) 1)
+  if (ret != 0 || !file.exists(out)) {
+    message("write_methods: sentence check failed, text kept")
+    return(list(raw = raw, dropped = character(0)))
+  }
+  ans <- readLines(out, warn = FALSE)
+  m <- regmatches(ans, regexec("^\\s*(\\d+)\\s*[:.]\\s*(KEEP|DROP)", ans))
+  m <- do.call(rbind, m[lengths(m) == 3])
+  if (is.null(m) || !setequal(as.integer(m[, 2]), seq_along(sents))) {
+    message("write_methods: sentence check answer did not cover every sentence, text kept")
+    return(list(raw = raw, dropped = character(0)))
+  }
+  drop <- sents[as.integer(m[m[, 3] == "DROP", 2])]
+  if (length(drop)) message("write_methods: sentence check dropped ", length(drop), " of ", length(sents), " sentences")
+  list(raw = if (length(drop)) methodsDropSentences(raw, sentences = drop) else raw, dropped = drop)
 }
 
 methodsClaims <- function(text, keyword) {
