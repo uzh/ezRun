@@ -210,6 +210,80 @@ EzAppChIPSeqPeakComparison <-
   setRefClass("EzAppChIPSeqPeakComparison",
     contains = "EzApp",
     methods = list(
+      methods_facts = function(param = list()) {
+        known <- length(param) > 0
+        ## BAM / BigWig availability as the code resolves it (first present column, .usableFile);
+        ## NA when the input dataset is unknown
+        root <- if (ezIsSpecified(param$dataRoot)) param$dataRoot else "/srv/gstore/projects"
+        given <- function(cols) {
+          if (is.null(attr(param, "input"))) return(NA)
+          for (cc in cols) {
+            v <- methodsInput(param, cc)
+            if (!is.null(v)) return(any(file.exists(file.path(root, v[!is.na(v) & nzchar(v)]))))
+          }
+          FALSE
+        }
+        bam <- given("BAM"); bw <- given(c("BigWig", "BigWigFile"))
+        bamWhen <- if (is.na(bam)) "When BAM files were given, " else ""
+        c(
+          ## ezMethodChIPSeqPeakComparison: .resolvePeakColumn(Peaks/CalledPeaks/BED/MACS); markType only in flagQcMetrics
+          paste0("The app called no peaks: it compared the peaks already called upstream, read from the first of the input columns Peaks, CalledPeaks, BED or MACS, and markType",
+                 if (known && ezIsSpecified(param$markType)) paste0(" (", param$markType, ")"), " only chose the thresholds of the QC flags."),
+          ## harmonizePeaks: off-reference / zero-width / out-of-bounds drops, no keepStandardChromosomes
+          "Before any statistic, peaks on contigs absent from the reference genome index, of zero width or extending beyond a contig end were dropped and counted per reason; all reference contigs were kept, with no restriction to standard chromosomes.",
+          ## ezMethodChIPSeqPeakComparison: blacklist only when useBlacklist and blacklistFile set; import error -> NULL
+          if (known) {
+            if (isTRUE(as.logical(param$useBlacklist)) && nzchar(param$blacklistFile %||% ""))
+              "Peaks overlapping the regions of blacklistFile were removed (useBlacklist true); had that file not been readable, no peaks would have been removed."
+            else paste0("No blacklist filtering was applied (",
+                        if (isTRUE(as.logical(param$useBlacklist))) "no blacklistFile" else "useBlacklist false", ").")
+          },
+          ## computeFrip (idxstatsBam total, countBam over reduced peaks, `paired` unused); libraryComplexity (streams the whole BAM)
+          if (!isFALSE(bam)) paste0(bamWhen, "FRiP was the number of BAM records overlapping the merged peaks of the sample over all mapped records in the BAM index (read pairs were not collapsed, whatever paired says), and NRF, PBC1 and PBC2 were computed from the start positions (contig, position, strand) of all mapped records of the BAM."),
+          ## crossCorrelationMetrics(binSize 10, maxShift 1000, nSub 3e5), alignmentStats(nSub 1e5): first yieldSize records
+          if (!isFALSE(bam)) paste0(bamWhen, "NSC and RSC came from the app's own strand cross-correlation (not phantompeakqualtools) on the first 300,000 records of each BAM in 10 bp bins with shifts up to 1000 bp, and the MAPQ 30 fraction from the first 100,000 records; these are the first records of the file, not a random subsample."),
+          ## flagQcMetrics / qcThresholdTable(markType): every thresholded metric comes from the BAM QC
+          if (known && ezIsSpecified(param$markType) && !isFALSE(bam)) {
+            thr <- tryCatch(qcThresholdTable(param$markType), error = function(e) NULL)
+            if (!is.null(thr)) thr <- thr[!is.na(thr$min), , drop = FALSE]
+            if (!is.null(thr) && nrow(thr) > 0)
+              paste0(bamWhen, "QC metrics were flagged good, acceptable or low against fixed ", param$markType, "-mark thresholds (",
+                     paste0(thr$metric, " acceptable at ", thr$min, ", good at ", thr$good, collapse = "; "),
+                     "); a metric without a threshold for this mark type was not flagged.")
+          },
+          ## bigwigCorrelation(binSize = 1000L); the report shows the Spearman matrix
+          if (!isFALSE(bw)) paste0(if (is.na(bw)) "When BigWig tracks were given, " else "",
+                                   "the genome-wide sample correlation is the Spearman correlation of the mean BigWig score in 1000 bp genome bins."),
+          ## pairwiseJaccard (reduce, bp intersect/union; minOverlapBp unused); buildConsensus (reduce pooled, minoverlap, minSamples)
+          paste0("Pairwise overlap is the base-pair Jaccard index of the merged peaks of two samples (minOverlapBp is not used for it); the consensus is the merge (strand ignored) of all samples' peaks, keeping regions overlapped by at least ",
+                 if (known && length(param$minSamplesForConsensus) == 1 && length(param$minOverlapBp) == 1) paste0(param$minSamplesForConsensus, " sample(s) by at least ", param$minOverlapBp, " bp") else "minSamplesForConsensus samples by at least minOverlapBp bp",
+                 ", so with 1 sample it is the union of all peaks."),
+          ## ezMethodChIPSeqPeakComparison section 5: quantifyRegions (.scoreRegionsBw viewMeans / summarizeOverlaps Union), normalizeSignal
+          if (known && ezIsSpecified(param$quantifyFrom)) {
+            counts <- "read counts from the BAM files (summarizeOverlaps, Union mode, strand ignored)"
+            means <- "the mean BigWig score"
+            src <- if (isTRUE(param$quantifyFrom == "bam")) {
+              if (isTRUE(bam)) counts else if (isFALSE(bam)) means else paste0(counts, ", or ", means, " when no BAM was given")
+            } else {
+              if (isTRUE(bw)) means else if (isFALSE(bw)) counts else paste0(means, ", or ", counts, " when no BigWig was given")
+            }
+            norm <- switch(as.character(param$normalization %||% ""),
+              CPM = "divided by the sample's total over the consensus regions and multiplied by one million (CPM, applied the same way to BigWig mean scores)",
+              quantile = "quantile-normalised with limma normalizeQuantiles",
+              none = "left unnormalised", NULL)
+            if (!is.null(norm)) paste0("The signal per consensus region was ", src, " (quantifyFrom ", param$quantifyFrom,
+                                       "), and each sample's signal was ", norm, " (normalization ", param$normalization,
+                                       "); had the normalisation failed, the unnormalised matrix would have been used.")
+          },
+          ## ezMethodChIPSeqPeakComparison section 6: topSignificantPeaks (pooled, greedy non-overlapping); footprint/cumSignal on all peaks
+          paste0("topN", if (known && length(param$topN) == 1) paste0(" (", param$topN, ")"), " only picked the loci drawn as per-sample coverage tracks: the highest-",
+                 if (known && ezIsSpecified(param$rankBy)) param$rankBy else "rankBy", " peaks pooled over all samples, skipping any that overlaps an already chosen one; every statistic, the consensus and the genomic footprint use all peaks, and rankBy also orders the cumulative-signal curve."),
+          ## annotateConsensus(tssRegion = c(-3000, 3000)), tryCatch(makeTxDbFromGFF) -> NULL
+          "Consensus regions were annotated with ChIPseeker annotatePeak (TSS region -3000 to +3000 bp) only if a TxDb could be built from the reference GTF; otherwise the report has no consensus annotation and no error was raised.",
+          ## runDifferentialBinding is not read; ctrlFiles only feeds hasCtrl
+          "No differential binding test was run (runDifferentialBinding is not read by the code), and control (input) BAM files, if listed, were not used in any metric."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodChIPSeqPeakComparison
