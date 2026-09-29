@@ -403,7 +403,8 @@ test_that("every off-step rule names a parameter the app code or its report read
   code <- paste(vapply(files, codeOf, ""), collapse = "\n")
   for (cls in names(METHODS_OFFSTEP_RULES)) {
     expect_true(exists(cls), label = cls)
-    for (p in unlist(strsplit(names(METHODS_OFFSTEP_RULES[[cls]]), "+", fixed = TRUE))) {
+    ## ".name" rules are steps the app never runs: no parameter to read
+    for (p in setdiff(unlist(strsplit(names(METHODS_OFFSTEP_RULES[[cls]]), "+", fixed = TRUE)), grep("^\\.", names(METHODS_OFFSTEP_RULES[[cls]]), value = TRUE))) {
       q <- gsub(".", "\\.", p, fixed = TRUE)
       read <- paste0("param\\$", q, "(?![A-Za-z0-9._])|param\\[\\[[\"']", q, "[\"']\\]\\]")
       expect_true(grepl(read, code, perl = TRUE), label = paste(cls, p))

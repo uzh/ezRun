@@ -75,7 +75,7 @@ EzAppVisiumHDSeurat <-
           paste0("BANKSY (SeuratWrappers RunBanksy) was run on the log-normalized variable features with the lambda parameter, k_geom = 30 (fixed in the code) and package defaults otherwise (kNN_median neighbourhood, no azimuthal Gabor filter); PCA computed 30 components on the BANKSY matrix, the neighbour graph used the first 12 (fixed, independent of npcs), and niches were found with the Louvain algorithm at resolution ", param$nicheResolution %||% 0.5, " (nicheResolution) with the same singleton handling as the clusters."),
           ## reference resolution (rctdFile, then rctdReference != "None"); engine switch useRctdPy;
           ## rctdPyAvailable(); runRctdPy CLI
-          if (rctd) "RCTD was run in doublet mode on the raw counts of all QC-passing bins with the reference in rctdFile, or rctdReference when rctdFile is empty (a Seurat reference was converted with spacexr Reference, labels from the first of author_cell_type, cell_type, celltype or CellType), leaving bins below rctdUMImin unannotated.",
+          if (rctd) "RCTD was run in doublet mode on the raw counts of all QC-passing bins with the reference in rctdFile, or rctdReference when rctdFile is empty, leaving bins below rctdUMImin unannotated.",
           if (rctd && identical(param$rctdEngine, "spacexr")) "RCTD was run with the R package spacexr (rctdEngine = spacexr).",
           if (rctd && !identical(param$rctdEngine, "spacexr")) "RCTD was run with the Python rctd-py 0.3.8 (GPU if the job had one, else CPU) when its conda environment was installed, otherwise with the R package spacexr; the job log line 'RCTD start, engine ...' records which one ran.",
           ## max.col over normalized weights; results_df, runRctdPy

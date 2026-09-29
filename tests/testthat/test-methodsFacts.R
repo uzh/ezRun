@@ -749,3 +749,11 @@ test_that("round-5 gaps: marker pre-filters, mLLMCelltype tissue, MAD fields, ge
   expect_true(has(fs, "Chemistry was left on auto, so Cell Ranger detected it"))
   expect_false(has(crm$methods_facts(list(TenXLibrary = "GEX", expectedCells = 3000, chemistry = "SC5P-R2")), "left on auto"))
 })
+
+test_that("round-8 facts: RCTD does not claim a Seurat conversion; FastQC says --kmers only sets the length", {
+  vh <- EzAppVisiumHDSeurat$new()$methods_facts(list(rctdReference = "tabula_muris_senis/Kidney_rctd.rds (mouse)", rctdFile = ""))
+  expect_true(any(grepl("RCTD was run in doublet mode", vh, fixed = TRUE)))
+  expect_false(any(grepl("converted", vh, fixed = TRUE)))
+  fq <- EzAppFastqc$new()$methods_facts(list())
+  expect_true(any(grepl("--kmers 7 option only sets the k-mer length", fq, fixed = TRUE)))
+})

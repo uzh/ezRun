@@ -143,7 +143,10 @@ METHODS_OFFSTEP_RULES <- list(
   ## read-count estimation mode
   EzAppMetaPhlAn = c(estimateReadCounts = "rel_ab_w_read_stats"),
   ## AI summaries in the MultiQC report
-  EzAppFastqc = c("generate_ai_summary+per_section_ai_summaries" = "language model|ai-generated|ai summar"),
+  ## ".name": a step the app never runs, checked whatever the parameters (--kmers 7 only sets the
+  ## length; FastQC's limits.txt disables the Kmer Content module, and round 8 found "k-mer analysis enabled")
+  EzAppFastqc = c("generate_ai_summary+per_section_ai_summaries" = "language model|ai-generated|ai summar",
+                  .kmerContent = "k-?mer (?:analysis|content)"),
   ## PEAR merging of pairs
   EzAppSamsa2 = c(paired = "\\bpear\\b"),
   ## GPU
@@ -168,7 +171,7 @@ methodsDropSentences <- function(raw, numbers = character(0), steps = character(
     lx <- tolower(x)
     (!is.null(numRe) && grepl(numRe, x, perl = TRUE)) ||
       any(vapply(tolower(resources), grepl, logical(1), x = lx, fixed = TRUE)) ||
-      (any(vapply(steps, grepl, logical(1), x = lx, perl = TRUE)) && !grepl(METHODS_NEGATION, lx, perl = TRUE))
+      (any(vapply(steps, grepl, logical(1), x = lx, perl = TRUE)) && !methodsNegated(lx))
   }
   lines <- strsplit(raw, "\n", fixed = TRUE)[[1]]
   prose <- !grepl("^#|https?://", lines) & nzchar(trimws(lines))
@@ -179,10 +182,14 @@ methodsDropSentences <- function(raw, numbers = character(0), steps = character(
   paste(lines, collapse = "\n")
 }
 
+## "[not recorded]" says a setting is missing, not that the step did not run: its "not" is
+## no negation (round 8: "Cell type annotation was performed with settings [not recorded]"
+## passed the vendor check).
+methodsNegated <- function(x) grepl(METHODS_NEGATION, gsub("\\[not recorded[^]]*\\]", "", x, ignore.case = TRUE), perl = TRUE)
 methodsClaims <- function(text, keyword) {
   sents <- strsplit(tolower(paste(text, collapse = "\n")), "(?<=[.;])\\s+", perl = TRUE)[[1]]
   hit <- sents[grepl(keyword, sents, perl = TRUE)]
-  length(hit) > 0 && !all(grepl(METHODS_NEGATION, hit, perl = TRUE))
+  length(hit) > 0 && !all(methodsNegated(hit))
 }
 
 ## "param:tool" for each step described in the Description whose parameter was off.
@@ -192,7 +199,7 @@ methods_check_offsteps <- function(description, class_name, param) {
   text <- tolower(paste(description, collapse = "\n"))
   out <- character(0)
   for (p in names(rules)) {
-    if (methodsParamOff(param, strsplit(p, "+", fixed = TRUE)[[1]]) && methodsClaims(text, rules[[p]]))
+    if ((startsWith(p, ".") || methodsParamOff(param, strsplit(p, "+", fixed = TRUE)[[1]])) && methodsClaims(text, rules[[p]]))
       out <- c(out, paste0(p, ":", regmatches(text, regexpr(rules[[p]], text, perl = TRUE))))
   }
   out

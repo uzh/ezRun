@@ -456,3 +456,21 @@ test_that("a single job's samples: the samples parameter, and for a comparison t
                                           samples = "S1,S3,S5"), inp), 2L)
   expect_identical(methodsSamplesRun(list(), NULL), 0L)
 })
+
+test_that("a [not recorded] marker is not a negation: the claim in its sentence is still checked (round 8)", {
+  st <- list(ran = "PCA", skipped = "cell type annotation")
+  expect_identical(methods_check_vendor("Cell type annotation was performed with settings [not recorded].", st), "cell type annotation")
+  expect_identical(methods_check_vendor("Cell type annotation was also performed within the pipeline, with settings [not recorded].", st), "cell type annotation")
+  expect_length(methods_check_vendor("Cell type annotation was not performed.", st), 0)   # a real negation still counts
+  expect_length(methods_check_offsteps("Cells were annotated with SingleR, settings [not recorded].", "EzAppScSeurat", list(SingleR = "none")), 1)
+  kept <- methodsDropSentences("UMAP was run. Cells were annotated with SingleR [not recorded].", steps = "singler")
+  expect_identical(kept, "UMAP was run.")
+})
+
+test_that("FastQC: k-mer analysis is always flagged, the app never enables the Kmer Content module (round 8)", {
+  p <- list(paired = "false")
+  expect_length(methods_check_offsteps("FastQC was run with k-mer analysis enabled at a k-mer length of 7.", "EzAppFastqc", p), 1)
+  expect_length(methods_check_offsteps("Reads were assessed with FastQC, with k-mer analysis enabled.", "EzAppFastqc", p), 1)
+  expect_length(methods_check_offsteps("The Kmer Content module was disabled by default, so no k-mer analysis was done.", "EzAppFastqc", p), 0)
+  expect_length(methods_check_offsteps("A k-mer length of 7 was set.", "EzAppFastqc", p), 0)
+})
