@@ -354,6 +354,68 @@ EzAppSplitPipe <-
     "EzAppSplitPipe",
     contains = "EzApp",
     methods = list(
+      methods_facts = function(param = list()) {
+        known <- length(param) > 0
+        ## ezMethodSplitPipe: sublibDir set -> adoptSplitPipeSublibraries instead of runSplitPipeSublibraries
+        adopted <- known && ezIsSpecified(param$sublibDir)
+        nSub <- length(methodsInput(param, "Name"))          # 0 when the input is unknown
+        tt <- if (known && ezIsSpecified(param$transcriptTypes)) param$transcriptTypes[nzchar(param$transcriptTypes)]
+        opts <- if (!known) {
+          " (plus --save_anndata with saveAnndata and any cmdOptions)"
+        } else {
+          paste0(if (isTRUE(as.logical(param$saveAnndata))) " and --save_anndata",
+                 if (ezIsSpecified(param$cmdOptions)) paste0(", plus cmdOptions '", param$cmdOptions, "'"))
+        }
+        ## getParseSampleArgs: sampleLoadingTable > sampleWells split on [;+] > --yes_allwell
+        samples <- if (!known) {
+          "Biological samples were defined for split-pipe by the sample loading table when one was given (sampleLoadingTable, overriding sampleWells), else by one --sample '<name> <wells>' per '+'-separated entry of sampleWells, else by --yes_allwell (split-pipe's default all-well sample)."
+        } else if (ezIsSpecified(param$sampleLoadingTable)) {
+          "Biological samples were defined by the sample loading table (sampleLoadingTable), passed to split-pipe as --samp_sltab for an Excel file and --samp_list otherwise; sampleWells was not used."
+        } else {
+          specs <- if (ezIsSpecified(param$sampleWells)) trimws(strsplit(param$sampleWells, "[;+]")[[1]]) else character(0)
+          specs <- specs[nzchar(specs)]
+          if (length(specs)) {
+            paste0("Biological samples were given to split-pipe as named well groups: ",
+                   paste0("--sample '", specs, "'", collapse = ", "), " (sampleWells).")
+          } else {
+            "No sampleWells was set, so split-pipe ran with --yes_allwell (its default all-well sample)."
+          }
+        }
+        c(
+          ## ezMethodSplitPipe: every input row is one sublibrary of the same experiment
+          "Each input row is one sublibrary of the same experiment, not a biological sample; the biological samples are the well groups given to split-pipe.",
+          ## runSplitPipeSublibraries (split-pipe --mode all per row) / adoptSplitPipeSublibraries ("All done split-pipe")
+          if (!known) {
+            "Unless sublibDir pointed at finished runs, each sublibrary was processed on its own with split-pipe --mode all, with the chemistry, kit, reference and sample definitions of the run."
+          } else if (adopted) {
+            "The split-pipe --mode all runs were not run in this job: finished runs under sublibDir were adopted, one per input row, each required to have a split-pipe log containing 'All done split-pipe'."
+          } else {
+            paste0("Each sublibrary was processed on its own with split-pipe --mode all --chemistry ", param$chemistry,
+                   " --kit ", param$kit, " on the Read1 and Read2 FASTQ files of its input row.")
+          },
+          ## ezMethodSplitPipe: nSublib > 1 -> split-pipe --mode comb; else the single sublibrary is moved/copied
+          if (nSub == 0) {
+            "When the input had more than one sublibrary, they were merged with split-pipe --mode comb into one result; a single sublibrary's output was used as the result directly."
+          } else if (nSub > 1) {
+            paste0("The ", nSub, " sublibraries were merged with split-pipe --mode comb into one result.")
+          } else {
+            "The single sublibrary's split-pipe output was used as the result directly, with no combine step."
+          },
+          ## getParseReference: split-pipe --mode mkref, GTF filtered by gtfByTxTypes, index dir keyed by the transcript types
+          if (!adopted) paste0("The split-pipe reference was built with split-pipe --mode mkref from the refBuild genome FASTA and its gene annotation",
+                               if (length(tt)) paste0(" filtered to the transcript types ", paste(tt, collapse = ", "), " (transcriptTypes)")
+                               else if (!known) " (filtered to transcriptTypes when set)" else " with all transcript types",
+                               ", once per annotation and transcript-type set, and reused by later runs."),
+          if (!adopted) samples,
+          ## runSplitPipeSublibraries: --chemistry --kit --nthreads --fq1 --fq2 --genome_dir --output_dir, samples, --save_anndata, cmdOptions
+          if (!adopted) paste0("ezRun passed split-pipe --mode all only the chemistry, kit, thread count, FASTQ files, reference and sample definitions", opts,
+                               "; it sets no option for barcode handling, read trimming, cell calling, filtering, PCA, clustering or differential expression."),
+          ## writeTenxMatrices / convertParseToTenx: DropletUtils::write10xCounts version 3, t(m), gene_id / gene_name, bc_wells
+          "After split-pipe, ezRun converted each sample's DGE_filtered and DGE_unfiltered matrices to 10x v3 format (filtered_feature_bc_matrix, raw_feature_bc_matrix) with DropletUtils write10xCounts, transposed to genes by cells with the gene_id as feature ID and the gene name as symbol; the counts are unchanged and the Parse DGE directories are kept.",
+          ## makeSplitPipeReport: makeQuartoReport(qmdFile = "SplitPipe.qmd"); SplitPipe.qmd reads agg_sample_summary.csv, Log.final.out, cell_metadata.csv
+          "The 00index.html report is rendered by ezRun from its SplitPipe Quarto template from split-pipe's summary tables, STAR alignment logs and per-cell metadata, and links split-pipe's own per-sample analysis summary pages; it runs no analysis of its own."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSplitPipe

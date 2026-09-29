@@ -196,6 +196,31 @@ EzAppMageckCount <-
           "Li, W. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biology 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
         )
       },
+      methods_facts = function(param = list()) {
+        known <- length(param) > 0
+        opts <- if (!known) {
+          " plus any cmdOptions"
+        } else if (ezIsSpecified(param$cmdOptions) && nzchar(param$cmdOptions)) {
+          paste0(" plus cmdOptions '", param$cmdOptions, "'")
+        } else {
+          " (cmdOptions was empty)"
+        }
+        c(
+          ## ezMethodMageckCount: input$getFullPaths("Read1") -> --fastq; no trimming step before mageck2
+          "Each sample was counted on its own with mageck2 count on its Read1 FASTQ file(s) as delivered; ezRun did no read trimming or preprocessing before it.",
+          ## getMageckReference / prepareMageckLibrary: *_MAGeCK.csv, built from the 4-column library csv when absent
+          "The library file given to mageck2 (-l) is the library folder's _MAGeCK.csv file (sgRNA ID, sequence, gene symbol); only when the folder has none does ezRun build it, from the library's 4-column CSV, with the sgRNA ID made of the sgRNA name and sequence joined by '_'.",
+          ## ezMethodMageckCount hasCtrl / getMageckReference *_MAGeCK_Ctrl.csv; prepareMageckLibrary isControl true/t/1/yes/y
+          "The control sgRNA list is passed with --control-sgrna only when the library folder holds a _MAGeCK_Ctrl.csv file (when ezRun builds it: the sgRNAs flagged true, t, 1, yes or y in the library's control column); ezRun decides this from the library files, no parameter does.",
+          ## ezMethodMageckCount cmd: -l, --control-sgrna, --fastq, -n, cmdOptions
+          paste0("ezRun passed mageck2 count only -l, --control-sgrna, --fastq and -n", opts,
+                 "; ezRun sets no normalization method, 5' trim length or sgRNA length, and ezRun normalizes no counts itself."),
+          ## ezMethodMageckCount: no mageck2 test / mle call
+          "This app only counts reads per sgRNA: no mageck test or mle ranking of sgRNAs or genes is run.",
+          ## ezMethodMageckCount: makeQuartoReport(qmdFile = "MageckCountQC.qmd") when the countsummary exists, inside tryCatch
+          "The per-sample HTML QC report is rendered by ezRun from its MageckCountQC Quarto template using the countsummary table mageck2 wrote (reads, mapped reads, mapping rate, sgRNAs with zero count, Gini index); a failure of the report does not fail the count."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodMageckCount
