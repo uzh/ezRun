@@ -757,3 +757,26 @@ test_that("round-8 facts: RCTD does not claim a Seurat conversion; FastQC says -
   fq <- EzAppFastqc$new()$methods_facts(list())
   expect_true(any(grepl("--kmers 7 option only sets the k-mer length", fq, fixed = TRUE)))
 })
+
+test_that("facts need the same ezRun commit as well as the same version (round 9: two 3.23.3 builds ran different DiffPeak code)", {
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    sh <- file.path(sd, "job.sh"); writeLines("echo job", sh)
+    log <- paste0(sh, "_sushiID1_x_o.log")
+    here <- paste0("ezRun_", utils::packageVersion("ezRun"))
+    run <- function(tag, installed) {
+      writeLines(c(paste("ezRun tag:", tag), "other attached packages:", paste0("[1] ", here)), log)
+      writeLines("done", sub("_o\\.log$", "_e.log", log))
+      out <- tempfile("out"); dir.create(out)
+      withr::with_options(list(ezRun.methodsInstalledSha = installed),
+        EzAppScSeurat$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                                          example_script = "job.sh", sample_count = 1))
+      file.exists(file.path(out, "app_facts.txt"))
+    }
+    sha <- "1cddec9c6ee6b557792c0bf9e95f5f780fd9868e"
+    expect_true(run(sha, sha))                                              # same build
+    expect_false(run("afdbfc77aaaa0000000000000000000000000000", sha))       # same version, other commit
+    expect_true(run("", sha))                                               # run logged no tag: version only
+    expect_true(run(sha, ""))                                               # installed from a tree: version only
+  })
+})

@@ -859,7 +859,14 @@ EzApp <-
         okVersion <- getOption("ezRun.methodsFactsVersion",
                                paste0("^ezRun_", gsub(".", "\\.", utils::packageVersion("ezRun"), fixed = TRUE), "$"))
         ## any job whose latest attempt failed withholds them, the example job or another
-        use_facts <- length(haltedLogs) == 0 && any(grepl(okVersion, ran))
+        ## Same version is not enough: two 3.23.3 builds ran different DiffPeakAnalysis code (round 9).
+        ## Every job logs "ezRun tag: <sha>" (ezSessionInfo), and a GitHub install records RemoteSha;
+        ## when both are known they must be the same commit. The widened option (evaluation) skips it.
+        tag <- sub("^ezRun tag:\\s*", "", grep("^ezRun tag:\\s*[0-9a-f]{7,}", logText, value = TRUE))
+        installedSha <- getOption("ezRun.methodsInstalledSha", utils::packageDescription("ezRun")$RemoteSha %||% "")
+        sameBuild <- !is.null(getOption("ezRun.methodsFactsVersion")) || !length(tag) || !nzchar(installedSha) ||
+          any(startsWith(installedSha, trimws(tag))) || any(startsWith(trimws(tag), installedSha))
+        use_facts <- length(haltedLogs) == 0 && any(grepl(okVersion, ran)) && sameBuild
         ## A run of another ezRun version only had the parameters it recorded: today's
         ## defaults would offer citations (and guard rules) for steps it never had, e.g.
         ## mLLMCelltype, whose default is on, for a 2024 ScSeurat run.
