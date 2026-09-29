@@ -895,12 +895,6 @@ EzApp <-
           guarded <- methodsGuardedWrite(.self, script_paths, log_paths, sample_count, output_dir,
                                          param, methodsParamTable(param_file), use_facts = use_facts)
           raw <- if (is.null(guarded$raw)) "" else guarded$raw
-          ## option ezRun.methodsVerify: check each sentence against the same evidence
-          if (nzchar(raw) && isTRUE(getOption("ezRun.methodsVerify", FALSE))) {
-            evidence <- c(script_paths, Filter(file.exists, file.path(output_dir, "app_facts.txt")))
-            checked <- methodsVerifySentences(raw, evidence, log_paths, output_dir)
-            if (nzchar(trimws(methodsDescriptionPart(checked$raw)))) raw <- checked$raw
-          }
         }
 
         ## For each known citation, check whether its DOI/URL appears anywhere in the

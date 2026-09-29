@@ -456,29 +456,3 @@ test_that("a single job's samples: the samples parameter, and for a comparison t
                                           samples = "S1,S3,S5"), inp), 2L)
   expect_identical(methodsSamplesRun(list(), NULL), 0L)
 })
-
-test_that("the sentence check drops what it cannot support, and keeps the text when its answer is unusable", {
-  txt <- "Reads were aligned with STAR. Cells were typed with a magic tool; the seed was 7."
-  expect_identical(methodsSentences(txt), c("Reads were aligned with STAR.", "Cells were typed with a magic tool;", "the seed was 7."))
-  withTextWriter(c(txt, "1: KEEP\n2: DROP: no such tool in the record\n3: KEEP"), function(bin) {
-    out <- tempfile("out"); dir.create(out)
-    withr::with_options(list(ezRun.methodsVerify = TRUE),
-      expect_message(EzApp$new()$write_methods(output_dir = out, analysis_name = "T"), "sentence check dropped 1 of 3"))
-    expect_equal(nCalls(bin), 2)
-    expect_match(paste(readLines(file.path(bin, "task_last.txt")), collapse = "\n"), "2. Cells were typed with a magic tool;", fixed = TRUE)
-    md <- readMd(out)
-    expect_match(md, "Reads were aligned with STAR.", fixed = TRUE)
-    expect_no_match(md, "magic tool")
-  })
-  withTextWriter(c(txt, "1: KEEP"), function(bin) {   # answer misses sentences 2 and 3: fail open
-    out <- tempfile("out"); dir.create(out)
-    withr::with_options(list(ezRun.methodsVerify = TRUE),
-      expect_message(EzApp$new()$write_methods(output_dir = out, analysis_name = "T"), "did not cover every sentence"))
-    expect_match(readMd(out), "magic tool", fixed = TRUE)
-  })
-  withTextWriter(txt, function(bin) {                   # option off: one call, text as written
-    out <- tempfile("out"); dir.create(out)
-    EzApp$new()$write_methods(output_dir = out, analysis_name = "T")
-    expect_equal(nCalls(bin), 1)
-  })
-})
