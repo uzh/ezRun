@@ -148,6 +148,27 @@ EzAppGatkRnaHaplotyper <-
     "EzAppGatkRnaHaplotyper",
     contains = "EzApp",
     methods = list(
+      methods_facts = function(param = list()) {
+        known <- length(param) > 0
+        dbsnp <- ezIsSpecified(param$dbsnpFile)
+        c(
+          ## ezMethodGatkRnaHaplotyper: exome.bed built from the GTF, passed with -L to every GATK step after read groups
+          paste0("The interval file exome.bed was built inside the job from the exon features of lncRNA and protein_coding genes (gene_biotype) of the reference GTF, keeping only sequences whose name contains 'chr' when any does; no exome capture or target file was used. It was passed with -L to SplitNCigarReads and HaplotypeCaller", if (!(known && !dbsnp)) " and, when it ran, to base recalibration", "."),
+          ## ezMethodGatkRnaHaplotyper: AddOrReplaceReadGroups -LB/-PL/-PU/-SM, no -ID
+          if (isTRUE(as.logical(param$addReadGroup))) "Read groups were replaced with GATK AddOrReplaceReadGroups, setting library (-LB), platform unit (-PU) and sample (-SM) to the sample name and platform (-PL) to ILLUMINA; no read-group ID (-ID) was passed.",
+          ## ezMethodGatkRnaHaplotyper: stopifnot(param$markDuplicates == FALSE)
+          "Duplicate reads were not marked: the app stops when markDuplicates is set.",
+          ## ezMethodGatkRnaHaplotyper: SplitNCigarReads with -R, -I, -L only
+          "Reads spanning introns were split at N CIGAR operations with GATK SplitNCigarReads, given only the reference, the BAM and the intervals.",
+          ## ezMethodGatkRnaHaplotyper: BQSR only if (ezIsSpecified(dbsnpFile) && file.exists(dbsnpFile))
+          if (!known) "Base quality score recalibration runs only when dbsnpFile names an existing file; otherwise the SplitNCigarReads BAM is only renamed recal.bam.",
+          if (known && dbsnp) paste0("When the file ", param$dbsnpFile, " existed, base quality scores were recalibrated with GATK BaseRecalibrator (--known-sites ", param$dbsnpFile, ", --use-original-qualities) and ApplyBQSR, and HaplotypeCaller took variant IDs from it (--dbsnp); without the file no recalibration was done."),
+          if (known && !dbsnp) "No base quality score recalibration was done because dbsnpFile was empty: the SplitNCigarReads BAM was only renamed recal.bam, and HaplotypeCaller got no --dbsnp file.",
+          ## ezMethodGatkRnaHaplotyper: HaplotypeCaller -ERC GVCF -dont-use-soft-clipped-bases; the confidence option is commented out
+          "Variants were called per sample with GATK HaplotypeCaller in GVCF mode (-ERC GVCF), ignoring soft-clipped bases (-dont-use-soft-clipped-bases); no calling-confidence threshold was passed.",
+          "The output is one unfiltered gVCF per sample for joint genotyping; this app applies no variant filtering."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodGatkRnaHaplotyper

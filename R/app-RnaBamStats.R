@@ -186,6 +186,42 @@ EzAppRnaBamStats <-
           if (dup) "Liao, Y., Smyth, G.K. & Shi, W. featureCounts: an efficient general purpose program for assigning sequence reads to genomic features. Bioinformatics 30(7), 923-930 (2014). https://doi.org/10.1093/bioinformatics/btt656"
         )
       },
+      methods_facts = function(param = list()) {
+        inputKnown <- !is.null(attr(param, "input"))
+        hasCol <- function(col) !is.null(methodsInput(param, col))
+        paired <- isTRUE(as.logical(param$paired))
+        strand <- switch(as.character(param$strandMode)[1],
+                         both = "either strand (strandMode both)",
+                         sense = "the same strand (strandMode sense)",
+                         antisense = "the opposite strand (strandMode antisense)", NULL)
+        c(
+          ## getStatsFromBamParallel (splitByChrom, ezRun default TRUE)
+          if (!isFALSE(as.logical(param$splitByChrom))) "Read-type counts, fragment sizes and transcript coverage used only reference sequences with names of at most 6 characters (only the NC_ sequences for an NCBI reference, the 100 longest sequences when no name qualifies); unplaced contigs with longer names were left out.",
+          ## getTargetTypeCounts
+          "A read was counted for a feature type (gene biotype, repeat class from the reference's Repeats/RNA_repeats.gff when that file exists, exon or intron of protein-coding transcripts, 2 kb upstream or downstream of them) when it overlapped a feature of that type by at least 10 bases; a read could count for several types, and reads overlapping none were counted as unannotated.",
+          ## getTargetTypeCounts / getTranscriptCoverage via fixStrand
+          if (!is.null(strand)) paste0("Reads were matched to features on ", strand, "."),
+          ## getStatsFromBam
+          "Gene body coverage and the covered-length classes used only the transcripts of genes with one or two protein-coding transcripts (transcript_type or transcript_biotype protein_coding or mRNA; when the GTF has transcript_support_level 5 entries, only those TSL-5 transcripts were counted).",
+          "Gene body coverage was sampled at 101 evenly spaced positions along each such transcript and averaged per length class (less than 600 nt, 600 to 1199 nt, 1200 to 2400 nt, above 2400 nt) and expression class (split at the 25% and 75% quantiles of mean coverage), for length classes with more than 40 transcripts; the fraction of each transcript's length covered by reads was binned at 0.5, 10, 90 and 99.5%.",
+          ## getPosErrorFromBam / ezPosSpecErrorRate (posErrorRates, ezRun default TRUE)
+          if (!isFALSE(as.logical(param$posErrorRates))) paste0("Position-specific mismatch rates were computed only on the longest reference sequence in the BAM, from at most 100,000 randomly drawn alignments without N, I or D CIGAR operations", if (paired) " (first and second reads separately)", "; clipped bases were reported as a clipping rate, not as mismatches."),
+          ## ezMethodRnaBamStats: getJunctionStatsFromSJ when every sample has a Junctions file, else getJunctionPlotsFromBam
+          if (!inputKnown || hasCol("Junctions")) "When every sample had a non-empty SJ.out.tab from the aligner (Junctions column), the junction statistics were taken from it (introns shorter than 50 bp dropped, each splice site of a junction checked separately against the GTF introns, junction saturation computed in closed form at 5% steps of the reads); otherwise RSeQC junction_annotation.py (--mapq=1) was run on the BAM and saturation estimated from 10 random subsamplings.",
+          if (inputKnown && !hasCol("Junctions")) "Junction statistics were computed on the BAM with RSeQC junction_annotation.py (--mapq=1) against the GTF, and junction saturation was estimated from 10 random subsamplings of the junction reads at 5% steps.",
+          ## ezMethodRnaBamStats dupRadar branch (dupRadar, ezRun default TRUE): DupRate reuse, else getDupRateFromBam / dupBam
+          if (!isFALSE(as.logical(param$dupRadar)) && (!inputKnown || hasCol("DupRate"))) "When every sample had a DupRate file from the aligner and the aligner's refFeatureFile, strandMode and paired matched this run, those duplication rates were reused; otherwise duplicates were marked with Picard MarkDuplicates (OPTICAL_DUPLICATE_PIXEL_DISTANCE=100, not removed; skipped when the BAM header shows duplicates already marked) and dupRadar analyzeDuprates was run with the reference GTF.",
+          if (!isFALSE(as.logical(param$dupRadar)) && inputKnown && !hasCol("DupRate")) "Duplicates were marked with Picard MarkDuplicates (OPTICAL_DUPLICATE_PIXEL_DISTANCE=100, not removed; skipped when the BAM header shows duplicates already marked) and duplication rates were computed with dupRadar analyzeDuprates using the reference GTF.",
+          ## getStatsFromBamSingleChrom fragSizeHist (paired only)
+          if (paired) paste0("Fragment sizes were taken from the ", if (isTRUE(as.logical(param$keepProperPairsOnly))) "first reads of proper pairs" else "first reads of all pairs", ", up to ", param$fragSizeMax, " bp (fragSizeMax)."),
+          ## getBamMultiMatching / getBamMultiMatchingFromNH
+          "The multi-matching table counts each read once, by the NH tag of its primary alignment (read names are counted when the BAM has no NH tag); unmapped reads are the input Read Count minus the mapped reads.",
+          ## ezMethodRnaBamStats StrandFile branch
+          if (!inputKnown || hasCol("StrandFile")) "Strandedness was not computed here: it was read from the RSeQC infer_experiment output of the aligner (StrandFile) where that file exists.",
+          ## RNABamStats.Rmd: the igv link chunk has eval=FALSE
+          "No IGV session link was written into the report (its code chunk is disabled), whatever writeIgvSessionLink says."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodRnaBamStats

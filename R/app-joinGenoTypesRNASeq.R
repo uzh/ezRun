@@ -184,6 +184,25 @@ EzAppJoinGenoTypesRNASeq <-
     "EzAppJoinGenoTypesRNASeq",
     contains = "EzApp",
     methods = list(
+      methods_facts = function(param = list()) {
+        grp <- if (ezIsSpecified(param$grouping)) paste0("the ", param$grouping, " column") else "the grouping column"
+        dp <- if (ezIsSpecified(param$minReadDepth)) paste0(param$minReadDepth, " (minReadDepth)") else "minReadDepth"
+        nSamples <- length(methodsInput(param, "Name"))
+        c(
+          ## ezMethodJoinGenoTypesRNASeq / runGatkPipelineRNASeq (app-joinGenoTypesRNASeq.R:19-33, 134-176)
+          paste0("The gVCFs were genotyped per group of ", grp, ": GATK CombineGVCFs merged the gVCFs of a group with more than one sample and GenotypeGVCFs made one VCF per group, with no --dbsnp, interval or other extra option; when there was more than one group, all samples were also genotyped together and only this all-samples VCF was used for the report."),
+          "No variant filtering (hard filters or VQSR) and no variant effect annotation was done; the per-group and all-samples VCFs are unfiltered.",
+          ## ezMethodJoinGenoTypesRNASeq (app-joinGenoTypesRNASeq.R:36-116)
+          "For the report, the VCF was reduced to biallelic SNPs (bcftools view -m2 -M2 -v snps) and exactly 500,000 of them were drawn at random (R sample.int, seed 1); the job stops when fewer than 500,000 biallelic SNPs are present.",
+          ## ezMethodJoinGenoTypesRNASeq (app-joinGenoTypesRNASeq.R:118-120)
+          paste0("Genotype calls with read depth (DP) below ", dp, " were set to missing for the report."),
+          ## Mpileup.Rmd clustering chunk, eval=length(samples) > 3
+          if (nSamples == 0 || nSamples > 3) "With more than 3 samples, samples were clustered by hierarchical clustering (hclust, method ward.D2) of Euclidean distances between genotype codes (0/0 = -1, 0/1 = 0, 1/1 = 1; any other genotype, including low-depth and phased calls, missing); the dendrogram is drawn only when every distance could be computed.",
+          if (nSamples > 0 && nSamples <= 3) "No sample clustering was done because there were 3 or fewer samples.",
+          ## Mpileup.Rmd chrom variants chunk
+          "Genotypes were plotted along every chromosome whose name has no '.' or '_' and that is longer than 20,000 bp."
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodJoinGenoTypesRNASeq
