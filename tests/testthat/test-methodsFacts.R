@@ -780,3 +780,34 @@ test_that("facts need the same ezRun commit as well as the same version (round 9
     expect_true(run(sha, ""))                                               # installed from a tree: version only
   })
 })
+
+test_that("a partly failed run tells the writer only the samples whose jobs completed (round 10)", {
+  ## round 10: "All 22 samples were processed identically" for a STAR run where 3 of 22 jobs were
+  ## killed; the caller's batch line says "state that it was applied to all N samples"
+  withStubWriter(function(argsFile) {
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    writeLines("echo job", file.path(sd, "job.sh"))
+    writeLines("done", file.path(sd, "job.sh_sushiID1_x_e.log"))
+    writeLines(c("Killed", "Error in ezSystem(cmd) :", "Execution halted"), file.path(sd, "job2.sh_sushiID2_x_e.log"))
+    writeLines("done", file.path(sd, "job3.sh_sushiID3_x_e.log"))
+    writeLines(c("process_mode\tSAMPLE"), file.path(d, "parameters.tsv"))
+    out <- tempfile("out"); dir.create(out)
+    EzApp$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                              example_script = "job.sh", sample_count = 3)
+    a <- readLines(argsFile)
+    expect_identical(a[which(a == "--sample-count") + 1], "2")
+    expect_true(any(grepl("Each of the 2 samples was analysed separately", readLines(file.path(out, "run_summary.txt")), fixed = TRUE)))
+    expect_match(paste(readLines(file.path(out, "methods.md")), collapse = "\n"), "Note: 1 of 3 jobs of this run stopped", fixed = TRUE)
+  })
+  withStubWriter(function(argsFile) {   # two jobs covering 4 samples (not one job per sample): count left as given
+    d <- tempfile("res"); sd <- file.path(d, "scripts"); dir.create(sd, recursive = TRUE)
+    writeLines("echo job", file.path(sd, "job.sh"))
+    writeLines("done", file.path(sd, "job.sh_sushiID1_x_e.log"))
+    writeLines(c("Error: boom", "Execution halted"), file.path(sd, "job2.sh_sushiID2_x_e.log"))
+    out <- tempfile("out"); dir.create(out)
+    EzApp$new()$write_methods(gstore_script_dir = sd, output_dir = out, analysis_name = "T",
+                              example_script = "job.sh", sample_count = 4)
+    a <- readLines(argsFile)
+    expect_identical(a[which(a == "--sample-count") + 1], "4")
+  })
+})

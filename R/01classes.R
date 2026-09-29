@@ -878,6 +878,11 @@ EzApp <-
         ## rows has 3 job scripts, and SUSHI's count is right.
         nRun <- methodsSamplesRun(methodsParamTable(param_file), attr(param, "input"))
         if ((sample_count %||% 1) <= 1 && nRun > 1) sample_count <- nRun
+        ## One job per sample and some failed: the writer is told only the completed samples, since
+        ## the caller asks it to "state that it was applied to all N samples" (round 10: "all 22"
+        ## for a run with 3 of 22 jobs killed). Jobs covering several samples keep the given count.
+        if (!failed && length(haltedLogs) > 0 && identical(as.integer(sample_count), length(jobLogs)))
+          sample_count <- length(jobLogs) - length(haltedLogs)
         ## Facts read from the run's record (methodsRunSummary), for any ezRun version
         summary <- methodsRunSummary(methodsParamTable(param_file), attr(param, "input"), sample_count,
                                      log_paths[grepl("_o\\.log$", log_paths)])
