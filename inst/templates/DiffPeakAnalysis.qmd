@@ -55,6 +55,7 @@ peakGc    <- .fgcz_load("peakGc", optional = TRUE)
 motifRes  <- .fgcz_load("motifRes", optional = TRUE)
 goRes     <- .fgcz_load("goRes", optional = TRUE)
 profiles  <- .fgcz_load("profiles", optional = TRUE)
+bwStatus  <- .fgcz_load("bwStatus", optional = TRUE)
 
 sampleGroup   <- param$sampleGroup
 refGroup      <- param$refGroup
@@ -551,7 +552,18 @@ if (!is.null(h)) cat("*", h$caption, "*\n", sep = "")
 #| out-width: "80%"
 #| fig-cap: "Mean BigWig signal +-2 kb around the centre of the top up and down candidates. The groups should separate in the expected direction."
 mp <- tryCatch(plotMetaProfile(), error = function(e) NULL)
-if (is.null(mp)) cat("BigWig tracks are not available for this dataset.") else mp
+if (!is.null(mp)) {
+  mp
+} else if (is.null(bwStatus) || is.na(bwStatus$column)) {
+  cat("The input dataset has no BigWig column (expected: 'BigWig', as written",
+      "by PeakCombiner and AtacSeq, or 'BigWigFile').")
+} else if (bwStatus$nFound < bwStatus$nListed) {
+  cat("Column '", bwStatus$column, "' lists ", bwStatus$nListed,
+      " BigWig files but only ", bwStatus$nFound, " exist, so no profiles ",
+      "were drawn. First missing file:\n\n", head(bwStatus$missing, 1), sep = "")
+} else {
+  cat("Signal profiles could not be computed (too few candidates or a read error; see the job log).")
+}
 ```
 
 ```{r profile-heat-up}
