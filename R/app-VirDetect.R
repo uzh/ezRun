@@ -5,24 +5,152 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-ezMethodVirDetect = function(
+## Human contamination is always removed before removing the (non-human)
+## host, since samples can pick up human reads at the bench regardless of
+## which species the sample itself comes from. If the user-selected
+## hostBuild is itself human, this step is skipped since it would just
+## repeat the same mapping twice.
+VIRDETECT_HUMAN_REFBUILD <- "Homo_sapiens/GENCODE/GRCh38.p13"
+
+##' @title Counts the reads in a (gzipped) fastq file
+countFastqReads <- function(fastqFile) {
+  nLines <- as.integer(ezSystem(
+    paste("zcat", fastqFile, "| wc -l"),
+    intern = TRUE,
+    stopOnFailure = TRUE
+  ))
+  nLines %/% 4L
+}
+
+##' @title Depletes reads mapping to one reference genome
+##' @description Maps read1/read2 to \code{refBuild} with bowtie2 and keeps
+##' only the reads/pairs for which nothing mapped, writing them out as
+##' gzipped fastq. Returns the kept fastq paths and the number of kept
+##' reads/pairs. bowtie2's own log is appended to \code{logFile}.
+depleteAgainstReference <- function(
+  read1,
+  read2 = NULL,
+  param,
+  refBuild,
+  stageLabel,
+  logFile
+) {
+  paramRef <- param
+  paramRef$refBuild <- refBuild
+  paramRef$ezRef <- EzRef(paramRef)
+  ref <- getBowtie2Reference(paramRef)
+
+  bamFile <- paste0(stageLabel, ".bam")
+  cmd <- paste(
+    "bowtie2",
+    param$cmdOptionsHost,
+    "-p",
+    param$cores,
+    "-x",
+    ref,
+    if (param$paired) "-1",
+    read1,
+    if (param$paired) paste("-2", read2) else paste("-U", read1),
+    "2>>",
+    logFile,
+    "|",
+    "samtools view -b",
+    if (param$paired) "-f 12 -F 256" else "-f 4 -F 256",
+    "- >",
+    bamFile
+  )
+  ezSystem(cmd)
+
+  nRecords <- as.integer(ezSystem(
+    paste("samtools view -c", bamFile),
+    intern = TRUE,
+    stopOnFailure = TRUE
+  ))
+  nKept <- if (param$paired) nRecords %/% 2L else nRecords
+
+  r1Out <- paste0(stageLabel, "_R1.fastq.gz")
+  if (param$paired) {
+    r2Out <- paste0(stageLabel, "_R2.fastq.gz")
+    cmd <- paste(
+      "samtools collate -Ou",
+      bamFile,
+      "|",
+      "samtools fastq -@",
+      param$cores,
+      "-1",
+      r1Out,
+      "-2",
+      r2Out,
+      "-0 /dev/null -s /dev/null -"
+    )
+  } else {
+    r2Out <- NULL
+    cmd <- paste("samtools fastq -@", param$cores, "-0", r1Out, bamFile)
+  }
+  ezSystem(cmd)
+  file.remove(bamFile)
+
+  list(read1 = r1Out, read2 = r2Out, count = nKept)
+}
+
+ezMethodVirDetect <- function(
   input = NA,
   output = NA,
   param = NA,
   htmlFile = "00index.html"
 ) {
-  require(Rsamtools)
-  sampleName = input$getNames() ##first parameter pass to rmarkdown::render
-  #  stopifnot((param$paired))
-  #  start_path = getwd()
+  sampleName <- input$getNames()
   setwdNew(sampleName)
 
   ## trim reads
-  trimmedInput = ezMethodFastpTrim(input = input, param = param)
+  param$fastpCompression <- 9
+  trimmedInput <- ezMethodFastpTrim(input = input, param = param)
 
-  ## align trimmed reads to human genome, get read pairs, for which both reads were unmapped
-  defOpt = paste("-p", ezThreads())
-  readGroupOpt = paste0(
+  countSummary <- list(
+    QCReads = data.frame(
+      Stage = "QCReads",
+      Count = countFastqReads(trimmedInput$getColumn("Read1"))
+    )
+  )
+
+  ## build the depletion chain: always remove human contamination first,
+  ## unless the user-selected host build already is human
+  refChain <- c(Host = param$hostBuild)
+  if (!grepl("^Homo_sapiens", param$hostBuild)) {
+    refChain <- c(Human = VIRDETECT_HUMAN_REFBUILD, refChain)
+  }
+
+  curR1 <- trimmedInput$getColumn("Read1")
+  curR2 <- if (param$paired) trimmedInput$getColumn("Read2") else NULL
+
+  for (stageName in names(refChain)) {
+    res <- depleteAgainstReference(
+      read1 = curR1,
+      read2 = curR2,
+      param = param,
+      refBuild = refChain[[stageName]],
+      stageLabel = stageName,
+      logFile = paste0(stageName, "_bowtie2.log")
+    )
+    file.remove(curR1)
+    if (param$paired) {
+      file.remove(curR2)
+    }
+    curR1 <- res$read1
+    curR2 <- res$read2
+    countSummary[[stageName]] <- data.frame(
+      Stage = paste0(stageName, "Removed"),
+      Count = res$count
+    )
+  }
+
+  ## align filtered reads to the viral reference database, get sorted bam
+  ## file and index, output idxstats into a text file
+  paramVirom <- param
+  paramVirom$refBuild <- param$virBuild
+  paramVirom$ezRef <- EzRef(paramVirom)
+  vir <- getBowtie2Reference(paramVirom)
+  readGroupOpt <- paste0(
     "--rg-id ",
     sampleName,
     " --rg SM:",
@@ -33,162 +161,88 @@ ezMethodVirDetect = function(
     " --rg PU:RGPU_",
     sampleName
   )
-  cmd = paste(
+  viromeLog <- "Virome_bowtie2.log"
+  cmd <- paste(
     "bowtie2",
-    param$cmdOptionsHost,
-    defOpt,
+    param$cmdOptions,
+    "-p",
+    param$cores,
     readGroupOpt,
     "-x",
-    "/srv/GT/reference/Homo_sapiens/GENCODE/GRCh38.p13/Sequence/BOWTIE2Index/genome"
-  )
-  if (param$paired) {
-    cmd = paste(
-      cmd,
-      "-1",
-      trimmedInput$getColumn("Read1"),
-      "-2",
-      trimmedInput$getColumn("Read2")
-    )
-  } else {
-    cmd = paste(cmd, "-U", trimmedInput$getColumn("Read1"))
-  }
-  cmd = paste(
-    cmd,
+    vir,
+    if (param$paired) "-1",
+    curR1,
+    if (param$paired) paste("-2", curR2) else paste("-U", curR1),
     "2>",
-    "bowtie2.log",
+    viromeLog,
     "|",
-    "samtools",
-    "view -S -b -",
-    " > human.bam"
+    "samtools view -S -b -",
+    "> virome.bam"
   )
   ezSystem(cmd)
+  file.remove(curR1)
   if (param$paired) {
-    cmd = "samtools view -b -f 12 -F 256 human.bam > human.both_unmapped.bam"
-  } else {
-    cmd = "samtools view -b -f 4 -F 256 human.bam > human.both_unmapped.bam"
+    file.remove(curR2)
   }
-  ezSystem(cmd)
-  sortBam(
-    "human.both_unmapped.bam",
-    "human.both_unmapped.sorted",
-    byQname = TRUE,
-    maxMemory = 10240
-  )
-  #cmd = "samtools sort -n -m 10G human.both_unmapped.bam human.both_unmapped.sorted"
-  #ezSystem(cmd)
-  if (param$paired) {
-    cmd = "bedtools bamtofastq -i human.both_unmapped.sorted.bam -fq tr_human_removed_R1.fastq -fq2 tr_human_removed_R2.fastq"
-  } else {
-    cmd = "bedtools bamtofastq -i human.both_unmapped.sorted.bam -fq tr_human_removed_R1.fastq"
-  }
-  ezSystem(cmd)
 
-  ## align filtered reads to the selected host genome, get read pairs, in which both reads were unmapped
-  paramHost <- param
-  paramHost$refBuild <- param$hostBuild
-  paramHost$ezRef <- EzRef(paramHost)
-  host = getBowtie2Reference(paramHost)
-  cmd = paste("bowtie2", param$cmdOptionsHost, defOpt, readGroupOpt, "-x", host)
-  if (param$paired) {
-    cmd = paste(
-      cmd,
-      "-1 tr_human_removed_R1.fastq",
-      "-2 tr_human_removed_R2.fastq",
-      "2>>",
-      "bowtie2.log",
-      "|",
-      "samtools",
-      "view -S -b -",
-      " > host.bam"
-    )
-  } else {
-    cmd = paste(
-      cmd,
-      "-U tr_human_removed_R1.fastq",
-      "2>>",
-      "bowtie2.log",
-      "|",
-      "samtools",
-      "view -S -b -",
-      " > host.bam"
-    )
-  }
-  ezSystem(cmd)
-  if (param$paired) {
-    cmd = "samtools view -b -f 12 -F 256 host.bam > host.both_unmapped.bam"
-  } else {
-    cmd = "samtools view -b -f 4 -F 256 host.bam > host.both_unmapped.bam"
-  }
-  ezSystem(cmd)
-  sortBam(
-    "host.both_unmapped.bam",
-    "host.both_unmapped.sorted",
-    byQname = TRUE,
-    maxMemory = 10240
-  )
-  #cmd = "samtools sort -n -m 10G host.both_unmapped.bam host.both_unmapped.sorted"
-  #ezSystem(cmd)
-  if (param$paired) {
-    cmd = "bedtools bamtofastq -i host.both_unmapped.sorted.bam -fq tr_host_removed_R1.fastq -fq2 tr_host_removed_R2.fastq"
-  } else {
-    cmd = "bedtools bamtofastq -i host.both_unmapped.sorted.bam -fq tr_host_removed_R1.fastq"
-  }
-  ezSystem(cmd)
-  ## align filtered reads to the viral reference database, get sorted bam file and idex, output idxstats into a text file
-  paramVirom <- param
-  paramVirom$refBuild <- param$virBuild
-  paramVirom$ezRef <- EzRef(paramVirom)
-  vir = getBowtie2Reference(paramVirom)
-  cmd = paste("bowtie2", param$cmdOptions, defOpt, readGroupOpt, "-x", vir)
-  if (param$paired) {
-    cmd = paste(
-      cmd,
-      "-1 tr_host_removed_R1.fastq",
-      "-2 tr_host_removed_R2.fastq",
-      "2>>",
-      "bowtie2.log",
-      "|",
-      "samtools",
-      "view -S -b -",
-      " > virome.bam"
-    )
-  } else {
-    cmd = paste(
-      cmd,
-      "-U tr_host_removed_R1.fastq",
-      "2>>",
-      "bowtie2.log",
-      "|",
-      "samtools",
-      "view -S -b -",
-      " > virome.bam"
-    )
-  }
-  ezSystem(cmd)
   ezSortIndexBam(
     "virome.bam",
     "virome.sorted.bam",
     ram = param$ram * 0.7, ## put additional safety margin in
     removeBam = TRUE,
-    cores = ezThreads()
+    cores = param$cores
   )
-  cmd = "samtools idxstats virome.sorted.bam > virome.idxstats.txt"
-  ezSystem(cmd)
-  #cmd = "samtools depth -d 0 virome.sorted.bam > virome.depth.txt"
-  #ezSystem(cmd)
+  ezSystem("samtools idxstats virome.sorted.bam > virome.idxstats.txt")
   bamFile <- "virome.sorted.bam"
 
-  ## collect summary statistics and save in a summary table, collect per base coverage of each mapped viral genomes and save in individual csv files
+  ## unique/multi mapped read counts, matched by content (not line position)
+  ## so they don't depend on how many lines bowtie2 happens to print for this
+  ## paired/single-end + cmdOptions combination (e.g. --no-mixed --no-discordant
+  ## shortens the paired summary compared to the host-depletion runs above)
+  viromeLogLines <- readLines(viromeLog)
+  uniqLine <- grep(
+    "aligned (concordantly )?exactly 1 time",
+    viromeLogLines,
+    value = TRUE
+  )
+  multiLine <- grep(
+    "aligned (concordantly )?>1 times",
+    viromeLogLines,
+    value = TRUE
+  )
+  nUniqueMapped <- if (length(uniqLine) > 0) {
+    as.integer(sub("^\\s*([0-9]+).*", "\\1", uniqLine[1]))
+  } else {
+    NA_integer_
+  }
+  nMultiMapped <- if (length(multiLine) > 0) {
+    as.integer(sub("^\\s*([0-9]+).*", "\\1", multiLine[1]))
+  } else {
+    NA_integer_
+  }
+  countSummary[["UniqueMapped"]] <- data.frame(
+    Stage = "UniqueMapped",
+    Count = nUniqueMapped
+  )
+  countSummary[["MultiMapped"]] <- data.frame(
+    Stage = "MultiMapped",
+    Count = nMultiMapped
+  )
+
+  countSummary <- do.call(rbind, countSummary)
+  rownames(countSummary) <- NULL
+  ezWrite.table(countSummary, file = "read_count_summary.tsv", row.names = FALSE)
+
+  ## collect summary statistics and save in a summary table, collect per base
+  ## coverage of each mapped viral genome and save in individual csv files
   idx <- read.table(
     "virome.idxstats.txt",
     header = FALSE,
     stringsAsFactors = FALSE,
     colClasses = c("character", "integer", "integer", "integer")
   )
-  #depth<-read.table("virome.depth.txt", header=FALSE, stringsAsFactors=FALSE, colClasses = c("character", "integer", "integer"))
-  #colnames(idx) = c("sequence_id", "sequence length", "mapped reads", "unmapped reads")
   sub <- idx[idx$V3 > 0, ]
-  csvFile = sub(".fa$", ".csv", paramVirom$ezRef["refFastaFile"])
+  csvFile <- sub(".fa$", ".csv", paramVirom$ezRef["refFastaFile"])
   names <- read.csv(
     csvFile,
     quote = "",
@@ -196,79 +250,116 @@ ezMethodVirDetect = function(
     header = FALSE,
     colClasses = "character"
   )
+  if (any(duplicated(names$V1))) {
+    warning(
+      "duplicate accessions found in the viral reference name table (",
+      csvFile,
+      "); keeping only the first occurrence of each to avoid double-counting hits"
+    )
+    names <- names[!duplicated(names$V1), ]
+  }
   sub <- merge(sub, names, by = "V1")
   if (nrow(sub) != 0) {
-    for (i in 1:nrow(sub)) {
-      chr = sub[i, 1]
-      len = sub[i, 2]
-      common_name = sub[i, 6]
-      temp.df <- data.frame(
-        c1 = c(chr),
-        c2 = c("0"),
-        c3 = c(len),
-        c4 = c(common_name)
+    ## these three metrics are computed by this loop, so (unlike the merge()
+    ## result above) we fully control their names -- assign by name instead
+    ## of by numeric column position
+    sub$mappedBases <- NA_real_
+    sub$genomeCov_pect <- NA_real_
+    sub$aveDepth <- NA_real_
+    for (i in seq_len(nrow(sub))) {
+      tryCatch(
+        {
+          chr <- sub[i, 1]
+          len <- sub[i, 2]
+          common_name <- sub[i, 6]
+          temp.df <- data.frame(
+            c1 = c(chr),
+            c2 = c("0"),
+            c3 = c(len),
+            c4 = c(common_name)
+          )
+          bed.file <- paste0(chr, ".bed")
+          csv.file <- paste0(chr, ".csv")
+          write.table(
+            temp.df,
+            file = bed.file,
+            quote = FALSE,
+            col.names = FALSE,
+            row.names = FALSE,
+            sep = "\t"
+          )
+          ezSystem(paste0(
+            "samtools view -b ",
+            bamFile,
+            " ",
+            chr,
+            " > ",
+            chr,
+            ".bam"
+          ))
+          ezSystem(paste0("samtools index ", chr, ".bam"))
+          subsam <- 1
+          if (sub[i, 3] > 1000000) {
+            subsam <- 1000000 / sub[i, 3]
+            ezSystem(paste0(
+              "samtools view -b -O BAM -o ",
+              chr,
+              ".subsam.bam",
+              " -s ",
+              subsam,
+              " ",
+              chr,
+              ".bam"
+            ))
+            ezSystem(paste0("samtools index ", chr, ".subsam.bam"))
+            ezSystem(paste0("mv ", chr, ".subsam.bam", " ", chr, ".bam"))
+            ezSystem(paste0("mv ", chr, ".subsam.bam.bai", " ", chr, ".bam.bai"))
+          }
+          ezSystem(paste0(
+            "bedtools coverage -sorted -a ",
+            bed.file,
+            " -b ",
+            chr,
+            ".bam",
+            " -d > ",
+            csv.file
+          ))
+          cov <- read.table(
+            csv.file,
+            header = FALSE,
+            sep = "\t",
+            quote = "",
+            stringsAsFactors = FALSE
+          )
+          sub$mappedBases[i] <- sum(cov$V6 != 0)
+          sub$genomeCov_pect[i] <- sum(cov$V6 != 0) / len * 100
+          sub$aveDepth[i] <- sum(cov$V6) / len / subsam
+          ezSystem(paste0("rm ", chr, ".bam"))
+          ezSystem(paste0("rm ", chr, ".bam.bai"))
+        },
+        error = function(e) {
+          ## keep going for the other detected viruses even if coverage
+          ## computation fails for this one (e.g. a corrupt/truncated
+          ## per-chromosome BAM, or a transient I/O error)
+          message(
+            "VirDetect: coverage computation failed for ",
+            sub[i, 1],
+            ": ",
+            conditionMessage(e)
+          )
+        }
       )
-      bed.file <- paste0(chr, ".bed")
-      csv.file <- paste0(chr, ".csv")
-      write.table(
-        temp.df,
-        file = bed.file,
-        quote = FALSE,
-        col.names = FALSE,
-        row.names = FALSE,
-        sep = "\t"
-      )
-      ezSystem(paste0(
-        "samtools view -b ",
-        bamFile,
-        " ",
-        chr,
-        " > ",
-        chr,
-        ".bam"
-      ))
-      ezSystem(paste0("samtools index ", chr, ".bam"))
-      subsam <- 1
-      if (sub[i, 3] > 1000000) {
-        subsam <- 1000000 / sub[i, 3]
-        ezSystem(paste0(
-          "samtools view -b -O BAM -o ",
-          chr,
-          ".subsam.bam",
-          " -s ",
-          subsam,
-          " ",
-          chr,
-          ".bam"
-        ))
-        ezSystem(paste0("samtools index ", chr, ".subsam.bam"))
-        ezSystem(paste0("mv ", chr, ".subsam.bam", " ", chr, ".bam"))
-        ezSystem(paste0("mv ", chr, ".subsam.bam.bai", " ", chr, ".bam.bai"))
-      }
-      #ezSystem(paste0("samtools depth -a -d 0 ", chr, ".bam > ", csv.file))
-      ezSystem(paste0(
-        "bedtools coverage -sorted -a ",
-        bed.file,
-        " -b ",
-        chr,
-        ".bam",
-        " -d > ",
-        csv.file
-      ))
-      cov <- read.table(
-        csv.file,
-        header = FALSE,
-        sep = "\t",
-        quote = "",
-        stringsAsFactors = FALSE
-      )
-      sub[i, 8] <- sum(cov$V6 != 0)
-      sub[i, 9] <- sum(cov$V6 != 0) / len * 100
-      sub[i, 10] <- sum(cov$V6) / len / subsam
-      ezSystem(paste0("rm ", chr, ".bam"))
-      ezSystem(paste0("rm ", chr, ".bam.bai"))
     }
-    sub <- sub[order(sub$V10, decreasing = TRUE), ]
+    nFailed <- sum(is.na(sub$aveDepth))
+    if (nFailed > 0) {
+      message(
+        "VirDetect: excluding ",
+        nFailed,
+        " detected virus(es) from the summary table due to failed coverage computation"
+      )
+    }
+    sub <- sub[!is.na(sub$aveDepth), ]
+    sub <- sub[order(sub$aveDepth, decreasing = TRUE), ]
     out <- sub[, c(1, 6, 7, 2, 3, 8, 9, 10)]
     colnames(out) <- c(
       "ID",
@@ -289,23 +380,26 @@ ezMethodVirDetect = function(
       sep = "\t"
     )
   }
-  ##delete intermediate result files, this folder will be copied back to gstore
+  ## delete intermediate result files; the per-sample folder gets copied back
+  ## to gstore, so only what the report needs (and per-stage logs, the
+  ## summary table, and the per-virus coverage csv files, for provenance)
+  ## is left behind
   ezSystem("rm -f *.bed")
-  ezSystem("rm -f virome.bam")
-  ezSystem("rm -f *host*")
-  ezSystem("rm -f *human*")
-  ezSystem("rm -f *.gz")
-  ezSystem("rm -f *.fastq")
 
-  ##html file
-  #setwd(start_path)
-  htmlFile = output$getColumn("OutReport")
+  ## html file
+  htmlFile <- output$getColumn("OutReport")
   styleFiles <- file.path(
     system.file("templates", package = "ezRun"),
     c("fgcz.css", "VirDetect.Rmd", "fgcz_header.html", "banner.png")
   )
   file.copy(from = styleFiles, to = ".", overwrite = TRUE)
-  params = list(sample = sampleName, minReadCount = param$minReadCount)
+  params <- list(
+    sample = sampleName,
+    minReadCount = param$minReadCount,
+    hostBuild = param$hostBuild,
+    virBuild = param$virBuild,
+    paired = param$paired
+  )
   rmarkdown::render(
     input = "VirDetect.Rmd",
     envir = new.env(),

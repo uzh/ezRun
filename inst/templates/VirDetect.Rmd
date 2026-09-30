@@ -1,13 +1,13 @@
 ---
 title: "`r if (exists('reportTitle')) reportTitle else 'SUSHI Report'`"
-output: 
+output:
   html_document:
     mathjax: https://fgcz-gstore.uzh.ch/reference/mathjax.js
     self_contained: true
     includes:
       in_header: !expr system.file("templates/fgcz_header.html", package="ezRun")
     css: !expr system.file("templates/fgcz.css", package="ezRun")
-editor_options: 
+editor_options:
   chunk_output_type: inline
 ---
 
@@ -15,133 +15,170 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-
-## debug
-#title: "`r paste('VirDetect:', input$getNames(), 'minimum ', param$minReadCount, 'mapped reads per genome')`"
-#wddir <- "/misc/GT/analysis/gtan/debug/p2150-VirDetect/4-2"
-wddir <- "."
-#params = list(sample="4-2",
-#              minReadCount=10)
-## end of debug
-```
-
-## Sample
-
-```{r sample, echo=FALSE}
-#params$sample=input$getNames()
-params$sample
-#params$minReadCount=param$minReadCount
-```
-
-## Contamination and virome mapping rates
-
-Raw reads were trimed and filtered based on quality scores, further filtered by contaminated genomes (human and none-human host), before being mapped to the reference virome databases.
-
-
-```{r count, echo=FALSE}
-dat.file <- file.path(wddir, "bowtie2.log")
-dat <- readLines(dat.file)
-counts1 <- data.frame( Count=c(scan(text=dat[1], what="")[1], scan(text=dat[16], what="")[1], scan(text=dat[31], what="")[1]))
-row.names(counts1)<-c("QCReads", "HostRemoved", "Host&HumanRemoved")
 library(knitr)
-kable(counts1, caption = "Filtered read counts")
-counts2 <- data.frame( Count=c(scan(text=dat[34], what="")[1], scan(text=dat[35], what="")[1]))
-row.names(counts2)<-c("UniqueMapped", "MultiMapped")
-kable(counts2, caption = "Virome mapped read counts")
-par(mfrow=c(1,2), mar = c(10,4,4,2))
-barplot(t(as.matrix(counts1)), main="Host and human contamination rate", cex.main=0.7, cex.names=0.7, las=2)
-barplot(t(as.matrix(counts2)), main="virome mapping rate", cex.main=0.7, cex.names=0.7, las=2)
+library(ggplot2)
+library(DT)
+wddir <- "."
 ```
 
-## Detected viral genomes in the virome database
+# `r params$sample` {.tabset}
 
-```{r s1, echo=FALSE}
+## Overview
+
+### Parameters
+
+```{r params-table}
+kable(
+  data.frame(
+    Parameter = c(
+      "Sample",
+      "Paired end",
+      "Host genome (hostBuild)",
+      "Viral database (virBuild)",
+      "Minimum read count for reporting"
+    ),
+    Value = c(
+      params$sample,
+      params$paired,
+      params$hostBuild,
+      params$virBuild,
+      params$minReadCount
+    )
+  ),
+  col.names = c("Parameter", "Value"),
+  caption = "Analysis parameters"
+)
+```
+
+### Contamination and virome mapping rates
+
+Raw reads were trimmed and filtered based on quality scores, further filtered
+by contaminated genomes (human and non-human host), before being mapped to
+the reference virome database.
+
+```{r counts, fig.width=7, fig.height=5, fig.cap="Read/pair counts retained at each pipeline stage"}
+counts.file <- file.path(wddir, "read_count_summary.tsv")
+if (file.exists(counts.file)) {
+  counts <- read.table(
+    counts.file,
+    header = TRUE,
+    sep = "\t",
+    stringsAsFactors = FALSE
+  )
+  counts$Stage <- factor(counts$Stage, levels = counts$Stage)
+  kable(counts, row.names = FALSE, caption = "Read/pair counts through the pipeline")
+  ggplot(counts, aes(x = Stage, y = Count)) +
+    geom_col(fill = "steelblue") +
+    labs(x = NULL, y = "Read pairs", title = "Reads retained at each pipeline stage") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+} else {
+  cat("Read count summary not available.")
+}
+```
+
+## Detected viral genomes
+
+Viral genomes detected in the reference virome database, after removing host
+contamination.
+
+```{r summary-table}
 list.file <- file.path(wddir, "summary_table.tsv")
-if (file.exists(list.file)){
-	list<-read.table(list.file, header=TRUE, stringsAsFactors=FALSE,
-                 sep="\t")
-	sub<-list[list$mappedReads>params$minReadCount, ]
-	sub<-na.omit(sub)
-	if (nrow(sub)!=0){
-  	library(knitr)
-  	kable(sub, row.names=FALSE, caption = "Smmmary table")
-	}else{
-  	txt<-paste("No virus detected with more than", params$minReadCount, "reads.")
-  	txt
-	}
-}else{
-	txt<-paste("No virus detected with at least one read.")
-        txt
+if (file.exists(list.file)) {
+  full <- read.table(
+    list.file,
+    header = TRUE,
+    stringsAsFactors = FALSE,
+    sep = "\t"
+  )
+  sub <- full[full$mappedReads > params$minReadCount, ]
+  sub <- na.omit(sub)
+} else {
+  sub <- data.frame()
+}
+if (nrow(sub) > 0) {
+  DT::datatable(
+    sub,
+    rownames = FALSE,
+    caption = paste(
+      "Viral genomes detected with more than",
+      params$minReadCount,
+      "mapped reads"
+    )
+  )
+} else {
+  cat("No virus detected with more than", params$minReadCount, "reads.")
 }
 ```
 
 ### Bubble plot of all detected viral families
 
-```{r s2, echo=FALSE}
-if (exists("sub")){
-	if (nrow(sub)!=0){
-		agg<-aggregate(cbind(mappedBases, genomeCov_pect, aveDepth) ~ Family, data=sub, mean)
-		symbols(agg$genomeCov_pect, agg$aveDepth, circles=sqrt(agg$mappedBases/pi),
-	        	inches=0.35, fg=factor(agg$Family), bg="white", 
-	        	xlab="% genome coverage", ylab="Mean depth",
-	        	xlim=c(min(agg$genomeCov_pect)-max(sqrt(agg$mappedBases/pi))*0.35,
-	               	max(agg$genomeCov_pect)+max(sqrt(agg$mappedBases/pi))*0.35),
-	        	ylim=c(min(agg$aveDepth)-max(sqrt(agg$mappedBases/pi))*0.35,
-	               	max(agg$aveDepth)+max(sqrt(agg$mappedBases/pi))*0.35))
-		text(agg$genomeCov_pect, agg$aveDepth,agg$Family, cex=0.7, 
-	     	col = 1:length(agg$Family))
-	}else{
-  		txt<-paste("No virus detected with more than", params$minReadCount, "reads.")
-  		txt
-	}
-}else{
-        txt<-paste("No virus detected with at least one read.")
-        txt
+```{r family-bubble, eval=nrow(sub)>0, fig.width=8, fig.height=6, fig.cap="Mean genome coverage and depth per detected viral family; bubble size is mean mapped bases"}
+agg <- aggregate(
+  cbind(mappedBases, genomeCov_pect, aveDepth) ~ Family,
+  data = sub,
+  mean
+)
+ggplot(agg, aes(x = genomeCov_pect, y = aveDepth, size = mappedBases, color = Family)) +
+  geom_point(alpha = 0.7) +
+  ggrepel::geom_text_repel(aes(label = Family), size = 3, show.legend = FALSE) +
+  scale_size_area(max_size = 15) +
+  labs(x = "% genome coverage", y = "Mean depth", title = "Detected viral families") +
+  theme_bw()
+```
+
+### Bubble plot of viral species, grouped by viral family
+
+```{r species-bubble, eval=nrow(sub)>0, fig.width=10, fig.height=7, fig.cap="Genome coverage and depth per detected viral species, faceted by family; bubble size is mapped bases"}
+ggplot(sub, aes(x = genomeCov_pect, y = aveDepth, size = mappedBases, color = Family)) +
+  geom_point(alpha = 0.7) +
+  ggrepel::geom_text_repel(aes(label = CommonName), size = 3, show.legend = FALSE) +
+  scale_size_area(max_size = 15) +
+  facet_wrap(~Family, scales = "free") +
+  labs(
+    x = "% genome coverage",
+    y = "Mean depth",
+    title = "Detected viral species, grouped by family"
+  ) +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+## Coverage plots {.tabset}
+
+Per-base coverage of each detected viral genome, sorted by abundance.
+
+```{r coverage-tabs, results='asis', eval=nrow(sub)>0}
+for (i in seq_len(nrow(sub))) {
+  chr <- sub$ID[i]
+  common_name <- sub$CommonName[i]
+  csv.file <- file.path(wddir, paste0(chr, ".csv"))
+  if (!file.exists(csv.file)) {
+    next
+  }
+  cov <- read.table(
+    csv.file,
+    header = FALSE,
+    sep = "\t",
+    quote = "",
+    stringsAsFactors = FALSE
+  )
+  cat("\n\n### ", common_name, "\n\n")
+  p <- ggplot(cov, aes(x = V5, y = V6)) +
+    geom_line(color = "steelblue") +
+    labs(x = "Position", y = "Depth", title = common_name) +
+    theme_bw()
+  print(p)
+  cat("\n\n")
 }
 ```
 
-### Bubble plot of viral species, grouped by viral families
-
-```{r s3, echo=FALSE}
-if (exists("sub")){
-	if (nrow(sub)!=0){
-  		mylist<-split(sub, factor(sub$Family))
-  		for (i in length(mylist):1){
-    			df<-mylist[[i]]
-    			symbols(df$genomeCov_pect, df$aveDepth, circles=sqrt(df$mappedBases/pi), inches=0.35, fg=i, bg="white", xlab="% genome coverage", ylab="Mean depth", xlim=c(min(df$genomeCov_pect)-max(sqrt(agg$mappedBases/pi))*0.35, max(df$genomeCov_pect)+max(sqrt(agg$mappedBases/pi))*0.35), ylim=c(min(df$aveDepth)-max(sqrt(agg$mappedBases/pi))*0.35, max(df$aveDepth)+max(sqrt(agg$mappedBases/pi))*0.35), main=unique(df$Family))
-    			text(df$genomeCov_pect, df$aveDepth,df$CommonName, cex=0.7, c=i)
-  		}
-	}else{
-  		txt<-paste("No virus detected with more than", params$minReadCount, "reads.")
-  		txt
-	}
-}else{
-        txt<-paste("No virus detected with at least one read.")
-        txt
-}
+```{r coverage-tabs-empty, eval=nrow(sub)==0, results='asis'}
+cat("No virus detected with more than", params$minReadCount, "reads.")
 ```
 
-### Coverage plot of individual viral genome, sorted by abundance
+## Session Info
 
-```{r s4, echo=FALSE}
-if (exists("sub")){
-	if (nrow(sub)!=0){
-  		for(i in 1:nrow(sub)) {
-			chr=sub$ID[i]
-			common_name=sub$CommonName[i]
-			csv.file<-file.path(wddir, paste0(chr, ".csv"))
-			if (file.exists(csv.file)){
-				cov<-read.table(csv.file, header=FALSE, sep="\t", quote="", stringsAsFactors=FALSE)
-				plot(cov$V5, cov$V6, type="l", col="blue", xlab=common_name, ylab="Depth", cex=0.5)
-			}
-  		}	
-	}else{
-                txt<-paste("No virus detected with more than", params$minReadCount, "reads.")
-                txt
-        }
-}else{
-        txt<-paste("No virus detected with at least one read.")
-        txt
-}
+```{r session-info}
+ezSessionInfo()
 ```
-
