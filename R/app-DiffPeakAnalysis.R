@@ -95,14 +95,32 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA) {
     cores = param$cores
   )
 
-  ## BigWig tracks are optional; resolve them before changing directory
+  ## BigWig tracks are optional; resolve them before changing directory.
+  ## PeakCombiner and AtacSeq grandchild datasets carry them as 'BigWig'; a
+  ## MACS3 dataset calls the column 'BigWigFile [File]'.
   bwFiles <- NULL
+  bwStatus <- list(column = NA_character_, nListed = 0L, nFound = 0L,
+    missing = character(0))
   bwCol <- intersect(c("BigWig", "BigWigFile"), input$colNames)
-  if (length(bwCol) > 0) {
-    bwFiles <- input$getFullPaths(bwCol[1], checkExists = FALSE)[compSamples]
-    bwFiles <- bwFiles[!is.na(bwFiles) & file.exists(bwFiles)]
-    if (length(bwFiles) == 0) {
-      bwFiles <- NULL
+  if (length(bwCol) == 0) {
+    ezLog("No BigWig column in the input dataset; signal profiles skipped.")
+  } else {
+    bwListed <- input$getFullPaths(bwCol[1], checkExists = FALSE)[compSamples]
+    bwListed <- bwListed[!is.na(bwListed) & bwListed != ""]
+    bwFound <- file.exists(bwListed)
+    bwStatus <- list(column = bwCol[1], nListed = length(bwListed),
+      nFound = sum(bwFound), missing = unname(bwListed[!bwFound]))
+    if (any(!bwFound)) {
+      ezLog(paste0(
+        sum(!bwFound), " of ", length(bwListed), " files in column '",
+        bwCol[1], "' do not exist, e.g. ", bwListed[!bwFound][1]
+      ))
+    }
+    ## profiles need both groups; a partial set would compare unequal samples
+    if (all(bwFound) && length(bwListed) == length(compSamples)) {
+      bwFiles <- bwListed
+    } else {
+      ezLog("Signal profiles skipped: BigWig files missing for some samples.")
     }
   }
 
@@ -213,6 +231,7 @@ ezMethodDiffPeakAnalysis <- function(input = NA, output = NA, param = NA) {
     motifRes = motifRes,
     goRes = goRes,
     profiles = profiles,
+    bwStatus = bwStatus,
     qmdFile = "DiffPeakAnalysis.qmd",
     htmlFile = "00index.html",
     reportTitle = reportTitle,
