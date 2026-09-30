@@ -10,69 +10,53 @@
 ##' keeps only the reads/read pairs for which nothing mapped, writing them out as
 ##' gzipped fastq files. Used to remove host contamination ahead of downstream
 ##' metagenomic/viral analyses (e.g. as a standalone version of the host-removal
-##' step used inside EzAppVirDetect). The number of unmapped (i.e. kept) read
-##' pairs is reported in a small stats file alongside the fastq output.
+##' step used inside EzAppVirDetect). Unless \code{param$refBuild} is itself
+##' human, human contamination is always depleted first (same policy as
+##' EzAppVirDetect) before depleting against the user-selected host build.
+##' The number of unmapped (i.e. kept) read pairs from the final stage is
+##' reported in a small stats file alongside the fastq output.
 ezMethodDeHost <- function(input = NA, output = NA, param = NA) {
   param$fastpCompression <- 9
-  ref <- getBowtie2Reference(param)
   sampleName <- input$getNames()
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
 
-  defOpt <- paste("-p", param$cores)
-  readGroupOpt <- paste0(
-    "--rg-id ",
-    sampleName,
-    " --rg SM:",
-    sampleName,
-    " --rg LB:RGLB_",
-    sampleName,
-    " --rg PL:illumina",
-    " --rg PU:RGPU_",
-    sampleName
-  )
-  ## keep only the reads/pairs for which nothing mapped to the host genome;
-  ## filter directly on bowtie2's output so the (typically much larger) fully
-  ## aligned BAM is never written to disk
-  if (param$paired) {
-    flagFilter <- "-f 12 -F 256"
-  } else {
-    flagFilter <- "-f 4 -F 256"
-  }
-  cmd <- paste(
-    "bowtie2",
-    param$cmdOptions,
-    defOpt,
-    readGroupOpt,
-    "-x",
-    ref,
-    if (param$paired) "-1",
-    trimmedInput$getColumn("Read1"),
-    if (param$paired) paste("-2", trimmedInput$getColumn("Read2")),
-    "2>",
-    paste0(sampleName, "_bowtie2.log"),
-    "|",
-    "samtools view -b",
-    flagFilter,
-    "- > host_unmapped.bam"
-  )
-  ezSystem(cmd)
-  file.remove(trimmedInput$getColumn("Read1"))
-  if (param$paired) {
-    file.remove(trimmedInput$getColumn("Read2"))
+  logFile <- paste0(sampleName, "_bowtie2.log")
+
+  ## always deplete human contamination first, unless the user-selected host
+  ## build already is human
+  refChain <- c(Host = param$refBuild)
+  if (!grepl("^Homo_sapiens", param$refBuild)) {
+    refChain <- c(Human = DEFAULT_HUMAN_REFBUILD, refChain)
   }
 
-  ## count the kept reads/pairs
-  nRecords <- as.integer(ezSystem(
-    "samtools view -c host_unmapped.bam",
-    intern = TRUE,
-    stopOnFailure = TRUE
-  ))
-  nUnmapped <- if (param$paired) nRecords %/% 2L else nRecords
+  curR1 <- trimmedInput$getColumn("Read1")
+  curR2 <- if (param$paired) trimmedInput$getColumn("Read2") else NULL
+  nKept <- NA_integer_
+
+  for (stageName in names(refChain)) {
+    res <- depleteAgainstReference(
+      read1 = curR1,
+      read2 = curR2,
+      param = param,
+      refBuild = refChain[[stageName]],
+      cmdOptions = param$cmdOptions,
+      stageLabel = stageName,
+      logFile = logFile
+    )
+    file.remove(curR1)
+    if (param$paired) {
+      file.remove(curR2)
+    }
+    curR1 <- res$read1
+    curR2 <- res$read2
+    nKept <- res$count
+  }
+
   statsFile <- paste0(sampleName, "_dehost_stats.tsv")
   ezWrite.table(
     data.frame(
       Sample = sampleName,
-      UnmappedReadPairs = nUnmapped,
+      UnmappedReadPairs = nKept,
       check.names = FALSE
     ),
     file = statsFile,
@@ -82,32 +66,16 @@ ezMethodDeHost <- function(input = NA, output = NA, param = NA) {
     "echo 'unmapped ",
     if (param$paired) "read pairs" else "reads",
     " kept: ",
-    nUnmapped,
+    nKept,
     "' >> ",
-    paste0(sampleName, "_bowtie2.log")
+    logFile
   ))
 
-  ## group mates back together (bowtie2 already emits them adjacently, but
-  ## collate is cheap insurance) and write out gzipped fastq directly
-  r1Fastq <- basename(output$getColumn("Read1"))
+  ## move the final stage's kept fastq to the declared output file names
+  file.rename(curR1, basename(output$getColumn("Read1")))
   if (param$paired) {
-    r2Fastq <- basename(output$getColumn("Read2"))
-    cmd <- paste(
-      "samtools collate -Ou host_unmapped.bam",
-      "|",
-      "samtools fastq -@",
-      param$cores,
-      "-1",
-      r1Fastq,
-      "-2",
-      r2Fastq,
-      "-0 /dev/null -s /dev/null -"
-    )
-  } else {
-    cmd <- paste("samtools fastq -@", param$cores, "-0", r1Fastq, "host_unmapped.bam")
+    file.rename(curR2, basename(output$getColumn("Read2")))
   }
-  ezSystem(cmd)
-  file.remove("host_unmapped.bam")
 
   return("Success")
 }

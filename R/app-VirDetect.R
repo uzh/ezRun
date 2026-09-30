@@ -7,10 +7,10 @@
 
 ## Human contamination is always removed before removing the (non-human)
 ## host, since samples can pick up human reads at the bench regardless of
-## which species the sample itself comes from. If the user-selected
-## hostBuild is itself human, this step is skipped since it would just
-## repeat the same mapping twice.
-VIRDETECT_HUMAN_REFBUILD <- "Homo_sapiens/GENCODE/GRCh38.p13"
+## which species the sample itself comes from. If the user-selected host
+## build is itself human, this step is skipped since it would just repeat
+## the same mapping twice. Shared by EzAppVirDetect and EzAppDeHost.
+DEFAULT_HUMAN_REFBUILD <- "Homo_sapiens/GENCODE/GRCh38.p13"
 
 ##' @title Counts the reads in a (gzipped) fastq file
 countFastqReads <- function(fastqFile) {
@@ -31,6 +31,7 @@ depleteAgainstReference <- function(
   read2 = NULL,
   param,
   refBuild,
+  cmdOptions,
   stageLabel,
   logFile
 ) {
@@ -42,7 +43,7 @@ depleteAgainstReference <- function(
   bamFile <- paste0(stageLabel, ".bam")
   cmd <- paste(
     "bowtie2",
-    param$cmdOptionsHost,
+    cmdOptions,
     "-p",
     param$cores,
     "-x",
@@ -115,7 +116,7 @@ ezMethodVirDetect <- function(
   ## unless the user-selected host build already is human
   refChain <- c(Host = param$hostBuild)
   if (!grepl("^Homo_sapiens", param$hostBuild)) {
-    refChain <- c(Human = VIRDETECT_HUMAN_REFBUILD, refChain)
+    refChain <- c(Human = DEFAULT_HUMAN_REFBUILD, refChain)
   }
 
   curR1 <- trimmedInput$getColumn("Read1")
@@ -127,6 +128,7 @@ ezMethodVirDetect <- function(
       read2 = curR2,
       param = param,
       refBuild = refChain[[stageName]],
+      cmdOptions = param$cmdOptionsHost,
       stageLabel = stageName,
       logFile = paste0(stageName, "_bowtie2.log")
     )
