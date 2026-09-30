@@ -10,7 +10,7 @@
 ## which species the sample itself comes from. If the user-selected host
 ## build is itself human, this step is skipped since it would just repeat
 ## the same mapping twice. Shared by EzAppVirDetect and EzAppDeHost.
-DEFAULT_HUMAN_REFBUILD <- "Homo_sapiens/GENCODE/GRCh38.p13"
+DEFAULT_HUMAN_REFBUILD <- "Homo_sapiens/GENCODE/GRCh38.p14"
 
 ##' @title Counts the reads in a (gzipped) fastq file
 countFastqReads <- function(fastqFile) {
