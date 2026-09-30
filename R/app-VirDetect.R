@@ -16,8 +16,7 @@ VIRDETECT_HUMAN_REFBUILD <- "Homo_sapiens/GENCODE/GRCh38.p13"
 countFastqReads <- function(fastqFile) {
   nLines <- as.integer(ezSystem(
     paste("zcat", fastqFile, "| wc -l"),
-    intern = TRUE,
-    stopOnFailure = TRUE
+    intern = TRUE
   ))
   nLines %/% 4L
 }
@@ -63,8 +62,7 @@ depleteAgainstReference <- function(
 
   nRecords <- as.integer(ezSystem(
     paste("samtools view -c", bamFile),
-    intern = TRUE,
-    stopOnFailure = TRUE
+    intern = TRUE
   ))
   nKept <- if (param$paired) nRecords %/% 2L else nRecords
 
