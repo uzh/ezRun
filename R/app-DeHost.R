@@ -18,6 +18,20 @@
 ezMethodDeHost <- function(input = NA, output = NA, param = NA) {
   param$fastpCompression <- 9
   sampleName <- input$getNames()
+  ## keep temp files of child processes (e.g. samtools) on the job's scratch
+  ## dir instead of the node's small /tmp
+  oldTmpDir <- Sys.getenv("TMPDIR", unset = NA)
+  Sys.setenv(TMPDIR = getwd())
+  on.exit(
+    {
+      if (is.na(oldTmpDir)) {
+        Sys.unsetenv("TMPDIR")
+      } else {
+        Sys.setenv(TMPDIR = oldTmpDir)
+      }
+    },
+    add = TRUE
+  )
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
 
   logFile <- paste0(sampleName, "_bowtie2.log")

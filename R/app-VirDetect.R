@@ -11,6 +11,10 @@
 ## build is itself human, this step is skipped since it would just repeat
 ## the same mapping twice. Shared by EzAppVirDetect and EzAppDeHost.
 DEFAULT_HUMAN_REFBUILD <- "Homo_sapiens/GENCODE/GRCh38.p14"
+## VirDetect filters human reads against the telomere-to-telomere assembly,
+## which also covers centromeres/satellites/rDNA arrays missing from GRCh38
+## and thus removes more human reads before the virome mapping
+VIRDETECT_HUMAN_REFBUILD <- "Homo_sapiens/Ensembl/T2T-CHM13v2.0"
 
 ##' @title Counts the reads in a (gzipped) fastq file
 countFastqReads <- function(fastqFile) {
@@ -40,7 +44,11 @@ depleteAgainstReference <- function(
   paramRef$ezRef <- EzRef(paramRef)
   ref <- getBowtie2Reference(paramRef)
 
-  bamFile <- paste0(stageLabel, ".bam")
+  ## stream bowtie2 -> filter unmapped -> fastq, so that no intermediate
+  ## BAM or collate temp files hit the scratch disk; bowtie2 emits both
+  ## mates of a pair adjacently, so no collate is needed
+  r1Out <- paste0(stageLabel, "_R1.fastq.gz")
+  r2Out <- if (param$paired) paste0(stageLabel, "_R2.fastq.gz") else NULL
   cmd <- paste(
     "bowtie2",
     cmdOptions,
@@ -48,46 +56,27 @@ depleteAgainstReference <- function(
     param$cores,
     "-x",
     ref,
-    if (param$paired) "-1",
-    read1,
-    if (param$paired) paste("-2", read2) else paste("-U", read1),
+    if (param$paired) {
+      paste("-1", read1, "-2", read2)
+    } else {
+      paste("-U", read1)
+    },
     "2>>",
     logFile,
     "|",
-    "samtools view -b",
+    "samtools view -u",
     if (param$paired) "-f 12 -F 256" else "-f 4 -F 256",
-    "- >",
-    bamFile
+    "-",
+    "|",
+    "samtools fastq",
+    if (param$paired) {
+      paste("-1", r1Out, "-2", r2Out, "-0 /dev/null -s /dev/null -")
+    } else {
+      paste("-0", r1Out, "-")
+    }
   )
   ezSystem(cmd)
-
-  nRecords <- as.integer(ezSystem(
-    paste("samtools view -c", bamFile),
-    intern = TRUE
-  ))
-  nKept <- if (param$paired) nRecords %/% 2L else nRecords
-
-  r1Out <- paste0(stageLabel, "_R1.fastq.gz")
-  if (param$paired) {
-    r2Out <- paste0(stageLabel, "_R2.fastq.gz")
-    cmd <- paste(
-      "samtools collate -Ou",
-      bamFile,
-      "|",
-      "samtools fastq -@",
-      param$cores,
-      "-1",
-      r1Out,
-      "-2",
-      r2Out,
-      "-0 /dev/null -s /dev/null -"
-    )
-  } else {
-    r2Out <- NULL
-    cmd <- paste("samtools fastq -@", param$cores, "-0", r1Out, bamFile)
-  }
-  ezSystem(cmd)
-  file.remove(bamFile)
+  nKept <- countFastqReads(r1Out)
 
   list(read1 = r1Out, read2 = r2Out, count = nKept)
 }
@@ -100,6 +89,20 @@ ezMethodVirDetect <- function(
 ) {
   sampleName <- input$getNames()
   setwdNew(sampleName)
+  ## keep temp files of child processes (e.g. samtools) on the job's scratch
+  ## dir instead of the node's small /tmp
+  oldTmpDir <- Sys.getenv("TMPDIR", unset = NA)
+  Sys.setenv(TMPDIR = getwd())
+  on.exit(
+    {
+      if (is.na(oldTmpDir)) {
+        Sys.unsetenv("TMPDIR")
+      } else {
+        Sys.setenv(TMPDIR = oldTmpDir)
+      }
+    },
+    add = TRUE
+  )
 
   ## trim reads
   param$fastpCompression <- 9
@@ -116,7 +119,7 @@ ezMethodVirDetect <- function(
   ## unless the user-selected host build already is human
   refChain <- c(Host = param$hostBuild)
   if (!grepl("^Homo_sapiens", param$hostBuild)) {
-    refChain <- c(Human = DEFAULT_HUMAN_REFBUILD, refChain)
+    refChain <- c(Human = VIRDETECT_HUMAN_REFBUILD, refChain)
   }
 
   curR1 <- trimmedInput$getColumn("Read1")
@@ -170,13 +173,15 @@ ezMethodVirDetect <- function(
     readGroupOpt,
     "-x",
     vir,
-    if (param$paired) "-1",
-    curR1,
-    if (param$paired) paste("-2", curR2) else paste("-U", curR1),
+    if (param$paired) {
+      paste("-1", curR1, "-2", curR2)
+    } else {
+      paste("-U", curR1)
+    },
     "2>",
     viromeLog,
     "|",
-    "samtools view -S -b -",
+    "samtools view -b -F 4 -",
     "> virome.bam"
   )
   ezSystem(cmd)
