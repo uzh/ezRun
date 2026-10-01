@@ -95,6 +95,25 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
 
   ## guess the names of the report directories that will be creatd by fastqc
   reportDirs <- sub("\\.(fastq|fq|bam)(\\.gz)*$", "_fastqc", basename(files))
+  isDup <- reportDirs %in% reportDirs[duplicated(reportDirs)]
+  if (any(isDup)) {
+    ezLog(
+      "FastQC: identical file names, using sample names for: ",
+      paste(names(files)[isDup], collapse = ", ")
+    )
+    linkDir <- tempfile("fastqcLinks")
+    dir.create(linkDir)
+    fileExts <- sub(
+      ".*?(\\.(fastq|fq|bam)(\\.gz)*)$",
+      "\\1",
+      basename(files[isDup]),
+      perl = TRUE
+    )
+    links <- file.path(linkDir, paste0(names(files)[isDup], fileExts))
+    stopifnot(all(file.symlink(files[isDup], links)))
+    files[isDup] <- links
+    reportDirs <- sub("\\.(fastq|fq|bam)(\\.gz)*$", "_fastqc", basename(files))
+  }
   stopifnot(!any(duplicated(reportDirs)))
   filesUse <- files[!file.exists(reportDirs)]
   if (length(filesUse) > 0) {
