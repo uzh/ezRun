@@ -452,50 +452,100 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
 
-  if (ezIsSpecified(param$barcodePattern) && param$barcodePattern != '') {
+  umiOnR2 <- ezIsSpecified(param$barcodePattern) && param$barcodePattern != ''
+  umiOnR1 <- ezIsSpecified(param$barcodePattern2) &&
+    param$barcodePattern2 != ''
+  if (umiOnR1 || umiOnR2) {
     ## Extract UMIs with umi_tools before alignment.
     ## The N/X pattern is translated to a umi_tools regex so that skip/dark bases
     ## (X) are truly discarded: in the umi_tools string method X marks a retained
     ## sample base, only regex discard groups are removed. N bases become the UMI
     ## (appended to the read name); this removes the need for the previously
-    ## hard-coded 6-base fastp trim. barcodePattern applies to R2 (the historical
-    ## Takara case); barcodePattern2, when set, applies to R1 for dual-inline UMI
-    ## libraries (e.g. Twist 5M2S+T or Agilent XT HS2, which carry a UMI at the
-    ## 5' end of both mates), and the two UMIs are concatenated in the read name.
+    ## hard-coded 6-base fastp trim. barcodePattern describes R2, barcodePattern2
+    ## describes R1. The read carrying a UMI becomes umi_tools' stdin:
+    ##  - barcodePattern set  -> R2 is stdin (Takara R2-only; or dual-inline such
+    ##    as Twist 5M2S+T / Agilent XT HS2 when barcodePattern2 is set too, with
+    ##    the two UMIs concatenated in the read name);
+    ##  - barcodePattern2 only -> R1 is stdin (e.g. Lexogen CORALL, 12 nt UMI at
+    ##    the 5' of R1), which also covers single-end data where only R1 exists.
+    if (!param$paired && umiOnR2) {
+      stop(paste(
+        "barcodePattern describes R2 but the data is single-end;",
+        "put a single-end (R1) UMI pattern in barcodePattern2 instead."
+      ))
+    }
     require(Herper)
     local_CondaEnv(
       "gi_umi_tools",
       pathToMiniConda = "/usr/local/ngseq/miniforge3"
     )
-    markedFile_R1 <- sub('R1', 'markedUMI_R1', trimmedInput$getColumn("Read1"))
-    markedFile_R2 <- sub('R2', 'markedUMI_R2', trimmedInput$getColumn("Read2"))
-    cmd <- paste0(
-      'umi_tools extract --temp-dir=. --verbose=0 --extract-method=regex --stdin=',
-      trimmedInput$getColumn("Read2"),
-      ' --read2-in=',
-      trimmedInput$getColumn("Read1"),
-      ' --stdout=',
-      markedFile_R2,
-      ' --read2-out=',
-      markedFile_R1,
-      " --bc-pattern='",
-      umiPatternToRegex(param$barcodePattern),
-      "'"
-    )
-    if (ezIsSpecified(param$barcodePattern2) && param$barcodePattern2 != '') {
+    read1 <- trimmedInput$getColumn("Read1")
+    markedFile_R1 <- sub('R1', 'markedUMI_R1', read1)
+    extractBase <-
+      'umi_tools extract --temp-dir=. --verbose=0 --extract-method=regex --stdin='
+    if (umiOnR2) {
+      ## R2 is stdin (historical Takara path); R1 is the mate. When R1 also
+      ## carries a UMI (dual-inline) it is passed as --bc-pattern2.
+      read2 <- trimmedInput$getColumn("Read2")
+      markedFile_R2 <- sub('R2', 'markedUMI_R2', read2)
       cmd <- paste0(
-        cmd,
-        " --bc-pattern2='",
+        extractBase,
+        read2,
+        ' --read2-in=',
+        read1,
+        ' --stdout=',
+        markedFile_R2,
+        ' --read2-out=',
+        markedFile_R1,
+        " --bc-pattern='",
+        umiPatternToRegex(param$barcodePattern),
+        "'"
+      )
+      if (umiOnR1) {
+        cmd <- paste0(
+          cmd,
+          " --bc-pattern2='",
+          umiPatternToRegex(param$barcodePattern2),
+          "'"
+        )
+      }
+      ezSystem(cmd)
+      ezSystem(paste('mv', markedFile_R1, read1))
+      ezSystem(paste('mv', markedFile_R2, read2))
+    } else {
+      ## Only R1 carries a UMI (e.g. Lexogen CORALL). R1 is stdin; R2, if the
+      ## run is paired, is passed through untouched.
+      cmd <- paste0(
+        extractBase,
+        read1,
+        ' --stdout=',
+        markedFile_R1,
+        " --bc-pattern='",
         umiPatternToRegex(param$barcodePattern2),
         "'"
       )
+      if (param$paired) {
+        read2 <- trimmedInput$getColumn("Read2")
+        markedFile_R2 <- sub('R2', 'markedUMI_R2', read2)
+        cmd <- sub(
+          " --bc-pattern='",
+          paste0(
+            ' --read2-in=',
+            read2,
+            ' --read2-out=',
+            markedFile_R2,
+            " --bc-pattern='"
+          ),
+          cmd,
+          fixed = TRUE
+        )
+      }
+      ezSystem(cmd)
+      ezSystem(paste('mv', markedFile_R1, read1))
+      if (param$paired) {
+        ezSystem(paste('mv', markedFile_R2, read2))
+      }
     }
-    ezSystem(cmd)
-
-    ## umi_tools has already removed the UMI and skip bases from both mates;
-    ## put the marked reads back in place for the aligner.
-    ezSystem(paste('mv', markedFile_R1, trimmedInput$getColumn("Read1")))
-    ezSystem(paste('mv', markedFile_R2, trimmedInput$getColumn("Read2")))
   }
 
   if (!str_detect(param$cmdOptions, "outSAMattributes")) {
@@ -615,7 +665,7 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
     file.create(dupRateFile)
   }
 
-  if (ezIsSpecified(param$barcodePattern) && param$barcodePattern != '') {
+  if (umiOnR1 || umiOnR2) {
     #Deduplicated based on UMI
     deDupBamFile <- sub('.bam', '_dedup.bam', basename(bamFile))
     cmd <- paste0(
