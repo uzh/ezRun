@@ -274,6 +274,7 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   ## two cannot drift apart; overridable via FGCZ_VLLM_URL.
   AI_ENDPOINT       <- fgczVllmEndpoint()
   AI_CONTEXT_WINDOW <- 128000L
+  AI_LANGUAGE_INSTRUCTION <- "Double check and give the answer in English."
 
   gen_ai  <- isTRUE(as.logical(param$generate_ai_summary))
   per_sec <- isTRUE(as.logical(param$per_section_ai_summaries))
@@ -284,6 +285,48 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   ## stdout stream is redacted live through a generated sed script below.
   redact_pairs  <- vllmRedactionPairs()
   redact_string <- redactVllmEndpoint
+
+  has_chinese <- function(txt) {
+    grepl("\\p{Han}", txt, perl = TRUE)
+  }
+  translate_to_english <- function(txt, label) {
+    payload <- list(
+      model = AI_MODEL,
+      messages = list(
+        list(role = "system", content = paste(
+          "Translate the user's text into English.",
+          "Keep all markdown, HTML tags and attributes, directives such as :span[...]{.text-red} and :sample[...]{.text-red}, sample names, numbers and units unchanged.",
+          "Reply with the translated text only.",
+          sep = "\n"
+        )),
+        list(role = "user", content = txt)
+      )
+    )
+    resp <- tryCatch(
+      httr2::request(AI_ENDPOINT) |>
+        httr2::req_method("POST") |>
+        httr2::req_headers(Authorization = "Bearer dummy") |>
+        httr2::req_body_json(payload) |>
+        httr2::req_timeout(600) |>
+        httr2::req_perform(),
+      error = function(e) {
+        message(sprintf("[AI-Translate] HTTP error on %s: %s",
+                        label, redact_string(conditionMessage(e))))
+        NULL
+      }
+    )
+    translated <- if (is.null(resp)) "" else tryCatch(
+      httr2::resp_body_json(resp)$choices[[1]]$message$content,
+      error = function(e) ""
+    )
+    if (is.null(translated) || !nzchar(translated)) {
+      message(sprintf("[AI-Translate] %s: translation failed, keeping the original text", label))
+      return(txt)
+    }
+    message(sprintf("[AI-Translate] %s: translated to English%s", label,
+                    if (has_chinese(translated)) " (Chinese characters remain)" else ""))
+    redact_string(translated)
+  }
 
   ## ==== Run multiqc ====
   ## We pass AI settings as proper CLI flags rather than via -c YAML, because:
@@ -309,9 +352,23 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   ## (bash -c '...') refuses any cmd that contains single quotes.
   multiqcCmd <- paste0('multiqc --outdir "', multiqc_dir, '" .')
   if (gen_ai) {
+    ai_prompt_py <- file.path(multiqc_tmpdir, "ai_prompt.py")
+    ai_prompt_yaml <- file.path(multiqc_tmpdir, "ai_prompt.yaml")
+    writeLines(c(
+      "import sys, yaml",
+      "from multiqc.core.ai import PROMPT_FULL",
+      "with open(sys.argv[1], 'w') as fh:",
+      sprintf('    yaml.safe_dump({"ai_prompt_full": PROMPT_FULL + "\\n%s\\n"}, fh)',
+              AI_LANGUAGE_INSTRUCTION)
+    ), ai_prompt_py)
+    ezSystem(paste(
+      file.path(Sys.getenv("MULTIQC_HOME"), "venv", "bin", "python"),
+      ai_prompt_py, ai_prompt_yaml
+    ))
     multiqcCmd <- paste0(
       'OPENAI_API_KEY="dummy" TMPDIR="', multiqc_tmpdir,
       '" multiqc --outdir "', multiqc_dir, '" .',
+      ' -c "', ai_prompt_yaml, '"',
       ' --ai-summary-full',
       ' --ai-provider ',              AI_PROVIDER,
       ' --ai-model "',                AI_MODEL, '"',
@@ -352,6 +409,20 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
       txt <- paste(readLines(f, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
       txt <- redact_string(txt)
       if (basename(f) == "multiqc_report.html") {
+        global_translated <- FALSE
+        for (div_id in c("global_ai_summary_response",
+                         "global_ai_summary_detailed_analysis_response")) {
+          div_re <- sprintf('(?s)(<div[^>]*id="%s"[^>]*>)(.*?)(</div>)', div_id)
+          div_parts <- regmatches(txt, regexec(div_re, txt, perl = TRUE))[[1]]
+          if (length(div_parts) == 4 && has_chinese(div_parts[3])) {
+            english_html <- translate_to_english(div_parts[3], div_id)
+            if (!identical(english_html, div_parts[3])) {
+              regmatches(txt, regexpr(div_re, txt, perl = TRUE)) <-
+                paste0(div_parts[2], english_html, div_parts[4])
+              global_translated <- TRUE
+            }
+          }
+        }
         txt <- gsub(
           '\\s*Provider:\\s*<span[^>]*class="ai-summary-disclaimer-provider"[^>]*>[^<]*</span>\\s*,?\\s*',
           '', txt, perl = TRUE
@@ -360,7 +431,8 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
         ## (matches the log line "[MultiQC] FINISHED ... duration: X.Y s")
         txt <- gsub(
           '(?<![A-Za-z])model:\\s*(<span[^>]*class="ai-summary-disclaimer-model"[^>]*>[^<]*</span>)',
-          sprintf('Model: \\1 &middot; %.1f s', mqc_dur_s),
+          sprintf('Model: \\1 &middot; %.1f s%s', mqc_dur_s,
+                  if (global_translated) " &middot; translated to English" else ""),
           txt, perl = TRUE
         )
         nav_li <- paste0(
@@ -462,6 +534,7 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
         "Use markdown. Highlight severity with CommonMark directives like :span[39.2%]{.text-red}, .text-orange, .text-yellow, .text-green.",
         "Highlight sample names with :sample[name]{.text-red} etc.",
         "Use 4 spaces to indent nested lists. Do not add headers.",
+        AI_LANGUAGE_INSTRUCTION,
         sep = "\n"
       )
 
@@ -528,15 +601,22 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
           response_text <- "_(no AI response)_"
         }
         response_text <- redact_string(response_text)
+        sec_translated <- FALSE
+        if (has_chinese(response_text)) {
+          english_text <- translate_to_english(response_text, sec_id)
+          sec_translated <- !identical(english_text, response_text)
+          response_text <- english_text
+        }
 
         tok_per_s <- if (one_dur > 0 && completion_tokens > 0) completion_tokens / one_dur else NA_real_
         footer_html <- sprintf(
           paste0('<div class="text-muted" style="font-size:0.85em;margin-top:8px;',
                  'border-top:1px solid #eee;padding-top:4px;">',
-                 'Model: %s &middot; %.1f s &middot; %d tokens (%d in, %d out) &middot; %s tok/s',
+                 'Model: %s &middot; %.1f s &middot; %d tokens (%d in, %d out) &middot; %s tok/s%s',
                  '</div>'),
           AI_MODEL, one_dur, total_tokens, prompt_tokens, completion_tokens,
-          if (is.na(tok_per_s)) "n/a" else sprintf("%.1f", tok_per_s)
+          if (is.na(tok_per_s)) "n/a" else sprintf("%.1f", tok_per_s),
+          if (sec_translated) " &middot; translated to English" else ""
         )
         summary_html <- paste0(md_to_html(response_text), "\n", footer_html)
 
