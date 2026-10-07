@@ -191,7 +191,7 @@ EzAppMageckCount <-
     methods = list(
       ## mageck count unconditional -- one of two flag variants (with/without
       ## control-sgRNA file) is always run, selected internally, not by a user param.
-      citation = function() {
+      citation = function(param = list()) {
         c(
           "Li, W. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biology 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
         )

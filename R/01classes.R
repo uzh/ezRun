@@ -364,6 +364,17 @@ ezTagListFromNames = function(names) {
 ## Source: LLM_CALLER_MODEL in the AI/llm_methods_caller module.
 METHODS_LLM_MODEL_NAME <- "DeepSeek-V4-Flash-DSpark"
 
+## The run's parameters as recorded in <resultDir>/parameters.tsv, as character values.
+## SUSHI writes an empty value as a literal "", which would count as set, so one pair of
+## surrounding quotes is stripped. Used by write_methods() to call citation(param).
+readRunParameters <- function(resultDir) {
+  paramFile <- file.path(resultDir, "parameters.tsv")
+  if (!file.exists(paramFile)) return(list())
+  tab <- utils::read.delim(paramFile, header = FALSE, colClasses = "character",
+                           quote = "", comment.char = "")
+  stats::setNames(as.list(sub('^"(.*)"$', "\\1", tab[[2]])), tab[[1]])
+}
+
 EzApp <-
   setRefClass(
     "EzApp",
@@ -591,8 +602,7 @@ EzApp <-
           "- Describe settings in words, not as command-line options: write 'a minimum read",
           "  length of 25 bases', not '--length_required 25'.",
           "- Give each tool its version at first mention, then use the bare name.",
-          "- No citations, DOIs or URLs. This does not apply to the References section",
-          "  described below, if the prompt includes a candidate reference list.",
+          "- No citations, DOIs, URLs or reference list.",
           "- Never include a path in any form: no absolute or relative path, and no folder or",
           "  file name that shows where something is stored. Say what the file is instead:",
           "  name the genome build and annotation release rather than the folder they were",
@@ -619,10 +629,12 @@ EzApp <-
           "not describe, and do not account for the absence of, a stage this analysis did not",
           "perform: a stage that did not happen is simply not mentioned.",
           "",
-          "For every tool, give its version and the settings that shape the result. Where the",
-          "record does not show how a tool was invoked, its settings are",
-          "[not recorded]; do not describe them as defaults. Where the record shows any step",
-          "being given a random seed, report it; where it shows none, say nothing about seeds.",
+          "Write at the level of a published Methods paragraph: what was done, with which tool",
+          "and version, and the settings a reader needs to understand or reproduce the result,",
+          "not every option a tool received. Where the record does not show how a tool was",
+          "invoked, its settings are [not recorded]; do not describe them as defaults. Where",
+          "the record shows any step being given a random seed, report it; where it shows none,",
+          "say nothing about seeds.",
           "",
           "Describe the input as samples, not files, and state a number of samples only where",
           "the prompt or the record gives it. Where several samples were processed identically,",
@@ -638,32 +650,27 @@ EzApp <-
       generate_methods = function(...) {
         write_methods(...)
       },
-      ## Static bibliography list. write_methods() offers it to the LLM as candidates
-      ## and keeps only entries it finds evidence for.
-      citation = function() {
+      ## The references of a run: one entry per tool that ran, decided from the run's
+      ## parameters the same way the app's code decides (readRunParameters()).
+      ## write_methods() writes them as the References section; the LLM does not see them.
+      citation = function(param = list()) {
         character(0)
       },
       ## Override this (not write_methods()) for an app whose Methods text is fixed
       ## and known rather than LLM-generated (e.g. EzAppFastqc). Default: call the LLM
-      ## via llm_write_methods. Its response includes a "## References" header
-      ## followed by references; write_methods() splits and filters that itself.
+      ## via llm_write_methods, which returns the Description text.
+      ## run_note: sentences about this run appended to the task (e.g. its sample count).
       methods_description = function(script_paths, log_paths, sample_count, output_dir,
-                                     app_doc = NULL) {
+                                     app_doc = NULL, run_note = NULL) {
         identity_file <- file.path(output_dir, "methods_identity.txt")
         task_file     <- file.path(output_dir, "methods_task.txt")
         writeLines(methods_identity(), identity_file)
-        writeLines(methods_task(),     task_file)
+        writeLines(c(methods_task(), if (length(run_note)) c("", run_note)), task_file)
         args <- c("--output", file.path(output_dir, "methods.md"),
                   "--identity-file", identity_file,
                   "--task-file",     task_file)
         if (length(script_paths) > 0) args <- c(args, "--scripts", script_paths)
         if (length(log_paths)    > 0) args <- c(args, "--logs",    log_paths)
-        candidates <- citation()
-        if (length(candidates) > 0) {
-          citations_file <- file.path(output_dir, "citations_candidates.txt")
-          writeLines(candidates, citations_file)
-          args <- c(args, "--citations", citations_file)
-        }
         if (!is.null(sample_count) && sample_count > 1) {
           args <- c(args, "--sample-count", as.character(sample_count))
         }
@@ -707,6 +714,16 @@ EzApp <-
             }
             found
           }
+          ## A job resubmitted after a failure keeps the logs of every attempt next to its
+          ## script ("<script>.sh_sushiID<n>_<stamp>_[oe].log"); a resubmission keeps the
+          ## sushiID and gets a new stamp. Only the latest attempt, the newest stamp per
+          ## script, produced the results.
+          latestAttempt <- function(paths) {
+            script <- sub("_sushiID.*$", "", basename(paths))
+            stamp  <- sub("^.*_sushiID\\d+_(.*)_[oe]\\.log$", "\\1", basename(paths))
+            stamp[stamp == basename(paths)] <- ""
+            paths[stamp == ave(stamp, script, FUN = max)]
+          }
           if (!is.null(example_script)) {
             ## A SAMPLE-mode dataset can have dozens of samples sharing this directory --
             ## reading every one of them blew the model's context window on a real
@@ -720,6 +737,7 @@ EzApp <-
               Sys.glob(file.path(gstore_script_dir,
                                  paste0(example_script, "_sushiID*_[oe].log")))
             })
+            log_paths    <- latestAttempt(log_paths)
           } else {
             all_sh       <- Sys.glob(file.path(gstore_script_dir, "*.sh"))
             script_paths <- all_sh[!isOwnJob(all_sh)]
@@ -728,6 +746,7 @@ EzApp <-
                             Sys.glob(file.path(gstore_script_dir, "*_e.log")))
               all_logs[!isOwnJob(all_logs)]
             })
+            log_paths    <- latestAttempt(log_paths)
           }
           ## The job script records what was REQUESTED; the config the tool actually
           ## received is written next to the results. CellRanger multi puts it at
@@ -742,28 +761,23 @@ EzApp <-
                             Sys.glob(file.path(dirname(gstore_script_dir),
                                                "*", "config.csv")))
         }
-        raw <- methods_description(script_paths, log_paths, sample_count, output_dir, app_doc)
+        param <- if (!is.null(gstore_script_dir)) readRunParameters(dirname(gstore_script_dir)) else list()
 
-        ## For each known citation, check whether its DOI/URL appears anywhere in the
-        ## raw response, rather than trusting the model's copy of the text verbatim.
-        ## A hit emits our own stored string; a miss drops it. No "## References"
-        ## header at all (model didn't comply, or a static override with no LLM
-        ## involved) falls back to the full candidate list.
-        rawLines   <- strsplit(raw, "\n", fixed = TRUE)[[1]]
-        markerIdx  <- which(grepl("^## References", rawLines))
-        candidates <- citation()
-        if (length(markerIdx) > 0) {
-          description <- trimws(paste(rawLines[seq_len(markerIdx[1] - 1)], collapse = "\n"), "right")
-          anchors <- vapply(candidates, function(entry) {
-            m <- regmatches(entry, regexpr("https?://\\S+", entry))
-            if (length(m) > 0) m else entry
-          }, character(1))
-          kept <- candidates[vapply(anchors, function(a) grepl(a, raw, fixed = TRUE), logical(1))]
-          references <- if (length(kept) > 0) paste(kept, collapse = "\n") else "pending"
-        } else {
-          description <- raw
-          references  <- if (length(candidates) > 0) paste(candidates, collapse = "\n") else "pending"
+        ## SUSHI's sample_count is the number of job scripts, so a DATASET-mode run (one
+        ## script for all samples) reports 1. Its samples are the "samples" parameter; the
+        ## writer is told the count rather than counting the list itself.
+        run_note <- NULL
+        n_samples <- if (ezIsSpecified(param$samples)) length(strsplit(param$samples, ",")[[1]]) else 0
+        if ((is.null(sample_count) || sample_count <= 1) && n_samples > 1) {
+          run_note <- paste0("This analysis was run on ", n_samples, " samples.")
         }
+        description <- methods_description(script_paths, log_paths, sample_count, output_dir,
+                                           app_doc, run_note)
+
+        ## References come from the code: the run's parameters decide which tools ran,
+        ## and every entry citation() returns for them is kept.
+        cites <- citation(param)
+        references <- if (length(cites) > 0) paste(cites, collapse = "\n") else "pending"
 
         document <- paste0(
           sprintf("## %s | %s\n\n", analysis_name, format(Sys.time(), "%Y-%m-%d %H:%M")),

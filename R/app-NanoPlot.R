@@ -40,6 +40,13 @@ EzAppNanoPlot <-
     "EzAppNanoPlot",
     contains = "EzApp",
     methods = list(
+      ## NanoPlot unconditional (NanoPack2 is the current paper, NanoPack the original).
+      citation = function(param = list()) {
+        c(
+          "De Coster, W. & Rademakers, R. NanoPack2: population-scale evaluation of long-read sequencing data. Bioinformatics 39, btad311 (2023). https://doi.org/10.1093/bioinformatics/btad311",
+          "De Coster, W. et al. NanoPack: visualizing and processing long-read sequencing data. Bioinformatics 34, 2666-2669 (2018). https://doi.org/10.1093/bioinformatics/bty149"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodNanoPlot

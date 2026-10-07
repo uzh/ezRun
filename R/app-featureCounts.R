@@ -244,11 +244,11 @@ EzAppFeatureCounts <-
     "EzAppFeatureCounts",
     contains = "EzApp",
     methods = list(
-      ## featureCounts unconditional; samtools sort gated on param$paired.
-      citation = function() {
+      ## featureCounts unconditional; samtools sort (name-sorting) only when paired is true.
+      citation = function(param = list()) {
         c(
           "Liao, Y., Smyth, G.K. & Shi, W. featureCounts: an efficient general purpose program for assigning sequence reads to genomic features. Bioinformatics 30(7), 923-930 (2014). https://doi.org/10.1093/bioinformatics/btt656",
-          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352"
+          if (isTRUE(as.logical(param$paired))) "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352"
         )
       },
       initialize = function() {

@@ -161,6 +161,19 @@ EzAppGatkDnaHaplotyper <-
     "EzAppGatkDnaHaplotyper",
     contains = "EzApp",
     methods = list(
+      ## HaplotypeCaller defaults checked against GATK 4.6.1.0 (the Variants/GATK module default) --help.
+      ## GATK HaplotypeCaller (GVCF) + samtools unconditional; BQSR (no separate reference) gated on
+      ## knownSitesAvailable; Picard only when addReadGroup is true (AddOrReplaceReadGroups, R
+      ## default FALSE) or markDuplicates is not false (MarkDuplicates, R default TRUE).
+      citation = function(param = list()) {
+        c(
+          "McKenna, A. et al. The Genome Analysis Toolkit: a MapReduce framework for analyzing next-generation DNA sequencing data. Genome Research 20, 1297-1303 (2010). https://doi.org/10.1101/gr.107524.110",
+          "Poplin, R. et al. Scaling accurate genetic variant discovery to tens of thousands of samples. bioRxiv (2017) [preprint, not peer-reviewed]. https://doi.org/10.1101/201178",
+          "DePristo, M.A. et al. A framework for variation discovery and genotyping using next-generation DNA sequencing data. Nature Genetics 43, 491-498 (2011). https://doi.org/10.1038/ng.806",
+          if (isTRUE(as.logical(param$addReadGroup)) || !isFALSE(as.logical(param$markDuplicates))) "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodGatkDnaHaplotyper

@@ -146,7 +146,7 @@ EzAppExploreMageckCounts <-
       ## MAGeCK count QC. Normalisation via DESeq2 size factors / edgeR (the same
       ## median-of-ratios idea MAGeCK uses); essential/non-essential separation
       ## uses the bundled Hart CEGv2 / NEGv1 gene sets.
-      citation = function() {
+      citation = function(param = list()) {
         c(
           "Li, W. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biology 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4",
           "Rehrauer, H. et al. ezRun: An R meta-package for the analysis of Next Generation Sequencing Data. https://github.com/uzh/ezRun",

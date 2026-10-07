@@ -10,6 +10,26 @@ EzAppSpatialSeurat <-
     "EzAppSpatialSeurat",
     contains = "EzApp",
     methods = list(
+      ## Seurat v5 + SCTransform v2 unconditional; SpotClean only when spotClean is true; SpotSweeper
+      ## only when any of nreads/ngenes/perc_mito is empty; cyclone for human/mouse, Enrichr for
+      ## human/mouse with enrichrDatabase set; Azimuth only when Azimuth is set and not none;
+      ## loupeR export attempted every run.
+      citation = function(param = list()) {
+        humanMouse <- isTRUE(grepl("^(Homo_sapiens|Mus_musculus)/", param$refBuild))
+        sweep <- any(c(param$nreads, param$ngenes, param$perc_mito) == "")
+        c(
+          "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
+          "Hafemeister, C. & Satija, R. Normalization and variance stabilization of single-cell RNA-seq data using regularized negative binomial regression. Genome Biology 20, 296 (2019). https://doi.org/10.1186/s13059-019-1874-1",
+          "Choudhary, S. & Satija, R. Comparison and evaluation of statistical error models for scRNA-seq. Genome Biology 23, 27 (2022). https://doi.org/10.1186/s13059-021-02584-9",
+          if (isTRUE(as.logical(param$spotClean))) "Ni, Z. et al. SpotClean adjusts for spot swapping in spatial transcriptomics data. Nature Communications 13, 2971 (2022). https://doi.org/10.1038/s41467-022-30587-y",
+          if (sweep) "Totty, M. et al. SpotSweeper: spatially aware quality control for spatial transcriptomics. Nature Methods 22, 1520-1530 (2025). https://doi.org/10.1038/s41592-025-02713-3",
+          if (humanMouse) "Scialdone, A. et al. Computational assignment of cell-cycle stage from single-cell transcriptome data. Methods 85, 54-61 (2015). https://doi.org/10.1016/j.ymeth.2015.06.021",
+          if (humanMouse && ezIsSpecified(param$enrichrDatabase)) "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128",
+          if (humanMouse && ezIsSpecified(param$enrichrDatabase)) "Kuleshov, M.V. et al. Enrichr: a comprehensive gene set enrichment analysis web server 2016 update. Nucleic Acids Research 44(W1), W90-W97 (2016). https://doi.org/10.1093/nar/gkw377",
+          if (ezIsSpecified(param$Azimuth) && !identical(param$Azimuth, "none")) "Hao, Y. et al. Integrated analysis of multimodal single-cell data. Cell 184, 3573-3587 (2021). https://doi.org/10.1016/j.cell.2021.04.048",
+          "10x Genomics. loupeR: Converts Seurat objects to 10x Genomics Loupe files. https://github.com/10XGenomics/loupeR"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSpatialSeurat

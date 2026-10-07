@@ -17,6 +17,21 @@ EzAppScMultiOmics <-
     "EzAppScMultiOmics",
     contains = "EzApp",
     methods = list(
+      ## Seurat v5 unconditional; ADTnorm only when adtNorm is ADTnorm; WNN (Hao 2021) only when
+      ## runWNN is true. Signac (ATAC) is cited always: whether ATAC files exist depends on the
+      ## input data, not on a parameter. ensembldb (EnsDb gene annotation, getATACAnnotation)
+      ## only for Human/Mouse. Whether ADT or VDJ (scRepertoire) run, and whether >= 2
+      ## modalities exist for WNN, stays unconditional.
+      citation = function(param = list()) {
+        c(
+          "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
+          if (isTRUE(as.logical(param$runWNN))) "Hao, Y. et al. Integrated analysis of multimodal single-cell data. Cell 184, 3573-3587 (2021). https://doi.org/10.1016/j.cell.2021.04.048",
+          if ("ADTnorm" %in% param$adtNorm) "Zheng, Y. et al. ADTnorm: robust integration of single-cell protein measurement across CITE-seq datasets. Nature Communications 16, 5852 (2025). https://doi.org/10.1038/s41467-025-61023-6",
+          "Stuart, T. et al. Single-cell chromatin state analysis with Signac. Nature Methods 18, 1333-1341 (2021). https://doi.org/10.1038/s41592-021-01282-5",
+          if (!ezIsSpecified(param$refBuild) || isTRUE(grepl("^(Homo_sapiens|Mus_musculus)/", param$refBuild))) "Rainer, J. et al. ensembldb: an R package to create and use Ensembl-based annotation resources. Bioinformatics 35, 3151-3153 (2019). https://doi.org/10.1093/bioinformatics/btz031",
+          "Yang, Q. et al. scRepertoire 2: Enhanced and efficient toolkit for single-cell immune profiling. PLOS Computational Biology 21, e1012760 (2025). https://doi.org/10.1371/journal.pcbi.1012760"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodScMultiOmics

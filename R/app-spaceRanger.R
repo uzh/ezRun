@@ -10,16 +10,18 @@ EzAppSpaceRanger <-
     "EzAppSpaceRanger",
     contains = "EzApp",
     methods = list(
-      ## spaceranger count unconditional. samtools (CRAM) gated on keepAlignment.
-      ## Biostrings/rtracklayer gated on controlSeqs (via shared
-      ## getCellRangerGEXReference helper) -- this app does not declare secondRef
-      ## or extendThreePrime, so only the controlSeqs-gated path is reachable.
-      citation = function() {
+      ## spaceranger count unconditional. samtools (CRAM) only when keepAlignment is true.
+      ## rtracklayer unconditional (getCellRangerGEXReference exports the transcriptTypes GTF
+      ## whenever it builds a reference). Biostrings only with a customised reference
+      ## (controlSeqs or secondRef, both declared by SpaceRangerApp.rb; extendThreePrime is read
+      ## by the shared helper but not declared).
+      citation = function(param = list()) {
+        custom <- ezIsSpecified(param$controlSeqs) || ezIsSpecified(param$secondRef) || ezIsSpecified(param$extendThreePrime)
         c(
           "10x Genomics. Space Ranger. https://www.10xgenomics.com/support/software/space-ranger",
           "Ståhl, P.L. et al. Visualization and analysis of gene expression in tissue sections by spatial transcriptomics. Science 353(6294), 78-82 (2016). https://doi.org/10.1126/science.aaf2403",
-          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
-          "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package version 2.80.1. https://doi.org/10.18129/B9.bioc.Biostrings",
+          if (isTRUE(as.logical(param$keepAlignment))) "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+          if (custom) "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package. https://doi.org/10.18129/B9.bioc.Biostrings",
           "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328"
         )
       },

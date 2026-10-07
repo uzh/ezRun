@@ -1210,6 +1210,18 @@ EzAppXeniumSeurat <- setRefClass(
   "EzAppXeniumSeurat",
   contains = "EzApp",
   methods = list(
+    ## Seurat v5, BANKSY (ezRun port) and scater isOutlier unconditional; RCTD (spacexr) only when
+    ## rctdReference/rctdFile is set; SPLIT only when doSPLIT is true (and RCTD).
+    citation = function(param = list()) {
+      rctd <- isTRUE(nzchar(param$rctdFile)) || (ezIsSpecified(param$rctdReference) && !identical(param$rctdReference, "None"))
+      c(
+        "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
+        "Singhal, V. et al. BANKSY unifies cell typing and tissue domain segmentation for scalable spatial omics data analysis. Nature Genetics 56, 431-441 (2024). https://doi.org/10.1038/s41588-024-01664-3",
+        "McCarthy, D.J. et al. Scater: pre-processing, quality control, normalization and visualization of single-cell RNA-seq data in R. Bioinformatics 33, 1179-1186 (2017). https://doi.org/10.1093/bioinformatics/btw777",
+        if (rctd) "Cable, D.M. et al. Robust decomposition of cell type mixtures in spatial transcriptomics. Nature Biotechnology 40, 517-526 (2022). https://doi.org/10.1038/s41587-021-00830-w",
+        if (rctd && isTRUE(as.logical(param$doSPLIT))) "Bilous, M. et al. Resolving sensitivity, specificity and signal contamination in Xenium spatial transcriptomics. Nature Methods 23, 1152-1162 (2026). https://doi.org/10.1038/s41592-026-03089-8"
+      )
+    },
     initialize = function() {
       "Initializes the application using its specific defaults."
       runMethod <<- ezMethodXeniumSeurat
