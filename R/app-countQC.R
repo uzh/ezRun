@@ -50,15 +50,16 @@ EzAppCountQC <-
     "EzAppCountQC",
     contains = "EzApp",
     methods = list(
-      ## ezRun unconditional; GOstats (goClusterResults, in the report) + GO.db unless runGO
-      ## is false (default TRUE; doGo also needs GO annotation, data-dependent); RUVSeq only
-      ## when runRUV is true (loadCountDataset; no Ruby app declares it). pheatmap/WGCNA-dendrogram/cluster-validation stats deliberately
+      ## ezRun unconditional; goseq (goClusterResults -> ezGoseq, hypergeometric test, in the
+      ## report) + GO.db unless runGO is false (default TRUE; doGo also needs GO annotation,
+      ## data-dependent); RUVSeq only when runRUV is true (loadCountDataset; no Ruby app
+      ## declares it). pheatmap/WGCNA-dendrogram/cluster-validation stats deliberately
       ## excluded: no citable paper, or only a plotting helper is used rather than the method.
       citation = function(param = list()) {
         runGO <- !isFALSE(as.logical(param$runGO))
         c(
           "Rehrauer, H. et al. ezRun: An R meta-package for the analysis of Next Generation Sequencing Data. https://github.com/uzh/ezRun",
-          if (runGO) "Falcon, S. & Gentleman, R. Using GOstats to test gene lists for GO term association. Bioinformatics 23(2), 257-258 (2007). https://doi.org/10.1093/bioinformatics/btl567",
+          if (runGO) "Young, M.D., Wakefield, M.J., Smyth, G.K. & Oshlack, A. Gene ontology analysis for RNA-seq: accounting for selection bias. Genome Biology 11, R14 (2010). https://doi.org/10.1186/gb-2010-11-2-r14",
           if (runGO) "Carlson, M. GO.db: A set of annotation maps describing the entire Gene Ontology. R package. https://doi.org/10.18129/B9.bioc.GO.db",
           if (isTRUE(as.logical(param$runRUV))) "Risso, D., Ngai, J., Speed, T.P. & Dudoit, S. Normalization of RNA-seq data using factor analysis of control genes or samples. Nature Biotechnology 32(9), 896-902 (2014). https://doi.org/10.1038/nbt.2931"
         )

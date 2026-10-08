@@ -864,15 +864,18 @@ EzAppSTAR <-
     "EzAppSTAR",
     contains = "EzApp",
     methods = list(
-      ## STAR, fastp, samtools, RSeQC unconditional; umi_tools only when barcodePattern is set;
-      ## Picard MarkDuplicates unless markDuplicates is false (default TRUE).
+      ## STAR, fastp, samtools, RSeQC unconditional; umi_tools only when barcodePattern is set.
+      ## dupRadar and Picard unconditional: the DupRate output is always computed
+      ## (getDupRateFromBam), and Picard marks the duplicates either for markDuplicates or,
+      ## when it is false, on a temporary copy for dupRadar.
       citation = function(param = list()) {
         c(
           "Dobin, A. et al. STAR: ultrafast universal RNA-seq aligner. Bioinformatics 29(1), 15-21 (2013). https://doi.org/10.1093/bioinformatics/bts635",
           "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
           if (ezIsSpecified(param$barcodePattern)) "Smith, T., Heger, A. & Sudbery, I. UMI-tools: modeling sequencing errors in Unique Molecular Identifiers to improve quantification accuracy. Genome Research 27(3), 491-499 (2017). https://doi.org/10.1101/gr.209601.116",
           "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
-          if (!isFALSE(as.logical(param$markDuplicates))) "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+          "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+          "Sayols, S., Scherzinger, D. & Klein, H. dupRadar: a Bioconductor package for the assessment of PCR artifacts in RNA-Seq data. BMC Bioinformatics 17, 428 (2016). https://doi.org/10.1186/s12859-016-1276-2",
           "Wang, L., Wang, S. & Li, W. RSeQC: quality control of RNA-seq experiments. Bioinformatics 28(16), 2184-2185 (2012). https://doi.org/10.1093/bioinformatics/bts356"
         )
       },

@@ -10,7 +10,7 @@ EzAppScSeurat <-
     "EzAppScSeurat",
     contains = "EzApp",
     methods = list(
-      ## Seurat (v5, matches installed 5.5.1) unconditional. scDblFinder unconditional
+      ## Seurat (v5, matches installed 5.5.1) and SCTransform v2 unconditional. scDblFinder unconditional
       ## (tryCatch-wrapped; only doublet removal gated on keepDoublets). emptyDrops is
       ## cited always: it is skipped only for input without extra barcodes (e.g. CellBender),
       ## which depends on the data, not on a parameter. cyclone/decontX/SoupX/
@@ -31,6 +31,7 @@ EzAppScSeurat <-
         singleR <- isTRUE(nzchar(param$SingleR)) && !identical(param$SingleR, "none")
         c(
           "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
+          "Choudhary, S. & Satija, R. Comparison and evaluation of statistical error models for scRNA-seq. Genome Biology 23, 27 (2022). https://doi.org/10.1186/s13059-021-02584-9",
           "Germain, P.-L. et al. Doublet identification in single-cell sequencing data using scDblFinder. F1000Research 10, 979 (2022). https://doi.org/10.12688/f1000research.73600.2",
           "Lun, A.T.L. et al. EmptyDrops: distinguishing cells from empty droplets in droplet-based single-cell RNA sequencing data. Genome Biology 20, 63 (2019). https://doi.org/10.1186/s13059-019-1662-y",
           if (humanMouse) "Scialdone, A. et al. Computational assignment of cell-cycle stage from single-cell transcriptome data. Methods 85, 54-61 (2015). https://doi.org/10.1016/j.ymeth.2015.06.021",
