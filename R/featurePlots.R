@@ -265,7 +265,7 @@ plotLocusCoverageProfile = function(
   require(GenomicFeatures)
   require(S4Vectors)
   if (!is.null(gtfFile)) {
-    txdb = makeTxDbFromGFF(gtfFile, dataSource = "FGCZ", taxonomyId = 1) #96061234")
+    txdb = txdbmaker::makeTxDbFromGFF(gtfFile, dataSource = "FGCZ", taxonomyId = 1) #96061234")
     #saveDb(txdb, "tx.db")
     #txdb = loadDb("tx.db")
   } else {
@@ -348,7 +348,7 @@ plotLocusAverageCoverageProfile = function(
   require(Gviz)
   require(GenomicFeatures)
   if (!is.null(gtfFile)) {
-    txdb = makeTxDbFromGFF(gtfFile, dataSource = "FGCZ", taxonomyId = 1) #96061234")
+    txdb = txdbmaker::makeTxDbFromGFF(gtfFile, dataSource = "FGCZ", taxonomyId = 1) #96061234")
     #saveDb(txdb, "tx.db")
     #txdb = loadDb("tx.db")
   } else {

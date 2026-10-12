@@ -27,7 +27,7 @@ makeSGSeqtxdbObject <- function(refBuil, refFeat, txdbDatabase) {
   )
   genomeIndex <- read.delim(genomeIndexFile, stringsAsFactors = F, header = F)
   chrInfo <- data.frame(chrom = genomeIndex$V1, length = genomeIndex$V2)
-  txDbObject <- makeTxDbFromGFF(
+  txDbObject <- txdbmaker::makeTxDbFromGFF(
     txdbGtfOrigin,
     format = "gtf",
     organism = organismForDB,

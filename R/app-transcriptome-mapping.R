@@ -72,7 +72,7 @@ getBowtie2TranscriptomeReference = function(param) {
 
     require(GenomicFeatures)
 
-    txdb = makeTxDbFromGFF(
+    txdb = txdbmaker::makeTxDbFromGFF(
       param$ezRef@refFeatureFile,
       dataSource = "FGCZ",
       taxonomyId = 2759

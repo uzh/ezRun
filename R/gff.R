@@ -609,7 +609,7 @@ ezTranscriptDbFromRef = function(reference, dataSource = "FGCZ") {
     length = fai$V2,
     is_circular = FALSE
   )
-  makeTxDbFromGFF(
+  txdbmaker::makeTxDbFromGFF(
     reference@refFeatureFile,
     dataSource = dataSource,
     chrominfo = chrominfo
@@ -683,7 +683,7 @@ getTranscriptSequences = function(
     genomeFn <- param$ezRef["refFastaFile"]
     featureFn <- param$ezRef["refFeatureFile"]
   }
-  txdb = makeTxDbFromGFF(featureFn, dataSource = "FGCZ", taxonomyId = NA)
+  txdb = txdbmaker::makeTxDbFromGFF(featureFn, dataSource = "FGCZ", taxonomyId = NA)
   exonRgList = exonsBy(txdb, by = "tx", use.names = TRUE)
   genomeFasta = FaFile(genomeFn)
   trSeqs = extractTranscriptSeqs(genomeFasta, exonRgList)

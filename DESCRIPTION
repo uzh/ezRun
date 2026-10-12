@@ -20,7 +20,7 @@ Suggests:
     pathview, reshape2, vsn, Rsubread, preprocessCore, wesanderson,
     RCurl, caTools, matrixStats, Repitools, DT, htmltools, biomaRt,
     RColorBrewer, WGCNA, plyr, pvclust, parallel, Biostrings,
-    Rsamtools, Hmisc, XML, stringr, GenomicAlignments, GenomicFeatures,
+    Rsamtools, Hmisc, XML, stringr, GenomicAlignments, GenomicFeatures, txdbmaker,
     GenomicRanges, ShortRead, Gviz, gplots, GO.db, GOstats, annotate,
     bitops, edgeR, limma, S4Vectors, VariantAnnotation, rmarkdown, plotly,
     kableExtra, htmlwidgets, RSelenium, webshot, clusterProfiler, dupRadar,
