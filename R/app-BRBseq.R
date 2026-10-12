@@ -54,12 +54,82 @@ ezMethodBRBseq <- function(input = NA, output = NA, param = NA) {
   ezWrite.table(sheet, file.path(resultDir, "sampleSheet_used.tsv"), row.names = FALSE)
   ezWrite.table(libs, file.path(resultDir, "library_assignment.tsv"), row.names = FALSE)
   ezWrite.table(asg$umiByPool, file.path(resultDir, "barcode_umis_by_pool.tsv"), row.names = FALSE)
+  countQC <- if (isTRUE(as.logical(param$runCountQC))) runBRBCountQC(libs, input, output, param, resultDir) else "not run"
   makeBRBseqReport(resultDir, param,
     libs = libs, umiByPool = asg$umiByPool, poolSummary = poolSummary,
     plateVersion = plateVersion,
-    ySignal = brbYGeneSignal(pools, libs, param)
+    ySignal = brbYGeneSignal(pools, libs, param),
+    countQC = countQC
   )
   return("Success")
+}
+
+##' CountQC on the sample libraries; controls and negatives are left out unless
+##' param$countQCControls (the FGCZ control is human RNA and would dominate every
+##' clustering, the negatives are near-empty), written to
+##' <resultDir>/CountQC/00index.html next to the BRB report's own 00index.html.
+##' A CountQC failure is logged but does not fail the BRB job.
+runBRBCountQC <- function(libs, input, output, param, resultDir) {
+  useRoles <- if (isTRUE(as.logical(param$countQCControls))) c("sample", "control", "neg") else "sample"
+  smp <- libs[libs$Role %in% useRoles, , drop = FALSE]
+  if (nrow(smp) < 2) return("skipped: fewer than 2 sample libraries")
+  meta <- data.frame(
+    Name = smp$Name,
+    `Count [File]` = file.path(resultDir, paste0(smp$Name, ".txt")),
+    Species = as.character(input$getColumn("Species"))[1],
+    refBuild = param$refBuild,
+    featureLevel = "gene",
+    refFeatureFile = param$refFeatureFile,
+    transcriptTypes = paste(param$transcriptTypes, collapse = ","),
+    check.names = FALSE, row.names = smp$Name
+  )
+  for (cc in grep("\\[Factor\\]$", colnames(smp), value = TRUE)) {
+    if (any(smp[[cc]] != "")) meta[[cc]] <- smp[[cc]]
+  }
+  meta[["Pool [Factor]"]] <- smp$Pool
+  if (length(unique(smp$Role)) > 1) meta[["Role [Factor]"]] <- smp$Role
+
+  qcParam <- param[setdiff(names(param), c(setdiff(rownames(EzAppBRBseq$new()$appDefaults), "transcriptTypes"), "ezRef"))]
+  qcParam$name <- "CountQC"
+  qcParam$featureLevel <- "gene"
+  qcParam$normMethod <- "logMean"
+  ## set explicitly, as the CountQC SUSHI app does: EzAppCountQC's appDefaults mix
+  ## logical and numeric DefaultValues, rbind turns FALSE into 0 and ezParam then
+  ## reads as.logical("0") = NA (selectByFtest NA -> the report stops)
+  qcParam$runGO <- TRUE
+  qcParam$selectByFtest <- FALSE
+  qcParam$topGeneSize <- 100
+  qcParam$nSampleClusters <- 6
+  qcParam$backgroundExpression <- 10
+  qcParam$colour <- TRUE
+  qcParam$number <- TRUE
+  qcParam <- ezParam(qcParam, appDefaults = EzAppCountQC$new()$appDefaults)
+  qcInput <- EzDataset$new(meta = meta, dataRoot = getwd())
+  ## same output columns as the CountQC SUSHI app: the template saves the EzResult
+  ## under the Live Report file name and reads project/order from Report
+  gstoreDir <- if (output$hasColumn("ResultDir")) as.character(output$getColumn("ResultDir"))[1] else resultDir
+  qcDir <- file.path(gstoreDir, "CountQC")
+  rdata <- paste0("counts-", paste(sample(c(letters, 0:9), 12, replace = TRUE), collapse = ""), "-EzResult.RData")
+  outMeta <- data.frame(Name = "CountQC", `Report [File]` = qcDir,
+                        `Live Report [Link]` = paste0("http://fgcz-shiny.uzh.ch/exploreDE?data=", file.path(qcDir, rdata)),
+                        check.names = FALSE, row.names = "CountQC")
+  if (input$hasColumn("Order Id")) outMeta[["Order Id [B-Fabric]"]] <- as.character(input$getColumn("Order Id"))[1]
+  qcOutput <- EzDataset$new(meta = outMeta, dataRoot = getwd())
+  cwd <- getwd()
+  on.exit(setwd(cwd), add = TRUE)
+  res <- tryCatch({
+    setwd(resultDir)
+    ezMethodCountQC(input = qcInput, output = qcOutput, param = qcParam)
+  }, error = function(e) {
+    ezLog(paste("WARNING: CountQC failed:", conditionMessage(e)))
+    paste("failed:", conditionMessage(e))
+  })
+  setwd(cwd)
+  if (identical(res, "Success") && !file.exists(file.path(resultDir, "CountQC", "00index.html"))) {
+    res <- "failed: no CountQC/00index.html"
+  }
+  ezLog(paste("CountQC:", res))
+  res
 }
 
 ##' Sample sheet location: an uploaded sheet (param$sampleSheet) wins; otherwise
@@ -417,6 +487,16 @@ EzAppBRBseq <-
             Type = "logical",
             DefaultValue = FALSE,
             Description = "Keep one coordinate-sorted BAM per pool (CB/UB tagged)."
+          ),
+          runCountQC = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "Run CountQC on the sample libraries; report in CountQC/00index.html."
+          ),
+          countQCControls = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "Include the positive (FGCZ control) and negative wells in CountQC."
           ),
           starsoloDir = ezFrame(
             Type = "character",

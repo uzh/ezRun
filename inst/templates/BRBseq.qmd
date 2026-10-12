@@ -24,6 +24,7 @@ umiByPool    <- ezLoadRobj("umiByPool")
 poolSummary  <- ezLoadRobj("poolSummary")
 plateVersion <- ezLoadRobj("plateVersion")
 ySignal      <- if (file.exists("ySignal.qs2")) ezLoadRobj("ySignal") else NULL
+countQC      <- if (file.exists("countQC.qs2")) ezLoadRobj("countQC") else "not run"
 
 ## Okabe-Ito, colour-blind safe; roles are also told apart by shape
 ROLE_COL <- c(sample = "#0072B2", control = "#E69F00", neg = "#CC79A7")
@@ -57,6 +58,13 @@ cat(sprintf("<p><b>%d libraries</b> (%s) from <b>%d pool(s)</b>, plate version <
   nrow(libs), paste(sprintf("%d %s", table(libs$Role), names(table(libs$Role))), collapse = ", "),
   length(pools), plateVersion, param$refBuild,
   if (ezIsSpecified(param$transcriptTypes)) paste(param$transcriptTypes, collapse = ", ") else "all"))
+if (identical(countQC, "Success")) {
+  cat(sprintf('<p><b>Expression QC:</b> <a href="CountQC/00index.html" target="_blank">CountQC report</a> on %s.</p>',
+    if (isTRUE(as.logical(param$countQCControls))) "all libraries, including the control and negative wells"
+    else "the sample libraries (control and negative wells left out)"))
+} else {
+  note("NOTE", paste("CountQC was not produced:", countQC))
+}
 
 lowUmi <- smp$Name[smp$UMIs < 0.1 * median(smp$UMIs)]
 if (length(lowUmi) == 0) {
@@ -212,7 +220,7 @@ cat(sprintf(paste0(
   "<p><b>Files:</b> <code>&lt;Name&gt;.txt</code> = deduplicated UMI counts per gene (FeatureCounts format, input for CountQC / DESeq2 / EdgeR); ",
   "<code>&lt;Name&gt;-stats.txt</code> = read assignment (Assigned = uniquely mapped reads in a gene); ",
   "<code>dataset.tsv</code> = the libraries with read counts; <code>library_assignment.tsv</code>, <code>barcode_umis_by_pool.tsv</code>, ",
-  "<code>sampleSheet_used.tsv</code>; <code>pools/&lt;pool&gt;/</code> = STARsolo summary, per-barcode read statistics and the raw pool matrix.</p>"),
+  "<code>sampleSheet_used.tsv</code>; <code>CountQC/</code> = CountQC report on the sample libraries; <code>pools/&lt;pool&gt;/</code> = STARsolo summary, per-barcode read statistics and the raw pool matrix.</p>"),
   plateVersion, if (isTRUE(as.logical(param$countIntrons))) "GeneFull (exons + introns)" else "Gene (exons)"))
 ```
 
