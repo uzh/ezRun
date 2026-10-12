@@ -585,7 +585,9 @@ ezEnricher <- function(enrichInput, param) {
           pvalueCutoff = param$fdrThreshORA
         )
         if (!is.null(enrichRes)) {
+          ## enrichit keeps every tested term in @result: keep the FDR cut-off the parameter names
           tempTable <- enrichRes@result
+          tempTable <- tempTable[which(tempTable$p.adjust <= param$fdrThreshORA), ]
           if (nrow(tempTable) != 0L) {
             tempTable$Description <- Term(GOTERM[tempTable$ID])
             tempTable$geneName <- sapply(tempTable$geneID, function(idString) {
@@ -597,9 +599,8 @@ ezEnricher <- function(enrichInput, param) {
                 paste(collapse = "/")
             })
             tempTable <- tempTable[tempTable$Count >= minGenesOverlap, ]
-
-            enrichRes@result <- tempTable
           }
+          enrichRes@result <- tempTable
         }
         result[[mySel]] = enrichRes
       }
@@ -631,6 +632,8 @@ ezGSEA <- function(enrichInput, param) {
         df$rank_metric <- -log10(pmax(df$pValue, .Machine$double.xmin))
   } else if(param$rankMetric == "signedPValue") {
       df$rank_metric <- sign(df$log2Ratio) * -log10(pmax(df$pValue, .Machine$double.xmin))
+  } else {
+      stop("unsupported rankMetric: ", param$rankMetric)
   }
   df <- df[!is.na(df$rank_metric), ]
   gl <- setNames(df$rank_metric, rownames(df))
@@ -645,9 +648,11 @@ ezGSEA <- function(enrichInput, param) {
         TERM2GENE = enrichInput$go2gene[[onto]]
       )
       if (!is.null(enrichRes)) {
+        ## enrichit 0.2.0 (clusterProfiler 4.21, R 4.6) filters GSEA terms on the raw p-value only;
+        ## fdrThreshGSEA is an FDR cut-off, as it was with DOSE (R 4.5)
         tempTable <- enrichRes@result
+        tempTable <- tempTable[which(!is.na(tempTable$ID) & tempTable$p.adjust <= param$fdrThreshGSEA), ]
         if (nrow(tempTable) != 0L) {
-          tempTable <- tempTable[!is.na(tempTable$ID),]    
           tempTable$Description <- Term(GOTERM[tempTable$ID])
           tempTable$geneName <- sapply(
             relist(
@@ -657,8 +662,8 @@ ezGSEA <- function(enrichInput, param) {
             paste,
             collapse = "/"
           )
-          enrichRes@result <- tempTable
         }
+        enrichRes@result <- tempTable
       }
       return(enrichRes)
     },
