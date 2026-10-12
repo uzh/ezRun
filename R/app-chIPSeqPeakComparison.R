@@ -142,7 +142,7 @@ ezMethodChIPSeqPeakComparison <- function(input = NA, output = NA, param = NA,
   cumSignal <- lapply(peaks, cumulativeSignalCurve, rankBy = rankBy)
 
   ## consensus annotation (best-effort)
-  txdb <- tryCatch(GenomicFeatures::makeTxDbFromGFF(param$ezRef["refFeatureFile"]),
+  txdb <- tryCatch(txdbmaker::makeTxDbFromGFF(param$ezRef["refFeatureFile"]),
                    error = function(e) NULL)
   consAnno <- annotateConsensus(consensus, txdb)
 

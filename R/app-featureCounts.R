@@ -5,11 +5,22 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+## STAR, like most aligners, gives multimapping reads a MAPQ of 0-3 (3 for 2 loci, 0 for 5 or
+## more; unique reads 255), so any minMapQuality above 0 removes some or all of them before
+## keepMultiHits can count them; featureCounts still logs "Multimapping reads : counted".
+warn_multi_hits_dropped = function(param) {
+  if (isTRUE(as.logical(param$keepMultiHits)) && isTRUE(as.numeric(param$minMapQuality) > 0)) {
+    warning("keepMultiHits counts few or no multimapping reads here: minMapQuality ", param$minMapQuality,
+            " removes multimapping reads, which aligners such as STAR give a MAPQ of 0-3.", call. = FALSE)
+  }
+}
+
 ezMethodFeatureCounts = function(input = NA, output = NA, param = NA) {
   require(Rsubread)
   require(rtracklayer)
 
   bamFile = input$getFullPaths("BAM")
+  warn_multi_hits_dropped(param)
 
   if (param$paired) {
     ## bamFile is by default sorted by coordinate
@@ -366,6 +377,7 @@ ezMethodSingleCellFeatureCounts <- function(
 ) {
   require(Rsubread)
   require(rtracklayer)
+  warn_multi_hits_dropped(param)
 
   bamFile = input$getFullPaths("BAM")
   localBamFile = getBamLocally(bamFile)
