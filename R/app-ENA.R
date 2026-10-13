@@ -350,7 +350,7 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
   script_path <- tempfile(fileext = ".sh")
   script_lines <- c(
     sprintf(
-      "ssh trxcopy@fgcz-h-036 \"bash -lc 'cd /srv/sushi/production/master && bundle exec sushi_fabric --dataset %s --run --input_dataset_application 372 --project %s --dataset_name %s --dataset_id %s '\"",
+      "ssh trxcopy@fgcz-h-082\"bash -lc 'cd /srv/sushi/production/master && bundle exec sushi_fabric --dataset %s --run --input_dataset_application 372 --project %s --dataset_name %s --dataset_id %s '\"",
       datasetPath,
       containerId,
       datasetName,
