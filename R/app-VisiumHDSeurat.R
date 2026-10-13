@@ -159,7 +159,9 @@ EzAppVisiumHDSeurat <-
             Description = "Value of the Niche resolution parameter for BANKSY clustering, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."
           ),
           rctdReference = ezFrame(
-            Type = "charVector",
+            ## a single dropdown choice: "charVector" would split the value at
+            ## the commas of its "(description)" suffix
+            Type = "character",
             DefaultValue = rctd_refs[1],
             Description = "RCTD Reference to use"
           ),
@@ -589,6 +591,13 @@ ezMethodVisiumHDSeurat <- function(
     if (!is.null(ref_obj)) {
       # Prepare Query (SpatialRNA object)
       counts <- GetAssayData(scData, assay = myAssay, layer = "counts")
+      ## references keyed by Ensembl IDs (e.g. the Allen brain references) need
+      ## the query genes renamed; symbol-keyed references are left as they are
+      counts <- rename_rctd_query_genes(
+        counts,
+        setNames(featInfo$gene_id, rownames(featInfo)),
+        rownames(ref_obj@counts)
+      )
       coords <- GetTissueCoordinates(scData)
 
       # Ensure coords match counts columns
@@ -646,12 +655,9 @@ ezMethodVisiumHDSeurat <- function(
           results_df <- rctdRes$results_df
         }
 
-        # Add to Seurat metadata - Primary cell type assignment
-        max_type <- colnames(norm_weights)[max.col(
-          norm_weights,
-          ties.method = "first"
-        )]
-        names(max_type) <- rownames(norm_weights)
+        # Add to Seurat metadata - Primary cell type assignment; bins that
+        # RCTD rejected get NA (shown as "Unassigned" in the report)
+        max_type <- rctd_main_type(norm_weights, results_df)
         scData <- AddMetaData(
           scData,
           metadata = max_type,

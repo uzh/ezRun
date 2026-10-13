@@ -67,15 +67,16 @@ load_rctd_reference <- function(refPath, cellTypeColumn = NULL) {
   stop("Not a spacexr Reference, list(reference=) or Seurat object: ", refPath)
 }
 
-##' @title Match query gene names to the reference
-##' @description References built from atlases often use Ensembl IDs while the
-##'   Seurat object carries (uniquified) symbols. Renames the query rows to
-##'   gene IDs when that gives the larger overlap.
+##' @title Name the query genes like the reference
+##' @description References built from atlases often use Ensembl IDs (e.g. the
+##'   Allen brain references) while the Seurat object carries (uniquified)
+##'   symbols. Renames the query rows to gene IDs when that gives the larger
+##'   overlap; all genes are kept, so per-spot UMI totals do not change.
 ##' @param counts gene x spot count matrix with symbol row names.
 ##' @param geneIds gene IDs named by the row names of \code{counts}.
 ##' @param refGenes genes of the reference.
-##' @return the count matrix restricted to genes shared with the reference.
-match_rctd_genes <- function(counts, geneIds, refGenes) {
+##' @return the count matrix, with gene IDs as row names if those match better.
+rename_rctd_query_genes <- function(counts, geneIds, refGenes) {
   bySymbol <- sum(rownames(counts) %in% refGenes)
   ids <- unname(geneIds[rownames(counts)])
   byId <- sum(!is.na(ids) & ids %in% refGenes)
@@ -84,15 +85,48 @@ match_rctd_genes <- function(counts, geneIds, refGenes) {
     counts <- counts[keep, , drop = FALSE]
     rownames(counts) <- ids[keep]
   }
-  shared <- intersect(rownames(counts), refGenes)
-  if (length(shared) < 100) {
+  nShared <- max(byId, bySymbol)
+  if (nShared < 100) {
     stop(sprintf(
       "RCTD reference shares only %d genes with the data (wrong species or ID type?)",
-      length(shared)
+      nShared
     ))
   }
-  ezLog(sprintf("RCTD: %d genes shared with the reference", length(shared)))
+  ezLog(sprintf(
+    "RCTD: %d genes shared with the reference (matched by %s)",
+    nShared,
+    if (byId > bySymbol) "gene ID" else "symbol"
+  ))
+  return(counts)
+}
+
+##' @title Match query gene names to the reference
+##' @description \code{rename_rctd_query_genes} followed by restriction to the
+##'   shared genes.
+##' @inheritParams rename_rctd_query_genes
+##' @return the count matrix restricted to genes shared with the reference.
+match_rctd_genes <- function(counts, geneIds, refGenes) {
+  counts <- rename_rctd_query_genes(counts, geneIds, refGenes)
+  shared <- intersect(rownames(counts), refGenes)
   return(counts[shared, , drop = FALSE])
+}
+
+##' @title Main cell type per bin from a doublet-mode RCTD run
+##' @description The cell type with the highest weight, except for bins that
+##'   RCTD classified as \code{"reject"} (it could not fit them confidently),
+##'   which get NA, as in XeniumSeurat.
+##' @param weights bin x cell type weight matrix.
+##' @param resultsDf RCTD results_df with a \code{spot_class} column, row
+##'   names = bins; NULL keeps every bin.
+##' @return named character vector, one entry per row of \code{weights}.
+rctd_main_type <- function(weights, resultsDf = NULL) {
+  mainType <- colnames(weights)[max.col(weights, ties.method = "first")]
+  names(mainType) <- rownames(weights)
+  if (!is.null(resultsDf) && "spot_class" %in% colnames(resultsDf)) {
+    spotClass <- as.character(resultsDf[rownames(weights), "spot_class"])
+    mainType[spotClass %in% "reject"] <- NA
+  }
+  return(mainType)
 }
 
 ##' @title Run RCTD on spots
