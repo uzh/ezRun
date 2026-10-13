@@ -22,44 +22,36 @@ seuratStandardSCTPreprocessing <- function(
     verbose = FALSE
   )
   species <- getSpecies(param$refBuild)
+  useStacas <- ezIsSpecified(param$featSelectionMethod) &&
+    param$featSelectionMethod == 'STACAS'
+  if (useStacas && !species %in% c('Human', 'Mouse')) {
+    ezLog(
+      'Selection method STACAS not supported for this species! Use default method instead.'
+    )
+    useStacas <- FALSE
+  }
   if (
-    ezIsSpecified(param$featSelectionMethod) &&
-      param$featSelectionMethod == 'STACAS'
+    useStacas &&
+      !(requireNamespace("STACAS", quietly = TRUE) &&
+        requireNamespace("SignatuR", quietly = TRUE))
   ) {
-    require(STACAS)
-    require(SignatuR)
-    data(SignatuR)
-    if (species == 'Human') {
-      my.genes.blocklist <- c(
-        GetSignature(SignatuR$Hs$Blocklists),
-        GetSignature(SignatuR$Hs$Compartments)
-      )
-      scData <- FindVariableFeatures.STACAS(
-        scData,
-        nfeat = param$nfeatures,
-        genesBlockList = my.genes.blocklist
-      )
-    } else if (species == 'Mouse') {
-      my.genes.blocklist <- c(
-        GetSignature(SignatuR$Mm$Blocklists),
-        GetSignature(SignatuR$Mm$Compartments)
-      )
-      scData <- FindVariableFeatures.STACAS(
-        scData,
-        nfeat = param$nfeatures,
-        genesBlockList = my.genes.blocklist
-      )
-    } else {
-      ezLog(
-        'Selection method STACAS not supported for this species! Use default method instead.'
-      )
-      scData <- FindVariableFeatures(
-        scData,
-        selection.method = "vst",
-        verbose = FALSE,
-        nfeatures = param$nfeatures
-      )
-    }
+    ezLog(
+      'Selection method STACAS needs the STACAS and SignatuR packages; they are not installed. Use default method instead.'
+    )
+    useStacas <- FALSE
+  }
+  if (useStacas) {
+    data("SignatuR", package = "SignatuR", envir = environment())
+    sigs <- SignatuR[[c(Human = "Hs", Mouse = "Mm")[[species]]]]
+    my.genes.blocklist <- c(
+      SignatuR::GetSignature(sigs$Blocklists),
+      SignatuR::GetSignature(sigs$Compartments)
+    )
+    scData <- STACAS::FindVariableFeatures.STACAS(
+      scData,
+      nfeat = param$nfeatures,
+      genesBlockList = my.genes.blocklist
+    )
   } else {
     scData <- FindVariableFeatures(
       scData,
@@ -81,6 +73,11 @@ seuratStandardSCTPreprocessing <- function(
     vst.flavor = "v2",
     vars.to.regress = vars.to.regress,
     assay = assay,
+    variable.features.n = if (ezIsSpecified(param$nfeatures)) {
+      as.integer(param$nfeatures)
+    } else {
+      3000
+    },
     seed.use = seed,
     verbose = FALSE,
     return.only.var.genes = FALSE
@@ -599,6 +596,10 @@ SpatiallyVariableFeatures_workaround <- function(
 }
 
 spatialMarkers <- function(scData, selection.method = "markvariogram") {
+  ## FindSpatiallyVariableFeatures forks one copy of the object per future
+  ## worker; with the multicore plan this exceeded 20 GB on 2,400 spots
+  oplan <- future::plan("sequential")
+  on.exit(future::plan(oplan), add = TRUE)
   scData <- FindSpatiallyVariableFeatures(
     scData,
     features = VariableFeatures(scData),
@@ -608,7 +609,7 @@ spatialMarkers <- function(scData, selection.method = "markvariogram") {
   )
   spatialMarkers <- SpatiallyVariableFeatures(
     scData,
-    selection.method = selection.method
+    method = selection.method
   )
   #spatialMarkers <- SpatiallyVariableFeatures_workaround(scData, assay="SCT", selection.method = selection.method)
   return(spatialMarkers)

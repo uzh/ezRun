@@ -526,7 +526,10 @@ convertToSpatialSeurat <- function(
   slice = "slice1",
   filter_matrix = TRUE
 ) {
-  object <- CreateSeuratObject(assay(slide_obj), assay = "Spatial")
+  object <- CreateSeuratObject(
+    SummarizedExperiment::assay(slide_obj),
+    assay = "Spatial"
+  )
   image <- Read10X_Image(image.dir = image_dir, filter.matrix = filter_matrix)
   ts_coord <- GetTissueCoordinates(image)
   if (nrow(ts_coord) < ncol(object)) {
