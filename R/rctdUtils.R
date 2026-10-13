@@ -5,9 +5,10 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
-## RCTD (spacexr) helpers for spot-based data. XeniumSeurat and VisiumHDSeurat
-## keep their own inline code paths; these functions follow the same rules
-## (reference coercion, gene-overlap check, UMI_min_sigma fallback, fixed seed).
+## RCTD helpers for spot-based data: spacexr (R) and rctd-py (PyTorch, same
+## model). XeniumSeurat and VisiumHDSeurat keep their own inline reference
+## code; these functions follow the same rules (reference coercion,
+## gene-overlap check, UMI_min_sigma fallback, fixed seed).
 
 RCTD_REFERENCE_DIR <- "/srv/GT/databases/RCTD_References"
 
@@ -129,6 +130,18 @@ rctd_main_type <- function(weights, resultsDf = NULL) {
   return(mainType)
 }
 
+##' @title UMI threshold of the spots RCTD uses to fit sigma
+##' @description 300 as in spacexr, or the 75th UMI quantile when fewer than
+##'   100 spots reach 300 (shallow or probe-based data).
+rctd_umi_min_sigma <- function(nUmi) {
+  umiMinSigma <- 300
+  if (sum(nUmi > umiMinSigma) < 100) {
+    umiMinSigma <- max(1, floor(stats::quantile(nUmi, 0.75, names = FALSE)))
+    ezLog("RCTD: few spots above 300 UMIs; UMI_min_sigma set to ", umiMinSigma)
+  }
+  return(umiMinSigma)
+}
+
 ##' @title Run RCTD on spots
 ##' @param counts gene x spot raw counts (genes already matched).
 ##' @param coords data.frame with columns x and y, row names = spots.
@@ -151,11 +164,7 @@ run_rctd_spots <- function(
   coords <- coords[colnames(counts), c("x", "y")]
   nUmi <- Matrix::colSums(counts)
   puck <- spacexr::SpatialRNA(coords, counts, nUmi)
-  umiMinSigma <- 300
-  if (sum(nUmi > umiMinSigma) < 100) {
-    umiMinSigma <- max(1, floor(stats::quantile(nUmi, 0.75, names = FALSE)))
-    ezLog("RCTD: few spots above 300 UMIs; UMI_min_sigma set to ", umiMinSigma)
-  }
+  umiMinSigma <- rctd_umi_min_sigma(nUmi)
   ## spacexr starts fresh worker processes that do not inherit the BLAS
   ## thread pinning of this session: without these variables every worker
   ## uses all cores of the node (observed 8 workers x 17 threads, 4x slower)
@@ -181,4 +190,177 @@ run_rctd_spots <- function(
   rctd <- spacexr::run.RCTD(rctd, doublet_mode = doubletMode)
   weights <- as.matrix(spacexr::normalize_weights(rctd@results$weights))
   return(list(weights = weights, resultsDf = rctd@results$results_df))
+}
+
+## rctd-py through its CLI, in the gi_rctd-py env. Same model as spacexr:
+## p32810-sized Visium HD runs went from 14.7 h (spacexr) to 13 min on a GPU
+## and 38 min on 8 CPU cores, with 99.7% agreement on the main type.
+## RCTD_PY_BIN (a directory holding `rctd`) overrides the env, for testing.
+RCTD_PY_ENV <- "gi_rctd-py_0.3.8"
+RCTD_PY_CONDA <- "/usr/local/ngseq/miniforge3"
+
+## TRUE when rctd-py can run: the test override is set or the env exists.
+rctdPyAvailable <- function() {
+  nzchar(Sys.getenv("RCTD_PY_BIN")) ||
+    file.exists(file.path(RCTD_PY_CONDA, "envs", RCTD_PY_ENV, "bin", "rctd"))
+}
+
+## TRUE when SLURM gave the job a GPU.
+rctdPyHasGpu <- function() {
+  gpus <- Sys.getenv("CUDA_VISIBLE_DEVICES")
+  nzchar(gpus) && gpus != "NoDevFiles"
+}
+
+## torch.compile costs ~13 min up front on CPU and makes every later step
+## faster. Measured on 8 CPU cores: p37810 Visium SD Rep1 (2,319 spots, full
+## mode) 14.9 min compiled vs 1.3 min not; Visium HD 16 um FFPE (99,739
+## bins, doublet mode) 31 min compiled vs 102 min not. Break-even is around
+## 15,000 spots.
+RCTD_PY_COMPILE_MIN_SPOTS <- 15000
+
+## Compile on a GPU, and on CPU only for large inputs.
+rctdPyCompile <- function(nSpots) {
+  rctdPyHasGpu() || nSpots >= RCTD_PY_COMPILE_MIN_SPOTS
+}
+
+##' @title Run RCTD with rctd-py
+##' @param counts gene x spot raw counts (genes already matched).
+##' @param coords data.frame with columns x and y, row names = spots.
+##' @param ref spacexr Reference.
+##' @param umiMin minimal UMIs per spot.
+##' @param mode "doublet" (Visium HD bins, cells) or "full" (multi-cell
+##'   Visium SD spots).
+##' @param device "auto" uses a GPU when the job has one; "cpu" never does.
+##' @param umiMinSigma UMI threshold for the sigma fit; NULL keeps 300.
+##' @param cores torch CPU threads; NULL leaves torch's default (all cores
+##'   it can see, which oversubscribes a SLURM allocation).
+##' @param compile FALSE passes --no-compile; NULL decides by rctdPyCompile
+##'   (always on a GPU, on CPU only for large inputs).
+##' @param workDir where the h5ad files go.
+##' @return what spacexr's path yields: row-normalised \code{weights}
+##'   (spots x types, only the spots RCTD fitted) and, in doublet mode, a
+##'   \code{results_df} with spot_class / first_type / second_type (NULL in
+##'   full mode).
+runRctdPy <- function(
+  counts,
+  coords,
+  ref,
+  umiMin,
+  mode = "doublet",
+  device = "auto",
+  umiMinSigma = NULL,
+  cores = NULL,
+  compile = NULL,
+  env = RCTD_PY_ENV,
+  workDir = file.path(getwd(), "rctd_py")
+) {
+  mode <- match.arg(mode, c("doublet", "full"))
+  if (is.null(compile)) {
+    compile <- rctdPyCompile(ncol(counts))
+  }
+  dir.create(workDir, showWarnings = FALSE)
+  qFile <- file.path(workDir, "query.h5ad")
+  rFile <- file.path(workDir, "reference.h5ad")
+  outFile <- file.path(workDir, "result.h5ad")
+  anndataR::write_h5ad(
+    anndataR::AnnData(
+      X = Matrix::t(counts),
+      obs = data.frame(row.names = colnames(counts)),
+      var = data.frame(row.names = rownames(counts)),
+      obsm = list(spatial = as.matrix(coords[colnames(counts), c("x", "y")]))
+    ),
+    qFile, mode = "w"
+  )
+  anndataR::write_h5ad(
+    anndataR::AnnData(
+      X = Matrix::t(ref@counts),
+      obs = data.frame(cell_type = as.character(ref@cell_types),
+                       row.names = colnames(ref@counts)),
+      var = data.frame(row.names = rownames(ref@counts))
+    ),
+    rFile, mode = "w"
+  )
+  binDir <- Sys.getenv("RCTD_PY_BIN")
+  if (nzchar(binDir)) {
+    withr::local_path(binDir, action = "prefix")
+  } else {
+    Herper::local_CondaEnv(env, pathToMiniConda = RCTD_PY_CONDA)
+  }
+  if (!is.null(cores)) {
+    withr::local_envvar(c(
+      OMP_NUM_THREADS = cores, MKL_NUM_THREADS = cores,
+      OPENBLAS_NUM_THREADS = cores
+    ))
+  }
+  ezSystem(paste(
+    "rctd run", qFile, rFile, "--mode", mode, "--umi-min", umiMin,
+    if (!is.null(umiMinSigma)) paste("--umi-min-sigma", umiMinSigma),
+    "--device", device, if (!compile) "--no-compile", "-o", outFile
+  ))
+  res <- readRctdPyResult(outFile, mode = mode)
+  ## the h5ad copies (~1.5 GB for a Visium HD section) do not belong in the
+  ## result folder
+  unlink(c(qFile, rFile, outFile))
+  cells <- rctdResultCells(res$obsNames, colnames(counts))
+  kept <- res$kept
+  weights <- res$weights[kept, , drop = FALSE]
+  dimnames(weights) <- list(cells[kept], res$cellTypes)
+  weights <- weights / rowSums(weights)
+  results_df <- NULL
+  if (mode == "doublet") {
+    results_df <- data.frame(
+      spot_class = factor(res$spot_class[kept],
+                          levels = c("reject", "singlet", "doublet_certain",
+                                     "doublet_uncertain")),
+      first_type = res$first_type[kept],
+      second_type = res$second_type[kept],
+      row.names = cells[kept]
+    )
+  }
+  list(weights = weights, results_df = results_df)
+}
+
+## The fields of an rctd-py result h5ad, read with rhdf5. Not anndataR:
+## anndata >= 0.13 writes obs/_index as a nullable-string-array, which
+## anndataR 1.2 cannot decode, and it then drops the whole obs table.
+## `kept` marks the spots RCTD fitted: doublet mode labels the others
+## "filtered", full mode leaves their weights NaN.
+readRctdPyResult <- function(file, mode = "doublet") {
+  rd <- function(path) rhdf5::h5read(file, path)
+  categorical <- function(col) {
+    codes <- as.integer(rd(paste0("obs/", col, "/codes")))
+    cats <- as.character(rd(paste0("obs/", col, "/categories")))
+    cats[replace(codes + 1L, codes < 0L, NA)]
+  }
+  obsNames <- rd("obs/_index")
+  if (is.list(obsNames)) {
+    obsNames <- obsNames$values # nullable-string-array: values + mask
+  }
+  weights <- t(rd("obsm/rctd_weights")) # h5 row-major -> R column-major
+  res <- list(
+    obsNames = as.character(obsNames),
+    weights = weights,
+    cellTypes = as.character(rd("uns/rctd_cell_type_names"))
+  )
+  if (mode == "doublet") {
+    res$spot_class <- categorical("rctd_spot_class")
+    res$first_type <- categorical("rctd_first_type")
+    res$second_type <- categorical("rctd_second_type")
+    res$kept <- res$spot_class != "filtered"
+  } else {
+    res$kept <- rowSums(is.na(weights)) == 0
+  }
+  res
+}
+
+## rctd-py keeps the query's row order; refuse a result that does not.
+rctdResultCells <- function(obsNames, queryCells) {
+  if (length(obsNames) != length(queryCells)) {
+    stop(sprintf("rctd-py returned %d rows for %d query bins",
+                 length(obsNames), length(queryCells)))
+  }
+  if (!identical(as.character(obsNames), queryCells)) {
+    stop("rctd-py result rows are not in query order")
+  }
+  queryCells
 }

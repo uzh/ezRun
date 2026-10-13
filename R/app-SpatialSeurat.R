@@ -7,9 +7,11 @@
 
 ## Per-sample Visium SD analysis: spatially aware QC, SCT, expression
 ## clusters, BANKSY spatial domains with region annotation, spatially
-## variable genes, RCTD deconvolution, domain neighbourhoods, pathway/TF
-## activity and distance-constrained ligand-receptor analysis. The step
-## functions live in R/spatialSeuratSteps.R and R/spatialStats.R.
+## variable genes, RCTD (or CARD) deconvolution, domain neighbourhoods,
+## pathway/TF activity, distance-constrained ligand-receptor analysis
+## (CellChat v2; optional SpatialCellChat, liana), MISTy cell-type
+## dependencies and optional BayesSpace domains. The step functions live in
+## R/spatialSeuratSteps.R, R/spatialCommunication.R and R/spatialStats.R.
 
 EzAppSpatialSeurat <-
   setRefClass(
@@ -176,6 +178,16 @@ EzAppSpatialSeurat <-
             DefaultValue = 100,
             Description = "Minimal UMIs of a spot to be deconvolved"
           ),
+          rctdEngine = ezFrame(
+            Type = "character",
+            DefaultValue = "rctd-py",
+            Description = "RCTD implementation: rctd-py (same model, ~1.5 instead of ~10 min per section) or spacexr (R)"
+          ),
+          deconvolutionMethod = ezFrame(
+            Type = "character",
+            DefaultValue = "RCTD",
+            Description = "Cell-type deconvolution with the selected reference: RCTD, or CARD (spatially smoothed, ~3 min, 9 GB; needs the MuSiC package)"
+          ),
           computePathwayTFActivity = ezFrame(
             Type = "logical",
             DefaultValue = TRUE,
@@ -190,6 +202,41 @@ EzAppSpatialSeurat <-
             Type = "numeric",
             DefaultValue = 250,
             Description = "Maximal ligand-receptor interaction distance in microns"
+          ),
+          cellchatNboot = ezFrame(
+            Type = "numeric",
+            DefaultValue = 20,
+            Description = "Permutations for the CellChat and SpatialCellChat p-values"
+          ),
+          computeMisty = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "MISTy: explain each cell type's proportion from the same spot, the direct neighbours and the wider neighbourhood (needs the deconvolution)"
+          ),
+          mistyParaviewRange = ezFrame(
+            Type = "numeric",
+            DefaultValue = 300,
+            Description = "Length scale in microns of the MISTy neighbourhood (paraview)"
+          ),
+          computeSpatialCellChat = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "SpatialCellChat: communication between neighbouring spots, averaged to cell types with the deconvolution weights (adds ~11 min per section on 8 cores)"
+          ),
+          computeLiana = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "liana consensus ligand-receptor ranking between touching domains (cross-check of CellChat; ~1.5 min)"
+          ),
+          computeBayesSpace = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "BayesSpace domains with as many domains as BANKSY found, for comparison (~3 min with 10000 iterations)"
+          ),
+          bayesspaceNrep = ezFrame(
+            Type = "numeric",
+            DefaultValue = 10000,
+            Description = "BayesSpace MCMC iterations"
           ),
           writeCloupe = ezFrame(
             Type = "logical",
@@ -282,6 +329,8 @@ ezMethodSpatialSeurat <- function(
   }
   rctd <- if (is.null(resolve_rctd_reference_path(param))) {
     skip_step("deconvolution", "no RCTD reference selected", status)
+  } else if (identical(param$deconvolutionMethod, "CARD")) {
+    run_optional_step("deconvolution", spatial_card(scData, featInfo, param), status)
   } else {
     run_optional_step("deconvolution", spatial_rctd(scData, featInfo, param), status)
   }
@@ -304,9 +353,42 @@ ezMethodSpatialSeurat <- function(
     activity$scData <- NULL
   }
   communication <- if (ezIsSpecified(param$computeCellChat) && param$computeCellChat) {
-    run_optional_step("communication", spatial_communication(scData, param, spotInfo), status)
+    run_optional_step("communication", spatial_communication(scData, param, spotInfo, rctd$weights), status)
   } else {
     skip_step("communication", "disabled by parameter", status)
+  }
+  ## steps on the cell-type proportions
+  misty <- run_weights_step(
+    "misty",
+    param$computeMisty,
+    rctd,
+    spatial_misty(scData, param, spotInfo, rctd$weights),
+    status
+  )
+  spatialCellChat <- run_weights_step(
+    "spatialCellChat",
+    param$computeSpatialCellChat,
+    rctd,
+    spatial_spatialcellchat(scData, param, spotInfo, rctd$weights),
+    status
+  )
+  liana <- if (ezIsSpecified(param$computeLiana) && param$computeLiana) {
+    run_optional_step(
+      "liana",
+      spatial_liana(scData, param, neighbourhood$domainAdjacency$observed),
+      status
+    )
+  } else {
+    skip_step("liana", "disabled by parameter", status)
+  }
+  bayesspace <- if (ezIsSpecified(param$computeBayesSpace) && param$computeBayesSpace) {
+    run_optional_step("bayesspace", spatial_bayesspace(scData, param), status)
+  } else {
+    skip_step("bayesspace", "disabled by parameter", status)
+  }
+  if (!is.null(bayesspace)) {
+    scData <- bayesspace$scData
+    bayesspace$scData <- NULL
   }
   enrichRout <- if (species %in% c("Human", "Mouse") && ezIsSpecified(param$enrichrDatabase)) {
     run_optional_step(
@@ -354,22 +436,37 @@ ezMethodSpatialSeurat <- function(
     )
   }
   if (!is.null(rctd)) {
+    rctd$weightsFile <- paste0(tolower(rctd$assay), "Weights.xlsx")
     writexl::write_xlsx(
       list(
         weights = data.frame(spot = rownames(rctd$weights), rctd$weights, check.names = FALSE),
         compositionPerDomain = rctd$composition
       ),
-      path = "rctdWeights.xlsx"
+      path = rctd$weightsFile
     )
   }
   if (!is.null(communication)) {
+    sheets <- list()
+    for (level in names(communication)) {
+      sheets[[paste0("interactions_", level)]] <- communication[[level]]$interactions
+      sheets[[paste0("pathways_", level)]] <- communication[[level]]$pathways
+    }
+    writexl::write_xlsx(sheets, path = "cellchat.xlsx")
+  }
+  if (!is.null(misty)) {
     writexl::write_xlsx(
-      list(
-        interactions = communication$interactions,
-        pathways = communication$pathways
-      ),
-      path = "cellchat.xlsx"
+      misty[c("improvements", "contributions", "importances")],
+      path = "misty.xlsx"
     )
+  }
+  if (!is.null(spatialCellChat)) {
+    writexl::write_xlsx(
+      spatialCellChat[c("interactions", "pathways")],
+      path = "spatialCellChat.xlsx"
+    )
+  }
+  if (!is.null(liana)) {
+    writexl::write_xlsx(list(liana = liana), path = "liana.xlsx")
   }
   bulkSignalPerDomain <- data.frame(
     GeneSymbol = rownames(scData),
@@ -398,8 +495,10 @@ ezMethodSpatialSeurat <- function(
     skip_step("cloupe", "disabled by parameter", status)
   }
   if (!is.null(communication)) {
-    qs2::qs_save(communication$cellchat, "cellchat.qs2", nthreads = 4)
-    communication$cellchat <- NULL
+    qs2::qs_save(lapply(communication, `[[`, "cellchat"), "cellchat.qs2", nthreads = 4)
+    for (level in names(communication)) {
+      communication[[level]]$cellchat <- NULL
+    }
   }
   results <- list(
     sampleName = sampleName,
@@ -414,6 +513,10 @@ ezMethodSpatialSeurat <- function(
     neighbourhood = neighbourhood,
     activity = activity,
     communication = communication,
+    misty = misty,
+    spatialCellChat = spatialCellChat,
+    liana = liana,
+    bayesspace = bayesspace,
     enrichRout = enrichRout,
     status = as.list(status)
   )
