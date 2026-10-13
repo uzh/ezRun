@@ -151,6 +151,17 @@ spots <- data.frame(
   plots <- lapply(features, function(f) .spot_continuous(df, f, title = f, option = option))
   wrap_plots(plots, ncol = ncol)
 }
+## a heading that only appears when its step was not skipped (optional
+## add-ons that are off by default would otherwise leave empty tabs)
+.step_heading <- function(step, heading, level = 1) {
+  st <- results$status[[step]]
+  if (!is.null(st) && !is.na(st$ok)) {
+    cat(strrep("#", level), " ", heading, "\n\n", sep = "")
+    .status_callout(step)
+  }
+}
+deconMethod <- if (identical(results$rctd$engine, "CARD")) "CARD" else "RCTD"
+dominantCol <- results$rctd$dominantCol %||% "rctd_dominant"
 domainCol <- if ("domain_label" %in% colnames(spots)) "domain_label" else "banksy_domain"
 nDomains <- nlevels(factor(spots$banksy_domain))
 nClusters <- nlevels(factor(spots$expr_cluster))
@@ -164,9 +175,10 @@ nClusters <- nlevels(factor(spots$expr_cluster))
 A per-sample analysis of one Visium SD section (55 µm spots, each covering
 roughly 1-10 cells). The analysis goes from spot quality control over
 expression clusters to **spatial domains** (BANKSY), their anatomical
-annotation, spatially variable genes, cell-type deconvolution (RCTD), domain
-neighbourhoods, pathway and transcription-factor activities and a
-distance-constrained ligand-receptor analysis. Every tab starts with a short
+annotation, spatially variable genes, cell-type deconvolution, domain
+neighbourhoods, pathway and transcription-factor activities, spatial
+dependencies between cell types (MISTy) and a distance-constrained
+ligand-receptor analysis. Every tab starts with a short
 explanation of what was computed and how to read the plots. The objects behind
 the report are described in the tab *Data & explore in R*.
 :::
@@ -202,10 +214,14 @@ kable(keyNumbers) %>% kable_styling(full_width = FALSE, position = "left")
 stepNames <- c(
   domainAnnotation = "Domain annotation (region markers)",
   spatiallyVariableGenes = "Spatially variable genes",
-  deconvolution = "Cell-type deconvolution (RCTD)",
+  deconvolution = paste0("Cell-type deconvolution (", deconMethod, ")"),
   neighbourhood = "Domain neighbourhoods / co-localisation",
   activity = "Pathway and TF activity",
   communication = "Ligand-receptor analysis (CellChat)",
+  misty = "Spatial dependencies between cell types (MISTy)",
+  spatialCellChat = "Spot-level ligand-receptor analysis (SpatialCellChat)",
+  liana = "Consensus ligand-receptor ranking (liana)",
+  bayesspace = "BayesSpace domains",
   enrichR = "EnrichR cluster annotation",
   azimuth = "Azimuth label transfer",
   cloupe = "Loupe Browser file"
@@ -617,10 +633,18 @@ ggplot(svgTab, aes(meanExpr, moransI, colour = fdr < 0.05)) +
 ```{r rctd-intro}
 #| results: asis
 #| eval: !expr .ok("deconvolution")
+method <- if (deconMethod == "CARD") {
+  paste0("**CARD** (Ma & Zhou, *Nat Biotechnol* 2022) models each spot's counts as a ",
+         "mixture of reference cell-type profiles and lets neighbouring spots share ",
+         "information (a spatial prior), so proportions vary smoothly across the tissue")
+} else {
+  paste0("**RCTD** (Cable et al., *Nat Biotechnol* 2022; run with ",
+         results$rctd$engine %||% "spacexr", ") models each spot's counts as a mixture ",
+         "of reference cell-type profiles and estimates the **proportion** of every ",
+         "type (full mode)")
+}
 cat("::: {.callout-note title=\"What and why\"}\n",
-    "A Visium spot contains several cells. **RCTD** (Cable et al., *Nat Biotechnol* ",
-    "2022) models each spot's counts as a mixture of reference cell-type profiles ",
-    "and estimates the **proportion** of every type (full mode). The reference is `",
+    "A Visium spot contains several cells. ", method, ". The reference is `",
     results$rctd$reference, "`. Proportions are estimates: rare types and types ",
     "missing from the reference cannot be recovered, and similar types can trade ",
     "weight with each other.\n:::\n", sep = "")
@@ -647,7 +671,7 @@ wrap_plots(plots, ncol = 4)
 #| fig-height: 7
 #| out-width: "80%"
 #| fig-cap: "Cell type with the highest proportion per spot."
-.spot_discrete(spots, "rctd_dominant", "Dominant cell type")
+.spot_discrete(spots, dominantCol, "Dominant cell type")
 ```
 
 ```{r rctd-composition}
@@ -683,7 +707,7 @@ cat("::: {.callout-note title=\"What and why\"}\n",
     "compared with random relabelling of the spots (z-score). Positive values mean ",
     "the domains border each other, e.g. consecutive cortical layers; the diagonal ",
     "measures how compact a domain is.\n\n",
-    "**Cell-type co-localisation**: correlation of RCTD proportions across spots ",
+    "**Cell-type co-localisation**: correlation of the cell-type proportions across spots ",
     "(*same spot*) and between a spot and the mean of its neighbours (*neighbourhood*). ",
     "Positive values mean two cell types occur together.\n:::\n", sep = "")
 ```
@@ -788,6 +812,77 @@ as.data.frame(as.table(tfz[pick, ])) %>%
   theme(axis.text.x = element_text(angle = 60, hjust = 1))
 ```
 
+# Spatial dependencies
+
+```{r misty-status}
+#| results: asis
+.status_callout("misty")
+```
+
+```{r misty-intro}
+#| results: asis
+#| eval: !expr .ok("misty")
+mp <- results$misty$params
+cat("::: {.callout-note title=\"What and why\"}\n",
+    "**MISTy** (Tanevski et al., *Genome Biol* 2022) asks for every cell type how well its ",
+    "proportion in a spot is predicted by three *views*: the other cell types in the same ",
+    "spot (**intra**), the cell types in the directly neighbouring spots (**juxta**, within ",
+    1.5 * mp$spacing, " \u00b5m) and the cell types in the wider neighbourhood (**para**, ",
+    "Gaussian weights with a ", mp$paraRange, " \u00b5m length scale). One random forest is ",
+    "trained per cell type (", mp$cvFolds, "-fold cross-validation).\n\n",
+    "- **Gain in R\u00b2**: how much the surroundings (juxta + para) add to the prediction from ",
+    "the spot itself. A high gain means the cell type sits in a typical neighbourhood.\n",
+    "- **Importance**: which neighbouring cell types carry that information. It is an ",
+    "association in either direction (together or apart), not a causal effect.\n\n",
+    "Proportions within a spot sum to one, so the intra view is partly a bookkeeping ",
+    "effect; read the juxta and para views for spatial structure.\n:::\n", sep = "")
+```
+
+```{r misty-gain}
+#| eval: !expr .ok("misty")
+#| fig-width: 9
+#| fig-height: !expr max(4, 0.3 * results$misty$params$nTypes + 1.5)
+#| out-width: "70%"
+#| fig-cap: "Variance explained per cell type: from the spot itself (intra) and with the neighbourhood views added (multi-view)."
+imp <- results$misty$improvements %>%
+  select(target, measure, value) %>%
+  pivot_wider(names_from = measure, values_from = value)
+imp %>%
+  select(target, intra = intra.R2, `multi-view` = multi.R2, gain = gain.R2) %>%
+  pivot_longer(c(intra, `multi-view`), names_to = "model", values_to = "R2") %>%
+  ggplot(aes(R2, reorder(target, gain), fill = model)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.75) +
+  scale_fill_manual(values = c(intra = "#999999", `multi-view` = "#0072B2"), name = NULL) +
+  labs(x = "variance explained (R\u00b2, %)", y = NULL) +
+  theme_minimal()
+```
+
+```{r misty-importance}
+#| eval: !expr .ok("misty")
+#| fig-width: 15
+#| fig-height: !expr max(5, 0.3 * results$misty$params$nTypes + 2.5)
+#| out-width: "100%"
+#| fig-cap: "Importance of each predictor cell type (columns) for each target (rows) in the neighbourhood views; values are scaled per target, negative values are shown as 0, grey = the cell type itself."
+views <- setdiff(unique(results$misty$importances$view), "intra")
+plot_imp <- function(v) {
+  results$misty$importances %>%
+    filter(view == v) %>%
+    mutate(Importance = pmax(Importance, 0)) %>%
+    ggplot(aes(Predictor, Target, fill = Importance)) +
+    geom_tile(colour = "white") +
+    scale_fill_viridis_c(option = "rocket", direction = -1, name = "importance") +
+    labs(x = "predictor (around the spot)", y = "target", title = v) +
+    theme_minimal(base_size = 9) +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1))
+}
+wrap_plots(lapply(views, plot_imp), nrow = 1)
+```
+
+```{r misty-table}
+#| eval: !expr .ok("misty")
+.dt(imp %>% select(target, any_of(c("intra.R2", "multi.R2", "gain.R2", "p.R2"))) %>% arrange(desc(gain.R2)))
+```
+
 # Cell-cell communication
 
 ```{r ccc-status}
@@ -797,53 +892,77 @@ as.data.frame(as.table(tfz[pick, ])) %>%
 
 ```{r ccc-intro}
 #| results: asis
-#| eval: !expr .ok("communication")
+#| eval: !expr .ok("communication") || .ok("spatialCellChat") || .ok("liana")
 cat("::: {.callout-note title=\"What and why\"}\n",
-    "**CellChat** in spatial mode (Jin et al., *Nat Commun* 2021) scores secreted ",
-    "ligand-receptor pairs between domains, but only between domains whose spots ",
-    "lie within ", param$cellchatInteractionLength, " µm, and it down-weights distant ",
-    "pairs. Groups are BANKSY domains, not cell types, because a spot mixes several ",
-    "cells: read the result as *which signals could be exchanged between these ",
-    "regions*, a hypothesis to test with single-cell resolution data.\n:::\n", sep = "")
+    "**CellChat** v2 in spatial mode (Jin et al., *Nat Protoc* 2025) scores secreted ",
+    "ligand-receptor pairs between groups of spots, but only between groups whose spots ",
+    "lie within ", param$cellchatInteractionLength, " \u00b5m, and it down-weights distant ",
+    "pairs. It is run twice: between **domains** and between the **dominant cell type** ",
+    "of each spot (from the deconvolution). A spot mixes several cells, so read the ",
+    "result as *which signals could be exchanged between these regions or cell types*, ",
+    "a hypothesis to test with single-cell resolution data.\n:::\n", sep = "")
 ```
 
-```{r ccc-heatmap}
-#| eval: !expr .ok("communication")
+```{r ccc-helpers}
+#| include: false
+.ccc_heatmap <- function(pw, what) {
+  agg <- pw %>% group_by(source, target) %>% summarise(prob = sum(prob), .groups = "drop")
+  ggplot(agg, aes(target, source, fill = prob)) +
+    geom_tile(colour = "white") +
+    scale_fill_viridis_c(option = "plasma", name = "probability") +
+    labs(x = paste("receiver", what), y = paste("sender", what)) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+.ccc_top <- function(pw) {
+  pw %>% group_by(pathway_name) %>% summarise(prob = sum(prob)) %>%
+    slice_max(prob, n = 20) %>%
+    ggplot(aes(prob, reorder(pathway_name, prob))) +
+    geom_col(fill = "#0072B2") +
+    labs(x = "total communication probability", y = NULL) +
+    theme_minimal()
+}
+.ccc_table <- function(lr) {
+  .dt(lr[, intersect(
+    c("source", "target", "ligand", "receptor", "prob", "pval", "interaction_name_2", "pathway_name"),
+    colnames(lr))])
+}
+.has_level <- function(level) .ok("communication") && !is.null(results$communication[[level]])
+```
+
+::: {.panel-tabset}
+
+```{r ccc-domain-head}
+#| results: asis
+#| eval: !expr .has_level("domain")
+cat("## Domains\n\n")
+```
+
+```{r ccc-domain-heatmap}
+#| eval: !expr .has_level("domain")
 #| fig-width: 9
 #| fig-height: 7.5
 #| out-width: "70%"
 #| fig-cap: "Total communication probability between domains (rows: senders, columns: receivers)."
-pw <- results$communication$pathways
-agg <- pw %>% group_by(source, target) %>% summarise(prob = sum(prob), .groups = "drop")
-ggplot(agg, aes(target, source, fill = prob)) +
-  geom_tile(colour = "white") +
-  scale_fill_viridis_c(option = "plasma") +
-  labs(x = "receiver", y = "sender") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+.ccc_heatmap(results$communication$domain$pathways, "domain")
 ```
 
-```{r ccc-top}
-#| eval: !expr .ok("communication")
+```{r ccc-domain-top}
+#| eval: !expr .has_level("domain")
 #| fig-width: 9
 #| fig-height: 5
 #| out-width: "70%"
-#| fig-cap: "Pathways with the highest total communication probability."
-pw %>% group_by(pathway_name) %>% summarise(prob = sum(prob)) %>%
-  slice_max(prob, n = 20) %>%
-  ggplot(aes(prob, reorder(pathway_name, prob))) +
-  geom_col(fill = "#0072B2") +
-  labs(x = "total communication probability", y = NULL) +
-  theme_minimal()
+#| fig-cap: "Pathways with the highest total communication probability between domains."
+.ccc_top(results$communication$domain$pathways)
 ```
 
 ```{r ccc-lr-maps}
-#| eval: !expr .ok("communication")
+#| eval: !expr .has_level("domain")
 #| fig-width: 14
 #| fig-height: 7
 #| out-width: "100%"
-#| fig-cap: "Ligand and receptor expression of the four strongest interactions."
-lr <- results$communication$interactions %>%
+#| fig-cap: "Ligand and receptor expression of the four strongest interactions between domains."
+lr <- results$communication$domain$interactions %>%
   group_by(interaction_name_2) %>% summarise(prob = sum(prob), ligand = ligand[1], receptor = receptor[1]) %>%
   slice_max(prob, n = 4)
 genes <- unique(unlist(strsplit(c(lr$ligand, lr$receptor), "_")))
@@ -852,29 +971,184 @@ DefaultAssay(scData) <- "SCT"
 .spot_feature_grid(head(genes, 8), ncol = 4)
 ```
 
-::: {.callout-note collapse="true" title="All interactions (table)"}
-```{r ccc-table}
-#| eval: !expr .ok("communication")
-.dt(results$communication$interactions[, intersect(
-  c("source", "target", "ligand", "receptor", "prob", "pval", "interaction_name_2", "pathway_name"),
-  colnames(results$communication$interactions))])
+```{r ccc-domain-table}
+#| eval: !expr .has_level("domain")
+.ccc_table(results$communication$domain$interactions)
 ```
+
+```{r ccc-celltype-head}
+#| results: asis
+#| eval: !expr .has_level("celltype")
+cat("## Cell types\n\n")
+cat("Groups are the dominant cell type of each spot; cell types that dominate fewer ",
+    "than 10 spots are left out.\n\n", sep = "")
+```
+
+```{r ccc-celltype-heatmap}
+#| eval: !expr .has_level("celltype")
+#| fig-width: 10
+#| fig-height: 8.5
+#| out-width: "75%"
+#| fig-cap: "Total communication probability between the dominant cell types of the spots."
+.ccc_heatmap(results$communication$celltype$pathways, "cell type")
+```
+
+```{r ccc-celltype-top}
+#| eval: !expr .has_level("celltype")
+#| fig-width: 9
+#| fig-height: 5
+#| out-width: "70%"
+#| fig-cap: "Pathways with the highest total communication probability between cell types."
+.ccc_top(results$communication$celltype$pathways)
+```
+
+```{r ccc-celltype-table}
+#| eval: !expr .has_level("celltype")
+.ccc_table(results$communication$celltype$interactions)
+```
+
+```{r scc-head}
+#| results: asis
+.step_heading("spatialCellChat", "Cell types (SpatialCellChat)", level = 2)
+```
+
+```{r scc-intro}
+#| results: asis
+#| eval: !expr .ok("spatialCellChat")
+sp <- results$spatialCellChat$params
+cat("**SpatialCellChat** (CellChat v3) first scores every ligand-receptor pair between ",
+    "individual neighbouring spots (secreted signals up to ", sp$interactionRange,
+    " \u00b5m, contact-dependent signals only within a spot) and then averages the spot ",
+    "pairs to cell types, weighted by each spot's cell-type proportions (",
+    sp$nSpots, " spots, ", sp$nTypes, " cell types). Unlike the CellChat results above, ",
+    "a spot contributes to every cell type it contains, not only its dominant one.\n\n", sep = "")
+```
+
+```{r scc-heatmap}
+#| eval: !expr .ok("spatialCellChat")
+#| fig-width: 10
+#| fig-height: 8.5
+#| out-width: "75%"
+#| fig-cap: "Total communication probability between cell types (SpatialCellChat)."
+.ccc_heatmap(results$spatialCellChat$pathways, "cell type")
+```
+
+```{r scc-maps}
+#| eval: !expr .ok("spatialCellChat") && !is.null(results$spatialCellChat$spotScores)
+#| fig-width: 14
+#| fig-height: 7
+#| out-width: "100%"
+#| fig-cap: "Where the strongest pathways are sent (outgoing) and received (incoming), summed over their ligand-receptor pairs per spot."
+sc <- results$spatialCellChat$spotScores
+df <- cbind(spots[sc$spot, c("x", "y")], sc[, c("pathway", "outgoing", "incoming")])
+plots <- unlist(lapply(unique(df$pathway), function(p) {
+  d <- df[df$pathway == p, ]
+  list(.spot_continuous(d, "outgoing", paste(p, "- outgoing"), option = "mako"),
+       .spot_continuous(d, "incoming", paste(p, "- incoming"), option = "rocket"))
+}), recursive = FALSE)
+wrap_plots(plots, ncol = 4)
+```
+
+```{r scc-table}
+#| eval: !expr .ok("spatialCellChat")
+.ccc_table(results$spatialCellChat$interactions)
+```
+
+```{r liana-head}
+#| results: asis
+.step_heading("liana", "Consensus (liana)", level = 2)
+```
+
+```{r liana-intro}
+#| results: asis
+#| eval: !expr .ok("liana")
+cat("**liana** (Dimitrov et al., *Nat Commun* 2022) ranks ligand-receptor pairs between ",
+    "domains with four fast scoring methods (NATMI, Connectome, log2FC, SingleCellSignalR) ",
+    "and combines the ranks (`aggregate_rank`, smaller = more consistent). liana is not ",
+    "spatial: pairs are restricted to domains that touch. Interactions found by both ",
+    "liana and CellChat are the most robust candidates.\n\n", sep = "")
+```
+
+```{r liana-table}
+#| eval: !expr .ok("liana")
+.dt(results$liana[, intersect(c("source", "target", "ligand.complex", "receptor.complex", "aggregate_rank",
+                                 "natmi.edge_specificity", "sca.LRscore", "logfc.logfc_comb"),
+                               colnames(results$liana))])
+```
+
 :::
+
+```{r bayes-head}
+#| results: asis
+.step_heading("bayesspace", "BayesSpace domains")
+```
+
+```{r bayes-intro}
+#| results: asis
+#| eval: !expr .ok("bayesspace")
+bp <- results$bayesspace$params
+cat("::: {.callout-note title=\"What and why\"}\n",
+    "**BayesSpace** (Zhao et al., *Nat Biotechnol* 2021) clusters spots with a Bayesian ",
+    "model that encourages neighbouring spots to share a domain. It was run for the same ",
+    "number of domains as BANKSY (q = ", bp$q, ", ", bp$d, " principal components, ",
+    bp$nrep, " MCMC iterations) to show which domains are robust to the method. ",
+    "Agreement with BANKSY: adjusted Rand index ", sprintf("%.2f", results$bayesspace$ari),
+    " (1 = identical). Smoothness (fraction of neighbouring spots with the same domain): ",
+    sprintf("BayesSpace %.2f, BANKSY %.2f", results$bayesspace$smoothness[["BayesSpace"]],
+            results$bayesspace$smoothness[["BANKSY"]]), ".\n:::\n", sep = "")
+```
+
+```{r bayes-maps}
+#| eval: !expr .ok("bayesspace")
+#| fig-width: 14
+#| fig-height: 6
+#| out-width: "100%"
+.spot_discrete(spots, "banksy_domain", "BANKSY") | .spot_discrete(spots, "bayesspace_domain", "BayesSpace")
+```
+
+```{r bayes-cross}
+#| eval: !expr .ok("bayesspace")
+#| fig-width: 9
+#| fig-height: 7
+#| out-width: "65%"
+#| fig-cap: "Fraction of each BANKSY domain (columns) assigned to each BayesSpace domain (rows)."
+ct <- as.matrix(results$bayesspace$crossTable)
+ct <- sweep(ct, 2, pmax(colSums(ct), 1), "/")
+as.data.frame(as.table(ct)) %>%
+  ggplot(aes(Var2, Var1, fill = Freq)) +
+  geom_tile(colour = "white") +
+  scale_fill_viridis_c(name = "fraction") +
+  labs(x = "BANKSY domain", y = "BayesSpace domain") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
 # Data & explore in R
 
-::: {.callout-note title="Files"}
-- [scData.qs2](scData.qs2): Seurat object of the kept spots (details below)
-- [scData.unfiltered.qs2](scData.unfiltered.qs2): all spots under tissue with QC flags
-- [posMarkers.xlsx](posMarkers.xlsx): expression cluster markers
-- [domainMarkers.xlsx](domainMarkers.xlsx): BANKSY domain markers
-- [domainAnnotation.xlsx](domainAnnotation.xlsx): domain labels and region scores
-- [spatiallyVariableGenes.xlsx](spatiallyVariableGenes.xlsx): Moran's I, nnSVG and pattern of every gene
-- [rctdWeights.xlsx](rctdWeights.xlsx): cell-type proportions per spot and per domain
-- [cellchat.xlsx](cellchat.xlsx) / [cellchat.qs2](cellchat.qs2): ligand-receptor results and the CellChat object
-- [bulkSignalPerDomain.tsv](bulkSignalPerDomain.tsv): pseudo-bulk expression per domain
-- [`r paste0(sampleName, ".cloupe")`](`r paste0(sampleName, ".cloupe")`): Loupe Browser file
-:::
+```{r data-files}
+#| results: asis
+files <- c(
+  "scData.qs2" = "Seurat object of the kept spots (details below)",
+  "scData.unfiltered.qs2" = "all spots under tissue with QC flags",
+  "posMarkers.xlsx" = "expression cluster markers",
+  "domainMarkers.xlsx" = "BANKSY domain markers",
+  "domainAnnotation.xlsx" = "domain labels and region scores",
+  "spatiallyVariableGenes.xlsx" = "Moran's I, nnSVG and pattern of every gene",
+  "rctdWeights.xlsx" = "RCTD cell-type proportions per spot and per domain",
+  "cardWeights.xlsx" = "CARD cell-type proportions per spot and per domain",
+  "misty.xlsx" = "MISTy variance explained, view contributions and importances",
+  "cellchat.xlsx" = "CellChat ligand-receptor and pathway results (domains and cell types)",
+  "cellchat.qs2" = "the CellChat objects (list with domain and celltype)",
+  "spatialCellChat.xlsx" = "SpatialCellChat ligand-receptor and pathway results between cell types",
+  "liana.xlsx" = "liana consensus ranking between touching domains",
+  "bulkSignalPerDomain.tsv" = "pseudo-bulk expression per domain"
+)
+files[paste0(sampleName, ".cloupe")] <- "Loupe Browser file"
+files <- files[file.exists(names(files))]
+cat("::: {.callout-note title=\"Files\"}\n",
+    paste0("- [", names(files), "](", names(files), "): ", files, collapse = "\n"),
+    "\n:::\n", sep = "")
+```
 
 #### Load the object
 
@@ -883,7 +1157,7 @@ library(Seurat)
 scData <- qs2::qs_read("scData.qs2")
 SpatialDimPlot(scData, group.by = "domain_label", label = TRUE)
 SpatialFeaturePlot(scData, features = "Ppp1r1b")
-## cell-type proportions from RCTD
+## cell-type proportions (assay RCTD, or CARD when CARD was chosen)
 DefaultAssay(scData) <- "RCTD"
 SpatialFeaturePlot(scData, features = rownames(scData)[1:4])
 ```
@@ -895,7 +1169,7 @@ slotTab <- tibble::tribble(
   ~Location, ~Content,
   "assay Spatial", "raw UMI counts",
   "assay SCT", "SCTransform-normalised expression (default assay)",
-  "assay RCTD", "RCTD cell-type proportions (features = cell types)",
+  "assay RCTD (or CARD)", "cell-type proportions (features = cell types)",
   "assays progeny / dorothea", "pathway and TF activity scores",
   "reductions pca / umap", "expression-only embedding",
   "reductions pca.banksy / umap.banksy", "BANKSY embedding",
@@ -905,7 +1179,8 @@ slotTab <- tibble::tribble(
   "meta.data banksy_lambda_*", "domains of the λ sweep",
   "meta.data *_region", "UCell scores of the region marker sets",
   "meta.data svg_pattern_*", "spatial pattern scores",
-  "meta.data rctd_dominant", "most abundant cell type per spot",
+  "meta.data rctd_dominant (card_dominant)", "most abundant cell type per spot",
+  "meta.data bayesspace_domain", "BayesSpace domains (only when computed)",
   "meta.data array_row/array_col, pxl_*_fullres", "array and full-resolution pixel coordinates"
 )
 kable(slotTab) %>% kable_styling(full_width = FALSE, position = "left")
@@ -914,7 +1189,7 @@ kable(slotTab) %>% kable_styling(full_width = FALSE, position = "left")
 ::: {.callout-tip title="Suggested exercises"}
 1. Change λ: compare `banksy_lambda_0` and `banksy_lambda_0.8`. Which anatomical
    structures only appear with spatial information?
-2. Pick a domain labelled *mixed*: look at its markers and its RCTD composition
+2. Pick a domain labelled *mixed*: look at its markers and its cell-type composition
    and give it a better name.
 3. Find an SVG that is **not** a marker of any domain. What pattern does it follow?
 4. Remove the QC filter: load `scData.unfiltered.qs2` and look where the removed
@@ -926,23 +1201,66 @@ kable(slotTab) %>% kable_styling(full_width = FALSE, position = "left")
 
 ```{r methods}
 #| results: asis
-cat(sprintf(paste0(
+.v <- function(pkg) as.character(packageVersion(pkg))
+txt <- sprintf(paste0(
   "Space Ranger output was loaded with Seurat (v%s). Spots under tissue were flagged as low-quality ",
   "when they were local outliers in UMIs or detected genes compared with their 36 nearest spots ",
   "(SpotSweeper, 3 MADs%s). Genes were normalised with SCTransform v2 (%s variable genes). ",
   "Expression clusters were computed on %s principal components (Louvain, resolution %s). ",
-  "Spatial domains were identified with BANKSY (λ = %s, k_geom = %s, %s PCs, resolution %s) and ",
+  "Spatial domains were identified with BANKSY (\u03bb = %s, k_geom = %s, %s PCs, resolution %s) and ",
   "annotated by UCell scores of curated region marker sets. Spatially variable genes were ranked by ",
-  "Moran's I on the hexagonal spot graph and the top %s by nnSVG. Cell-type proportions were estimated ",
-  "with RCTD (spacexr, full mode, reference %s). Pathway and TF activities were inferred with decoupleR ",
-  "(PROGENy, DoRothEA A-C) and ligand-receptor communication between domains with CellChat (v%s, spatial ",
-  "mode, %s µm interaction range)."),
-  packageVersion("Seurat"),
+  "Moran's I on the hexagonal spot graph and the top %s by nnSVG."),
+  .v("Seurat"),
   if (isTRUE(results$qcInfo$useMito)) "; and high mitochondrial fraction" else "",
   param$nfeatures, param$npcs, param$resolution,
   param$banksyLambda, param$banksyKgeom, param$banksyNpcs, param$banksyResolution,
-  param$nnsvgTopN, results$rctd$reference %||% "none",
-  as.character(packageVersion("CellChat")), param$cellchatInteractionLength))
+  param$nnsvgTopN)
+if (.ok("bayesspace")) {
+  bp <- results$bayesspace$params
+  txt <- c(txt, sprintf("For comparison, domains were also computed with BayesSpace (v%s, q = %s, %s PCs, %s iterations).",
+                        bp$version, bp$q, bp$d, bp$nrep))
+}
+if (.ok("deconvolution")) {
+  txt <- c(txt, if (deconMethod == "CARD") {
+    sprintf("Cell-type proportions were estimated with CARD (v%s, reference %s, at most 300 cells per type).",
+            .v("CARD"), results$rctd$reference)
+  } else {
+    sprintf("Cell-type proportions were estimated with RCTD (%s, full mode, reference %s).",
+            if (identical(results$rctd$engine, "rctd-py")) "rctd-py" else paste0("spacexr v", .v("spacexr")),
+            results$rctd$reference)
+  })
+}
+if (.ok("activity")) {
+  txt <- c(txt, "Pathway and TF activities were inferred with decoupleR (PROGENy, DoRothEA A-C).")
+}
+if (.ok("misty")) {
+  mp <- results$misty$params
+  txt <- c(txt, sprintf(paste0(
+    "Spatial dependencies between cell-type proportions were modelled with MISTy (mistyR v%s; ",
+    "intra, juxta (%s \u00b5m) and para (Gaussian, l = %s \u00b5m) views; random forests, %s-fold cross-validation)."),
+    mp$version, 1.5 * mp$spacing, mp$paraRange, mp$cvFolds))
+}
+if (.ok("communication")) {
+  cp <- results$communication$domain$params
+  txt <- c(txt, sprintf(paste0(
+    "Ligand-receptor communication between domains%s was inferred with CellChat (v%s, spatial mode, ",
+    "%s \u00b5m interaction range, %s permutations, %s)."),
+    if (!is.null(results$communication$celltype)) " and between the dominant cell types of the spots" else "",
+    cp$version, cp$interactionRange, cp$nboot, cp$db))
+}
+if (.ok("spatialCellChat")) {
+  sp <- results$spatialCellChat$params
+  txt <- c(txt, sprintf(paste0(
+    "Spot-level communication was inferred with SpatialCellChat (v%s; %s \u00b5m interaction range) and ",
+    "averaged to cell types weighted by the deconvolution (%s permutations)."),
+    sp$version, sp$interactionRange, sp$nboot))
+}
+if (.ok("liana")) {
+  txt <- c(txt, sprintf(paste0(
+    "Ligand-receptor pairs between touching domains were ranked with liana (v%s; NATMI, Connectome, ",
+    "log2FC and SingleCellSignalR, consensus resource)."), .v("liana")))
+}
+cat(paste(txt, collapse = " "))
 ```
 
 # Parameters & session

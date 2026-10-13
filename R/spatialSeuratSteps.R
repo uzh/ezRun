@@ -45,6 +45,22 @@ skip_step <- function(name, msg, status) {
   return(NULL)
 }
 
+##' @title Run an optional step that needs the cell-type deconvolution
+##' @param flag the parameter switching the step on.
+##' @param deconvolution result of the deconvolution step (NULL when it was
+##'   skipped or failed).
+##' @param expr expression returning the step result (evaluated only when
+##'   the step runs).
+run_weights_step <- function(name, flag, deconvolution, expr, status) {
+  if (!(ezIsSpecified(flag) && isTRUE(as.logical(flag)))) {
+    return(skip_step(name, "disabled by parameter", status))
+  }
+  if (is.null(deconvolution)) {
+    return(skip_step(name, "needs the cell-type deconvolution", status))
+  }
+  run_optional_step(name, expr, status)
+}
+
 ##' @title Feature annotation of a Visium count matrix
 ##' @return data.frame with gene_id, gene_name, type, isMito, isRiboprot;
 ##'   row names are the feature names Seurat uses.
@@ -519,32 +535,77 @@ spatial_rctd <- function(scData, featInfo, param) {
     y = scData$pxl_row_fullres,
     row.names = colnames(scData)
   )
-  res <- run_rctd_spots(
-    counts,
-    coords,
-    reference,
-    cores = as.integer(param$cores),
-    umiMin = as.numeric(param$rctdUMImin),
-    doubletMode = "full"
-  )
-  weights <- res$weights
-  ## spots that RCTD dropped (too few UMIs) get NA
+  cores <- as.integer(param$cores)
+  umiMin <- as.numeric(param$rctdUMImin)
+  ## rctd-py fits the same model as spacexr in ~1.5 instead of ~10 min on a
+  ## Visium SD section (p37810 Rep1/Rep2: weights r > 0.999, without
+  ## torch.compile, see rctdPyCompile); spacexr is the fallback when the env
+  ## is missing or rctd-py fails
+  engine <- if (identical(param$rctdEngine, "spacexr")) "spacexr" else "rctd-py"
+  res <- NULL
+  if (engine == "rctd-py") {
+    if (!rctdPyAvailable()) {
+      ezLog("RCTD: rctd-py env ", RCTD_PY_ENV, " not installed; using spacexr")
+    } else {
+      res <- tryCatch(
+        runRctdPy(
+          counts, coords, reference, umiMin,
+          mode = "full", device = "cpu",
+          umiMinSigma = rctd_umi_min_sigma(Matrix::colSums(counts)),
+          cores = cores
+        ),
+        error = function(e) {
+          ezLog("RCTD: rctd-py failed (", conditionMessage(e), "); using spacexr")
+          NULL
+        }
+      )
+    }
+    ## runRctdPy removes its files; this also catches a failed run
+    unlink("rctd_py", recursive = TRUE)
+    if (is.null(res)) {
+      engine <- "spacexr"
+    }
+  }
+  if (engine == "spacexr") {
+    res <- run_rctd_spots(
+      counts,
+      coords,
+      reference,
+      cores = cores,
+      umiMin = umiMin,
+      doubletMode = "full"
+    )
+  }
+  stored <- spatial_store_deconvolution(scData, res$weights, assayName = "RCTD", prefix = "rctd")
+  stored$reference <- basename(refPath)
+  stored$engine <- engine
+  return(stored)
+}
+
+##' @title Store spot x cell-type proportions on the object
+##' @description Adds an assay with the proportions (features = cell types)
+##'   and the dominant type per spot; spots the method dropped get NA.
+##' @return list with scData, the full weight matrix (NA rows = dropped),
+##'   the mean composition per domain and the slot names used.
+spatial_store_deconvolution <- function(scData, weights, assayName, prefix) {
   full <- matrix(
     NA_real_,
     nrow = ncol(scData),
     ncol = ncol(weights),
     dimnames = list(colnames(scData), colnames(weights))
   )
-  full[rownames(weights), ] <- weights
+  shared <- intersect(rownames(weights), colnames(scData))
+  full[shared, ] <- as.matrix(weights[shared, , drop = FALSE])
   cellTypes <- make.unique(gsub("[ _]+", "-", colnames(full)))
   colnames(full) <- cellTypes
   wMat <- t(full)
   wMat[is.na(wMat)] <- 0
-  scData[["RCTD"]] <- SeuratObject::CreateAssay5Object(data = methods::as(wMat, "dgCMatrix"))
+  scData[[assayName]] <- SeuratObject::CreateAssay5Object(data = methods::as(wMat, "dgCMatrix"))
   dominant <- colnames(full)[max.col(replace(full, is.na(full), -1), ties.method = "first")]
   dominant[rowSums(is.na(full)) > 0] <- NA
-  scData$rctd_dominant <- factor(dominant)
-  scData$rctd_dominant_weight <- apply(full, 1, max)
+  dominantCol <- paste0(prefix, "_dominant")
+  scData[[dominantCol]] <- factor(dominant)
+  scData[[paste0(dominantCol, "_weight")]] <- apply(full, 1, max)
   composition <- stats::aggregate(
     full,
     by = list(domain = as.character(spatial_domain_labels(scData))),
@@ -555,8 +616,55 @@ spatial_rctd <- function(scData, featInfo, param) {
     scData = scData,
     weights = full,
     composition = composition,
-    reference = basename(refPath)
+    assay = assayName,
+    dominantCol = dominantCol
   ))
+}
+
+##' @title Cell-type deconvolution with CARD
+##' @description Alternative to RCTD: NMF-like deconvolution with a spatial
+##'   CAR prior, so neighbouring spots get similar compositions. Uses the
+##'   same reference as RCTD, at most 300 cells per type. Its spot distance
+##'   kernel is N x N, which is why it is offered for Visium SD only.
+spatial_card <- function(scData, featInfo, param) {
+  if (!requireNamespace("MuSiC", quietly = TRUE)) {
+    stop("CARD needs the MuSiC package (github xuranw/MuSiC), which is not installed")
+  }
+  refPath <- resolve_rctd_reference_path(param)
+  reference <- load_rctd_reference(refPath)
+  cellTypes <- stats::setNames(as.character(reference@cell_types), colnames(reference@counts))
+  keep <- stratified_subsample(cellTypes, maxPerGroup = 300)
+  scCount <- reference@counts[, keep]
+  scMeta <- data.frame(
+    cellType = cellTypes[keep],
+    sampleInfo = "reference",
+    row.names = keep
+  )
+  counts <- SeuratObject::GetAssayData(scData, assay = "Spatial", layer = "counts")
+  geneIds <- stats::setNames(featInfo$gene_id, rownames(featInfo))
+  counts <- match_rctd_genes(counts, geneIds, rownames(scCount))
+  location <- data.frame(
+    x = scData$pxl_col_fullres,
+    y = scData$pxl_row_fullres,
+    row.names = colnames(scData)
+  )
+  ## CARD calls library(MuSiC) inside; keep its output out of the log
+  cardObj <- suppressMessages(CARD::createCARDObject(
+    sc_count = scCount,
+    sc_meta = scMeta,
+    spatial_count = counts,
+    spatial_location = location,
+    ct.varname = "cellType",
+    ct.select = unique(scMeta$cellType),
+    sample.varname = "sampleInfo",
+    minCountGene = 100,
+    minCountSpot = 5
+  ))
+  cardObj <- CARD::CARD_deconvolution(cardObj)
+  stored <- spatial_store_deconvolution(scData, cardObj@Proportion_CARD, assayName = "CARD", prefix = "card")
+  stored$reference <- basename(refPath)
+  stored$engine <- "CARD"
+  return(stored)
 }
 
 ##' @title Domain neighbourhoods and cell-type co-localisation
@@ -581,7 +689,7 @@ spatial_activity <- function(scData, param) {
   if (!species %in% c("Human", "Mouse")) {
     stop("pathway/TF activity is only available for human and mouse")
   }
-  mat <- as.matrix(GetAssayData(scData, assay = "SCT", layer = "data"))
+  mat <- as.matrix(SeuratObject::GetAssayData(scData, assay = "SCT", layer = "data"))
   if (species == "Mouse") {
     progenyNet <- progeny::getModel(organism = "Mouse", top = 500)
     utils::data("dorothea_mm", package = "dorothea", envir = environment())
@@ -621,7 +729,7 @@ spatial_activity <- function(scData, param) {
   scData[["dorothea"]] <- to_assay(dorotheaAct)
   domains <- spatial_domain_labels(scData)
   domain_means <- function(assayName) {
-    m <- as.matrix(GetAssayData(scData, assay = assayName, layer = "data"))
+    m <- as.matrix(SeuratObject::GetAssayData(scData, assay = assayName, layer = "data"))
     t(apply(m, 1, function(x) tapply(x, domains, mean)))
   }
   return(list(
@@ -631,73 +739,158 @@ spatial_activity <- function(scData, param) {
   ))
 }
 
-##' @title Distance-constrained ligand-receptor analysis between domains
-##' @description CellChat in spatial mode: communication probabilities are
-##'   only computed between groups within the interaction range, which makes
-##'   the result more plausible than non-spatial CellChat. Spots are
-##'   multi-cell mixtures, so this is illustrative at domain level.
-spatial_communication <- function(scData, param, spotInfo) {
-  library(CellChat)
-  domains <- droplevels(spatial_domain_labels(scData))
-  ## CellChat needs group names without special characters
-  groupNames <- make.names(levels(domains))
-  meta <- data.frame(
-    labels = factor(groupNames[as.integer(domains)], levels = groupNames),
-    row.names = colnames(scData)
+##' @title Spot coordinates of a Visium SD object in microns
+spatial_sd_coords_um <- function(scData, spotInfo) {
+  spatial_coords_um(
+    scData$pxl_col_fullres,
+    scData$pxl_row_fullres,
+    spotInfo$micronsPerPixel,
+    colnames(scData)
   )
-  dataInput <- GetAssayData(scData, assay = "SCT", layer = "data")
-  coords <- data.frame(
-    imagerow = scData$pxl_row_fullres,
-    imagecol = scData$pxl_col_fullres,
-    row.names = colnames(scData)
+}
+
+## Visium SD geometry: 55 um spots, 100 um centre to centre
+VISIUM_SD_SPOT_UM <- 55
+VISIUM_SD_SPACING_UM <- 100
+
+##' @title Dominant cell type per spot from a weight matrix
+##' @return factor named by spot; spots without weights are left out.
+dominant_type <- function(weights) {
+  w <- weights[stats::complete.cases(weights), , drop = FALSE]
+  stats::setNames(
+    factor(colnames(w)[max.col(w, ties.method = "first")], levels = colnames(w)),
+    rownames(w)
   )
-  sf <- spotInfo$scaleFactors
-  scaleFactors <- list(
-    spot.diameter = 55,
-    spot = sf$spot_diameter_fullres,
-    fiducial = sf$fiducial_diameter_fullres,
-    hires = sf$tissue_hires_scalef,
-    lowres = sf$tissue_lowres_scalef
-  )
-  cellchat <- createCellChat(
-    object = dataInput,
-    meta = meta,
-    group.by = "labels",
-    datatype = "spatial",
-    coordinates = coords,
-    scale.factors = scaleFactors
-  )
-  species <- getSpecies(param$refBuild)
-  db <- if (species == "Mouse") CellChatDB.mouse else CellChatDB.human
-  cellchat@DB <- subsetDB(db, search = "Secreted Signaling")
-  cellchat <- subsetData(cellchat)
-  future::plan("sequential")
-  cellchat <- identifyOverExpressedGenes(cellchat)
-  cellchat <- identifyOverExpressedInteractions(cellchat)
-  cellchat <- computeCommunProb(
-    cellchat,
-    type = "truncatedMean",
-    trim = 0.1,
-    distance.use = TRUE,
-    interaction.length = as.numeric(param$cellchatInteractionLength),
-    scale.distance = 0.01
-  )
-  cellchat <- filterCommunication(cellchat, min.cells = 10)
-  cellchat <- computeCommunProbPathway(cellchat)
-  cellchat <- aggregateNet(cellchat)
-  comm <- subsetCommunication(cellchat)
-  pathways <- subsetCommunication(cellchat, slot.name = "netP")
-  ## back to readable group labels
-  lookup <- stats::setNames(levels(domains), groupNames)
-  for (col in c("source", "target")) {
-    comm[[col]] <- lookup[as.character(comm[[col]])]
-    pathways[[col]] <- lookup[as.character(pathways[[col]])]
+}
+
+##' @title Distance-constrained ligand-receptor analysis
+##' @description CellChat v2 in spatial mode between the domains and, when a
+##'   deconvolution ran, between the dominant cell types of the spots.
+##'   Communication probabilities are only computed between groups within
+##'   the interaction range. Spots are multi-cell mixtures, so the results
+##'   are a guide to which signals are plausible, not proof of signalling.
+spatial_communication <- function(scData, param, spotInfo, weights = NULL) {
+  coordsUm <- spatial_sd_coords_um(scData, spotInfo)
+  data <- SeuratObject::GetAssayData(scData, assay = "SCT", layer = "data")
+  run <- function(labels) {
+    run_cellchat_v2(
+      data,
+      labels,
+      coordsUm,
+      spotSizeUm = VISIUM_SD_SPOT_UM,
+      contactRangeUm = VISIUM_SD_SPACING_UM,
+      interactionRangeUm = as.numeric(param$cellchatInteractionLength),
+      species = getSpecies(param$refBuild),
+      nboot = as.integer(param$cellchatNboot)
+    )
   }
+  domains <- droplevels(spatial_domain_labels(scData))
+  names(domains) <- colnames(scData)
+  res <- list(domain = run(domains))
+  if (!is.null(weights)) {
+    res$celltype <- run(droplevels(dominant_type(weights)))
+  }
+  return(res)
+}
+
+##' @title MISTy: which cell types predict each other in space
+spatial_misty <- function(scData, param, spotInfo, weights) {
+  run_misty_weights(
+    weights,
+    spatial_sd_coords_um(scData, spotInfo),
+    spacingUm = VISIUM_SD_SPACING_UM,
+    paraRangeUm = as.numeric(param$mistyParaviewRange),
+    workers = as.integer(param$cores)
+  )
+}
+
+##' @title SpatialCellChat: spot-level communication averaged to cell types
+spatial_spatialcellchat <- function(scData, param, spotInfo, weights) {
+  ## in its own Rscript: see run_in_rscript
+  run_in_rscript(run_spatialcellchat, list(
+    data = SeuratObject::GetAssayData(scData, assay = "SCT", layer = "data"),
+    weights = weights,
+    coordsUm = spatial_sd_coords_um(scData, spotInfo),
+    spotSizeUm = VISIUM_SD_SPOT_UM,
+    species = getSpecies(param$refBuild),
+    interactionRangeUm = as.numeric(param$cellchatInteractionLength),
+    nboot = as.integer(param$cellchatNboot),
+    workers = as.integer(param$cores)
+  ))
+}
+
+##' @title liana consensus ranking between touching domains
+##' @param domainAdjacency observed spot-edge counts between domains (from
+##'   spatial_neighbourhood); domains without shared edges are not paired.
+##' @return the top \code{nTop} interactions by consensus rank.
+spatial_liana <- function(scData, param, domainAdjacency = NULL, nTop = 1000) {
+  domains <- droplevels(spatial_domain_labels(scData))
+  names(domains) <- colnames(scData)
+  cellAdj <- NULL
+  if (!is.null(domainAdjacency)) {
+    lev <- rownames(domainAdjacency)
+    cellAdj <- data.frame(
+      source = rep(lev, times = length(lev)),
+      target = rep(lev, each = length(lev)),
+      adjacency = as.numeric(as.vector(domainAdjacency) > 0 | diag(length(lev)) > 0)
+    )
+  }
+  res <- run_liana_fast(
+    SeuratObject::GetAssayData(scData, assay = "SCT", layer = "counts"),
+    SeuratObject::GetAssayData(scData, assay = "SCT", layer = "data"),
+    domains,
+    species = getSpecies(param$refBuild),
+    cellAdj = cellAdj
+  )
+  res <- res[order(res$aggregate_rank), , drop = FALSE]
+  return(utils::head(res, nTop))
+}
+
+##' @title BayesSpace domains next to BANKSY
+##' @description Bayesian clustering with a Potts prior on the hexagonal spot
+##'   grid, run for the same number of domains as BANKSY found and on the
+##'   SCT principal components. No q tuning and no spatialEnhance (hours).
+spatial_bayesspace <- function(scData, param) {
+  banksy <- droplevels(scData$banksy_domain)
+  q <- nlevels(banksy)
+  pcs <- SeuratObject::Embeddings(scData, "pca")
+  d <- min(15, ncol(pcs))
+  nrep <- as.integer(param$bayesspaceNrep)
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    assays = list(counts = SeuratObject::GetAssayData(scData, assay = "Spatial", layer = "counts")),
+    colData = S4Vectors::DataFrame(
+      array_row = scData$array_row,
+      array_col = scData$array_col,
+      row.names = colnames(scData)
+    ),
+    reducedDims = list(PCA = pcs[, seq_len(d), drop = FALSE])
+  )
+  sce <- BayesSpace::spatialPreprocess(sce, platform = "Visium", skip.PCA = TRUE, log.normalize = FALSE)
+  set.seed(38)
+  sce <- BayesSpace::spatialCluster(
+    sce,
+    q = q,
+    use.dimred = "PCA",
+    d = d,
+    platform = "Visium",
+    init.method = "mclust",
+    model = "t",
+    nrep = nrep,
+    burn.in = min(1000, floor(nrep / 5))
+  )
+  labels <- factor(sce$spatial.cluster)
+  names(labels) <- colnames(scData)
+  scData$bayesspace_domain <- labels
+  adj <- spatial_get_adjacency(scData, rings = 1)
   return(list(
-    cellchat = cellchat,
-    interactions = comm,
-    pathways = pathways,
-    groupLookup = lookup
+    scData = scData,
+    ari = adjusted_rand_index(labels, banksy),
+    crossTable = as.data.frame.matrix(table(BayesSpace = labels, BANKSY = banksy)),
+    smoothness = c(
+      BayesSpace = mean(spatial_label_smoothness(labels, adj), na.rm = TRUE),
+      BANKSY = mean(spatial_label_smoothness(banksy, adj), na.rm = TRUE)
+    ),
+    params = list(q = q, d = d, nrep = nrep, version = as.character(utils::packageVersion("BayesSpace")))
   ))
 }
 

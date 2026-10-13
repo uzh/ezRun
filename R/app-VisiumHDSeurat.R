@@ -179,6 +179,61 @@ EzAppVisiumHDSeurat <-
             Type = "character",
             DefaultValue = "rctd-py",
             Description = "RCTD implementation: rctd-py (GPU if the job has one, else CPU) or spacexr (R)"
+          ),
+          computeCellChat = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "Distance-constrained CellChat v2 between BANKSY niches and between RCTD cell types"
+          ),
+          cellchatInteractionLength = ezFrame(
+            Type = "numeric",
+            DefaultValue = 250,
+            Description = "Maximal ligand-receptor interaction distance in microns"
+          ),
+          cellchatNboot = ezFrame(
+            Type = "numeric",
+            DefaultValue = 20,
+            Description = "Permutations for the CellChat and SpatialCellChat p-values"
+          ),
+          cellchatMaxPerGroup = ezFrame(
+            Type = "numeric",
+            DefaultValue = 1500,
+            Description = "CellChat and liana use at most this many bins per group (stratified subsample)"
+          ),
+          computeMisty = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "MISTy on pseudo-spots: which cell types predict each other nearby (needs RCTD)"
+          ),
+          nicheGridSize = ezFrame(
+            Type = "numeric",
+            DefaultValue = 48,
+            Description = "Side length in microns of the pseudo-spots MISTy runs on"
+          ),
+          mistyParaviewRange = ezFrame(
+            Type = "numeric",
+            DefaultValue = 200,
+            Description = "Length scale in microns of the MISTy neighbourhood (paraview)"
+          ),
+          mistyNeighbours = ezFrame(
+            Type = "numeric",
+            DefaultValue = 100,
+            Description = "Pseudo-spots per paraview neighbourhood (nearest neighbours; avoids an N x N distance matrix)"
+          ),
+          computeSpatialCellChat = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "SpatialCellChat on pseudo-spots, averaged to RCTD cell types (needs RCTD; ~18 min on 8 cores for a 16 um section with 100 um pseudo-spots)"
+          ),
+          spatialCellChatGridSize = ezFrame(
+            Type = "numeric",
+            DefaultValue = 100,
+            Description = "Side length in microns of the SpatialCellChat pseudo-spots"
+          ),
+          computeLiana = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "liana consensus ligand-receptor ranking between RCTD cell types (cross-check of CellChat)"
           )
         )
       }
@@ -534,6 +589,8 @@ ezMethodVisiumHDSeurat <- function(
     )
   }
 
+  rctdWeights <- NULL
+  rctdResultsDf <- NULL
   if (!is.null(ref_path)) {
     stopifnot(file.exists(ref_path))
     cat(
@@ -650,11 +707,15 @@ ezMethodVisiumHDSeurat <- function(
           results_df <- myRCTD@results$results_df
         } else {
           ## rctd-py: same model, 14-48 h -> minutes on p32810/p42441-sized runs
-          rctdRes <- runRctdPy(counts, coords, ref_obj, umi_min)
+          ## torch.compile on a GPU or for large inputs, see rctdPyCompile
+          rctdRes <- runRctdPy(counts, coords, ref_obj, umi_min,
+                               cores = as.integer(param$cores))
           norm_weights <- rctdRes$weights
           results_df <- rctdRes$results_df
         }
 
+        rctdWeights <- as.matrix(norm_weights)
+        rctdResultsDf <- results_df
         # Add to Seurat metadata - Primary cell type assignment; bins that
         # RCTD rejected get NA (shown as "Unassigned" in the report)
         max_type <- rctd_main_type(norm_weights, results_df)
@@ -690,6 +751,64 @@ ezMethodVisiumHDSeurat <- function(
       }
     }
   }
+
+  # 8. Niches and cell-cell communication: on extracted inputs, never on
+  # the object; each step can fail without ending the job
+  status <- new.env()
+  hd <- tryCatch(
+    visiumhd_niche_inputs(scData, myAssay, rctdWeights, rctdResultsDf, param, input),
+    error = function(e) {
+      ezLog("Niche inputs could not be prepared: ", conditionMessage(e))
+      NULL
+    }
+  )
+  communication <- visiumhd_step(
+    "communication", param$computeCellChat, hd, visiumhd_communication(hd, param), status,
+    needsRctd = FALSE
+  )
+  logStep("communication done")
+  misty <- visiumhd_step("misty", param$computeMisty, hd, visiumhd_misty(hd, param), status)
+  logStep("misty done")
+  spatialCellChat <- visiumhd_step(
+    "spatialCellChat", param$computeSpatialCellChat, hd, visiumhd_spatialcellchat(hd, param), status
+  )
+  logStep("spatialCellChat done")
+  liana <- visiumhd_step("liana", param$computeLiana, hd, visiumhd_liana(hd, param), status)
+  logStep("liana done")
+  nicheParams <- list(micronsPerPixel = hd$micronsPerPixel, binUm = hd$binUm, nicheGridSize = param$nicheGridSize)
+  remove(hd)
+  gc()
+  if (!is.null(communication)) {
+    qs2::qs_save(lapply(communication, `[[`, "cellchat"), "cellchat.qs2", nthreads = 4)
+    sheets <- list()
+    for (level in names(communication)) {
+      communication[[level]]$cellchat <- NULL
+      sheets[[paste0("interactions_", level)]] <- communication[[level]]$interactions
+      sheets[[paste0("pathways_", level)]] <- communication[[level]]$pathways
+    }
+    writexl::write_xlsx(sheets, path = "cellchat.xlsx")
+  }
+  if (!is.null(misty)) {
+    writexl::write_xlsx(misty[c("improvements", "contributions", "importances")], path = "misty.xlsx")
+  }
+  if (!is.null(spatialCellChat)) {
+    writexl::write_xlsx(spatialCellChat[c("interactions", "pathways")], path = "spatialCellChat.xlsx")
+  }
+  if (!is.null(liana)) {
+    writexl::write_xlsx(list(liana = liana), path = "liana.xlsx")
+  }
+  qs2::qs_save(
+    list(
+      status = as.list(status),
+      params = nicheParams,
+      communication = communication,
+      misty = misty,
+      spatialCellChat = spatialCellChat,
+      liana = liana
+    ),
+    "nicheResults.qs2",
+    nthreads = 4
+  )
 
   ## generate template for manual cluster annotation -----
   ## we only deal with one sample
@@ -741,105 +860,4 @@ ezMethodVisiumHDSeurat <- function(
   logStep("report done")
   gc()
   return("Success")
-}
-
-## rctd-py doublet mode through its CLI, in the gi_rctd-py env (GPU when the
-## job has one, else CPU). Returns what spacexr's path yields: row-normalised
-## weights (bins x types) and a results_df with spot_class / first_type /
-## second_type. Bins under UMI_min are dropped, as spacexr drops them.
-## RCTD_PY_BIN (a directory holding `rctd`) overrides the env, for testing.
-RCTD_PY_ENV <- "gi_rctd-py_0.3.8"
-RCTD_PY_CONDA <- "/usr/local/ngseq/miniforge3"
-
-## TRUE when rctd-py can run: the test override is set or the env exists.
-rctdPyAvailable <- function() {
-  nzchar(Sys.getenv("RCTD_PY_BIN")) ||
-    file.exists(file.path(RCTD_PY_CONDA, "envs", RCTD_PY_ENV, "bin", "rctd"))
-}
-
-runRctdPy <- function(counts, coords, ref, umiMin, env = RCTD_PY_ENV) {
-  wd <- file.path(getwd(), "rctd_py")
-  dir.create(wd, showWarnings = FALSE)
-  qFile <- file.path(wd, "query.h5ad")
-  rFile <- file.path(wd, "reference.h5ad")
-  outFile <- file.path(wd, "result.h5ad")
-  anndataR::write_h5ad(
-    anndataR::AnnData(
-      X = Matrix::t(counts),
-      obs = data.frame(row.names = colnames(counts)),
-      var = data.frame(row.names = rownames(counts)),
-      obsm = list(spatial = as.matrix(coords[colnames(counts), c("x", "y")]))
-    ),
-    qFile, mode = "w"
-  )
-  anndataR::write_h5ad(
-    anndataR::AnnData(
-      X = Matrix::t(ref@counts),
-      obs = data.frame(cell_type = as.character(ref@cell_types),
-                       row.names = colnames(ref@counts)),
-      var = data.frame(row.names = rownames(ref@counts))
-    ),
-    rFile, mode = "w"
-  )
-  binDir <- Sys.getenv("RCTD_PY_BIN")
-  if (nzchar(binDir)) {
-    withr::local_path(binDir, action = "prefix")
-  } else {
-    Herper::local_CondaEnv(env, pathToMiniConda = RCTD_PY_CONDA)
-  }
-  ezSystem(paste(
-    "rctd run", qFile, rFile, "--mode doublet --umi-min", umiMin,
-    "--device auto -o", outFile
-  ))
-  res <- readRctdPyResult(outFile)
-  cells <- rctdResultCells(res$obsNames, colnames(counts))
-  kept <- res$spot_class != "filtered"
-  weights <- res$weights[kept, , drop = FALSE]
-  dimnames(weights) <- list(cells[kept], res$cellTypes)
-  weights <- weights / rowSums(weights)
-  results_df <- data.frame(
-    spot_class = factor(res$spot_class[kept],
-                        levels = c("reject", "singlet", "doublet_certain",
-                                   "doublet_uncertain")),
-    first_type = res$first_type[kept],
-    second_type = res$second_type[kept],
-    row.names = cells[kept]
-  )
-  list(weights = weights, results_df = results_df)
-}
-
-## The fields of an rctd-py doublet result h5ad, read with rhdf5. Not
-## anndataR: anndata >= 0.13 writes obs/_index as a nullable-string-array,
-## which anndataR 1.2 cannot decode, and it then drops the whole obs table.
-readRctdPyResult <- function(file) {
-  rd <- function(path) rhdf5::h5read(file, path)
-  categorical <- function(col) {
-    codes <- as.integer(rd(paste0("obs/", col, "/codes")))
-    cats <- as.character(rd(paste0("obs/", col, "/categories")))
-    cats[replace(codes + 1L, codes < 0L, NA)]
-  }
-  obsNames <- rd("obs/_index")
-  if (is.list(obsNames)) {
-    obsNames <- obsNames$values # nullable-string-array: values + mask
-  }
-  list(
-    obsNames = as.character(obsNames),
-    weights = t(rd("obsm/rctd_weights")), # h5 row-major -> R column-major
-    cellTypes = as.character(rd("uns/rctd_cell_type_names")),
-    spot_class = categorical("rctd_spot_class"),
-    first_type = categorical("rctd_first_type"),
-    second_type = categorical("rctd_second_type")
-  )
-}
-
-## rctd-py keeps the query's row order; refuse a result that does not.
-rctdResultCells <- function(obsNames, queryCells) {
-  if (length(obsNames) != length(queryCells)) {
-    stop(sprintf("rctd-py returned %d rows for %d query bins",
-                 length(obsNames), length(queryCells)))
-  }
-  if (!identical(as.character(obsNames), queryCells)) {
-    stop("rctd-py result rows are not in query order")
-  }
-  queryCells
 }
