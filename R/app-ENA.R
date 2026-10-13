@@ -30,6 +30,36 @@
   )
 }
 
+## Download one ENA fastq with retries. wget treats an FTP "No such directory" reply as
+## fatal and does not retry it, although ENA returns it transiently for existing files.
+## A file already present with the expected md5 is reused, so a crashed job can be
+## resumed in its old scratch directory.
+.enaDownloadFastq <- function(ftpPath, md5 = NA, tries = 5, retryWait = 60) {
+  destfile <- basename(ftpPath)
+  isComplete <- function() {
+    file.exists(destfile) &&
+      (is.na(md5) ||
+        md5 == "" ||
+        unname(tools::md5sum(destfile)) == md5)
+  }
+  if (isComplete()) {
+    ezLog("Reusing existing download: ", destfile)
+    return(destfile)
+  }
+  for (attempt in seq_len(tries)) {
+    unlink(destfile)
+    try(
+      ezSystem(paste0("wget --no-verbose --tries=3 --wait=10 ftp://", ftpPath)),
+      silent = TRUE
+    )
+    if (isComplete()) {
+      return(destfile)
+    }
+    Sys.sleep(retryWait * attempt)
+  }
+  stop("Could not download ", ftpPath, " after ", tries, " attempts")
+}
+
 ## Extract the ENA-SPOT-COUNT (read count) from a run's RUN_ATTRIBUTES list without
 ## crashing on a missing/empty TAG. Returns NA when the tag is absent, in which case
 ## the caller falls back to countReadsInFastq().
@@ -192,20 +222,15 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
     if (grepl(';', fastqInfo$fastq_ftp[i])) {
       paired = TRUE
       fastqFiles <- strsplit(fastqInfo$fastq_ftp[i], ';')[[1]]
+      fastqMd5s <- strsplit(fastqInfo$fastq_md5[i], ';')[[1]]
       ##cmd = paste0('wget --quiet -t 0 ', 'ftp://', fastqFiles[1],'; wget --quiet -t 0 ', 'ftp://', fastqFiles[2])
       stopifnot(length(fastqFiles) == 2)
-      sapply(fastqFiles, function(fqFile) {
-        cmd = paste0('wget --no-verbose --tries=3 --wait=10 ', 'ftp://', fqFile)
-        ezSystem(cmd)
-      })
+      for (k in seq_along(fastqFiles)) {
+        .enaDownloadFastq(fastqFiles[k], fastqMd5s[k])
+      }
     } else {
       paired = FALSE
-      cmd = paste0(
-        'wget --no-verbose --tries=3 --wait=10 ',
-        'ftp://',
-        fastqInfo$fastq_ftp[i]
-      )
-      ezSystem(cmd)
+      .enaDownloadFastq(fastqInfo$fastq_ftp[i], fastqInfo$fastq_md5[i])
     }
   }
   myPath = output$meta[['ENA Result [File]']]
