@@ -103,13 +103,12 @@ ezMethodSpatialSeuratSlides = function(
   reportCwd <- getwd()
 
   scDataURLs <- input$getColumn("Static Report")
-  filePath <- file.path(
+  reportDirs <- file.path(
     "/srv/gstore/projects",
-    sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "", dirname(scDataURLs)),
-    "scData.rds"
+    sub("https://fgcz-(gstore|sushi).uzh.ch/projects", "", dirname(scDataURLs))
   )
 
-  scDataList <- lapply(filePath, readRDS)
+  scDataList <- lapply(reportDirs, load_spatial_seurat_report_object)
   names(scDataList) <- names(scDataURLs)
   scDataList <- lapply(scDataList, function(scData) {
     scData@meta.data[, grep("SCT", colnames(scData@meta.data))] = NULL #remove previous clustering done on SCT assay
@@ -137,17 +136,10 @@ ezMethodSpatialSeuratSlides = function(
   posMarkers <- posClusterMarkers(scData, pvalue_allMarkers, param)
   posMarkers[['isSpatialMarker']] = FALSE
   #spatially variable genes
-  require(readxl)
-  filePath_spatialMarkers <- sub('scData.rds', 'spatialMarkers.xlsx', filePath)
-  spatialMarkersList <- lapply(filePath_spatialMarkers, read_xlsx)
-  names(spatialMarkersList) <- names(scDataList)
+  spatialMarkersList <- lapply(reportDirs, load_spatial_seurat_svgs)
   spatialMarkers <- c()
-  for (j in 1:length(spatialMarkersList)) {
-    spatialMarkersList[[j]][['GeneSymbol']] = spatialMarkersList[[j]]$GeneSymbol
-    spatialMarkersList[[j]][['SampleID']] = names(spatialMarkersList)[j]
-    spatialMarkersList[[j]] = spatialMarkersList[[j]][
-      !is.na(spatialMarkersList[[j]]$MeanRank),
-    ]
+  for (j in seq_along(spatialMarkersList)) {
+    spatialMarkersList[[j]][['SampleID']] = names(scDataList)[j]
     spatialMarkers <- rbind(spatialMarkers, spatialMarkersList[[j]])
   }
 
@@ -175,4 +167,35 @@ ezMethodSpatialSeuratSlides = function(
     reportTitle = param$name
   )
   return("Success")
+}
+
+##' @title Load the Seurat object of a SpatialSeurat report
+##' @description Reads scData.qs2 (current SpatialSeurat) or scData.rds (older
+##'   reports) and keeps only the Spatial and SCT assays, so that objects with
+##'   deconvolution and activity assays can be merged.
+load_spatial_seurat_report_object <- function(reportDir) {
+  qsFile <- file.path(reportDir, "scData.qs2")
+  scData <- if (file.exists(qsFile)) {
+    qs2::qs_read(qsFile, nthreads = 4)
+  } else {
+    readRDS(file.path(reportDir, "scData.rds"))
+  }
+  for (a in setdiff(Seurat::Assays(scData), c("Spatial", "SCT"))) {
+    scData[[a]] <- NULL
+  }
+  Seurat::DefaultAssay(scData) <- "SCT"
+  return(scData)
+}
+
+##' @title Spatially variable genes of a SpatialSeurat report
+##' @return data.frame with GeneSymbol, one row per significant SVG.
+load_spatial_seurat_svgs <- function(reportDir) {
+  newFile <- file.path(reportDir, "spatiallyVariableGenes.xlsx")
+  if (file.exists(newFile)) {
+    svg <- readxl::read_xlsx(newFile)
+    svg <- svg[!is.na(svg$fdr) & svg$fdr < 0.05, ]
+    return(data.frame(GeneSymbol = svg$gene, Method = "MoransI"))
+  }
+  svg <- readxl::read_xlsx(file.path(reportDir, "spatialMarkers.xlsx"))
+  return(data.frame(GeneSymbol = unique(svg$GeneSymbol), Method = "Seurat"))
 }
