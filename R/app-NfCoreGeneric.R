@@ -14,7 +14,10 @@ EzAppNfCoreGeneric <- setRefClass(
       # Output to current directory (scratch)
       # Results will be copied to gstore by the job script footer
       outdir <- "_result"
-      
+      if (!is.null(output[["Result [File]"]])) {
+        outdir <- basename(output[["Result [File]"]])
+      }
+
       # Ensure output directory exists
       dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
       
@@ -79,7 +82,14 @@ EzAppNfCoreGeneric <- setRefClass(
         "-profile singularity",
         "-c", customConfig
       )
-      
+      pipelineConfig <- system.file(
+        "extdata", "nfcore", paste0(pipeline, ".config"),
+        package = "ezRun"
+      )
+      if (nzchar(pipelineConfig)) {
+        cmd <- paste(cmd, "-c", pipelineConfig)
+      }
+
       # Resolve reference genome from refBuild parameter
       refBuild <- param[["refBuild"]]
       if (!is.null(refBuild) && refBuild != "" && refBuild != "select") {
