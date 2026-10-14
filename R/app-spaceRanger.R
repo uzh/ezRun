@@ -213,8 +213,19 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
       skip = 1,
       header = FALSE
     )
-    intersectionGenes <- intersect(annotation$V1, probeInfo$gene_id)
-    probeInfo <- probeInfo[probeInfo$gene_id %in% intersectionGenes, ]
+    probeCheck <- findProbesMissingFromReference(probeInfo, annotation$V1)
+    droppedProbes <- probeCheck$dropped
+    probeInfo <- probeInfo[probeCheck$keep, ]
+    message(sprintf(
+      "Probe set vs reference: %d probes kept; %d included, non-deprecated probes (%d genes) dropped because their gene_id is missing from %s",
+      sum(probeCheck$keep),
+      nrow(droppedProbes),
+      length(unique(droppedProbes$gene_id)),
+      basename(refDir)
+    ))
+    if (nrow(droppedProbes) > 0) {
+      warning(probesetAnnotationMismatchMessage(param$probesetFile, droppedProbes))
+    }
     if (ezIsSpecified(param$customProbesFile) && param$customProbesFile != '') {
       customProbes <- ezRead.table(
         file.path(param$dataRoot, param$customProbesFile),
@@ -315,6 +326,14 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
   }
   file.rename(file.path(spaceRangerFolder, "outs"), finalSampleName)
   unlink(spaceRangerFolder, recursive = TRUE)
+  if (param$probesetFile != '') {
+    # inside the ResultDir [File] folder, so it is delivered with the run
+    ezWrite.table(
+      droppedProbes,
+      file.path(finalSampleName, "probes_missing_from_reference.tsv"),
+      row.names = FALSE
+    )
+  }
 
   if (ezIsSpecified(param$controlSeqs)) {
     unlink(refDir, recursive = TRUE)
@@ -383,4 +402,61 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
     row.names = FALSE
   )
   return("Success")
+}
+
+## Which probe-set rows does filtering against the reference geneInfo.tab drop?
+## Rows with a DEPRECATED_ gene_id or included=FALSE are dropped too, but Space
+## Ranger ignores them anyway; only included, live probes count as a real loss.
+## Returns keep (logical, one per row) and dropped (probe_id, gene_id, gene_name).
+findProbesMissingFromReference <- function(probeInfo, refGeneIds) {
+  keep <- probeInfo$gene_id %in% refGeneIds
+  real <- !keep &
+    !startsWith(probeInfo$gene_id, "DEPRECATED_") &
+    as.logical(probeInfo$included) %in% TRUE
+  geneName <- if ("gene_name" %in% names(probeInfo)) {
+    probeInfo$gene_name
+  } else {
+    # v1/v2.0 probe sets carry the symbol only in probe_id: ENSG...|SYMBOL|hash
+    sub("^[^|]*\\|([^|]*)\\|.*$", "\\1", probeInfo$probe_id)
+  }
+  list(
+    keep = keep,
+    dropped = data.frame(
+      probe_id = probeInfo$probe_id[real],
+      gene_id = probeInfo$gene_id[real],
+      gene_name = geneName[real]
+    )
+  )
+}
+
+## Warning text for probes lost to a probe-set / annotation mismatch, naming the
+## annotation the probe set was designed on when its file name reveals it.
+probesetAnnotationMismatchMessage <- function(probesetFile, droppedProbes) {
+  isMouse <- grepl("Mouse", probesetFile, ignore.case = TRUE)
+  matched <- if (grepl("v2\\.1", probesetFile)) {
+    if (isMouse) {
+      "GRCm39-2024-A (FGCZ GENCODE M31 or M37)"
+    } else {
+      "GRCh38-2024-A (FGCZ GENCODE Release_42 or Release_48)"
+    }
+  } else if (grepl("v[12]\\.0", probesetFile)) {
+    if (isMouse) {
+      "mm10-2020-A (no exact FGCZ GRCm39 match)"
+    } else {
+      "GRCh38-2020-A (FGCZ GENCODE Release_32)"
+    }
+  } else {
+    NA
+  }
+  genes <- unique(droppedProbes$gene_name)
+  paste0(
+    nrow(droppedProbes), " probes for ", length(genes),
+    " genes in ", basename(probesetFile),
+    " are dropped because their gene_id is not in the reference annotation",
+    " (e.g. ", paste(head(genes, 10), collapse = ", "), ").",
+    " Causes: an annotation release other than the one the probe set was built on",
+    if (!is.na(matched)) paste0(" (this probe set matches ", matched, ")") else "",
+    ", or a transcriptTypes selection that excludes these genes (e.g. lncRNA).",
+    " Full list: probes_missing_from_reference.tsv in the result folder."
+  )
 }

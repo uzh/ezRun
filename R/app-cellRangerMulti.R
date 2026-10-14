@@ -534,43 +534,35 @@ buildMultiConfigFile <- function(input, param, dirList) {
     )
 
     # Determine Chemistry for Flex v1/v2
-    # Priority 1: User specified chemistry in parameters (not "auto")
-    # Priority 2: Auto-detect based on probe set version and FASTQ read lengths
-    # Cell Ranger 10.0+ requires explicit chemistry for reliable Flex v2 detection
-    # Flex v2 has two valid sequencing configs (CellRanger 10.0+):
-    #   "Read 1" (R1=54, R2=50) -> Flex-v2-R1
-    #   "Read 2" (R1=28, R2=90) -> Flex-v2-RNA-R2
-    # Ref: 10xgenomics.com/support/software/cell-ranger/latest/analysis/inputs/cr-multi-config-csv-opts
-    if (ezIsSpecified(param$chemistry) && param$chemistry != "auto") {
-      chemistry <- param$chemistry
+    # Priority 1: User specified chemistry - already written by the
+    #   [gene-expression] block above; a second chemistry line would duplicate it.
+    # Priority 2: Flex v2 multiplex - from the measured R1/R2 read lengths
+    #   (flexV2Chemistry); NA = leave it to CellRanger's auto-detection.
+    # Priority 3: Flex v2 singleplex / Flex v1 MFRP-SFRP defaults.
+    if (ezIsSpecified(param$chemistry) && !(param$chemistry %in% c("auto", ""))) {
+      chemistry <- NA
     } else if (grepl("v2\\.", param$probesetFile)) {
       # Flex v2: Matches v2.0.0, v2.1.0, etc.
       if (hasMult) {
-        # Detect R1 vs R2 config from FASTQ read lengths
         r1Files <- list.files(
           dirList$sampleDirs,
           pattern = "_R1_.*\\.fastq\\.gz$",
           recursive = TRUE,
           full.names = TRUE
         )
-        if (length(r1Files) > 0) {
-          r1Conn <- gzfile(r1Files[1], "r")
-          r1Lines <- readLines(r1Conn, n = 2)
-          close(r1Conn)
-          r1Length <- nchar(r1Lines[2])
-          # R1 > 28 indicates "Read 1" config (R1=54, R2=50)
-          # R1 <= 28 indicates "Read 2" config (R1=28, R2=90)
-          chemistry <- ifelse(r1Length > 28, "Flex-v2-R1", "Flex-v2-RNA-R2")
-          message(sprintf(
-            "Flex v2 auto-detect: R1 length = %d -> chemistry = %s",
-            r1Length,
-            chemistry
-          ))
+        if (length(r1Files) == 0) {
+          chemistry <- NA
+          warning("Flex v2: no R1 FASTQ found to measure read lengths; leaving the chemistry to CellRanger auto-detection")
         } else {
-          chemistry <- "Flex-v2-RNA-R2"
-          warning(
-            "Could not detect R1 length from FASTQs, defaulting to Flex-v2-RNA-R2"
-          )
+          r1Length <- maxFastqReadLength(r1Files[1])
+          r2Length <- maxFastqReadLength(sub("_R1_", "_R2_", r1Files[1]))
+          chemistry <- flexV2Chemistry(r1Length, r2Length, hasAntibody = hasFb)
+          message(sprintf(
+            "Flex v2 chemistry: R1 = %d nt, R2 = %d nt -> %s",
+            r1Length,
+            r2Length,
+            ifelse(is.na(chemistry), "auto (CellRanger detects per library)", chemistry)
+          ))
         }
       } else {
         chemistry <- "Flex-v2-singleplex"
@@ -579,7 +571,9 @@ buildMultiConfigFile <- function(input, param, dirList) {
       # Flex v1: Default legacy behavior (MFRP/SFRP)
       chemistry <- ifelse(hasMult, "MFRP", "SFRP")
     }
-    fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
+    if (!is.na(chemistry)) {
+      fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
+    }
     fileContents <- append(fileContents, c(""))
   }
   if (any(c("VDJ-T", "VDJ-B") %in% libraryTypes)) {
@@ -884,3 +878,40 @@ EzAppCellRangerMulti <-
       }
     )
   )
+
+## Flex v2 multiplex chemistry from the read lengths (CellRanger 10.1
+## chemistry_defs.json): Flex-v2-R1 reads the probe barcode at R1[40:50],
+## Flex-v2-RNA-R2 at R2[79:89]; both quantify RNA from R2[0:50].
+## - R1 >= 50 -> Flex-v2-R1, even when R2 is long too: it also covers protein
+##   libraries, and 10x allows only the Read 1 config for PTG+BioLegend antibody
+##   mixes and v1 custom probes without Constant Sequence-NN.
+## - else R2 >= 89 -> Flex-v2-RNA-R2, but NA (no chemistry line, CellRanger
+##   auto-detects per library) when an Antibody Capture library is present:
+##   [gene-expression] chemistry applies to every library, so Flex-v2-RNA-R2
+##   would be forced onto the protein library, whose barcode sits at R2:45 or
+##   R2:64 (measured with CellRanger 10.1 on synthetic reads, 2026-10-14).
+flexV2Chemistry <- function(r1Length, r2Length, hasAntibody = FALSE) {
+  if (r1Length >= 50) {
+    return("Flex-v2-R1")
+  }
+  if (r2Length >= 89) {
+    return(if (hasAntibody) NA_character_ else "Flex-v2-RNA-R2")
+  }
+  stop(sprintf(
+    paste(
+      "Flex v2: R1 = %d nt and R2 = %d nt are too short for the probe barcode.",
+      "Read 1 config needs R1 >= 50 (sequenced 54/50); Read 2 config needs R2 >= 89 (sequenced 28/90).",
+      "Check the demultiplexing read lengths."
+    ),
+    r1Length,
+    r2Length
+  ))
+}
+
+## Longest read among the first n reads of a (gzipped) FASTQ.
+maxFastqReadLength <- function(fastqFile, n = 1000) {
+  con <- gzfile(fastqFile, "r")
+  on.exit(close(con))
+  lines <- readLines(con, n = 4 * n)
+  max(nchar(lines[seq(2, length(lines), by = 4)]))
+}
