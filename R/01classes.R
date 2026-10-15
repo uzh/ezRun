@@ -264,6 +264,12 @@ ezTagListFromNames = function(names) {
   })
 }
 
+## Set by hand -- update if the model backing AI/llm_methods_caller changes.
+## Source: LLM_CALLER_MODEL in the AI/llm_methods_caller module.
+## (Kept above EzApp's roxygen block: placed between that block and
+## setRefClass(), roxygen documents this constant instead of EzApp.)
+METHODS_LLM_MODEL_NAME <- "DeepSeek-V4-Flash-DSpark"
+
 ##' @title The R5 class representing a runnable app
 ##' @description This reference class is the basis of all other apps that inherit from it. It sets the framework to run different apps.
 ##' @field runMethod the function that will be executed in the \code{run} method.
@@ -359,10 +365,6 @@ ezTagListFromNames = function(names) {
 ##' ds = EzDataset$new(file=file, dataRoot=NULL)
 ##' NULLApp = EzApp$new(runMethod=function(input, output, param){},name="NULLApp")
 ##' NULLApp$run(input=ds, output=ds, param=list(process_mode="DATASET"))
-
-## Set by hand -- update if the model backing AI/llm_methods_caller changes.
-## Source: LLM_CALLER_MODEL in the AI/llm_methods_caller module.
-METHODS_LLM_MODEL_NAME <- "DeepSeek-V4-Flash-DSpark"
 
 EzApp <-
   setRefClass(

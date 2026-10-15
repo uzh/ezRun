@@ -11,7 +11,8 @@ makeRmdReport(
   selfContained = TRUE,
   reportTitle = "SUSHI Report",
   use.qs2 = TRUE,
-  nthreads = 4
+  nthreads = 4,
+  quiet = TRUE
 )
 }
 \arguments{

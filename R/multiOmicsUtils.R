@@ -356,7 +356,7 @@ prefixVDJBarcodes <- function(df, sample, objBarcodes) {
 ##'   clonality. Useful for cross-donor convergence studies or noise
 ##'   correction on long sequencing runs.
 ##' @param tcrSimilarityThreshold Normalized similarity threshold (0-1) for
-##'   `clonalCluster()` on TCR. 0.85 ≈ 15% Hamming distance; 0.95 is
+##'   `clonalCluster()` on TCR. 0.85 ≈ 15\% Hamming distance; 0.95 is
 ##'   typical for noise-only correction. Only used when
 ##'   `tcrSimilarityMerge = TRUE`.
 ##' @param bcrSimilarityThreshold Threshold passed to `combineBCR()` for

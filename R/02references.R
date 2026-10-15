@@ -131,12 +131,30 @@ EzRef <- function(param) {
   )
 }
 
-##' @describeIn EzRef Access of slots by name with square brackets [ ]
+## The [ and [<- methods are documented in this standalone block rather than on
+## the setMethod() calls: R stores them as [,EzRef,ANY and [<-,EzRef,ANY,ANY,ANY,
+## and roxygen2's getMethod(name, "EzRef") lookup no longer finds them, which
+## aborts the whole man/ build.
+##' @name EzRef-class
+##' @rdname EzRef-class
+##' @aliases [,EzRef,ANY-method [<-,EzRef,ANY,ANY,ANY-method
+##' @usage \S4method{[}{EzRef,ANY}(x, i)
+##'
+##' \S4method{[}{EzRef,ANY,ANY,ANY}(x, i) <- value
+##' @section Methods (by generic):
+##' \itemize{
+##' \item \code{x[i]}: Access of slots by name with square brackets [ ]
+##'
+##' \item \code{x[i] <- value}: Assignment to slots by name with square brackets [ ]
+##' }
+NULL
+
+# Access of slots by name with square brackets [ ]
 setMethod("[", "EzRef", function(x, i) {
   slot(x, i)
 })
 
-##' @describeIn EzRef Assignment to slots by name with square brackets [ ]
+# Assignment to slots by name with square brackets [ ]
 setMethod("[<-", "EzRef", function(x, i, value) {
   slot(x, i) = value
   x

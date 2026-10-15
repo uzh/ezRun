@@ -19,7 +19,37 @@ ezComputeBias(
 )
 }
 \arguments{
-\item{minPresentFraction}{}
+\item{dsFile}{path of the SUSHI \code{dataset.tsv} of the run to check.}
+
+\item{dsName}{the name of the result folder and plots; by default derived from
+the path of \code{dsFile}.}
+
+\item{param}{a parameter list for the processing apps; by default a built-in
+set (fastp trimming, kallisto, STAR) suited to small QC runs.}
+
+\item{qcSummaryDir}{the directory the results are written to (one
+sub-folder per \code{dsName}).}
+
+\item{refBuildMap}{named character vector mapping species to reference builds.}
+
+\item{minReadsPerSample}{samples with fewer reads are dropped.}
+
+\item{maxReadsPerSample}{reads are subsampled to at most this many per sample.}
+
+\item{minReadsPerGene}{a gene counts as detected at this many reads (also used
+as the background expression and signal threshold).}
+
+\item{minPresentFraction}{a gene is present if detected in at least this
+fraction of samples.}
+
+\item{toMail}{e-mail address passed to the apps as \code{param$mail}.}
+
+\item{tag}{a label added to the plot titles.}
+}
+\value{
+Called for its side effects: writes the results and a
+  \code{<dsName>-bias.pdf} into \code{qcSummaryDir}. The return value is that
+  of the final \code{dev.off()}.
 }
 \description{
 compute and plot the GC content and gene-length associated bias in RNA-seq data

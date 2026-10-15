@@ -44,8 +44,18 @@ EzAppLimma <-
           ),
           rankMetric = ezFrame(
             Type = "character",
-            DefaultValue = 'log2Ratio',
+            DefaultValue = "log2Ratio",
             Description = "how to rank genes for GSEA"
+          ),
+          colour = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "coloured tab hierarchy in the report"
+          ),
+          number = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "numbered tab hierarchy in the report"
           )
         )
       }
@@ -65,8 +75,10 @@ ezMethodLimma = function(
   stopifnot(param$sampleGroup != param$refGroup)
 
   input = cleanupTwoGroupsInput(input, param)
+  param$groupingName = param$grouping
   param$grouping = input$getColumn(param$grouping)
   if (ezIsSpecified(param$grouping2) && length(param$grouping2) == 1) {
+    param$grouping2Name = param$grouping2
     param$grouping2 = input$getColumn(param$grouping2)
   }
 
@@ -82,12 +94,15 @@ ezMethodLimma = function(
     return("Error")
   }
 
-  makeRmdReport(
+  makeQuartoReport(
     output = output,
     param = param,
     deResult = deResult,
-    rmdFile = "twoGroups.Rmd"
+    qmdFile = "twoGroups.qmd",
+    reportTitle = param$comparison,
+    colour = isTRUE(param$colour),
+    number = isTRUE(param$number)
   )
-  rmStatus <- file.remove(list.files(pattern = "enrich-.*rds"))
+  rmStatus <- file.remove(list.files(pattern = "enrichr-.*rds"))
   return("Success")
 }

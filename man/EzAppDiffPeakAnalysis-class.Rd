@@ -13,7 +13,10 @@
 \item{param}{a list of parameters to customize the application run.}
 }
 \description{
-Use this reference class to run a differential expression analysis with the application edgeR on two groups.
+Use this reference class to run a differential peak analysis
+(ATAC-seq / ChIP-seq) on consensus-peak counts of two groups with DESeq2,
+including known-motif enrichment (HOMER), GO over-representation, BigWig
+signal profiles and normalisation / GC diagnostics.
 }
 \section{Fields}{
 

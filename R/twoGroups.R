@@ -459,6 +459,7 @@ runLimma <- function(
     fit <- eBayes(fit)
     topDT <- topTable(fit, num = Inf, coef = ncol(design), sort.by = "none")  # input gene order: the caller assigns by position
   }
+  stopifnot(identical(rownames(topDT), rownames(x)))
   res <- list()
   res$id <- rownames(topDT)
   res$log2FoldChange <- topDT$logFC

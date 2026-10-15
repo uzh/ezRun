@@ -13,7 +13,7 @@
 ##' stable even when only a subset of metrics is available.
 ##' @template input-template
 ##' @template output-template
-##' @template param-template
+##' @param param a list of parameters to customize the application run.
 ##' @template htmlFile-template
 ##' @return Character scalar indicating success.
 ##' @template roxygen-template
@@ -719,7 +719,7 @@ get_dna_bamstats_triggered_flags_text <- function(
 ##' @title Format a DNA BAM stats metric for report display
 ##' @description Apply one-decimal formatting and optional unit suffixes.
 ##' @param values Numeric vector.
-##' @param unit Optional unit suffix such as `"%"` or `"x"`.
+##' @param unit Optional unit suffix such as `"\%"` or `"x"`.
 ##' @return Character vector with formatted metric values.
 ##' @template roxygen-template
 format_dna_bamstats_metric <- function(values, unit = "") {
@@ -1290,7 +1290,7 @@ get_qualimap_read_count <- function(lines, prefix) {
 
 ##' @title Parse coverage breadth from Qualimap text output
 ##' @description Extract the percent of reference covered at >= x-fold depth
-##' from a `There is a N% of reference with a coverageData >= xX` line.
+##' from a `There is a N\% of reference with a coverageData >= xX` line.
 ##' @param lines Character vector read from `genome_results.txt`.
 ##' @param xThreshold Integer coverage-depth threshold.
 ##' @return Numeric percent or `NA_real_`.
@@ -1342,7 +1342,7 @@ dna_bamstats_extract_first_number <- function(x) {
 }
 
 ##' @title Extract a percentage from parentheses in legacy text
-##' @description Parse a percentage stored as `(100%)` from a legacy line.
+##' @description Parse a percentage stored as `(100\%)` from a legacy line.
 ##' @param x Character scalar containing a legacy metric line.
 ##' @return Numeric scalar or `NA_real_`.
 ##' @template roxygen-template

@@ -13,7 +13,9 @@
 \item{param}{a list of parameters to customize the application run.}
 }
 \description{
-Use this reference class to run
+Exploratory sgRNA/gene count QC for pooled CRISPR screens
+  (library representation, sample clustering, essential-gene separation) from
+  MAGeCK count output.
 }
 \section{Fields}{
 

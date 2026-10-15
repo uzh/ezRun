@@ -949,6 +949,7 @@ makeRmdReport <- function(
 ##'   \code{FALSE} for none, or names among "search" and "download"
 ##' @param colour Use the per-nesting-level tab colour palette
 ##' @param number Prefix tab labels with hierarchical numbers (1, 1.1, ...)
+##' @param full_width Use the full browser width for the report body
 ##' @param use.qs2 If TRUE, use qs2 rather than rds
 ##' @param nthreads Threads used for qs2 serialisation
 ##' @template roxygen-template
@@ -963,6 +964,7 @@ makeQuartoReport <- function(
   buttons = TRUE,
   colour = FALSE,
   number = FALSE,
+  full_width = TRUE,
   use.qs2 = TRUE,
   nthreads = 4,
   ## quiet = TRUE hides the renderer's own stderr, so a failing report reaches the
@@ -1006,6 +1008,7 @@ makeQuartoReport <- function(
     buttons = buttons,
     colour = colour,
     number = number,
+    full_width = full_width,
     execute_params = list(reportTitle = reportTitle),
     output_file = htmlFile,
     quiet = quiet

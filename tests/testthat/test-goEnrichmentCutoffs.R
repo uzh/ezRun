@@ -1,7 +1,8 @@
 ## clusterProfiler 4.21 (R 4.6) hands GSEA to enrichit 0.2.0, which keeps terms on the raw p-value
 ## only, and keeps every tested ORA term in @result. fdrThreshGSEA / fdrThreshORA are FDR cut-offs
-## (the report says "fdr <="), so every kept term must have p.adjust at or below them, and a truly
-## enriched term must still be kept.
+## (the report says "fdr <="). Every tested term is stored (the Excel export lists them all); the
+## `significant` column must mark exactly the terms with p.adjust at or below the cut-off, and a
+## truly enriched term must be flagged.
 goTestInput <- function(seed) {
   set.seed(seed)
   genes <- paste0("ENSG", sprintf("%05d", 1:400))
@@ -18,28 +19,30 @@ goTestInput <- function(seed) {
        selections = list(upGenes = c(top, up), downGenes = sample(genes, 60)))
 }
 
-test_that("GSEA keeps only terms with an adjusted p-value at or below fdrThreshGSEA", {
+test_that("GSEA flags as significant exactly the terms with p.adjust <= fdrThreshGSEA", {
   skip_if_not_installed("clusterProfiler")
   skip_if_not_installed("GO.db")
   input <- goTestInput(7)
   res <- ezGSEA(input, list(fdrThreshGSEA = 0.2, rankMetric = "log2Ratio"))
   for (onto in names(res)) {
     tab <- res[[onto]]@result
-    expect_true(all(tab$p.adjust <= 0.2), label = onto)
-    expect_true(input$planted %in% tab$ID, label = paste(onto, "planted term kept"))
+    expect_identical(tab$significant, tab$p.adjust <= 0.2, label = onto)
+    expect_true(any(!tab$significant), label = paste(onto, "non-significant terms kept"))
+    expect_true(input$planted %in% tab$ID[tab$significant], label = paste(onto, "planted term flagged"))
   }
 })
 
-test_that("ORA keeps only terms with an adjusted p-value at or below fdrThreshORA", {
+test_that("ORA flags as significant exactly the terms with p.adjust <= fdrThreshORA", {
   skip_if_not_installed("clusterProfiler")
   skip_if_not_installed("GO.db")
   input <- goTestInput(11)
   res <- ezEnricher(input, list(fdrThreshORA = 0.05))
   for (onto in names(res)) for (sel in names(res[[onto]])) {
     tab <- res[[onto]][[sel]]@result
-    expect_true(all(tab$p.adjust <= 0.05), label = paste(onto, sel))
+    expect_identical(tab$significant, tab$p.adjust <= 0.05, label = paste(onto, sel))
   }
-  expect_true(input$planted %in% res$BP$upGenes@result$ID, label = "planted term kept for upGenes")
+  up <- res$BP$upGenes@result
+  expect_true(input$planted %in% up$ID[up$significant], label = "planted term flagged for upGenes")
 })
 
 test_that("GSEA stops on an unknown rankMetric", {

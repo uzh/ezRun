@@ -73,7 +73,9 @@ ezMethodDeseq2 = function(input = NA, output = NA, param = NA) {
             rowdata       = rowData(deResult),
             factors       = factorCols,
             de            = setNames(list(rowData(deResult)), param$comparison),
-            pathways      = pathwaysArg
+            pathways      = pathwaysArg,
+            ## store and show only the terms the report calls significant
+            enrichment_padj_max = list(ora = param$fdrThreshORA, gsea = param$fdrThreshGSEA)
           )
         },
         error = function(e) {
@@ -85,12 +87,14 @@ ezMethodDeseq2 = function(input = NA, output = NA, param = NA) {
     }
   }
 
-  makeRmdReport(
+  makeQuartoReport(
     output = output,
     param = param,
     deResult = deResult,
-    rmdFile = "twoGroups.Rmd",
-    reportTitle = param$comparison
+    qmdFile = "twoGroups.qmd",
+    reportTitle = param$comparison,
+    colour = isTRUE(param$colour),
+    number = isTRUE(param$number)
   )
   rmStatus <- file.remove(list.files(pattern = "enrichr-.*rds"))
   return("Success")
@@ -157,6 +161,16 @@ EzAppDeseq2 <-
             Type = "logical",
             DefaultValue = FALSE,
             Description = "Also write an exploreDE-compatible .h5ad file alongside the xlsx/Rmd report"
+          ),
+          colour = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "coloured tab hierarchy in the report"
+          ),
+          number = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "numbered tab hierarchy in the report"
           )
         )
       }

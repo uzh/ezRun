@@ -17,13 +17,6 @@ EzRef(param)
 \description{
 Objects of this class are a collection of references derived from a list of parameters.
 }
-\section{Methods (by generic)}{
-\itemize{
-\item \code{x[i}: Access of slots by name with square brackets [ ]
-
-\item \code{`[`(x = EzRef, i = ANY, j = ANY) <- value}: Assignment to slots by name with square brackets [ ]
-
-}}
 \section{Functions}{
 \itemize{
 \item \code{EzRef()}: Initializes the slots of EzRef. It will also try to specify some fields and if necessary get full file paths.
@@ -50,6 +43,15 @@ Objects of this class are a collection of references derived from a list of para
 
 \item{\code{refAnnotationVersion}}{a character specifying the annotation version.}
 }}
+
+\section{Methods (by generic)}{
+
+\itemize{
+\item \code{x[i]}: Access of slots by name with square brackets [ ]
+
+\item \code{x[i] <- value}: Assignment to slots by name with square brackets [ ]
+}
+}
 
 \examples{
 refBuild = "Saccharomyces_cerevisiae/Ensembl/EF4/Annotation/Version-2013-03-18"

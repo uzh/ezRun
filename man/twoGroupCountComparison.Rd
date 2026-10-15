@@ -16,7 +16,8 @@ runDeseq2(
   grouping,
   grouping2 = NULL,
   isPresent = NULL,
-  cooksCutoff = FALSE
+  cooksCutoff = FALSE,
+  useLfcShrink = FALSE
 )
 
 runEdger(x, sampleGroup, refGroup, grouping, normMethod, priorCount = 0.125)

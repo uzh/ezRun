@@ -2,9 +2,15 @@
 % Please edit documentation in R/bamio.R
 \name{getBamMultiMatching}
 \alias{getBamMultiMatching}
+\alias{getBamMultiMatchingFromNH}
+\alias{getBamMultiMatchingFromQnames}
 \title{Gets bam multi matching}
 \usage{
 getBamMultiMatching(param, bamFile, nReads = NULL)
+
+getBamMultiMatchingFromNH(param, bamFile)
+
+getBamMultiMatchingFromQnames(param, bamFile)
 }
 \arguments{
 \item{param}{a list of parameters:
@@ -22,6 +28,15 @@ Returns a integer vector specifying the amount of matching reads.
 \description{
 Gets bam multi matching and returns the result as an integer vector.
 }
+\section{Functions}{
+\itemize{
+\item \code{getBamMultiMatchingFromNH()}: Counts the reads per number of reported loci using the NH tag.
+Returns NULL if the bam file does not carry the tag.
+
+\item \code{getBamMultiMatchingFromQnames()}: Counts the reads per number of reported alignments by
+grouping the read names. Used when the bam file has no NH tag.
+
+}}
 \examples{
 param = ezParam()
 bamFile <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
