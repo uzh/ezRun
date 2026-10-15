@@ -42,12 +42,17 @@ samples <- input$getNames()
 ans4Report <- data.frame(dataset[['Read Count']], check.names = FALSE, row.names = samples)
 colnames(ans4Report) <- 'Read Count'
 
+## the screens use a single read: Read2 only if readFileToUse is "Read2", otherwise Read1
+screenedRead <- if (identical(param$readFileToUse, "Read2")) "Read2" else "Read1"
+
 debug <- FALSE
 ```
 
 
 ## FastqScreen Mapping Rates to Adapters and rRNA
 `r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`
+
+All screens in this report use **`r screenedRead`** only.
 
 The raw reads are checked for adapter content. A local alignment using [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) is performed. Reads occuring from adapter dimers and adapter contamination at the 3' end can be discovered. 
 
@@ -68,14 +73,16 @@ p
 
 A Bowtie2 end-to-end alignment is performed to estimate the overall rRNA content of the libraries. [SILVA](https://www.arb-silva.de/) is used as the reference database. The read orientation can be used to check if the sequenced libraries preserve the strand information.
 
+Sense and antisense refer to the orientation of **`r screenedRead`** relative to the rRNA. In dUTP-based stranded libraries (e.g. Illumina Stranded mRNA / Total RNA, TruSeq Stranded), Read1 is mostly antisense and Read2 mostly sense; the same libraries are therefore reported as antisense by the strandedness check after STAR mapping, which refers to Read1. Unstranded libraries show similar sense and antisense fractions.
+
 ```{r overview rRNA plotly, fig.height=7, fig.width=min(max(7, 7+(length(samples)-20)*0.2), 30), echo=FALSE, warning=FALSE, message=FALSE}
 # rRNA Mapping
 rRnaPercentMapped = rRNAstrandResult[ , c("Sense", "Antisense")] / rRNAstrandResult$`Read Count` * 100
 rRnaPercentMapped$sample = rownames(rRnaPercentMapped)
-p <- plot_ly(rRnaPercentMapped, x=~sample, y=~Sense, 
-             type="bar", name="sense") %>%
-  add_trace(y = ~Antisense, name = "antisense") %>%
-  layout(title = "rRNA Silva Mapping - Bowtie2, end-to-end Alignment",
+p <- plot_ly(rRnaPercentMapped, x=~sample, y=~Sense,
+             type="bar", name=paste(screenedRead, "sense")) %>%
+  add_trace(y = ~Antisense, name = paste(screenedRead, "antisense")) %>%
+  layout(title = paste0("rRNA Silva Mapping of ", screenedRead, " - Bowtie2, end-to-end Alignment"),
          yaxis = list(title = "rRNA-Mapping-Rate in %"),
          xaxis = list(title = ""),
          barmode = 'stack', margin = m)
@@ -327,8 +334,9 @@ if(param[['virusCheck']]){
 }
 ```
 
-## Read Patterns R1
+## Read Patterns `r screenedRead`
 ```{r, echo=FALSE, include=TRUE, warning=FALSE, message=TRUE, eval=!debug, fig.height=5, fig.width=20, results="asis"}
+## PWMresult[['R1']] holds the screened read, which is Read2 if readFileToUse is "Read2"
 PWMs <- PWMresult[['R1']]
 for (nm in names(PWMs)){
   cat(nm, "\n \n")
@@ -380,6 +388,7 @@ if (all(!is.na(readCount))){
 ```{r setting, echo=FALSE}
 getAppVer <- function(appName) { sub("^.+/([^/]+)$", "\\1", Sys.getenv(appName)) }
 settings = character()
+settings["Screened Read:"] = screenedRead
 settings["Configuration File:"] = param$confFile
 settings["RefSeq mRNA Reference:"] = REFSEQ_mRNA_REF
 settings["FastqScreen Version:"] = getAppVer("FastQScreen")
