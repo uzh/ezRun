@@ -697,6 +697,9 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
   } else {
     qc.lib <- scData@meta.data[, att_nCounts] < param$nreads
   }
+  ## SpotSweeper compares a spot to its neighbours and keeps empty spots in
+  ## low-count regions; SCTransform fails on cells without UMIs (log_umi).
+  qc.lib <- qc.lib | scData@meta.data[, att_nCounts] == 0
 
   if (is.na(param$ngenes)) {
     if (assay == 'Spatial') {
@@ -765,6 +768,12 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
     row.names = rownames(cellsPerGene)
   )
   scData <- scData[is.expressed, ]
+  ## the gene filter can leave cells without any counts
+  isEmpty <- Matrix::colSums(GetAssayData(scData, layer = "counts")) == 0
+  if (any(isEmpty)) {
+    ezLog(sum(isEmpty), " cells without counts after gene filtering removed")
+    scData <- scData[, !isEmpty]
+  }
   return(list(
     scData.unfiltered = scData.unfiltered,
     scData = scData,
