@@ -10,11 +10,10 @@
 ## which species the sample itself comes from. If the user-selected host
 ## build is itself human, this step is skipped since it would just repeat
 ## the same mapping twice. Shared by EzAppVirDetect and EzAppDeHost.
-DEFAULT_HUMAN_REFBUILD <- "Homo_sapiens/GENCODE/GRCh38.p14"
-## VirDetect filters human reads against the telomere-to-telomere assembly,
-## which also covers centromeres/satellites/rDNA arrays missing from GRCh38
-## and thus removes more human reads before the virome mapping
-VIRDETECT_HUMAN_REFBUILD <- "Homo_sapiens/Ensembl/T2T-CHM13v2.0"
+## The telomere-to-telomere assembly is used since it also covers
+## centromeres/satellites/rDNA arrays missing from GRCh38 and thus removes
+## more human reads.
+DEFAULT_HUMAN_REFBUILD <- "Homo_sapiens/Ensembl/T2T-CHM13v2.0"
 
 ##' @title Counts the reads in a (gzipped) fastq file
 countFastqReads <- function(fastqFile) {
@@ -119,7 +118,7 @@ ezMethodVirDetect <- function(
   ## unless the user-selected host build already is human
   refChain <- c(Host = param$hostBuild)
   if (!grepl("^Homo_sapiens", param$hostBuild)) {
-    refChain <- c(Human = VIRDETECT_HUMAN_REFBUILD, refChain)
+    refChain <- c(Human = DEFAULT_HUMAN_REFBUILD, refChain)
   }
 
   curR1 <- trimmedInput$getColumn("Read1")
