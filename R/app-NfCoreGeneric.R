@@ -7,6 +7,32 @@ EzAppNfCoreGeneric <- setRefClass(
       callSuper()
     },
     run = function(input, output, param) {
+      succeeded <- FALSE
+      on.exit(.self$sendExitMail(output, param, succeeded), add = TRUE)
+      .self$runPipeline(input, output, param)
+      succeeded <- TRUE
+      invisible(NULL)
+    },
+    sendExitMail = function(output, param, succeeded) {
+      if (!ezValidMail(param[["mail"]])) {
+        return(invisible(NULL))
+      }
+      tryCatch(
+        {
+          outputDataset <- EzDataset$new(meta = output, dataRoot = param[["dataRoot"]])
+          links <- .self$outputLinks(outputDataset, param)
+          status <- if (succeeded) "done" else "failed"
+          subject <- paste0("nf-core/", param[["nfcorePipeline"]], " ", param[["name"]], " ", status)
+          text <- if (succeeded) links else c(links, " ", geterrmessage())
+          ezMail(text = text, subject = subject, to = param[["mail"]])
+        },
+        error = function(e) {
+          ezLog("could not send the notification e-mail: ", conditionMessage(e))
+        }
+      )
+      invisible(NULL)
+    },
+    runPipeline = function(input, output, param) {
       pipeline <- param[["nfcorePipeline"]]
       version <- param[["pipelineVersion"]]
       dataRoot <- param[["dataRoot"]]
