@@ -202,6 +202,10 @@ EzAppNfCoreGeneric <- setRefClass(
       mapping <- NULL
       mj <- param[["samplesheetMapping"]]
       if (!is.null(mj) && length(mj) == 1 && !is.na(mj) && nzchar(mj)) {
+        mj <- trimws(mj)
+        if (!startsWith(mj, "{")) {
+          mj <- paste0("{", mj, "}")
+        }
         mapping <- tryCatch(
           jsonlite::fromJSON(mj, simplifyVector = TRUE),
           error = function(e) {

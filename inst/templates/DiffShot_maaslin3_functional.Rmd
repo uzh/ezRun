@@ -72,6 +72,15 @@ prevMin      <- .as_num(param$prevalenceMin   %||% 0.10, 0.10)
 relabMin     <- .as_num(param$relabundMin     %||% 0.10, 0.10)
 maaslinMaxSig <- .as_num(param$maaslinMaxSig  %||% 0.10, 0.10)
 pValueThresh  <- .as_num(param$pValueThresh   %||% 0.05, 0.05)
+runEnrichment <- isTRUE(as.logical(param$functionalEnrichment %||% TRUE))
+enrichPrevMin <- .as_num(param$enrichPrevalenceMin %||% 0.10, 0.10)
+metacycDefs   <- as.character(param$metacycPathwayDefs %||% "")
+koGmtFiles    <- .split_csv(param$koGeneSetFiles %||% "")
+enrichMinSet  <- as.integer(.as_num(param$enrichMinSetSize %||% 5, 5))
+stratTopN     <- as.integer(.as_num(param$stratifiedTopN %||% 10, 10))
+taxProfiles   <- param$taxonomicProfiles
+humannModes   <- param$humannModes
+taxInfTables  <- param$taxInferredTables
 
 if (!nzchar(grouping) || !nzchar(sampleGroup) || !nzchar(refGroup))
   stop("grouping, sampleGroup and refGroup are required.")
@@ -295,6 +304,7 @@ label_for <- function(tag) {
 ```
 
 ```{r per_table_loop, results='asis'}
+allRes <- list()
 for (tag in names(funcTables)) {
   cat(sprintf("\n## %s\n\n", label_for(tag)))
   mat_raw <- load_joined(funcTables[[tag]])
@@ -315,6 +325,7 @@ for (tag in names(funcTables)) {
   cat(sprintf("- Native output dir: `%s/`\n\n", r$outDir))
 
   resDf <- r$res
+  allRes[[tag]] <- resDf
   sig <- resDf[!is.na(resDf$qval_individual) &
                resDf$qval_individual <= maaslinMaxSig &
                resDf$metadata == grouping, , drop = FALSE]
@@ -368,6 +379,129 @@ for (tag in names(funcTables)) {
 }
 ```
 
+```{r enrichment, results='asis'}
+enrichTargets <- list()
+if (runEnrichment && "reactions" %in% names(funcTables) &&
+    nzchar(metacycDefs) && file.exists(metacycDefs)) {
+  enrichTargets$reactions <- list(
+    label = "MetaCyc pathways (reaction sets)",
+    sets  = humann_read_metacyc_sets(metacycDefs),
+    names = humann_read_metacyc_names(file.path(dirname(metacycDefs),
+                                                "map_metacyc-pwy_name.txt.gz")))
+}
+koGmtFiles <- koGmtFiles[file.exists(koGmtFiles)]
+if (runEnrichment && "genefamilies_ko" %in% names(funcTables) && length(koGmtFiles) > 0) {
+  gmt <- humann_read_gmt(koGmtFiles)
+  if (!is.null(gmt$term2gene)) {
+    enrichTargets$genefamilies_ko <- list(label = "KO gene sets",
+                                          sets = gmt$term2gene, names = gmt$term2name)
+  }
+}
+if (length(enrichTargets) > 0) {
+  cat("\n# Functional enrichment (GSEA) {.tabset}\n\n")
+  for (tag in names(enrichTargets)) {
+    cat(sprintf("\n## %s\n\n", enrichTargets[[tag]]$label))
+    matRank <- filter_features(load_joined(funcTables[[tag]]), enrichPrevMin, 0)
+    r <- run_one(matRank, md, sprintf("%s_ranking", tag))
+    if (!is.null(r$err)) {
+      cat(sprintf("**MaAsLin3 ranking model error:** %s\n\n", r$err))
+      next
+    }
+    rankStats <- humann_rank_statistic(r$res, grouping)
+    names(rankStats) <- humann_feature_ids(names(rankStats))
+    rankStats <- rankStats[!duplicated(names(rankStats))]
+    gsea <- tryCatch(humann_run_gsea(rankStats, enrichTargets[[tag]]$sets,
+                                     enrichTargets[[tag]]$names, minSize = enrichMinSet),
+                     error = function(e) e)
+    if (inherits(gsea, "error")) {
+      cat(sprintf("**GSEA error:** %s\n\n", conditionMessage(gsea)))
+      next
+    }
+    nSig <- if (nrow(gsea) > 0) sum(gsea$p.adjust < maaslinMaxSig) else 0
+    cat(sprintf("- Ranked features: %d; gene sets tested: %d; adjusted p < %g: **%d**\n",
+                length(rankStats), nrow(gsea), maaslinMaxSig, nSig))
+    if (nrow(gsea) == 0) {
+      cat("\n*No gene set overlapped the ranked features.*\n\n")
+      next
+    }
+    gseaCsv <- save_csv(gsea, sprintf("gsea_%s.csv", tag))
+    cat(sprintf("- Download: [all gene sets](%s)\n\n", gseaCsv))
+    showCols <- setdiff(colnames(gsea), c("core_enrichment", "leading_edge"))
+    tblTags <- htmltools::renderTags(dt(gsea[order(gsea$p.adjust), showCols, drop = FALSE],
+                                        caption = sprintf("GSEA - %s (%s vs %s)",
+                                                          enrichTargets[[tag]]$label,
+                                                          sampleGroup, refGroup)))
+    knitr::knit_meta_add(tblTags$dependencies)
+    cat(tblTags$html, "\n\n")
+    gp <- humann_gsea_plot(gsea, sprintf("%s - top gene sets", enrichTargets[[tag]]$label))
+    if (!is.null(gp)) {
+      plot_to_html(gp, width_in = 10, height_in = 7)
+    }
+  }
+}
+```
+
+```{r contributors, results='asis'}
+stratTags <- intersect(c("reactions", "genefamilies_ko", "pathabundance"), names(allRes))
+if (stratTopN > 0 && length(stratTags) > 0) {
+  cat("\n# Species contributions {.tabset}\n\n")
+  speciesAbund <- NULL
+  if (length(taxProfiles) > 0) {
+    fullSamples <- names(taxProfiles)
+    if (length(humannModes) > 0) {
+      fullSamples <- names(humannModes)[humannModes %in% "full"]
+    }
+    profiles <- taxProfiles[names(taxProfiles) %in% fullSamples]
+    profiles <- profiles[file.exists(profiles)]
+    if (length(profiles) > 0) {
+      speciesAbund <- humann_read_metaphlan_species(profiles)
+    }
+  }
+  for (tag in stratTags) {
+    cat(sprintf("\n## %s\n\n", label_for(tag)))
+    strat <- humann_load_stratified(funcTables[[tag]])
+    stratSource <- "HUMAnN species stratification"
+    if (is.null(strat) && tag %in% names(taxInfTables)) {
+      strat <- humann_load_stratified(taxInfTables[[tag]])
+      stratSource <- "taxonomy inferred from UniRef90 LCA (humann_infer_taxonomy); no MetaPhlAn abundance test"
+    }
+    if (is.null(strat)) {
+      cat("*No species-stratified rows (translated-only HUMAnN) and no inferred taxonomy; skipped.*\n\n")
+      next
+    }
+    cat(sprintf("- Stratification: %s\n", stratSource))
+    res <- allRes[[tag]]
+    res <- res[res$metadata == grouping & res$model == "abundance" &
+               !is.na(res$qval_individual), , drop = FALSE]
+    res <- res[order(res$qval_individual, res$pval_individual), , drop = FALSE]
+    feats <- head(unique(res$feature[res$feature %in% strat$feature]), stratTopN)
+    if (length(feats) == 0) {
+      cat("*None of the top features has species-stratified rows.*\n\n")
+      next
+    }
+    cb <- humann_contributors(strat, feats, md, grouping, sampleGroup, refGroup,
+                              covariates, speciesAbund)
+    if (is.null(cb$table)) {
+      cat("*The top features have no named species contributors.*\n\n")
+      next
+    }
+    cbCsv <- save_csv(cb$table, sprintf("contributors_%s.csv", tag))
+    cat(sprintf("- Top %d features by q; species abundance tests: %s\n",
+                length(feats), if (is.null(speciesAbund)) "not available" else "MetaPhlAn profile"))
+    cat(sprintf("- Download: [contributor table](%s)\n\n", cbCsv))
+    tblTags <- htmltools::renderTags(dt(cb$table, caption = sprintf(
+      "Top species contributors - %s (coefficients: log2, %s vs %s)",
+      label_for(tag), sampleGroup, refGroup)))
+    knitr::knit_meta_add(tblTags$dependencies)
+    cat(tblTags$html, "\n\n")
+    cp <- humann_contributor_plot(cb$plotData)
+    if (!is.null(cp)) {
+      plot_to_html(cp, width_in = 10, height_in = max(4, 1.4 * length(feats)))
+    }
+  }
+}
+```
+
 # Method notes
 
 - Input: HUMAnN 4 alpha per-sample outputs joined via `humann_join_tables` (substring match on `genefamilies` / `reactions` / `pathabundance`). Stratified rows (`|s__`, `|t__SGB`) and HUMAnN special rows (`UNMAPPED` / `UNINTEGRATED` / `UNGROUPED` / `READS_UNMAPPED`) are dropped.
@@ -375,3 +509,6 @@ for (tag in names(funcTables)) {
 - Model: `~ grouping + covariates + ReadDepth` (ReadDepth = column sum, always added).
 - MaAsLin3 options: `normalization = "NONE"` (HUMAnN tables are already CPM-normalised), `transform = "LOG"`, `standardize = TRUE`, max_significance = `r maaslinMaxSig`.
 - One MaAsLin3 run per available functional table; results dirs sit at `maaslin3_<tag>/`.
+- GSEA: an extra MaAsLin3 run per table with prevalence >= `r enrichPrevMin` only ranks features by (coef - null_hypothesis) / stderr of the abundance model; preranked GSEA (clusterProfiler/fgsea) tests MetaCyc pathways as reaction sets and KO gene sets from the supplied GMT files.
+- GSEA gene sets need at least `r enrichMinSet` ranked features.
+- Species contributions: for the top `r stratTopN` features per table, stratified rows are summed per species (or per inferred taxon from humann_infer_taxonomy when HUMAnN ran translated-only); linear models on log2 values with the same covariates test the contribution, the share of the species' own stratified output (gene content) and, in full-mode runs, the MetaPhlAn abundance of the species.

@@ -331,6 +331,50 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
       stop("Functional path: no joinable feature tables produced. ",
            "Check the upstream HUMAnNApp outputs.")
     param$functionalTables <- funcTables
+    if ("TaxonomicProfile" %in% input$colNames) {
+      profilePaths <- input$getFullPaths("TaxonomicProfile")
+      names(profilePaths) <- sampleNames
+      param$taxonomicProfiles <- profilePaths[!is.na(profilePaths) & file.exists(profilePaths)]
+    }
+    taxInfCols <- c("ReactionsTaxInferred" = "reactions",
+                    "KEGGKO_TaxInferred"   = "genefamilies_ko")
+    taxInfTables <- character()
+    for (col in intersect(names(taxInfCols), input$colNames)) {
+      tag <- taxInfCols[[col]]
+      tagDir <- file.path(funcStage, paste0(tag, "_taxinf"))
+      dir.create(tagDir, showWarnings = FALSE)
+      paths <- input$getFullPaths(col)
+      for (i in seq_along(sampleNames)) {
+        if (!is.na(paths[i]) && nzchar(paths[i]) && file.exists(paths[i])) {
+          file.copy(paths[i],
+                    file.path(tagDir, sprintf("%s_%s_taxinf.tsv", sampleNames[i], tag)),
+                    overwrite = TRUE)
+        }
+      }
+      joined <- sprintf("functional_%s_taxinf.tsv", tag)
+      ok <- tryCatch({
+        ezSystem(paste("humann_join_tables", "-i", shQuote(tagDir), "-o", shQuote(joined),
+                       "--file_name", shQuote("taxinf")))
+        TRUE
+      }, error = function(e) {
+        message(sprintf("Join failed for %s: %s", col, conditionMessage(e)))
+        FALSE
+      })
+      if (ok && file.exists(joined) && file.size(joined) > 0) {
+        taxInfTables[tag] <- joined
+      }
+    }
+    param$taxInferredTables <- taxInfTables
+    if ("Mode" %in% input$colNames) {
+      modePaths <- input$getFullPaths("Mode")
+      param$humannModes <- setNames(vapply(modePaths, function(p) {
+        if (is.na(p) || !file.exists(p)) {
+          return(NA_character_)
+        }
+        modeLine <- readLines(p, n = 1, warn = FALSE)
+        if (length(modeLine) == 0) NA_character_ else trimws(modeLine)
+      }, character(1)), sampleNames)
+    }
 
     ## Stage the functional MaAsLin3 Rmd alongside the working dir.
     funcRmd <- system.file("templates", "DiffShot_maaslin3_functional.Rmd",
@@ -595,6 +639,36 @@ EzAppDiffShot <-
             Type = "character",
             DefaultValue = "D",
             Description = "kraken-biom --max: highest taxonomic rank captured (D = Domain captures all)."
+          ),
+          functionalEnrichment = ezFrame(
+            Type = "logical",
+            DefaultValue = "TRUE",
+            Description = "HUMAnN input only: preranked GSEA on MaAsLin3 statistics (MetaCyc pathways as reaction sets; KO gene sets from koGeneSetFiles)."
+          ),
+          enrichPrevalenceMin = ezFrame(
+            Type = "numeric",
+            DefaultValue = 0.10,
+            Description = "HUMAnN input only: prevalence filter of the MaAsLin3 run that ranks features for GSEA (no abundance filter)."
+          ),
+          metacycPathwayDefs = ezFrame(
+            Type = "character",
+            DefaultValue = "/srv/GT/databases/humann/humann4_vOct22/utility_mapping/metacyc_pathways_structured_filtered_v24_subreactions",
+            Description = "HUMAnN input only: MetaCyc pathway definitions used as reaction sets for GSEA."
+          ),
+          enrichMinSetSize = ezFrame(
+            Type = "integer",
+            DefaultValue = 5,
+            Description = "HUMAnN input only: minimum number of ranked features a gene set must contain to be tested."
+          ),
+          koGeneSetFiles = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "HUMAnN input only: comma-separated GMT files with KO gene sets (e.g. KEGG modules, gut metabolic modules)."
+          ),
+          stratifiedTopN = ezFrame(
+            Type = "integer",
+            DefaultValue = 10,
+            Description = "HUMAnN input only: top features per table split into species contributions (needs full-mode HUMAnN; 0 disables)."
           ),
           cmdOptions = ezFrame(
             Type = "character",
