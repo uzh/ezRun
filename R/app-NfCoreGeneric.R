@@ -279,6 +279,10 @@ EzAppNfCoreGeneric <- setRefClass(
       samples <- data.frame(row.names = seq_len(nrow(ds)))
       for (nfCol in names(mapping)) {
         src <- mapping[[nfCol]]
+        if (startsWith(src, "=")) {
+          samples[[nfCol]] <- rep(substring(src, 2), nrow(ds))
+          next
+        }
         actual <- matchSourceCol(src)
 
         if (is.na(actual)) {
