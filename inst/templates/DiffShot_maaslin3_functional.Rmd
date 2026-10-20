@@ -399,6 +399,15 @@ if (runEnrichment && "genefamilies_ko" %in% names(funcTables) && length(koGmtFil
 }
 if (length(enrichTargets) > 0) {
   cat("\n# Functional enrichment (GSEA) {.tabset}\n\n")
+  cat(paste(
+    "Preranked GSEA tests each gene set as if its members varied independently.",
+    "In a metagenome they do not: features carried by the same organisms rise and",
+    "fall together, so the adjusted p-values below are anti-conservative. Read an",
+    "enriched set as a coherent description of the community shift rather than as",
+    "independent evidence for that function, and expect housekeeping sets",
+    "(ribosome, tRNA charging, core biosynthesis) to track composition. The species",
+    "contributions section shows whether a signal follows species abundance or gene",
+    "content.\n\n"))
   for (tag in names(enrichTargets)) {
     cat(sprintf("\n## %s\n\n", enrichTargets[[tag]]$label))
     matRank <- filter_features(load_joined(funcTables[[tag]]), enrichPrevMin, 0)
@@ -511,4 +520,5 @@ if (stratTopN > 0 && length(stratTags) > 0) {
 - One MaAsLin3 run per available functional table; results dirs sit at `maaslin3_<tag>/`.
 - GSEA: an extra MaAsLin3 run per table with prevalence >= `r enrichPrevMin` only ranks features by (coef - null_hypothesis) / stderr of the abundance model; preranked GSEA (clusterProfiler/fgsea) tests MetaCyc pathways as reaction sets and KO gene sets from the supplied GMT files.
 - GSEA gene sets need at least `r enrichMinSet` ranked features.
+- GSEA caveat: preranked GSEA assumes the ranked features are independent. Functional features contributed by the same organism are correlated, so the adjusted p-values are anti-conservative and the enriched sets describe the community shift in functional terms rather than providing independent evidence per function. Housekeeping sets often track composition for the same reason.
 - Species contributions: for the top `r stratTopN` features per table, stratified rows are summed per species (or per inferred taxon from humann_infer_taxonomy when HUMAnN ran translated-only); linear models on log2 values with the same covariates test the contribution, the share of the species' own stratified output (gene content) and, in full-mode runs, the MetaPhlAn abundance of the species.
