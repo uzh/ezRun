@@ -196,7 +196,7 @@ EzAppNfCoreGeneric <- setRefClass(
       # Handle input
       if (is.character(input) && file.exists(input)) {
         # Dataset mode: input is path to TSV
-        ds <- read.table(input, header=TRUE, sep="\t", stringsAsFactors=FALSE, check.names=FALSE)
+        ds <- read.table(input, header=TRUE, sep="\t", stringsAsFactors=FALSE, check.names=FALSE, comment.char="", quote="")
       } else {
         # Sample mode: input is list
         ds <- as.data.frame(input, stringsAsFactors=FALSE)

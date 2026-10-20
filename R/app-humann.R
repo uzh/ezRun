@@ -233,7 +233,7 @@ ezMethodHUMAnN <- function(input = NA, output = NA, param = NA,
     taxOk <- FALSE
     if (!is.null(tolLca) && nzchar(tolLca) && file.exists(tolLca)) {
       taxOk <- tryCatch({
-        ezSystem(sprintf("humann_infer_taxonomy -i %s --devdb %s -l %s -m %s -o %s",
+        ezSystem(sprintf("python -m humann.tools.infer_taxonomy -i %s --devdb %s -l %s -m %s -o %s",
                          shQuote(gfCpm), shQuote(tolLca), shQuote(taxLevel),
                          taxMode, shQuote(gfTax)))
         ezSystem(sprintf("humann_regroup_table -i %s -g uniref90_rxn -o %s",
