@@ -1,0 +1,72 @@
+region	gene
+Cortex L2/3	Cux2
+Cortex L2/3	Lamp5
+Cortex L2/3	Otof
+Cortex L2/3	Rasgrf2
+Cortex L4	Rorb
+Cortex L4	Rspo1
+Cortex L4	Scnn1a
+Cortex L5	Fezf2
+Cortex L5	Bcl11b
+Cortex L5	Deptor
+Cortex L5	Parm1
+Cortex L6	Foxp2
+Cortex L6	Syt6
+Cortex L6	Tle4
+Cortex L6	Sulf1
+Cortex L6b	Nxph4
+Cortex L6b	Ccn2
+Cortex L6b	Cplx3
+Hippocampus CA1	Fibcd1
+Hippocampus CA1	Wfs1
+Hippocampus CA1	Pou3f1
+Hippocampus CA3	Bok
+Hippocampus CA3	Nectin3
+Hippocampus CA3	Cpne4
+Dentate gyrus	Prox1
+Dentate gyrus	C1ql2
+Dentate gyrus	Dsp
+Dentate gyrus	Lct
+Striatum	Ppp1r1b
+Striatum	Penk
+Striatum	Gpr88
+Striatum	Rgs9
+Striatum	Adora2a
+Thalamus	Tcf7l2
+Thalamus	Prkcd
+Thalamus	Plekhg1
+Thalamus	Ramp3
+Habenula	Tac2
+Habenula	Gng8
+Habenula	Chrnb4
+Hypothalamus	Otp
+Hypothalamus	Sim1
+Hypothalamus	Avp
+Hypothalamus	Oxt
+Hypothalamus	Gal
+Fiber tracts	Mbp
+Fiber tracts	Plp1
+Fiber tracts	Mobp
+Fiber tracts	Mog
+Fiber tracts	Cldn11
+Choroid plexus	Ttr
+Choroid plexus	Kl
+Choroid plexus	Folr1
+Choroid plexus	Clic6
+Ependyma	Foxj1
+Ependyma	Ccdc153
+Ependyma	Rarres2
+Meninges	Ptgds
+Meninges	Dcn
+Meninges	Slc6a13
+Meninges	Igf2
+Piriform cortex	Igfn1
+Piriform cortex	Rasl10a
+Piriform cortex	Mas1
+Piriform cortex	Lamc2
+Piriform cortex	Plxnd1
+Amygdala	Dio3
+Amygdala	Krt2
+Amygdala	Lypd1
+Amygdala	Adamts13
+Amygdala	Trhr

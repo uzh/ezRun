@@ -4,7 +4,7 @@
 \name{EzAppBracken-class}
 \alias{EzAppBracken-class}
 \alias{EzAppBracken}
-\title{The R5 class representing a runnable app using \code{ezMethodBracken()}}
+\title{The R5 class representing a runnable app using \code{ezMethodBracken()()}}
 \arguments{
 \item{input}{a list, file path or an object of the class EzDataset containing the input.}
 
@@ -43,4 +43,9 @@ Use this reference class to run Bracken on a Kraken2 report
 \code{\link{EzApp}}
 
 \code{\link{EzDataset}}
+}
+\author{
+Rehrauer, Hubert
+
+Schmid, Peter
 }

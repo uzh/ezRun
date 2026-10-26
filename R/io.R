@@ -218,7 +218,7 @@ ezListAsKable <- function(my_list, ...) {
 ##' @description Generates an interactive table embeded in rmarkdown document.
 ##' @param values a data.frame or table to create an interactive table from.
 ##' @param digits the number of digits to round to, if rounding is desired.
-##' @param columnsToRound
+##' @param columnsToRound a logical vector (one per column) selecting the columns to round to \code{digits}; by default all double columns.
 ##' @param colNames a character vector specifying the column names of the interactive table.
 ##' @param title a character representing the title of the interactive table.
 ##' @template roxygen-template

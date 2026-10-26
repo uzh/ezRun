@@ -5,6 +5,14 @@
 # The terms are available here: http://www.gnu.org/licenses/gpl.html
 # www.fgcz.ch
 
+## Per-sample Visium SD analysis: spatially aware QC, SCT, expression
+## clusters, BANKSY spatial domains with region annotation, spatially
+## variable genes, RCTD (or CARD) deconvolution, domain neighbourhoods,
+## pathway/TF activity, distance-constrained ligand-receptor analysis
+## (CellChat v2; optional SpatialCellChat, liana), MISTy cell-type
+## dependencies and optional BayesSpace domains. The step functions live in
+## R/spatialSeuratSteps.R, R/spatialCommunication.R and R/spatialStats.R.
+
 EzAppSpatialSeurat <-
   setRefClass(
     "EzAppSpatialSeurat",
@@ -45,15 +53,15 @@ EzAppSpatialSeurat <-
             DefaultValue = 20,
             Description = "The maximal dimensions to use for reduction"
           ),
-          pcGenes = ezFrame(
-            Type = "charVector",
-            DefaultValue = "",
-            Description = "The genes used in supvervised clustering"
-          ),
           SCT.regress.CellCycle = ezFrame(
             Type = "logical",
             DefaultValue = FALSE,
-            Description = "Choose CellCycle to be regressed out when using the SCTransform method if it is a bias."
+            Description = "Regress out the cell cycle in SCTransform (implies cellCycle)"
+          ),
+          cellCycle = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "Score the cell cycle phase of every spot"
           ),
           enrichrDatabase = ezFrame(
             Type = "charVector",
@@ -62,8 +70,8 @@ EzAppSpatialSeurat <-
           ),
           DE.method = ezFrame(
             Type = "charVector",
-            DefaultValue = "wilcoxon",
-            Description = "Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."
+            DefaultValue = "wilcox",
+            Description = "Test used for cluster and domain markers (wilcox or LR)"
           ),
           min.pct = ezFrame(
             Type = "numeric",
@@ -78,7 +86,7 @@ EzAppSpatialSeurat <-
           resolution = ezFrame(
             Type = "numeric",
             DefaultValue = 0.6,
-            Description = "Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."
+            Description = "Resolution of the expression clustering"
           ),
           cellsFraction = ezFrame(
             Type = "numeric",
@@ -97,23 +105,23 @@ EzAppSpatialSeurat <-
           ),
           nreads = ezFrame(
             Type = "numeric",
-            DefaultValue = Inf,
-            Description = "Low quality cells have less than \"nUMI\" reads. Only when applying fixed thresholds."
+            DefaultValue = NA,
+            Description = "Fixed threshold: spots with fewer UMIs are removed; NA uses SpotSweeper local outliers"
           ),
           ngenes = ezFrame(
             Type = "numeric",
-            DefaultValue = Inf,
-            Description = "Low quality cells have less than \"ngenes\" genes. Only when applying fixed thresholds."
+            DefaultValue = NA,
+            Description = "Fixed threshold: spots with fewer genes are removed; NA uses SpotSweeper local outliers"
           ),
           perc_mito = ezFrame(
             Type = "numeric",
-            DefaultValue = Inf,
-            Description = "Low quality cells have more than \"perc_mito\" percent of mitochondrial genes. Only when applying fixed thresholds."
+            DefaultValue = NA,
+            Description = "Fixed threshold: spots with a higher mitochondrial percentage are removed; NA uses SpotSweeper local outliers"
           ),
           perc_ribo = ezFrame(
             Type = "numeric",
-            DefaultValue = Inf,
-            Description = "Low quality cells have more than \"perc_ribo\" percent of ribosomal genes. Only when applying fixed thresholds."
+            DefaultValue = NA,
+            Description = "Fixed threshold: spots with a higher ribosomal protein percentage are removed; NA keeps all"
           ),
           spotClean = ezFrame(
             Type = "logical",
@@ -127,18 +135,133 @@ EzAppSpatialSeurat <-
           ),
           featSelectionMethod = ezFrame(
             Type = "character",
-            DefaultValue = "STACAS",
-            Description = "use default method or black list genes"
-          ),
-          nfeatures = ezFrame(
-            Type = "numeric",
-            DefaultValue = 3000,
-            Description = "number of variable genes for SCT"
+            DefaultValue = "vst",
+            Description = "vst (default) or STACAS (blocklist genes; needs the SignatuR package)"
           ),
           pt.size.factor = ezFrame(
             Type = "numeric",
             DefaultValue = NA,
             Description = "pt.size.factor for spatial plots"
+          ),
+          banksyLambda = ezFrame(
+            Type = "numeric",
+            DefaultValue = 0.8,
+            Description = "BANKSY weight of the neighbourhood (0 = expression only, 0.8 = domain segmentation)"
+          ),
+          banksyKgeom = ezFrame(
+            Type = "numeric",
+            DefaultValue = 18,
+            Description = "BANKSY number of spatial neighbours (18 = two hexagonal rings of Visium spots)"
+          ),
+          banksyResolution = ezFrame(
+            Type = "numeric",
+            DefaultValue = 0.5,
+            Description = "Resolution of the BANKSY domain clustering"
+          ),
+          banksyNpcs = ezFrame(
+            Type = "numeric",
+            DefaultValue = 20,
+            Description = "Number of BANKSY principal components"
+          ),
+          regionMarkerFile = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "TSV (region, gene) used to name the domains; empty uses the built-in mouse brain panel"
+          ),
+          computeNnSVG = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "Rank the top Moran's I genes additionally with nnSVG"
+          ),
+          nnsvgTopN = ezFrame(
+            Type = "numeric",
+            DefaultValue = 300,
+            Description = "Number of top Moran's I genes tested with nnSVG"
+          ),
+          svgPatterns = ezFrame(
+            Type = "numeric",
+            DefaultValue = 6,
+            Description = "Number of spatial expression patterns the top SVGs are grouped into"
+          ),
+          rctdReference = ezFrame(
+            Type = "character",
+            DefaultValue = "None",
+            Description = "RCTD reference relative to /srv/GT/databases/RCTD_References"
+          ),
+          rctdFile = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "Full path to a custom RCTD reference (overrides rctdReference)"
+          ),
+          rctdUMImin = ezFrame(
+            Type = "numeric",
+            DefaultValue = 100,
+            Description = "Minimal UMIs of a spot to be deconvolved"
+          ),
+          rctdEngine = ezFrame(
+            Type = "character",
+            DefaultValue = "rctd-py",
+            Description = "RCTD implementation: rctd-py (same model, ~1.5 instead of ~10 min per section) or spacexr (R)"
+          ),
+          deconvolutionMethod = ezFrame(
+            Type = "character",
+            DefaultValue = "RCTD",
+            Description = "Cell-type deconvolution with the selected reference: RCTD, or CARD (spatially smoothed, ~3 min, 9 GB; needs the MuSiC package)"
+          ),
+          computePathwayTFActivity = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "Score PROGENy pathway and DoRothEA TF activities per spot"
+          ),
+          computeCellChat = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "Run distance-constrained CellChat between domains"
+          ),
+          cellchatInteractionLength = ezFrame(
+            Type = "numeric",
+            DefaultValue = 250,
+            Description = "Maximal ligand-receptor interaction distance in microns"
+          ),
+          cellchatNboot = ezFrame(
+            Type = "numeric",
+            DefaultValue = 20,
+            Description = "Permutations for the CellChat and SpatialCellChat p-values"
+          ),
+          computeMisty = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "MISTy: explain each cell type's proportion from the same spot, the direct neighbours and the wider neighbourhood (needs the deconvolution)"
+          ),
+          mistyParaviewRange = ezFrame(
+            Type = "numeric",
+            DefaultValue = 300,
+            Description = "Length scale in microns of the MISTy neighbourhood (paraview)"
+          ),
+          computeSpatialCellChat = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "SpatialCellChat: communication between neighbouring spots, averaged to cell types with the deconvolution weights (adds ~11 min per section on 8 cores)"
+          ),
+          computeLiana = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "liana consensus ligand-receptor ranking between touching domains (cross-check of CellChat; ~1.5 min)"
+          ),
+          computeBayesSpace = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "BayesSpace domains with as many domains as BANKSY found, for comparison (~3 min with 10000 iterations)"
+          ),
+          bayesspaceNrep = ezFrame(
+            Type = "numeric",
+            DefaultValue = 10000,
+            Description = "BayesSpace MCMC iterations"
+          ),
+          writeCloupe = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "Write a Loupe Browser file with clusters and domains (Space Ranger already provides cloupe.cloupe)"
           )
         )
       }
@@ -155,10 +278,10 @@ ezMethodSpatialSeurat <- function(
   setwdNew(basename(output$getColumn("Report")))
   on.exit(setwd(cwd), add = TRUE)
   library(Seurat)
-  library(scater)
-  library(loupeR)
   library(future)
   library(BiocParallel)
+  stopifnot(length(input$getNames()) == 1)
+  sampleName <- input$getNames()
 
   if (param$cores > 1) {
     BPPARAM <- MulticoreParam(workers = param$cores)
@@ -166,464 +289,273 @@ ezMethodSpatialSeurat <- function(
     BPPARAM <- SerialParam()
   }
   ## Pin BLAS/OpenMP to one thread before forking (MulticoreParam/future) to
-  ## avoid the fork-in-multithreaded-process deadlock (e.g. AUCell labeling).
+  ## avoid the fork-in-multithreaded-process deadlock.
   RhpcBLASctl::blas_set_num_threads(1)
   RhpcBLASctl::omp_set_num_threads(1)
   register(BPPARAM)
   plan("multicore", workers = param$cores)
   set.seed(38)
-  future.seed = TRUE
   options(future.rng.onMisuse = "ignore")
   options(future.globals.maxSize = param$ram * 1024^3)
-
-  cmDir <- input$getFullPaths("CountMatrix")
-  featInfo <- ezRead.table(
-    paste0(cmDir, "/features.tsv.gz"),
-    header = FALSE,
-    row.names = NULL
-  )
-  colnames(featInfo) <- c("gene_id", "gene_name", "type")
-  featInfo$isMito = grepl("(?i)^MT-", featInfo$gene_name)
-  featInfo$isRiboprot = grepl("(?i)^RPS|^RPL", featInfo$gene_name)
-  geneAnnoFile <- sub("byTranscript", "byGene", param$ezRef@refAnnotationFile)
-  if (file.exists(geneAnnoFile)) {
-    geneAnno <- ezRead.table(geneAnnoFile)
-    if (any(geneAnno$type == "rRNA")) {
-      featInfo$isRibosomal <- geneAnno[featInfo$gene_id, "type"] == "rRNA"
-      if (any(is.na(featInfo[, "isRibosomal"]))) {
-        featInfo[, "isRibosomal"][which(is.na(featInfo[,
-          "isRibosomal"
-        ]))] <- FALSE
-      }
-    }
+  if (ezIsSpecified(param$SCT.regress.CellCycle) && param$SCT.regress.CellCycle) {
+    param$cellCycle <- TRUE
   }
-  rownames(featInfo) <- gsub(
-    "_",
-    "-",
-    uniquifyFeatureNames(ID = featInfo$gene_id, names = featInfo$gene_name)
-  )
+  status <- new.env()
+  species <- getSpecies(param$refBuild)
 
-  res <- load10xSpatialData(input, param)
-  scData <- res[['scData']]
-  scDataRaw <- res[['scDataRaw']]
-  param <- res[['param']]
-  remove(res)
-  if (is.na(param$pt.size.factor)) {
-    img <- scData@images[[1]]
-    spotDiameter <- img@scale.factors$spot * img@scale.factors$hires
-    param$pt.size.factor = min(
-      spotDiameter * 0.17,
-      2 * param$imageEnlargementFactor
+  ## 1. load ----
+  featInfo <- spatial_feature_info(input)
+  loaded <- spatial_load(input, param)
+  scData <- loaded$scData
+  scDataRaw <- loaded$scDataRaw
+  param <- loaded$param
+  spotInfo <- loaded$spotInfo
+  remove(loaded)
+
+  ## 2. QC ----
+  qc <- spatial_qc(scData, featInfo, param, spotInfo)
+  scData <- qc$scData
+  scData.unfiltered <- qc$scData.unfiltered
+  cellsPerGeneFraction <- qc$cellsPerGeneFraction
+  qcInfo <- qc$qcInfo
+  remove(qc)
+
+  ## 3. normalisation and expression clusters ----
+  scData <- spatial_expr_clusters(scData, param)
+  scData <- spatial_add_graphs(scData)
+  exprMarkers <- spatial_group_markers(scData, "expr_cluster", param)
+
+  ## 4. BANKSY domains ----
+  banksy <- spatial_banksy_domains(scData, param)
+  scData <- banksy$scData
+  banksySweep <- banksy$sweep
+  remove(banksy)
+  domainMarkers <- spatial_group_markers(scData, "banksy_domain", param)
+
+  ## 5. optional steps ----
+  domainAnno <- run_optional_step(
+    "domainAnnotation",
+    spatial_annotate_domains(scData, param),
+    status
+  )
+  if (!is.null(domainAnno)) {
+    scData <- domainAnno$scData
+    domainAnno$scData <- NULL
+  }
+  svg <- run_optional_step("spatiallyVariableGenes", spatial_svg(scData, param), status)
+  if (!is.null(svg)) {
+    scData <- svg$scData
+    svg$scData <- NULL
+  }
+  rctd <- if (is.null(resolve_rctd_reference_path(param))) {
+    skip_step("deconvolution", "no RCTD reference selected", status)
+  } else if (identical(param$deconvolutionMethod, "CARD")) {
+    run_optional_step("deconvolution", spatial_card(scData, featInfo, param), status)
+  } else {
+    run_optional_step("deconvolution", spatial_rctd(scData, featInfo, param), status)
+  }
+  if (!is.null(rctd)) {
+    scData <- rctd$scData
+    rctd$scData <- NULL
+  }
+  neighbourhood <- run_optional_step(
+    "neighbourhood",
+    spatial_neighbourhood(scData, rctd$weights),
+    status
+  )
+  activity <- if (ezIsSpecified(param$computePathwayTFActivity) && param$computePathwayTFActivity) {
+    run_optional_step("activity", spatial_activity(scData, param), status)
+  } else {
+    skip_step("activity", "disabled by parameter", status)
+  }
+  if (!is.null(activity)) {
+    scData <- activity$scData
+    activity$scData <- NULL
+  }
+  communication <- if (ezIsSpecified(param$computeCellChat) && param$computeCellChat) {
+    run_optional_step("communication", spatial_communication(scData, param, spotInfo, rctd$weights), status)
+  } else {
+    skip_step("communication", "disabled by parameter", status)
+  }
+  ## steps on the cell-type proportions
+  misty <- run_weights_step(
+    "misty",
+    param$computeMisty,
+    rctd,
+    spatial_misty(scData, param, spotInfo, rctd$weights),
+    status
+  )
+  spatialCellChat <- run_weights_step(
+    "spatialCellChat",
+    param$computeSpatialCellChat,
+    rctd,
+    spatial_spatialcellchat(scData, param, spotInfo, rctd$weights),
+    status
+  )
+  liana <- if (ezIsSpecified(param$computeLiana) && param$computeLiana) {
+    run_optional_step(
+      "liana",
+      spatial_liana(scData, param, neighbourhood$domainAdjacency$observed),
+      status
+    )
+  } else {
+    skip_step("liana", "disabled by parameter", status)
+  }
+  bayesspace <- if (ezIsSpecified(param$computeBayesSpace) && param$computeBayesSpace) {
+    run_optional_step("bayesspace", spatial_bayesspace(scData, param), status)
+  } else {
+    skip_step("bayesspace", "disabled by parameter", status)
+  }
+  if (!is.null(bayesspace)) {
+    scData <- bayesspace$scData
+    bayesspace$scData <- NULL
+  }
+  enrichRout <- if (species %in% c("Human", "Mouse") && ezIsSpecified(param$enrichrDatabase)) {
+    run_optional_step(
+      "enrichR",
+      {
+        top <- exprMarkers %>%
+          group_by(cluster) %>%
+          slice_max(n = 500, order_by = avg_log2FC)
+        querySignificantClusterAnnotationEnrichR(
+          split(as.character(top$gene), top$cluster),
+          param$enrichrDatabase
+        )
+      },
+      status
+    )
+  } else {
+    skip_step("enrichR", "no database selected or unsupported species", status)
+  }
+  aziResults <- if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none") {
+    run_optional_step("azimuth", spatial_azimuth(scData, param), status)
+  } else {
+    skip_step("azimuth", "no Azimuth reference selected", status)
+  }
+  if (!is.null(aziResults)) {
+    scData <- AddMetaData(scData, aziResults)
+  }
+
+  ## 6. tables ----
+  writexl::write_xlsx(exprMarkers, path = "posMarkers.xlsx")
+  writexl::write_xlsx(domainMarkers, path = "domainMarkers.xlsx")
+  if (!is.null(svg)) {
+    writexl::write_xlsx(svg$table, path = "spatiallyVariableGenes.xlsx")
+  }
+  if (!is.null(domainAnno)) {
+    writexl::write_xlsx(
+      list(
+        labels = domainAnno$domainLabels,
+        scores = data.frame(
+          domain = rownames(domainAnno$domainScores),
+          domainAnno$domainScores,
+          check.names = FALSE
+        )
+      ),
+      path = "domainAnnotation.xlsx"
     )
   }
-
-  scDataRes <- runBasicProcessing(scData, input, featInfo, param, BPPARAM)
-  cellsPerGeneFraction <- scDataRes[['cellsPerGeneFraction']]
-  scData <- scDataRes[['scData']]
-  scData.unfiltered <- scDataRes[['scData.unfiltered']]
-  remove(scDataRes)
-
-  # get markers and annotations
-  anno <- getSpatialSeuratMarkersAndAnnotate(scData, param, BPPARAM)
-
-  # save markers
-  clusterMarkers <- anno$clusterMarkers
-  writexl::write_xlsx(clusterMarkers, path = "posMarkers.xlsx")
-
-  spatialMarkers <- anno$spatialMarkers
-  writexl::write_xlsx(spatialMarkers, path = "spatialMarkers.xlsx")
-
-  if (!is.null(anno$aziResults)) {
-    scData <- AddMetaData(scData, anno$aziResults)
+  if (!is.null(rctd)) {
+    rctd$weightsFile <- paste0(tolower(rctd$assay), "Weights.xlsx")
+    writexl::write_xlsx(
+      list(
+        weights = data.frame(spot = rownames(rctd$weights), rctd$weights, check.names = FALSE),
+        compositionPerDomain = rctd$composition
+      ),
+      path = rctd$weightsFile
+    )
   }
-  ## generate template for manual cluster annotation -----
-  ## we only deal with one sample
-  stopifnot(length(input$getNames()) == 1)
-  clusterInfos <- ezFrame(
-    Sample = input$getNames(),
-    Cluster = levels(Idents(scData)),
-    ClusterLabel = ""
-  )
-  if (!is.null(anno$singler.results)) {
-    clusterInfos$SinglerCellType <- anno$singler.results$singler.results.cluster[
-      clusterInfos$Cluster,
-      "pruned.labels"
-    ]
+  if (!is.null(communication)) {
+    sheets <- list()
+    for (level in names(communication)) {
+      sheets[[paste0("interactions_", level)]] <- communication[[level]]$interactions
+      sheets[[paste0("pathways_", level)]] <- communication[[level]]$pathways
+    }
+    writexl::write_xlsx(sheets, path = "cellchat.xlsx")
   }
-  nTopMarkers <- 10
-  topMarkers <- clusterMarkers %>%
-    group_by(cluster) %>%
-    slice_max(n = nTopMarkers, order_by = avg_log2FC)
-  topMarkerString <- sapply(
-    split(topMarkers$gene, topMarkers$cluster),
-    paste,
-    collapse = ", "
-  )
-  clusterInfos[["TopMarkers"]] <- topMarkerString[clusterInfos$Cluster]
-  clusterInfoFile <- "clusterInfos.xlsx"
-  writexl::write_xlsx(clusterInfos, path = clusterInfoFile)
-
-  #Save some results in external files
-  bulkSignalPerCluster <- data.frame(
+  if (!is.null(misty)) {
+    writexl::write_xlsx(
+      misty[c("improvements", "contributions", "importances")],
+      path = "misty.xlsx"
+    )
+  }
+  if (!is.null(spatialCellChat)) {
+    writexl::write_xlsx(
+      spatialCellChat[c("interactions", "pathways")],
+      path = "spatialCellChat.xlsx"
+    )
+  }
+  if (!is.null(liana)) {
+    writexl::write_xlsx(list(liana = liana), path = "liana.xlsx")
+  }
+  bulkSignalPerDomain <- data.frame(
     GeneSymbol = rownames(scData),
-    AggregateExpression(scData, group.by = 'ident')$SCT
+    AggregateExpression(scData, assays = "SCT", group.by = "banksy_domain")$SCT,
+    check.names = FALSE
   )
-  bulkSignalPerSample <- data.frame(
-    GeneSymbol = rownames(scData),
-    AggregateExpression(scData, group.by = 'Sample')$SCT
-  )
+  dataFiles <- saveExternalFiles(list(bulkSignalPerDomain = bulkSignalPerDomain))
+  ezLog("Tables written")
 
-  ###Add TPM, add HVG annotation to base tables, enrichR links for HVG and top 1000 genes per sample
-  dataFiles <- saveExternalFiles(list(
-    bulkSignalPerSample = bulkSignalPerSample,
-    bulkSignalPerCluster = bulkSignalPerCluster
-  ))
-
+  ## 7. objects and report ----
+  ezLog("Finalising objects")
+  ## the BANKSY matrix is only needed for clustering; keep the reductions
+  if ("BANKSY" %in% SeuratObject::Assays(scData)) {
+    scData[["BANKSY"]] <- NULL
+  }
+  names(scData@images)[1] <- paste0(sampleName, "_S1")
+  Idents(scData) <- "banksy_domain"
   allCellsMeta <- scData.unfiltered@meta.data
-  allCellsMeta$Sample <- allCellsMeta$Batch
   allCellsMeta$useCell <- !allCellsMeta$discard
-  ## make image name unique
-  names(scData@images)[1] <- paste0(input$getNames(), '_S1')
-
-  saveRDS(scData.unfiltered, "scData.unfiltered.rds")
-  saveRDS(input, "input.rds")
-  saveRDS(scDataRaw, "scData.raw.rds")
-  saveRDS(cellsPerGeneFraction, "cellsPerGeneFraction.rds")
-
-  tryCatch(
-    create_loupe_from_seurat(scData, output_name = input$getNames()),
-    error = function(e) ezLog('LoupeFile creation failed')
+  if (param$spotClean) {
+    qs2::qs_save(scDataRaw, "scData.raw.qs2", nthreads = 4)
+  }
+  if (ezIsSpecified(param$writeCloupe) && param$writeCloupe) {
+    run_optional_step("cloupe", spatial_write_cloupe(scData, sampleName), status)
+  } else {
+    skip_step("cloupe", "disabled by parameter", status)
+  }
+  if (!is.null(communication)) {
+    qs2::qs_save(lapply(communication, `[[`, "cellchat"), "cellchat.qs2", nthreads = 4)
+    for (level in names(communication)) {
+      communication[[level]]$cellchat <- NULL
+    }
+  }
+  results <- list(
+    sampleName = sampleName,
+    spotInfo = spotInfo,
+    qcInfo = qcInfo,
+    banksySweep = banksySweep,
+    exprMarkers = exprMarkers,
+    domainMarkers = domainMarkers,
+    domainAnno = domainAnno,
+    svg = svg,
+    rctd = rctd,
+    neighbourhood = neighbourhood,
+    activity = activity,
+    communication = communication,
+    misty = misty,
+    spatialCellChat = spatialCellChat,
+    liana = liana,
+    bayesspace = bayesspace,
+    enrichRout = enrichRout,
+    status = as.list(status)
   )
-  makeRmdReport(
-    dataFiles = dataFiles,
+  ezLog("Saving objects and rendering the report")
+  makeQuartoReport(
     param = param,
     output = output,
-    scData = scData,
-    allCellsMeta = allCellsMeta,
-    cellsPerGeneFraction = cellsPerGeneFraction,
-    enrichRout = anno$enrichRout,
-    cells.AUC = anno$cells.AUC,
-    singler.results = anno$singler.results,
-    aziResults = anno$aziResults,
-    pathwayActivity = anno$pathwayActivity,
-    TFActivity = anno$TFActivity,
-    rmdFile = "SpatialSeurat.Rmd",
-    reportTitle = paste0(param$name, ": ", input$getNames())
-  )
-
-  remove(scDataRaw, scData.unfiltered, scData)
-  gc()
-  return("Success")
-}
-
-runBasicProcessing <- function(scData, input, featInfo, param, BPPARAM) {
-  #scData$Condition <- unname(input$getColumn("Condition"))
-  scData@meta.data$Sample <- input$getNames()
-  scData[["Spatial"]] <- AddMetaData(
-    object = scData[["Spatial"]],
-    metadata = featInfo[rownames(scData), ]
-  )
-  spotSweeperStats <- runSpotSweeper(scData)
-  colnames(spotSweeperStats) <- sub(
-    '_outliers$',
-    '_SpotSweeper_outliers',
-    colnames(spotSweeperStats)
-  )
-  scData <- AddMetaData(object = scData, metadata = spotSweeperStats)
-  scData_list <- filterCellsAndGenes(scData, param) # return seurat objects filtered and unfiltered to show the QC metrics later in the rmd
-  scData <- scData_list$scData
-  scData.unfiltered <- scData_list$scData.unfiltered
-  cellsPerGeneFraction <- scData_list$cellsPerGeneFraction
-  rm(scData_list)
-  scData <- addCellCycleToSeurat(
-    scData,
-    param$refBuild,
-    BPPARAM,
-    assay = 'Spatial'
-  )
-  scData.unfiltered <- addCellCycleToSeurat(
-    scData.unfiltered,
-    param$refBuild,
-    BPPARAM,
-    assay = 'Spatial'
-  )
-
-  scData <- seuratStandardSCTPreprocessing(scData, param, assay = "Spatial")
-  ## defaultAssay is now SCT
-  scData <- seuratStandardWorkflow(
-    scData,
-    param,
-    ident.name = "seurat_clusters"
-  )
-  #scData <- seuratClusteringV3(scData, param, assay="Spatial")
-  return(list(
+    dataFiles = dataFiles,
+    results = results,
     scData = scData,
     scData.unfiltered = scData.unfiltered,
-    cellsPerGeneFraction = cellsPerGeneFraction
-  ))
-}
-
-runSpotSweeper <- function(scData) {
-  require(readr)
-  require(dplyr)
-  require(stringr)
-  require(SpatialExperiment)
-  library(SpotSweeper)
-
-  scData <- PercentageFeatureSet(scData, "(?i)^MT-", col.name = "percent_mito")
-  centroids <- scData[[names(scData@images)]]@boundaries$centroids
-  coords <- setNames(as.data.frame(centroids@coords), c("x", "y"))
-  rownames(coords) <- centroids@cells
-  scData$x <- coords[colnames(scData), "x"]
-  scData$y <- coords[colnames(scData), "y"]
-
-  scData_spe <- Seurat_to_SPE(scData, as.matrix(coords))
-
-  scData_spe <- localOutliers(
-    scData_spe,
-    metric = "nCount_Spatial",
-    direction = "lower",
-    log = TRUE
+    allCellsMeta = allCellsMeta,
+    cellsPerGeneFraction = cellsPerGeneFraction,
+    qmdFile = "SpatialSeurat.qmd",
+    reportTitle = paste0(param$name, ": ", sampleName),
+    number = TRUE,
+    quiet = FALSE
   )
-  scData_spe <- localOutliers(
-    scData_spe,
-    metric = "nFeature_Spatial",
-    direction = "lower",
-    log = TRUE
-  )
-  scData_spe <- localOutliers(
-    scData_spe,
-    metric = "percent_mito",
-    direction = "higher",
-    log = TRUE
-  )
-  spotSweeperStats <- data.frame(scData_spe@colData)[, c(
-    "nFeature_Spatial_outliers",
-    "nCount_Spatial_outliers",
-    "percent_mito_outliers"
-  )]
-  return(spotSweeperStats)
-}
-
-getSpatialSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
-  #positive cluster markers
-  clusterMarkers <- posClusterMarkersSpatial(scData, param)
-  clusterMarkers[['isSpatialMarker']] = FALSE
-  #spatially variable genes
-  spatialMarkersList <- list()
-  ezLog('Find spatial Markers using markvariogram')
-  res <- spatialMarkers(scData, selection.method = 'markvariogram')
-  spatialMarkersList[['markvariogram']] <- data.frame(
-    GeneSymbol = res,
-    Method = 'Markvariogram'
-  )
-  ezLog('Find spatial Markers using moransi method')
-  res <- spatialMarkers(scData, selection.method = 'moransi')
-  spatialMarkersList[['moransi']] <- data.frame(
-    GeneSymbol = res,
-    Method = 'MoransI'
-  )
-  spatialMarkers <- rbind(
-    spatialMarkersList[['markvariogram']][, c('GeneSymbol', 'Method')],
-    spatialMarkersList[['moransi']][, c('GeneSymbol', 'Method')]
-  )
-  #spatialMarkers <- spatialMarkers %>% spread(Method, Rank)
-  #spatialMarkers[['MeanRank']] <- apply(spatialMarkers[,c('Markvariogram','MoransI')],1,mean)
-  #spatialMarkers <- spatialMarkers[order(spatialMarkers$MeanRank),]
-
-  spatialPosMarkers <- intersect(clusterMarkers$gene, spatialMarkers$GeneSymbol)
-  clusterMarkers[
-    which(clusterMarkers$gene %in% spatialPosMarkers),
-    'isSpatialMarker'
-  ] = TRUE
-  clusterMarkers$cluster = as.factor(clusterMarkers$cluster)
-
-  markers <- c()
-  eachCluster <- 0
-  for (eachCluster in levels(clusterMarkers$cluster)) {
-    markersPerCluster <- dplyr::filter(
-      clusterMarkers,
-      cluster == eachCluster
-    ) %>%
-      dplyr::arrange(desc(avg_log2FC))
-    markersPerCluster <- head(
-      markersPerCluster,
-      min(nrow(markersPerCluster), 500)
-    )
-    markers <- rbind(markers, markersPerCluster)
-  }
-
-  # cell types annotation is only supported for Human and Mouse at the moment
-  species <- getSpecies(param$refBuild)
-  if (species == "Human" | species == "Mouse") {
-    genesPerCluster <- split(markers$gene, markers$cluster)
-    enrichRout <- querySignificantClusterAnnotationEnrichR(
-      genesPerCluster,
-      param$enrichrDatabase
-    )
-    if (length(enrichRout) == 0) {
-      enrichRout <- NULL
-    }
-    #cells.AUC <- cellsLabelsWithAUC(GetAssayData(scData, layer="counts"), species, param$tissue, BPPARAM = BPPARAM)
-    cells.AUC <- NULL
-    #singler.results <- cellsLabelsWithSingleR(GetAssayData(scData, layer="data"), Idents(scData), param$SingleR, BPPARAM = BPPARAM)
-    #for (r in names(singler.results)) {
-    #    scData[[paste0(r,"_single")]] <- singler.results[[r]]$single.fine$labels
-    #    scData[[paste0(r,"_cluster")]] <- singler.results[[r]]$cluster.fine$labels[match(Idents(scData), rownames(singler.results[[r]]$cluster.fine))]
-    #}
-    singler.results <- NULL
-  } else {
-    cells.AUC <- NULL
-    singler.results <- NULL
-    enrichRout <- NULL
-  }
-
-  ## SCpubr advanced plots, can currently only be computed for human and mouse
-  if (
-    ezIsSpecified(param$computePathwayTFActivity) &&
-      as.logical(param$computePathwayTFActivity) &&
-      (species == "Human" | species == "Mouse")
-  ) {
-    pathwayActivity <- computePathwayActivityAnalysis(
-      cells = scData,
-      species = species
-    )
-    TFActivity <- computeTFActivityAnalysis(cells = scData, species = species)
-  } else {
-    pathwayActivity <- NULL
-    TFActivity <- NULL
-    futile.logger::flog.info("Skipping pathway and TF activity")
-  }
-
-  # run Azimuth
-  if (ezIsSpecified(param$Azimuth) && param$Azimuth != "none") {
-    if (!requireNamespace("Azimuth", quietly = TRUE)) {
-      stop("Azimuth annotation requested, but package 'Azimuth' is not available.")
-    }
-    environment(MyDietSeurat) <- asNamespace('Seurat')
-    assignInNamespace("DietSeurat", MyDietSeurat, ns = "Seurat")
-    rna_assay <- CreateAssay5Object(
-      counts = GetAssayData(scData, assay = 'Spatial', layer = 'counts')
-    )
-    scData[["RNA"]] <- scData[["Spatial"]] #rna_assay
-    scData[["RNA"]] <- JoinLayers(scData[["RNA"]]) # Required for Azimuth compatibility with Seurat v5
-    scDataAzi <- Azimuth::RunAzimuth(scData, param$Azimuth, assay = "RNA") ## TODO support ADT
-
-    ##Rename annotation levels if neccessary:
-    colnames(scDataAzi@meta.data) <- sub(
-      'level_',
-      'l',
-      colnames(scDataAzi@meta.data)
-    )
-    if (param$Azimuth == 'mousecortexref') {
-      aziNames <- setdiff(
-        colnames(scDataAzi@meta.data),
-        colnames(scData@meta.data)
-      )
-      aziResults <- data.frame(
-        Azimuth.celltype.l1 = scDataAzi@meta.data[, grep(
-          "predicted.class$",
-          aziNames,
-          value = TRUE
-        )],
-        Azimuth.celltype.l2 = scDataAzi@meta.data[, grep(
-          "predicted.cluster$",
-          aziNames,
-          value = TRUE
-        )],
-        Azimuth.celltype.l3 = scDataAzi@meta.data[, grep(
-          "predicted.subclass$",
-          aziNames,
-          value = TRUE
-        )],
-        Azimuth.celltype.l4 = scDataAzi@meta.data[, grep(
-          "predicted.cross_species_cluster$",
-          aziNames,
-          value = TRUE
-        )],
-        row.names = colnames(scDataAzi)
-      )
-    } else {
-      aziNames <- setdiff(
-        colnames(scDataAzi@meta.data),
-        colnames(scData@meta.data)
-      )
-      aziResults <- data.frame(
-        Azimuth.celltype.l1 = scDataAzi@meta.data[, grep(
-          "l1$",
-          aziNames,
-          value = TRUE
-        )],
-        Azimuth.celltype.l2 = scDataAzi@meta.data[, grep(
-          "l2$",
-          aziNames,
-          value = TRUE
-        )],
-        Azimuth.celltype.l3 = scDataAzi@meta.data[, grep(
-          "l3$",
-          aziNames,
-          value = TRUE
-        )],
-        Azimuth.celltype.l4 = scDataAzi@meta.data[, grep(
-          "l4$",
-          aziNames,
-          value = TRUE
-        )],
-        row.names = colnames(scDataAzi)
-      )
-    }
-    scData[["RNA"]] <- NULL
-  } else {
-    aziResults <- NULL
-  }
-  return(list(
-    clusterMarkers = clusterMarkers,
-    spatialMarkers = spatialMarkers,
-    cells.AUC = cells.AUC,
-    singler.results = singler.results,
-    enrichRout = enrichRout,
-    pathwayActivity = pathwayActivity,
-    TFActivity = TFActivity,
-    aziResults = aziResults
-  ))
-}
-
-posClusterMarkersSpatial <- function(scData, param) {
-  vars.to.regress = NULL
-  if (param$name == "SCOneSample" & param$DE.method == "LR") {
-    #For the one sample app, we will regress out cell cycle if the test is LR
-    vars.to.regress <- c("CellCycleS", "CellCycleG2M")
-  } else if (param$name == "SCReportMerging" & param$DE.method == "LR") {
-    #for multiple samples we will regress out either the cell cycle, plate or both if the test is LR
-    vars.to.regress <- param$DE.regress
-  }
-
-  markers <- FindAllMarkers(
-    object = scData,
-    test.use = param$DE.method,
-    only.pos = TRUE,
-    latent.vars = vars.to.regress,
-    min.pct = param$min.pct,
-    return.thresh = param$pvalue_allMarkers,
-    logfc.threshold = param$logfc.threshold
-  )
-  ## Significant markers
-  cm <- markers[, c(
-    "gene",
-    "cluster",
-    "pct.1",
-    "pct.2",
-    "avg_log2FC",
-    "p_val_adj"
-  )]
-  cm$cluster <- as.factor(cm$cluster)
-  diff_pct = abs(cm$pct.1 - cm$pct.2)
-  cm$diff_pct <- diff_pct
-  cm <- cm[order(cm$diff_pct, decreasing = TRUE), ] %>%
-    mutate_if(is.numeric, round, digits = 30)
-  cm <- cm[cm$p_val_adj < param$pvalue_allMarkers, ]
-  rownames(cm) <- NULL
-  return(cm)
+  return("Success")
 }
 
 MyDietSeurat <- function(
@@ -788,7 +720,7 @@ MyDietSeurat <- function(
     cells.keep[[assay]] <- colnames(x = object[[assay]])
   }
   cells.keep <- intersect(colnames(x = object), unlist(cells.keep))
-  if (length(cells.keep) <- ncol(x = object)) {
+  if (length(cells.keep) < ncol(x = object)) {
     object <- subset(object, cells = cells.keep)
   }
   return(object)

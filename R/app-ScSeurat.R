@@ -21,10 +21,11 @@ EzAppScSeurat <-
       ## AzimuthPanHuman respectively); each is offered only when its gate is on.
       ## Azimuth::RunAzimuth (param$Azimuth) and cellxgene_annotation + schard
       ## (param$cellxgeneUrl / cellxgeneLabel) are live knobs: ScSeuratApp.rb declares
-      ## all three (cellxgene since sushi 03effc0a, 2024-10-17). Only STACAS is
-      ## unreachable -- param$featSelectionMethod is read in seuratUtils.R but never
-      ## declared in the Ruby app. (Corrected 2026-09-05; the previous note claimed
-      ## all four were undeclared.)
+      ## all three (cellxgene since sushi 03effc0a, 2024-10-17). STACAS feature selection
+      ## is unreachable here -- param$featSelectionMethod is read in seuratUtils.R but
+      ## ScSeuratApp.rb never declares it; the STACAS package itself does run, in
+      ## cellxgene_annotation (gene-symbol standardisation of the reference, when
+      ## cellxgeneUrl is set). (Corrected 2026-09-05 and 2026-10-12.)
       citation = function(param = list()) {
         humanMouse <- isTRUE(grepl("^(Homo_sapiens|Mus_musculus)/", param$refBuild))
         on <- function(x) isTRUE(as.logical(x))

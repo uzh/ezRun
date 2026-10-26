@@ -107,6 +107,33 @@ addGoParents = function(gene2goList, onto) {
   }))
 }
 
+##' @title Restrict gene-to-GO lists to a set of GO ids
+##' @description Same result as \code{lapply(gene2goList, intersect, allGos)},
+##'   but done in one vectorised pass: \code{intersect()} per gene rebuilds the
+##'   lookup of \code{allGos} for every gene, which took ~17 s on 14,000 genes.
+##' @param gene2goList a named list of character vectors of GO ids, one per gene.
+##' @param allGos a character vector of the GO ids to keep.
+##' @return \code{gene2goList} with each element restricted to \code{allGos}
+##'   (unique, original order kept; genes left without ids become \code{character(0)}).
+##' @template roxygen-template
+##' @examples
+##' ezRestrictGoList(list(g1 = c("GO:1", "GO:2"), g2 = "GO:3"), c("GO:2", "GO:3"))
+ezRestrictGoList = function(gene2goList, allGos) {
+  if (length(gene2goList) == 0) {
+    return(gene2goList)
+  }
+  ## as.character: unlist() of only NULL/empty elements returns NULL
+  ids = as.character(unlist(gene2goList, use.names = FALSE))
+  owner = rep(seq_along(gene2goList), lengths(gene2goList))
+  keep = ids %in% allGos
+  res = split(ids[keep], factor(owner[keep], levels = seq_along(gene2goList)))
+  res = lapply(res, unique)
+  ## intersect(NULL, y) is NULL (genes indexed by name but absent from the list)
+  res[vapply(gene2goList, is.null, logical(1))] = list(NULL)
+  names(res) = names(gene2goList)
+  res
+}
+
 
 compileEnrichmentInput = function(param, se) {
   require(SummarizedExperiment)
@@ -198,9 +225,7 @@ compileEnrichmentInput = function(param, se) {
       NA
     )
     if (!all(unlist(gene2goList) %in% allGos)) {
-      gene2goList = lapply(gene2goList, function(x) {
-        intersect(x, allGos)
-      })
+      gene2goList = ezRestrictGoList(gene2goList, allGos)
     }
     gene2goList = gene2goList[lengths(gene2goList) > 0]
     goIDs <- unlist(gene2goList, use.names = FALSE)
@@ -494,9 +519,7 @@ ezGoseq = function(
     NA
   )
   if (!all(unlist(gene2goList) %in% allGos)) {
-    gene2goList = lapply(gene2goList, function(x) {
-      intersect(x, allGos)
-    })
+    gene2goList = ezRestrictGoList(gene2goList, allGos)
   }
 
   gene2goList = gene2goList[lengths(gene2goList) > 0]
@@ -592,10 +615,12 @@ ezEnricher <- function(enrichInput, param) {
           gene = enrichInput$selections[[mySel]],
           universe = enrichInput$presentGenes,
           TERM2GENE = enrichInput$go2gene[[onto]],
-          pvalueCutoff = param$fdrThreshORA
+          ## keep every tested term; significance is flagged below
+          pvalueCutoff = 1,
+          qvalueCutoff = 1
         )
         if (!is.null(enrichRes)) {
-          tempTable <- enrichRes@result
+          tempTable <- ezFlagSignificantTerms(enrichRes@result, param$fdrThreshORA)
           if (nrow(tempTable) != 0L) {
             tempTable$Description <- Term(GOTERM[tempTable$ID])
             tempTable$geneName <- sapply(tempTable$geneID, function(idString) {
@@ -607,9 +632,8 @@ ezEnricher <- function(enrichInput, param) {
                 paste(collapse = "/")
             })
             tempTable <- tempTable[tempTable$Count >= minGenesOverlap, ]
-
-            enrichRes@result <- tempTable
           }
+          enrichRes@result <- tempTable
         }
         result[[mySel]] = enrichRes
       }
@@ -641,6 +665,8 @@ ezGSEA <- function(enrichInput, param) {
         df$rank_metric <- -log10(pmax(df$pValue, .Machine$double.xmin))
   } else if(param$rankMetric == "signedPValue") {
       df$rank_metric <- sign(df$log2Ratio) * -log10(pmax(df$pValue, .Machine$double.xmin))
+  } else {
+      stop("unsupported rankMetric: ", param$rankMetric)
   }
   df <- df[!is.na(df$rank_metric), ]
   gl <- setNames(df$rank_metric, rownames(df))
@@ -655,23 +681,26 @@ ezGSEA <- function(enrichInput, param) {
         pValue = "-log10 p-value",
         signedPValue = "-log10 p-value signed by the direction of the log2 ratio"
       ),
-      "; terms with an unadjusted p-value at or below ", param$fdrThreshGSEA,
-      " were reported."
+      "; terms with a Benjamini-Hochberg adjusted p-value at or below ", param$fdrThreshGSEA,
+      " were called significant."
     )
   }
   
   goResults = ezMclapply(
     ontologies,
     function(onto) {
+      set.seed(42)
       enrichRes <- GSEA(
         gene = gl,
-        pvalueCutoff = param$fdrThreshGSEA,
+        ## keep every tested term; significance is flagged below
+        pvalueCutoff = 1,
         TERM2GENE = enrichInput$go2gene[[onto]]
       )
       if (!is.null(enrichRes)) {
-        tempTable <- enrichRes@result
+        tempTable <- ezFlagSignificantTerms(enrichRes@result, param$fdrThreshGSEA)
+        ## drop rows without a GO id (after the BH check, which needs every tested term)
+        tempTable <- tempTable[!is.na(tempTable$ID), ]
         if (nrow(tempTable) != 0L) {
-          tempTable <- tempTable[!is.na(tempTable$ID),]    
           tempTable$Description <- Term(GOTERM[tempTable$ID])
           tempTable$geneName <- sapply(
             relist(
@@ -681,8 +710,8 @@ ezGSEA <- function(enrichInput, param) {
             paste,
             collapse = "/"
           )
-          enrichRes@result <- tempTable
         }
+        enrichRes@result <- tempTable
       }
       return(enrichRes)
     },
@@ -690,6 +719,119 @@ ezGSEA <- function(enrichInput, param) {
   )
   names(goResults) = ontologies
   return(goResults)
+}
+
+### -----------------------------------------------------------------
+### ezIsEmptyEnrichResult
+###
+##' @title Test whether a clusterProfiler enrichment result is empty
+##' @description Returns \code{TRUE} when an \code{enrichResult}/\code{gseaResult}
+##'   object is absent (\code{NULL}), not an S4 object (e.g. a legacy \code{NA}
+##'   sentinel), or carries an empty (0-row) result table. Used to guard the
+##'   report chunks in \code{twoGroups.Rmd} against ontologies/selections with no
+##'   enriched terms, which happens e.g. for long-non-coding-genes-only analyses
+##'   where the GO annotation of the gene universe is essentially empty.
+##' @param x an \code{enrichResult}/\code{gseaResult} object, or \code{NULL}/\code{NA}.
+##' @return a logical of length one.
+##' @template roxygen-template
+##' @examples
+##' ezIsEmptyEnrichResult(NULL)
+ezIsEmptyEnrichResult <- function(x) {
+  if (is.null(x) || !isS4(x)) {
+    return(TRUE)
+  }
+  res <- x@result
+  is.null(res) || nrow(res) == 0L
+}
+
+### -----------------------------------------------------------------
+### ezSignificantEnrichResult
+###
+##' @title Restrict a clusterProfiler enrichment result to FDR-significant terms
+##' @description Returns the object with \code{@result} reduced to the rows with
+##'   \code{p.adjust <= fdrThresh}. Used for every count, plot and HTML table in
+##'   \code{twoGroups.qmd}, so that "significant" never depends on how many rows
+##'   the enrichment engine retained (clusterProfiler 4.20 keeps every term with
+##'   nominal p <= \code{pvalueCutoff}, not FDR).
+##' @param er an \code{enrichResult}/\code{gseaResult} object, or \code{NULL}/\code{NA}.
+##' @param fdrThresh numeric FDR threshold.
+##' @return \code{er} with the filtered result table; empty input is returned unchanged.
+##' @template roxygen-template
+##' @examples
+##' ezSignificantEnrichResult(NULL, 0.05)
+ezSignificantEnrichResult <- function(er, fdrThresh) {
+  if (ezIsEmptyEnrichResult(er)) {
+    return(er)
+  }
+  keep <- !is.na(er@result$p.adjust) & er@result$p.adjust <= fdrThresh
+  er@result <- er@result[keep, , drop = FALSE]
+  er
+}
+
+### -----------------------------------------------------------------
+### ezFlagSignificantTerms
+###
+##' @title Check, flag and sort a complete clusterProfiler result table
+##' @description Used by \code{ezEnricher} and \code{ezGSEA}, which call
+##'   clusterProfiler with \code{pvalueCutoff = 1} so that the table holds every
+##'   tested term. Stops if \code{p.adjust} is not the BH adjustment over exactly
+##'   these rows, i.e. if the enrichment engine dropped terms before or after
+##'   adjusting (clusterProfiler's filtering has changed between versions before).
+##'   Adds a logical \code{significant} column (\code{p.adjust <= fdrThresh}) and
+##'   sorts by \code{p.adjust}, then \code{pvalue}, so significant terms come first.
+##' @param tab the \code{@result} data.frame of an \code{enrichResult}/\code{gseaResult}.
+##' @param fdrThresh numeric FDR threshold.
+##' @return \code{tab} with the \code{significant} column, sorted.
+##' @template roxygen-template
+##' @examples
+##' tab <- data.frame(ID = c("a", "b"), pvalue = c(0.01, 0.5))
+##' tab$p.adjust <- p.adjust(tab$pvalue, method = "BH")
+##' ezFlagSignificantTerms(tab, 0.05)
+ezFlagSignificantTerms <- function(tab, fdrThresh) {
+  if (nrow(tab) == 0L) {
+    tab$significant <- logical(0)
+    return(tab)
+  }
+  if (!isTRUE(all.equal(p.adjust(tab$pvalue, method = "BH"), tab$p.adjust))) {
+    stop(
+      "p.adjust is not the BH adjustment over all returned terms: the ",
+      "enrichment engine no longer returns every tested term with ",
+      "pvalueCutoff = 1. Check the installed clusterProfiler version."
+    )
+  }
+  tab$significant <- !is.na(tab$p.adjust) & tab$p.adjust <= fdrThresh
+  tab[order(tab$p.adjust, tab$pvalue), , drop = FALSE]
+}
+
+### -----------------------------------------------------------------
+### ezWriteEnrichXlsx
+###
+##' @title Write enrichment result tables to Excel, highlighting significant terms
+##' @description Writes one sheet per table, with every tested term. Rows with
+##'   \code{significant == TRUE} (see \code{ezFlagSignificantTerms}) are filled
+##'   green; the header row is frozen and has filter buttons.
+##' @param tabList a named list of data.frames; the names become sheet names.
+##' @param file the output .xlsx path.
+##' @return \code{file}, invisibly.
+##' @template roxygen-template
+ezWriteEnrichXlsx <- function(tabList, file) {
+  wb <- openxlsx::createWorkbook()
+  sigStyle <- openxlsx::createStyle(fgFill = "#D9EAD3")
+  for (nm in names(tabList)) {
+    tab <- tabList[[nm]]
+    openxlsx::addWorksheet(wb, nm)
+    openxlsx::writeData(wb, nm, tab, withFilter = TRUE)
+    openxlsx::freezePane(wb, nm, firstRow = TRUE)
+    sigRows <- which(tab$significant %in% TRUE)
+    if (length(sigRows) > 0) {
+      openxlsx::addStyle(
+        wb, nm, sigStyle,
+        rows = sigRows + 1, cols = seq_len(ncol(tab)), gridExpand = TRUE
+      )
+    }
+  }
+  openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
+  invisible(file)
 }
 
 ##' @title Groups GO terms and information

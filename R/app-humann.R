@@ -75,17 +75,27 @@ ezMethodHUMAnN <- function(input = NA, output = NA, param = NA,
   humannProfile <- paste0(sampleName, "_humann_profile.tsv")
   mode <- "translated"
   detectedDb <- NA_character_
+  modeNotes <- character(0)
 
   # getFullPaths() prepends the gstore root (e.g. /srv/gstore/projects); the
   # raw column value from dataset.tsv is a gstore-relative path that will
   # not resolve on the compute node otherwise.
   if (identical(profileSrc, "MetaPhlAnProfile")) {
     srcFile <- input$getFullPaths("MetaPhlAnProfile")
-    detectedDb <- readLines(srcFile, n = 1, warn = FALSE)
-    if (grepl("vOct22_CHOCOPhlAnSGB_202403", detectedDb, fixed = TRUE)) {
+    headerLines <- grep("^#", readLines(srcFile, n = 10, warn = FALSE), value = TRUE)
+    detectedDb <- headerLines[1]
+    isVOct22 <- grepl("vOct22_CHOCOPhlAnSGB_202403", detectedDb, fixed = TRUE)
+    hasReadStats <- any(grepl("estimated_number_of_reads_from_the_clade",
+                              headerLines, fixed = TRUE))
+    if (isVOct22 && hasReadStats) {
       mode <- "full"
       file.copy(srcFile, humannProfile, overwrite = TRUE)
     } else {
+      if (isVOct22) {
+        modeNotes <- c(modeNotes, paste(
+          "The vOct22 MetaPhlAn profile has no read statistics, so full mode is not possible.",
+          "Re-run MetaPhlAn with estimateReadCounts=TRUE to enable it."))
+      }
       ## Header-rewrite so HUMAnN accepts the file in translated-only mode
       ezSystem(sprintf("sed '1s/.*/#mpa_vOct22_CHOCOPhlAnSGB_202403/' %s > %s",
                        shQuote(srcFile), shQuote(humannProfile)))
@@ -107,10 +117,15 @@ ezMethodHUMAnN <- function(input = NA, output = NA, param = NA,
     message("forceTranslatedOnly=TRUE — downgrading from full to translated-only.")
     mode <- "translated"
   }
+  if (mode == "translated") {
+    modeNotes <- c(modeNotes, paste(
+      "Translated-only mode does not use the taxonomic profile:",
+      "the same reads give identical functional tables whatever profile is supplied."))
+  }
 
   ## ---- 5. Run HUMAnN -----------------------------------------------------
   dbRoot <- param$humannDbRoot
-  if (is.null(dbRoot) || !nzchar(dbRoot)) dbRoot <- "/srv/GT/databases/humann4_vOct22"
+  if (is.null(dbRoot) || !nzchar(dbRoot)) dbRoot <- "/srv/GT/databases/humann/humann4_vOct22"
   protDb  <- file.path(dbRoot, "uniref")
   utilDb  <- file.path(dbRoot, "utility_mapping")
   chocoDb <- file.path(dbRoot, "chocophlan")
@@ -200,6 +215,56 @@ ezMethodHUMAnN <- function(input = NA, output = NA, param = NA,
     })
   }
 
+  ## ---- 6b. Optional UniRef90 LCA taxonomy for unassigned gene families ---
+  rxTaxOut <- sprintf("%s_reactions_taxinf_cpm.tsv", sampleName)
+  koTaxOut <- sprintf("%s_genefamilies_ko_taxinf_cpm.tsv", sampleName)
+  if (isTRUE(as.logical(param$inferTaxonomy))) {
+    tolLca <- param$tolLcaFile
+    taxLevel <- param$inferTaxonomyLevel
+    if (is.null(taxLevel) || !nzchar(taxLevel)) {
+      taxLevel <- "Genus"
+    }
+    taxMode <- "totals"
+    if (mode == "full" && isTRUE(as.logical(param$keepStratifiedOutput))) {
+      taxMode <- "unclassified"
+    }
+    gfTax <- sprintf("%s_genefamilies_taxinf_cpm.tsv", sampleName)
+    koTaxRaw <- sprintf("%s_genefamilies_ko_taxinf_cpm.raw.tsv", sampleName)
+    taxOk <- FALSE
+    if (!is.null(tolLca) && nzchar(tolLca) && file.exists(tolLca)) {
+      taxOk <- tryCatch({
+        ezSystem(sprintf("python -m humann.tools.infer_taxonomy -i %s --devdb %s -l %s -m %s -o %s",
+                         shQuote(gfCpm), shQuote(tolLca), shQuote(taxLevel),
+                         taxMode, shQuote(gfTax)))
+        ezSystem(sprintf("humann_regroup_table -i %s -g uniref90_rxn -o %s",
+                         shQuote(gfTax), shQuote(rxTaxOut)))
+        ezSystem(sprintf("humann_regroup_table -i %s -g uniref90_ko -o %s",
+                         shQuote(gfTax), shQuote(koTaxRaw)))
+        ezSystem(sprintf("humann_rename_table -i %s -n kegg-orthology -o %s",
+                         shQuote(koTaxRaw), shQuote(koTaxOut)))
+        TRUE
+      }, error = function(e) {
+        message("Taxonomy inference failed: ", conditionMessage(e))
+        FALSE
+      })
+    } else {
+      message("inferTaxonomy=TRUE but tolLcaFile not found: ", tolLca)
+    }
+    unlink(c(gfTax, koTaxRaw))
+    if (taxOk) {
+      modeNotes <- c(modeNotes, sprintf(paste(
+        "Gene families without species assignment (%s rows) were given a UniRef90 LCA",
+        "taxonomy at %s level (taxinf tables)."), taxMode, taxLevel))
+    } else {
+      modeNotes <- c(modeNotes, "UniRef90 LCA taxonomy inference was requested but did not run.")
+    }
+    for (f in c(rxTaxOut, koTaxOut)) {
+      if (!file.exists(f)) {
+        writeLines(sprintf("# Feature\t%s_concat", sampleName), f)
+      }
+    }
+  }
+
   ## Write a tiny mode marker so the SUSHI Ruby wrapper can surface the
   ## detected mode in dataset.tsv (Mode [Characteristic] column).
   modeFile <- sprintf("%s.mode.txt", sampleName)
@@ -223,6 +288,7 @@ ezMethodHUMAnN <- function(input = NA, output = NA, param = NA,
       profileSource = profileSrc,
       detectedDb    = detectedDb,
       forced        = forced,
+      modeNote      = paste(modeNotes, collapse = "\n"),
       # HUMAnN's --o-log <basename> writes the log to CWD (scratch top-
       # level), NOT into outDir. Pass basename so the Rmd finds it.
       humannLog     = logFile,
@@ -262,14 +328,24 @@ EzAppHUMAnN <-
             Type = "logical", DefaultValue = "FALSE",
             Description = "Force translated-only mode even when a vOct22 MetaPhlAn profile is present."),
           humannDbRoot = ezFrame(
-            Type = "character", DefaultValue = "/srv/GT/databases/humann4_vOct22",
+            Type = "character", DefaultValue = "/srv/GT/databases/humann/humann4_vOct22",
             Description = "HUMAnN 4 reference DB root (chocophlan/, uniref/, utility_mapping/)."),
           keepStratifiedOutput = ezFrame(
             Type = "logical", DefaultValue = "TRUE",
             Description = "Keep SGB-stratified output rows in full mode."),
           regroupKEGGKO = ezFrame(
             Type = "logical", DefaultValue = "TRUE",
-            Description = "Run UniRef90 -> KEGG KO regroup as an extra output table.")
+            Description = "Run UniRef90 -> KEGG KO regroup as an extra output table."),
+          inferTaxonomy = ezFrame(
+            Type = "logical", DefaultValue = "TRUE",
+            Description = "Assign a UniRef90 LCA taxonomy to gene families without species assignment (all rows in translated-only mode, the unclassified stratum in full mode) and write reaction and KO tables stratified by it."),
+          tolLcaFile = ezFrame(
+            Type = "character",
+            DefaultValue = "/srv/GT/databases/humann/humann3_utility_mapping_v201901b/uniref90-tol-lca.dat.bz2",
+            Description = "UniRef90 tree-of-life LCA file used by humann_infer_taxonomy (--devdb)."),
+          inferTaxonomyLevel = ezFrame(
+            Type = "character", DefaultValue = "Genus",
+            Description = "Rank for the inferred taxonomy (Genus, Family, Order, Class, Phylum).")
         )
       }
     )

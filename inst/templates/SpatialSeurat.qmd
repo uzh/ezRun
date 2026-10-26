@@ -1,0 +1,1280 @@
+---
+params:
+  reportTitle: "SpatialSeurat"
+  project: ""
+  order: ""
+title: "`r params$reportTitle`"
+---
+
+<!-- Styling comes from the fgczQuartoTemplate assets staged next to this file
+     by makeQuartoReport() / fgczQuartoTemplate::fgcz_render(). -->
+
+```{r setup}
+#| include: false
+library(ezRun)
+library(Seurat)
+library(tidyverse)
+library(patchwork)
+library(DT)
+library(kableExtra)
+library(ggrepel)
+
+.fgcz_load <- function(name, nthreads = 4L) {
+  for (p in c(paste0(name, ".qs2"), paste0(name, ".rds"))) {
+    if (file.exists(p)) {
+      if (grepl("\\.qs2$", p)) {
+        return(qs2::qs_read(p, nthreads = nthreads))
+      }
+      return(readRDS(p))
+    }
+  }
+  NULL
+}
+param <- .fgcz_load("param")
+results <- .fgcz_load("results")
+scData <- .fgcz_load("scData")
+scData.unfiltered <- .fgcz_load("scData.unfiltered")
+sampleName <- results$sampleName
+DefaultAssay(scData) <- "SCT"
+
+.ok <- function(step) {
+  isTRUE(results$status[[step]]$ok)
+}
+.status_callout <- function(step) {
+  st <- results$status[[step]]
+  if (is.null(st) || isTRUE(st$ok)) {
+    return(invisible(NULL))
+  }
+  if (is.na(st$ok)) {
+    cat(sprintf("::: {.callout-note}\nThis step was skipped: %s.\n:::\n", st$msg))
+  } else {
+    cat(sprintf(
+      "::: {.callout-warning}\nThis step failed and is not shown: `%s`\n:::\n",
+      gsub("`", "'", st$msg)
+    ))
+  }
+}
+.dt <- function(df, pageLength = 10L, digits = 3) {
+  num <- vapply(df, is.numeric, TRUE)
+  df[num] <- lapply(df[num], signif, digits = digits)
+  DT::datatable(
+    df,
+    rownames = FALSE,
+    filter = "top",
+    extensions = "Buttons",
+    options = list(
+      pageLength = pageLength,
+      scrollX = TRUE,
+      dom = "Bfrtip",
+      buttons = c("copy", "csv", "excel")
+    )
+  )
+}
+
+## Colour-blind safe categorical palette: Okabe-Ito, then Paul Tol muted and
+## light. Spatial maps also carry direct labels, so colour is never the only
+## cue.
+.cat_pal <- function(levels) {
+  base <- c(
+    "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00",
+    "#CC79A7", "#999999", "#332288", "#88CCEE", "#44AA99", "#117733",
+    "#DDCC77", "#CC6677", "#AA4499", "#882255", "#77AADD", "#EE8866",
+    "#BBCC33", "#AAAA00", "#FFAABB", "#000000"
+  )
+  n <- length(levels)
+  cols <- if (n <= length(base)) {
+    base[seq_len(n)]
+  } else {
+    grDevices::hcl.colors(n, "Dark 3")
+  }
+  stats::setNames(cols, levels)
+}
+
+## Spot coordinates in image orientation (no histology); fast for small
+## multiples.
+spots <- data.frame(
+  x = scData$pxl_col_fullres,
+  y = -scData$pxl_row_fullres,
+  scData[[]],
+  check.names = FALSE
+)
+.spot_size <- 1.1
+.spot_theme <- theme_void(base_size = 10) +
+  theme(aspect.ratio = diff(range(spots$y)) / diff(range(spots$x)))
+.label_centroids <- function(df, group) {
+  df %>%
+    group_by(.data[[group]]) %>%
+    summarise(x = median(x), y = median(y), .groups = "drop")
+}
+.spot_discrete <- function(df, group, title = group, labels = TRUE) {
+  lev <- levels(factor(df[[group]]))
+  p <- ggplot(df, aes(x, y, colour = .data[[group]])) +
+    geom_point(size = .spot_size, shape = 16) +
+    scale_colour_manual(values = .cat_pal(lev), name = NULL) +
+    labs(title = title) +
+    .spot_theme +
+    guides(colour = guide_legend(override.aes = list(size = 3)))
+  if (labels) {
+    p <- p + geom_label_repel(
+      data = .label_centroids(df, group),
+      aes(label = .data[[group]]),
+      colour = "black",
+      fill = alpha("white", 0.8),
+      size = 2.8,
+      label.size = 0.1,
+      min.segment.length = 0,
+      seed = 1
+    )
+  }
+  p
+}
+.spot_continuous <- function(df, value, title = value, option = "viridis", limits = NULL) {
+  v <- df[[value]]
+  if (is.null(limits)) {
+    limits <- stats::quantile(v, c(0.01, 0.99), na.rm = TRUE)
+  }
+  df$.v <- pmin(pmax(v, limits[1]), limits[2])
+  ggplot(df, aes(x, y, colour = .v)) +
+    geom_point(size = .spot_size, shape = 16) +
+    scale_colour_viridis_c(option = option, name = NULL) +
+    labs(title = title) +
+    .spot_theme
+}
+.feature_df <- function(features, assay = "SCT") {
+  m <- FetchData(scData, vars = features, layer = "data")
+  cbind(spots[, c("x", "y")], m)
+}
+.spot_feature_grid <- function(features, assay = "SCT", ncol = 4, option = "viridis") {
+  features <- unique(features)
+  DefaultAssay(scData) <- assay
+  df <- .feature_df(features, assay)
+  plots <- lapply(features, function(f) .spot_continuous(df, f, title = f, option = option))
+  wrap_plots(plots, ncol = ncol)
+}
+## a heading that only appears when its step was not skipped (optional
+## add-ons that are off by default would otherwise leave empty tabs)
+.step_heading <- function(step, heading, level = 1) {
+  st <- results$status[[step]]
+  if (!is.null(st) && !is.na(st$ok)) {
+    cat(strrep("#", level), " ", heading, "\n\n", sep = "")
+    .status_callout(step)
+  }
+}
+deconMethod <- if (identical(results$rctd$engine, "CARD")) "CARD" else "RCTD"
+dominantCol <- results$rctd$dominantCol %||% "rctd_dominant"
+domainCol <- if ("domain_label" %in% colnames(spots)) "domain_label" else "banksy_domain"
+nDomains <- nlevels(factor(spots$banksy_domain))
+nClusters <- nlevels(factor(spots$expr_cluster))
+```
+
+::: {.panel-tabset}
+
+# Overview
+
+::: {.callout-note title="What this report is"}
+A per-sample analysis of one Visium SD section (55 µm spots, each covering
+roughly 1-10 cells). The analysis goes from spot quality control over
+expression clusters to **spatial domains** (BANKSY), their anatomical
+annotation, spatially variable genes, cell-type deconvolution, domain
+neighbourhoods, pathway and transcription-factor activities, spatial
+dependencies between cell types (MISTy) and a distance-constrained
+ligand-receptor analysis. Every tab starts with a short
+explanation of what was computed and how to read the plots. The objects behind
+the report are described in the tab *Data & explore in R*.
+:::
+
+```{r overview-image}
+#| fig-width: 7
+#| fig-height: 6
+#| out-width: "55%"
+#| fig-cap: "The tissue section (hires image) with the spots that passed QC."
+SpatialDimPlot(scData, group.by = "Sample", alpha = c(0.25, 0.25),
+               pt.size.factor = param$pt.size.factor, cols = "#0072B2") +
+  NoLegend()
+```
+
+```{r overview-table}
+qi <- results$qcInfo
+keyNumbers <- tibble::tribble(
+  ~Quantity, ~Value,
+  "Spots on the capture area", format(results$spotInfo$nSpotsTotal, big.mark = ","),
+  "Spots under tissue", format(qi$nSpotsTissue, big.mark = ","),
+  "Spots kept after QC", format(qi$nSpotsKept, big.mark = ","),
+  "Genes kept", format(qi$nGenesKept, big.mark = ","),
+  "Median UMIs per spot", format(median(scData$nCount_Spatial), big.mark = ","),
+  "Median genes per spot", format(median(scData$nFeature_Spatial), big.mark = ","),
+  "Chemistry", if (isTRUE(qi$probeBased)) "probe-based (FFPE / CytAssist)" else "poly-A capture",
+  "Expression clusters", as.character(nClusters),
+  "BANKSY spatial domains", as.character(nDomains)
+)
+kable(keyNumbers) %>% kable_styling(full_width = FALSE, position = "left")
+```
+
+```{r overview-status}
+stepNames <- c(
+  domainAnnotation = "Domain annotation (region markers)",
+  spatiallyVariableGenes = "Spatially variable genes",
+  deconvolution = paste0("Cell-type deconvolution (", deconMethod, ")"),
+  neighbourhood = "Domain neighbourhoods / co-localisation",
+  activity = "Pathway and TF activity",
+  communication = "Ligand-receptor analysis (CellChat)",
+  misty = "Spatial dependencies between cell types (MISTy)",
+  spatialCellChat = "Spot-level ligand-receptor analysis (SpatialCellChat)",
+  liana = "Consensus ligand-receptor ranking (liana)",
+  bayesspace = "BayesSpace domains",
+  enrichR = "EnrichR cluster annotation",
+  azimuth = "Azimuth label transfer",
+  cloupe = "Loupe Browser file"
+)
+st <- results$status[intersect(names(stepNames), names(results$status))]
+kable(tibble(
+  Step = stepNames[names(st)],
+  Result = vapply(st, function(s) {
+    if (is.na(s$ok)) "skipped" else if (s$ok) "done" else "failed"
+  }, ""),
+  Minutes = vapply(st, function(s) s$minutes %||% NA_real_, 1),
+  Note = vapply(st, function(s) s$msg, "")
+)) %>% kable_styling(full_width = FALSE, position = "left")
+```
+
+# Quality control
+
+::: {.callout-note title="What and why"}
+A spot is not a cell: its UMI and gene counts reflect both quality **and**
+anatomy. Fiber tracts and white matter contain few, RNA-poor cells and
+therefore have few UMIs, while dense neuronal layers have many. A single
+global threshold would remove whole anatomical structures. Spots are
+therefore flagged with **SpotSweeper** as *local* outliers: a spot is only
+removed if it has far fewer UMIs/genes than its 36 nearest spatial
+neighbours.
+:::
+
+```{r qc-mito-note}
+#| results: asis
+if (!isTRUE(results$qcInfo$useMito)) {
+  cat("::: {.callout-important title=\"No mitochondrial genes\"}\n",
+      "The data come from a probe-based chemistry (FFPE / CytAssist). The probe panel ",
+      "contains no mitochondrial genes, so the mitochondrial fraction is zero in every ",
+      "spot and is not used for QC.\n:::\n", sep = "")
+}
+```
+
+```{r qc-maps}
+#| fig-width: 12
+#| fig-height: 4.5
+#| out-width: "100%"
+#| fig-cap: "UMIs and genes per spot before filtering (log10), and the spots removed by QC (red-free highlight: removed spots are black)."
+unf <- data.frame(
+  x = scData.unfiltered$pxl_col_fullres,
+  y = -scData.unfiltered$pxl_row_fullres,
+  logUMI = log10(scData.unfiltered$nCount_Spatial + 1),
+  logGenes = log10(scData.unfiltered$nFeature_Spatial + 1),
+  removed = factor(ifelse(scData.unfiltered$discard, "removed", "kept"), levels = c("kept", "removed"))
+)
+(.spot_continuous(unf, "logUMI", "log10 UMIs") |
+  .spot_continuous(unf, "logGenes", "log10 genes") |
+  ggplot(unf, aes(x, y, colour = removed)) +
+    geom_point(size = .spot_size, shape = 16) +
+    scale_colour_manual(values = c(kept = "#BBBBBB", removed = "#000000"), name = NULL) +
+    labs(title = "QC result") + .spot_theme)
+```
+
+```{r qc-table}
+flags <- results$qcInfo$flags
+kable(tibble(
+  Flag = c("Low UMIs (local outlier)", "Low genes (local outlier)",
+           "High mitochondrial fraction", "High ribosomal fraction"),
+  Spots = as.integer(flags)
+)) %>% kable_styling(full_width = FALSE, position = "left")
+```
+
+```{r qc-violin}
+#| fig-width: 8
+#| fig-height: 3.5
+#| out-width: "70%"
+#| fig-cap: "Distribution of UMIs and genes per spot; removed spots in black."
+data.frame(
+  UMIs = scData.unfiltered$nCount_Spatial,
+  Genes = scData.unfiltered$nFeature_Spatial,
+  removed = unf$removed
+) %>%
+  pivot_longer(c(UMIs, Genes)) %>%
+  ggplot(aes(name, value)) +
+  geom_violin(fill = "#56B4E9", colour = NA, alpha = 0.6) +
+  geom_jitter(aes(colour = removed), width = 0.2, size = 0.4) +
+  scale_colour_manual(values = c(kept = "#888888", removed = "#000000")) +
+  scale_y_log10() +
+  facet_wrap(~name, scales = "free") +
+  labs(x = NULL, y = NULL, colour = NULL) +
+  theme_bw()
+```
+
+# Normalisation
+
+::: {.callout-note title="What and why"}
+Counts are normalised with **SCTransform** (regularised negative binomial
+regression on the UMI count of each spot). Library size in spatial data is
+partly biological: the plots show UMIs per spot by expression cluster.
+Normalisation removes this depth effect for clustering, but the raw UMI map
+in the QC tab remains an anatomical readout in itself.
+:::
+
+```{r norm-depth}
+#| fig-width: 10
+#| fig-height: 3.5
+#| out-width: "90%"
+p1 <- ggplot(spots, aes(expr_cluster, nCount_Spatial, fill = expr_cluster)) +
+  geom_boxplot(outlier.size = 0.3) +
+  scale_y_log10() +
+  scale_fill_manual(values = .cat_pal(levels(factor(spots$expr_cluster)))) +
+  labs(x = "Expression cluster", y = "UMIs per spot") +
+  theme_bw() + NoLegend()
+p2 <- ElbowPlot(scData, ndims = 50) +
+  geom_vline(xintercept = as.numeric(param$npcs), linetype = 2) +
+  labs(title = sprintf("PCs used: %s", param$npcs)) + theme_bw()
+p1 | p2
+```
+
+# Expression clusters
+
+::: {.callout-note title="What and why"}
+Spots are clustered on their own expression only (PCA, nearest-neighbour graph,
+Louvain, resolution `r param$resolution`). The spatial position is **not**
+used. Compare the spatial map with the BANKSY domains in the next tab:
+expression clusters are often patchy, because neighbouring spots mix different
+cell types.
+:::
+
+```{r expr-maps}
+#| fig-width: 12
+#| fig-height: 5.5
+#| out-width: "100%"
+umapDf <- data.frame(Embeddings(scData, "umap"), cluster = scData$expr_cluster)
+colnames(umapDf)[1:2] <- c("UMAP_1", "UMAP_2")
+pu <- ggplot(umapDf, aes(UMAP_1, UMAP_2, colour = cluster)) +
+  geom_point(size = 0.5) +
+  geom_label_repel(data = umapDf %>% group_by(cluster) %>%
+                     summarise(UMAP_1 = median(UMAP_1), UMAP_2 = median(UMAP_2)),
+                   aes(label = cluster), colour = "black", size = 3, seed = 1) +
+  scale_colour_manual(values = .cat_pal(levels(umapDf$cluster))) +
+  theme_classic() + NoLegend()
+pu | .spot_discrete(spots, "expr_cluster", "Expression clusters on the section")
+```
+
+```{r expr-clustree}
+#| fig-width: 8
+#| fig-height: 7
+#| out-width: "60%"
+#| fig-cap: "Cluster tree across resolutions: stable clusters keep their spots when the resolution increases."
+tryCatch(
+  print(clustree::clustree(scData, prefix = "SCT_snn_res.")),
+  error = function(e) {
+    ## clustree/ggraph versions are not always compatible with ggplot2
+    tab <- as.data.frame(lapply(scData[[grep("^SCT_snn_res", colnames(scData[[]]), value = TRUE)]], nlevels))
+    print(ggplot(tibble(resolution = as.numeric(sub("SCT_snn_res.", "", names(tab))), clusters = unlist(tab)),
+                 aes(resolution, clusters)) + geom_line() + geom_point() + theme_bw() +
+            labs(title = "Number of clusters per resolution"))
+  }
+)
+```
+
+::: {.callout-note collapse="true" title="Expression cluster markers (table)"}
+```{r expr-markers}
+.dt(results$exprMarkers)
+```
+:::
+
+```{r expr-dotplot}
+#| fig-width: 12
+#| fig-height: !expr max(4, 0.25 * 5 * nClusters)
+#| out-width: "100%"
+top <- results$exprMarkers %>%
+  group_by(cluster) %>%
+  slice_max(avg_log2FC, n = 4, with_ties = FALSE)
+DotPlot(scData, features = unique(as.character(top$gene)), group.by = "expr_cluster") +
+  coord_flip() + scale_colour_viridis_c() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# BANKSY domains
+
+::: {.callout-note title="What and why"}
+**BANKSY** (Singhal et al., *Nat Genet* 2024) augments every spot's expression
+with the average expression of its `r param$banksyKgeom` nearest neighbours.
+The parameter **λ** sets the weight of the neighbourhood: λ = 0 is plain
+expression clustering, λ ≈ 0.2 helps cell typing, and λ = 0.8 (used here)
+segments the tissue into contiguous **spatial domains**. In the brain these
+correspond to layers, nuclei and fiber tracts.
+
+How to read: the λ panels show the same clustering with increasing spatial
+weight. *Smoothness* is the fraction of a spot's direct neighbours that carry
+the same label (1 = perfectly contiguous); the *ARI* measures how similar the
+partition is to the expression clusters (1 = identical).
+:::
+
+```{r banksy-sweep}
+#| fig-width: 14
+#| fig-height: 4
+#| out-width: "100%"
+sweepCols <- paste0("banksy_lambda_", results$banksySweep$lambda)
+plots <- lapply(seq_along(sweepCols), function(i) {
+  s <- results$banksySweep[i, ]
+  .spot_discrete(spots, sweepCols[i], labels = FALSE,
+                 title = sprintf("λ = %s: %d domains, smoothness %.2f",
+                                 s$lambda, s$nDomains, s$smoothness)) +
+    NoLegend()
+})
+wrap_plots(plots, nrow = 1)
+```
+
+```{r banksy-sweep-table}
+kable(results$banksySweep, digits = 3, row.names = FALSE,
+      col.names = c("λ", "Domains", "Smoothness", "ARI vs expression clusters")) %>%
+  kable_styling(full_width = FALSE, position = "left")
+```
+
+```{r banksy-final}
+#| fig-width: 13
+#| fig-height: 6
+#| out-width: "100%"
+ub <- data.frame(Embeddings(scData, "umap.banksy"), domain = scData$banksy_domain)
+colnames(ub)[1:2] <- c("UMAP_1", "UMAP_2")
+pb <- ggplot(ub, aes(UMAP_1, UMAP_2, colour = domain)) +
+  geom_point(size = 0.5) +
+  scale_colour_manual(values = .cat_pal(levels(ub$domain))) +
+  labs(title = "BANKSY UMAP") + theme_classic() + NoLegend()
+pb | .spot_discrete(spots, "banksy_domain", sprintf("BANKSY domains (λ = %s)", results$banksySweep$lambda[results$banksySweep$lambda == as.numeric(param$banksyLambda)][1]))
+```
+
+```{r banksy-histology}
+#| fig-width: 8
+#| fig-height: 7
+#| out-width: "60%"
+#| fig-cap: "BANKSY domains on the histology image."
+SpatialDimPlot(scData, group.by = "banksy_domain", label = TRUE, label.size = 3,
+               pt.size.factor = param$pt.size.factor,
+               cols = .cat_pal(levels(scData$banksy_domain))) + NoLegend()
+```
+
+```{r banksy-vs-expr}
+#| fig-width: 7
+#| fig-height: 5
+#| out-width: "55%"
+#| fig-cap: "How expression clusters distribute over domains (fraction of each cluster's spots)."
+tab <- prop.table(table(scData$expr_cluster, scData$banksy_domain), 1)
+as.data.frame(tab) %>%
+  ggplot(aes(Var2, Var1, fill = Freq)) +
+  geom_tile() +
+  scale_fill_viridis_c(name = "fraction") +
+  labs(x = "BANKSY domain", y = "Expression cluster") +
+  theme_minimal()
+```
+
+::: {.callout-note collapse="true" title="Domain markers (table)"}
+```{r domain-markers}
+.dt(results$domainMarkers)
+```
+:::
+
+# Domain annotation
+
+```{r anno-status}
+#| results: asis
+.status_callout("domainAnnotation")
+```
+
+```{r anno-intro}
+#| results: asis
+#| eval: !expr .ok("domainAnnotation")
+cat("::: {.callout-note title=\"What and why\"}\n",
+    "Every spot is scored (UCell) for curated marker sets of anatomical regions ",
+    "(cortical layers, hippocampal fields, striatum, thalamus, amygdala, piriform cortex, fiber tracts, ",
+    "ventricles, meninges ...). The scores are z-scaled and averaged per domain; a ",
+    "domain gets the name of its best region if it beats the second best by a ",
+    "margin, otherwise it is called *mixed*. The labels are a starting point for ",
+    "interpretation, not ground truth: check them against the histology, the domain ",
+    "markers and the deconvolution.\n:::\n", sep = "")
+```
+
+```{r anno-heatmap}
+#| eval: !expr .ok("domainAnnotation")
+#| fig-width: 9
+#| fig-height: !expr max(4, 0.35 * nDomains + 2)
+#| out-width: "75%"
+#| fig-cap: "Mean z-scored region score per domain. The label of every domain is printed on the left."
+sc <- results$domainAnno$domainScores
+lab <- results$domainAnno$domainLabels
+rownames(sc) <- lab$domain_label[match(rownames(sc), lab$domain)]
+as.data.frame(as.table(sc)) %>%
+  ggplot(aes(Var2, Var1, fill = Freq)) +
+  geom_tile(colour = "white") +
+  scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B", name = "z") +
+  labs(x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r anno-map}
+#| eval: !expr .ok("domainAnnotation")
+#| fig-width: 10
+#| fig-height: 7
+#| out-width: "80%"
+.spot_discrete(spots, "domain_label", "Annotated domains")
+```
+
+```{r anno-scores}
+#| eval: !expr .ok("domainAnnotation")
+#| fig-width: 14
+#| fig-height: !expr 3.2 * ceiling(length(results$domainAnno$regionSets) / 5)
+#| out-width: "100%"
+#| fig-cap: "Per-spot UCell score of every region marker set."
+regionCols <- paste0(names(results$domainAnno$regionSets), "_region")
+plots <- lapply(regionCols, function(rc) {
+  .spot_continuous(spots, rc, title = gsub("\\.", " ", sub("_region$", "", rc)), option = "magma")
+})
+wrap_plots(plots, ncol = 5)
+```
+
+::: {.callout-note collapse="true" title="Region marker genes"}
+```{r anno-genes}
+#| eval: !expr .ok("domainAnnotation")
+kable(tibble(
+  Region = gsub("\\.", " ", names(results$domainAnno$regionSets)),
+  Genes = vapply(results$domainAnno$regionSets, paste, "", collapse = ", ")
+)) %>% kable_styling(full_width = TRUE)
+```
+:::
+
+# Spatially variable genes
+
+```{r svg-status}
+#| results: asis
+.status_callout("spatiallyVariableGenes")
+```
+
+```{r svg-intro}
+#| results: asis
+#| eval: !expr .ok("spatiallyVariableGenes")
+cat("::: {.callout-note title=\"What and why\"}\n",
+    "A spatially variable gene (SVG) has an expression pattern that is ",
+    "**autocorrelated in space**: neighbouring spots have similar values. ",
+    "**Moran's I** (here on the hexagonal grid of direct spot neighbours) is about ",
+    "0 for random patterns and approaches 1 for smooth gradients or large ",
+    "contiguous regions. The top genes are additionally ranked with **nnSVG** ",
+    "(Weber et al., *Nat Commun* 2023), a Gaussian-process model whose `prop_sv` is ",
+    "the fraction of variance that is spatial. SVGs are not the same as cluster ",
+    "markers: an SVG needs no predefined groups and can follow gradients that cut ",
+    "across domains. The top SVGs are grouped into spatial **patterns** ",
+    "(hierarchical clustering of their smoothed profiles).\n:::\n", sep = "")
+```
+
+```{r svg-top}
+#| eval: !expr .ok("spatiallyVariableGenes")
+#| fig-width: 14
+#| fig-height: 7
+#| out-width: "100%"
+#| fig-cap: "The 12 genes with the highest Moran's I."
+.spot_feature_grid(head(results$svg$table$gene, 12), ncol = 6)
+```
+
+```{r svg-patterns}
+#| eval: !expr .ok("spatiallyVariableGenes") && !is.null(results$svg$patterns)
+#| fig-width: 14
+#| fig-height: 4
+#| out-width: "100%"
+#| fig-cap: "Spatial patterns: mean scaled, neighbourhood-smoothed expression of the SVGs in each pattern."
+k <- results$svg$patterns$k
+plots <- lapply(seq_len(k), function(p) {
+  .spot_continuous(spots, paste0("svg_pattern_", p), option = "cividis",
+                   title = sprintf("Pattern %d (%d genes)", p, length(results$svg$patterns$genes[[p]])))
+})
+wrap_plots(plots, nrow = 1)
+```
+
+```{r svg-pattern-genes}
+#| eval: !expr .ok("spatiallyVariableGenes") && !is.null(results$svg$patterns)
+kable(tibble(
+  Pattern = seq_along(results$svg$patterns$genes),
+  `Top genes` = vapply(results$svg$patterns$genes, function(g) paste(head(g, 15), collapse = ", "), "")
+)) %>% kable_styling(full_width = TRUE)
+```
+
+```{r svg-scatter}
+#| eval: !expr .ok("spatiallyVariableGenes")
+#| fig-width: 7
+#| fig-height: 4.5
+#| out-width: "55%"
+#| fig-cap: "Moran's I against the mean expression. Highly expressed genes tend to have higher Moran's I because they are measured more precisely."
+svgTab <- results$svg$table
+svgTab$meanExpr <- Matrix::rowMeans(GetAssayData(scData, assay = "SCT", layer = "data")[svgTab$gene, ])
+ggplot(svgTab, aes(meanExpr, moransI, colour = fdr < 0.05)) +
+  geom_point(size = 0.6, alpha = 0.6) +
+  geom_text_repel(data = head(svgTab, 15), aes(label = gene), colour = "black", size = 2.8, seed = 1) +
+  scale_colour_manual(values = c(`TRUE` = "#0072B2", `FALSE` = "#BBBBBB"), name = "FDR < 0.05") +
+  scale_x_log10() +
+  labs(x = "mean normalised expression", y = "Moran's I") +
+  theme_bw()
+```
+
+::: {.callout-note collapse="true" title="All tested genes (table)"}
+```{r svg-table}
+#| eval: !expr .ok("spatiallyVariableGenes")
+.dt(head(results$svg$table, 2000))
+```
+:::
+
+# Deconvolution
+
+```{r rctd-status}
+#| results: asis
+.status_callout("deconvolution")
+```
+
+```{r rctd-intro}
+#| results: asis
+#| eval: !expr .ok("deconvolution")
+method <- if (deconMethod == "CARD") {
+  paste0("**CARD** (Ma & Zhou, *Nat Biotechnol* 2022) models each spot's counts as a ",
+         "mixture of reference cell-type profiles and lets neighbouring spots share ",
+         "information (a spatial prior), so proportions vary smoothly across the tissue")
+} else {
+  paste0("**RCTD** (Cable et al., *Nat Biotechnol* 2022; run with ",
+         results$rctd$engine %||% "spacexr", ") models each spot's counts as a mixture ",
+         "of reference cell-type profiles and estimates the **proportion** of every ",
+         "type (full mode)")
+}
+cat("::: {.callout-note title=\"What and why\"}\n",
+    "A Visium spot contains several cells. ", method, ". The reference is `",
+    results$rctd$reference, "`. Proportions are estimates: rare types and types ",
+    "missing from the reference cannot be recovered, and similar types can trade ",
+    "weight with each other.\n:::\n", sep = "")
+```
+
+```{r rctd-maps}
+#| eval: !expr .ok("deconvolution")
+#| fig-width: 14
+#| fig-height: 10
+#| out-width: "100%"
+#| fig-cap: "Estimated proportion of the 16 most abundant cell types."
+w <- results$rctd$weights
+topTypes <- names(sort(colMeans(w, na.rm = TRUE), decreasing = TRUE))[seq_len(min(16, ncol(w)))]
+wdf <- cbind(spots[rownames(w), c("x", "y")], w[, topTypes, drop = FALSE])
+plots <- lapply(topTypes, function(ct) {
+  .spot_continuous(wdf, ct, title = ct, option = "rocket", limits = c(0, max(0.05, quantile(wdf[[ct]], 0.99, na.rm = TRUE))))
+})
+wrap_plots(plots, ncol = 4)
+```
+
+```{r rctd-dominant}
+#| eval: !expr .ok("deconvolution")
+#| fig-width: 10
+#| fig-height: 7
+#| out-width: "80%"
+#| fig-cap: "Cell type with the highest proportion per spot."
+.spot_discrete(spots, dominantCol, "Dominant cell type")
+```
+
+```{r rctd-composition}
+#| eval: !expr .ok("deconvolution")
+#| fig-width: 11
+#| fig-height: !expr max(4, 0.35 * nDomains + 2)
+#| out-width: "90%"
+#| fig-cap: "Mean cell-type composition of every domain; types below 3% everywhere are pooled."
+comp <- results$rctd$composition
+long <- comp %>% pivot_longer(-domain, names_to = "cell_type", values_to = "proportion")
+keepTypes <- long %>% group_by(cell_type) %>% summarise(m = max(proportion)) %>% filter(m >= 0.03) %>% pull(cell_type)
+long <- long %>% mutate(cell_type = ifelse(cell_type %in% keepTypes, cell_type, "other")) %>%
+  group_by(domain, cell_type) %>% summarise(proportion = sum(proportion), .groups = "drop")
+ggplot(long, aes(proportion, domain, fill = cell_type)) +
+  geom_col() +
+  scale_fill_manual(values = .cat_pal(sort(unique(long$cell_type))), name = NULL) +
+  labs(x = "mean proportion", y = NULL) +
+  theme_minimal()
+```
+
+# Neighbourhoods
+
+```{r nb-status}
+#| results: asis
+.status_callout("neighbourhood")
+```
+
+```{r nb-intro}
+#| results: asis
+#| eval: !expr .ok("neighbourhood")
+cat("::: {.callout-note title=\"What and why\"}\n",
+    "**Domain adjacency**: the number of spot-to-spot contacts between two domains is ",
+    "compared with random relabelling of the spots (z-score). Positive values mean ",
+    "the domains border each other, e.g. consecutive cortical layers; the diagonal ",
+    "measures how compact a domain is.\n\n",
+    "**Cell-type co-localisation**: correlation of the cell-type proportions across spots ",
+    "(*same spot*) and between a spot and the mean of its neighbours (*neighbourhood*). ",
+    "Positive values mean two cell types occur together.\n:::\n", sep = "")
+```
+
+```{r nb-adjacency}
+#| eval: !expr .ok("neighbourhood")
+#| fig-width: 9
+#| fig-height: 7.5
+#| out-width: "70%"
+z <- results$neighbourhood$domainAdjacency$zScore
+hc <- hclust(dist(z))
+z <- z[hc$order, hc$order]
+as.data.frame(as.table(z)) %>%
+  ggplot(aes(Var1, Var2, fill = pmax(pmin(Freq, 20), -20))) +
+  geom_tile(colour = "white") +
+  scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B", name = "z (capped)") +
+  labs(x = NULL, y = NULL, title = "Domain adjacency enrichment") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r nb-coloc}
+#| eval: !expr .ok("neighbourhood") && !is.null(results$neighbourhood$colocalisation)
+#| fig-width: 16
+#| fig-height: 7.5
+#| out-width: "100%"
+co <- results$neighbourhood$colocalisation
+ord <- hclust(as.dist(1 - co$lagged))$order
+plot_cor <- function(m, title) {
+  m <- m[ord, ord]
+  as.data.frame(as.table(m)) %>%
+    ggplot(aes(Var1, Var2, fill = Freq)) +
+    geom_tile() +
+    scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B", limits = c(-1, 1), name = "r") +
+    labs(x = NULL, y = NULL, title = title) +
+    theme_minimal(base_size = 8) +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1))
+}
+plot_cor(co$spot, "Same spot") | plot_cor(co$lagged, "Neighbourhood (spatially lagged)")
+```
+
+# Pathway & TF activity
+
+```{r act-status}
+#| results: asis
+.status_callout("activity")
+```
+
+```{r act-intro}
+#| results: asis
+#| eval: !expr .ok("activity")
+cat("::: {.callout-note title=\"What and why\"}\n",
+    "Activities are inferred from the expression of target genes with a univariate ",
+    "linear model (decoupleR `run_ulm`): **PROGENy** footprints for 14 signalling ",
+    "pathways and **DoRothEA** regulons (confidence A-C) for transcription factors. ",
+    "A positive score means that the targets of the pathway/TF are up in that spot. ",
+    "The scores are stored as assays `progeny` and `dorothea` in the Seurat object.\n:::\n",
+    sep = "")
+```
+
+```{r act-progeny}
+#| eval: !expr .ok("activity")
+#| fig-width: 9
+#| fig-height: !expr max(4, 0.35 * nDomains + 2)
+#| out-width: "70%"
+#| fig-cap: "Mean PROGENy pathway activity per domain (scaled per pathway)."
+m <- t(scale(t(results$activity$progenyPerDomain)))
+as.data.frame(as.table(m)) %>%
+  ggplot(aes(Var1, Var2, fill = Freq)) +
+  geom_tile(colour = "white") +
+  scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B", name = "scaled") +
+  labs(x = NULL, y = NULL) + theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r act-progeny-maps}
+#| eval: !expr .ok("activity")
+#| fig-width: 14
+#| fig-height: 7
+#| out-width: "100%"
+DefaultAssay(scData) <- "progeny"
+pw <- rownames(scData[["progeny"]])
+df <- cbind(spots[, c("x", "y")], t(as.matrix(GetAssayData(scData, assay = "progeny", layer = "data"))))
+wrap_plots(lapply(pw, function(p) .spot_continuous(df, p, p, option = "mako")), ncol = 7)
+```
+
+```{r act-tf}
+#| eval: !expr .ok("activity")
+#| fig-width: 12
+#| fig-height: !expr max(4, 0.35 * nDomains + 2)
+#| out-width: "100%"
+#| fig-cap: "The 5 most domain-specific TFs per domain (DoRothEA, mean activity scaled per TF)."
+tf <- results$activity$dorotheaPerDomain
+tfz <- t(scale(t(tf)))
+tfz[!is.finite(tfz)] <- 0
+pick <- unique(unlist(lapply(colnames(tfz), function(d) names(sort(tfz[, d], decreasing = TRUE))[1:5])))
+as.data.frame(as.table(tfz[pick, ])) %>%
+  ggplot(aes(Var1, Var2, fill = Freq)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B", name = "scaled") +
+  labs(x = NULL, y = NULL) + theme_minimal(base_size = 8) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+```
+
+# Spatial dependencies
+
+```{r misty-status}
+#| results: asis
+.status_callout("misty")
+```
+
+```{r misty-intro}
+#| results: asis
+#| eval: !expr .ok("misty")
+mp <- results$misty$params
+cat("::: {.callout-note title=\"What and why\"}\n",
+    "**MISTy** (Tanevski et al., *Genome Biol* 2022) asks for every cell type how well its ",
+    "proportion in a spot is predicted by three *views*: the other cell types in the same ",
+    "spot (**intra**), the cell types in the directly neighbouring spots (**juxta**, within ",
+    1.5 * mp$spacing, " \u00b5m) and the cell types in the wider neighbourhood (**para**, ",
+    "Gaussian weights with a ", mp$paraRange, " \u00b5m length scale). One random forest is ",
+    "trained per cell type (", mp$cvFolds, "-fold cross-validation).\n\n",
+    "- **Gain in R\u00b2**: how much the surroundings (juxta + para) add to the prediction from ",
+    "the spot itself. A high gain means the cell type sits in a typical neighbourhood.\n",
+    "- **Importance**: which neighbouring cell types carry that information. It is an ",
+    "association in either direction (together or apart), not a causal effect.\n\n",
+    "Proportions within a spot sum to one, so the intra view is partly a bookkeeping ",
+    "effect; read the juxta and para views for spatial structure.\n:::\n", sep = "")
+```
+
+```{r misty-gain}
+#| eval: !expr .ok("misty")
+#| fig-width: 9
+#| fig-height: !expr max(4, 0.3 * results$misty$params$nTypes + 1.5)
+#| out-width: "70%"
+#| fig-cap: "Variance explained per cell type: from the spot itself (intra) and with the neighbourhood views added (multi-view)."
+imp <- results$misty$improvements %>%
+  select(target, measure, value) %>%
+  pivot_wider(names_from = measure, values_from = value)
+imp %>%
+  select(target, intra = intra.R2, `multi-view` = multi.R2, gain = gain.R2) %>%
+  pivot_longer(c(intra, `multi-view`), names_to = "model", values_to = "R2") %>%
+  ggplot(aes(R2, reorder(target, gain), fill = model)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.75) +
+  scale_fill_manual(values = c(intra = "#999999", `multi-view` = "#0072B2"), name = NULL) +
+  labs(x = "variance explained (R\u00b2, %)", y = NULL) +
+  theme_minimal()
+```
+
+```{r misty-importance}
+#| eval: !expr .ok("misty")
+#| fig-width: 15
+#| fig-height: !expr max(5, 0.3 * results$misty$params$nTypes + 2.5)
+#| out-width: "100%"
+#| fig-cap: "Importance of each predictor cell type (columns) for each target (rows) in the neighbourhood views; values are scaled per target, negative values are shown as 0, grey = the cell type itself."
+views <- setdiff(unique(results$misty$importances$view), "intra")
+plot_imp <- function(v) {
+  results$misty$importances %>%
+    filter(view == v) %>%
+    mutate(Importance = pmax(Importance, 0)) %>%
+    ggplot(aes(Predictor, Target, fill = Importance)) +
+    geom_tile(colour = "white") +
+    scale_fill_viridis_c(option = "rocket", direction = -1, name = "importance") +
+    labs(x = "predictor (around the spot)", y = "target", title = v) +
+    theme_minimal(base_size = 9) +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1))
+}
+wrap_plots(lapply(views, plot_imp), nrow = 1)
+```
+
+```{r misty-table}
+#| eval: !expr .ok("misty")
+.dt(imp %>% select(target, any_of(c("intra.R2", "multi.R2", "gain.R2", "p.R2"))) %>% arrange(desc(gain.R2)))
+```
+
+# Cell-cell communication
+
+```{r ccc-status}
+#| results: asis
+.status_callout("communication")
+```
+
+```{r ccc-intro}
+#| results: asis
+#| eval: !expr .ok("communication") || .ok("spatialCellChat") || .ok("liana")
+cat("::: {.callout-note title=\"What and why\"}\n",
+    "**CellChat** v2 in spatial mode (Jin et al., *Nat Protoc* 2025) scores secreted ",
+    "ligand-receptor pairs between groups of spots, but only between groups whose spots ",
+    "lie within ", param$cellchatInteractionLength, " \u00b5m, and it down-weights distant ",
+    "pairs. It is run twice: between **domains** and between the **dominant cell type** ",
+    "of each spot (from the deconvolution). A spot mixes several cells, so read the ",
+    "result as *which signals could be exchanged between these regions or cell types*, ",
+    "a hypothesis to test with single-cell resolution data.\n:::\n", sep = "")
+```
+
+```{r ccc-helpers}
+#| include: false
+.ccc_heatmap <- function(pw, what) {
+  agg <- pw %>% group_by(source, target) %>% summarise(prob = sum(prob), .groups = "drop")
+  ggplot(agg, aes(target, source, fill = prob)) +
+    geom_tile(colour = "white") +
+    scale_fill_viridis_c(option = "plasma", name = "probability") +
+    labs(x = paste("receiver", what), y = paste("sender", what)) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+.ccc_top <- function(pw) {
+  pw %>% group_by(pathway_name) %>% summarise(prob = sum(prob)) %>%
+    slice_max(prob, n = 20) %>%
+    ggplot(aes(prob, reorder(pathway_name, prob))) +
+    geom_col(fill = "#0072B2") +
+    labs(x = "total communication probability", y = NULL) +
+    theme_minimal()
+}
+.ccc_table <- function(lr) {
+  .dt(lr[, intersect(
+    c("source", "target", "ligand", "receptor", "prob", "pval", "interaction_name_2", "pathway_name"),
+    colnames(lr))])
+}
+.has_level <- function(level) .ok("communication") && !is.null(results$communication[[level]])
+```
+
+::: {.panel-tabset}
+
+```{r ccc-domain-head}
+#| results: asis
+#| eval: !expr .has_level("domain")
+cat("## Domains\n\n")
+```
+
+```{r ccc-domain-heatmap}
+#| eval: !expr .has_level("domain")
+#| fig-width: 9
+#| fig-height: 7.5
+#| out-width: "70%"
+#| fig-cap: "Total communication probability between domains (rows: senders, columns: receivers)."
+.ccc_heatmap(results$communication$domain$pathways, "domain")
+```
+
+```{r ccc-domain-top}
+#| eval: !expr .has_level("domain")
+#| fig-width: 9
+#| fig-height: 5
+#| out-width: "70%"
+#| fig-cap: "Pathways with the highest total communication probability between domains."
+.ccc_top(results$communication$domain$pathways)
+```
+
+```{r ccc-lr-maps}
+#| eval: !expr .has_level("domain")
+#| fig-width: 14
+#| fig-height: 7
+#| out-width: "100%"
+#| fig-cap: "Ligand and receptor expression of the four strongest interactions between domains."
+lr <- results$communication$domain$interactions %>%
+  group_by(interaction_name_2) %>% summarise(prob = sum(prob), ligand = ligand[1], receptor = receptor[1]) %>%
+  slice_max(prob, n = 4)
+genes <- unique(unlist(strsplit(c(lr$ligand, lr$receptor), "_")))
+genes <- intersect(genes, rownames(scData[["SCT"]]))
+DefaultAssay(scData) <- "SCT"
+.spot_feature_grid(head(genes, 8), ncol = 4)
+```
+
+```{r ccc-domain-table}
+#| eval: !expr .has_level("domain")
+.ccc_table(results$communication$domain$interactions)
+```
+
+```{r ccc-celltype-head}
+#| results: asis
+#| eval: !expr .has_level("celltype")
+cat("## Cell types\n\n")
+cat("Groups are the dominant cell type of each spot; cell types that dominate fewer ",
+    "than 10 spots are left out.\n\n", sep = "")
+```
+
+```{r ccc-celltype-heatmap}
+#| eval: !expr .has_level("celltype")
+#| fig-width: 10
+#| fig-height: 8.5
+#| out-width: "75%"
+#| fig-cap: "Total communication probability between the dominant cell types of the spots."
+.ccc_heatmap(results$communication$celltype$pathways, "cell type")
+```
+
+```{r ccc-celltype-top}
+#| eval: !expr .has_level("celltype")
+#| fig-width: 9
+#| fig-height: 5
+#| out-width: "70%"
+#| fig-cap: "Pathways with the highest total communication probability between cell types."
+.ccc_top(results$communication$celltype$pathways)
+```
+
+```{r ccc-celltype-table}
+#| eval: !expr .has_level("celltype")
+.ccc_table(results$communication$celltype$interactions)
+```
+
+```{r scc-head}
+#| results: asis
+.step_heading("spatialCellChat", "Cell types (SpatialCellChat)", level = 2)
+```
+
+```{r scc-intro}
+#| results: asis
+#| eval: !expr .ok("spatialCellChat")
+sp <- results$spatialCellChat$params
+cat("**SpatialCellChat** (CellChat v3) first scores every ligand-receptor pair between ",
+    "individual neighbouring spots (secreted signals up to ", sp$interactionRange,
+    " \u00b5m, contact-dependent signals only within a spot) and then averages the spot ",
+    "pairs to cell types, weighted by each spot's cell-type proportions (",
+    sp$nSpots, " spots, ", sp$nTypes, " cell types). Unlike the CellChat results above, ",
+    "a spot contributes to every cell type it contains, not only its dominant one.\n\n", sep = "")
+```
+
+```{r scc-heatmap}
+#| eval: !expr .ok("spatialCellChat")
+#| fig-width: 10
+#| fig-height: 8.5
+#| out-width: "75%"
+#| fig-cap: "Total communication probability between cell types (SpatialCellChat)."
+.ccc_heatmap(results$spatialCellChat$pathways, "cell type")
+```
+
+```{r scc-maps}
+#| eval: !expr .ok("spatialCellChat") && !is.null(results$spatialCellChat$spotScores)
+#| fig-width: 14
+#| fig-height: 7
+#| out-width: "100%"
+#| fig-cap: "Where the strongest pathways are sent (outgoing) and received (incoming), summed over their ligand-receptor pairs per spot."
+sc <- results$spatialCellChat$spotScores
+df <- cbind(spots[sc$spot, c("x", "y")], sc[, c("pathway", "outgoing", "incoming")])
+plots <- unlist(lapply(unique(df$pathway), function(p) {
+  d <- df[df$pathway == p, ]
+  list(.spot_continuous(d, "outgoing", paste(p, "- outgoing"), option = "mako"),
+       .spot_continuous(d, "incoming", paste(p, "- incoming"), option = "rocket"))
+}), recursive = FALSE)
+wrap_plots(plots, ncol = 4)
+```
+
+```{r scc-table}
+#| eval: !expr .ok("spatialCellChat")
+.ccc_table(results$spatialCellChat$interactions)
+```
+
+```{r liana-head}
+#| results: asis
+.step_heading("liana", "Consensus (liana)", level = 2)
+```
+
+```{r liana-intro}
+#| results: asis
+#| eval: !expr .ok("liana")
+cat("**liana** (Dimitrov et al., *Nat Commun* 2022) ranks ligand-receptor pairs between ",
+    "domains with four fast scoring methods (NATMI, Connectome, log2FC, SingleCellSignalR) ",
+    "and combines the ranks (`aggregate_rank`, smaller = more consistent). liana is not ",
+    "spatial: pairs are restricted to domains that touch. Interactions found by both ",
+    "liana and CellChat are the most robust candidates.\n\n", sep = "")
+```
+
+```{r liana-table}
+#| eval: !expr .ok("liana")
+.dt(results$liana[, intersect(c("source", "target", "ligand.complex", "receptor.complex", "aggregate_rank",
+                                 "natmi.edge_specificity", "sca.LRscore", "logfc.logfc_comb"),
+                               colnames(results$liana))])
+```
+
+:::
+
+```{r bayes-head}
+#| results: asis
+.step_heading("bayesspace", "BayesSpace domains")
+```
+
+```{r bayes-intro}
+#| results: asis
+#| eval: !expr .ok("bayesspace")
+bp <- results$bayesspace$params
+cat("::: {.callout-note title=\"What and why\"}\n",
+    "**BayesSpace** (Zhao et al., *Nat Biotechnol* 2021) clusters spots with a Bayesian ",
+    "model that encourages neighbouring spots to share a domain. It was run for the same ",
+    "number of domains as BANKSY (q = ", bp$q, ", ", bp$d, " principal components, ",
+    bp$nrep, " MCMC iterations) to show which domains are robust to the method. ",
+    "Agreement with BANKSY: adjusted Rand index ", sprintf("%.2f", results$bayesspace$ari),
+    " (1 = identical). Smoothness (fraction of neighbouring spots with the same domain): ",
+    sprintf("BayesSpace %.2f, BANKSY %.2f", results$bayesspace$smoothness[["BayesSpace"]],
+            results$bayesspace$smoothness[["BANKSY"]]), ".\n:::\n", sep = "")
+```
+
+```{r bayes-maps}
+#| eval: !expr .ok("bayesspace")
+#| fig-width: 14
+#| fig-height: 6
+#| out-width: "100%"
+.spot_discrete(spots, "banksy_domain", "BANKSY") | .spot_discrete(spots, "bayesspace_domain", "BayesSpace")
+```
+
+```{r bayes-cross}
+#| eval: !expr .ok("bayesspace")
+#| fig-width: 9
+#| fig-height: 7
+#| out-width: "65%"
+#| fig-cap: "Fraction of each BANKSY domain (columns) assigned to each BayesSpace domain (rows)."
+ct <- as.matrix(results$bayesspace$crossTable)
+ct <- sweep(ct, 2, pmax(colSums(ct), 1), "/")
+as.data.frame(as.table(ct)) %>%
+  ggplot(aes(Var2, Var1, fill = Freq)) +
+  geom_tile(colour = "white") +
+  scale_fill_viridis_c(name = "fraction") +
+  labs(x = "BANKSY domain", y = "BayesSpace domain") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Data & explore in R
+
+```{r data-files}
+#| results: asis
+files <- c(
+  "scData.qs2" = "Seurat object of the kept spots (details below)",
+  "scData.unfiltered.qs2" = "all spots under tissue with QC flags",
+  "posMarkers.xlsx" = "expression cluster markers",
+  "domainMarkers.xlsx" = "BANKSY domain markers",
+  "domainAnnotation.xlsx" = "domain labels and region scores",
+  "spatiallyVariableGenes.xlsx" = "Moran's I, nnSVG and pattern of every gene",
+  "rctdWeights.xlsx" = "RCTD cell-type proportions per spot and per domain",
+  "cardWeights.xlsx" = "CARD cell-type proportions per spot and per domain",
+  "misty.xlsx" = "MISTy variance explained, view contributions and importances",
+  "cellchat.xlsx" = "CellChat ligand-receptor and pathway results (domains and cell types)",
+  "cellchat.qs2" = "the CellChat objects (list with domain and celltype)",
+  "spatialCellChat.xlsx" = "SpatialCellChat ligand-receptor and pathway results between cell types",
+  "liana.xlsx" = "liana consensus ranking between touching domains",
+  "bulkSignalPerDomain.tsv" = "pseudo-bulk expression per domain"
+)
+files[paste0(sampleName, ".cloupe")] <- "Loupe Browser file"
+files <- files[file.exists(names(files))]
+cat("::: {.callout-note title=\"Files\"}\n",
+    paste0("- [", names(files), "](", names(files), "): ", files, collapse = "\n"),
+    "\n:::\n", sep = "")
+```
+
+#### Load the object
+
+```r
+library(Seurat)
+scData <- qs2::qs_read("scData.qs2")
+SpatialDimPlot(scData, group.by = "domain_label", label = TRUE)
+SpatialFeaturePlot(scData, features = "Ppp1r1b")
+## cell-type proportions (assay RCTD, or CARD when CARD was chosen)
+DefaultAssay(scData) <- "RCTD"
+SpatialFeaturePlot(scData, features = rownames(scData)[1:4])
+```
+
+#### What is where in `scData`
+
+```{r data-slots}
+slotTab <- tibble::tribble(
+  ~Location, ~Content,
+  "assay Spatial", "raw UMI counts",
+  "assay SCT", "SCTransform-normalised expression (default assay)",
+  "assay RCTD (or CARD)", "cell-type proportions (features = cell types)",
+  "assays progeny / dorothea", "pathway and TF activity scores",
+  "reductions pca / umap", "expression-only embedding",
+  "reductions pca.banksy / umap.banksy", "BANKSY embedding",
+  "graphs spatial_hex1 / spatial_hex2", "spot adjacency: direct neighbours / two rings",
+  "meta.data expr_cluster", "expression clusters",
+  "meta.data banksy_domain, domain_label", "BANKSY domains and their region label",
+  "meta.data banksy_lambda_*", "domains of the λ sweep",
+  "meta.data *_region", "UCell scores of the region marker sets",
+  "meta.data svg_pattern_*", "spatial pattern scores",
+  "meta.data rctd_dominant (card_dominant)", "most abundant cell type per spot",
+  "meta.data bayesspace_domain", "BayesSpace domains (only when computed)",
+  "meta.data array_row/array_col, pxl_*_fullres", "array and full-resolution pixel coordinates"
+)
+kable(slotTab) %>% kable_styling(full_width = FALSE, position = "left")
+```
+
+::: {.callout-tip title="Suggested exercises"}
+1. Change λ: compare `banksy_lambda_0` and `banksy_lambda_0.8`. Which anatomical
+   structures only appear with spatial information?
+2. Pick a domain labelled *mixed*: look at its markers and its cell-type composition
+   and give it a better name.
+3. Find an SVG that is **not** a marker of any domain. What pattern does it follow?
+4. Remove the QC filter: load `scData.unfiltered.qs2` and look where the removed
+   spots are. Would a global UMI threshold have removed fiber tracts?
+5. Compare the domains of the two replicate sections (run the same code on both).
+:::
+
+# Methods
+
+```{r methods}
+#| results: asis
+.v <- function(pkg) as.character(packageVersion(pkg))
+txt <- sprintf(paste0(
+  "Space Ranger output was loaded with Seurat (v%s). Spots under tissue were flagged as low-quality ",
+  "when they were local outliers in UMIs or detected genes compared with their 36 nearest spots ",
+  "(SpotSweeper, 3 MADs%s). Genes were normalised with SCTransform v2 (%s variable genes). ",
+  "Expression clusters were computed on %s principal components (Louvain, resolution %s). ",
+  "Spatial domains were identified with BANKSY (\u03bb = %s, k_geom = %s, %s PCs, resolution %s) and ",
+  "annotated by UCell scores of curated region marker sets. Spatially variable genes were ranked by ",
+  "Moran's I on the hexagonal spot graph and the top %s by nnSVG."),
+  .v("Seurat"),
+  if (isTRUE(results$qcInfo$useMito)) "; and high mitochondrial fraction" else "",
+  param$nfeatures, param$npcs, param$resolution,
+  param$banksyLambda, param$banksyKgeom, param$banksyNpcs, param$banksyResolution,
+  param$nnsvgTopN)
+if (.ok("bayesspace")) {
+  bp <- results$bayesspace$params
+  txt <- c(txt, sprintf("For comparison, domains were also computed with BayesSpace (v%s, q = %s, %s PCs, %s iterations).",
+                        bp$version, bp$q, bp$d, bp$nrep))
+}
+if (.ok("deconvolution")) {
+  txt <- c(txt, if (deconMethod == "CARD") {
+    sprintf("Cell-type proportions were estimated with CARD (v%s, reference %s, at most 300 cells per type).",
+            .v("CARD"), results$rctd$reference)
+  } else {
+    sprintf("Cell-type proportions were estimated with RCTD (%s, full mode, reference %s).",
+            if (identical(results$rctd$engine, "rctd-py")) "rctd-py" else paste0("spacexr v", .v("spacexr")),
+            results$rctd$reference)
+  })
+}
+if (.ok("activity")) {
+  txt <- c(txt, "Pathway and TF activities were inferred with decoupleR (PROGENy, DoRothEA A-C).")
+}
+if (.ok("misty")) {
+  mp <- results$misty$params
+  txt <- c(txt, sprintf(paste0(
+    "Spatial dependencies between cell-type proportions were modelled with MISTy (mistyR v%s; ",
+    "intra, juxta (%s \u00b5m) and para (Gaussian, l = %s \u00b5m) views; random forests, %s-fold cross-validation)."),
+    mp$version, 1.5 * mp$spacing, mp$paraRange, mp$cvFolds))
+}
+if (.ok("communication")) {
+  cp <- results$communication$domain$params
+  txt <- c(txt, sprintf(paste0(
+    "Ligand-receptor communication between domains%s was inferred with CellChat (v%s, spatial mode, ",
+    "%s \u00b5m interaction range, %s permutations, %s)."),
+    if (!is.null(results$communication$celltype)) " and between the dominant cell types of the spots" else "",
+    cp$version, cp$interactionRange, cp$nboot, cp$db))
+}
+if (.ok("spatialCellChat")) {
+  sp <- results$spatialCellChat$params
+  txt <- c(txt, sprintf(paste0(
+    "Spot-level communication was inferred with SpatialCellChat (v%s; %s \u00b5m interaction range) and ",
+    "averaged to cell types weighted by the deconvolution (%s permutations)."),
+    sp$version, sp$interactionRange, sp$nboot))
+}
+if (.ok("liana")) {
+  txt <- c(txt, sprintf(paste0(
+    "Ligand-receptor pairs between touching domains were ranked with liana (v%s; NATMI, Connectome, ",
+    "log2FC and SingleCellSignalR, consensus resource)."), .v("liana")))
+}
+cat(paste(txt, collapse = " "))
+```
+
+# Parameters & session
+
+```{r params}
+p <- param[!vapply(param, function(x) is.null(x) || length(x) == 0 || is.list(x) || is.environment(x) || isS4(x), TRUE)]
+kable(tibble(Parameter = names(p), Value = vapply(p, function(x) paste(x, collapse = ", "), ""))) %>%
+  kable_styling(full_width = FALSE, position = "left")
+```
+
+::: {.callout-note collapse="true" title="Session info"}
+```{r session}
+ezSessionInfo()
+```
+:::
+
+:::

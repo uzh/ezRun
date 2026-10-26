@@ -19,6 +19,8 @@ ezInteractiveTableRmd(
 
 \item{digits}{the number of digits to round to, if rounding is desired.}
 
+\item{columnsToRound}{a logical vector (one per column) selecting the columns to round to \code{digits}; by default all double columns.}
+
 \item{colNames}{a character vector specifying the column names of the interactive table.}
 
 \item{title}{a character representing the title of the interactive table.}

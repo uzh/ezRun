@@ -2386,6 +2386,10 @@ cat("Browse the annotated object interactively - UMAP, spatial view, and per-gen
     "(clusters, niches, cell types, QC flags):\n\n", sep = "")
 cat("[Open in exploreSC](https://fgcz-shiny.uzh.ch/app/exploreSC/?data=",
     relative_path, "/scData.qs2){target=\"_blank\"}\n\n", sep = "")
+cat("[Open in Vitessce](https://fgcz-shiny.uzh.ch/app/exploreVitessceXenium/?data=",
+    relative_path, "/scData.qs2){target=\"_blank\"} - linked spatial, UMAP and gene ",
+    "expression views. The first opening converts the object and can take a few minutes.\n\n",
+    sep = "")
 cat("<small>Both links are LDAP-protected (B-Fabric login).</small>\n\n")
 ```
 

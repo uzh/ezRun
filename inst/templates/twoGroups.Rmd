@@ -599,7 +599,7 @@ if (isTRUE(param$runGO)) {
   for (onto in names(enrichResult)) {
     enrichResultPlots[[onto]] <- list()
     for (sig in names(enrichResult[[onto]])) {
-      if (is.na(enrichResult[[onto]][[sig]][1][[1]])) {
+      if (ezIsEmptyEnrichResult(enrichResult[[onto]][[sig]])) {
         next
       } else {
         erp <- list()
@@ -646,9 +646,29 @@ if (isTRUE(param$runGO)) {
         
         sigGeneIds <- enrichInput$selections[[sig]]
         log2Ratio <- enrichInput$log2Ratio[sigGeneIds]
-        names(log2Ratio) <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
+        geneLabels <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
+        ## fall back to the gene id when a gene has no symbol (e.g. some lncRNAs),
+        ## otherwise cnetplot builds a data.frame with NA/empty row names
+        naLabel <- is.na(geneLabels) | geneLabels == ""
+        geneLabels[naLabel] <- sigGeneIds[naLabel]
+        names(log2Ratio) <- geneLabels
         log2Ratio <- sort(log2Ratio, decreasing = T)
-        erp[["cnet"]] <- enrichplot::cnetplot(x = er, foldChange = log2Ratio)
+        ## cnetplot (enrichplot >= 1.32) errors out when the enrichResult holds no
+        ## category passing its significance cutoff (0 items) -- keep the rest of
+        ## the report instead of aborting it.
+        erp[["cnet"]] <- tryCatch(
+          ## enrichplot >= 1.33 colours up-regulated genes blue; restore up = red
+          ## (same palette as exploreDE)
+          enrichplot::cnetplot(x = er, foldChange = log2Ratio) +
+            ggplot2::scale_colour_gradient2(
+              name = "fold change", low = "deepskyblue4", mid = "white",
+              high = "firebrick", midpoint = 0
+            ),
+          error = function(e) {
+            ezWrite("cnetplot skipped for ", onto, "/", sig, ": ", conditionMessage(e))
+            NULL
+          }
+        )
         enrichResultPlots[[onto]][[sig]] <- erp
       }
     }
@@ -658,7 +678,7 @@ if (isTRUE(param$runGO)) {
   oraList <- list()
   for (onto in names(enrichResult)) {
     for (sig in names(enrichResult[[onto]])) {
-      if (is.na(enrichResult[[onto]][[sig]][1][[1]])) {
+      if (ezIsEmptyEnrichResult(enrichResult[[onto]][[sig]])) {
         next
       } else {
         dfOut <- as.data.frame(enrichResult[[onto]][[sig]]@result)
@@ -690,9 +710,10 @@ Cut Offs:
   for (goDomain in names(enrichResult)){
     for (resName in names(enrichResult[[goDomain]])){
       testName = paste0(goDomain,": ",resName)
-      ora.overview[testName, "Number of Significant Terms"] = 
-        nrow(enrichResult[[goDomain]][[resName]]@result[
-          enrichResult[[goDomain]][[resName]]@result$p.adjust <= param$fdrThreshORA, ])
+      er <- enrichResult[[goDomain]][[resName]]
+      ora.overview[testName, "Number of Significant Terms"] =
+        if (ezIsEmptyEnrichResult(er)) 0L else
+          nrow(er@result[er@result$p.adjust <= param$fdrThreshORA, ])
     }
   }
   
@@ -707,7 +728,7 @@ Cut Offs:
         position = "left")
   )
   cat("\n\n")
-  if(exists(oraFile))
+  if (file.exists(oraFile))
     cat(paste0("[Download Excel file of complete ORA results](", oraFile, ")"))
   cat("\n\n")
 ```
@@ -716,8 +737,8 @@ Cut Offs:
   for (onto in names(enrichResult)) {
     cat("###", onto, "{.tabset}", "\n")
     for (sig in names(enrichResult[[onto]])) {
-      cat("#####", sig, "{.tabset}", "\n")
-      if (is.na(enrichResult[[onto]][[sig]][1][[1]])) {
+      cat("####", sig, "\n")
+      if (ezIsEmptyEnrichResult(enrichResult[[onto]][[sig]])) {
         cat('\n No significant GO terms detected.')
         cat("\n\n")
         next
@@ -725,7 +746,7 @@ Cut Offs:
         erp <- enrichResultPlots[[onto]][[sig]]
         # print( enrichResultPlots[[ paste0(names(enrichResult)[onto], "_", names(enrichResult[[onto]])[sig], "_", "table") ]] )
         print(erp$barplot)
-        print(erp$cnet)
+        if (!is.null(erp$cnet)) print(erp$cnet)
         print(kable(erp$df,
                     escape = FALSE, row.names = FALSE, format = "html", digits = 50
         ) %>%
@@ -744,12 +765,14 @@ Cut Offs:
 enrichResultGSEAPlots <- list()
   for (onto in names(enrichResultGSEA)) {
     enrichResultGSEAPlots[[onto]] <- list()
-    if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
+    ## plots and tables show FDR-significant terms only; the engine may retain
+    ## more rows (nominal p) -- see ezSignificantEnrichResult
+    er <- ezSignificantEnrichResult(enrichResultGSEA[[onto]], param$fdrThreshGSEA)
+    if (ezIsEmptyEnrichResult(er)) {
       next
     } else {
       erp <- list()
-      er <- enrichResultGSEA[[onto]]
-      
+
       er@result$Label <- ""
       for (i in 1:length(er@result$Description)) {
         desc <- er@result$Description[i]
@@ -801,9 +824,26 @@ enrichResultGSEAPlots <- list()
       
       sigGeneIds <- ce_list[!is.na(ce_list)]
       log2Ratio <- enrichInput$log2Ratio[sigGeneIds]
-      names(log2Ratio) <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
+      geneLabels <- enrichInput$seqAnno[sigGeneIds, "gene_name"]
+      ## fall back to the gene id when a gene has no symbol (e.g. some lncRNAs)
+      naLabel <- is.na(geneLabels) | geneLabels == ""
+      geneLabels[naLabel] <- sigGeneIds[naLabel]
+      names(log2Ratio) <- geneLabels
       log2Ratio <- sort(log2Ratio, decreasing = T)
-      erp[["cnet"]] <- enrichplot::cnetplot(x = er, foldChange = log2Ratio)
+      ## keep the report alive if cnetplot cannot build a graph (see ORA note above)
+      erp[["cnet"]] <- tryCatch(
+        ## enrichplot >= 1.33 colours up-regulated genes blue; restore up = red
+        ## (same palette as exploreDE)
+        enrichplot::cnetplot(x = er, foldChange = log2Ratio) +
+          ggplot2::scale_colour_gradient2(
+            name = "fold change", low = "deepskyblue4", mid = "white",
+            high = "firebrick", midpoint = 0
+          ),
+        error = function(e) {
+          ezWrite("cnetplot skipped for GSEA ", onto, ": ", conditionMessage(e))
+          NULL
+        }
+      )
 
       enrichResultGSEAPlots[[onto]] <- erp
     }
@@ -812,7 +852,7 @@ enrichResultGSEAPlots <- list()
   gseaFile <- paste0(param$comparison, "--GSEA_results.xlsx")
   gseaList <- list()
   for (onto in names(enrichResultGSEA)) {
-    if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
+    if (ezIsEmptyEnrichResult(enrichResultGSEA[[onto]])) {
       next 
     } else {
       dfOut <- as.data.frame(enrichResultGSEA[[onto]]@result)
@@ -835,7 +875,7 @@ Cut Off:
 
 Gene Ranking:
 
-* all present genes are sorted by log2 ratio
+* all present genes are ranked by `r switch(param$rankMetric %||% "log2Ratio", log2Ratio = "log2 ratio", pValue = "-log10 p-value (unsigned)", signedPValue = "sign(log2 ratio) x -log10 p-value", param$rankMetric)`
 
 
 
@@ -843,10 +883,13 @@ Gene Ranking:
   gsea.overview = ezFrame("Number of Significant Pathways"=numeric())
   for (i in 1:length(names(enrichResultGSEA))){
     testName = paste(names(enrichResultGSEA)[i])
-    gsea.overview[testName, "Number of Significant Pathways"] = nrow(enrichResultGSEA[[i]]@result)
+    er <- enrichResultGSEA[[i]]
+    gsea.overview[testName, "Number of Significant Pathways"] =
+      if (ezIsEmptyEnrichResult(er)) 0L else
+        sum(er@result$p.adjust <= param$fdrThreshGSEA, na.rm = TRUE)
   }
   
-  paste(
+  print(
     kable(
       x = format(gsea.overview, digits=3, scientific=-2),
       format =  "html",
@@ -856,15 +899,16 @@ Gene Ranking:
         full_width = F,
         position = "left"))
   cat("\n\n")
-  if(exists(gseaFile))
+  if (file.exists(gseaFile))
     cat(paste0("[Download Excel file of complete GSEA results](", gseaFile, ")"))
   cat("\n\n")
 ```
 
-```{r tabs with gsea plots, results='asis', echo = FALSE, eval = isTRUE(param$runGO), fig.height=8, fig.width=8}
+```{r tabs with gsea plots, results='asis', echo = FALSE, eval = isTRUE(param$runGO), fig.height=8, fig.width=8, message=FALSE, warning=FALSE}
   for (onto in names(enrichResultGSEA)) {
     cat("###", onto, "{.tabset}", "\n")
-    if (is.na(enrichResultGSEA[[onto]][1][[1]])) {
+    ## empty when no term passed fdrThreshGSEA (see prepare gsea plots)
+    if (length(enrichResultGSEAPlots[[onto]]) == 0) {
       cat('\n No significant GO terms detected.')
       cat("\n\n")
       next
@@ -872,7 +916,7 @@ Gene Ranking:
       erp <- enrichResultGSEAPlots[[onto]]
       # print( enrichResultGSEAPlots[[ paste0(names(enrichResultGSEA)[onto], "_", names(enrichResultGSEA[[onto]])[sig], "_", "table") ]] )
       print(erp$ridgeplot)
-      print(erp$cnet)
+      if (!is.null(erp$cnet)) print(erp$cnet)
       print(kable(erp$df,
                   escape = FALSE, row.names = FALSE, format = "html", digits = 50
       ) %>%

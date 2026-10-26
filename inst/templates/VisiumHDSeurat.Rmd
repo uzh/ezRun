@@ -2299,25 +2299,223 @@ if ("rctd_max_weight" %in% colnames(scData@meta.data)) {
 }
 ```
 
+## Niches & communication {.tabset}
+
+```{r niche setup, include=FALSE}
+niche <- if (file.exists("nicheResults.qs2")) qs2::qs_read("nicheResults.qs2") else NULL
+.nok <- function(step) !is.null(niche) && isTRUE(niche$status[[step]]$ok)
+.nmsg <- function(step) {
+  st <- niche$status[[step]]
+  if (is.null(st)) {
+    "This step was not run."
+  } else if (is.na(st$ok)) {
+    paste0("This step was skipped: ", st$msg, ".")
+  } else if (!st$ok) {
+    paste0("This step failed: ", st$msg)
+  } else {
+    ""
+  }
+}
+.ccc_heatmap <- function(pw, what) {
+  agg <- pw %>% group_by(source, target) %>% summarise(prob = sum(prob), .groups = "drop")
+  ggplot(agg, aes(target, source, fill = prob)) +
+    geom_tile(colour = "white") +
+    scale_fill_viridis_c(option = "plasma", name = "probability") +
+    labs(x = paste("receiver", what), y = paste("sender", what)) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+.ccc_top <- function(pw) {
+  pw %>% group_by(pathway_name) %>% summarise(prob = sum(prob)) %>%
+    slice_max(prob, n = 20) %>%
+    ggplot(aes(prob, reorder(pathway_name, prob))) +
+    geom_col(fill = "#0072B2") +
+    labs(x = "total communication probability", y = NULL) +
+    theme_minimal()
+}
+.ccc_table <- function(lr) {
+  DT::datatable(lr[, intersect(c("source", "target", "ligand", "receptor", "prob", "pval", "interaction_name_2", "pathway_name"),
+                               colnames(lr))], rownames = FALSE, filter = "top",
+                options = list(pageLength = 10, scrollX = TRUE))
+}
+```
+
+### Step status
+
+```{r niche status}
+if (is.null(niche)) {
+  cat("No niche or communication results in this run.\n")
+} else {
+  st <- niche$status
+  kable(data.frame(
+    Step = names(st),
+    Result = vapply(st, function(x) if (is.na(x$ok)) "skipped" else if (x$ok) "done" else "failed", ""),
+    Minutes = vapply(st, function(x) x$minutes %||% NA_real_, 1),
+    Note = vapply(st, function(x) x$msg, "")
+  ), row.names = FALSE) %>% kable_styling(full_width = FALSE, position = "left")
+}
+```
+
+These steps never run on every bin: CellChat and liana use at most
+`r param$cellchatMaxPerGroup` bins per group (random, stratified subsample),
+MISTy and SpatialCellChat run on square pseudo-spots that average the RCTD
+weights of the bins they contain.
+
+### Spatial dependencies (MISTy)
+
+`r .nmsg("misty")`
+
+```{r misty intro, results='asis', eval=.nok("misty")}
+mp <- niche$misty$params
+cat("**MISTy** (Tanevski et al., *Genome Biol* 2022) asks for every cell type how well its ",
+    "RCTD weight in a pseudo-spot (", mp$gridSize, " \u00b5m squares, ", mp$nSpots, " units from ",
+    mp$nBins, " bins) is predicted by the other cell types in the same pseudo-spot (**intra**), ",
+    "in the directly neighbouring pseudo-spots (**juxta**) and in the wider neighbourhood ",
+    "(**para**, Gaussian weights, ", mp$paraRange, " \u00b5m length scale). The **gain in R\u00b2** shows ",
+    "how much the surroundings add; the **importance** shows which neighbouring cell types ",
+    "carry that information (an association in either direction, not a causal effect).\n\n", sep = "")
+```
+
+```{r misty gain, fig.width=9, fig.height=max(4, 0.3 * niche$misty$params$nTypes + 1.5), eval=.nok("misty")}
+imp <- niche$misty$improvements %>%
+  dplyr::select(target, measure, value) %>%
+  tidyr::pivot_wider(names_from = measure, values_from = value)
+imp %>%
+  dplyr::select(target, intra = intra.R2, `multi-view` = multi.R2, gain = gain.R2) %>%
+  tidyr::pivot_longer(c(intra, `multi-view`), names_to = "model", values_to = "R2") %>%
+  ggplot(aes(R2, reorder(target, gain), fill = model)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.75) +
+  scale_fill_manual(values = c(intra = "#999999", `multi-view` = "#0072B2"), name = NULL) +
+  labs(x = "variance explained (R\u00b2, %)", y = NULL) +
+  theme_minimal()
+```
+
+```{r misty importance, fig.width=15, fig.height=max(5, 0.3 * niche$misty$params$nTypes + 2.5), eval=.nok("misty")}
+views <- setdiff(unique(niche$misty$importances$view), "intra")
+wrap_plots(lapply(views, function(v) {
+  niche$misty$importances %>%
+    dplyr::filter(view == v) %>%
+    dplyr::mutate(Importance = pmax(Importance, 0)) %>%
+    ggplot(aes(Predictor, Target, fill = Importance)) +
+    geom_tile(colour = "white") +
+    scale_fill_viridis_c(option = "rocket", direction = -1, name = "importance") +
+    labs(x = "predictor (around the pseudo-spot)", y = "target", title = v) +
+    theme_minimal(base_size = 9) +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1))
+}), nrow = 1)
+```
+
+### CellChat: cell types
+
+`r .nmsg("communication")`
+
+```{r ccc celltype intro, results='asis', eval=.nok("communication") && !is.null(niche$communication$celltype)}
+cp <- niche$communication$celltype$params
+cat("**CellChat** v2 in spatial mode scores secreted ligand-receptor pairs between the RCTD ",
+    "first cell type of the bins, only between groups whose bins lie within ",
+    cp$interactionRange, " \u00b5m (", cp$nSpots, " bins in ", cp$nGroups, " groups, ",
+    cp$nboot, " permutations). Read the results as candidate signals to follow up.\n\n", sep = "")
+```
+
+```{r ccc celltype heatmap, fig.width=10, fig.height=8.5, eval=.nok("communication") && !is.null(niche$communication$celltype)}
+.ccc_heatmap(niche$communication$celltype$pathways, "cell type")
+```
+
+```{r ccc celltype top, fig.width=9, fig.height=5, eval=.nok("communication") && !is.null(niche$communication$celltype)}
+.ccc_top(niche$communication$celltype$pathways)
+```
+
+```{r ccc celltype table, eval=.nok("communication") && !is.null(niche$communication$celltype)}
+.ccc_table(niche$communication$celltype$interactions)
+```
+
+### CellChat: niches
+
+`r .nmsg("communication")`
+
+```{r ccc niche heatmap, fig.width=10, fig.height=8.5, eval=.nok("communication")}
+.ccc_heatmap(niche$communication$niche$pathways, "BANKSY niche")
+```
+
+```{r ccc niche top, fig.width=9, fig.height=5, eval=.nok("communication")}
+.ccc_top(niche$communication$niche$pathways)
+```
+
+```{r ccc niche table, eval=.nok("communication")}
+.ccc_table(niche$communication$niche$interactions)
+```
+
+### SpatialCellChat
+
+`r .nmsg("spatialCellChat")`
+
+```{r scc intro, results='asis', eval=.nok("spatialCellChat")}
+sp <- niche$spatialCellChat$params
+cat("**SpatialCellChat** scores every ligand-receptor pair between neighbouring pseudo-spots (",
+    sp$gridSize, " \u00b5m squares, ", sp$nSpots, " units) and averages them to cell types, weighted ",
+    "by the mean RCTD weights of each pseudo-spot (", sp$nboot, " permutations).\n\n", sep = "")
+```
+
+```{r scc heatmap, fig.width=10, fig.height=8.5, eval=.nok("spatialCellChat")}
+.ccc_heatmap(niche$spatialCellChat$pathways, "cell type")
+```
+
+```{r scc maps, fig.width=14, fig.height=7, eval=.nok("spatialCellChat") && !is.null(niche$spatialCellChat$spotScores)}
+sc <- niche$spatialCellChat$spotScores
+co <- niche$spatialCellChat$pseudospotCoords
+gs <- niche$spatialCellChat$params$gridSize
+## pseudo-spot coordinates are the mean of their bins: snap to the grid
+## cell centres so that the tiles meet
+df <- data.frame(x = (floor(co[sc$spot, "x"] / gs) + 0.5) * gs,
+                 y = -(floor(co[sc$spot, "y"] / gs) + 0.5) * gs, sc)
+plots <- unlist(lapply(unique(df$pathway), function(p) {
+  d <- df[df$pathway == p, ]
+  lapply(c("outgoing", "incoming"), function(m) {
+    ggplot(d, aes(x, y, fill = .data[[m]])) +
+      geom_tile(width = gs, height = gs) +
+      scale_fill_viridis_c(option = if (m == "outgoing") "mako" else "rocket", name = NULL) +
+      labs(title = paste(p, "-", m)) +
+      coord_fixed() + theme_void()
+  })
+}), recursive = FALSE)
+wrap_plots(plots, ncol = 4)
+```
+
+```{r scc table, eval=.nok("spatialCellChat")}
+.ccc_table(niche$spatialCellChat$interactions)
+```
+
+### liana
+
+`r .nmsg("liana")`
+
+```{r liana table, eval=.nok("liana")}
+DT::datatable(niche$liana[, intersect(c("source", "target", "ligand.complex", "receptor.complex", "aggregate_rank"),
+                                      colnames(niche$liana))],
+              rownames = FALSE, filter = "top", options = list(pageLength = 10, scrollX = TRUE))
+```
+
 ## Links
 
 ### Data files
 
-##### Aggregated expression of every gene across the bins/cells in each cluster
-
-[geneExprPerCluster](bulkSignalPerCluster.tsv)
-
-##### Aggregated expression of every gene across all the bins/cells
-
-[geneExprPerSample](bulkSignalPerSample.tsv)
-
-##### Positive markers of each cluster
-
-[posMarkers](cluster_markers.tsv)
-
-
-
-##### The final Seurat Object is [here](scData.qs2)
+```{r data files, results='asis'}
+files <- c(
+  "scData.qs2" = "the final Seurat object",
+  "posMarkers.xlsx" = "positive markers of each cluster",
+  "posMarkersBanksy.xlsx" = "positive markers of each BANKSY niche",
+  "clusterInfos.xlsx" = "template for manual cluster annotation",
+  "bulkSignalPerSample.xlsx" = "aggregated expression of every gene across all bins/cells",
+  "misty.xlsx" = "MISTy variance explained, view contributions and importances",
+  "cellchat.xlsx" = "CellChat ligand-receptor and pathway results (cell types and niches)",
+  "cellchat.qs2" = "the CellChat objects",
+  "spatialCellChat.xlsx" = "SpatialCellChat results between cell types",
+  "liana.xlsx" = "liana consensus ranking between cell types",
+  "nicheResults.qs2" = "all niche and communication results (R list)"
+)
+files <- files[file.exists(names(files))]
+cat(paste0("- [", names(files), "](", names(files), "): ", files, collapse = "\n"), "\n")
+```
 
 ## Parameters
 

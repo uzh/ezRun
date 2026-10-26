@@ -42,7 +42,7 @@ EzAppSeuratVisiumHD <-
           ),
           DE.method = ezFrame(
             Type = "charVector",
-            DefaultValue = "wilcoxon",
+            DefaultValue = "wilcox",
             Description = "Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."
           ),
           min.pct = ezFrame(
@@ -107,7 +107,7 @@ EzAppSeuratVisiumHD <-
           ),
           featSelectionMethod = ezFrame(
             Type = "character",
-            DefaultValue = "STACAS",
+            DefaultValue = "vst",
             Description = "use default method or black list genes"
           ),
           nfeatures = ezFrame(

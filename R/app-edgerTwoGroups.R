@@ -37,12 +37,14 @@ ezMethodEdger <- function(input = NA, output = NA, param = NA) {
     return("Error")
   }
 
-  makeRmdReport(
+  makeQuartoReport(
     output = output,
     param = param,
     deResult = deResult,
-    rmdFile = "twoGroups.Rmd",
-    reportTitle = param$comparison
+    qmdFile = "twoGroups.qmd",
+    reportTitle = param$comparison,
+    colour = isTRUE(param$colour),
+    number = isTRUE(param$number)
   )
   rmStatus <- file.remove(list.files(pattern = "enrichr-.*rds"))
   return("Success")
@@ -126,6 +128,16 @@ EzAppEdger <-
               Type = "character",
               DefaultValue = 'log2Ratio',
               Description = "how to rank genes for GSEA"
+          ),
+          colour = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "coloured tab hierarchy in the report"
+          ),
+          number = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "numbered tab hierarchy in the report"
           )
         )
       }

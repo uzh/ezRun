@@ -264,6 +264,36 @@ ezTagListFromNames = function(names) {
   })
 }
 
+## Set by hand -- update if the model backing AI/llm_methods_caller changes.
+## Source: LLM_CALLER_MODEL in the AI/llm_methods_caller module.
+## (Kept above EzApp's roxygen block: placed between that block and
+## setRefClass(), roxygen documents this constant instead of EzApp.)
+METHODS_LLM_MODEL_NAME <- "DeepSeek-V4-Flash-DSpark"
+
+## The run's parameters as recorded in <resultDir>/parameters.tsv, as character values.
+## SUSHI writes an empty value as a literal "", which would count as set, so one pair of
+## surrounding quotes is stripped. Used by write_methods() to call citation(param).
+readRunParameters <- function(resultDir) {
+  paramFile <- file.path(resultDir, "parameters.tsv")
+  if (!file.exists(paramFile)) return(list())
+  tab <- utils::read.delim(paramFile, header = FALSE, colClasses = "character",
+                           quote = "", comment.char = "")
+  stats::setNames(as.list(sub('^"(.*)"$', "\\1", tab[[2]])), tab[[1]])
+}
+
+## Logs the app's own defaults that the job did not set (not on the form and not in
+## specialOptions). They shape the run but are not in the job script, so the log is
+## the only record of them. Empty and NA values are left out.
+logAppDefaults <- function(formParam, param, appDefaults) {
+  setOnJob <- c(names(formParam), names(parseOptions(formParam$specialOptions)))
+  unset <- setdiff(rownames(appDefaults), setOnJob)
+  values <- vapply(param[unset], function(x) paste(x, collapse = ","), character(1))
+  keep <- !values %in% c("", "NA")
+  if (any(keep)) {
+    ezLog("App defaults used: ", paste0(unset[keep], "=", values[keep], collapse = ", "))
+  }
+}
+
 ##' @title The R5 class representing a runnable app
 ##' @description This reference class is the basis of all other apps that inherit from it. It sets the framework to run different apps.
 ##' @field runMethod the function that will be executed in the \code{run} method.
@@ -359,34 +389,6 @@ ezTagListFromNames = function(names) {
 ##' ds = EzDataset$new(file=file, dataRoot=NULL)
 ##' NULLApp = EzApp$new(runMethod=function(input, output, param){},name="NULLApp")
 ##' NULLApp$run(input=ds, output=ds, param=list(process_mode="DATASET"))
-
-## Set by hand -- update if the model backing AI/llm_methods_caller changes.
-## Source: LLM_CALLER_MODEL in the AI/llm_methods_caller module.
-METHODS_LLM_MODEL_NAME <- "DeepSeek-V4-Flash-DSpark"
-
-## The run's parameters as recorded in <resultDir>/parameters.tsv, as character values.
-## SUSHI writes an empty value as a literal "", which would count as set, so one pair of
-## surrounding quotes is stripped. Used by write_methods() to call citation(param).
-readRunParameters <- function(resultDir) {
-  paramFile <- file.path(resultDir, "parameters.tsv")
-  if (!file.exists(paramFile)) return(list())
-  tab <- utils::read.delim(paramFile, header = FALSE, colClasses = "character",
-                           quote = "", comment.char = "")
-  stats::setNames(as.list(sub('^"(.*)"$', "\\1", tab[[2]])), tab[[1]])
-}
-
-## Logs the app's own defaults that the job did not set (not on the form and not in
-## specialOptions). They shape the run but are not in the job script, so the log is
-## the only record of them. Empty and NA values are left out.
-logAppDefaults <- function(formParam, param, appDefaults) {
-  setOnJob <- c(names(formParam), names(parseOptions(formParam$specialOptions)))
-  unset <- setdiff(rownames(appDefaults), setOnJob)
-  values <- vapply(param[unset], function(x) paste(x, collapse = ","), character(1))
-  keep <- !values %in% c("", "NA")
-  if (any(keep)) {
-    ezLog("App defaults used: ", paste0(unset[keep], "=", values[keep], collapse = ", "))
-  }
-}
 
 EzApp <-
   setRefClass(

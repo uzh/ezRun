@@ -6,6 +6,7 @@ params:
   profileSource: "MetaPhlAnProfile"
   detectedDb: ""
   forced: FALSE
+  modeNote: ""
   humannLog: ""
   gfCpmFile: ""
   rxCpmFile: ""
@@ -38,6 +39,11 @@ cat("- Upstream profile source: `", params$profileSource, "`\n", sep = "")
 cat("- Detected DB tag: `", params$detectedDb, "`\n", sep = "")
 if (isTRUE(params$forced)) {
   cat("- **Note:** `forceTranslatedOnly` parameter was TRUE — any vOct22 input was downgraded.\n")
+}
+for (note in strsplit(params$modeNote, "\n", fixed = TRUE)[[1]]) {
+  if (nzchar(note)) {
+    cat("- **Note:** ", note, "\n", sep = "")
+  }
 }
 ```
 

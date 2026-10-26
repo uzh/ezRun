@@ -2,7 +2,7 @@
 % Please edit documentation in R/featurePlots.R
 \name{plotLocusCoverageProfile}
 \alias{plotLocusCoverageProfile}
-\title{Title}
+\title{Plot read coverage of BAM files at genomic loci}
 \usage{
 plotLocusCoverageProfile(
   gRanges,
@@ -17,10 +17,30 @@ plotLocusCoverageProfile(
 )
 }
 \arguments{
-\item{width}{}
+\item{gRanges}{a named \code{GRanges}; one plot per range, named after it.}
+
+\item{bamFiles}{a character vector of BAM file paths; names are used as
+track labels (default: file name without ".bam").}
+
+\item{gtfFile}{the GTF file the gene-model track is built from (required).}
+
+\item{ylim}{the y-axis range of the coverage tracks.}
+
+\item{sizes}{relative track heights (default: all equal).}
+
+\item{isSecondaryAlignment}{passed to \code{scanBamFlag()}; \code{NA} keeps
+secondary alignments, \code{FALSE} drops them.}
+
+\item{height, width}{the PDF size in inches.}
+
+\item{plotType}{\code{"coverage"} or \code{"sashimi"}.}
+}
+\value{
+a named character vector of the PDF files written (one per range).
 }
 \description{
-Title
+Writes one PDF per range: a gene-model track from \code{gtfFile} above one
+coverage (or sashimi) track per BAM file.
 }
 \examples{
 \dontrun{

@@ -18,7 +18,11 @@ addCellCycleToSCE <- function(sce, refBuild, BPPARAM) {
   return(sce)
 }
 
-addCellCycleToSeurat <- function(scData, refBuild, BPPARAM, assay = "RNA") {
+addCellCycleToSeurat <- function(scData, refBuild, BPPARAM, assay = "RNA",
+                                 method = c("cyclone", "seurat")) {
+  if (match.arg(method) == "seurat") {
+    return(addSeuratCellCycle(scData, refBuild, assay))
+  }
   counts <- GetAssayData(scData, layer = "counts", assay = assay)
   metaFeatures <- scData[[assay]]@meta.data
   if ("gene_id" %in% names(metaFeatures)) {
@@ -41,6 +45,27 @@ addCellCycleToSeurat <- function(scData, refBuild, BPPARAM, assay = "RNA") {
   return(scData)
 }
 
+## Seurat's marker-module scoring (cc.genes.updated.2019). 19 s on 556k
+## VisiumHD bins, where cyclone took 160 min at 4 cores (p41757 Batch2).
+## Same columns as the cyclone path except CellCycleG1, which it has no score for.
+addSeuratCellCycle <- function(scData, refBuild, assay) {
+  genes <- Seurat::cc.genes.updated.2019
+  species <- getSpecies(refBuild)
+  if (species == "Mouse") {
+    genes <- lapply(genes, function(g) paste0(substr(g, 1, 1), tolower(substring(g, 2))))
+  } else if (species != "Human") {
+    return(scData)
+  }
+  cc <- Seurat::CellCycleScoring(scData, s.features = genes$s.genes,
+                                 g2m.features = genes$g2m.genes, assay = assay)
+  AddMetaData(scData, data.frame(
+    CellCycle = cc$Phase,
+    CellCycleS = cc$S.Score,
+    CellCycleG2M = cc$G2M.Score,
+    CC.Difference = cc$S.Score - cc$G2M.Score,
+    row.names = colnames(scData)
+  ))
+}
 
 getCellCycle <- function(counts, refBuild, BPPARAM) {
   require(scran)
@@ -283,15 +308,48 @@ cellsProportion <- function(object, groupVar1, groupVar2) {
   return(table)
 }
 
+##' @title Resolve the species from a refBuild string
+##' @description Maps a `refBuild` to "Human", "Mouse" or "other". This gates the
+##'   CellMarker2/AUCell annotation section, and "other" means NO annotation at
+##'   all, silently - so a parsing miss costs a run its annotation with no error.
+##'
+##'   Matching is on whole path SEGMENTS, not a prefix. The former
+##'   `startsWith(refBuild, "Homo_sapiens")` missed three spellings that occur in
+##'   live gStore results: an absolute reference path (13 mouse runs, p40923 and
+##'   p40924, Jan-Mar 2026), and a bare assembly name (3 runs). Segment matching
+##'   also keeps `Mus_minutoides` - which has a reference installed here - from
+##'   being read as mouse, which a `grepl("Mus_musculus", ...)` fix would not.
+##'
+##'   A `Chimera_*` reference is deliberately "other": the matrix mixes two
+##'   genomes and neither species' marker sets are valid on it.
+##' @param refBuild character(1), e.g. "Mus_musculus/GENCODE/GRCm39/Annotation/Release_M37-2025-07-03"
+##' @return "Human", "Mouse" or "other"
 getSpecies <- function(refBuild) {
-  if (startsWith(refBuild, "Homo_sapiens")) {
-    species <- "Human"
-  } else if (startsWith(refBuild, "Mus_musculus")) {
-    species <- "Mouse"
-  } else {
-    species <- "other"
+  if (length(refBuild) != 1L || is.na(refBuild) || !nzchar(refBuild)) {
+    return("other")
   }
-  return(species)
+  segments <- setdiff(strsplit(refBuild, "/", fixed = TRUE)[[1]], "")
+  if (!length(segments)) {
+    return("other")
+  }
+  ## a mixed-genome reference is not either of its parents
+  if (any(startsWith(segments, "Chimera"))) {
+    return("other")
+  }
+  if ("Homo_sapiens" %in% segments) {
+    return("Human")
+  }
+  if ("Mus_musculus" %in% segments) {
+    return("Mouse")
+  }
+  ## refBuild given as a bare assembly, with no genus directory
+  if (any(grepl("^GRCh[0-9]", segments))) {
+    return("Human")
+  }
+  if (any(grepl("^GRCm[0-9]", segments))) {
+    return("Mouse")
+  }
+  "other"
 }
 
 # Decide whether the Pan-Human Azimuth (CloudAzimuth) step should run, and say
@@ -653,6 +711,9 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
   } else {
     qc.lib <- scData@meta.data[, att_nCounts] < param$nreads
   }
+  ## SpotSweeper compares a spot to its neighbours and keeps empty spots in
+  ## low-count regions; SCTransform fails on cells without UMIs (log_umi).
+  qc.lib <- qc.lib | scData@meta.data[, att_nCounts] == 0
 
   if (is.na(param$ngenes)) {
     if (assay == 'Spatial') {
@@ -721,9 +782,95 @@ filterCellsAndGenes.Seurat <- function(scData, param) {
     row.names = rownames(cellsPerGene)
   )
   scData <- scData[is.expressed, ]
+  ## the gene filter can leave cells without any counts
+  isEmpty <- Matrix::colSums(GetAssayData(scData, layer = "counts")) == 0
+  if (any(isEmpty)) {
+    ezLog(sum(isEmpty), " cells without counts after gene filtering removed")
+    scData <- scData[, !isEmpty]
+  }
   return(list(
     scData.unfiltered = scData.unfiltered,
     scData = scData,
     cellsPerGeneFraction = cellsPerGeneFraction
   ))
+}
+
+##' @title FindClusters without Seurat's per-singleton loop
+##' @description Drop-in for `Seurat::FindClusters()` (one resolution). Seurat's
+##'   `GroupSingletons` loops over singletons x clusters with a name-indexed
+##'   sparse subset per pair; on a degenerate SNN graph (p26168 TMA4 8 um:
+##'   14,007 singletons, 43 clusters) that ran 32 h on one core. Here Seurat
+##'   labels them "singleton" and [reassignSingletons()] applies the same rule
+##'   in one sparse product.
+##' @param object Seurat object with `graph.name` computed.
+##' @param resolution numeric(1).
+##' @param graph.name,cluster.name as in `FindClusters()`.
+##' @param ... passed to `FindClusters()`.
+##' @return the object, with the cluster column, `Idents` and (when Seurat set
+##'   it) `seurat_clusters` free of the "singleton" label.
+findClustersFast <- function(object, resolution, graph.name = NULL,
+                             cluster.name = NULL, ...) {
+  graph.name <- graph.name %||% paste0(DefaultAssay(object), "_snn")
+  cluster.name <- cluster.name %||% paste0(graph.name, "_res.", resolution)
+  ## Seurat 5.5.1's parallel branch (nbrOfWorkers() > 1) drops
+  ## group.singletons and runs the slow loop anyway; one resolution gains
+  ## nothing from it.
+  oplan <- future::plan("sequential")
+  on.exit(future::plan(oplan), add = TRUE)
+  object <- FindClusters(object, resolution = resolution,
+                         graph.name = graph.name, cluster.name = cluster.name,
+                         group.singletons = FALSE, ...)
+  ids <- setNames(as.character(object[[cluster.name, drop = TRUE]]),
+                  colnames(object))
+  single <- !is.na(ids) & ids == "singleton"
+  if (!any(single)) {
+    return(object)
+  }
+  futile.logger::flog.info(
+    "%s: reassigning %d singletons (a large count means a near-random SNN graph)",
+    cluster.name, sum(single)
+  )
+  ids[!is.na(ids)] <- reassignSingletons(ids[!is.na(ids)], object[[graph.name]])
+  levs <- as.character(sort(as.integer(unique(na.omit(ids)))))
+  newIds <- setNames(factor(ids, levels = levs), colnames(object))
+  hadSeuratClusters <- identical(as.character(object$seurat_clusters),
+                                 as.character(object[[cluster.name, drop = TRUE]]))
+  object[[cluster.name]] <- newIds
+  Idents(object) <- newIds
+  if (hadSeuratClusters) {
+    object$seurat_clusters <- newIds
+  }
+  object
+}
+
+##' @title Assign singleton cells to their best-connected cluster
+##' @description The rule of Seurat's `GroupSingletons`: each singleton joins
+##'   the cluster with the highest mean SNN weight to it, and a tie is broken
+##'   exactly as Seurat does (`set.seed(1); sample(tied, 1)`, clusters in order
+##'   of first appearance). That tie-break matters: on p26168 TMA4 all 14,007
+##'   singletons had zero weight to every cluster (their edges only reach other
+##'   singletons), so each was a 43-way tie and all went to one cluster. Seurat
+##'   grows clusters as it goes, which can only change a near-tied call.
+##' @param ids named character; singletons carry the label "singleton".
+##' @param snn cells x cells SNN graph whose dimnames include `names(ids)`.
+##' @return `ids` with every "singleton" replaced by a cluster label.
+reassignSingletons <- function(ids, snn) {
+  single <- ids == "singleton"
+  if (!any(single) || all(single)) {
+    return(ids)
+  }
+  cl <- factor(ids[!single], levels = unique(ids[!single]))
+  member <- Matrix::sparseMatrix(
+    i = match(names(cl), rownames(snn)), j = as.integer(cl), x = 1,
+    dims = c(nrow(snn), nlevels(cl))
+  )
+  conn <- as.matrix(snn[names(ids)[single], , drop = FALSE] %*% member)
+  conn <- sweep(conn, 2, tabulate(as.integer(cl), nlevels(cl)), "/")
+  best <- levels(cl)[max.col(conn, ties.method = "first")]
+  isMax <- conn == apply(conn, 1, max)
+  for (r in which(rowSums(isMax) > 1)) {
+    best[r] <- withr::with_seed(1, sample(levels(cl)[isMax[r, ]], 1))
+  }
+  ids[single] <- best
+  ids
 }

@@ -229,15 +229,23 @@ plotCellRangerCoverage = function(
 }
 
 
-#' Title
+#' Plot read coverage of BAM files at genomic loci
 #'
-#' @param gRanges
-#' @param bamFiles
-#' @param gtfFile
-#' @param height
-#' @param width
+#' Writes one PDF per range: a gene-model track from \code{gtfFile} above one
+#' coverage (or sashimi) track per BAM file.
 #'
-#' @return
+#' @param gRanges a named \code{GRanges}; one plot per range, named after it.
+#' @param bamFiles a character vector of BAM file paths; names are used as
+#'   track labels (default: file name without ".bam").
+#' @param gtfFile the GTF file the gene-model track is built from (required).
+#' @param ylim the y-axis range of the coverage tracks.
+#' @param sizes relative track heights (default: all equal).
+#' @param isSecondaryAlignment passed to \code{scanBamFlag()}; \code{NA} keeps
+#'   secondary alignments, \code{FALSE} drops them.
+#' @param height,width the PDF size in inches.
+#' @param plotType \code{"coverage"} or \code{"sashimi"}.
+#'
+#' @return a named character vector of the PDF files written (one per range).
 #' @export
 #'
 #' @examples
@@ -265,7 +273,7 @@ plotLocusCoverageProfile = function(
   require(GenomicFeatures)
   require(S4Vectors)
   if (!is.null(gtfFile)) {
-    txdb = makeTxDbFromGFF(gtfFile, dataSource = "FGCZ", taxonomyId = 1) #96061234")
+    txdb = txdbmaker::makeTxDbFromGFF(gtfFile, dataSource = "FGCZ", taxonomyId = 1) #96061234")
     #saveDb(txdb, "tx.db")
     #txdb = loadDb("tx.db")
   } else {
@@ -348,7 +356,7 @@ plotLocusAverageCoverageProfile = function(
   require(Gviz)
   require(GenomicFeatures)
   if (!is.null(gtfFile)) {
-    txdb = makeTxDbFromGFF(gtfFile, dataSource = "FGCZ", taxonomyId = 1) #96061234")
+    txdb = txdbmaker::makeTxDbFromGFF(gtfFile, dataSource = "FGCZ", taxonomyId = 1) #96061234")
     #saveDb(txdb, "tx.db")
     #txdb = loadDb("tx.db")
   } else {

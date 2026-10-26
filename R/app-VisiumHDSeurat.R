@@ -83,7 +83,7 @@ EzAppVisiumHDSeurat <-
           ),
           DE.method = ezFrame(
             Type = "charVector",
-            DefaultValue = "wilcoxon",
+            DefaultValue = "wilcox",
             Description = "Method to be used when calculating gene cluster markers. Use LR if you want to include cell cycle in the regression model."
           ),
           min.pct = ezFrame(
@@ -148,7 +148,7 @@ EzAppVisiumHDSeurat <-
           ),
           featSelectionMethod = ezFrame(
             Type = "character",
-            DefaultValue = "STACAS",
+            DefaultValue = "vst",
             Description = "use default method or black list genes"
           ),
           nfeatures = ezFrame(
@@ -177,7 +177,9 @@ EzAppVisiumHDSeurat <-
             Description = "Value of the Niche resolution parameter for BANKSY clustering, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities."
           ),
           rctdReference = ezFrame(
-            Type = "charVector",
+            ## a single dropdown choice: "charVector" would split the value at
+            ## the commas of its "(description)" suffix
+            Type = "character",
             DefaultValue = rctd_refs[1],
             Description = "RCTD Reference to use"
           ),
@@ -190,6 +192,66 @@ EzAppVisiumHDSeurat <-
             Type = "numeric",
             DefaultValue = 20,
             Description = "Minimum UMI count for RCTD annotation"
+          ),
+          rctdEngine = ezFrame(
+            Type = "character",
+            DefaultValue = "rctd-py",
+            Description = "RCTD implementation: rctd-py (GPU if the job has one, else CPU) or spacexr (R)"
+          ),
+          computeCellChat = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "Distance-constrained CellChat v2 between BANKSY niches and between RCTD cell types"
+          ),
+          cellchatInteractionLength = ezFrame(
+            Type = "numeric",
+            DefaultValue = 250,
+            Description = "Maximal ligand-receptor interaction distance in microns"
+          ),
+          cellchatNboot = ezFrame(
+            Type = "numeric",
+            DefaultValue = 20,
+            Description = "Permutations for the CellChat and SpatialCellChat p-values"
+          ),
+          cellchatMaxPerGroup = ezFrame(
+            Type = "numeric",
+            DefaultValue = 1500,
+            Description = "CellChat and liana use at most this many bins per group (stratified subsample)"
+          ),
+          computeMisty = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "MISTy on pseudo-spots: which cell types predict each other nearby (needs RCTD)"
+          ),
+          nicheGridSize = ezFrame(
+            Type = "numeric",
+            DefaultValue = 48,
+            Description = "Side length in microns of the pseudo-spots MISTy runs on"
+          ),
+          mistyParaviewRange = ezFrame(
+            Type = "numeric",
+            DefaultValue = 200,
+            Description = "Length scale in microns of the MISTy neighbourhood (paraview)"
+          ),
+          mistyNeighbours = ezFrame(
+            Type = "numeric",
+            DefaultValue = 100,
+            Description = "Pseudo-spots per paraview neighbourhood (nearest neighbours; avoids an N x N distance matrix)"
+          ),
+          computeSpatialCellChat = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "SpatialCellChat on pseudo-spots, averaged to RCTD cell types (needs RCTD; ~18 min on 8 cores for a 16 um section with 100 um pseudo-spots)"
+          ),
+          spatialCellChatGridSize = ezFrame(
+            Type = "numeric",
+            DefaultValue = 100,
+            Description = "Side length in microns of the SpatialCellChat pseudo-spots"
+          ),
+          computeLiana = ezFrame(
+            Type = "logical",
+            DefaultValue = FALSE,
+            Description = "liana consensus ligand-receptor ranking between RCTD cell types (cross-check of CellChat)"
           )
         )
       }
@@ -230,6 +292,11 @@ ezMethodVisiumHDSeurat <- function(
   future.seed = TRUE
   options(future.rng.onMisuse = "ignore")
   options(future.globals.maxSize = param$ram * 1024^3)
+
+  ## Phase timings: one line per step so a slow run shows where the time went.
+  logStep <- function(step) {
+    futile.logger::flog.info("VisiumHD: %s (%d bins)", step, ncol(scData))
+  }
 
   # Handle segmented vs binned outputs
   if (grepl("segmented", param$binSize, ignore.case = TRUE)) {
@@ -295,6 +362,7 @@ ezMethodVisiumHDSeurat <- function(
   )
   scData@meta.data$Sample <- input$getNames()
 
+  logStep("loaded")
   param$nUMI <- as.numeric(param$numis) ## needed by addCellQcToSeurat
   scData <- addCellQcToSeurat(
     scData,
@@ -307,22 +375,28 @@ ezMethodVisiumHDSeurat <- function(
   scData_unfiltered <- scData
   scData <- subset(scData_unfiltered, cells = which(scData_unfiltered$useCell)) # %>% head(n=1000))
 
+  logStep("QC done")
   scData <- NormalizeData(scData)
   scData <- FindVariableFeatures(scData)
   scData <- ScaleData(scData)
+  logStep("normalised and scaled")
 
   scData <- addCellCycleToSeurat(
     scData,
     param$refBuild,
     BPPARAM,
-    assay = DefaultAssay(scData)
+    assay = DefaultAssay(scData),
+    method = "seurat"
   )
+  logStep("cell cycle done")
 
   if (nrow(scData@meta.data) < 50000) {
     scData <- RunPCA(scData, npcs = 80)
     stopifnot(param$npcs <= 80)
     scData <- FindNeighbors(scData, dims = 1:param$npcs)
-    scData <- FindClusters(scData, resolution = param$clusterResolution)
+    logStep("neighbours done")
+    scData <- findClustersFast(scData, resolution = param$clusterResolution)
+    logStep("clustering done")
     scData <- RunUMAP(
       scData,
       reduction = "pca",
@@ -357,11 +431,14 @@ ezMethodVisiumHDSeurat <- function(
       reduction = "pca.sketch",
       dims = 1:param$npcs
     )
-    scData <- FindClusters(
+    logStep("sketch neighbours done")
+    scData <- findClustersFast(
       scData,
       resolution = param$clusterResolution,
+      graph.name = "sketch_snn",
       cluster.name = "seurat_clusters.sketched"
     )
+    logStep("sketch clustering done")
     #scData$seurat_clusters.sketched <- scData$seurat_clusters
     scData <- RunUMAP(
       scData,
@@ -392,6 +469,8 @@ ezMethodVisiumHDSeurat <- function(
     DefaultAssay(scData) <- myAssay
   }
 
+  logStep("UMAP done")
+
   # get markers and annotations
   vars.to.regress = NULL
   posMarkers <- FindAllMarkers(
@@ -420,6 +499,7 @@ ezMethodVisiumHDSeurat <- function(
   posMarkers <- posMarkers[posMarkers$p_val_adj < param$pvalue_allMarkers, ]
   rownames(posMarkers) <- NULL
   writexl::write_xlsx(posMarkers, path = "posMarkers.xlsx")
+  logStep("cluster markers done")
 
   ## BANKSY
   lambda <- ifelse(is.null(param$lambda), 0.8, as.numeric(param$lambda))
@@ -431,6 +511,7 @@ ezMethodVisiumHDSeurat <- function(
 
   myDefAssay <- DefaultAssay(scData)
   myIdents <- Idents(scData)
+  myClusters <- scData$seurat_clusters
   scData <- RunBanksy(
     scData,
     lambda = lambda,
@@ -455,12 +536,14 @@ ezMethodVisiumHDSeurat <- function(
     dims = 1:12,
     verbose = FALSE
   )
-  scData <- FindClusters(
+  scData <- findClustersFast(
     scData,
+    graph.name = "BANKSY_snn",
     cluster.name = "banksy_cluster",
     resolution = niche_res,
     verbose = FALSE
   )
+  logStep("BANKSY clustering done")
   # Use original assay for marker identification (not BANKSY augmented features)
   DefaultAssay(scData) <- myDefAssay
   posMarkersBanksy <- FindAllMarkers(
@@ -490,10 +573,14 @@ ezMethodVisiumHDSeurat <- function(
     ]
   }
   writexl::write_xlsx(posMarkersBanksy, "posMarkersBanksy.xlsx")
+  logStep("BANKSY markers done")
 
-  # Reset default assay
+  # Reset default assay and the transcriptional clusters: on Seurat 5.5.1
+  # FindClusters() overwrites seurat_clusters even with a cluster.name (see
+  # the XeniumSeurat fix and tests/testthat/test_xeniumSeuratClusters.R).
   DefaultAssay(scData) <- myDefAssay
   Idents(scData) <- myIdents
+  scData$seurat_clusters <- myClusters
   # }, error = function(e) {
   #   ezLog("banksy failed", e)
   #   #writexl::write_xlsx(data.frame(), "posMarkersBanksy.xlsx")
@@ -520,6 +607,8 @@ ezMethodVisiumHDSeurat <- function(
     )
   }
 
+  rctdWeights <- NULL
+  rctdResultsDf <- NULL
   if (!is.null(ref_path)) {
     stopifnot(file.exists(ref_path))
     cat(
@@ -577,6 +666,13 @@ ezMethodVisiumHDSeurat <- function(
     if (!is.null(ref_obj)) {
       # Prepare Query (SpatialRNA object)
       counts <- GetAssayData(scData, assay = myAssay, layer = "counts")
+      ## references keyed by Ensembl IDs (e.g. the Allen brain references) need
+      ## the query genes renamed; symbol-keyed references are left as they are
+      counts <- rename_rctd_query_genes(
+        counts,
+        setNames(featInfo$gene_id, rownames(featInfo)),
+        rownames(ref_obj@counts)
+      )
       coords <- GetTissueCoordinates(scData)
 
       # Ensure coords match counts columns
@@ -604,33 +700,43 @@ ezMethodVisiumHDSeurat <- function(
         counts <- counts[, common_cells, drop = FALSE]
         coords <- coords[common_cells, , drop = FALSE]
 
-        # Create SpatialRNA object
-        query.puck <- SpatialRNA(coords, counts, Matrix::colSums(counts))
-
-        # Run RCTD
         umi_min <- ifelse(
           is.null(param$rctdUMImin),
           20,
           as.numeric(param$rctdUMImin)
         )
-        myRCTD <- create.RCTD(
-          query.puck,
-          ref_obj,
-          max_cores = param$cores,
-          UMI_min = umi_min
-        )
-        myRCTD <- run.RCTD(myRCTD, doublet_mode = 'doublet')
+        useRctdPy <- !identical(param$rctdEngine, "spacexr") && rctdPyAvailable()
+        if (!identical(param$rctdEngine, "spacexr") && !useRctdPy) {
+          futile.logger::flog.warn(
+            "rctd-py env %s not installed: falling back to spacexr", RCTD_PY_ENV
+          )
+        }
+        logStep(paste("RCTD start, engine", if (useRctdPy) "rctd-py" else "spacexr"))
+        if (!useRctdPy) {
+          query.puck <- SpatialRNA(coords, counts, Matrix::colSums(counts))
+          myRCTD <- create.RCTD(
+            query.puck,
+            ref_obj,
+            max_cores = param$cores,
+            UMI_min = umi_min
+          )
+          myRCTD <- run.RCTD(myRCTD, doublet_mode = 'doublet')
+          norm_weights <- normalize_weights(myRCTD@results$weights)
+          results_df <- myRCTD@results$results_df
+        } else {
+          ## rctd-py: same model, 14-48 h -> minutes on p32810/p42441-sized runs
+          ## torch.compile on a GPU or for large inputs, see rctdPyCompile
+          rctdRes <- runRctdPy(counts, coords, ref_obj, umi_min,
+                               cores = as.integer(param$cores))
+          norm_weights <- rctdRes$weights
+          results_df <- rctdRes$results_df
+        }
 
-        # Extract results
-        results <- myRCTD@results
-        norm_weights <- normalize_weights(results$weights)
-
-        # Add to Seurat metadata - Primary cell type assignment
-        max_type <- colnames(norm_weights)[max.col(
-          norm_weights,
-          ties.method = "first"
-        )]
-        names(max_type) <- rownames(norm_weights)
+        rctdWeights <- as.matrix(norm_weights)
+        rctdResultsDf <- results_df
+        # Add to Seurat metadata - Primary cell type assignment; bins that
+        # RCTD rejected get NA (shown as "Unassigned" in the report)
+        max_type <- rctd_main_type(norm_weights, results_df)
         scData <- AddMetaData(
           scData,
           metadata = max_type,
@@ -654,15 +760,73 @@ ezMethodVisiumHDSeurat <- function(
         }
 
         # Add doublet/singlet classification
-        if (!is.null(results$results_df)) {
-          sdata_rctd <- AddMetaData(scData, metadata = results$results_df)
-          scData <- sdata_rctd
+        if (!is.null(results_df)) {
+          scData <- AddMetaData(scData, metadata = results_df)
         }
 
         cat("RCTD annotation completed\n", file = "log.txt", append = TRUE)
+        logStep("RCTD done")
       }
     }
   }
+
+  # 8. Niches and cell-cell communication: on extracted inputs, never on
+  # the object; each step can fail without ending the job
+  status <- new.env()
+  hd <- tryCatch(
+    visiumhd_niche_inputs(scData, myAssay, rctdWeights, rctdResultsDf, param, input),
+    error = function(e) {
+      ezLog("Niche inputs could not be prepared: ", conditionMessage(e))
+      NULL
+    }
+  )
+  communication <- visiumhd_step(
+    "communication", param$computeCellChat, hd, visiumhd_communication(hd, param), status,
+    needsRctd = FALSE
+  )
+  logStep("communication done")
+  misty <- visiumhd_step("misty", param$computeMisty, hd, visiumhd_misty(hd, param), status)
+  logStep("misty done")
+  spatialCellChat <- visiumhd_step(
+    "spatialCellChat", param$computeSpatialCellChat, hd, visiumhd_spatialcellchat(hd, param), status
+  )
+  logStep("spatialCellChat done")
+  liana <- visiumhd_step("liana", param$computeLiana, hd, visiumhd_liana(hd, param), status)
+  logStep("liana done")
+  nicheParams <- list(micronsPerPixel = hd$micronsPerPixel, binUm = hd$binUm, nicheGridSize = param$nicheGridSize)
+  remove(hd)
+  gc()
+  if (!is.null(communication)) {
+    qs2::qs_save(lapply(communication, `[[`, "cellchat"), "cellchat.qs2", nthreads = 4)
+    sheets <- list()
+    for (level in names(communication)) {
+      communication[[level]]$cellchat <- NULL
+      sheets[[paste0("interactions_", level)]] <- communication[[level]]$interactions
+      sheets[[paste0("pathways_", level)]] <- communication[[level]]$pathways
+    }
+    writexl::write_xlsx(sheets, path = "cellchat.xlsx")
+  }
+  if (!is.null(misty)) {
+    writexl::write_xlsx(misty[c("improvements", "contributions", "importances")], path = "misty.xlsx")
+  }
+  if (!is.null(spatialCellChat)) {
+    writexl::write_xlsx(spatialCellChat[c("interactions", "pathways")], path = "spatialCellChat.xlsx")
+  }
+  if (!is.null(liana)) {
+    writexl::write_xlsx(list(liana = liana), path = "liana.xlsx")
+  }
+  qs2::qs_save(
+    list(
+      status = as.list(status),
+      params = nicheParams,
+      communication = communication,
+      misty = misty,
+      spatialCellChat = spatialCellChat,
+      liana = liana
+    ),
+    "nicheResults.qs2",
+    nthreads = 4
+  )
 
   ## generate template for manual cluster annotation -----
   ## we only deal with one sample
@@ -699,6 +863,7 @@ ezMethodVisiumHDSeurat <- function(
   )
   writexl::write_xlsx(bulkSignalPerSample, path = "bulkSignalPerSample.xlsx")
 
+  logStep("rendering report")
   makeRmdReport(
     param = param,
     output = output,
@@ -710,6 +875,7 @@ ezMethodVisiumHDSeurat <- function(
     use.qs2 = TRUE
   )
 
+  logStep("report done")
   gc()
   return("Success")
 }
