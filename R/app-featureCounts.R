@@ -59,6 +59,15 @@ ezMethodFeatureCounts = function(input = NA, output = NA, param = NA) {
           upstream = param$upstreamFlanking,
           downstream = param$downstreamFlanking
         )))
+        ezLogMethods(
+          "For counting around the transcription start, each gene of type ",
+          paste(param$transcriptTypes, collapse = ", "),
+          " was replaced by a window from ",
+          param$upstreamFlanking,
+          " bases upstream to ",
+          param$downstreamFlanking,
+          " bases downstream of its start."
+        )
       }
     }
 
@@ -102,6 +111,9 @@ ezMethodFeatureCounts = function(input = NA, output = NA, param = NA) {
       chrAliases = NULL,
       reportReads = NULL
     )
+    ezLogMethods(
+      "Reads were counted per gene with featureCounts (Rsubread)."
+    )
   } else {
     ## Count exons by gene
     gtfFile = param$ezRef@refFeatureFile
@@ -128,6 +140,11 @@ ezMethodFeatureCounts = function(input = NA, output = NA, param = NA) {
           setdiff(transcripts, rownames(seqAnno))
         ) ## add those where we have no info, e.g. spikes
         gtf = gtf[transcripts %in% transcriptsUse, ]
+        ezLogMethods(
+          "The annotation was restricted to transcripts of type ",
+          paste(param$transcriptTypes, collapse = ", "),
+          "."
+        )
         ## write.table is much faster than write_tsv and export.
         ### write_tsv: 38.270s
         ### export: 347.998s
@@ -175,10 +192,18 @@ ezMethodFeatureCounts = function(input = NA, output = NA, param = NA) {
         ## if the same chromosome name shows up in both GTF files, we can't concatenate them
         stopifnot(length(intersect(gtf$V1, extraFeatures$V1)) == 0) ## first column holds the seqid
         ezSystem(paste("cp", secondGtf, gtfExtraFn))
+        ezLogMethods(
+          "The features of the secondRef sequences were taken from their accompanying GTF file."
+        )
       } else {
         ## control sequences
         extraGR <- makeExtraControlSeqGR(param)
         export.gff2(extraGR, con = gtfExtraFn)
+        if (!ezIsSpecified(param$controlSeqs)) {
+          ezLogMethods(
+            "Each secondRef sequence was annotated as a single gene spanning the whole sequence."
+          )
+        }
       }
       ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
     }
@@ -227,6 +252,58 @@ ezMethodFeatureCounts = function(input = NA, output = NA, param = NA) {
       chrAliases = NULL,
       reportReads = NULL
     )
+    ezLogMethods(
+      "Reads were counted with featureCounts (Rsubread) on the ",
+      param$gtfFeatureType,
+      " features of the annotation",
+      if (isTRUE(as.logical(param$useMetaFeatures))) " and summarised per " else ", counted per ",
+      switch(
+        as.character(param$featureLevel)[1],
+        "gene" = "gene",
+        "transcript" = "transcript",
+        "isoform" = "transcript",
+        "exon" = "exon",
+        "orf" = "ORF",
+        "feature"
+      ),
+      "."
+    )
+  }
+  ezLogMethods(
+    "Counting was ",
+    switch(
+      as.character(param$strandMode)[1],
+      "both" = "unstranded",
+      "sense" = "strand-specific, with reads on the feature strand",
+      "antisense" = "strand-specific, with reads on the strand opposite to the feature",
+      "done with the library strandedness"
+    ),
+    "."
+  )
+  if (isTRUE(as.logical(param$paired))) {
+    ezLogMethods(
+      "Read pairs were counted as fragments, including pairs with only one aligned read."
+    )
+  }
+  if (isTRUE(as.logical(param$keepMultiHits))) {
+    if (isTRUE(as.logical(param$countPrimaryAlignmentsOnly))) {
+      ezLogMethods(
+        "Multi-mapping reads were counted once, at their primary alignment."
+      )
+    } else {
+      ezLogMethods(
+        "Multi-mapping reads were counted fractionally, 1/n for each of their n alignments."
+      )
+    }
+  } else {
+    ezLogMethods("Multi-mapping reads were not counted.")
+  }
+  if (isTRUE(as.logical(param$allowMultiOverlap))) {
+    ezLogMethods(
+      "A read overlapping several features was counted once for each of them."
+    )
+  } else {
+    ezLogMethods("Reads overlapping more than one feature were not counted.")
   }
 
   colnames(countResult$counts) = "matchCounts"

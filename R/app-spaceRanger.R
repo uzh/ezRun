@@ -161,6 +161,9 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
         )
         ezSystem(paste('mv', highresImage, highResName))
         cmd <- paste(cmd, paste0("--image=", highResName))
+        ezLogMethods(
+          "The largest page of the multi-page brightfield TIFF image was used as the tissue image."
+        )
       } else {
         cmd <- paste(cmd, paste0("--image=", myImage))
       }
@@ -170,6 +173,9 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
           grepl('^H', input$getColumn("Slide"))
       ) {
         cmd <- paste(cmd, "--nucleus-segmentation=false")
+        ezLogMethods(
+          "Nucleus segmentation in Space Ranger was switched off."
+        )
       }
     } else {
       if (file.exists(input$meta['Image']$Image)) {
@@ -217,6 +223,9 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
     )
     intersectionGenes <- intersect(annotation$V1, probeInfo$gene_id)
     probeInfo <- probeInfo[probeInfo$gene_id %in% intersectionGenes, ]
+    ezLogMethods(
+      "The Visium probe set was restricted to the probes of genes in the reference."
+    )
     if (ezIsSpecified(param$customProbesFile) && param$customProbesFile != '') {
       customProbes <- ezRead.table(
         file.path(param$dataRoot, param$customProbesFile),
@@ -236,6 +245,9 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
           )
         )
       probeInfo <- bind_rows(list(probeInfo, customProbes))
+      ezLogMethods(
+        "Custom probes were added to the probe set."
+      )
     }
     writeLines(headerSection, outputFile)
     ezWrite.table(
@@ -266,6 +278,9 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
     )
     write_csv(librariesDS, 'libraries.csv')
     cmd <- paste(cmd, "--libraries=libraries.csv")
+    ezLogMethods(
+      "Gene expression and antibody capture libraries were analysed together in Space Ranger, with the selected protein panel as feature reference."
+    )
   }
 
   tryCatch(
@@ -273,6 +288,9 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
       json_paths <- input$getFullPaths("loupe-alignment")
       if (grepl('json$', basename(json_paths))) {
         cmd <- paste0(cmd, " --loupe-alignment=", json_paths)
+        ezLogMethods(
+          "A manual image alignment from Loupe Browser was used instead of the automatic alignment of Space Ranger."
+        )
       }
     },
     error = function(e) {
@@ -374,8 +392,18 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
   if (is.list(cts)) {
     cts <- cts[['Gene Expression']]
     bulkData <- apply(cts, 1, sum)
+    ezLogMethods(
+      "Pseudo-bulk gene counts were computed by summing the gene expression counts over all ",
+      if (grepl("square_016um", cmDir, fixed = TRUE)) "16 um bins" else "spots",
+      " under tissue."
+    )
   } else {
     bulkData <- rowSums(data.frame(cts))
+    ezLogMethods(
+      "Pseudo-bulk gene counts were computed by summing the counts over all ",
+      if (grepl("square_016um", cmDir, fixed = TRUE)) "16 um bins" else "spots",
+      " under tissue."
+    )
   }
   bulkData <- data.frame(Identifier = names(bulkData), matchCounts = bulkData)
   countFile <- paste0(finalSampleName, '-counts.txt')

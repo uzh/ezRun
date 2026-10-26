@@ -375,6 +375,19 @@ readRunParameters <- function(resultDir) {
   stats::setNames(as.list(sub('^"(.*)"$', "\\1", tab[[2]])), tab[[1]])
 }
 
+## Logs the app's own defaults that the job did not set (not on the form and not in
+## specialOptions). They shape the run but are not in the job script, so the log is
+## the only record of them. Empty and NA values are left out.
+logAppDefaults <- function(formParam, param, appDefaults) {
+  setOnJob <- c(names(formParam), names(parseOptions(formParam$specialOptions)))
+  unset <- setdiff(rownames(appDefaults), setOnJob)
+  values <- vapply(param[unset], function(x) paste(x, collapse = ","), character(1))
+  keep <- !values %in% c("", "NA")
+  if (any(keep)) {
+    ezLog("App defaults used: ", paste0(unset[keep], "=", values[keep], collapse = ", "))
+  }
+}
+
 EzApp <-
   setRefClass(
     "EzApp",
@@ -422,7 +435,9 @@ EzApp <-
               sep = "\t"
             )
             ezLog(msg)
+            formParam = param
             param = ezParam(param, appDefaults = appDefaults)
+            logAppDefaults(formParam, param, appDefaults)
             cleanForFreeDiskSpace(param)
             #waitForFreeDiskSpace(param)
             jobDir = getwd()
@@ -546,99 +561,55 @@ EzApp <-
           "You are a scientific writer producing the Materials and Methods section of a",
           "peer-reviewed manuscript, describing a bioinformatics analysis that has already run.",
           "",
-          "Your evidence is the job scripts that were executed, the stdout/stderr logs they",
-          "produced and, for some applications, the configuration file the tool actually",
-          "received. Together they are the authoritative record of this analysis, but often not",
-          "a complete one. Read them before you write: every tool, version, parameter and",
-          "reference genome you name must be traceable to a line in them.",
+          "Your evidence is the job scripts that were executed, their stdout/stderr logs and, for",
+          "some applications, the configuration file the tool actually received. Log lines beginning",
+          "with 'METHODS (ezRun)' were written by the analysis code at the step they describe, with",
+          "the settings that run used: they are the most direct record of what was done. Use them as",
+          "facts, not as text to copy.",
           "",
-          "Grounding, in order of importance:",
-          "- Never state a value you have not read in the provided files. This covers tool",
-          "  versions, reference builds, parameters and the organism. A wrong version or a wrong",
-          "  organism is far worse than an absent one.",
-          "- What you know about a tool is not evidence about this run. If the files do not",
-          "  name the clustering algorithm, the multiple-testing correction, the normalisation",
-          "  method or a version, then it is not recorded, however certain you are of what that",
-          "  tool does by default. Stating a documented default as if it were observed is the",
-          "  single most common way this task goes wrong: it reads as fully grounded and is",
-          "  unfalsifiable without the run record. Do not do it.",
-          "- Do not complete a partial identifier. If the record says NovaSeq, write NovaSeq and",
-          "  not NovaSeq 6000; if it names a tool with no version, name it with no version. The",
-          "  missing half is not yours to supply, and the added precision is what makes such a",
-          "  sentence hard to challenge.",
-          "- Where a step this analysis performed has a version or a setting the files do not",
-          "  show, write [not recorded] in its place. Do not guess it, and do not drop it",
-          "  silently: a visible gap is what lets the analyst fill it in before submission.",
-          "  This applies only to steps of this analysis; do not add [not recorded] for things",
-          "  that belong to other steps, such as how the input data were generated.",
-          "  A section carrying a few [not recorded] markers is a success, not a failure.",
-          "- Never assert that something was NOT done. Do not write 'no adapter trimming was",
-          "  performed', 'the data were not filtered further', or 'no correction was applied'.",
-          "  A step missing from the record is missing from the record, not proven absent, and",
-          "  across a 12-app audit every such sentence turned out to be false. If a stage does",
-          "  not appear, say nothing about it or mark it [not recorded]; never deny it.",
-          "- Tie every version to the tool it belongs to. Session listings and dependency dumps",
-          "  contain many versions; if you cannot tell which tool a version describes, leave it out.",
-          "- A module that was loaded but never invoked is not part of the analysis.",
-          "- Attach every parameter to the tool that actually received it. A correct value quoted",
-          "  against the wrong tool, or reformatted into scheduler directives the record never",
-          "  contained, is a fabrication even though the number itself appears somewhere.",
-          "- A parameter in a job script was requested, not necessarily applied. Where a",
-          "  configuration file records what the tool actually received, that file decides:",
-          "  do not report a requested parameter that the applied configuration omits. A",
-          "  wrapper may drop a setting that does not apply to the chosen assay.",
-          "- Report the numbers that shaped the result (thresholds, dimensions, seeds), not the",
-          "  numbers the analysis produced. Anything the run measured or reported is a Result,",
-          "  not Methods: for example counts of reads, cells, files or report sections,",
-          "  percentages, rates, contamination estimates, warnings the run emitted, and whether",
-          "  it completed. Leave these out even where the logs state them plainly.",
+          "Grounding:",
+          "- Every tool, version, parameter, reference build and organism you name must be read in",
+          "  the evidence. A wrong value is far worse than a missing one.",
+          "- What you know about a tool is not evidence about this run. Do not state a default as if",
+          "  the record showed it, and do not complete a partial identifier: NovaSeq stays NovaSeq.",
+          "- Where a step that ran has a version or a setting a reader needs and the evidence does not",
+          "  show it, write [not recorded].",
+          "- Do not state that something was not done: a step missing from the record is not",
+          "  mentioned.",
+          "- Tie each version and parameter to the tool that used it. Where a configuration file",
+          "  records what the tool received, it decides over the job script.",
+          "- Report the settings that shaped the result, not what the analysis produced: counts,",
+          "  rates, percentages, warnings and whether it completed are Results.",
           "",
           "Style:",
-          "- Leave out settings that only affect how the job ran, for example compute resources,",
-          "  threads, memory, output and temporary locations, and logging.",
-          "- Past tense, third person, continuous academic prose. No bullet lists, no bold tool",
-          "  headings, no per-tool catalogue.",
-          "- Plain text only: no Markdown and no code formatting, including backticks.",
-          "- Describe settings in words, not as command-line options: write 'a minimum read",
-          "  length of 25 bases', not '--length_required 25'.",
-          "- Give each tool its version at first mention, then use the bare name.",
-          "- No citations, DOIs, URLs or reference list.",
-          "- Never include a path in any form: no absolute or relative path, and no folder or",
-          "  file name that shows where something is stored. Say what the file is instead:",
-          "  name the genome build and annotation release rather than the folder they were",
-          "  read from, and describe a supplied file by what it contains.",
-          "- No server names, usernames, or project or order identifiers.",
+          "- Past tense, third person, academic prose. No lists, headings, Markdown or code",
+          "  formatting.",
+          "- Settings in words, not command-line options; each tool with its version at first",
+          "  mention.",
+          "- No citations, paths, server names, usernames, or project or order identifiers. Name a",
+          "  reference by its build and release; in a name such as 'Release_M37-2025-07-03' the date",
+          "  is when FGCZ installed it, not part of the release ('release M37').",
+          "- Leave out what only affects how the job ran: threads, memory, output locations, logging.",
           "",
-          "Output the Methods text and nothing else. No preamble, no note on what you did, no",
-          "corrected or alternative version. What you write is delivered to the customer as-is.",
+          "Output the Methods text and nothing else; it is delivered to the customer as-is.",
           sep = "\n"
         )
       },
       methods_task = function() {
         paste(
-          "Write the Methods text for this processing step as continuous prose. It describes",
-          "one step of a larger analysis and will be combined with the text for the other",
-          "steps, so do not introduce the analysis as a whole.",
+          "Write the Methods text for this processing step. It is one step of a larger analysis and",
+          "will be combined with the text for the other steps, so do not introduce the analysis as a",
+          "whole.",
           "",
-          "Order it by the flow of the data, not by the order the tools appear in the scripts.",
-          "",
-          "Work out from the evidence which stages this analysis actually performed, and describe",
-          "only those. Different applications do different things: an alignment step, a",
-          "read-quality screen, a splicing analysis and a vendor single-cell pipeline have little",
-          "in common, and there is no fixed list of stages a Methods section must account for. Do",
-          "not describe, and do not account for the absence of, a stage this analysis did not",
-          "perform: a stage that did not happen is simply not mentioned.",
-          "",
-          "Write at the level of a published Methods paragraph: what was done, with which tool",
-          "and version, and the settings a reader needs to understand or reproduce the result,",
-          "not every option a tool received. Where the record does not show how a tool was",
-          "invoked, its settings are [not recorded]; do not describe them as defaults. Where",
-          "the record shows any step being given a random seed, report it; where it shows none,",
-          "say nothing about seeds.",
-          "",
-          "Describe the input as samples, not files, and state a number of samples only where",
-          "the prompt or the record gives it. Where several samples were processed identically,",
-          "describe the procedure once.",
+          "Shape it the way Methods sections of published papers read:",
+          "- One paragraph per stage of the data flow (for example preprocessing, alignment,",
+          "  quantification, statistics, annotation), and only for the stages this run performed.",
+          "- For each step: what was done, the tool with its version, and the one to three settings",
+          "  that define the result; not every option the tool received, and not its defaults.",
+          "- A step that only measured quality, without changing the data, gets a clause, not a",
+          "  sentence.",
+          "- Describe the input as samples, and the procedure once. Report a random seed only where",
+          "  the record shows one.",
           sep = "\n"
         )
       },

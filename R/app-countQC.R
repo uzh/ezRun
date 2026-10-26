@@ -30,6 +30,74 @@ ezMethodCountQC = function(
     return("Error")
   }
 
+  ## The analysis below runs inside the CountQC.qmd render (a quarto subprocess),
+  ## whose messages do not reach the job log, so its methods are logged here.
+  if (ncol(rawData) >= 2) {
+    ezLogMethods(
+      "A feature was called present in a sample when its count exceeded ",
+      if (isTRUE(param$useSigThresh)) param$sigThresh else "0",
+      "."
+    )
+    if (ezIsSpecified(param$normMethod) && length(param$normMethod) == 1) {
+      ezLogMethods(
+        switch(
+          param$normMethod,
+          none = "The counts were not normalized",
+          logMean = "The counts were scaled per sample by the geometric mean of the features present in all samples",
+          median = "The counts were scaled per sample by the median of the features present in all samples",
+          quantile = "The counts were quantile normalized (limma normalizeQuantiles)",
+          vsn = "The counts were normalized with vsn",
+          paste0("The counts were normalized with the ", param$normMethod, " method")
+        ),
+        if (ezIsSpecified(param$minSignal)) paste0(", and a pseudo-count of ", param$minSignal, " was added"),
+        "."
+      )
+    }
+    ezLogMethods(
+      "Sample correlation, clustering and MDS used the features present in at least half of the samples ",
+      "of at least half of the conditions",
+      if (!is.null(rowData(rawData)$IsControl)) ", excluding control sequences",
+      ", on log2(normalized signal + ", param$backgroundExpression, ")."
+    )
+    ezLogMethods(
+      "The top-gene analyses used the ", param$topGeneSize, " features with ",
+      if (isTRUE(param$selectByFtest)) {
+        "the smallest ANOVA F-test p-value across the conditions"
+      } else {
+        "the highest standard deviation of the log2 signal across samples"
+      },
+      "."
+    )
+    ezLogMethods(
+      "Sample correlations were Pearson correlations of the log2 signal",
+      if (ncol(rawData) > 3) "; samples were clustered hierarchically (Ward.D2) on 1 minus the Pearson correlation",
+      "."
+    )
+    if (ncol(rawData) > 3) {
+      ezLogMethods(
+        "Up to ", param$maxGenesForClustering, " features with the highest standard deviation of the log2 signal (above ",
+        param$highVarThreshold, ") were row-centred and clustered hierarchically (Euclidean distance, Ward.D2) into ",
+        param$nSampleClusters, " clusters."
+      )
+      ezLogMethods(
+        "The number of feature clusters was assessed for 2 to 10 clusters with the Dunn, Calinski-Harabasz, ",
+        "silhouette, entropy, Davies-Bouldin and gap statistics."
+      )
+      if (isTRUE(param$runGO)) {
+        ezLogMethods(
+          "Each feature cluster was tested for GO over-representation (BP, MF, CC) with goseq (hypergeometric, ",
+          "without length-bias correction) against all annotated genes of the count table",
+          if (isTRUE(param$includeGoParentAnnotation)) ", with each gene also annotated to the parent terms of its GO terms",
+          "; terms with an unadjusted p-value below ", param$pValThreshFisher, " and at least ",
+          param$minCountFisher, " cluster genes were reported."
+        )
+      }
+      ezLogMethods(
+        "MDS was computed with limma plotMDS (default settings) on the log2 signal."
+      )
+    }
+  }
+
   metadata(rawData)$output <- output
   makeQuartoReport(
     rawData = rawData,

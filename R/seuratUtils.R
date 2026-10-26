@@ -85,7 +85,24 @@ seuratStandardSCTPreprocessing <- function(
     verbose = FALSE,
     return.only.var.genes = FALSE
   )
+  ezLogMethods(
+    "Counts were normalized with SCTransform (v2, 3000 variable features)",
+    seuratVarsToRegressText(vars.to.regress), "."
+  )
   return(scData)
+}
+
+## Methods-log clause for the variables regressed out in SCTransform/ScaleData
+seuratVarsToRegressText <- function(vars.to.regress) {
+  if (length(vars.to.regress) == 0) {
+    return("")
+  }
+  vars <- ifelse(
+    vars.to.regress == "CC.Difference",
+    "the cell-cycle score difference (S minus G2M, from scran cyclone)",
+    vars.to.regress
+  )
+  paste0(", regressing out ", paste(vars, collapse = " and "))
 }
 
 seuratClustering <- function(scData, param) {
@@ -233,9 +250,22 @@ seuratStandardWorkflow <- function(
       )
     }
     selectedCol <- candidates[1]
+    ezLogMethods(
+      "No clustering matched the requested resolution ", userResolution,
+      " exactly (resolutions are computed rounded to one decimal), so the clustering at resolution ",
+      sub(".*_snn_res\\.", "", selectedCol), " was reported instead."
+    )
   }
   Idents(scData) <- scData@meta.data[, selectedCol] #but keep as the current clusters the ones obtained with the resolution set by the user
   scData[[ident.name]] <- Idents(scData)
+  ezLogMethods(
+    "Clusters were identified with Seurat FindClusters (Louvain) on the first ", param$npcs, " ",
+    if (identical(reduction, "pca")) "principal components" else paste(reduction, "dimensions"),
+    " at a resolution of ", sub(".*_snn_res\\.", "", selectedCol),
+    ", and UMAP",
+    if (!('Spatial' %in% as.vector(Seurat::Assays(scData)))) " and t-SNE" else "",
+    " embeddings were computed on the same dimensions."
+  )
   return(scData)
 }
 
@@ -332,6 +362,18 @@ seuratNormalizeSampleList <- function(scDataList, param, assay = "RNA") {
       )
     }
   }
+  if (logNorm) {
+    ezLogMethods(
+      "Each sample was log-normalized separately, and ",
+      if (ezIsSpecified(param$nfeatures)) param$nfeatures else "the default number of",
+      " variable features were selected per sample."
+    )
+  } else {
+    ezLogMethods(
+      "Each sample was normalized separately with SCTransform (v2, 3000 variable features)",
+      seuratVarsToRegressText(vars.to.regress), "."
+    )
+  }
   return(scDataList)
 }
 
@@ -348,6 +390,10 @@ seuratScaleMergedLogNorm <- function(scData, param, assay, features) {
     vars.to.regress = getSeuratVarsToRegress(param),
     verbose = FALSE
   )
+  ezLogMethods(
+    "The merged log-normalized ", assay, " data were scaled on the selected variable features",
+    seuratVarsToRegressText(getSeuratVarsToRegress(param)), "."
+  )
   return(scData)
 }
 
@@ -362,6 +408,10 @@ cellClustNoCorrection <- function(scDataList, param) {
   #2. Merge all seurat objects
   scData = merge(x = scDataList[[1]], y = scDataList[-1], merge.data = TRUE)
   allVariableFeatures <- unlist(lapply(scDataList, VariableFeatures))
+  ezLogMethods(
+    "For the uncorrected merge, the normalized samples were merged without batch correction, ",
+    "using the union of the per-sample variable features."
+  )
   if (seuratNormalizationMethod(param) == "LogNormalize") {
     scData <- seuratScaleMergedLogNorm(
       scData,
@@ -395,6 +445,11 @@ cellClustWithCorrection <- function(scDataList, param) {
   integ_features <- SelectIntegrationFeatures(
     object.list = scDataList,
     nfeatures = param$nfeatures
+  )
+  ezLogMethods(
+    "For integration, ",
+    if (ezIsSpecified(param$nfeatures)) param$nfeatures else "the default number of",
+    " features were selected across samples with Seurat SelectIntegrationFeatures."
   )
 
   if (param$integrationMethod %in% c("RPCA", "CCA")) {
@@ -439,6 +494,13 @@ cellClustWithCorrection <- function(scDataList, param) {
       anchorset = integ_anchors,
       normalization.method = anchorNormMethod,
       dims = 1:param$npcs
+    )
+    ezLogMethods(
+      "Samples were integrated with Seurat ",
+      if (param$integrationMethod == "RPCA") "reciprocal PCA" else "CCA",
+      " anchors on the first ", param$npcs, " dimensions",
+      if (param$integrationMethod == "RPCA") " (k.anchor = 20)" else "",
+      ", and the integrated data were used for clustering."
     )
 
     #3. Run the standard workflow for visualization and clustering
@@ -486,6 +548,7 @@ cellClustWithCorrection <- function(scDataList, param) {
     }
     if ("Batch" %in% harmonyFactors && !"Batch" %in% colnames(scData@meta.data)) {
       scData$Batch <- scData$Sample # same fallback as the report
+      ezLogMethods("The Harmony variable Batch was set to the sample of origin of each cell.")
     }
     missingFactors <- setdiff(harmonyFactors, colnames(scData@meta.data))
     if (length(missingFactors) > 0) {
@@ -500,6 +563,11 @@ cellClustWithCorrection <- function(scDataList, param) {
       group.by.vars = harmonyFactors,
       reduction.use = "pca",
       reduction.save = "harmony"
+    )
+    ezLogMethods(
+      "Samples were integrated with Harmony (default settings) on the first ", param$npcs,
+      " principal components, correcting for ",
+      paste(sub("^meta_", "", harmonyFactors), collapse = " and "), "."
     )
 
     #3. Run the standard workflow for visualization and clustering
@@ -821,6 +889,14 @@ getSeuratMarkers <- function(scData, param) {
   markers$diff_pct = abs(markers$pct.1 - markers$pct.2)
   markers <- markers[markers$diff_pct >= param$min.diff.pct, ]
   markers <- markers[order(markers$diff_pct, decreasing = TRUE), ]
+  ezLogMethods(
+    "Cluster markers were identified with Seurat FindAllMarkers (", paste(param$DE.method, collapse = ", "),
+    " test, positive markers only, genes detected in at least ",
+    100 * as.numeric(ifelse(ezIsSpecified(param$min.pct), param$min.pct, 0.1)),
+    "% of cells, log2 fold change of at least ",
+    ifelse(ezIsSpecified(param$logfc.threshold), param$logfc.threshold, 0.25),
+    ", Bonferroni-adjusted p-value below ", param$pvalue_allMarkers, ")."
+  )
   return(markers)
 }
 
@@ -907,6 +983,10 @@ getSeuratMarkersAndAnnotate <- function(scData, param, BPPARAM) {
     assignInNamespace("DietSeurat", MyDietSeurat, ns = "Seurat")
     scData[["RNA"]] <- JoinLayers(scData[["RNA"]]) # Required for Azimuth compatibility with Seurat v5
     scDataAzi <- Azimuth::RunAzimuth(scData, param$Azimuth, assay = "RNA") ## TODO support ADT
+    ezLogMethods(
+      "Cells were mapped to the Azimuth reference ", basename(param$Azimuth),
+      " with Azimuth RunAzimuth on the RNA assay."
+    )
 
     ##Rename annotion levels if neccessary:
     colnames(scDataAzi@meta.data) <- sub(

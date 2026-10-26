@@ -64,6 +64,11 @@ getCellCycle <- function(counts, refBuild, BPPARAM) {
   } else {
     trainData <- readRDS(trainDataFile)
     cellCycleData <- cyclone(counts, trainData, BPPARAM = BPPARAM)
+    ezLogMethods(
+      "Cell-cycle phases were assigned with scran cyclone using the ",
+      if (species == "Homo_sapiens") "human" else "mouse",
+      " marker gene pairs bundled with scran."
+    )
     cellPhase <- tibble(Name = colnames(counts), Phase = cellCycleData$phases)
     cellPhase <- bind_cols(cellPhase, cellCycleData$scores)
     return(cellPhase)
@@ -493,6 +498,11 @@ cellsLabelsWithAUC <- function(
     verbose = FALSE,
     nCores = ifelse(is.null(BPPARAM), 1, BPPARAM$workers)
   )
+  ezLogMethods(
+    "Cells were scored with AUCell against the ", species, " CellMarker 2.0 (2023-09-27 release) cell-type ",
+    "gene sets for the tissue(s) ",
+    paste(unlist(strsplit(tissue, ",")), collapse = ", "), "."
+  )
   return(cells_AUC)
 }
 
@@ -595,6 +605,10 @@ cellsLabelsWithSingleR <- function(
       labels = ref$label.fine,
       clusters = current_clusters,
       BPPARAM = BPPARAM
+    )
+    ezLogMethods(
+      "Cells and clusters were annotated with SingleR against the fine labels (label.fine) ",
+      "of the celldex reference ", nm, ", once per cell and once per cluster."
     )
   }
   return(singlerResultsList)

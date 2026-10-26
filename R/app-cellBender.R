@@ -63,6 +63,11 @@ dropPeaksFromH5 <- function(inputFile, sampleName) {
     paste(names(typeCounts), typeCounts, sep = "=", collapse = ", ")
   ))
   ezLog("Dropping Peaks (ATAC) for CellBender; keeping all other modalities.")
+  ezLogMethods(
+    "ATAC peak features were removed before CellBender, and the other feature types (",
+    paste(setdiff(names(typeCounts), "Peaks"), collapse = ", "),
+    ") were processed together."
+  )
 
   sce <- DropletUtils::read10xCounts(inputFile, col.names = TRUE)
   keepMask <- rowData(sce)$Type != "Peaks"
@@ -103,6 +108,9 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
     {
       if ("UnfilteredCountMatrix" %in% input$colNames) {
         cmDir <- input$getFullPaths("UnfilteredCountMatrix")
+        ezLogMethods(
+          "CellBender was run on the unfiltered droplet count matrix of the sample."
+        )
       } else {
         # Multi-modal case - construct path from ResultDir
         resultPath <- input$getColumn("ResultDir")
@@ -121,6 +129,13 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
             param$dataRoot,
             resultPath,
             "count/sample_raw_feature_bc_matrix"
+          )
+          ezLogMethods(
+            "CellBender was run on the unfiltered droplet count matrix of the sample from Cell Ranger multi."
+          )
+        } else {
+          ezLogMethods(
+            "CellBender was run on the unfiltered droplet count matrix of the whole Cell Ranger multi library."
           )
         }
       }
@@ -174,6 +189,23 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
     cmd <- paste(cmd, '--cpu-threads', param$cores)
   }
   system(cmd)
+  userOpts <- if (ezIsSpecified(param$cmdOptions)) param$cmdOptions else ""
+  estimated <- c(
+    if (!grepl("--expected-cells", userOpts, fixed = TRUE)) "the expected number of cells",
+    if (!grepl("--total-droplets-included", userOpts, fixed = TRUE)) "the number of droplets included in the analysis"
+  )
+  ezLogMethods(
+    "Ambient RNA was removed with CellBender remove-background with default settings",
+    if (nzchar(userOpts)) " apart from the additional options of the job",
+    if (length(estimated) > 0) {
+      paste0(
+        ", and ", paste(estimated, collapse = " and "),
+        if (length(estimated) > 1) " were" else " was",
+        " estimated from the data"
+      )
+    },
+    "."
+  )
 
   ##Post processing for Seurat
   cmd <- paste(
@@ -184,6 +216,9 @@ ezMethodCellBender <- function(input = NA, output = NA, param = NA) {
     "ptrepack --complevel 5 cellbender.h5:/matrix cellbender_raw_seurat.h5:/matrix"
   )
   system(cmd)
+  ezLogMethods(
+    "Background-corrected counts were kept for all barcodes and for the barcodes CellBender called as cells."
+  )
   ##Clean Up:
   system(
     'rm ckpt.tar.gz cellbender_posterior.h5 cellbender.h5 cellbender_filtered.h5'

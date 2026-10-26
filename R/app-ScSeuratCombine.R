@@ -138,6 +138,7 @@ ezMethodScSeuratCombine = function(
 
   plan("multicore", workers = param$cores)
   set.seed(38)
+  ezLogMethods("The R random seed was set to 38 at the start of the analysis.")
   future.seed = TRUE
   options(future.rng.onMisuse = "ignore")
   options(future.globals.maxSize = param$ram * 1024^3)
@@ -194,8 +195,15 @@ ezMethodScSeuratCombine = function(
     ) {
       if (any(startsWith(colnames(input$meta), "Condition"))) {
         scData$Condition <- unname(input$getColumn("Condition")[sm])
+        ezLogMethods(
+          "The cells of sample ", sm,
+          " were given the condition of that sample in the input dataset."
+        )
       } else {
         scData$Condition <- scData$Sample
+        ezLogMethods(
+          "The cells of sample ", sm, " were given the sample name as condition."
+        )
       }
     }
     # Harmony will complain if the Condition is the same across all samples
@@ -239,6 +247,15 @@ ezMethodScSeuratCombine = function(
     }
     return(scData)
   })
+  if (
+    param$integrationMethod == "Harmony" &&
+      length(unique(input$meta$`Condition`)) == 1
+  ) {
+    ezLogMethods(
+      "As the dataset had a single condition, the sample of each cell was used as its condition ",
+      "for Harmony integration."
+    )
+  }
 
   # perform all of the analysis
   results <- seuratIntegrateDataAndAnnotate(
@@ -313,6 +330,10 @@ seuratIntegrateDataAndAnnotate <- function(
       ]
       scDataList[[eachSample]] <- scDataList[[eachSample]][, chosenCells]
     }
+    ezLogMethods(
+      "Only the cells of the selected clusters were kept for ",
+      paste(names(param$chosenClusters), collapse = ", "), "."
+    )
   }
 
   scData_noCorrected <- cellClustNoCorrection(scDataList, param)
@@ -321,6 +342,10 @@ seuratIntegrateDataAndAnnotate <- function(
     #in order to compute the markers we switch again to the original assay
     DefaultAssay(scData_corrected) <- seuratAnalysisAssay(param)
     scData <- scData_corrected
+    ezLogMethods(
+      "The ", param$integrationMethod, "-integrated data were used for the results; the uncorrected ",
+      "merge was kept for comparison."
+    )
   } else {
     scData = scData_noCorrected
   }
@@ -337,6 +362,10 @@ seuratIntegrateDataAndAnnotate <- function(
   ## Only the SCTransform path has SCT residuals to re-prepare
   if ("SCT" %in% Seurat::Assays(scData)) {
     scData <- PrepSCTFindMarkers(scData)
+    ezLogMethods(
+      "Before marker detection, the SCT data were corrected to a common sequencing depth ",
+      "with Seurat PrepSCTFindMarkers."
+    )
   }
 
   # get annotation information

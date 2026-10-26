@@ -17,6 +17,20 @@
 ##' }
 ##' This means if you specify a fixed trimming this comes on top of the adapter trimming
 
+## Methods log for ezMethodFastpTrim. The trimming runs once per sample (it calls
+## itself for multi-sample input), so each distinct sentence is logged once per job.
+fastpLogMethods <- local({
+  logged <- character(0)
+  function(...) {
+    msg <- paste0(...)
+    if (!msg %in% logged) {
+      logged <<- c(logged, msg)
+      ezLogMethods(msg)
+    }
+    invisible(NULL)
+  }
+})
+
 ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
   require(withr)
 
@@ -37,6 +51,9 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
       })
       input$setColumn("Read2", file.path(getwd(), "input_R2.fastq.gz"))
     }
+    fastpLogMethods(
+      "The several FASTQ files of a sample were concatenated into one file per read before trimming."
+    )
     input <- EzDataset$new(meta = input$meta, dataRoot = '')
   }
 
@@ -108,6 +125,19 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
     if (param$subsampleReads > 1) {
       nReads <- as.integer(1 / param$subsampleReads * totalReads)
     }
+    if (param$nReads > 0) {
+      fastpLogMethods(
+        "Before trimming, each read file was randomly subsampled to ",
+        format(param$nReads, big.mark = ",", scientific = FALSE),
+        " reads."
+      )
+    } else {
+      fastpLogMethods(
+        "Before trimming, each read file was randomly subsampled to 1/",
+        param$subsampleReads,
+        " of its reads."
+      )
+    }
     input <- ezMethodSubsampleFastq(input, param = param, n = nReads)
   }
 
@@ -167,12 +197,29 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
     ) {
       # take only adapter from dataset and ignore the ones from TRIMMOMATIC_ADAPTERS
       writeXStringSet(adapters, adaptFile)
+      if (length(adapters) > 0) {
+        fastpLogMethods(
+          "Adapters were trimmed with fastp using only the adapter sequences given in the dataset",
+          if (isTRUE(param$paired)) {
+            " and read-pair overlap detection"
+          },
+          "."
+        )
+      }
     } else {
       file.copy(
         from = TRIMMOMATIC_ADAPTERS,
         to = adaptFile
       )
       writeXStringSet(adapters, adaptFile, append = TRUE)
+      fastpLogMethods(
+        "Adapters were trimmed with fastp using the FGCZ set of Illumina adapter sequences",
+        if (length(adapters) > 0) " and the adapters given in the dataset",
+        if (isTRUE(param$paired)) {
+          ", with read-pair overlap detection"
+        },
+        "."
+      )
     }
 
     trimAdapt <- str_c("--adapter_fasta", adaptFile, sep = " ")
@@ -194,6 +241,11 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
     if (ezIsSpecified(param$trim_front1)) {
       umiOnR1 <- ezIsSpecified(param$barcodePattern2) &&
         param$barcodePattern2 != ''
+      if (umiOnR1) {
+        fastpLogMethods(
+          "No fixed 5' trimming was applied to Read1, because Read1 carries a UMI."
+        )
+      }
       paste("--trim_front1", if (umiOnR1) "0" else param$trim_front1)
     },
     if (ezIsSpecified(param$trim_tail1)) {
@@ -204,6 +256,9 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
         param$barcodePattern != '' &&
         param$paired
     ) {
+      fastpLogMethods(
+        "No fixed 5' trimming was applied to Read2, because Read2 carries the UMI."
+      )
       paste("--trim_front2 0")
     },
     # quality-based trimming per read
@@ -244,25 +299,54 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
       ""
     ), # like Trimmomatic's TRAILING
     if (ezIsSpecified(param$average_qual)) {
+      if (!ezIsSpecified(param$cmdOptionsFastp)) {
+        fastpLogMethods(
+          "Reads with a mean base quality below ", param$average_qual,
+          " were discarded."
+        )
+      }
       paste("--average_qual", param$average_qual)
     } else {
+      fastpLogMethods(
+        "fastp quality filtering was switched off, so no reads were discarded for low base quality or N content."
+      )
       "--disable_quality_filtering"
     },
     # adapter trimming
     trimAdapt,
     # read length trimming
     if (ezIsSpecified(param$max_len1)) {
+      if (isTRUE(as.numeric(param$max_len1) > 0)) {
+        fastpLogMethods(
+          "fastp truncated Read1 at its 3' end to at most ", param$max_len1, " bases."
+        )
+      }
       paste("--max_len1", param$max_len1)
     },
     if (ezIsSpecified(param$max_len2)) {
+      if (isTRUE(param$paired) && isTRUE(as.numeric(param$max_len2) > 0)) {
+        fastpLogMethods(
+          "fastp truncated Read2 at its 3' end to at most ", param$max_len2, " bases."
+        )
+      }
       paste("--max_len2", param$max_len2)
     },
     # polyX
     if (ezIsSpecified(param$poly_x_min_len)) {
+      fastpLogMethods(
+        "3' polyX tails of at least ",
+        param$poly_x_min_len, " bases were trimmed."
+      )
       paste("--trim_poly_x", "--poly_x_min_len", param$poly_x_min_len)
     },
     # read length filtering
     if (ezIsSpecified(param$length_required)) {
+      fastpLogMethods(
+        "Reads shorter than ", param$length_required,
+        " bases after trimming were discarded",
+        if (isTRUE(param$paired)) ", together with their mate",
+        "."
+      )
       paste("--length_required", param$length_required)
     },
     # compression output
@@ -279,6 +363,27 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
     logFile <- basename(output$getColumn("PreprocessingLog"))
   } else {
     logFile <- str_c(output$getNames(), "_preprocessing.log")
+  }
+  fastpLogMethods(
+    "Reads were trimmed and filtered with fastp",
+    if (isTRUE(param$paired)) " in paired-end mode",
+    "."
+  )
+  if (isTRUE(param$paired) && !ezIsSpecified(param$cmdOptionsFastp)) {
+    logUmiR2 <- ezIsSpecified(param$barcodePattern) && param$barcodePattern != ''
+    logUmiR1 <- ezIsSpecified(param$barcodePattern2) && param$barcodePattern2 != ''
+    if (!logUmiR1 && !logUmiR2 && isTRUE(as.numeric(param$trim_front1) > 0)) {
+      fastpLogMethods(
+        "fastp removed the first ", param$trim_front1,
+        " bases of both Read1 and Read2."
+      )
+    }
+    if (isTRUE(as.numeric(param$trim_tail1) > 0)) {
+      fastpLogMethods(
+        "fastp removed the last ", param$trim_tail1,
+        " bases of both Read1 and Read2."
+      )
+    }
   }
   ezSystem(str_c(cmd, "2>", logFile, sep = " "))
   ezSystem(str_c("cat", "fastp.json", ">>", logFile, sep = " "))

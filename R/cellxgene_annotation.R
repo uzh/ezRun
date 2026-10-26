@@ -342,6 +342,16 @@ cellxgene_annotation <- function(scData, param) {
 
   # Attach DOI as attribute
   attr(cellxgeneResults, "doi") <- get_cellxgene_doi(param$cellxgeneUrl)
+  refDoi <- tryCatch(attr(cellxgeneResults, "doi")$doi, error = function(e) NULL)
+  ezLogMethods(
+    "Cell labels from the '", cell_label_author, "' column of a CELLxGENE reference dataset",
+    if (ezIsSpecified(refDoi)) paste0(" (DOI ", refDoi, ")") else "",
+    " were transferred to the cells with Seurat FindTransferAnchors and TransferData."
+  )
+  ezLogMethods(
+    "The CELLxGENE reference was subsampled to at most 10 donors and 3000 cells per label and donor",
+    if ("harmony2" %in% names(scRef@reductions)) ", and integrated over donors with Harmony." else "."
+  )
 
   return(cellxgeneResults)
 }

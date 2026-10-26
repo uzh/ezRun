@@ -39,6 +39,10 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
     #2. Subsample if chosen
     if (ezIsSpecified(param$nReads) && param$nReads > 0) {
       fileLevelDirs <- sapply(fileLevelDirs, subsample, param)
+      ezLogMethods(
+        "Before Cell Ranger, each FASTQ file was randomly subsampled to ",
+        param$nReads, " reads with seqtk."
+      )
     }
 
     #2.1 Fix FileNames if sampleName in dataset was changed
@@ -71,6 +75,15 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       ## built-in cell-type annotation; refDir itself stays untouched (and is
       ## what the controlSeqs cleanup below unlinks).
       annotRefDir <- cellRangerAnnotatableRef(refDir, param)
+      if (ezIsSpecified(param$includeIntrons) && isTRUE(as.logical(param$includeIntrons))) {
+        ezLogMethods(
+          "Cell Ranger count included intronic reads in the gene counts."
+        )
+      } else {
+        ezLogMethods(
+          "Cell Ranger count excluded intronic reads from the gene counts."
+        )
+      }
       #3.2. Command
       cmd <- paste(
         "cellranger count",
@@ -137,6 +150,9 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
       param$cores
     )
     ezSystem(cmd)
+    ezLogMethods(
+      "Spliced and unspliced counts for RNA velocity were computed with velocyto run10x."
+    )
     ezSystem(paste(
       'mv',
       file.path(cellRangerFolder, 'velocyto'),
@@ -166,6 +182,12 @@ ezMethodCellRanger <- function(input = NA, output = NA, param = NA) {
             alignStats,
             file = file.path(sampleName, "CellAlignStats.txt"),
             head = "Barcode"
+          )
+          ezLogMethods(
+            "Per-cell alignment statistics (aligned reads, UMIs",
+            if ("nTso" %in% colnames(alignStats)) ", template-switch oligo reads",
+            if ("nPa" %in% colnames(alignStats)) ", poly(A) reads",
+            ", and exonic, intronic and intergenic reads) were computed from the Cell Ranger alignments."
           )
         }
       }
@@ -471,6 +493,18 @@ getCellRangerGEXReference <- function(param) {
   ## there is no lock file
   if (file.exists(refDir)) {
     ## we assume the index is built and complete
+    if (basename(refDir) != "10X_customised_Ref") {
+      ezLogMethods(
+        "The 10x reference was built with cellranger mkref from the genome and gene annotation of the reference build",
+        if (ezIsSpecified(param$transcriptTypes)) {
+          paste0(
+            ", restricted to genes of type ",
+            paste(sort(param$transcriptTypes), collapse = ", ")
+          )
+        },
+        "."
+      )
+    }
     return(refDir)
   }
 
@@ -494,6 +528,11 @@ getCellRangerGEXReference <- function(param) {
       filepath = genomeLocalFn,
       append = TRUE
     )
+    ezLogMethods(
+      "The control sequences ",
+      paste(param$controlSeqs, collapse = ", "),
+      " (FGCZ control sequence collection) were added to the 10x reference."
+    )
     on.exit(file.remove(genomeLocalFn), add = TRUE)
   } else if (ezIsSpecified(param$secondRef)) {
     ## make reference genome
@@ -505,6 +544,10 @@ getCellRangerGEXReference <- function(param) {
     file.copy(from = param$ezRef@refFastaFile, to = genomeLocalFn)
     secondaryRef <- readDNAStringSet(param$secondRef)
     writeXStringSet(secondaryRef, filepath = genomeLocalFn, append = TRUE)
+    ezLogMethods(
+      "The ", length(secondaryRef),
+      " secondary reference sequences were added to the 10x reference."
+    )
     on.exit(file.remove(genomeLocalFn), add = TRUE)
   } else {
     genomeLocalFn <- param$ezRef@refFastaFile
@@ -518,6 +561,11 @@ getCellRangerGEXReference <- function(param) {
   )
   if (ezIsSpecified(param$transcriptTypes)) {
     export.gff2(gtfByTxTypes(param, param$transcriptTypes), con = gtfFile)
+    ezLogMethods(
+      "The 10x reference annotation was restricted to genes of type ",
+      paste(sort(param$transcriptTypes), collapse = ", "),
+      "."
+    )
   } else {
     file.copy(from = param$ezRef@refFeatureFile, to = gtfFile)
   }
@@ -531,6 +579,18 @@ getCellRangerGEXReference <- function(param) {
     on.exit(file.remove(gtfExtraFn), add = TRUE)
     export.gff2(extraGR, con = gtfExtraFn)
     ezSystem(paste("cat", gtfExtraFn, ">>", gtfFile))
+    if (
+      !ezIsSpecified(param$controlSeqs) &&
+        file.exists(sub(".fa", ".gtf", param$secondRef))
+    ) {
+      ezLogMethods(
+        "The added sequences were annotated from their accompanying GTF file."
+      )
+    } else {
+      ezLogMethods(
+        "Each added sequence was annotated as a single gene spanning the whole sequence."
+      )
+    }
   }
 
   if (ezIsSpecified(param$extendThreePrime)) {
@@ -543,6 +603,11 @@ getCellRangerGEXReference <- function(param) {
       seqLengths
     )
     rtracklayer::export.gff2(gtf, con = gtfFile)
+    ezLogMethods(
+      "In the 10x reference annotation, the 3' ends of protein-coding genes were extended by up to ",
+      as.integer(param$extendThreePrime),
+      " bases, without overlapping the next gene on the same strand."
+    )
   }
 
   cmd <- paste(
@@ -558,6 +623,18 @@ getCellRangerGEXReference <- function(param) {
     paste0("--nthreads=", param$cores)
   )
   ezSystem(cmd)
+  ezLogMethods(
+    "The 10x reference was built with cellranger mkref from the genome and gene annotation of the reference build",
+    if (
+      ezIsSpecified(param$controlSeqs) ||
+        ezIsSpecified(param$secondRef) ||
+        ezIsSpecified(param$extendThreePrime) ||
+        ezIsSpecified(param$transcriptTypes)
+    ) {
+      ", modified as described above"
+    },
+    "."
+  )
   file.remove(gtfFile)
 
   return(refDir)
@@ -591,6 +668,9 @@ getCellRangerVDJReference <- function(param) {
   ## there is no lock file
   if (file.exists(refDir)) {
     ## we assume the index is built and complete
+    ezLogMethods(
+      "The V(D)J reference was built with cellranger mkvdjref from the genome and gene annotation of the reference build."
+    )
     return(refDir)
   }
 
@@ -608,6 +688,9 @@ getCellRangerVDJReference <- function(param) {
     paste0("--genes=", param$ezRef@refFeatureFile)
   )
   ezSystem(cmd)
+  ezLogMethods(
+    "The V(D)J reference was built with cellranger mkvdjref from the genome and gene annotation of the reference build."
+  )
 
   return(refDir)
 }

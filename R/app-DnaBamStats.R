@@ -86,10 +86,37 @@ ezMethodDnaBamStats <- function(
     }
   }
 
+  if (isTRUE(param$paired)) {
+    ezLogMethods(
+      "Fragment size distributions and library complexity were assessed with ATACseqQC."
+    )
+  }
+  if (isTRUE(param$runPicard)) {
+    ezLogMethods(
+      "Optical duplication rates were taken from Picard MarkDuplicates."
+    )
+  }
+
   reportData <- build_dna_bamstats_report_data(
     dataset = dataset,
     resultList = resultList
   )
+  qcThresholds <- reportData$qcThresholds
+  if (is.data.frame(qcThresholds) && nrow(qcThresholds) > 0) {
+    ezLogMethods(
+      "Samples were flagged, not removed, at ",
+      paste0(
+        qcThresholds$Metric,
+        " ",
+        qcThresholds$Direction,
+        " ",
+        qcThresholds$Threshold,
+        qcThresholds$Unit,
+        collapse = ", "
+      ),
+      "."
+    )
+  }
   write_dna_bamstats_support_files(
     reportData = reportData
   )
@@ -97,6 +124,9 @@ ezMethodDnaBamStats <- function(
     reportData$qualimapMulti <- get_dna_qualimap_multi_sample_summary(
       samples = samples,
       resultList = resultList
+    )
+    ezLogMethods(
+      "Alignment metrics (coverage, duplication, insert size, mapping quality, GC content and error rates) were computed with Qualimap bamqc and summarised across samples with Qualimap multi-bamqc."
     )
   }
 
@@ -1145,6 +1175,11 @@ get_dna_picard_dup_stats <- function(
   ## not rerun on a multi-GB BAM for no additional information.
   if (dna_bamstats_can_reuse_dup_metrics(dupMetricsFile, param$pixelDist)) {
     reused <- parse_dna_picard_dup_metrics_file(dupMetricsFile)
+    ezLogMethods(
+      "Duplicate metrics were taken from the Picard MarkDuplicates run of the alignment step (optical duplicate pixel distance ",
+      param$pixelDist,
+      ")."
+    )
     reused$notes <- paste0(
       "Reused existing duplicate metrics from ",
       basename(dupMetricsFile),
@@ -1168,6 +1203,13 @@ get_dna_picard_dup_stats <- function(
     "> /dev/null"
   )
   ezSystem(cmd)
+  ezLogMethods(
+    "Duplicates were marked, not removed, with Picard MarkDuplicates",
+    if (ezIsSpecified(param$pixelDist)) {
+      paste0(" (optical duplicate pixel distance ", param$pixelDist, ")")
+    },
+    "."
+  )
   ezSystem(paste("rm", tempBam))
 
   stopifnot(file.exists(metricFn))

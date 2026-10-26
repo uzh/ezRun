@@ -27,6 +27,10 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
 
   ## trim the reads to maximum length. Useful for PacBio/ONT long reads with variable read length and very few ultralong reads
   if (ezIsSpecified(param$max_len1) && param$max_len1 > 0) {
+    ezLogMethods(
+      "Read1 was truncated to at most ",
+      param$max_len1, " bases with fastp before FastQC."
+    )
     input <- ezMethodFastpTrim(input = input, param = param)
   }
 
@@ -64,6 +68,9 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
     ##update input
     input <- EzDataset$new(meta = input$meta, dataRoot = '')
     dataset <- input$meta
+    ezLogMethods(
+      "The FASTQ files of a sample were combined before FastQC."
+    )
   }
 
   ans4Report <- list() # a list of results for rmarkdown report
@@ -78,6 +85,9 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
   ans4Report[["Read Counts"]] <- readCount
 
   if (sum(dataset$`Read Count`) > 1e9) {
+    ezLogMethods(
+      "Because the dataset held more than one billion reads, each read file was randomly subsampled to 1,000,000 reads before FastQC."
+    )
     input <- ezMethodSubsampleFastq(input = input, param = param, n = 1e6)
     dataset <- input$meta
   }
@@ -113,6 +123,9 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
       "2> fastqc.err"
     )
 
+    ezLogMethods(
+      "FastQC was run on each read file, with the FGCZ list of adapter sequences."
+    )
     if (length(filesUse) > 384) {
       cat(cmd, file = 'fastqcCall.sh')
       result <- ezSystem('bash fastqcCall.sh')
@@ -312,6 +325,13 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
                   format(t_mqc_start, "%Y-%m-%d %H:%M:%S"),
                   gen_ai, per_sec, AI_MODEL))
   ## echo = FALSE so ezSystem doesn't ezLog the full command (would leak the endpoint URL).
+  ezLogMethods("The FastQC results of all samples were combined into one report with MultiQC.")
+  if (gen_ai) {
+    ezLogMethods(
+      "An AI-generated summary of the MultiQC report was written with the FGCZ-hosted language model ",
+      AI_MODEL, "."
+    )
+  }
   ezSystem(multiqcCmdShell, echo = FALSE)
   t_mqc_end <- Sys.time()
   mqc_dur_s <- as.numeric(difftime(t_mqc_end, t_mqc_start, units = "secs"))
@@ -430,6 +450,10 @@ ezMethodFastQC <- function(input = NA, output = NA, param = NA) {
       section_files <- section_files[keep]
       sec_ids <- sec_ids[keep]
       N <- length(section_files)
+      ezLogMethods(
+        "Each MultiQC section was summarised in AI-generated bullet points by the FGCZ-hosted language model ",
+        AI_MODEL, "."
+      )
 
       ## Read HTML once; we'll do all substitutions in-memory then write back
       html_text <- paste(readLines(multiqc_html_path, warn = FALSE, encoding = "UTF-8"),

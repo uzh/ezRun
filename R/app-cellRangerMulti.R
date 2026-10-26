@@ -230,6 +230,10 @@ prepareFastqData <- function(input, param) {
     #1.2. Subsample if chosen
     if (ezIsSpecified(param$nReads) && param$nReads > 0) {
       sampleDirs <- sapply(sampleDirs, subsample, param)
+      ezLogMethods(
+        "Before Cell Ranger, each Gene Expression FASTQ file was randomly subsampled to ",
+        param$nReads, " reads with seqtk."
+      )
     }
 
     sampleDirs <- normalizePath(sampleDirs)
@@ -266,6 +270,10 @@ prepareFastqData <- function(input, param) {
         length(poolNames),
         paste(poolNames, collapse = ", ")
       ))
+      ezLogMethods(
+        "The Gene Expression reads of ", length(poolNames),
+        " sequencing pools of this sample were analysed together in one Cell Ranger multi run."
+      )
       dirList <- list(sampleName = poolNames, sampleDirs = sampleDirs)
     }
   } else {
@@ -455,6 +463,15 @@ buildMultiConfigFile <- function(input, param, dirList) {
           "include-introns,false"
         )
       fileContents <- append(fileContents, includeIntronsLine)
+      if (includeIntronsLine == "include-introns,true") {
+        ezLogMethods(
+          "Cell Ranger multi included intronic reads in the gene counts."
+        )
+      } else {
+        ezLogMethods(
+          "Cell Ranger multi excluded intronic reads from the gene counts."
+        )
+      }
     }
     fileContents <- append(fileContents, c(""))
   }
@@ -496,6 +513,9 @@ buildMultiConfigFile <- function(input, param, dirList) {
           )
         )
       probeInfo <- bind_rows(list(probeInfo, customProbes))
+      ezLogMethods(
+        "Custom probes were added to the Flex probe set."
+      )
     }
     annotation <- ezRead.table(
       file.path(refDir, 'star', 'geneInfo.tab'),
@@ -532,6 +552,9 @@ buildMultiConfigFile <- function(input, param, dirList) {
       fileContents,
       sprintf("probe-set,%s", file.path(getwd(), outputFile))
     )
+    ezLogMethods(
+      "The Flex probe set was restricted to the probes of genes in the reference."
+    )
 
     # Determine Chemistry for Flex v1/v2
     # Priority 1: User specified chemistry in parameters (not "auto")
@@ -566,18 +589,34 @@ buildMultiConfigFile <- function(input, param, dirList) {
             r1Length,
             chemistry
           ))
+          ezLogMethods(
+            "The Flex chemistry was set to ",
+            chemistry,
+            ", from the version 2 probe set, the multiplexed design and the Read 1 length."
+          )
         } else {
           chemistry <- "Flex-v2-RNA-R2"
           warning(
             "Could not detect R1 length from FASTQs, defaulting to Flex-v2-RNA-R2"
           )
+          ezLogMethods(
+            "The Flex chemistry was set to Flex-v2-RNA-R2 (multiplexed design, version 2 probe set)."
+          )
         }
       } else {
         chemistry <- "Flex-v2-singleplex"
+        ezLogMethods(
+          "The Flex chemistry was set to Flex-v2-singleplex (singleplex design, version 2 probe set)."
+        )
       }
     } else {
       # Flex v1: Default legacy behavior (MFRP/SFRP)
       chemistry <- ifelse(hasMult, "MFRP", "SFRP")
+      ezLogMethods(
+        "The Flex chemistry was set to ",
+        chemistry,
+        if (hasMult) " (multiplexed Flex v1)." else " (singleplex Flex v1)."
+      )
     }
     fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
     fileContents <- append(fileContents, c(""))
@@ -750,6 +789,9 @@ buildMultiConfigFile <- function(input, param, dirList) {
           fileContents,
           c("[samples]", "sample_id,ocm_barcode_ids")
         )
+        ezLogMethods(
+          "For On-Chip Multiplexing, Cell Ranger multi assigned cells to samples by their OCM barcodes."
+        )
         fileContents <- append(
           fileContents,
           apply(sampleMultiplexMapping, 1, concatCols)
@@ -791,10 +833,20 @@ buildMultiConfigFile <- function(input, param, dirList) {
             fileContents,
             c("[samples]", "sample_id,hashtag_ids")
           )
+          ezLogMethods(
+            "Cell Ranger multi assigned cells to samples by their hashtags (HTO)",
+            if (!is.null(combinedFeatureFile)) {
+              ", with hashtags and antibodies (ADT) in one Antibody Capture library"
+            },
+            "."
+          )
         } else {
           fileContents <- append(
             fileContents,
             c("[samples]", "sample_id,cmo_ids")
+          )
+          ezLogMethods(
+            "Cell Ranger multi assigned cells to samples by their CellPlex (CMO) barcodes."
           )
         }
         fileContents <- append(
@@ -807,6 +859,9 @@ buildMultiConfigFile <- function(input, param, dirList) {
       fileContents <- append(
         fileContents,
         c("[samples]", "sample_id,probe_barcode_ids,description")
+      )
+      ezLogMethods(
+        "For multiplexed Flex, Cell Ranger multi assigned cells to samples by their probe barcodes."
       )
       fileContents <- append(
         fileContents,

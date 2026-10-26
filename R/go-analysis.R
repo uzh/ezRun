@@ -158,6 +158,12 @@ compileEnrichmentInput = function(param, se) {
   upGenes = na.omit(unique(genes[probes[isUp]]))
   downGenes = na.omit(unique(genes[probes[isDown]]))
   bothGenes = union(upGenes, downGenes)
+  ezLogMethods(
+    "For GO enrichment, genes with p-value at or below ", param$pValThreshGO,
+    if (isTRUE(as.numeric(param$log2RatioThreshGO) > 0)) paste0(" and absolute log2 ratio above ", param$log2RatioThreshGO),
+    " were taken as up- or down-regulated, against all expressed genes as background",
+    "."
+  )
   normalizedAvgSignal = normalizedAvgSignal[presentGenes]
   if (length(presentGenes) == 0 | length(bothGenes) == 0) {
     ezWrite(
@@ -573,6 +579,10 @@ ezEnricher <- function(enrichInput, param) {
     enrichInput$seqAnno$gene_id
   )
   ontologies = c("BP", "MF", "CC")
+  ezLogMethods(
+    "GO over-representation (BP, MF, CC) of the up-regulated, down-regulated and all regulated genes was tested with clusterProfiler ",
+    "(GO terms with 10 to 500 genes; Benjamini-Hochberg adjusted p-value at or below ", param$fdrThreshORA, ")."
+  )
   goResults = ezMclapply(
     ontologies,
     function(onto) {
@@ -635,6 +645,20 @@ ezGSEA <- function(enrichInput, param) {
   df <- df[!is.na(df$rank_metric), ]
   gl <- setNames(df$rank_metric, rownames(df))
   gl <- sort(gl, decreasing = TRUE)
+  if (length(param$rankMetric) == 1 && isTRUE(param$rankMetric %in% c("log2Ratio", "pValue", "signedPValue"))) {
+    ezLogMethods(
+      "GO gene set enrichment analysis (BP, MF, CC) was run with clusterProfiler GSEA (GO terms with 10 to 500 genes) ",
+      "on the expressed genes ranked by ",
+      switch(
+        param$rankMetric,
+        log2Ratio = "log2 ratio",
+        pValue = "-log10 p-value",
+        signedPValue = "-log10 p-value signed by the direction of the log2 ratio"
+      ),
+      "; terms with an unadjusted p-value at or below ", param$fdrThreshGSEA,
+      " were reported."
+    )
+  }
   
   goResults = ezMclapply(
     ontologies,

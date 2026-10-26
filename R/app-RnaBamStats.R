@@ -53,6 +53,36 @@ ezMethodRnaBamStats = function(
       repeatsGff = repeatsGff[repeatsGff$seqid %in% param$seqNames, ]
     }
   }
+  ezLogMethods(
+    "Reads were assigned to annotation categories (gene biotypes",
+    if (!is.null(repeatsGff)) ", repeat classes",
+    ", exons, introns and 2 kb flanking regions) by overlap",
+    switch(
+      as.character(param$strandMode)[1],
+      "both" = ", irrespective of strand",
+      "sense" = " on the same strand",
+      "antisense" = " on the opposite strand",
+      ""
+    ),
+    "."
+  )
+  if (is.null(param$splitByChrom) || isTRUE(as.logical(param$splitByChrom))) {
+    ezLogMethods(
+      "Read categories, fragment sizes and coverage were computed on the main chromosomes only."
+    )
+  }
+  if (isTRUE(as.logical(param$paired))) {
+    ezLogMethods(
+      "Fragment sizes",
+      if (ezIsSpecified(param$fragSizeMax)) paste0(" up to ", param$fragSizeMax, " bp"),
+      " were taken from the aligned read pairs",
+      if (isTRUE(as.logical(param$keepProperPairsOnly))) " whose first read was in a proper pair",
+      "."
+    )
+  }
+  ezLogMethods(
+    "Gene body coverage was computed along transcripts, by transcript length and expression class."
+  )
   resultList = list()
   for (sm in samples) {
     ezLog(sm)
@@ -79,6 +109,11 @@ ezMethodRnaBamStats = function(
       mc.preschedule = FALSE,
       mc.cores = min(length(files), ezThreads())
     )
+    ezLogMethods(
+      "Position-specific mismatch and clipping rates were computed from up to 100,000 sampled alignments",
+      if (isTRUE(as.logical(param$paired))) ", for first and second reads separately",
+      "."
+    )
     for (sm in samples) {
       resultList[[sm]][["ErrorRates"]] = errorRates[[sm]]
     }
@@ -98,6 +133,9 @@ ezMethodRnaBamStats = function(
       mc.preschedule = FALSE,
       mc.cores = min(length(sjFiles), ezThreads())
     )
+    ezLogMethods(
+      "Splice junctions reported by the aligner were compared with the annotated introns, and junction saturation was computed from the junction reads."
+    )
   } else {
     junctionsResults = ezMclapply(
       files,
@@ -105,6 +143,9 @@ ezMethodRnaBamStats = function(
       param,
       mc.preschedule = FALSE,
       mc.cores = min(length(files), ezThreads())
+    )
+    ezLogMethods(
+      "Splice junctions were annotated and junction saturation was estimated with RSeQC."
     )
   }
   for (sm in samples) {
@@ -122,6 +163,9 @@ ezMethodRnaBamStats = function(
     ) {
       ezLog("using the duplication rates computed by the aligner")
       dupRateResults <- lapply(dupRateFiles, ezRead.table, row.names = NULL)
+      ezLogMethods(
+        "The dupRadar duplication rates computed in the alignment step were reused, as their annotation, strandedness and pairing matched this run."
+      )
     } else {
       dupRateResults <- ezMclapply(
         files,
@@ -1245,6 +1289,9 @@ getDupRateFromBam <- function(
   if (markedBam) {
     ## the duplicates are already flagged upstream, no need to run picard again
     bamDuprmFn <- bamFile
+    ezLogMethods(
+      "For the dupRadar analysis, the duplicate flags already present in the BAM file were used."
+    )
   } else {
     ## Mark the duplicates in bamFile
     inputBam <- paste(Sys.getpid(), basename(bamFile), sep = "-")
@@ -1257,6 +1304,9 @@ getDupRateFromBam <- function(
     # bamutilLogFn <- paste0(bamDuprmFn, ".log") # bamutil
     on.exit(file.remove(c(inputBam, bamDuprmFn, paste0(bamDuprmFn, ".bai")))) #, picardMetricsFn, bamutilLogFn)))
     dupBam(inBam = inputBam, outBam = bamDuprmFn, operation = "mark", ram = ram)
+    ezLogMethods(
+      "For the dupRadar quality metric, duplicate reads were marked with Picard MarkDuplicates."
+    )
   }
   ## Duplication rate analysis
   dm <- analyzeDuprates(
@@ -1271,6 +1321,18 @@ getDupRateFromBam <- function(
     ),
     paired = paired,
     threads = threads
+  )
+  ezLogMethods(
+    "The duplication rate as a function of gene expression was computed with dupRadar, counting ",
+    switch(
+      as.character(stranded)[1],
+      "both" = "without strand information",
+      "sense" = "reads on the gene strand",
+      "antisense" = "reads on the opposite strand of the gene",
+      "with the library strandedness"
+    ),
+    if (isTRUE(as.logical(paired))) " and read pairs as fragments",
+    "."
   )
   return(dm)
 }

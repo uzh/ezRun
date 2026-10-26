@@ -38,6 +38,16 @@ ezMethodMageckCount <- function(input, output, param) {
     shQuote(sampleName),
     if (ezIsSpecified(param[['cmdOptions']])) param[['cmdOptions']] else ""
   )
+  ezLogMethods(
+    "sgRNAs were counted with MAGeCK (mageck2 count) on the untrimmed Read1 reads with default settings",
+    if (ezIsSpecified(param[['cmdOptions']])) " apart from the additional options given",
+    " (median normalization)."
+  )
+  if (hasCtrl) {
+    ezLogMethods(
+      "The control sgRNAs of the library were given to MAGeCK as controls."
+    )
+  }
   ezSystem(cmd)
 
   ## Verify the expected outputs were actually produced before declaring success.

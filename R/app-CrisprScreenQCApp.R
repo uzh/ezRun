@@ -36,8 +36,18 @@ ezMethodCrisprScreenQC <- function(input, output, param) {
   }
   refFile <- 'GEML_Mageck_mergedRefs.csv'
   write.csv(mergedRef, refFile, quote = FALSE, row.names = FALSE)
+  ezLogMethods(
+    "All available sgRNA libraries were merged into one reference for counting."
+  )
 
   ##Subsample/fastp
+  if (isTRUE(as.numeric(param$nReads) > 0)) {
+    ezLogMethods(
+      "Each read file was randomly subsampled to at most ",
+      format(param$nReads, big.mark = ",", scientific = FALSE),
+      " reads before trimming."
+    )
+  }
   inputRaw <- ezMethodSubsampleFastq(
     input = input,
     param = param,
@@ -68,6 +78,13 @@ ezMethodCrisprScreenQC <- function(input, output, param) {
   PWMs <- list()
 
   for (i in 1:length(sampleNames)) {
+    if (i == 1L) {
+      ezLogMethods(
+        "sgRNAs were counted with MAGeCK count on Read1 of the fastp-trimmed reads",
+        if (isTRUE(param$paired)) " (Read2 was not used)",
+        ", with default settings."
+      )
+    }
     system2(
       "mageck",
       args = c(
@@ -91,6 +108,11 @@ ezMethodCrisprScreenQC <- function(input, output, param) {
       ][1:param$topFeatures, ]
       ## Library the reads map to, and its per-sgRNA counts for representation QC.
       matchedLib <- names(perLib)[which.max(perLib)]
+      if (i == 1L) {
+        ezLogMethods(
+          "Representation metrics (mapping rate, zero-count fraction, mean reads per sgRNA, Gini index) were computed per sample on the raw counts of the library with the most reads."
+        )
+      }
       matchedLibs[i] <- matchedLib
       matchedLibCounts[[i]] <- counts$sample1[counts$Lib == matchedLib]
       ## MAGeCK's own count summary (overall, across the merged reference).

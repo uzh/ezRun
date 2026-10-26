@@ -40,6 +40,15 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
     " > bowtie.bam"
   )
   ezSystem(cmd)
+  ezLogMethods(
+    "Reads were aligned with Bowtie2 ",
+    if (ezIsSpecified(param$cmdOptions) && trimws(param$cmdOptions[1]) != "") {
+      "with default settings and the options given in the job parameters"
+    } else {
+      "with default settings"
+    },
+    "."
+  )
   file.remove(trimmedInput$getColumn("Read1"))
   if (param$paired) {
     file.remove(trimmedInput$getColumn("Read2"))
@@ -60,6 +69,13 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       ram = param$ram,
       dupDistance = param$dupDistance
     )
+    ezLogMethods(
+      "The alignments were coordinate-sorted and indexed with samtools, and duplicate reads were marked, not removed, with Picard MarkDuplicates",
+      if (ezIsSpecified(param$dupDistance)) {
+        paste0(" using an optical duplicate pixel distance of ", param$dupDistance)
+      },
+      "."
+    )
     file.remove("sorted.bam")
   } else {
     ezSortIndexBam(
@@ -68,6 +84,9 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       ram = param$ram,
       removeBam = TRUE,
       cores = param$cores
+    )
+    ezLogMethods(
+      "The alignments were coordinate-sorted and indexed with samtools."
     )
   }
 
@@ -84,6 +103,11 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       paired = param$paired,
       method = "Bioconductor",
       cores = param$cores
+    )
+    ezLogMethods(
+      "A bigWig coverage track was generated from the raw per-base coverage of the aligned ",
+      if (isTRUE(param$paired)) "read pairs" else "reads",
+      " with GenomicAlignments and exported with rtracklayer, without normalisation, binning or read filtering."
     )
   }
 
@@ -168,6 +192,9 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       sep = ",",
       quote = FALSE
     )
+    ezLogMethods(
+      "For the secondRef sequences, the per-base read coverage was computed with GenomicAlignments, and the mean coverage of each reference sequence was estimated as its number of reads times the mean read length divided by the sequence length."
+    )
   }
 
   return("Success")
@@ -220,6 +247,11 @@ getBowtie2Reference <- function(param) {
       basename(refBase)
     )
     ezSystem(cmd)
+    ezLogMethods(
+      "A Bowtie2 index of the reference sequences",
+      if (ezIsSpecified(param$secondRef)) " together with the secondRef sequences",
+      " was built with bowtie2-build."
+    )
     # ezWriteElapsed(job, "done")
     setwd(wd)
     file.remove(lockFile)
@@ -493,6 +525,15 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       )
     }
     ezSystem(cmd)
+    ezLogMethods(
+      "Before alignment, UMIs were extracted with UMI-tools extract (regex method) from the 5' end of Read2 (pattern ",
+      param$barcodePattern,
+      ")",
+      if (ezIsSpecified(param$barcodePattern2) && param$barcodePattern2 != '') {
+        paste0(" and of Read1 (pattern ", param$barcodePattern2, ")")
+      },
+      "."
+    )
 
     ## umi_tools has already removed the UMI and skip bases from both mates;
     ## put the marked reads back in place for the aligner.
@@ -518,6 +559,9 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
         "--genomeFastaFiles",
         param$secondRef,
         sep = " "
+      )
+      ezLogMethods(
+        "The secondRef sequences were added to the STAR genome at mapping time, without annotation."
       )
     }
   } else {
@@ -550,6 +594,15 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
     sep = " "
   )
   ezSystem(cmd)
+  ezLogMethods(
+    "Reads were aligned with STAR in ",
+    if (isTRUE(as.logical(param$twopassMode))) {
+      "per-sample two-pass mode"
+    } else {
+      "single-pass mode"
+    },
+    "."
+  )
 
   nSortThreads <- min(param$cores, 8)
   ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM
@@ -579,6 +632,13 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       ram = param$ram,
       dupDistance = param$dupDistance
     )
+    ezLogMethods(
+      "The STAR alignments were coordinate-sorted and indexed with samtools, and duplicate reads were marked, not removed, with Picard MarkDuplicates",
+      if (ezIsSpecified(param$dupDistance)) {
+        paste0(" using an optical duplicate pixel distance of ", param$dupDistance)
+      },
+      "."
+    )
     file.remove("sorted.bam")
   } else {
     ezSortIndexBam(
@@ -587,6 +647,9 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       ram = sortRam,
       removeBam = TRUE,
       cores = nSortThreads
+    )
+    ezLogMethods(
+      "The STAR alignments were coordinate-sorted and indexed with samtools."
     )
   }
 
@@ -641,6 +704,11 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       ram = sortRam,
       cores = nSortThreads
     )
+    ezLogMethods(
+      "After alignment, reads were deduplicated by UMI and mapping position with UMI-tools dedup using its default directional method",
+      if (isTRUE(param$paired)) ", treating read pairs together",
+      ", and the deduplicated alignments were coordinate-sorted and indexed with samtools."
+    )
     tryCatch(
       {
         local_CondaEnv(
@@ -675,6 +743,9 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
           sep = " "
         ),
         stopOnFailure = FALSE
+      )
+      ezLogMethods(
+        "Library strandedness was checked with RSeQC infer_experiment.py as a quality metric."
       )
     },
     error = function(e) {
