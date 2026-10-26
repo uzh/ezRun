@@ -14,6 +14,13 @@ EzAppVeloCyto <-
     "EzAppVeloCyto",
     contains = "EzApp",
     methods = list(
+      ## velocyto (run10x for 10x, run for BD Rhapsody) and samtools unconditional.
+      citation = function(param = list()) {
+        c(
+          "La Manno, G. et al. RNA velocity of single cells. Nature 560, 494-498 (2018). https://doi.org/10.1038/s41586-018-0414-6",
+          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodVeloCyto

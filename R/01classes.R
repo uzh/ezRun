@@ -270,6 +270,30 @@ ezTagListFromNames = function(names) {
 ## setRefClass(), roxygen documents this constant instead of EzApp.)
 METHODS_LLM_MODEL_NAME <- "DeepSeek-V4-Flash-DSpark"
 
+## The run's parameters as recorded in <resultDir>/parameters.tsv, as character values.
+## SUSHI writes an empty value as a literal "", which would count as set, so one pair of
+## surrounding quotes is stripped. Used by write_methods() to call citation(param).
+readRunParameters <- function(resultDir) {
+  paramFile <- file.path(resultDir, "parameters.tsv")
+  if (!file.exists(paramFile)) return(list())
+  tab <- utils::read.delim(paramFile, header = FALSE, colClasses = "character",
+                           quote = "", comment.char = "")
+  stats::setNames(as.list(sub('^"(.*)"$', "\\1", tab[[2]])), tab[[1]])
+}
+
+## Logs the app's own defaults that the job did not set (not on the form and not in
+## specialOptions). They shape the run but are not in the job script, so the log is
+## the only record of them. Empty and NA values are left out.
+logAppDefaults <- function(formParam, param, appDefaults) {
+  setOnJob <- c(names(formParam), names(parseOptions(formParam$specialOptions)))
+  unset <- setdiff(rownames(appDefaults), setOnJob)
+  values <- vapply(param[unset], function(x) paste(x, collapse = ","), character(1))
+  keep <- !values %in% c("", "NA")
+  if (any(keep)) {
+    ezLog("App defaults used: ", paste0(unset[keep], "=", values[keep], collapse = ", "))
+  }
+}
+
 ##' @title The R5 class representing a runnable app
 ##' @description This reference class is the basis of all other apps that inherit from it. It sets the framework to run different apps.
 ##' @field runMethod the function that will be executed in the \code{run} method.
@@ -413,7 +437,9 @@ EzApp <-
               sep = "\t"
             )
             ezLog(msg)
+            formParam = param
             param = ezParam(param, appDefaults = appDefaults)
+            logAppDefaults(formParam, param, appDefaults)
             cleanForFreeDiskSpace(param)
             #waitForFreeDiskSpace(param)
             jobDir = getwd()
@@ -537,101 +563,55 @@ EzApp <-
           "You are a scientific writer producing the Materials and Methods section of a",
           "peer-reviewed manuscript, describing a bioinformatics analysis that has already run.",
           "",
-          "Your evidence is the job scripts that were executed and the stdout/stderr logs they",
-          "produced. They are the complete and authoritative record of this analysis. Read them",
-          "before you write: every tool, version, parameter and reference you name must be",
-          "traceable to a line in them.",
+          "Your evidence is the job scripts that were executed, their stdout/stderr logs and, for",
+          "some applications, the configuration file the tool actually received. Log lines beginning",
+          "with 'METHODS (ezRun)' were written by the analysis code at the step they describe, with",
+          "the settings that run used: they are the most direct record of what was done. Use them as",
+          "facts, not as text to copy.",
           "",
-          "Grounding, in order of importance:",
-          "- Never state a value you have not read in the provided files. This covers tool",
-          "  versions, reference builds, parameters and the organism. A wrong version or a wrong",
-          "  organism is far worse than an absent one.",
-          "- What you know about a tool is not evidence about this run. If the files do not",
-          "  name the clustering algorithm, the multiple-testing correction, the normalisation",
-          "  method or a version, then it is not recorded, however certain you are of what that",
-          "  tool does by default. Stating a documented default as if it were observed is the",
-          "  single most common way this task goes wrong: it reads as fully grounded and is",
-          "  unfalsifiable without the run record. Do not do it.",
-          "- Do not complete a partial identifier. If the record says NovaSeq, write NovaSeq and",
-          "  not NovaSeq 6000; if it names a tool with no version, name it with no version. The",
-          "  missing half is not yours to supply, and the added precision is what makes such a",
-          "  sentence hard to challenge.",
-          "- Where something a Methods section would normally report is not determinable from",
-          "  the files, write [not recorded] in its place. Do not guess it, and do not drop it",
-          "  silently: a visible gap is what lets the analyst fill it in before submission.",
-          "  A section carrying a few [not recorded] markers is a success, not a failure.",
-          "- Never assert that something was NOT done. Do not write 'no adapter trimming was",
-          "  performed', 'the data were not filtered further', or 'no correction was applied'.",
-          "  A step missing from the record is missing from the record, not proven absent, and",
-          "  across a 12-app audit every such sentence turned out to be false. If a stage does",
-          "  not appear, say nothing about it or mark it [not recorded]; never deny it.",
-          "- Tie every version to the tool it belongs to. Session listings and dependency dumps",
-          "  contain many versions; if you cannot tell which tool a version describes, leave it out.",
-          "- A module that was loaded but never invoked is not part of the analysis. Neither is a",
-          "  package that appears only in a sessionInfo listing: being installed and loaded as a",
-          "  dependency is not evidence that it was used. Report a tool only where the record",
-          "  shows it running -- a command line, its own log output, or an output file.",
-          "- Attach every parameter to the tool that actually received it. A correct value quoted",
-          "  against the wrong tool, or reformatted into scheduler directives the record never",
-          "  contained, is a fabrication even though the number itself appears somewhere.",
-          "- A parameter in a job script was requested, not necessarily applied. Where a",
-          "  configuration file records what the tool actually received, that file decides:",
-          "  do not report a requested parameter that the applied configuration omits. A",
-          "  wrapper may drop a setting that does not apply to the chosen assay.",
-          "- Report the numbers that configured the analysis (thresholds, dimensions, seeds),",
-          "  not the numbers it produced (cell counts, contamination estimates, convergence",
-          "  values). Those are Results, not Methods.",
+          "Grounding:",
+          "- Every tool, version, parameter, reference build and organism you name must be read in",
+          "  the evidence. A wrong value is far worse than a missing one.",
+          "- What you know about a tool is not evidence about this run. Do not state a default as if",
+          "  the record showed it, and do not complete a partial identifier: NovaSeq stays NovaSeq.",
+          "- Where a step that ran has a version or a setting a reader needs and the evidence does not",
+          "  show it, write [not recorded].",
+          "- Do not state that something was not done: a step missing from the record is not",
+          "  mentioned.",
+          "- Tie each version and parameter to the tool that used it. Where a configuration file",
+          "  records what the tool received, it decides over the job script.",
+          "- Report the settings that shaped the result, not what the analysis produced: counts,",
+          "  rates, percentages, warnings and whether it completed are Results.",
           "",
           "Style:",
-          "- Past tense, third person, continuous academic prose. No bullet lists, no bold tool",
-          "  headings, no per-tool catalogue.",
-          "- Give each tool its version at first mention, then use the bare name.",
-          "- No citations, DOIs or URLs. This does not apply to the References section",
-          "  described below, if the prompt includes a candidate reference list.",
-          "- No filesystem paths, server names, usernames or project identifiers. Name the",
-          "  reference genome and annotation build, never the path they were read from.",
-          "- Leave out operational detail that does not affect the result: scheduler directives,",
-          "  module load lines, interpreter flags, thread and memory settings.",
+          "- Past tense, third person, academic prose. No lists, headings, Markdown or code",
+          "  formatting.",
+          "- Settings in words, not command-line options; each tool with its version at first",
+          "  mention.",
+          "- No citations, paths, server names, usernames, or project or order identifiers. Name a",
+          "  reference by its build and release; in a name such as 'Release_M37-2025-07-03' the date",
+          "  is when FGCZ installed it, not part of the release ('release M37').",
+          "- Leave out what only affects how the job ran: threads, memory, output locations, logging.",
           "",
-          "Output the Methods text and nothing else. No preamble, no note on what you did, no",
-          "corrected or alternative version. What you write is delivered to the customer as-is.",
+          "Output the Methods text and nothing else; it is delivered to the customer as-is.",
           sep = "\n"
         )
       },
       methods_task = function() {
         paste(
-          "Write the Methods section for this analysis as continuous prose.",
+          "Write the Methods text for this processing step. It is one step of a larger analysis and",
+          "will be combined with the text for the other steps, so do not introduce the analysis as a",
+          "whole.",
           "",
-          "Order it by the flow of the data, not by the order the tools appear in the scripts.",
-          "",
-          "Work out from the evidence which stages this analysis actually performed, and describe",
-          "only those. Different applications do different things: an alignment step, a",
-          "read-quality screen, a splicing analysis and a vendor single-cell pipeline have little",
-          "in common, and there is no fixed list of stages a Methods section must account for. Do",
-          "not describe, and do not account for the absence of, a stage this analysis did not",
-          "perform: a stage that did not happen is simply not mentioned. A vendor pipeline often",
-          "runs steps such as clustering or differential expression inside itself without",
-          "recording the method or settings it used. Say the step was performed and write [not",
-          "recorded] for the settings; do not drop it. The step did happen, so this is a real",
-          "gap, not an absent stage. Report an item only where the run record states it; where it",
-          "does not, write [not recorded] and move on. Never close a gap with a tool's documented",
-          "default.",
-          "",
-          "Completeness matters as much as accuracy: every tool that was actually invoked must",
-          "appear somewhere in the text, including ones that fit none of the stages cleanly.",
-          "Before finishing, check your draft against the tools named in the scripts and logs.",
-          "",
-          "For every tool, give the version and the parameters that were explicitly set. Where a",
-          "tool ran at its defaults, say so alongside its version rather than writing 'default",
-          "parameters were used' on its own, so the settings stay recoverable. Where the record",
-          "shows any step being given a random seed, report it; where it shows none, say nothing",
-          "about seeds. Where several samples were processed identically, describe the procedure",
-          "once.",
-          "",
-          "Describe how the analysis was configured, not what it produced. Counts of reads,",
-          "cells, features or hits, percentages, rates, warnings the run emitted, and whether it",
-          "completed are Results, not Methods: leave them out even where the logs state them",
-          "plainly.",
+          "Shape it the way Methods sections of published papers read:",
+          "- One paragraph per stage of the data flow (for example preprocessing, alignment,",
+          "  quantification, statistics, annotation), and only for the stages this run performed.",
+          "- For each step: what was done, the tool with its version, and the one to three settings",
+          "  that define the result; not every option the tool received, and not its defaults.",
+          "- A step that only measured quality, without changing the data, gets a clause, not a",
+          "  sentence.",
+          "- Describe the input as samples, and the procedure once. Report a random seed only where",
+          "  the record shows one.",
           sep = "\n"
         )
       },
@@ -643,33 +623,34 @@ EzApp <-
       generate_methods = function(...) {
         write_methods(...)
       },
-      ## Static bibliography list. write_methods() offers it to the LLM as candidates
-      ## and keeps only entries it finds evidence for.
-      citation = function() {
+      ## The references of a run: one entry per tool that ran, decided from the run's
+      ## parameters the same way the app's code decides (readRunParameters()).
+      ## write_methods() writes them as the References section; the LLM does not see them.
+      citation = function(param = list()) {
         character(0)
       },
       ## Override this (not write_methods()) for an app whose Methods text is fixed
       ## and known rather than LLM-generated (e.g. EzAppFastqc). Default: call the LLM
-      ## via llm_write_methods. Its response includes a "## References" header
-      ## followed by references; write_methods() splits and filters that itself.
-      methods_description = function(script_paths, log_paths, sample_count, output_dir) {
+      ## via llm_write_methods, which returns the Description text.
+      ## run_note: sentences about this run appended to the task (e.g. its sample count).
+      methods_description = function(script_paths, log_paths, sample_count, output_dir,
+                                     app_doc = NULL, run_note = NULL) {
         identity_file <- file.path(output_dir, "methods_identity.txt")
         task_file     <- file.path(output_dir, "methods_task.txt")
         writeLines(methods_identity(), identity_file)
-        writeLines(methods_task(),     task_file)
+        writeLines(c(methods_task(), if (length(run_note)) c("", run_note)), task_file)
         args <- c("--output", file.path(output_dir, "methods.md"),
                   "--identity-file", identity_file,
                   "--task-file",     task_file)
         if (length(script_paths) > 0) args <- c(args, "--scripts", script_paths)
         if (length(log_paths)    > 0) args <- c(args, "--logs",    log_paths)
-        candidates <- citation()
-        if (length(candidates) > 0) {
-          citations_file <- file.path(output_dir, "citations_candidates.txt")
-          writeLines(candidates, citations_file)
-          args <- c(args, "--citations", citations_file)
-        }
         if (!is.null(sample_count) && sample_count > 1) {
           args <- c(args, "--sample-count", as.character(sample_count))
+        }
+        ## Per-app documentation, staged by SUSHI into the run's scripts/ folder. No doc
+        ## for this app: no flag, and the prompt is exactly as before.
+        if (!is.null(app_doc) && nzchar(app_doc) && file.exists(app_doc)) {
+          args <- c(args, "--app-doc", app_doc)
         }
         ## llm_write_methods is provided by the AI/llm_methods_caller module,
         ## which must be in the app's module list so it is on PATH.
@@ -678,7 +659,8 @@ EzApp <-
         trimws(paste(readLines(file.path(output_dir, "methods.md"), warn = FALSE), collapse = "\n"), "right")
       },
       write_methods = function(gstore_script_dir = NULL, output_dir = ".", analysis_name = NULL,
-                               example_script = NULL, sample_count = NULL, ...) {
+                               example_script = NULL, sample_count = NULL, app_doc = NULL,
+                               ...) {
         script_paths <- c()
         log_paths    <- c()
         if (!is.null(gstore_script_dir)) {
@@ -705,6 +687,16 @@ EzApp <-
             }
             found
           }
+          ## A job resubmitted after a failure keeps the logs of every attempt next to its
+          ## script ("<script>.sh_sushiID<n>_<stamp>_[oe].log"); a resubmission keeps the
+          ## sushiID and gets a new stamp. Only the latest attempt, the newest stamp per
+          ## script, produced the results.
+          latestAttempt <- function(paths) {
+            script <- sub("_sushiID.*$", "", basename(paths))
+            stamp  <- sub("^.*_sushiID\\d+_(.*)_[oe]\\.log$", "\\1", basename(paths))
+            stamp[stamp == basename(paths)] <- ""
+            paths[stamp == ave(stamp, script, FUN = max)]
+          }
           if (!is.null(example_script)) {
             ## A SAMPLE-mode dataset can have dozens of samples sharing this directory --
             ## reading every one of them blew the model's context window on a real
@@ -718,6 +710,7 @@ EzApp <-
               Sys.glob(file.path(gstore_script_dir,
                                  paste0(example_script, "_sushiID*_[oe].log")))
             })
+            log_paths    <- latestAttempt(log_paths)
           } else {
             all_sh       <- Sys.glob(file.path(gstore_script_dir, "*.sh"))
             script_paths <- all_sh[!isOwnJob(all_sh)]
@@ -726,6 +719,7 @@ EzApp <-
                             Sys.glob(file.path(gstore_script_dir, "*_e.log")))
               all_logs[!isOwnJob(all_logs)]
             })
+            log_paths    <- latestAttempt(log_paths)
           }
           ## The job script records what was REQUESTED; the config the tool actually
           ## received is written next to the results. CellRanger multi puts it at
@@ -740,28 +734,23 @@ EzApp <-
                             Sys.glob(file.path(dirname(gstore_script_dir),
                                                "*", "config.csv")))
         }
-        raw <- methods_description(script_paths, log_paths, sample_count, output_dir)
+        param <- if (!is.null(gstore_script_dir)) readRunParameters(dirname(gstore_script_dir)) else list()
 
-        ## For each known citation, check whether its DOI/URL appears anywhere in the
-        ## raw response, rather than trusting the model's copy of the text verbatim.
-        ## A hit emits our own stored string; a miss drops it. No "## References"
-        ## header at all (model didn't comply, or a static override with no LLM
-        ## involved) falls back to the full candidate list.
-        rawLines   <- strsplit(raw, "\n", fixed = TRUE)[[1]]
-        markerIdx  <- which(grepl("^## References", rawLines))
-        candidates <- citation()
-        if (length(markerIdx) > 0) {
-          description <- trimws(paste(rawLines[seq_len(markerIdx[1] - 1)], collapse = "\n"), "right")
-          anchors <- vapply(candidates, function(entry) {
-            m <- regmatches(entry, regexpr("https?://\\S+", entry))
-            if (length(m) > 0) m else entry
-          }, character(1))
-          kept <- candidates[vapply(anchors, function(a) grepl(a, raw, fixed = TRUE), logical(1))]
-          references <- if (length(kept) > 0) paste(kept, collapse = "\n") else "pending"
-        } else {
-          description <- raw
-          references  <- if (length(candidates) > 0) paste(candidates, collapse = "\n") else "pending"
+        ## SUSHI's sample_count is the number of job scripts, so a DATASET-mode run (one
+        ## script for all samples) reports 1. Its samples are the "samples" parameter; the
+        ## writer is told the count rather than counting the list itself.
+        run_note <- NULL
+        n_samples <- if (ezIsSpecified(param$samples)) length(strsplit(param$samples, ",")[[1]]) else 0
+        if ((is.null(sample_count) || sample_count <= 1) && n_samples > 1) {
+          run_note <- paste0("This analysis was run on ", n_samples, " samples.")
         }
+        description <- methods_description(script_paths, log_paths, sample_count, output_dir,
+                                           app_doc, run_note)
+
+        ## References come from the code: the run's parameters decide which tools ran,
+        ## and every entry citation() returns for them is kept.
+        cites <- citation(param)
+        references <- if (length(cites) > 0) paste(cites, collapse = "\n") else "pending"
 
         document <- paste0(
           sprintf("## %s | %s\n\n", analysis_name, format(Sys.time(), "%Y-%m-%d %H:%M")),

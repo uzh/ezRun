@@ -86,10 +86,37 @@ ezMethodDnaBamStats <- function(
     }
   }
 
+  if (isTRUE(param$paired)) {
+    ezLogMethods(
+      "Fragment size distributions and library complexity were assessed with ATACseqQC."
+    )
+  }
+  if (isTRUE(param$runPicard)) {
+    ezLogMethods(
+      "Optical duplication rates were taken from Picard MarkDuplicates."
+    )
+  }
+
   reportData <- build_dna_bamstats_report_data(
     dataset = dataset,
     resultList = resultList
   )
+  qcThresholds <- reportData$qcThresholds
+  if (is.data.frame(qcThresholds) && nrow(qcThresholds) > 0) {
+    ezLogMethods(
+      "Samples were flagged, not removed, at ",
+      paste0(
+        qcThresholds$Metric,
+        " ",
+        qcThresholds$Direction,
+        " ",
+        qcThresholds$Threshold,
+        qcThresholds$Unit,
+        collapse = ", "
+      ),
+      "."
+    )
+  }
   write_dna_bamstats_support_files(
     reportData = reportData
   )
@@ -97,6 +124,9 @@ ezMethodDnaBamStats <- function(
     reportData$qualimapMulti <- get_dna_qualimap_multi_sample_summary(
       samples = samples,
       resultList = resultList
+    )
+    ezLogMethods(
+      "Alignment metrics (coverage, duplication, insert size, mapping quality, GC content and error rates) were computed with Qualimap bamqc and summarised across samples with Qualimap multi-bamqc."
     )
   }
 
@@ -1145,6 +1175,11 @@ get_dna_picard_dup_stats <- function(
   ## not rerun on a multi-GB BAM for no additional information.
   if (dna_bamstats_can_reuse_dup_metrics(dupMetricsFile, param$pixelDist)) {
     reused <- parse_dna_picard_dup_metrics_file(dupMetricsFile)
+    ezLogMethods(
+      "Duplicate metrics were taken from the Picard MarkDuplicates run of the alignment step (optical duplicate pixel distance ",
+      param$pixelDist,
+      ")."
+    )
     reused$notes <- paste0(
       "Reused existing duplicate metrics from ",
       basename(dupMetricsFile),
@@ -1168,6 +1203,13 @@ get_dna_picard_dup_stats <- function(
     "> /dev/null"
   )
   ezSystem(cmd)
+  ezLogMethods(
+    "Duplicates were marked, not removed, with Picard MarkDuplicates",
+    if (ezIsSpecified(param$pixelDist)) {
+      paste0(" (optical duplicate pixel distance ", param$pixelDist, ")")
+    },
+    "."
+  )
   ezSystem(paste("rm", tempBam))
 
   stopifnot(file.exists(metricFn))
@@ -2036,16 +2078,17 @@ EzAppDnaBamStats <-
     "EzAppDnaBamStats",
     contains = "EzApp",
     methods = list(
-      ## Qualimap gated on runQualimap (default TRUE); Picard gated on runPicard
-      ## (default TRUE, sometimes reused from upstream aligner instead of rerun);
-      ## ATACseqQC (fragment-size/library-complexity plots) gated on param$paired;
-      ## Rsamtools (multi-matching counts) effectively unconditional.
-      citation = function() {
+      ## Rsamtools unconditional: getBamMultiMatching runs for
+      ## every sample (the app requires the Read Count column, DnaBamStatsApp.rb). Qualimap
+      ## unless runQualimap is false (default TRUE; `if (isTRUE(param$runQualimap))`, :244);
+      ## Picard unless runPicard is false (default TRUE; sometimes reused from upstream aligner);
+      ## ATACseqQC (fragment-size/library-complexity plots) only when paired is true.
+      citation = function(param = list()) {
         c(
-          "Okonechnikov, K., Conesa, A. & García-Alcalde, F. Qualimap 2: advanced multi-sample quality control for high-throughput sequencing data. Bioinformatics 32(2), 292-294 (2016). https://doi.org/10.1093/bioinformatics/btv566",
-          "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
-          "Ou, J. et al. ATACseqQC: a Bioconductor package for post-alignment quality assessment of ATAC-seq data. BMC Genomics 19, 169 (2018). https://doi.org/10.1186/s12864-018-4559-3",
-          "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package version 2.28.0. https://doi.org/10.18129/B9.bioc.Rsamtools"
+          "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package. https://doi.org/10.18129/B9.bioc.Rsamtools",
+          if (!isFALSE(as.logical(param$runQualimap))) "Okonechnikov, K., Conesa, A. & García-Alcalde, F. Qualimap 2: advanced multi-sample quality control for high-throughput sequencing data. Bioinformatics 32(2), 292-294 (2016). https://doi.org/10.1093/bioinformatics/btv566",
+          if (!isFALSE(as.logical(param$runPicard))) "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+          if (isTRUE(as.logical(param$paired))) "Ou, J. et al. ATACseqQC: a Bioconductor package for post-alignment quality assessment of ATAC-seq data. BMC Genomics 19, 169 (2018). https://doi.org/10.1186/s12864-018-4559-3"
         )
       },
       initialize = function() {

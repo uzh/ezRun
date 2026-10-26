@@ -53,6 +53,36 @@ ezMethodRnaBamStats = function(
       repeatsGff = repeatsGff[repeatsGff$seqid %in% param$seqNames, ]
     }
   }
+  ezLogMethods(
+    "Reads were assigned to annotation categories (gene biotypes",
+    if (!is.null(repeatsGff)) ", repeat classes",
+    ", exons, introns and 2 kb flanking regions) by overlap",
+    switch(
+      as.character(param$strandMode)[1],
+      "both" = ", irrespective of strand",
+      "sense" = " on the same strand",
+      "antisense" = " on the opposite strand",
+      ""
+    ),
+    "."
+  )
+  if (is.null(param$splitByChrom) || isTRUE(as.logical(param$splitByChrom))) {
+    ezLogMethods(
+      "Read categories, fragment sizes and coverage were computed on the main chromosomes only."
+    )
+  }
+  if (isTRUE(as.logical(param$paired))) {
+    ezLogMethods(
+      "Fragment sizes",
+      if (ezIsSpecified(param$fragSizeMax)) paste0(" up to ", param$fragSizeMax, " bp"),
+      " were taken from the aligned read pairs",
+      if (isTRUE(as.logical(param$keepProperPairsOnly))) " whose first read was in a proper pair",
+      "."
+    )
+  }
+  ezLogMethods(
+    "Gene body coverage was computed along transcripts, by transcript length and expression class."
+  )
   resultList = list()
   for (sm in samples) {
     ezLog(sm)
@@ -79,6 +109,11 @@ ezMethodRnaBamStats = function(
       mc.preschedule = FALSE,
       mc.cores = min(length(files), ezThreads())
     )
+    ezLogMethods(
+      "Position-specific mismatch and clipping rates were computed from up to 100,000 sampled alignments",
+      if (isTRUE(as.logical(param$paired))) ", for first and second reads separately",
+      "."
+    )
     for (sm in samples) {
       resultList[[sm]][["ErrorRates"]] = errorRates[[sm]]
     }
@@ -98,6 +133,9 @@ ezMethodRnaBamStats = function(
       mc.preschedule = FALSE,
       mc.cores = min(length(sjFiles), ezThreads())
     )
+    ezLogMethods(
+      "Splice junctions reported by the aligner were compared with the annotated introns, and junction saturation was computed from the junction reads."
+    )
   } else {
     junctionsResults = ezMclapply(
       files,
@@ -105,6 +143,9 @@ ezMethodRnaBamStats = function(
       param,
       mc.preschedule = FALSE,
       mc.cores = min(length(files), ezThreads())
+    )
+    ezLogMethods(
+      "Splice junctions were annotated and junction saturation was estimated with RSeQC."
     )
   }
   for (sm in samples) {
@@ -122,6 +163,9 @@ ezMethodRnaBamStats = function(
     ) {
       ezLog("using the duplication rates computed by the aligner")
       dupRateResults <- lapply(dupRateFiles, ezRead.table, row.names = NULL)
+      ezLogMethods(
+        "The dupRadar duplication rates computed in the alignment step were reused, as their annotation, strandedness and pairing matched this run."
+      )
     } else {
       dupRateResults <- ezMclapply(
         files,
@@ -172,16 +216,18 @@ EzAppRnaBamStats <-
     "EzAppRnaBamStats",
     contains = "EzApp",
     methods = list(
-      ## RSeQC/Rsamtools/GenomicAlignments unconditional; Picard MarkDuplicates +
-      ## dupRadar (uses Rsubread::featureCounts internally) gated on param$dupRadar.
-      citation = function() {
+      ## RSeQC/Rsamtools/GenomicAlignments unconditional; Picard MarkDuplicates + dupRadar (with
+      ## Rsubread::featureCounts inside) unless dupRadar is false (ezMethodRnaBamStats runs it when
+      ## dupRadar is NULL or TRUE; Picard is skipped when duplicates are already flagged, data-dependent).
+      citation = function(param = list()) {
+        dup <- !isFALSE(as.logical(param$dupRadar))
         c(
           "Wang, L., Wang, S. & Li, W. RSeQC: quality control of RNA-seq experiments. Bioinformatics 28(16), 2184-2185 (2012). https://doi.org/10.1093/bioinformatics/bts356",
           "Lawrence, M. et al. Software for Computing and Annotating Genomic Ranges. PLoS Computational Biology 9(8), e1003118 (2013). https://doi.org/10.1371/journal.pcbi.1003118",
-          "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package version 2.28.0. https://doi.org/10.18129/B9.bioc.Rsamtools",
-          "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
-          "Sayols, S., Scherzinger, D. & Klein, H. dupRadar: a Bioconductor package for the assessment of PCR artifacts in RNA-Seq data. BMC Bioinformatics 17, 428 (2016). https://doi.org/10.1186/s12859-016-1276-2",
-          "Liao, Y., Smyth, G.K. & Shi, W. featureCounts: an efficient general purpose program for assigning sequence reads to genomic features. Bioinformatics 30(7), 923-930 (2014). https://doi.org/10.1093/bioinformatics/btt656"
+          "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package. https://doi.org/10.18129/B9.bioc.Rsamtools",
+          if (dup) "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+          if (dup) "Sayols, S., Scherzinger, D. & Klein, H. dupRadar: a Bioconductor package for the assessment of PCR artifacts in RNA-Seq data. BMC Bioinformatics 17, 428 (2016). https://doi.org/10.1186/s12859-016-1276-2",
+          if (dup) "Liao, Y., Smyth, G.K. & Shi, W. featureCounts: an efficient general purpose program for assigning sequence reads to genomic features. Bioinformatics 30(7), 923-930 (2014). https://doi.org/10.1093/bioinformatics/btt656"
         )
       },
       initialize = function() {
@@ -1243,6 +1289,9 @@ getDupRateFromBam <- function(
   if (markedBam) {
     ## the duplicates are already flagged upstream, no need to run picard again
     bamDuprmFn <- bamFile
+    ezLogMethods(
+      "For the dupRadar analysis, the duplicate flags already present in the BAM file were used."
+    )
   } else {
     ## Mark the duplicates in bamFile
     inputBam <- paste(Sys.getpid(), basename(bamFile), sep = "-")
@@ -1255,6 +1304,9 @@ getDupRateFromBam <- function(
     # bamutilLogFn <- paste0(bamDuprmFn, ".log") # bamutil
     on.exit(file.remove(c(inputBam, bamDuprmFn, paste0(bamDuprmFn, ".bai")))) #, picardMetricsFn, bamutilLogFn)))
     dupBam(inBam = inputBam, outBam = bamDuprmFn, operation = "mark", ram = ram)
+    ezLogMethods(
+      "For the dupRadar quality metric, duplicate reads were marked with Picard MarkDuplicates."
+    )
   }
   ## Duplication rate analysis
   dm <- analyzeDuprates(
@@ -1269,6 +1321,18 @@ getDupRateFromBam <- function(
     ),
     paired = paired,
     threads = threads
+  )
+  ezLogMethods(
+    "The duplication rate as a function of gene expression was computed with dupRadar, counting ",
+    switch(
+      as.character(stranded)[1],
+      "both" = "without strand information",
+      "sense" = "reads on the gene strand",
+      "antisense" = "reads on the opposite strand of the gene",
+      "with the library strandedness"
+    ),
+    if (isTRUE(as.logical(paired))) " and read pairs as fragments",
+    "."
   )
   return(dm)
 }

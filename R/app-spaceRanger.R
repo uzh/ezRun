@@ -10,16 +10,18 @@ EzAppSpaceRanger <-
     "EzAppSpaceRanger",
     contains = "EzApp",
     methods = list(
-      ## spaceranger count unconditional. samtools (CRAM) gated on keepAlignment.
-      ## Biostrings/rtracklayer gated on controlSeqs (via shared
-      ## getCellRangerGEXReference helper) -- this app does not declare secondRef
-      ## or extendThreePrime, so only the controlSeqs-gated path is reachable.
-      citation = function() {
+      ## spaceranger count unconditional. samtools (CRAM) only when keepAlignment is true.
+      ## rtracklayer unconditional (getCellRangerGEXReference exports the transcriptTypes GTF
+      ## whenever it builds a reference). Biostrings only with a customised reference
+      ## (controlSeqs or secondRef, both declared by SpaceRangerApp.rb; extendThreePrime is read
+      ## by the shared helper but not declared).
+      citation = function(param = list()) {
+        custom <- ezIsSpecified(param$controlSeqs) || ezIsSpecified(param$secondRef) || ezIsSpecified(param$extendThreePrime)
         c(
           "10x Genomics. Space Ranger. https://www.10xgenomics.com/support/software/space-ranger",
           "Ståhl, P.L. et al. Visualization and analysis of gene expression in tissue sections by spatial transcriptomics. Science 353(6294), 78-82 (2016). https://doi.org/10.1126/science.aaf2403",
-          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
-          "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package version 2.80.1. https://doi.org/10.18129/B9.bioc.Biostrings",
+          if (isTRUE(as.logical(param$keepAlignment))) "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+          if (custom) "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package. https://doi.org/10.18129/B9.bioc.Biostrings",
           "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328"
         )
       },
@@ -159,6 +161,9 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
         )
         ezSystem(paste('mv', highresImage, highResName))
         cmd <- paste(cmd, paste0("--image=", highResName))
+        ezLogMethods(
+          "The largest page of the multi-page brightfield TIFF image was used as the tissue image."
+        )
       } else {
         cmd <- paste(cmd, paste0("--image=", myImage))
       }
@@ -168,6 +173,9 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
           grepl('^H', input$getColumn("Slide"))
       ) {
         cmd <- paste(cmd, "--nucleus-segmentation=false")
+        ezLogMethods(
+          "Nucleus segmentation in Space Ranger was switched off."
+        )
       }
     } else {
       if (file.exists(input$meta['Image']$Image)) {
@@ -216,6 +224,9 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
     probeCheck <- findProbesMissingFromReference(probeInfo, annotation$V1)
     droppedProbes <- probeCheck$dropped
     probeInfo <- probeInfo[probeCheck$keep, ]
+    ezLogMethods(
+      "The Visium probe set was restricted to the probes of genes in the reference."
+    )
     message(sprintf(
       "Probe set vs reference: %d probes kept; %d included, non-deprecated probes (%d genes) dropped because their gene_id is missing from %s",
       sum(probeCheck$keep),
@@ -245,6 +256,9 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
           )
         )
       probeInfo <- bind_rows(list(probeInfo, customProbes))
+      ezLogMethods(
+        "Custom probes were added to the probe set."
+      )
     }
     writeLines(headerSection, outputFile)
     ezWrite.table(
@@ -275,6 +289,9 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
     )
     write_csv(librariesDS, 'libraries.csv')
     cmd <- paste(cmd, "--libraries=libraries.csv")
+    ezLogMethods(
+      "Gene expression and antibody capture libraries were analysed together in Space Ranger, with the selected protein panel as feature reference."
+    )
   }
 
   tryCatch(
@@ -282,6 +299,9 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
       json_paths <- input$getFullPaths("loupe-alignment")
       if (grepl('json$', basename(json_paths))) {
         cmd <- paste0(cmd, " --loupe-alignment=", json_paths)
+        ezLogMethods(
+          "A manual image alignment from Loupe Browser was used instead of the automatic alignment of Space Ranger."
+        )
       }
     },
     error = function(e) {
@@ -391,8 +411,18 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
   if (is.list(cts)) {
     cts <- cts[['Gene Expression']]
     bulkData <- apply(cts, 1, sum)
+    ezLogMethods(
+      "Pseudo-bulk gene counts were computed by summing the gene expression counts over all ",
+      if (grepl("square_016um", cmDir, fixed = TRUE)) "16 um bins" else "spots",
+      " under tissue."
+    )
   } else {
     bulkData <- rowSums(data.frame(cts))
+    ezLogMethods(
+      "Pseudo-bulk gene counts were computed by summing the counts over all ",
+      if (grepl("square_016um", cmDir, fixed = TRUE)) "16 um bins" else "spots",
+      " under tissue."
+    )
   }
   bulkData <- data.frame(Identifier = names(bulkData), matchCounts = bulkData)
   countFile <- paste0(finalSampleName, '-counts.txt')

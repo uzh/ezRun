@@ -289,6 +289,12 @@ EzAppCellRangerARC <-
     "EzAppCellRangerARC",
     contains = "EzApp",
     methods = list(
+      ## cellranger-arc count unconditional (no paper; 10x product page, as for Cell Ranger).
+      citation = function(param = list()) {
+        c(
+          "10x Genomics. Cell Ranger ARC. https://www.10xgenomics.com/support/software/cell-ranger-arc"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCellRangerARC

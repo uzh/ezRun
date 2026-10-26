@@ -15,16 +15,24 @@ EzAppScSeuratCombine <-
       ## (AUCell/SingleR/sc-type/mLLMCelltype/CyteTypeR/Azimuth) -- those ran upstream
       ## in ScSeuratApp already. It only reads a cached cellxgeneResults.rds if
       ## present, never computes it, so STACAS/schard aren't invoked here either.
-      citation = function() {
+      ## Stuart 2019 for CCA/RPCA anchors, Harmony for Harmony (integrationMethod, default Harmony;
+      ## cellClustWithCorrection seuratUtils.R:400, :446); Enrichr and decoupleR/DoRothEA/PROGENy
+      ## only for human/mouse with enrichrDatabase / computePathwayTFActivity (getSeuratMarkersAndAnnotate,
+      ## seuratUtils.R:850-890; querySignificantClusterAnnotationEnrichR skips without a database).
+      citation = function(param = list()) {
+        humanMouse <- isTRUE(grepl("^(Homo_sapiens|Mus_musculus)/", param$refBuild))
+        integ <- if (is.null(param$integrationMethod)) "Harmony" else param$integrationMethod
+        enrichr <- humanMouse && ezIsSpecified(param$enrichrDatabase)
+        tf <- humanMouse && isTRUE(as.logical(param$computePathwayTFActivity))
         c(
           "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
-          "Stuart, T. et al. Comprehensive Integration of Single-Cell Data. Cell 177, 1888-1902 (2019). https://doi.org/10.1016/j.cell.2019.05.031",
-          "Korsunsky, I. et al. Fast, sensitive and accurate integration of single-cell data with Harmony. Nature Methods 16, 1289-1296 (2019). https://doi.org/10.1038/s41592-019-0619-0",
-          "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128",
-          "Kuleshov, M.V. et al. Enrichr: a comprehensive gene set enrichment analysis web server 2016 update. Nucleic Acids Research 44(W1), W90-W97 (2016). https://doi.org/10.1093/nar/gkw377",
-          "Badia-i-Mompel, P. et al. decoupleR: ensemble of computational methods to infer biological activities from omics data. Bioinformatics Advances 2(1), vbac016 (2022). https://doi.org/10.1093/bioadv/vbac016",
-          "Garcia-Alonso, L., Holland, C.H., Ibrahim, M.M., Turei, D. & Saez-Rodriguez, J. Benchmark and integration of resources for the estimation of human transcription factor activities. Genome Research 29, 1363-1375 (2019). https://doi.org/10.1101/gr.240663.118",
-          "Schubert, M. et al. Perturbation-response genes reveal signaling footprints in cancer gene expression. Nature Communications 9, 20 (2018). https://doi.org/10.1038/s41467-017-02391-6"
+          if (any(c("CCA", "RPCA") %in% integ)) "Stuart, T. et al. Comprehensive Integration of Single-Cell Data. Cell 177, 1888-1902 (2019). https://doi.org/10.1016/j.cell.2019.05.031",
+          if ("Harmony" %in% integ) "Korsunsky, I. et al. Fast, sensitive and accurate integration of single-cell data with Harmony. Nature Methods 16, 1289-1296 (2019). https://doi.org/10.1038/s41592-019-0619-0",
+          if (enrichr) "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128",
+          if (enrichr) "Kuleshov, M.V. et al. Enrichr: a comprehensive gene set enrichment analysis web server 2016 update. Nucleic Acids Research 44(W1), W90-W97 (2016). https://doi.org/10.1093/nar/gkw377",
+          if (tf) "Badia-i-Mompel, P. et al. decoupleR: ensemble of computational methods to infer biological activities from omics data. Bioinformatics Advances 2(1), vbac016 (2022). https://doi.org/10.1093/bioadv/vbac016",
+          if (tf) "Garcia-Alonso, L., Holland, C.H., Ibrahim, M.M., Turei, D. & Saez-Rodriguez, J. Benchmark and integration of resources for the estimation of human transcription factor activities. Genome Research 29, 1363-1375 (2019). https://doi.org/10.1101/gr.240663.118",
+          if (tf) "Schubert, M. et al. Perturbation-response genes reveal signaling footprints in cancer gene expression. Nature Communications 9, 20 (2018). https://doi.org/10.1038/s41467-017-02391-6"
         )
       },
       initialize = function() {
@@ -130,6 +138,7 @@ ezMethodScSeuratCombine = function(
 
   plan("multicore", workers = param$cores)
   set.seed(38)
+  ezLogMethods("The R random seed was set to 38 at the start of the analysis.")
   future.seed = TRUE
   options(future.rng.onMisuse = "ignore")
   options(future.globals.maxSize = param$ram * 1024^3)
@@ -186,8 +195,15 @@ ezMethodScSeuratCombine = function(
     ) {
       if (any(startsWith(colnames(input$meta), "Condition"))) {
         scData$Condition <- unname(input$getColumn("Condition")[sm])
+        ezLogMethods(
+          "The cells of sample ", sm,
+          " were given the condition of that sample in the input dataset."
+        )
       } else {
         scData$Condition <- scData$Sample
+        ezLogMethods(
+          "The cells of sample ", sm, " were given the sample name as condition."
+        )
       }
     }
     # Harmony will complain if the Condition is the same across all samples
@@ -231,6 +247,15 @@ ezMethodScSeuratCombine = function(
     }
     return(scData)
   })
+  if (
+    param$integrationMethod == "Harmony" &&
+      length(unique(input$meta$`Condition`)) == 1
+  ) {
+    ezLogMethods(
+      "As the dataset had a single condition, the sample of each cell was used as its condition ",
+      "for Harmony integration."
+    )
+  }
 
   # perform all of the analysis
   results <- seuratIntegrateDataAndAnnotate(
@@ -305,6 +330,10 @@ seuratIntegrateDataAndAnnotate <- function(
       ]
       scDataList[[eachSample]] <- scDataList[[eachSample]][, chosenCells]
     }
+    ezLogMethods(
+      "Only the cells of the selected clusters were kept for ",
+      paste(names(param$chosenClusters), collapse = ", "), "."
+    )
   }
 
   scData_noCorrected <- cellClustNoCorrection(scDataList, param)
@@ -313,6 +342,10 @@ seuratIntegrateDataAndAnnotate <- function(
     #in order to compute the markers we switch again to the original assay
     DefaultAssay(scData_corrected) <- seuratAnalysisAssay(param)
     scData <- scData_corrected
+    ezLogMethods(
+      "The ", param$integrationMethod, "-integrated data were used for the results; the uncorrected ",
+      "merge was kept for comparison."
+    )
   } else {
     scData = scData_noCorrected
   }
@@ -329,6 +362,10 @@ seuratIntegrateDataAndAnnotate <- function(
   ## Only the SCTransform path has SCT residuals to re-prepare
   if ("SCT" %in% Seurat::Assays(scData)) {
     scData <- PrepSCTFindMarkers(scData)
+    ezLogMethods(
+      "Before marker detection, the SCT data were corrected to a common sequencing depth ",
+      "with Seurat PrepSCTFindMarkers."
+    )
   }
 
   # get annotation information

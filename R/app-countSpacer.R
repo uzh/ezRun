@@ -55,6 +55,12 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
   if (is.na(spacerLength) || spacerLength <= 0) {
     seqLengths <- unique(nchar(dict$Sequence))
     spacerLength <- if (length(seqLengths) == 1) seqLengths else 0L
+    if (spacerLength > 0) {
+      ezLogMethods(
+        "The spacer length was set to ", spacerLength,
+        " bases, the length of the library's sgRNAs."
+      )
+    }
   }
 
   ## Read base-composition PWM (for the read-structure logo) and, when enabled,
@@ -66,6 +72,23 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
   if (guessPatterns) {
     if (leftUsed == '') leftUsed <- patternGuess$leftGuess
     if (rightUsed == '') rightUsed <- patternGuess$rightGuess
+    guessedLeft <- identical(param$leftPattern, '')
+    guessedRight <- identical(param$rightPattern, '')
+    if (guessedLeft || guessedRight) {
+      ezLogMethods(
+        "The ",
+        if (guessedLeft && guessedRight) "left and right flanking patterns were" else if (guessedLeft) "left flanking pattern was" else "right flanking pattern was",
+        " inferred from the base composition of the trimmed reads,",
+        if (guessedLeft) {
+          if (leftUsed != '') paste0(" giving the left pattern ", leftUsed) else " but no left pattern was evident"
+        },
+        if (guessedLeft && guessedRight) " and",
+        if (guessedRight) {
+          if (rightUsed != '') paste0(" giving the right pattern ", rightUsed) else " but no right pattern was evident"
+        },
+        "."
+      )
+    }
   }
   patternInfo <- list(
     leftUsed = leftUsed,
@@ -76,6 +99,25 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
     guessPatterns = guessPatterns
   )
 
+  ezLogMethods(
+    "Spacers were extracted from Read1 of the fastp-trimmed reads by matching the flanking patterns with up to ",
+    param$maxMismatch, " mismatches: ",
+    if (spacerLength > 0 && rightUsed != '') {
+      paste0(
+        "the spacer was the ", spacerLength,
+        " bases 5' of the right pattern, and reads without it were discarded."
+      )
+    } else if (spacerLength > 0 && leftUsed != '') {
+      paste0(
+        "the spacer was the ", spacerLength,
+        " bases 3' of the left pattern, and reads without it were discarded."
+      )
+    } else if (rightUsed != '' || leftUsed != '') {
+      "the spacer was the sequence between the patterns, and reads without them were discarded."
+    } else {
+      "without flanking patterns, the whole read was used as the spacer."
+    }
+  )
   reads <- twoPatternReadFilter(
     readFile,
     leftUsed,
@@ -87,6 +129,9 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
   ###Export as fasta file
   readFile = paste0(sampleName, '.fa')
   reads = reads[width(reads) >= param$minReadLength]
+  ezLogMethods(
+    "Extracted spacers shorter than ", param$minReadLength, " bases were discarded."
+  )
   stats[['validSpacerReads']] = length(reads)
   writeXStringSet(reads, readFile, format = 'fasta')
   remove(reads)
@@ -110,6 +155,9 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
     param$cores,
     '|cut -f3,8|sort >',
     resultFile
+  )
+  ezLogMethods(
+    "Spacers were aligned to the sgRNA library with Bowtie (version 1, default settings) and counted per sgRNA."
   )
   ezSystem(cmd)
   if (file.size(resultFile) == 0) {
@@ -137,6 +185,9 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
   result$Count = as.numeric(result$Count)
   dict = merge(dict, result, by.x = 'ID', by.y = 'ID', all.x = TRUE)
   dict[is.na(dict$Count), 'Count'] = 0
+  ezLogMethods(
+    "The sgRNA counts are raw, not normalized read counts."
+  )
 
   ###Export Tables
   resultFile = paste0(sampleName, '-result.xlsx')
@@ -160,6 +211,9 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
     ## TODO: why does the written excel file not include the controls but the plots seem to use it???
     res = res[order(res$GeneSymbol), ]
     countsPerGene = tapply(res$Count, INDEX = res$GeneSymbol, FUN = sum)
+    ezLogMethods(
+      "Gene-level counts were summed over the sgRNAs of each gene, excluding control sgRNAs."
+    )
     countsPerGene = data.frame(
       ID = names(countsPerGene),
       matchCounts = countsPerGene,
@@ -190,6 +244,9 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
     collapse = ','
   )
   targetView[['Count_Sum']] = tapply(dict2$Count, dict2$TargetID, sum)
+  ezLogMethods(
+    "Target-level counts were summed over the sgRNAs of each target, excluding control sgRNAs."
+  )
   targetView[['#sgRNAs > 0']] = tapply(dict2$Count > 0, dict2$TargetID, sum)
   targetView[['#sgRNAs > lowerCutOff']] = tapply(
     dict2$Count > 2^lowerCutOff,
@@ -199,6 +256,11 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
   targetView = targetView[order(targetView[['#sgRNAs > lowerCutOff']]), ]
 
   underrepTargets = targetView[targetView[['#sgRNAs > lowerCutOff']] < 2, ]
+  ezLogMethods(
+    "sgRNAs were called over- or under-represented when their log2(1 + count) differed by more than ",
+    param$diffToLogMeanThreshold, " from the mean over the targeting sgRNAs, and targets with fewer than ",
+    "2 sgRNAs above that lower bound were listed as under-represented."
+  )
   if (nrow(underrepTargets) > 0 & nrow(underrepTargets) < 1000) {
     underrepTargets = targetView[targetView[['#sgRNAs > lowerCutOff']] < 2, ]
     myDT = DT::datatable(
@@ -232,6 +294,9 @@ ezMethodCountSpacer = function(input = NA, output = NA, param = NA) {
   }
   writexl::write_xlsx(targetView, paste0(sampleName, '-targetBasedResult.xlsx'))
 
+  ezLogMethods(
+    "The mapping rate (aligned over extracted spacers) and the Gini index of the targeting sgRNA counts were reported as QC metrics."
+  )
   makeQuartoReport(
     param = param,
     output = output,
@@ -432,12 +497,12 @@ EzAppCountSpacer <-
     methods = list(
       ## fastp/ShortRead/Biostrings/bowtie all unconditional. Note: classic Bowtie
       ## (v1), not Bowtie2 -- a different tool with its own citation.
-      citation = function() {
+      citation = function(param = list()) {
         c(
+          "Langmead, B., Trapnell, C., Pop, M. & Salzberg, S.L. Ultrafast and memory-efficient alignment of short DNA sequences to the human genome. Genome Biology 10, R25 (2009). https://doi.org/10.1186/gb-2009-10-3-r25",
           "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
           "Morgan, M., Anders, S., Lawrence, M., Aboyoun, P., Pagès, H. & Gentleman, R. ShortRead: a bioconductor package for input, quality assessment and exploration of high-throughput sequence data. Bioinformatics 25(19), 2607-2608 (2009). https://doi.org/10.1093/bioinformatics/btp450",
-          "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package version 2.80.1. https://doi.org/10.18129/B9.bioc.Biostrings",
-          "Langmead, B., Trapnell, C., Pop, M. & Salzberg, S.L. Ultrafast and memory-efficient alignment of short DNA sequences to the human genome. Genome Biology 10, R25 (2009). https://doi.org/10.1186/gb-2009-10-3-r25"
+          "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package. https://doi.org/10.18129/B9.bioc.Biostrings"
         )
       },
       initialize = function() {

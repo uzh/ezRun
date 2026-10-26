@@ -10,14 +10,15 @@ EzAppScSeurat <-
     "EzAppScSeurat",
     contains = "EzApp",
     methods = list(
-      ## Seurat (v5, matches installed 5.5.1) unconditional. scDblFinder unconditional
-      ## (tryCatch-wrapped; only doublet removal gated on keepDoublets). emptyDrops
-      ## runs when raw matrix has extra barcodes (data-driven). cyclone/decontX/SoupX/
+      ## Seurat (v5, matches installed 5.5.1) and SCTransform v2 unconditional. scDblFinder unconditional
+      ## (tryCatch-wrapped; only doublet removal gated on keepDoublets). emptyDrops is
+      ## cited always: it is skipped only for input without extra barcodes (e.g. CellBender),
+      ## which depends on the data, not on a parameter. cyclone/decontX/SoupX/
       ## enrichR/AUCell/SingleR/celldex/decoupleR/dorothea/progeny/sc-type/
       ## mLLMCelltype/CyteTypeR/AzimuthPanHuman all gated on their own params (species
       ## Human/Mouse, estimateAmbient, enrichrDatabase, tissue, SingleR,
       ## computePathwayTFActivity, sctype.enabled, mLLMCelltype, CyteTypeR,
-      ## AzimuthPanHuman respectively) -- listed regardless of gating.
+      ## AzimuthPanHuman respectively); each is offered only when its gate is on.
       ## Azimuth::RunAzimuth (param$Azimuth) and cellxgene_annotation + schard
       ## (param$cellxgeneUrl / cellxgeneLabel) are live knobs: ScSeuratApp.rb declares
       ## all three (cellxgene since sushi 03effc0a, 2024-10-17). STACAS feature selection
@@ -25,26 +26,31 @@ EzAppScSeurat <-
       ## ScSeuratApp.rb never declares it; the STACAS package itself does run, in
       ## cellxgene_annotation (gene-symbol standardisation of the reference, when
       ## cellxgeneUrl is set). (Corrected 2026-09-05 and 2026-10-12.)
-      citation = function() {
+      citation = function(param = list()) {
+        humanMouse <- isTRUE(grepl("^(Homo_sapiens|Mus_musculus)/", param$refBuild))
+        on <- function(x) isTRUE(as.logical(x))
+        singleR <- isTRUE(nzchar(param$SingleR)) && !identical(param$SingleR, "none")
         c(
           "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
+          "Choudhary, S. & Satija, R. Comparison and evaluation of statistical error models for scRNA-seq. Genome Biology 23, 27 (2022). https://doi.org/10.1186/s13059-021-02584-9",
           "Germain, P.-L. et al. Doublet identification in single-cell sequencing data using scDblFinder. F1000Research 10, 979 (2022). https://doi.org/10.12688/f1000research.73600.2",
           "Lun, A.T.L. et al. EmptyDrops: distinguishing cells from empty droplets in droplet-based single-cell RNA sequencing data. Genome Biology 20, 63 (2019). https://doi.org/10.1186/s13059-019-1662-y",
-          "Scialdone, A. et al. Computational assignment of cell-cycle stage from single-cell transcriptome data. Methods 85, 54-61 (2015). https://doi.org/10.1016/j.ymeth.2015.06.021",
-          "Yang, S. et al. Decontamination of ambient RNA in single-cell RNA-seq with DecontX. Genome Biology 21, 57 (2020). https://doi.org/10.1186/s13059-020-1950-6",
-          "Young, M.D. & Behjati, S. SoupX removes ambient RNA contamination from droplet-based single-cell RNA sequencing data. GigaScience 9(12), giaa151 (2020). https://doi.org/10.1093/gigascience/giaa151",
-          "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128",
-          "Kuleshov, M.V. et al. Enrichr: a comprehensive gene set enrichment analysis web server 2016 update. Nucleic Acids Research 44(W1), W90-W97 (2016). https://doi.org/10.1093/nar/gkw377",
-          "Aibar, S. et al. SCENIC: single-cell regulatory network inference and clustering. Nature Methods 14, 1083-1086 (2017). https://doi.org/10.1038/nmeth.4463",
-          "Aran, D. et al. Reference-based analysis of lung single-cell sequencing reveals a transitional profibrotic macrophage. Nature Immunology 20(2), 163-172 (2019). https://doi.org/10.1038/s41590-018-0276-y",
-          "Aran, D. et al. celldex: Reference Index for Cell Types. R package version 1.22.0. https://doi.org/10.18129/B9.bioc.celldex",
-          "Badia-i-Mompel, P. et al. decoupleR: ensemble of computational methods to infer biological activities from omics data. Bioinformatics Advances 2(1), vbac016 (2022). https://doi.org/10.1093/bioadv/vbac016",
-          "Garcia-Alonso, L., Holland, C.H., Ibrahim, M.M., Turei, D. & Saez-Rodriguez, J. Benchmark and integration of resources for the estimation of human transcription factor activities. Genome Research 29, 1363-1375 (2019). https://doi.org/10.1101/gr.240663.118",
-          "Schubert, M. et al. Perturbation-response genes reveal signaling footprints in cancer gene expression. Nature Communications 9, 20 (2018). https://doi.org/10.1038/s41467-017-02391-6",
-          "Ianevski, A., Giri, A.K. & Aittokallio, T. Fully-automated and ultra-fast cell-type identification using specific marker combinations from single-cell transcriptomic data. Nature Communications 13, 1246 (2022). https://doi.org/10.1038/s41467-022-28803-w",
-          "Yang et al. Large language model consensus substantially improves the cell type annotation accuracy for scRNA-seq data. Communications Biology (2026). https://doi.org/10.1038/s42003-026-10420-8",
-          "Ahuja, G. et al. Multi-agent AI enables evidence-based cell annotation in single-cell transcriptomics. bioRxiv (2025) [preprint, not peer-reviewed]. https://doi.org/10.1101/2025.11.06.686964",
-          "Satija Lab. Pan-Human Azimuth. https://satijalab.org/pan_human_azimuth/ [preprint referenced on this page could not be independently verified]"
+          if (humanMouse) "Scialdone, A. et al. Computational assignment of cell-cycle stage from single-cell transcriptome data. Methods 85, 54-61 (2015). https://doi.org/10.1016/j.ymeth.2015.06.021",
+          if (on(param$estimateAmbient)) "Yang, S. et al. Decontamination of ambient RNA in single-cell RNA-seq with DecontX. Genome Biology 21, 57 (2020). https://doi.org/10.1186/s13059-020-1950-6",
+          if (on(param$estimateAmbient)) "Young, M.D. & Behjati, S. SoupX removes ambient RNA contamination from droplet-based single-cell RNA sequencing data. GigaScience 9(12), giaa151 (2020). https://doi.org/10.1093/gigascience/giaa151",
+          if (humanMouse && ezIsSpecified(param$enrichrDatabase)) "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128",
+          if (humanMouse && ezIsSpecified(param$enrichrDatabase)) "Kuleshov, M.V. et al. Enrichr: a comprehensive gene set enrichment analysis web server 2016 update. Nucleic Acids Research 44(W1), W90-W97 (2016). https://doi.org/10.1093/nar/gkw377",
+          if (humanMouse && ezIsSpecified(param$tissue)) "Aibar, S. et al. SCENIC: single-cell regulatory network inference and clustering. Nature Methods 14, 1083-1086 (2017). https://doi.org/10.1038/nmeth.4463",
+          if (humanMouse && singleR) "Aran, D. et al. Reference-based analysis of lung single-cell sequencing reveals a transitional profibrotic macrophage. Nature Immunology 20(2), 163-172 (2019). https://doi.org/10.1038/s41590-018-0276-y",
+          if (humanMouse && singleR) "Aran, D. et al. celldex: Reference Index for Cell Types. R package. https://doi.org/10.18129/B9.bioc.celldex",
+          if (humanMouse && on(param$computePathwayTFActivity)) "Badia-i-Mompel, P. et al. decoupleR: ensemble of computational methods to infer biological activities from omics data. Bioinformatics Advances 2(1), vbac016 (2022). https://doi.org/10.1093/bioadv/vbac016",
+          if (humanMouse && on(param$computePathwayTFActivity)) "Garcia-Alonso, L., Holland, C.H., Ibrahim, M.M., Turei, D. & Saez-Rodriguez, J. Benchmark and integration of resources for the estimation of human transcription factor activities. Genome Research 29, 1363-1375 (2019). https://doi.org/10.1101/gr.240663.118",
+          if (humanMouse && on(param$computePathwayTFActivity)) "Schubert, M. et al. Perturbation-response genes reveal signaling footprints in cancer gene expression. Nature Communications 9, 20 (2018). https://doi.org/10.1038/s41467-017-02391-6",
+          if (on(param$sctype.enabled)) "Ianevski, A., Giri, A.K. & Aittokallio, T. Fully-automated and ultra-fast cell-type identification using specific marker combinations from single-cell transcriptomic data. Nature Communications 13, 1246 (2022). https://doi.org/10.1038/s41467-022-28803-w",
+          if (on(param$mLLMCelltype)) "Yang et al. Large language model consensus substantially improves the cell type annotation accuracy for scRNA-seq data. Communications Biology (2026). https://doi.org/10.1038/s42003-026-10420-8",
+          if (on(param$CyteTypeR)) "Ahuja, G. et al. Multi-agent AI enables evidence-based cell annotation in single-cell transcriptomics. bioRxiv (2025) [preprint, not peer-reviewed]. https://doi.org/10.1101/2025.11.06.686964",
+          if (ezIsSpecified(param$Azimuth) && !identical(param$Azimuth, "none")) "Hao, Y. et al. Integrated analysis of multimodal single-cell data. Cell 184, 3573-3587 (2021). https://doi.org/10.1016/j.cell.2021.04.048",
+          if (on(param$AzimuthPanHuman) && isTRUE(grepl("^Homo_sapiens/", param$refBuild))) "Sarkar, S. et al. Organism-scale annotation with Pan-human Azimuth. bioRxiv (2026) [preprint, not peer-reviewed]. https://doi.org/10.64898/2026.07.16.738997"
         )
       },
       initialize = function() {
@@ -275,6 +281,7 @@ ezMethodScSeurat <- function(
   require(future)
   plan("multicore", workers = param$cores)
   set.seed(38)
+  ezLogMethods("The R random seed was set to 38 at the start of the analysis.")
   future.seed = TRUE
   options(future.rng.onMisuse = "ignore")
   options(future.globals.maxSize = param$ram * 1024^3)
@@ -385,6 +392,9 @@ ezMethodScSeurat <- function(
     uniquifyFeatureNames(ID = featInfo$gene_id, names = featInfo$gene_name)
   )
   scData <- CreateSeuratObject(counts = cts[rowSums2(cts > 0) > 0, ])
+  ezLogMethods(
+    "Genes not detected in any cell were removed."
+  )
   scData$Condition <- unname(input$getColumn("Condition"))
   scData@meta.data$Sample <- input$getNames()
   scData[["RNA"]] <- AddMetaData(
@@ -483,6 +493,16 @@ ezMethodScSeurat <- function(
           ] <- TRUE
           scData$useCell[scData$qc.empty] <- FALSE
         }
+        ezLogMethods(
+          if (isTRUE(as.numeric(param$maxEmptyDropPValue) < 1)) {
+            paste0(
+              "Empty droplets were scored with DropletUtils emptyDrops, and cells with a p-value above ",
+              param$maxEmptyDropPValue, " were removed."
+            )
+          } else {
+            "Empty-droplet scores were computed with DropletUtils emptyDrops as a quality metric."
+          }
+        )
       } else {
         futile.logger::flog.warn(
           "emptyDrops skipped: raw matrix has no additional empty barcodes (e.g. CellRanger Multi per_sample output)"
@@ -507,6 +527,13 @@ ezMethodScSeurat <- function(
     row.names = rownames(cellsPerGene)
   )
   scData <- scData[is.expressed, ]
+  if (isTRUE(as.numeric(param$cellsFraction) > 0)) {
+    ezLogMethods(
+      "After cell filtering, only genes with at least ", param$geneMinUMI,
+      " UMIs in at least a fraction ", param$cellsFraction,
+      " of the remaining cells were kept."
+    )
+  }
 
   if (ezIsSpecified(param$excludeGenes) && param$excludeGenes != '') {
     genesToExclude <- ezRead.table(
@@ -517,6 +544,9 @@ ezMethodScSeurat <- function(
     genesToExclude <- unique(genesToExclude$V1)
     genesToKeep <- setdiff(rownames(scData), genesToExclude)
     scData <- subset(scData, features = genesToKeep)
+    ezLogMethods(
+      "Genes on a user-supplied exclusion list were removed before normalization."
+    )
   }
 
   ## Add Cell Cycle information to Seurat object as metadata columns
@@ -667,6 +697,10 @@ ezMethodScSeurat <- function(
           name = "sctype_classification",
           plot = FALSE
         )
+        ezLogMethods(
+          "Clusters were annotated with scType and its full marker database (ScTypeDB_full) for the tissue '",
+          tissue_type, "'."
+        )
 
         # Save only the tissue type (scData already contains the annotation)
         sctype_results <- list(
@@ -743,6 +777,12 @@ ezMethodScSeurat <- function(
         ## unname() is required for Seurat v5 metadata assignment
         scData$mLLMCelltype <- unname(
           mllm$clusterLabels[as.character(scData$seurat_clusters)]
+        )
+        ezLogMethods(
+          "Clusters were annotated with mLLMCelltype from their top ",
+          nTopMarkers, " marker genes, using the language model",
+          if (ezIsSpecified(mllm$model)) paste0(" ", mllm$model) else "",
+          " hosted at FGCZ, with the tissue context '", mllm$tissueName, "'."
         )
 
         clusterInfos[["mLLMCelltype"]] <- unname(
@@ -909,6 +949,15 @@ ezMethodScSeurat <- function(
           nCells = ncol(scData),
           nLabelled = nLabelled
         )
+        if (isTRUE(grepl("^CellRanger", azimuthSource))) {
+          ezLogMethods(
+            "Cells were annotated with the Pan-Human Azimuth model, reusing the annotation computed by Cell Ranger."
+          )
+        } else {
+          ezLogMethods(
+            "Cells were annotated with the Pan-Human Azimuth model through the CloudAzimuth web service."
+          )
+        }
         futile.logger::flog.info(
           "Azimuth Pan-Human annotation completed successfully via %s (%d/%d cells labelled, columns: %s)",
           azimuthSource,
@@ -1073,6 +1122,15 @@ ezMethodScSeurat <- function(
         cytetype_results <- scData_ct@misc$cytetype_results
 
         if (!is.null(cytetype_results) && nrow(cytetype_results) > 0) {
+          ezLogMethods(
+            "Clusters were annotated with the CyteType web service (CyteTypeR) from their top 15 marker genes, with ",
+            if (ezIsSpecified(param$CyteTypeR.studyContext)) {
+              "the user-supplied study context"
+            } else {
+              "a study context naming species and tissue"
+            },
+            "."
+          )
           # Map annotations to original scData (CRITICAL: use unname() for Seurat v5)
           ct_map <- setNames(
             cytetype_results$annotation,
@@ -1178,6 +1236,9 @@ addCellQcToSeurat <- function(
     "(?i)^HB[^P]",
     col.name = "percent_hb"
   )
+  ezLogMethods(
+    "Mitochondrial and ribosomal-protein percentages per cell were computed from the MT- and RPS/RPL genes."
+  )
 
   att_nCounts <- paste0("nCount_", DefaultAssay(scData))
   att_nGenes <- paste0("nFeature_", DefaultAssay(scData))
@@ -1273,6 +1334,32 @@ addCellQcToSeurat <- function(
   # nor nmad is set, and scDblFinder then dies on a zero library size.
   scData$qc.lib <- scData$qc.lib | scData@meta.data[, att_nCounts] == 0
 
+  qcFixedText <- c(
+    if (ezIsSpecified(param$nUMI)) paste("fewer than", param$nUMI, "UMIs"),
+    if (ezIsSpecified(param$ngenes)) paste("fewer than", param$ngenes, "detected genes"),
+    if (ezIsSpecified(param$perc_mito)) paste0("more than ", param$perc_mito, "% mitochondrial counts"),
+    if (ezIsSpecified(param$perc_riboprot)) paste0("more than ", param$perc_riboprot, "% ribosomal-protein counts")
+  )
+  qcMadText <- c(
+    if (!ezIsSpecified(param$nUMI)) "UMI count",
+    if (!ezIsSpecified(param$ngenes)) "detected genes",
+    if (!ezIsSpecified(param$perc_mito)) "mitochondrial percentage",
+    if (!ezIsSpecified(param$perc_riboprot)) "ribosomal-protein percentage"
+  )
+  if (length(qcFixedText) > 0) {
+    ezLogMethods(
+      "Cells were removed at fixed thresholds: ",
+      paste(qcFixedText, collapse = ", "), "."
+    )
+  }
+  if (use_mad && length(qcMadText) > 0) {
+    ezLogMethods(
+      "For the metrics without a fixed threshold (", paste(qcMadText, collapse = ", "),
+      "), cells more than ", param$nmad, " median absolute deviations from the median were ",
+      "removed as outliers (scater; low UMI and gene counts, high percentages)."
+    )
+  }
+
   scData$useCell <- !(scData$qc.lib |
     scData$qc.nexprs |
     scData$qc.mito |
@@ -1319,6 +1406,11 @@ addCellQcToSeurat <- function(
       )
       set.seed(38)
       doubletsInfo <- callScDblFinder(nfeatures = rownames(dblCounts))
+      if (!is.null(doubletsInfo)) {
+        ezLogMethods(
+          "scDblFinder was run on all genes, as the run on its default gene selection failed."
+        )
+      }
     }
     if (
       !is.null(doubletsInfo) &&
@@ -1327,6 +1419,10 @@ addCellQcToSeurat <- function(
       scData$doubletScore <- doubletsInfo[colnames(scData), "score"]
       scData$doubletClass <- doubletsInfo[colnames(scData), "class"]
       scData$qc.doublet <- scData$doubletClass %in% "doublet"
+      ezLogMethods(
+        "Doublets were detected with scDblFinder (cluster-based mode) and ",
+        if (isTRUE(as.logical(param$keepDoublets))) "flagged but kept." else "removed."
+      )
       if (ezIsSpecified(param$keepDoublets) && param$keepDoublets) {
         futile.logger::flog.info("Keeping doublets...")
       } else {
@@ -1408,6 +1504,10 @@ querySignificantClusterAnnotationEnrichR <- function(
       }
     }
   }
+  ezLogMethods(
+    "Cluster marker genes were tested for enrichment with the Enrichr web service (enrichR) against ",
+    paste(dbs, collapse = ", "), " (adjusted p-value below ", adjPvalueCutOff, ")."
+  )
   return(enrichRout)
 }
 
@@ -1656,7 +1756,11 @@ computeTFActivityAnalysis <- function(cells, species) {
         times = 100,
         minsize = 5
     )
-    
+    ezLogMethods(
+        "Transcription-factor activities were inferred per cell with decoupleR (weighted mean) ",
+        "from the ", species, " DoRothEA regulons (confidence levels A to C)."
+    )
+
     return(activities)
 }
 
@@ -1684,6 +1788,11 @@ computePathwayActivityAnalysis <- function(cells, species) {
     .mor = "weight",
     times = 100,
     minsize = 5
+  )
+  ezLogMethods(
+    "Pathway activities were inferred per cell with decoupleR (weighted mean) from the ",
+    species, " PROGENy model",
+    if (species == "human") " (top 500 genes per pathway)." else " (top 100 genes per pathway)."
   )
 
   return(activities)

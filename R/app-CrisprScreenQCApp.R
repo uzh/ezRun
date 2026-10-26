@@ -36,8 +36,18 @@ ezMethodCrisprScreenQC <- function(input, output, param) {
   }
   refFile <- 'GEML_Mageck_mergedRefs.csv'
   write.csv(mergedRef, refFile, quote = FALSE, row.names = FALSE)
+  ezLogMethods(
+    "All available sgRNA libraries were merged into one reference for counting."
+  )
 
   ##Subsample/fastp
+  if (isTRUE(as.numeric(param$nReads) > 0)) {
+    ezLogMethods(
+      "Each read file was randomly subsampled to at most ",
+      format(param$nReads, big.mark = ",", scientific = FALSE),
+      " reads before trimming."
+    )
+  }
   inputRaw <- ezMethodSubsampleFastq(
     input = input,
     param = param,
@@ -68,6 +78,13 @@ ezMethodCrisprScreenQC <- function(input, output, param) {
   PWMs <- list()
 
   for (i in 1:length(sampleNames)) {
+    if (i == 1L) {
+      ezLogMethods(
+        "sgRNAs were counted with MAGeCK count on Read1 of the fastp-trimmed reads",
+        if (isTRUE(param$paired)) " (Read2 was not used)",
+        ", with default settings."
+      )
+    }
     system2(
       "mageck",
       args = c(
@@ -91,6 +108,11 @@ ezMethodCrisprScreenQC <- function(input, output, param) {
       ][1:param$topFeatures, ]
       ## Library the reads map to, and its per-sgRNA counts for representation QC.
       matchedLib <- names(perLib)[which.max(perLib)]
+      if (i == 1L) {
+        ezLogMethods(
+          "Representation metrics (mapping rate, zero-count fraction, mean reads per sgRNA, Gini index) were computed per sample on the raw counts of the library with the most reads."
+        )
+      }
       matchedLibs[i] <- matchedLib
       matchedLibCounts[[i]] <- counts$sample1[counts$Lib == matchedLib]
       ## MAGeCK's own count summary (overall, across the merged reference).
@@ -170,13 +192,13 @@ EzAppCrisprScreenQC <-
     methods = list(
       ## mageck count, fastp (trimAdapter forced TRUE), ShortRead/Biostrings/seqLogo
       ## (base-composition PWM, same pattern as FastqScreenApp) all unconditional.
-      citation = function() {
+      citation = function(param = list()) {
         c(
           "Li, W. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biology 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4",
           "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
           "Morgan, M., Anders, S., Lawrence, M., Aboyoun, P., Pagès, H. & Gentleman, R. ShortRead: a bioconductor package for input, quality assessment and exploration of high-throughput sequence data. Bioinformatics 25(19), 2607-2608 (2009). https://doi.org/10.1093/bioinformatics/btp450",
-          "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package version 2.80.1. https://doi.org/10.18129/B9.bioc.Biostrings",
-          "Bembom, O. & Ivanek, R. seqLogo: Sequence logos for DNA sequence alignments. R package version 1.78.0. https://doi.org/10.18129/B9.bioc.seqLogo"
+          "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package. https://doi.org/10.18129/B9.bioc.Biostrings",
+          "Bembom, O. & Ivanek, R. seqLogo: Sequence logos for DNA sequence alignments. R package. https://doi.org/10.18129/B9.bioc.seqLogo"
         )
       },
       initialize = function() {

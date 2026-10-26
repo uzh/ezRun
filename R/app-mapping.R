@@ -40,6 +40,15 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
     " > bowtie.bam"
   )
   ezSystem(cmd)
+  ezLogMethods(
+    "Reads were aligned with Bowtie2 ",
+    if (ezIsSpecified(param$cmdOptions) && trimws(param$cmdOptions[1]) != "") {
+      "with default settings and the options given in the job parameters"
+    } else {
+      "with default settings"
+    },
+    "."
+  )
   file.remove(trimmedInput$getColumn("Read1"))
   if (param$paired) {
     file.remove(trimmedInput$getColumn("Read2"))
@@ -60,6 +69,13 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       ram = param$ram,
       dupDistance = param$dupDistance
     )
+    ezLogMethods(
+      "The alignments were coordinate-sorted and indexed with samtools, and duplicate reads were marked, not removed, with Picard MarkDuplicates",
+      if (ezIsSpecified(param$dupDistance)) {
+        paste0(" using an optical duplicate pixel distance of ", param$dupDistance)
+      },
+      "."
+    )
     file.remove("sorted.bam")
   } else {
     ezSortIndexBam(
@@ -68,6 +84,9 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       ram = param$ram,
       removeBam = TRUE,
       cores = param$cores
+    )
+    ezLogMethods(
+      "The alignments were coordinate-sorted and indexed with samtools."
     )
   }
 
@@ -84,6 +103,11 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       paired = param$paired,
       method = "Bioconductor",
       cores = param$cores
+    )
+    ezLogMethods(
+      "A bigWig coverage track was generated from the raw per-base coverage of the aligned ",
+      if (isTRUE(param$paired)) "read pairs" else "reads",
+      " with GenomicAlignments and exported with rtracklayer, without normalisation, binning or read filtering."
     )
   }
 
@@ -168,6 +192,9 @@ ezMethodBowtie2 <- function(input = NA, output = NA, param = NA) {
       sep = ",",
       quote = FALSE
     )
+    ezLogMethods(
+      "For the secondRef sequences, the per-base read coverage was computed with GenomicAlignments, and the mean coverage of each reference sequence was estimated as its number of reads times the mean read length divided by the sequence length."
+    )
   }
 
   return("Success")
@@ -220,6 +247,11 @@ getBowtie2Reference <- function(param) {
       basename(refBase)
     )
     ezSystem(cmd)
+    ezLogMethods(
+      "A Bowtie2 index of the reference sequences",
+      if (ezIsSpecified(param$secondRef)) " together with the secondRef sequences",
+      " was built with bowtie2-build."
+    )
     # ezWriteElapsed(job, "done")
     setwd(wd)
     file.remove(lockFile)
@@ -257,19 +289,21 @@ EzAppBowtie2 <-
     "EzAppBowtie2",
     contains = "EzApp",
     methods = list(
-      ## bowtie2/samtools/fastp unconditional; Picard MarkDuplicates gated on
-      ## markDuplicates; Rsamtools/GenomicAlignments gated on secondRef (real
-      ## coverage computation); rtracklayer gated on generateBigWig (exports that
-      ## computed coverage as a bigWig track) -- listed regardless of gating.
-      citation = function() {
+      ## bowtie2/samtools/fastp unconditional; Picard MarkDuplicates unless markDuplicates is false
+      ## (default TRUE); Rsamtools only with secondRef (coverage of the added sequences);
+      ## GenomicRanges/GenomicAlignments with secondRef or generateBigWig; rtracklayer only when
+      ## generateBigWig is true (bam2bw Bioconductor export of that coverage).
+      citation = function(param = list()) {
+        bigWig <- isTRUE(as.logical(param$generateBigWig))
+        second <- ezIsSpecified(param$secondRef)
         c(
           "Langmead, B. & Salzberg, S.L. Fast gapped-read alignment with Bowtie 2. Nat Methods 9, 357-359 (2012). https://doi.org/10.1038/nmeth.1923",
           "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
           "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
-          "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
-          "Lawrence, M. et al. Software for Computing and Annotating Genomic Ranges. PLoS Computational Biology 9(8), e1003118 (2013). https://doi.org/10.1371/journal.pcbi.1003118",
-          "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package version 2.28.0. https://doi.org/10.18129/B9.bioc.Rsamtools",
-          "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328"
+          if (!isFALSE(as.logical(param$markDuplicates))) "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+          if (second || bigWig) "Lawrence, M. et al. Software for Computing and Annotating Genomic Ranges. PLoS Computational Biology 9(8), e1003118 (2013). https://doi.org/10.1371/journal.pcbi.1003118",
+          if (second) "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package. https://doi.org/10.18129/B9.bioc.Rsamtools",
+          if (bigWig) "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328"
         )
       },
       initialize = function() {
@@ -546,6 +580,17 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
         ezSystem(paste('mv', markedFile_R2, read2))
       }
     }
+    ezLogMethods(
+      "Before alignment, UMIs were extracted with UMI-tools extract from the 5' end of ",
+      if (umiOnR2 && umiOnR1) {
+        paste0("Read2 (pattern ", param$barcodePattern, ") and Read1 (pattern ", param$barcodePattern2, ")")
+      } else if (umiOnR2) {
+        paste0("Read2 (pattern ", param$barcodePattern, ")")
+      } else {
+        paste0("Read1 (pattern ", param$barcodePattern2, ")")
+      },
+      "."
+    )
   }
 
   if (!str_detect(param$cmdOptions, "outSAMattributes")) {
@@ -566,6 +611,9 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
         "--genomeFastaFiles",
         param$secondRef,
         sep = " "
+      )
+      ezLogMethods(
+        "The secondRef sequences were added to the STAR genome at mapping time, without annotation."
       )
     }
   } else {
@@ -598,6 +646,15 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
     sep = " "
   )
   ezSystem(cmd)
+  ezLogMethods(
+    "Reads were aligned with STAR in ",
+    if (isTRUE(as.logical(param$twopassMode))) {
+      "per-sample two-pass mode"
+    } else {
+      "single-pass mode"
+    },
+    "."
+  )
 
   nSortThreads <- min(param$cores, 8)
   ## if the index is loaded in shared memory we have to use only 10% of the scheduled RAM
@@ -627,6 +684,13 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       ram = param$ram,
       dupDistance = param$dupDistance
     )
+    ezLogMethods(
+      "The STAR alignments were coordinate-sorted and indexed with samtools, and duplicate reads were marked, not removed, with Picard MarkDuplicates",
+      if (ezIsSpecified(param$dupDistance)) {
+        paste0(" using an optical duplicate pixel distance of ", param$dupDistance)
+      },
+      "."
+    )
     file.remove("sorted.bam")
   } else {
     ezSortIndexBam(
@@ -635,6 +699,9 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       ram = sortRam,
       removeBam = TRUE,
       cores = nSortThreads
+    )
+    ezLogMethods(
+      "The STAR alignments were coordinate-sorted and indexed with samtools."
     )
   }
 
@@ -685,6 +752,11 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
       ram = sortRam,
       cores = nSortThreads
     )
+    ezLogMethods(
+      "After alignment, reads were deduplicated by UMI and mapping position with UMI-tools dedup using its default directional method",
+      if (isTRUE(param$paired)) ", treating read pairs together",
+      ", and the deduplicated alignments were coordinate-sorted and indexed with samtools."
+    )
     tryCatch(
       {
         local_CondaEnv(
@@ -719,6 +791,9 @@ ezMethodSTAR <- function(input = NA, output = NA, param = NA) {
           sep = " "
         ),
         stopOnFailure = FALSE
+      )
+      ezLogMethods(
+        "Library strandedness was checked with RSeQC infer_experiment.py as a quality metric."
       )
     },
     error = function(e) {
@@ -908,15 +983,18 @@ EzAppSTAR <-
     "EzAppSTAR",
     contains = "EzApp",
     methods = list(
-      ## STAR, fastp, samtools, RSeQC unconditional; umi_tools gated on barcodePattern;
-      ## Picard MarkDuplicates gated on markDuplicates -- listed regardless of gating.
-      citation = function() {
+      ## STAR, fastp, samtools, RSeQC unconditional; umi_tools only when barcodePattern is set.
+      ## dupRadar and Picard unconditional: the DupRate output is always computed
+      ## (getDupRateFromBam), and Picard marks the duplicates either for markDuplicates or,
+      ## when it is false, on a temporary copy for dupRadar.
+      citation = function(param = list()) {
         c(
           "Dobin, A. et al. STAR: ultrafast universal RNA-seq aligner. Bioinformatics 29(1), 15-21 (2013). https://doi.org/10.1093/bioinformatics/bts635",
           "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
-          "Smith, T., Heger, A. & Sudbery, I. UMI-tools: modeling sequencing errors in Unique Molecular Identifiers to improve quantification accuracy. Genome Research 27(3), 491-499 (2017). https://doi.org/10.1101/gr.209601.116",
+          if (ezIsSpecified(param$barcodePattern)) "Smith, T., Heger, A. & Sudbery, I. UMI-tools: modeling sequencing errors in Unique Molecular Identifiers to improve quantification accuracy. Genome Research 27(3), 491-499 (2017). https://doi.org/10.1101/gr.209601.116",
           "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
           "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+          "Sayols, S., Scherzinger, D. & Klein, H. dupRadar: a Bioconductor package for the assessment of PCR artifacts in RNA-Seq data. BMC Bioinformatics 17, 428 (2016). https://doi.org/10.1186/s12859-016-1276-2",
           "Wang, L., Wang, S. & Li, W. RSeQC: quality control of RNA-seq experiments. Bioinformatics 28(16), 2184-2185 (2012). https://doi.org/10.1093/bioinformatics/bts356"
         )
       },
@@ -1623,6 +1701,19 @@ EzAppBismark <-
     "EzAppBismark",
     contains = "EzApp",
     methods = list(
+      ## Bismark defaults checked against Bismark 0.24.2 --help (bismark,
+      ## bismark_methylation_extractor, bismark2bedGraph, deduplicate_bismark).
+      ## fastp, Bismark, Bowtie 2 (Bismark backend) and samtools unconditional; deduplicate_bismark
+      ## (no separate reference) gated on deduplicate; rtracklayer (bam2bw) only when generateBigWig is true.
+      citation = function(param = list()) {
+        c(
+          "Krueger, F. & Andrews, S.R. Bismark: a flexible aligner and methylation caller for Bisulfite-Seq applications. Bioinformatics 27, 1571-1572 (2011). https://doi.org/10.1093/bioinformatics/btr167",
+          "Langmead, B. & Salzberg, S.L. Fast gapped-read alignment with Bowtie 2. Nat Methods 9, 357-359 (2012). https://doi.org/10.1038/nmeth.1923",
+          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
+          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+          if (isTRUE(as.logical(param$generateBigWig))) "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBismark

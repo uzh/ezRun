@@ -69,6 +69,16 @@ EzAppMetaPhlAn <-
     "EzAppMetaPhlAn",
     contains = "EzApp",
     methods = list(
+      ## MetaPhlAn defaults checked against `metaphlan --help` of Tools/MetaPhlAn/4.2.4,
+      ## the module MetaPhlAnApp.rb loads.
+      ## fastp + MetaPhlAn (Bowtie 2 inside MetaPhlAn) unconditional.
+      citation = function(param = list()) {
+        c(
+          "Blanco-Míguez, A. et al. Extending and improving metagenomic taxonomic profiling with uncharacterized species using MetaPhlAn 4. Nature Biotechnology 41, 1633-1644 (2023). https://doi.org/10.1038/s41587-023-01688-w",
+          "Langmead, B. & Salzberg, S.L. Fast gapped-read alignment with Bowtie 2. Nat Methods 9, 357-359 (2012). https://doi.org/10.1038/nmeth.1923",
+          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodMetaPhlAn

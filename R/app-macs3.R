@@ -282,6 +282,29 @@ EzAppMacs3 <-
     "EzAppMacs3",
     contains = "EzApp",
     methods = list(
+      ## MACS3, samtools, Rsamtools and bedtools unconditional; Picard MarkDuplicates unless
+      ## removeDuplicates is false (default TRUE; skipped when the BAM is already marked, data-
+      ## dependent); deepTools for ATAC-seq, or ChIP-seq without useControl; UCSC bigWig tools for
+      ## ChIP-seq with useControl (R default TRUE); ChIPseeker/ChIPpeakAnno/GenomicFeatures/
+      ## rtracklayer unless annotatePeaks is false (default TRUE).
+      citation = function(param = list()) {
+        atac <- identical(param$mode, "ATAC-seq")
+        control <- !isFALSE(as.logical(param$useControl))
+        annotate <- !isFALSE(as.logical(param$annotatePeaks))
+        c(
+          "Zhang, Y. et al. Model-based Analysis of ChIP-Seq (MACS). Genome Biology 9, R137 (2008). https://doi.org/10.1186/gb-2008-9-9-r137",
+          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+          "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package. https://doi.org/10.18129/B9.bioc.Rsamtools",
+          if (!isFALSE(as.logical(param$removeDuplicates))) "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+          if (atac || !control) "Ramírez, F. et al. deepTools2: a next generation web server for deep-sequencing data analysis. Nucleic Acids Research 44, W160-W165 (2016). https://doi.org/10.1093/nar/gkw257",
+          if (!atac && control) "Kent, W.J. et al. BigWig and BigBed: enabling browsing of large distributed datasets. Bioinformatics 26, 2204-2207 (2010). https://doi.org/10.1093/bioinformatics/btq351",
+          "Quinlan, A.R. & Hall, I.M. BEDTools: a flexible suite of utilities for comparing genomic features. Bioinformatics 26, 841-842 (2010). https://doi.org/10.1093/bioinformatics/btq033",
+          if (annotate) "Yu, G. et al. ChIPseeker: an R/Bioconductor package for ChIP peak annotation, comparison and visualization. Bioinformatics 31, 2382-2383 (2015). https://doi.org/10.1093/bioinformatics/btv145",
+          if (annotate) "Zhu, L.J. et al. ChIPpeakAnno: a Bioconductor package to annotate ChIP-seq and ChIP-chip data. BMC Bioinformatics 11, 237 (2010). https://doi.org/10.1186/1471-2105-11-237",
+          if (annotate) "Lawrence, M. et al. Software for Computing and Annotating Genomic Ranges. PLoS Computational Biology 9(8), e1003118 (2013). https://doi.org/10.1371/journal.pcbi.1003118",
+          if (annotate) "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodMacs3

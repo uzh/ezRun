@@ -165,6 +165,29 @@ ezLog = function(..., level = "info") {
   )
 }
 
+##' @title Log a Methods statement
+##' @description Writes one sentence about what the analysis did, at the step that
+##' does it, with the settings this run used. The lines carry their own prefix,
+##' "METHODS (ezRun)", so the Methods writer can tell them from the other log lines.
+##' Call it inside the branch that runs, and do not log results (counts, rates).
+##' Write the sentence as it would read in a published Methods section: the tool, what
+##' it did, and the settings that change the result; leave out internal function
+##' names, per-call seeds and how ezRun chose a value. Log what this run set or what
+##' changed the data, not what a tool does by default or on its own, and not what was
+##' not done; a step that only measured quality gets one short line, "as a quality metric".
+##' @param ... the sentence, will be concatenated.
+##' @template roxygen-template
+##' @examples
+##' ezLogMethods("Doublets were detected with scDblFinder and removed.")
+ezLogMethods = function(...) {
+  futile.logger::flog.layout(
+    futile.logger::layout.format("METHODS (ezRun) [~t] ~m",
+                                 datetime.fmt = "%Y-%m-%d %H:%M:%S"),
+    name = "ezRun.methods"
+  )
+  futile.logger::flog.info("%s", paste0(...), name = "ezRun.methods")
+}
+
 
 ##' @title Change log level
 ##' @description Changes the log level for logger. Messages below this level

@@ -230,6 +230,10 @@ prepareFastqData <- function(input, param) {
     #1.2. Subsample if chosen
     if (ezIsSpecified(param$nReads) && param$nReads > 0) {
       sampleDirs <- sapply(sampleDirs, subsample, param)
+      ezLogMethods(
+        "Before Cell Ranger, each Gene Expression FASTQ file was randomly subsampled to ",
+        param$nReads, " reads with seqtk."
+      )
     }
 
     sampleDirs <- normalizePath(sampleDirs)
@@ -266,6 +270,10 @@ prepareFastqData <- function(input, param) {
         length(poolNames),
         paste(poolNames, collapse = ", ")
       ))
+      ezLogMethods(
+        "The Gene Expression reads of ", length(poolNames),
+        " sequencing pools of this sample were analysed together in one Cell Ranger multi run."
+      )
       dirList <- list(sampleName = poolNames, sampleDirs = sampleDirs)
     }
   } else {
@@ -455,6 +463,15 @@ buildMultiConfigFile <- function(input, param, dirList) {
           "include-introns,false"
         )
       fileContents <- append(fileContents, includeIntronsLine)
+      if (includeIntronsLine == "include-introns,true") {
+        ezLogMethods(
+          "Cell Ranger multi included intronic reads in the gene counts."
+        )
+      } else {
+        ezLogMethods(
+          "Cell Ranger multi excluded intronic reads from the gene counts."
+        )
+      }
     }
     fileContents <- append(fileContents, c(""))
   }
@@ -496,6 +513,9 @@ buildMultiConfigFile <- function(input, param, dirList) {
           )
         )
       probeInfo <- bind_rows(list(probeInfo, customProbes))
+      ezLogMethods(
+        "Custom probes were added to the Flex probe set."
+      )
     }
     annotation <- ezRead.table(
       file.path(refDir, 'star', 'geneInfo.tab'),
@@ -532,6 +552,9 @@ buildMultiConfigFile <- function(input, param, dirList) {
       fileContents,
       sprintf("probe-set,%s", file.path(getwd(), outputFile))
     )
+    ezLogMethods(
+      "The Flex probe set was restricted to the probes of genes in the reference."
+    )
 
     # Determine Chemistry for Flex v1/v2
     # Priority 1: User specified chemistry - already written by the
@@ -563,13 +586,27 @@ buildMultiConfigFile <- function(input, param, dirList) {
             r2Length,
             ifelse(is.na(chemistry), "auto (CellRanger detects per library)", chemistry)
           ))
+          if (!is.na(chemistry)) {
+            ezLogMethods(
+              "The Flex chemistry was set to ", chemistry,
+              ", from the version 2 probe set, the multiplexed design and the read lengths."
+            )
+          }
         }
       } else {
         chemistry <- "Flex-v2-singleplex"
+        ezLogMethods(
+          "The Flex chemistry was set to Flex-v2-singleplex (singleplex design, version 2 probe set)."
+        )
       }
     } else {
       # Flex v1: Default legacy behavior (MFRP/SFRP)
       chemistry <- ifelse(hasMult, "MFRP", "SFRP")
+      ezLogMethods(
+        "The Flex chemistry was set to ",
+        chemistry,
+        if (hasMult) " (multiplexed Flex v1)." else " (singleplex Flex v1)."
+      )
     }
     if (!is.na(chemistry)) {
       fileContents <- append(fileContents, sprintf("chemistry,%s", chemistry))
@@ -744,6 +781,9 @@ buildMultiConfigFile <- function(input, param, dirList) {
           fileContents,
           c("[samples]", "sample_id,ocm_barcode_ids")
         )
+        ezLogMethods(
+          "For On-Chip Multiplexing, Cell Ranger multi assigned cells to samples by their OCM barcodes."
+        )
         fileContents <- append(
           fileContents,
           apply(sampleMultiplexMapping, 1, concatCols)
@@ -785,10 +825,20 @@ buildMultiConfigFile <- function(input, param, dirList) {
             fileContents,
             c("[samples]", "sample_id,hashtag_ids")
           )
+          ezLogMethods(
+            "Cell Ranger multi assigned cells to samples by their hashtags (HTO)",
+            if (!is.null(combinedFeatureFile)) {
+              ", with hashtags and antibodies (ADT) in one Antibody Capture library"
+            },
+            "."
+          )
         } else {
           fileContents <- append(
             fileContents,
             c("[samples]", "sample_id,cmo_ids")
+          )
+          ezLogMethods(
+            "Cell Ranger multi assigned cells to samples by their CellPlex (CMO) barcodes."
           )
         }
         fileContents <- append(
@@ -801,6 +851,9 @@ buildMultiConfigFile <- function(input, param, dirList) {
       fileContents <- append(
         fileContents,
         c("[samples]", "sample_id,probe_barcode_ids,description")
+      )
+      ezLogMethods(
+        "For multiplexed Flex, Cell Ranger multi assigned cells to samples by their probe barcodes."
       )
       fileContents <- append(
         fileContents,
@@ -825,18 +878,18 @@ EzAppCellRangerMulti <-
     "EzAppCellRangerMulti",
     contains = "EzApp",
     methods = list(
-      ## cellranger multi unconditional; samtools (CRAM) gated on keepBam+secondRef;
-      ## seqtk gated on nReads; rtracklayer/Biostrings gated on extendThreePrime
-      ## (real GTF coordinate extension via getCellRangerGEXReference, computed not
-      ## copied). No Rsamtools::scanBam/bamStats here, unlike CellRangerApp.
-      citation = function() {
+      ## cellranger multi unconditional; samtools (CRAM) only for keepBam + secondRef; seqtk only when
+      ## nReads > 0; Biostrings only with a customised reference (controlSeqs, secondRef or extendThreePrime). No Rsamtools::scanBam/bamStats here, unlike CellRangerApp.
+      citation = function(param = list()) {
+        libs <- trimws(unlist(strsplit(paste(param$TenXLibrary, collapse = ","), ",")))
+        gexRef <- any(c("GEX", "fixedRNA") %in% libs)
+        custom <- gexRef && (ezIsSpecified(param$controlSeqs) || ezIsSpecified(param$secondRef) || ezIsSpecified(param$extendThreePrime))
         c(
           "10x Genomics. Cell Ranger. https://www.10xgenomics.com/support/software/cell-ranger",
           "Zheng, G.X.Y. et al. Massively parallel digital transcriptional profiling of single cells. Nature Communications 8, 14049 (2017). https://doi.org/10.1038/ncomms14049",
-          "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
-          "Li, H. seqtk: a fast and lightweight tool for processing FASTA or FASTQ sequences. https://github.com/lh3/seqtk",
-          "Lawrence, M., Gentleman, R. & Carey, V. rtracklayer: an R package for interfacing with genome browsers. Bioinformatics 25(14), 1841-1842 (2009). https://doi.org/10.1093/bioinformatics/btp328",
-          "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package version 2.80.1. https://doi.org/10.18129/B9.bioc.Biostrings"
+          if (isTRUE(as.logical(param$keepBam)) && ezIsSpecified(param$secondRef)) "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+          if (isTRUE(as.numeric(param$nReads) > 0)) "Li, H. seqtk: a fast and lightweight tool for processing FASTA or FASTQ sequences. https://github.com/lh3/seqtk",
+          if (custom) "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package. https://doi.org/10.18129/B9.bioc.Biostrings"
         )
       },
       initialize = function() {

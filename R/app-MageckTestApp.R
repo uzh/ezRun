@@ -488,19 +488,19 @@ EzAppMageckTest <-
     "EzAppMageckTest",
     contains = "EzApp",
     methods = list(
-      ## mageck test unconditional. limma::alias2Symbol gated on species hsa/mmu.
-      ## Downstream biology (essential-gene QC via bundled CEGv2/NEGv1, GO/KEGG
-      ## over-representation, MSigDB GSEA, KEGG pathview) runs in MageckTest.qmd,
-      ## not here. MAGeCKFlute intentionally NOT used: its useful outputs (RankView,
+      ## mageck test unconditional; limma::alias2Symbol only for species hsa/mmu. In MageckTest.qmd:
+      ## the CEGv2/NEGv1 essential-gene sets (Hart 2017) are always read; clusterProfiler unless
+      ## runEnrichment is false (default TRUE) or when runPathview is true; fgsea unless runGSEA is
+      ## false (default TRUE). MAGeCKFlute intentionally NOT used: its useful outputs (RankView,
       ## essential-gene depletion, enrichment) are reproduced natively for styling
       ## control + CVD-safe palettes; FluteRRA is a validation-only reference.
-      citation = function() {
+      citation = function(param = list()) {
         c(
           "Li, W. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biology 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4",
-          "Wu, T. et al. clusterProfiler 4.0: A universal enrichment tool for interpreting omics data. The Innovation 2(3), 100141 (2021). https://doi.org/10.1016/j.xinn.2021.100141",
-          "Korotkevich, G. et al. Fast gene set enrichment analysis. bioRxiv (2021). https://doi.org/10.1101/060012",
+          if (!isFALSE(as.logical(param$runEnrichment)) || isTRUE(as.logical(param$runPathview))) "Wu, T. et al. clusterProfiler 4.0: A universal enrichment tool for interpreting omics data. The Innovation 2(3), 100141 (2021). https://doi.org/10.1016/j.xinn.2021.100141",
+          if (!isFALSE(as.logical(param$runGSEA))) "Korotkevich, G. et al. Fast gene set enrichment analysis. bioRxiv (2021). https://doi.org/10.1101/060012",
           "Hart, T. et al. Evaluation and Design of Genome-Wide CRISPR/SpCas9 Knockout Screens. G3 7(8), 2719-2727 (2017). https://doi.org/10.1534/g3.117.041277",
-          "Ritchie, M.E. et al. limma powers differential expression analyses for RNA-sequencing and microarray studies. Nucleic Acids Research 43(7), e47 (2015). https://doi.org/10.1093/nar/gkv007"
+          if (any(param$species %in% c("hsa", "mmu"))) "Ritchie, M.E. et al. limma powers differential expression analyses for RNA-sequencing and microarray studies. Nucleic Acids Research 43(7), e47 (2015). https://doi.org/10.1093/nar/gkv007"
         )
       },
       initialize = function() {

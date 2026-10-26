@@ -67,7 +67,17 @@ ezMethodKraken = function(
   multiDB <- isTRUE(param$multiDB) ||
              identical(tolower(as.character(param$multiDB)), "true")
   if (!multiDB && length(dbVals) > 1L) {
+    ezLogMethods(
+      "Only the first selected Kraken 2 database (", dbVals[1],
+      ") was used."
+    )
     dbVals <- dbVals[1]
+  }
+  if (length(dbVals) > 1L) {
+    ezLogMethods(
+      "The selected Kraken 2 databases (", paste(dbVals, collapse = ", "),
+      ") were searched together (multi-database mode)."
+    )
   }
   dbPaths <- file.path("/srv/GT/databases/kraken2", dbVals)
   dbArg <- paste(dbPaths, collapse = ",")
@@ -190,6 +200,20 @@ ezMethodKraken = function(
       readOpt,
       "1>", outLog
     )
+    if (i == 1L) {
+      ezLogMethods(
+        "The fastp-trimmed reads were classified with Kraken 2",
+        if (isTRUE(param$paired)) " as read pairs",
+        if (ezIsSpecified(conOpt)) paste0(", with a confidence score threshold of ", conOpt),
+        if (ezIsSpecified(phredOpt)) paste0(", a minimum base quality of ", phredOpt),
+        if (ezIsSpecified(minHitGroups)) {
+          paste0(
+            ", at least ", minHitGroups, " hit groups required for a classification"
+          )
+        },
+        "."
+      )
+    }
     ezSystem(cmd)
 
     # Per-sample cleanup: the trimmed reads are transient intermediates (already
@@ -212,6 +236,11 @@ ezMethodKraken = function(
     ezLog(paste0(tag, ": (3/4) building Krona chart from report (details -> ", kronaLog, ")"))
     kronaTxt <- paste0(sampleName, ".krona.txt")
     reportToKronaText(outReport, kronaTxt)
+    if (i == 1L) {
+      ezLogMethods(
+        "Krona charts were built from the Kraken 2 reports with ktImportText."
+      )
+    }
     cmd <- paste(
       "ktImportText", kronaTxt,
       "-o", outHtml,
@@ -253,10 +282,10 @@ EzAppKraken <-
     contains = "EzApp",
     methods = list(
       ## fastp, k2 classify (Kraken2), and Krona (ktImportText) all unconditional.
-      citation = function() {
+      citation = function(param = list()) {
         c(
-          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
           "Wood, D.E., Lu, J. & Langmead, B. Improved metagenomic analysis with Kraken 2. Genome Biology 20, 257 (2019). https://doi.org/10.1186/s13059-019-1891-0",
+          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
           "Ondov, B.D., Bergman, N.H. & Phillippy, A.M. Interactive metagenomic visualization in a Web browser. BMC Bioinformatics 12, 385 (2011). https://doi.org/10.1186/1471-2105-12-385"
         )
       },

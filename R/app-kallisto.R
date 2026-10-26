@@ -11,6 +11,9 @@ ezMethodKallisto = function(input = NA, output = NA, param = NA) {
   ## force bootstrap-samples to 0 in GPU mode; the flag is then dropped below.
   if (!is.null(param$gpu) && param$gpu > 0) {
     param$"bootstrap-samples" = 0
+    ezLogMethods(
+      "kallisto ran in GPU mode, without bootstrap samples."
+    )
   }
   ref = getKallistoReference(param)
   refIdx = paste0(ref, ".idx")
@@ -21,6 +24,13 @@ ezMethodKallisto = function(input = NA, output = NA, param = NA) {
     if (param$sd == 0) {
       param$sd = 50
     }
+    ezLogMethods(
+      "Single-end reads were quantified assuming a mean fragment length of ",
+      param$"fragment-length",
+      " and a standard deviation of ",
+      param$sd,
+      "."
+    )
   }
 
   iftrue <- function(p, yes, no = "") {
@@ -65,6 +75,26 @@ ezMethodKallisto = function(input = NA, output = NA, param = NA) {
     condNumAdd("--fragment-length", param$"fragment-length"),
     condNumAdd("--sd", param$sd)
   )
+  ezLogMethods(
+    "Transcript abundances were quantified with kallisto quant ",
+    switch(
+      as.character(param$strandMode)[1],
+      "sense" = "strand-specifically, with the first read on the transcript strand",
+      "antisense" = "strand-specifically, with the first read on the strand opposite to the transcript",
+      "both" = "without strand information",
+      "with the library strandedness"
+    ),
+    "."
+  )
+  if (
+    isTRUE(as.logical(param$paired)) &&
+      isTRUE(as.numeric(param$"fragment-length") == 0) &&
+      isTRUE(as.numeric(param$sd) == 0)
+  ) {
+    ezLogMethods(
+      "For paired-end reads, kallisto estimated the fragment length distribution from the data."
+    )
+  }
 
   trimmedInput = ezMethodFastpTrim(input = input, param = param)
 
@@ -119,7 +149,7 @@ EzAppKallisto <-
     "EzAppKallisto",
     contains = "EzApp",
     methods = list(
-      citation = function() {
+      citation = function(param = list()) {
         c(
           "Bray, N.L., Pimentel, H., Melsted, P. & Pachter, L. Near-optimal probabilistic RNA-seq quantification. Nat Biotechnol 34, 525-527 (2016). https://doi.org/10.1038/nbt.3519",
           "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
@@ -256,6 +286,22 @@ getKallistoReference = function(param) {
   refFiles = list.files(dirname(refBase), basename(refBase))
   if (length(refFiles) > 0) {
     ## we assume the index is built and complete
+    if (
+      !ezIsSpecified(param$transcriptFasta) &&
+        !ezIsSpecified(param$secondRef) &&
+        !ezIsSpecified(param$ezRef["refIndex"])
+    ) {
+      ezLogMethods(
+        "A kallisto index of the transcript sequences of the reference annotation",
+        if (ezIsSpecified(param$transcriptTypes)) {
+          paste0(
+            ", restricted to transcripts of type ",
+            paste(sort(param$transcriptTypes), collapse = ", ")
+          )
+        },
+        ", was used."
+      )
+    }
     return(refBase)
   }
   ## we have to build the reference
@@ -297,6 +343,23 @@ getKallistoReference = function(param) {
   cmdTemplate = "kallisto index -i %s.idx %s"
   cmd = sprintf(cmdTemplate, refBase, pathTranscripts)
   ezSystem(cmd)
+  if (ezIsSpecified(param$transcriptFasta)) {
+    ezLogMethods(
+      "The kallisto index (k-mer length 31) was built from the supplied transcript sequences."
+    )
+  } else {
+    ezLogMethods(
+      "The kallisto index (k-mer length 31) was built from the transcript sequences of the reference annotation",
+      if (ezIsSpecified(param$transcriptTypes)) {
+        paste0(
+          ", restricted to transcripts of type ",
+          paste(sort(param$transcriptTypes), collapse = ", ")
+        )
+      },
+      if (ezIsSpecified(param$secondRef)) ", with the secondRef sequences appended",
+      "."
+    )
+  }
 
   ## Run kallisto inspect to create transcripts.info file
   # We skip this for now as it causes memory overflow

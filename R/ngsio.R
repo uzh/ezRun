@@ -71,6 +71,7 @@ loadCountDataset <- function(input, param) {
       group_by(gene_id) %>%
       summarise_all(funs(sum))
     ## TODO: consider using rowsum()
+    ezLogMethods("Transcript-level counts were summed per gene to obtain gene-level counts.")
   }
   counts <- as.matrix(x[, -identifier])
   rownames(counts) <- x[[identifier]]
@@ -94,6 +95,7 @@ loadCountDataset <- function(input, param) {
       gc = seqAnnoDFFeature$gc,
       width = seqAnnoDFFeature$featWidth
     )$correctedCounts
+    ezLogMethods("Counts were corrected for GC-content and feature-length bias.")
   }
 
   if (ezIsSpecified(param$runRUV) && as.logical(param$runRUV)) {
@@ -107,6 +109,11 @@ loadCountDataset <- function(input, param) {
       epsilon = 10
     )
     counts <- ruvCorr$normalizedCounts
+    ezLogMethods(
+      "Unwanted variation was removed from the counts with RUVSeq RUVs",
+      if (ezIsSpecified(param$kRUVFactors)) paste0(" (k = ", param$kRUVFactors, ")"),
+      ", using the groups as replicate sets."
+    )
   }
 
   seqAnno <- makeGRangesFromDataFrame(
@@ -138,6 +145,11 @@ loadCountDataset <- function(input, param) {
 
   if (ezIsSpecified(param$transcriptTypes)) {
     use = seqAnno$type %in% param$transcriptTypes
+    ezLogMethods(
+      "Only features whose annotated type is one of ",
+      paste(param$transcriptTypes, collapse = ", "),
+      " were kept."
+    )
   } else {
     use = TRUE
   }

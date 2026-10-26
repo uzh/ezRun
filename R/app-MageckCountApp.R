@@ -38,6 +38,16 @@ ezMethodMageckCount <- function(input, output, param) {
     shQuote(sampleName),
     if (ezIsSpecified(param[['cmdOptions']])) param[['cmdOptions']] else ""
   )
+  ezLogMethods(
+    "sgRNAs were counted with MAGeCK (mageck2 count) on the untrimmed Read1 reads with default settings",
+    if (ezIsSpecified(param[['cmdOptions']])) " apart from the additional options given",
+    " (median normalization)."
+  )
+  if (hasCtrl) {
+    ezLogMethods(
+      "The control sgRNAs of the library were given to MAGeCK as controls."
+    )
+  }
   ezSystem(cmd)
 
   ## Verify the expected outputs were actually produced before declaring success.
@@ -191,7 +201,7 @@ EzAppMageckCount <-
     methods = list(
       ## mageck count unconditional -- one of two flag variants (with/without
       ## control-sgRNA file) is always run, selected internally, not by a user param.
-      citation = function() {
+      citation = function(param = list()) {
         c(
           "Li, W. et al. MAGeCK enables robust identification of essential genes from genome-scale CRISPR/Cas9 knockout screens. Genome Biology 15, 554 (2014). https://doi.org/10.1186/s13059-014-0554-4"
         )

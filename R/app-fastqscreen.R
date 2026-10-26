@@ -21,6 +21,10 @@ ezMethodFastqScreen <- function(
       grepl("^Human|^Homo", input$getColumn("Species")[1])
   ) {
     param[["virusCheck"]] <- T
+    ezLogMethods(
+      "Because the samples are human, reads were also screened against the FGCZ panel of human ",
+      "pathogen genomes."
+    )
   }
 
   if (input$readType() == "bam") {
@@ -35,6 +39,13 @@ ezMethodFastqScreen <- function(
   # Handle readFileToUse parameter
   if (param$readFileToUse != "both") {
     param$paired = FALSE
+    ezLogMethods(
+      "Only ", param$readFileToUse, " was used, as single-end reads."
+    )
+  } else if (isTRUE(param$paired)) {
+    ezLogMethods(
+      "Reads were trimmed as pairs, and all screens used Read1 only."
+    )
   }
 
   if (param$readFileToUse == "Read2") {
@@ -73,8 +84,18 @@ ezMethodFastqScreen <- function(
     }
     ##update input
     input <- EzDataset$new(meta = input$meta, dataRoot = '')
+    ezLogMethods(
+      "The FASTQ files of a sample were combined before screening."
+    )
   }
 
+  if (isTRUE(as.numeric(param$nReads) > 0)) {
+    ezLogMethods(
+      "Each read file was randomly subsampled to at most ",
+      format(param$nReads, big.mark = ",", scientific = FALSE),
+      " reads before screening."
+    )
+  }
   inputRaw <- ezMethodSubsampleFastq(
     input = input,
     param = param,
@@ -85,6 +106,9 @@ ezMethodFastqScreen <- function(
   inputProc <- ezMethodFastpTrim(input = inputRaw, param = param)
 
   ## map to adapters ----
+  ezLogMethods(
+    "Untrimmed reads were screened with FastQ Screen (Bowtie 2) against Illumina adapter and contaminant sequences."
+  )
   rawScreenResult = getFastqScreenStats(
     param,
     confFile = FASTQSCREEN_ADAPTER_CONF,
@@ -92,6 +116,19 @@ ezMethodFastqScreen <- function(
     workDir = "rawReads"
   )
 
+  screenDbs <- tryCatch(
+    sub(
+      "^DATABASE\\s+(\\S+).*$",
+      "\\1",
+      grep("^DATABASE\\s", readLines(FASTQSCREEN_GENOMICDNA_RIBORNA_CONF), value = TRUE)
+    ),
+    error = function(e) character(0)
+  )
+  ezLogMethods(
+    "Trimmed reads were screened with FastQ Screen (Bowtie 2) against the FGCZ genome, rRNA, tRNA and contaminant databases",
+    if (length(screenDbs) > 0) paste0(" (", paste(screenDbs, collapse = ", "), ")"),
+    "."
+  )
   procScreenResult = getFastqScreenStats(
     param,
     confFile = FASTQSCREEN_GENOMICDNA_RIBORNA_CONF,
@@ -105,6 +142,11 @@ ezMethodFastqScreen <- function(
       file.path("procReads", basename(inputProc$getFullPaths("Read1")))
     )
     names(unmappedFiles) = inputProc$getNames()
+    ezLogMethods(
+      "Reads without a FastQ Screen hit were aligned with Bowtie 2 to the FGCZ panel of human ",
+      "pathogen genomes (mostly viruses, including SARS-CoV-2, and three bacteria), keeping the ",
+      "best-scoring alignments with an alignment score of at least ", param$minAlignmentScore, "."
+    )
     virusResult <- map_and_count_virus(
       param,
       unmappedFiles,
@@ -199,14 +241,14 @@ EzAppFastqScreen <-
     methods = list(
       ## bowtie2/kraken2/ShortRead/Biostrings/seqLogo run unconditionally; the
       ## virus-check bowtie2 pass is gated on param$virusCheck -- listed regardless.
-      citation = function() {
+      citation = function(param = list()) {
         c(
           "Wingett, S.W. & Andrews, S. FastQ Screen: A tool for multi-genome mapping and quality control. F1000Research 7, 1338 (2018). https://doi.org/10.12688/f1000research.15931.2",
           "Langmead, B. & Salzberg, S.L. Fast gapped-read alignment with Bowtie 2. Nat Methods 9, 357-359 (2012). https://doi.org/10.1038/nmeth.1923",
           "Wood, D.E., Lu, J. & Langmead, B. Improved metagenomic analysis with Kraken 2. Genome Biol 20, 257 (2019). https://doi.org/10.1186/s13059-019-1891-0",
           "Morgan, M., Anders, S., Lawrence, M., Aboyoun, P., Pagès, H. & Gentleman, R. ShortRead: a bioconductor package for input, quality assessment and exploration of high-throughput sequence data. Bioinformatics 25(19), 2607-2608 (2009). https://doi.org/10.1093/bioinformatics/btp450",
-          "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package version 2.80.1. https://doi.org/10.18129/B9.bioc.Biostrings",
-          "Bembom, O. & Ivanek, R. seqLogo: Sequence logos for DNA sequence alignments. R package version 1.78.0. https://doi.org/10.18129/B9.bioc.seqLogo",
+          "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package. https://doi.org/10.18129/B9.bioc.Biostrings",
+          "Bembom, O. & Ivanek, R. seqLogo: Sequence logos for DNA sequence alignments. R package. https://doi.org/10.18129/B9.bioc.seqLogo",
           "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
         )
       },
@@ -309,6 +351,10 @@ getFastqScreenStats <- function(
 get_rRNA_Strandness <- function(param, input) {
   rRNA_REF <- "/srv/GT/reference/Silva/silva/release_123_1/SILVA_123.1_LSU_SSU"
   r1Files <- input$getFullPaths("Read1")
+  ezLogMethods(
+    "rRNA strandedness was estimated from Bowtie 2 alignments of the trimmed reads to the SILVA release 123.1 LSU and SSU rRNA sequences (alignment score of at least ",
+    param$minAlignmentScore, ")."
+  )
 
   countFiles <- character()
   for (nm in names(r1Files)) {
@@ -362,6 +408,19 @@ get_rRNA_Strandness <- function(param, input) {
 runKraken <- function(param, input) {
   r1Files <- input$getFullPaths("Read1")
   krakenResult <- list()
+  krakenDbName <- basename(KRAKEN2_DB)
+  krakenDbSize <- sub(".*_([0-9]+GB)_.*", "\\1", krakenDbName)
+  krakenDbDate <- sub(".*_([0-9]{8})$", "\\1", krakenDbName)
+  ezLogMethods(
+    "Trimmed reads were classified with Kraken 2 against the ",
+    if (grepl("^minikraken", krakenDbName)) "MiniKraken2 " else "FGCZ Kraken 2 ",
+    "database",
+    if (grepl("^[0-9]+GB$", krakenDbSize)) paste0(" of ", sub("GB$", " GB", krakenDbSize)),
+    if (grepl("^[0-9]{8}$", krakenDbDate)) {
+      paste0(" (built ", format(as.Date(krakenDbDate, "%Y%m%d")), ")")
+    },
+    "."
+  )
   for (nm in names(r1Files)) {
     resultFile <- paste0("report_", nm, ".kraken")
     cmd <- paste(
@@ -456,6 +515,16 @@ map_and_count_refseq <- function(
   readCount = countReadsInFastq(files)
 ) {
   dir.create(workDir)
+  refseqDate <- sub(".*/mRNA/([0-9]{8})/.*", "\\1", REFSEQ_mRNA_REF)
+  ezLogMethods(
+    "Trimmed reads were aligned with Bowtie 2 to the RefSeq mRNA sequences",
+    if (grepl("^[0-9]{8}$", refseqDate)) {
+      paste0(" (downloaded ", format(as.Date(refseqDate, "%Y%m%d")), ")")
+    },
+    ", keeping the best-scoring alignments with an alignment score of at least ",
+    param$minAlignmentScore, "; the ", param$nTopSpecies,
+    " species with the most uniquely assigned reads were reported."
+  )
   bamFile <- file.path(workDir, "allSamples_unmapped.bam")
   fastqs2bam(fastqFns = files, readGroupNames = names(files), bamFn = bamFile)
   readToReadGroupFile <- file.path(workDir, "readID2RG.txt")

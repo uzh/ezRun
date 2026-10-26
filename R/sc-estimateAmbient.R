@@ -39,6 +39,9 @@ addAmbientEstimateToSeurat <- function(scData, rawDir = NULL, param = NULL) {
     metadata = contaminationFraction,
     col.name = paste0("DecontX_contFrac")
   )
+  ezLogMethods(
+    "The ambient RNA fraction per cell was estimated with DecontX (celda) as a quality metric."
+  )
   ## SoupX
   if (!is.null(rawDir) && file.exists(rawDir)) {
     if (param$cellbender) {
@@ -143,6 +146,9 @@ addAmbientEstimateToSeurat <- function(scData, rawDir = NULL, param = NULL) {
           scData,
           metadata = contaminationFraction,
           col.name = paste0("SoupX_contFrac")
+        )
+        ezLogMethods(
+          "The ambient RNA fraction was also estimated with SoupX as a quality metric."
         )
       }
     }
