@@ -209,6 +209,18 @@ build_biom_from_metaphlan <- function(profilePaths, sampleNames,
   invisible(biomObj)
 }
 
+## kraken-biom maps the six standard kreport columns by position, so the
+## 8-column --report-minimizer-data form must lose its two minimizer columns.
+stage_kreport_6col <- function(src, dest) {
+  lines <- readLines(src)
+  fields <- strsplit(lines, "\t", fixed = TRUE)
+  has8 <- lengths(fields) == 8
+  lines[has8] <- vapply(fields[has8],
+                        function(f) paste(f[c(1:3, 6:8)], collapse = "\t"),
+                        character(1))
+  writeLines(lines, dest)
+}
+
 ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
   require(withr)
   cwd <- getwd()
@@ -223,13 +235,15 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
   ## ---------------------------------------------------------------
   ## 0. Decide input source type from the dataset columns. The XOR-of-AND
   ##    on @required_columns (SUSHI side) ensures exactly one shape lands
-  ##    here. Three valid source types:
-  ##      bracken     — Kraken/Bracken report (taxonomic)
+  ##    here. Four valid source types:
+  ##      bracken     — Bracken report        (taxonomic)
+  ##      kraken      — Kraken2 report, only when no Bracken report exists
   ##      metaphlan   — MetaPhlAn profile     (taxonomic)
   ##      functional  — HUMAnN output table(s) — only MaAsLin3 supports this
   ## ---------------------------------------------------------------
   sampleNames <- input$getNames()
   hasBracken      <- "BrackenReport"    %in% input$colNames
+  hasKraken       <- !hasBracken && "KrakenReport" %in% input$colNames
   hasMetaPhlAn    <- "MetaPhlAnProfile" %in% input$colNames
   functionalCols  <- c("PathAbundance"     = "pathabundance",
                        "ReactionsCPM"      = "reactions",
@@ -237,16 +251,23 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
                        "GeneFamiliesCPM"   = "genefamilies")
   presentFunc     <- functionalCols[names(functionalCols) %in% input$colNames]
   hasFunctional   <- length(presentFunc) > 0
-  if (sum(c(hasBracken, hasMetaPhlAn, hasFunctional)) == 0) {
-    stop("Input dataset has none of: BrackenReport, MetaPhlAnProfile, ",
-         "or any HUMAnN functional columns (PathAbundance, ReactionsCPM, ",
-         "KEGGKO_CPM, GeneFamiliesCPM).")
+  if (sum(c(hasBracken, hasKraken, hasMetaPhlAn, hasFunctional)) == 0) {
+    stop("Input dataset has none of: BrackenReport, KrakenReport, ",
+         "MetaPhlAnProfile, or any HUMAnN functional columns (PathAbundance, ",
+         "ReactionsCPM, KEGGKO_CPM, GeneFamiliesCPM).")
   }
-  if (sum(c(hasBracken, hasMetaPhlAn, hasFunctional)) > 1) {
+  if (sum(c(hasBracken, hasKraken, hasMetaPhlAn, hasFunctional)) > 1) {
     stop("Input dataset carries multiple incompatible profile columns ",
          "(taxonomic AND functional); keep only one shape.")
   }
+  if (hasKraken && "BrackenAbundance" %in% input$colNames) {
+    stop("Input dataset has a BrackenAbundance table but no BrackenReport ",
+         "(e.g. a KrakenTools filter_bracken.out result); its KrakenReport is ",
+         "the unfiltered upstream report. Run DiffShot on the Bracken or ",
+         "Kraken dataset instead.")
+  }
   sourceType <- if (hasBracken) "bracken" else
+                if (hasKraken) "kraken" else
                 if (hasMetaPhlAn) "metaphlan" else
                 "functional"
   param$sourceType <- sourceType  # exposed to the Rmd via param
@@ -400,25 +421,26 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
     )
     return("Success")
 
-  } else if (sourceType == "bracken") {
+  } else if (sourceType %in% c("bracken", "kraken")) {
 
     ## -------------------------------------------------------------
-    ## 2a. Stage Bracken reports under deterministic filenames so the
-    ##     short SampleIDs that kraken-biom derives match input$getNames().
+    ## 2a. Stage Bracken/Kraken2 reports under deterministic filenames so
+    ##     the short SampleIDs that kraken-biom derives match
+    ##     input$getNames().
     ## -------------------------------------------------------------
-    reportsDir <- "bracken_reports"
+    reportsDir <- paste0(sourceType, "_reports")
     dir.create(reportsDir, showWarnings = FALSE, recursive = TRUE)
-    brackenReports <- input$getFullPaths("BrackenReport")
+    reportCol <- if (sourceType == "bracken") "BrackenReport" else "KrakenReport"
+    taxReports <- input$getFullPaths(reportCol)
     for (i in seq_along(sampleNames)) {
-      file.copy(
-        brackenReports[i],
-        file.path(reportsDir, paste0(sampleNames[i], ".bracken.report.txt")),
-        overwrite = TRUE
+      stage_kreport_6col(
+        taxReports[i],
+        file.path(reportsDir, paste0(sampleNames[i], ".", sourceType, ".report.txt"))
       )
     }
 
     ## -------------------------------------------------------------
-    ## 3a. Build the BIOM table (HDF5) from the staged Bracken reports.
+    ## 3a. Build the BIOM table (HDF5) from the staged reports.
     ## -------------------------------------------------------------
     maxRank  <- if (!is.null(param$brackenMaxRank)) param$brackenMaxRank else "D"
     minRank  <- if (!is.null(param$brackenMinRank)) param$brackenMinRank else "S"
@@ -548,9 +570,10 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
 ##' @template app-template
 ##' @templateVar method ezMethodDiffShot(input=NA, output=NA, param=NA)
 ##' @description Differential abundance analysis on shotgun metagenomics
-##' taxonomic profiles. Accepts EITHER Bracken/Kraken2 (`BrackenReport`)
-##' OR MetaPhlAn (`MetaPhlAnProfile`) input; the back-end builds the BIOM
-##' table via `kraken-biom` for Bracken or directly via `biomformat::make_biom`
+##' taxonomic profiles. Accepts EITHER Bracken (`BrackenReport`), Kraken2
+##' (`KrakenReport`, used only when no `BrackenReport` is present) OR
+##' MetaPhlAn (`MetaPhlAnProfile`) input; the back-end builds the BIOM
+##' table via `kraken-biom` for Bracken/Kraken2 or directly via `biomformat::make_biom`
 ##' for MetaPhlAn, then runs a single DA method selected by `param$daMethod`
 ##' (ALDEx2, ANCOM-BC2, MaAsLin3, or LEfSe). Count-based methods (ALDEx2,
 ##' ANCOM-BC2) with MetaPhlAn input require profiles produced with

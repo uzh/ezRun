@@ -14,9 +14,10 @@
 }
 \description{
 Differential abundance analysis on shotgun metagenomics
-taxonomic profiles. Accepts EITHER Bracken/Kraken2 (`BrackenReport`)
-OR MetaPhlAn (`MetaPhlAnProfile`) input; the back-end builds the BIOM
-table via `kraken-biom` for Bracken or directly via `biomformat::make_biom`
+taxonomic profiles. Accepts EITHER Bracken (`BrackenReport`), Kraken2
+(`KrakenReport`, used only when no `BrackenReport` is present) OR
+MetaPhlAn (`MetaPhlAnProfile`) input; the back-end builds the BIOM
+table via `kraken-biom` for Bracken/Kraken2 or directly via `biomformat::make_biom`
 for MetaPhlAn, then runs a single DA method selected by `param$daMethod`
 (ALDEx2, ANCOM-BC2, MaAsLin3, or LEfSe). Count-based methods (ALDEx2,
 ANCOM-BC2) with MetaPhlAn input require profiles produced with

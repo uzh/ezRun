@@ -118,6 +118,7 @@ if (!file.exists(method_child))
 source_type <- tolower(as.character(param$sourceType %||% "bracken"))
 source_label <- switch(source_type,
                        bracken   = "Kraken2 + Bracken",
+                       kraken    = "Kraken2",
                        metaphlan = "MetaPhlAn",
                        source_type)
 
@@ -125,12 +126,16 @@ source_label <- switch(source_type,
 ## backticks used for code formatting do not collide with the `r ... ` syntax.
 biom_sentence <- if (source_type == "bracken") {
   "The BIOM table is built from the per-sample Bracken reports with [`kraken-biom`](https://github.com/smdabdoub/kraken-biom)."
+} else if (source_type == "kraken") {
+  "The BIOM table is built from the per-sample Kraken2 reports with [`kraken-biom`](https://github.com/smdabdoub/kraken-biom)."
 } else {
   "The BIOM table is built directly from the per-sample MetaPhlAn profiles via `biomformat::make_biom`, keeping only species-resolved rows."
 }
 
 values_sentence <- if (source_type == "bracken") {
   "Bracken outputs per-taxon read counts — a `features x samples` integer matrix."
+} else if (source_type == "kraken") {
+  "Kraken2 outputs per-taxon read counts — a `features x samples` integer matrix. Bracken was not run, so reads that Kraken2 could only classify above species level are not redistributed to species: they count towards the Genus results but are absent from the Species results."
 } else if (da_method %in% c("ALDEX2","ANCOMBC","ANCOMBC2")) {
   "MetaPhlAn outputs were run with `-t rel_ab_w_read_stats`; the `estimated_number_of_reads_from_the_clade` column is used as the per-taxon count matrix that the count-based DA method requires."
 } else {
@@ -149,6 +154,8 @@ method_sentence <- if (da_method == "ALDEX2") {
 
 caveat_origin <- if (source_type == "bracken") {
   "Bracken counts are *re-estimated* abundances"
+} else if (source_type == "kraken") {
+  "Kraken2 counts are *direct* read classifications, not re-estimated by Bracken"
 } else {
   "MetaPhlAn counts are *estimated* from marker-gene coverage"
 }
@@ -719,6 +726,8 @@ run_maaslin3 <- function(ps, rank) {
 ```{r abund_section_setup, include=FALSE}
 abundance_units <- if (source_type == "bracken") {
   "per-taxon read counts as written by Bracken (integers)"
+} else if (source_type == "kraken") {
+  "per-taxon read counts as written by Kraken2 (integers)"
 } else if (da_method %in% c("ALDEX2","ANCOMBC","ANCOMBC2")) {
   "the MetaPhlAn `estimated_number_of_reads_from_the_clade` column (integers)"
 } else {
