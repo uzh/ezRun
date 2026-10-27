@@ -188,9 +188,10 @@ writeTenxMatrices <- function(resultDir) {
 ##' (matrix.mtx.gz / barcodes.tsv.gz / features.tsv.gz). The matrix is transposed
 ##' to the 10x genes x cells orientation; gene_id becomes the feature id (so
 ##' Read10X(gene.column = 1) yields Ensembl-ID rownames) and gene_name the symbol.
+##' The transpose streams through awk (swap the row and column index of every
+##' entry) instead of loading the matrix: Matrix::readMM cannot read past 2^31 - 1
+##' non-zeros, which a large experiment's all-sample matrix exceeds (o43379: 4.2e9).
 convertParseToTenx <- function(dgeDir, outDir) {
-  ezLoadPackage("DropletUtils")
-  m <- Matrix::readMM(file.path(dgeDir, "count_matrix.mtx")) ## cells x genes
   genes <- ezRead.table(
     file.path(dgeDir, "all_genes.csv"),
     sep = ",",
@@ -201,20 +202,26 @@ convertParseToTenx <- function(dgeDir, outDir) {
     sep = ",",
     row.names = NULL
   )
-  m <- Matrix::t(m) ## -> genes x cells (10x orientation)
-  rownames(m) <- genes$gene_id
-  colnames(m) <- cells$bc_wells
   unlink(outDir, recursive = TRUE)
-  DropletUtils::write10xCounts(
-    path = outDir,
-    x = m,
-    barcodes = cells$bc_wells,
-    gene.id = genes$gene_id,
-    gene.symbol = genes$gene_name,
-    gene.type = "Gene Expression",
-    version = "3",
-    overwrite = TRUE
+  dir.create(outDir, recursive = TRUE)
+  gz <- if (nzchar(Sys.which("pigz"))) "pigz -p 8" else "gzip"
+  ## line 1 is the %%MatrixMarket banner; other % comments describe the
+  ## untransposed orientation, so they are dropped. Not ezSystem: its logger
+  ## glue()-interpolates the awk braces.
+  cmd <- paste(
+    "awk 'NR == 1 {print; next} /^%/ {next} {print $2, $1, $3}'",
+    shQuote(file.path(dgeDir, "count_matrix.mtx")),
+    "|", gz, ">", shQuote(file.path(outDir, "matrix.mtx.gz"))
   )
+  if (system2("bash", c("-o", "pipefail", "-c", shQuote(cmd))) != 0) {
+    stop("Parse -> 10x matrix transpose failed: ", dgeDir)
+  }
+  con <- gzfile(file.path(outDir, "barcodes.tsv.gz"), "w")
+  writeLines(cells$bc_wells, con)
+  close(con)
+  con <- gzfile(file.path(outDir, "features.tsv.gz"), "w")
+  writeLines(paste(genes$gene_id, genes$gene_name, "Gene Expression", sep = "\t"), con)
+  close(con)
 }
 
 ##' Build the '--sample'/'--samp_list'/'--samp_sltab' arguments for split-pipe.
