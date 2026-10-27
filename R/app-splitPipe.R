@@ -205,11 +205,13 @@ convertParseToTenx <- function(dgeDir, outDir) {
   unlink(outDir, recursive = TRUE)
   dir.create(outDir, recursive = TRUE)
   gz <- if (nzchar(Sys.which("pigz"))) "pigz -p 8" else "gzip"
+  ## mawk: 3x faster than gawk on this (6 s vs 18 s per 628 MB matrix), same output
+  awk <- if (nzchar(Sys.which("mawk"))) "mawk" else "awk"
   ## line 1 is the %%MatrixMarket banner; other % comments describe the
   ## untransposed orientation, so they are dropped. Not ezSystem: its logger
   ## glue()-interpolates the awk braces.
   cmd <- paste(
-    "awk 'NR == 1 {print; next} /^%/ {next} {print $2, $1, $3}'",
+    awk, "'NR == 1 {print; next} /^%/ {next} {print $2, $1, $3}'",
     shQuote(file.path(dgeDir, "count_matrix.mtx")),
     "|", gz, ">", shQuote(file.path(outDir, "matrix.mtx.gz"))
   )
