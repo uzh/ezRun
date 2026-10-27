@@ -160,6 +160,28 @@ caveat_origin <- if (source_type == "bracken") {
   "MetaPhlAn counts are *estimated* from marker-gene coverage"
 }
 
+taxon_filter <- param$taxonFilter
+taxon_filter_text <- if (is.null(taxon_filter)) {
+  "not set"
+} else {
+  req <- taxon_filter$requested
+  req_label <- trimws(paste0(req$Name, " (taxid ", req$Taxid, ")"))
+  paste(c(
+    if (any(req$Filter == "keep"))
+      paste0("keeps only ", paste(req_label[req$Filter == "keep"], collapse = ", ")),
+    if (any(req$Filter == "drop"))
+      paste0("removes ", paste(req_label[req$Filter == "drop"], collapse = ", "))
+  ), collapse = " and then ")
+}
+taxon_filter_note <- if (is.null(taxon_filter)) "" else paste0(
+  "> **Taxid filter.** The table ", taxon_filter_text,
+  ", each taxid together with all its descendants, before any other filter. ",
+  "Relative abundances, the abundance floor and the DA results therefore refer ",
+  "to the reads of the remaining taxa only",
+  if (da_method == "MAASLIN3") "; the ReadDepth covariate is the depth before this filter" else "",
+  "."
+)
+
 ## MaAsLin3-only note on which q-value to interpret. Built here (not inline)
 ## so the backtick-quoted column names do not collide with `r ... ` syntax.
 maaslin_qval_note <- if (da_method == "MAASLIN3") {
@@ -191,6 +213,8 @@ The single test applied here is:
 > species tables are sparse; a prevalence / abundance filter is applied before
 > testing. (3) MaAsLin3 docs strongly recommend including read depth as a
 > covariate for prevalence models — it is added automatically.
+
+`r taxon_filter_note`
 
 `r maaslin_qval_note`
 
@@ -352,19 +376,21 @@ sample_data(physeq) <- sample_data(.smp_df)
 
 # Filtering
 
-Three filters are applied in sequence to the raw BIOM table before any DA test
-is run. The cut-offs come from the SUSHI parameters and are shown live below.
+The filters below are applied in sequence to the raw BIOM table before any DA
+test is run. The cut-offs come from the SUSHI parameters and are shown live below.
 
 1. **Sample drop-list** (`samplesToDrop`) — explicit per-sample exclusion (e.g.
    failed libraries). Currently dropping
    **`r if (length(samples_to_prune) == 0) "no samples" else paste(samples_to_prune, collapse = ", ")`**.
-2. **Prevalence filter** (`prevalenceMin` = `r prevalence_min`) — keep a taxon
+2. **Taxid filter** (`taxidsToKeep` / `taxidsToDrop`) —
+   **`r if (is.null(taxon_filter)) "not set" else paste0(taxon_filter_text, ", each taxid with all its descendants")`**.
+3. **Prevalence filter** (`prevalenceMin` = `r prevalence_min`) — keep a taxon
    only if it has **> 1 read in at least `r round(prevalence_min*100)` % of samples**
    (`phyloseq::genefilter_sample()`).
-3. **Relative-abundance floor** (`relabundMin` = `r relabund_min`) — among the
+4. **Relative-abundance floor** (`relabundMin` = `r relabund_min`) — among the
    prevalence-surviving taxa, keep only those whose **total reads across all
    samples** make up **≥ `r relabund_min` % of the pooled read sum**.
-4. **Per-rank agglomeration** uses `phyloseq::tax_glom(..., NArm = TRUE)`,
+5. **Per-rank agglomeration** uses `phyloseq::tax_glom(..., NArm = TRUE)`,
    which **drops taxa whose lineage is unresolved at the target rank**.
 
 The library-size floor `libCut` = **`r lib_cut`** is **not** applied here;
@@ -373,9 +399,31 @@ ANCOM-BC2 enforces it internally (`lib_cut` argument of `ancombc2`).
 ```{r filtering}
 n_raw_taxa <- ntaxa(physeq); n_raw_samp <- nsamples(physeq)
 
-keep_prev <- genefilter_sample(physeq, filterfun_sample(function(x) x > 1),
-                               A = prevalence_min * nsamples(physeq))
-physeq_prev <- prune_taxa(keep_prev, physeq)
+physeq_taxon <- physeq
+if (!is.null(taxon_filter)) {
+  taxon_pass <- !taxa_names(physeq) %in% taxon_filter$dropIds
+  if (!is.null(taxon_filter$keepIds))
+    taxon_pass <- taxon_pass & taxa_names(physeq) %in% taxon_filter$keepIds
+  if (!any(taxon_pass))
+    stop("The taxid filter left no taxa in the table.")
+  physeq_taxon <- prune_taxa(taxon_pass, physeq)
+  taxon_filter_counts <- data.frame(
+    SampleID     = sample_names(physeq),
+    CountsBefore = as.numeric(sample_sums(physeq)),
+    CountsKept   = as.numeric(sample_sums(physeq_taxon))
+  )
+  taxon_filter_counts$PercentKept <-
+    round(100 * taxon_filter_counts$CountsKept / taxon_filter_counts$CountsBefore, 2)
+  empty_samples <- taxon_filter_counts$SampleID[taxon_filter_counts$CountsKept == 0]
+  if (length(empty_samples))
+    stop("No counts left after the taxid filter in sample(s): ",
+         paste(empty_samples, collapse = ", "),
+         ". Add them to samplesToDrop or change the taxids.")
+}
+
+keep_prev <- genefilter_sample(physeq_taxon, filterfun_sample(function(x) x > 1),
+                               A = prevalence_min * nsamples(physeq_taxon))
+physeq_prev <- prune_taxa(keep_prev, physeq_taxon)
 
 total_reads <- sum(sample_sums(physeq_prev))
 rel <- taxa_sums(physeq_prev) / total_reads * 100
@@ -393,13 +441,29 @@ physeq_Species <- glom_safe(physeq_filtered, "Species")
 physeq_Genus   <- glom_safe(physeq_filtered, "Genus")
 has_species <- !is.null(physeq_Species)
 
+has_taxon_filter <- !is.null(taxon_filter)
 filt_summary <- data.frame(
-  Stage = c("Raw", "After prevalence filter", "After abundance filter"),
-  Taxa  = c(n_raw_taxa, ntaxa(physeq_prev), ntaxa(physeq_filtered)),
-  Samples = c(n_raw_samp, nsamples(physeq_prev), nsamples(physeq_filtered))
+  Stage = c("Raw", if (has_taxon_filter) "After taxid filter",
+            "After prevalence filter", "After abundance filter"),
+  Taxa  = c(n_raw_taxa, if (has_taxon_filter) ntaxa(physeq_taxon),
+            ntaxa(physeq_prev), ntaxa(physeq_filtered)),
+  Samples = c(n_raw_samp, if (has_taxon_filter) nsamples(physeq_taxon),
+              nsamples(physeq_prev), nsamples(physeq_filtered))
 )
 save_csv(filt_summary, "filtering_summary.csv")
 dt(filt_summary, "Filtering summary", length_menu = FALSE)
+```
+
+```{r taxon_filter_detail, eval = !is.null(taxon_filter)}
+save_csv(taxon_filter$requested, "taxid_filter.csv")
+save_csv(taxon_filter_counts, "taxid_filter_counts_per_sample.csv")
+htmltools::tagList(
+  dt(taxon_filter$requested,
+     "Taxid filter: requested taxids (each with all its descendants)",
+     length_menu = FALSE),
+  dt(taxon_filter_counts, "Taxid filter: counts kept per sample",
+     length_menu = FALSE)
+)
 ```
 
 ```{r group_check}

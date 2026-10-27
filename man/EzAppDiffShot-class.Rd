@@ -24,9 +24,11 @@ ANCOM-BC2) with MetaPhlAn input require profiles produced with
 `-t rel_ab_w_read_stats`; otherwise the run aborts with a clear message.
 Each of the four SUSHI apps (DiffShotALDEx, DiffShotANCOMBC,
 DiffShotMaAsLin3, DiffShotLEfSe) hardcodes the method and dispatches to
-a per-method child Rmd. Produces a single self-contained HTML report
-(00index.html) with an Abundance section and a volcano + table tabset
-for the chosen method.
+a per-method child Rmd. `taxidsToKeep` / `taxidsToDrop` restrict the
+taxonomic table to, or remove, the given taxids and all their descendants
+before the prevalence and abundance filters. Produces a single
+self-contained HTML report (00index.html) with an Abundance section and a
+volcano + table tabset for the chosen method.
 }
 \section{Fields}{
 

@@ -90,13 +90,17 @@
 ## - metadataFile    : sample-metadata.tsv to embed into the BIOM
 ## - outBiomFile     : output path
 ## - methodLabelStr  : included in the abort message for count methods
+## - keepTaxids, dropTaxids : taxid filter (see make_taxon_filter)
 ## Only species-resolved rows (lineage ending in "|s__...") are kept; the
 ## Rmd's tax_glom then rolls up to Genus, mirroring how kraken-biom's
 ## --min S --max D table behaves.
+## Returns list(biom, taxonFilter); taxonFilter is NULL without taxids.
 ## ------------------------------------------------------------------
 build_biom_from_metaphlan <- function(profilePaths, sampleNames,
                                       needsCounts, metadataFile, outBiomFile,
-                                      methodLabelStr = "") {
+                                      methodLabelStr = "",
+                                      keepTaxids = character(0),
+                                      dropTaxids = character(0)) {
   if (!requireNamespace("biomformat", quietly = TRUE))
     stop("Package 'biomformat' is required to load MetaPhlAn profiles. ",
          "Install it from Bioconductor.")
@@ -206,7 +210,10 @@ build_biom_from_metaphlan <- function(profilePaths, sampleNames,
                             } else NULL
   )
   biomformat::write_biom(biomObj, outBiomFile)
-  invisible(biomObj)
+  taxonFilter <- if (length(c(keepTaxids, dropTaxids)) > 0) {
+    metaphlan_taxon_filter(perSample, idMap, keepTaxids, dropTaxids)
+  }
+  invisible(list(biom = biomObj, taxonFilter = taxonFilter))
 }
 
 ## kraken-biom maps the six standard kreport columns by position, so the
@@ -219,6 +226,116 @@ stage_kreport_6col <- function(src, dest) {
                         function(f) paste(f[c(1:3, 6:8)], collapse = "\t"),
                         character(1))
   writeLines(lines, dest)
+}
+
+parse_taxids <- function(x) {
+  taxids <- unlist(strsplit(as.character(x %||% ""), "[,;[:space:]]+"))
+  taxids <- taxids[nzchar(taxids)]
+  bad <- taxids[!grepl("^[0-9]+$", taxids)]
+  if (length(bad) > 0) {
+    stop("Taxids must be integers; got: ", paste(bad, collapse = ", "))
+  }
+  unique(taxids)
+}
+
+## keepIds = NULL keeps every taxon; dropIds are removed after keepIds.
+make_taxon_filter <- function(keepTaxids, dropTaxids, taxidNames, subtreeIds) {
+  requested <- c(keepTaxids, dropTaxids)
+  taxonNames <- unname(taxidNames[requested])
+  list(
+    keepIds = if (length(keepTaxids) > 0) subtreeIds(keepTaxids) else NULL,
+    dropIds = as.character(subtreeIds(dropTaxids)),
+    requested = data.frame(
+      Taxid = requested,
+      Name = ifelse(is.na(taxonNames), "", taxonNames),
+      Filter = rep(c("keep", "drop"), c(length(keepTaxids), length(dropTaxids))),
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+## A kreport lists taxa depth-first, so a taxon's subtree is the run of
+## lines after it that are indented deeper than it.
+read_kreport_tree <- function(path) {
+  fields <- strsplit(readLines(path), "\t", fixed = TRUE)
+  fields <- fields[lengths(fields) == 6]
+  taxids <- trimws(vapply(fields, `[`, character(1), 5))
+  labels <- vapply(fields, `[`, character(1), 6)
+  isTaxon <- grepl("^[0-9]+$", taxids)
+  labels <- labels[isTaxon]
+  data.frame(
+    taxid = taxids[isTaxon],
+    name = trimws(labels),
+    depth = nchar(labels) - nchar(sub("^ +", "", labels)),
+    stringsAsFactors = FALSE
+  )
+}
+
+kreport_subtree_taxids <- function(tree, roots) {
+  members <- character(0)
+  for (r in which(tree$taxid %in% roots)) {
+    below <- if (r < nrow(tree)) (r + 1):nrow(tree) else integer(0)
+    exits <- below[tree$depth[below] <= tree$depth[r]]
+    last <- if (length(exits) > 0) exits[1] - 1 else nrow(tree)
+    members <- c(members, tree$taxid[r:last])
+  }
+  unique(members)
+}
+
+kreport_taxon_filter <- function(reportFiles, keepTaxids, dropTaxids) {
+  trees <- lapply(reportFiles, read_kreport_tree)
+  allTaxa <- do.call(rbind, trees)
+  missing <- setdiff(c(keepTaxids, dropTaxids), allTaxa$taxid)
+  if (length(missing) > 0) {
+    stop("Taxid(s) not found in any input report: ",
+         paste(missing, collapse = ", "),
+         ". Use the taxids as they appear in the Kraken2/Bracken reports; ",
+         "databases number taxa differently (Bacteria is 2 in core_nt but ",
+         "15 in HROM).")
+  }
+  make_taxon_filter(
+    keepTaxids, dropTaxids,
+    taxidNames = setNames(allTaxa$name, allTaxa$taxid),
+    subtreeIds = function(roots) {
+      unique(unlist(lapply(trees, kreport_subtree_taxids, roots = roots)))
+    }
+  )
+}
+
+## otuIds maps each species clade_name to its BIOM observation id.
+metaphlan_taxon_filter <- function(perSample, otuIds, keepTaxids, dropTaxids) {
+  clades <- do.call(rbind, lapply(perSample, function(d) {
+    taxidCol <- intersect(c("clade_taxid", "NCBI_tax_id"), colnames(d))[1]
+    if (is.na(taxidCol) || !"clade_name" %in% colnames(d)) {
+      return(NULL)
+    }
+    data.frame(clade = d[["clade_name"]], taxids = as.character(d[[taxidCol]]),
+               stringsAsFactors = FALSE)
+  }))
+  if (is.null(clades)) {
+    stop("The MetaPhlAn profiles carry no taxid column; they cannot be ",
+         "filtered by taxid.")
+  }
+  clades <- clades[!duplicated(clades$clade), , drop = FALSE]
+  lineages <- strsplit(clades$taxids, "|", fixed = TRUE)
+  missing <- setdiff(c(keepTaxids, dropTaxids), unlist(lineages))
+  if (length(missing) > 0) {
+    stop("Taxid(s) not found in any MetaPhlAn profile: ",
+         paste(missing, collapse = ", "), ". MetaPhlAn uses NCBI taxids.")
+  }
+  ownTaxids <- vapply(lineages, function(x) {
+    if (length(x) > 0) x[length(x)] else ""
+  }, character(1))
+  otuLineages <- lineages[match(names(otuIds), clades$clade)]
+  make_taxon_filter(
+    keepTaxids, dropTaxids,
+    taxidNames = setNames(sub("^[a-z]__", "", sub("^.*\\|", "", clades$clade)),
+                          ownTaxids),
+    subtreeIds = function(roots) {
+      unname(otuIds[vapply(otuLineages, function(x) any(x %in% roots),
+                           logical(1))])
+    }
+  )
 }
 
 ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
@@ -271,6 +388,17 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
                 if (hasMetaPhlAn) "metaphlan" else
                 "functional"
   param$sourceType <- sourceType  # exposed to the Rmd via param
+
+  keepTaxids <- parse_taxids(param$taxidsToKeep)
+  dropTaxids <- parse_taxids(param$taxidsToDrop)
+  if (length(intersect(keepTaxids, dropTaxids)) > 0) {
+    stop("Taxid(s) listed in both taxidsToKeep and taxidsToDrop: ",
+         paste(intersect(keepTaxids, dropTaxids), collapse = ", "))
+  }
+  if (sourceType == "functional" && length(c(keepTaxids, dropTaxids)) > 0) {
+    stop("taxidsToKeep / taxidsToDrop apply to taxonomic input only; ",
+         "clear them for HUMAnN input.")
+  }
 
   ## Guard: only MaAsLin3 supports the functional path (HUMAnN tables are
   ## CPM-normalised; count-based methods would mis-model them).
@@ -454,6 +582,10 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
       "-o", shQuote(biomFile),
       "--verbose"
     ))
+    if (length(c(keepTaxids, dropTaxids)) > 0) {
+      param$taxonFilter <- kreport_taxon_filter(reportFiles, keepTaxids,
+                                                dropTaxids)
+    }
 
     ## -------------------------------------------------------------
     ## 4a. Normalise BIOM sample IDs (strip suffixes after first '.') and
@@ -509,14 +641,17 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
     methodNorm  <- toupper(gsub("[^A-Za-z0-9]", "", as.character(param$daMethod %||% "")))
     needsCounts <- methodNorm %in% c("ALDEX2", "ANCOMBC", "ANCOMBC2")
     profilePaths <- input$getFullPaths("MetaPhlAnProfile")
-    build_biom_from_metaphlan(
+    biomBuild <- build_biom_from_metaphlan(
       profilePaths   = profilePaths,
       sampleNames    = sampleNames,
       needsCounts    = needsCounts,
       metadataFile   = metadataFile,
       outBiomFile    = biomFile,
-      methodLabelStr = methodNorm
+      methodLabelStr = methodNorm,
+      keepTaxids     = keepTaxids,
+      dropTaxids     = dropTaxids
     )
+    param$taxonFilter <- biomBuild$taxonFilter
   }
 
   ## ---------------------------------------------------------------
@@ -580,9 +715,11 @@ ezMethodDiffShot <- function(input = NA, output = NA, param = NA) {
 ##' `-t rel_ab_w_read_stats`; otherwise the run aborts with a clear message.
 ##' Each of the four SUSHI apps (DiffShotALDEx, DiffShotANCOMBC,
 ##' DiffShotMaAsLin3, DiffShotLEfSe) hardcodes the method and dispatches to
-##' a per-method child Rmd. Produces a single self-contained HTML report
-##' (00index.html) with an Abundance section and a volcano + table tabset
-##' for the chosen method.
+##' a per-method child Rmd. `taxidsToKeep` / `taxidsToDrop` restrict the
+##' taxonomic table to, or remove, the given taxids and all their descendants
+##' before the prevalence and abundance filters. Produces a single
+##' self-contained HTML report (00index.html) with an Abundance section and a
+##' volcano + table tabset for the chosen method.
 EzAppDiffShot <-
   setRefClass(
     "EzAppDiffShot",
@@ -652,6 +789,16 @@ EzAppDiffShot <-
             Type = "character",
             DefaultValue = "",
             Description = "Comma-separated list of SampleID values to exclude entirely (e.g. failed libraries)."
+          ),
+          taxidsToKeep = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "Comma-separated taxids; only these taxa and their descendants are analysed. Empty keeps everything. Taxonomic input only."
+          ),
+          taxidsToDrop = ezFrame(
+            Type = "character",
+            DefaultValue = "",
+            Description = "Comma-separated taxids removed together with their descendants, after taxidsToKeep. Taxonomic input only."
           ),
           brackenMinRank = ezFrame(
             Type = "character",
