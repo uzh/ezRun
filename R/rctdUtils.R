@@ -194,9 +194,11 @@ run_rctd_spots <- function(
 
 ## rctd-py through its CLI, in the gi_rctd-py env. Same model as spacexr:
 ## p32810-sized Visium HD runs went from 14.7 h (spacexr) to 13 min on a GPU
-## and 38 min on 8 CPU cores, with 99.7% agreement on the main type.
+## and 38 min on 8 CPU cores. Since 0.4.0 it matches spacexr: 0.4.3 gave the
+## same spot_class on all 119,844 bins of that section and the same main
+## type on every non-rejected one.
 ## RCTD_PY_BIN (a directory holding `rctd`) overrides the env, for testing.
-RCTD_PY_ENV <- "gi_rctd-py_0.3.8"
+RCTD_PY_ENV <- "gi_rctd-py_0.4.3"
 RCTD_PY_CONDA <- "/usr/local/ngseq/miniforge3"
 
 ## TRUE when rctd-py can run: the test override is set or the env exists.
@@ -286,6 +288,9 @@ runRctdPy <- function(
   } else {
     Herper::local_CondaEnv(env, pathToMiniConda = RCTD_PY_CONDA)
   }
+  ## a package in ~/.local/lib/python3.12 shadows the env's copy (an old
+  ## typing_inspection there broke `import rctd` with 0.4.3)
+  withr::local_envvar(PYTHONNOUSERSITE = "1")
   if (!is.null(cores)) {
     withr::local_envvar(c(
       OMP_NUM_THREADS = cores, MKL_NUM_THREADS = cores,
