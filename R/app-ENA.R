@@ -60,6 +60,42 @@
   stop("Could not download ", ftpPath, " after ", tries, " attempts")
 }
 
+## Python env with bfabricPy; the job user's ~/.bfabricpy.yml and
+## BFABRICPY_CONFIG_ENV select the B-Fabric instance and account.
+ENA_BFABRIC_PYTHON <- "/usr/local/ngseq/miniforge3/envs/gi_py3.12.8/bin/python"
+
+## Register the downloaded files in B-Fabric as short-term storage (application 372),
+## so they are deleted automatically after a while. Runs before the files are copied
+## to gStore: sizes and md5 sums come from the copies in the working directory.
+## A failure is logged but does not fail the app; the data are still delivered.
+.enaRegisterShortTermStorage <- function(datasetFile, containerId, name) {
+  script <- system.file("python/register_bfabric_storage.py", package = "ezRun")
+  cmd <- paste(
+    ENA_BFABRIC_PYTHON, "-I", shQuote(script),
+    "--dataset", shQuote(datasetFile),
+    "--container-id", containerId,
+    "--name", shQuote(name),
+    "--application 372 --local-dir .",
+    "--threads", min(8, ezThreads())
+  )
+  tryCatch(
+    {
+      if (!nzchar(script) || !file.exists(ENA_BFABRIC_PYTHON)) {
+        stop("missing ", if (nzchar(script)) ENA_BFABRIC_PYTHON else "register_bfabric_storage.py")
+      }
+      ezSystem(cmd)
+      TRUE
+    },
+    error = function(e) {
+      ezLog(
+        "B-Fabric short-term storage registration FAILED: ", conditionMessage(e),
+        level = "error"
+      )
+      FALSE
+    }
+  )
+}
+
 ## Extract the ENA-SPOT-COUNT (read count) from a run's RUN_ATTRIBUTES list without
 ## crashing on a missing/empty TAG. Returns NA when the tag is absent, in which case
 ## the caller falls back to countReadsInFastq().
@@ -332,14 +368,7 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
   ##Register dataset/resources in BF as short term storage
   datasetName = paste0('ENA_App_', output$getColumn('projectID'))
 
-  myCmd <- paste(
-    'register_sushi_dataset_into_bfabric',
-    containerId,
-    'dataset.tsv',
-    datasetName,
-    '-b ~/.bfabricpy.yml --skip-file-check -a 372'
-  )
-  out <- tryCatch(ezSystem(myCmd), error = function(e) NULL)
+  .enaRegisterShortTermStorage('dataset.tsv', containerId, datasetName)
   datasetPath <- paste0(
     '/srv/GT/analysis/datasets/ENA_App/dataset_',
     containerId,
