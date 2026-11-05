@@ -6,11 +6,18 @@
 # www.fgcz.ch
 
 doEnrichr = function(param) {
+  enrichrSupported(getOrganism(param$ezRef), param$featureLevel)
+}
+
+## Whether Enrichr can be queried for this organism (the first refBuild segment,
+## e.g. "Mus_musculus") and feature level. Plain strings, so that citation(param)
+## can decide from the run's parameters what doEnrichr() decides from param$ezRef.
+enrichrSupported = function(organism, featureLevel) {
   grepl(
     "^Homo_|^Rattus_|^Sus_|^Canis_|^Mus_|^Felis_|^Equus_|^Bos_|^Ovis_|^Oryctolagus_|^Neovison_|^Vulpes_",
-    getOrganism(param$ezRef)
+    organism
   ) &
-    param$featureLevel == "gene"
+    featureLevel == "gene"
 }
 
 ##' @title Run Enrichr
@@ -60,7 +67,7 @@ doEnrichr = function(param) {
 ##'   setdiff(allLibs, names(res$success))
 ##' }
 ##' # Filter the data sets
-##' resFilt <- filterEnrichrResults(res$success, maxPAdj = 0.01, maxZ = -3, minCombinedScore = 12, minOverlapGenes = 3)
+##' resFilt <- filterEnrichrResults(res$success, maxPAdj = 0.01, minCombinedScore = 12, minOverlapGenes = 3)
 ##' }
 ##' @author Roman Briskine
 runEnrichr <- function(
@@ -309,7 +316,9 @@ enrichrEnrich <- function(
 ##' @param resList list of results, i.e. \code{success} field in the list returned by \code{\link{enrichrEnrich}}
 ##' @param maxP p-value threshold (maximum)
 ##' @param maxPAdj adjusted p-value threshold (maximum)
-##' @param maxZ z-value threshold (maximum)
+##' @param maxZ z-score threshold (maximum). Off by default: Enrichr reports enrichment as a
+##' positive z-score (older versions used negative ones), and a default of 0 removed every term.
+##' The adjusted p-value, combined score and overlap thresholds define enrichment.
 ##' @param minCombinedScore combined score threshold (minimum)
 ##' @param minOverlapGenes minimum number of genes in the overlap
 ##' @param softFilter select libraries with at least one significant result but report all results
@@ -323,7 +332,7 @@ filterEnrichrResults <- function(
   resList,
   maxP = 1,
   maxPAdj = 1,
-  maxZ = 0,
+  maxZ = Inf,
   minCombinedScore = 0,
   minOverlapGenes = 3,
   softFilter = F,

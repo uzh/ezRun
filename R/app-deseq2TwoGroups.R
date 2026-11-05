@@ -111,10 +111,14 @@ EzAppDeseq2 <-
       ## DESeq2 unconditional; ashr offered only when useLfcShrink is true (appDefault
       ## FALSE); RUVSeq only when runRUV is true (loadCountDataset; no Ruby app declares it);
       ## clusterProfiler/GO.db unless runGO is false (default TRUE); Enrichr only when
-      ## twoGroups.Rmd precomputes it (doPrecomputeEnrichr, default TRUE).
+      ## twoGroups.qmd precomputes it (doPrecomputeEnrichr, default TRUE) and doEnrichr()
+      ## allows it: a supported organism and gene-level features.
       citation = function(param = list()) {
         runGO <- !isFALSE(as.logical(param$runGO))
-        enrichr <- runGO && !isFALSE(as.logical(param$doPrecomputeEnrichr))
+        organism <- if (ezIsSpecified(param$refBuild)) strsplit(param$refBuild, "/", fixed = TRUE)[[1]][1] else ""
+        featureLevel <- if (ezIsSpecified(param$featureLevel)) param$featureLevel else ""
+        enrichr <- runGO && !isFALSE(as.logical(param$doPrecomputeEnrichr)) &&
+          isTRUE(enrichrSupported(organism, featureLevel))
         c(
           "Love, M.I., Huber, W. & Anders, S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 15, 550 (2014). https://doi.org/10.1186/s13059-014-0550-8",
           if (isTRUE(as.logical(param$useLfcShrink))) "Stephens, M. False discovery rates: a new deal. Biostatistics 18(2), 275-294 (2017). https://doi.org/10.1093/biostatistics/kxw041",

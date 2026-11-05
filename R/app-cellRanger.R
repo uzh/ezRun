@@ -782,7 +782,7 @@ EzAppCellRanger <-
           "10x Genomics. Cell Ranger. https://www.10xgenomics.com/support/software/cell-ranger",
           "Zheng, G.X.Y. et al. Massively parallel digital transcriptional profiling of single cells. Nature Communications 8, 14049 (2017). https://doi.org/10.1038/ncomms14049",
           if (isTRUE(as.logical(param$runVeloCyto))) "La Manno, G. et al. RNA velocity of single cells. Nature 560, 494-498 (2018). https://doi.org/10.1038/s41586-018-0414-6",
-          if (gex && keep && !ezIsSpecified(param$controlSeqs) && !ezIsSpecified(param$secondRef)) "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+          if (gex && isTRUE(crVersion >= "10.1.0") && identical(getSpecies(param$refBuild), "Human")) "Sarkar, S. et al. Organism-scale annotation with Pan-human Azimuth. bioRxiv (2026) [preprint, not peer-reviewed]. https://doi.org/10.64898/2026.07.16.738997",
           if (isTRUE(as.numeric(param$nReads) > 0)) "Li, H. seqtk: a fast and lightweight tool for processing FASTA or FASTQ sequences. https://github.com/lh3/seqtk",
           if (gex && isTRUE(as.logical(param$bamStats)) && (keep || isTRUE(crVersion < "8"))) "Morgan, M. & Pagès, H. Rsamtools: Binary alignment (BAM), FASTA, variant call (BCF), and tabix file import. R package. https://doi.org/10.18129/B9.bioc.Rsamtools",
           if (custom) "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package. https://doi.org/10.18129/B9.bioc.Biostrings"

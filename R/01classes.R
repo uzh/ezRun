@@ -591,6 +591,8 @@ EzApp <-
           "- No citations, paths, server names, usernames, or project or order identifiers. Name a",
           "  reference by its build and release; in a name such as 'Release_M37-2025-07-03' the date",
           "  is when FGCZ installed it, not part of the release ('release M37').",
+          "- Do not name the facility or its internal software (FGCZ, ezRun, SUSHI, app names);",
+          "  describe a resource by what it is, e.g. 'a curated set of Illumina adapter sequences'.",
           "- Leave out what only affects how the job ran: threads, memory, output locations, logging.",
           "",
           "Output the Methods text and nothing else; it is delivered to the customer as-is.",
