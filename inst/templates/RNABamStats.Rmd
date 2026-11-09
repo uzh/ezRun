@@ -126,13 +126,17 @@ ezInteractiveTableRmd(as.data.frame(signif(strandMat, digits=4)), title="Strande
 seqNames = unique(unlist(lapply(resultList, function(x) names(x$seqLengths))))
 ## older results computed with splitByChrom=FALSE do not store the sequence names
 hasChromSection = length(seqNames) > 0
+## the windows are drawn per transcript; with strandMode both the strand is ignored
+isUnstranded = identical(as.character(param$strandMode), "both")
+## getStatsFromBam() only keeps the main chromosomes when splitting by chromosome
+mainChromsOnly = is.null(param$splitByChrom) || isTRUE(as.logical(param$splitByChrom))
 sectionExplainer = paste(c(
   "The table rows are grouped into sections, separated by thick lines:",
   "",
   paste(
     "1. **Feature types**: gene biotypes (or GTF feature types such as gene or transcript",
     "if the annotation has no biotypes) and, where available for the reference, repeat classes.",
-    "A read is counted for a type if it overlaps a feature of that type by at least 10 bases;",
+    "A read is counted for a type if it overlaps a feature of that type;",
     "for a biotype this means anywhere in a gene of that biotype, exons and introns.",
     "Since a read can overlap features of several types, this section can add up to more than 100%."
   ),
@@ -140,23 +144,38 @@ sectionExplainer = paste(c(
     "2. **mRNA regions**: *mRNA Exons* and *mRNA Introns* split the reads that overlap a",
     "transcript of a protein-coding gene (any transcript if the annotation has no biotypes)",
     "into those that overlap an exon and those that do not; together they are the reads in",
-    "these gene bodies. *mRNA Promoter 2kb* and *mRNA Downstream 2kb* are the 2 kb windows",
-    "upstream and downstream of each of these transcripts. Because the windows are drawn per",
-    "transcript, they largely overlap exons of other isoforms of the same gene and of",
-    "neighbouring genes, and many of their reads are also counted as *mRNA Exons*.",
-    "These rows are therefore not a measure of promoter or intergenic signal."
+    "these gene bodies.",
+    if (isUnstranded) {
+      paste(
+        "*mRNA Promoter 2kb* and *mRNA Downstream 2kb* are 2 kb windows next to each of these",
+        "transcripts. Because this is unstranded data, the transcript strand is ignored: the two",
+        "rows are the windows to the left and to the right of each transcript on the genome, so",
+        "each contains promoter and downstream regions in about equal parts."
+      )
+    } else {
+      paste(
+        "*mRNA Promoter 2kb* and *mRNA Downstream 2kb* are the 2 kb windows upstream and",
+        "downstream of each of these transcripts."
+      )
+    },
+    "Because the windows are drawn per transcript, they largely overlap exons of other isoforms",
+    "of the same gene and of neighbouring genes, and many of their reads are also counted as",
+    "*mRNA Exons*. These rows are therefore not a measure of promoter or intergenic signal."
   ),
   "3. **unannotated**: reads that overlap none of the features above.",
   if (hasChromSection) {
-    paste(
-      "4. **Chromosomes**: every read is counted once, on the sequence it aligns to",
-      "(a multi-matching read is counted once per alignment)."
-    )
+    "4. **Chromosomes**: every read is counted once, on the sequence it aligns to."
   },
   "",
   paste(
-    "Only the reads on the analysed sequences are counted; by default these are the main",
-    "chromosomes, and reads on unplaced scaffolds and contigs are left out."
+    "A read is a read pair for paired-end data, and a multi-matching read is counted once per",
+    "alignment. An overlap requires at least 10 bases.",
+    if (mainChromsOnly) {
+      "Only the reads on the main chromosomes are counted; reads on unplaced scaffolds and contigs are left out."
+    },
+    if (!hasChromSection) {
+      "This result does not record the sequence names, so the chromosome rows are listed among the feature types."
+    }
   ),
   "",
   ""
@@ -180,14 +199,7 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
     lowSummary = paste0("Features with at most ", minPercentage,
                         "% of the reads in every sample (", length(rowsLow), " rows)")
     tptUse = tpt[rowsUse, , drop=FALSE]
-    if (nrow(tptUse) >= 2 && ncol(tptUse) >= 2){
-      tptUseRel = log2(tptUse)
-      meanVals = apply(tptUseRel, 1, function(x){mean(x[is.finite(x)])}) ## ignore zero counts
-      tptUseRel = tptUseRel - meanVals
-      plotCmd = expression({
-        ezHeatmap(tptUseRel, margins=c(10, 12), lim=c(-2, 2),
-                  Rowv=FALSE, Colv=FALSE, main="Relative Prevalence [log2]")
-      })
+    if (ncol(tptUse) >= 2){
       cat("\n", sectionExplainer,
           "Percentages are relative to the total number of counted reads (alignments) of the sample.",
           if (hasChromSection) {
@@ -198,7 +210,16 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
                    ".")
           },
           "\n\n")
-      eval(plotCmd)
+      if (nrow(tptUse) >= 2){
+        tptUseRel = log2(tptUse)
+        meanVals = apply(tptUseRel, 1, function(x){mean(x[is.finite(x)])}) ## ignore zero counts
+        tptUseRel = tptUseRel - meanVals
+        plotCmd = expression({
+          ezHeatmap(tptUseRel, margins=c(10, 12), lim=c(-2, 2),
+                    Rowv=FALSE, Colv=FALSE, main="Relative Prevalence [log2]")
+        })
+        eval(plotCmd)
+      }
       print_type_tables(tpt, rowsUse, rowsLow, seqNames, digits=3,
                         caption="Match Count Percentages",
                         footnoteText="Percentage value.",
@@ -210,18 +231,20 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
     
     cat("##", paste(readSet, "Read Starts per Base"), "\n")
     tct = as.matrix(getTypeCoverageTable(resultList, nm))
-    if (length(rowsUse) >= 2 && ncol(tct) >= 2){
-      tctRel = log2(sweep(tct, 2, tct["total", ], FUN="/"))
-      tctRel = tctRel[rowsUse, , drop=FALSE]
-      plotCmd = expression({
-        ezHeatmap(tctRel, margins=c(10, 12), lim=c(-5, 5),
-                  Rowv=FALSE, Colv=FALSE, main="Coverage Enrichment")
-      })
+    if (ncol(tct) >= 2){
       cat("\nThe rows are grouped into the same sections as in the Match Count Percentages table.",
           "Read starts per base is the read count of a row divided by the total length",
           "of its features, so the values do not add up within a section. The heatmap shows",
           "each value relative to the genome-wide average.\n\n")
-      eval(plotCmd)
+      if (length(rowsUse) >= 2){
+        tctRel = log2(sweep(tct, 2, tct["total", ], FUN="/"))
+        tctRel = tctRel[rowsUse, , drop=FALSE]
+        plotCmd = expression({
+          ezHeatmap(tctRel, margins=c(10, 12), lim=c(-5, 5),
+                    Rowv=FALSE, Colv=FALSE, main="Coverage Enrichment")
+        })
+        eval(plotCmd)
+      }
       print_type_tables(tct, rowsUse, rowsLow, seqNames, digits=4,
                         caption="Read Starts per Base",
                         footnoteText="Read Starts per Base is equivalent to Coverage divided by Read length.",
