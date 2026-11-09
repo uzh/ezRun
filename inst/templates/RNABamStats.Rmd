@@ -138,7 +138,8 @@ sectionExplainer <- paste(
   "upstream and downstream of these transcripts; they often overlap neighbouring genes and are counted",
   "independently of the other rows.",
   "3. **unannotated**: reads that overlap none of the features above.",
-  "4. **Chromosomes**: every read is counted once, on the sequence it aligns to.",
+  "4. **Chromosomes**: every read is counted once, on the sequence it aligns to",
+  "(a multi-matching read is counted once per alignment).",
   "",
   "",
   sep = "\n"
@@ -167,20 +168,23 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
                   Rowv=FALSE, Colv=FALSE, main="Relative Prevalence [log2]")
       })
       eval(plotCmd)
+      rowsLow = setdiff(rownames(tpt), c(rowsUse, "total"))
       cat("\n", sectionExplainer,
           "Percentages are relative to the total number of reads (alignments) of the sample.",
-          "Only the chromosome rows add up to 100%, once the chromosomes in the table of",
-          "low-abundance features below are included.\n\n")
-      k <- kableTypeTable(signif(tptUse, digits=3), seqNames,
+          paste0("Only the chromosome rows add up to 100%",
+                 if (length(rowsLow) > 0) {
+                   " (including the chromosomes in the table of low-abundance features below)"
+                 },
+                 ".\n\n"))
+      k <- kable_type_table(signif(tptUse, digits=3), seqNames,
                           caption="Match Count Percentages",
                           footnoteText="Percentage value.")
       print(k)
-      rowsLow = setdiff(rownames(tpt), c(rowsUse, "total"))
       if (length(rowsLow) > 0){
         cat(paste0("\n<details>\n<summary>Features with at most ", minPercentage,
                    "% of the reads in every sample (", length(rowsLow),
                    " rows)</summary>\n\n"))
-        k <- kableTypeTable(signif(tpt[rowsLow, , drop=FALSE], digits=3), seqNames,
+        k <- kable_type_table(signif(tpt[rowsLow, , drop=FALSE], digits=3), seqNames,
                             caption="Match Count Percentages of low-abundance features",
                             footnoteText="Percentage value.")
         print(k)
@@ -201,20 +205,19 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
                   Rowv=FALSE, Colv=FALSE, main="Coverage Enrichment")
       })
       eval(plotCmd)
-      cat("\n", sectionExplainer,
+      cat("\nThe rows are grouped into the same sections as in the Match Count Percentages table.",
           "Read starts per base is the read count of a row divided by the total length",
           "of its features, so the values do not add up within a section. The heatmap shows",
           "each value relative to the genome-wide average.\n\n")
-      k <- kableTypeTable(signif(tct[rowsUse, , drop=FALSE], digits=4), seqNames,
+      k <- kable_type_table(signif(tct[rowsUse, , drop=FALSE], digits=4), seqNames,
                           caption="Read Starts per Base",
                           footnoteText="Read Starts per Base is equivalent to Coverage divided by Read length.")
       print(k)
-      rowsLow = setdiff(rownames(tct), c(rowsUse, "total"))
       if (length(rowsLow) > 0){
         cat(paste0("\n<details>\n<summary>Features with at most ", minPercentage,
                    "% of the reads in every sample (", length(rowsLow),
                    " rows)</summary>\n\n"))
-        k <- kableTypeTable(signif(tct[rowsLow, , drop=FALSE], digits=4), seqNames,
+        k <- kable_type_table(signif(tct[rowsLow, , drop=FALSE], digits=4), seqNames,
                             caption="Read Starts per Base of low-abundance features",
                             footnoteText="Read Starts per Base is equivalent to Coverage divided by Read length.")
         print(k)

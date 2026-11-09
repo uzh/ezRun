@@ -28,19 +28,17 @@ getTypeCoverageTable = function(resultList, name) {
 ##' @describeIn plotBamStat Renders a type count or coverage table as html, with the rows
 ##' ordered into sections (feature types, mRNA regions, unannotated, chromosomes) and
 ##' a thick line between the sections.
-kableTypeTable <- function(tbl, seqNames, caption, footnoteText) {
+kable_type_table <- function(tbl, seqNames, caption, footnoteText) {
   mrnaRows <- c(
     "mRNA Exons",
     "mRNA Introns",
     "mRNA Promoter 2kb",
     "mRNA Downstream 2kb"
   )
-  sections <- dplyr::case_when(
-    rownames(tbl) %in% mrnaRows ~ 2L,
-    rownames(tbl) == "unannotated" ~ 3L,
-    rownames(tbl) %in% seqNames ~ 4L,
-    .default = 1L
-  )
+  sections <- rep(1L, nrow(tbl))
+  sections[rownames(tbl) %in% mrnaRows] <- 2L
+  sections[rownames(tbl) == "unannotated"] <- 3L
+  sections[rownames(tbl) %in% seqNames] <- 4L
   rowOrder <- order(sections)
   tbl <- tbl[rowOrder, , drop = FALSE]
   sectionEnds <- which(diff(sections[rowOrder]) != 0)
