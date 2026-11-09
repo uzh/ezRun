@@ -930,6 +930,9 @@ getTargetTypeCounts = function(
   if (!is.null(gff)) {
     gff = gff[gff$seqid %in% seqNames, ]
     if (nrow(gff) > 0) {
+      ## promoter and downstream flanks must be taken on the annotated strand,
+      ## so keep it for the transcript ranges and apply strandMode afterwards
+      annoGff = gff
       gff$strand = fixStrand(gff$strand, param$strandMode)
       gffRanges = gffToRanges(gff)
       ensemblTypes = getEnsemblTypes(gff)
@@ -977,7 +980,7 @@ getTargetTypeCounts = function(
 
         isMsg = ensemblTypes == "protein_coding" & gff$type == "exon"
         msgRanges = gffGroupToRanges(
-          gff[isMsg, ],
+          annoGff[isMsg, ],
           gff$transcript_id[isMsg],
           skipTransSpliced = TRUE
         )
@@ -996,7 +999,7 @@ getTargetTypeCounts = function(
         }
         isExon = gff$type == "exon"
         msgRanges = gffGroupToRanges(
-          gff[isExon, ],
+          annoGff[isExon, ],
           gff$transcript_id[isExon],
           skipTransSpliced = TRUE
         )
@@ -1006,6 +1009,12 @@ getTargetTypeCounts = function(
       ## TODO: now we use seqlengths from rr, which is not ideal.
       ## gff as data.frame has no seqlengths information.
       seqlengths(msgRanges) <- seqlengths(rr)[names(seqlengths(msgRanges))]
+      ## suppressWarnings for out-of-bound ranges.
+      promRanges = trim(suppressWarnings(flank(msgRanges, 2000)))
+      downRanges = trim(suppressWarnings(flank(msgRanges, 2000, start = FALSE)))
+      strand(msgRanges) = fixStrand(strand(msgRanges), param$strandMode)
+      strand(promRanges) = fixStrand(strand(promRanges), param$strandMode)
+      strand(downRanges) = fixStrand(strand(downRanges), param$strandMode)
 
       ## check additionally for intron/exon/prom
       hitsTranscript = overlapsAny(rr, msgRanges, minoverlap = 10)
@@ -1024,15 +1033,12 @@ getTargetTypeCounts = function(
         sum(!hitsTargetExons),
         mRnaWidth - result["mRNA Exons", "width"]
       )
-      ## suppressWarnings for out-of-bound ranges.
-      promRanges = trim(suppressWarnings(flank(msgRanges, 2000)))
       hitsTargetProms = overlapsAny(rr, promRanges, minoverlap = 10)
       result["mRNA Promoter 2kb", ] = c(
         sum(hitsTargetProms),
         sum(width(IRanges::reduce(promRanges)))
       )
       hasAnyHit = hasAnyHit | hitsTargetProms
-      downRanges = trim(suppressWarnings(flank(msgRanges, 2000, start = FALSE)))
       hitsTargetDown = overlapsAny(rr, downRanges, minoverlap = 10)
       result["mRNA Downstream 2kb", ] = c(
         sum(hitsTargetDown),
