@@ -20,9 +20,12 @@ on:
 permissions:
   contents: write
 
-# No concurrency group on purpose: GitHub keeps only one pending run per group
-# and cancels the older one, which would drop bumps when several merges land
-# at once. Parallel runs are handled by the fetch/rebump/push retry loop below.
+concurrency:
+  group: version-bump-master   # serialise concurrent merges
+  cancel-in-progress: false    # do not abort a running bump
+# GitHub keeps only one pending run per group, so merges that land while a
+# bump is running can share a single bump. That is intended: they ship as
+# one release.
 
 jobs:
   bump:
@@ -63,7 +66,7 @@ jobs:
 
           # Retry if a concurrent push advanced master; recompute from its tip
           # each time so we never emit a duplicate version.
-          for attempt in 1 2 3 4 5; do
+          for attempt in 1 2 3; do
             git fetch --quiet origin master
             git reset --hard FETCH_HEAD
             current=$(sed -n -E 's/^Version:[[:space:]]*//p' DESCRIPTION | tr -d '[:space:]')
@@ -84,5 +87,5 @@ jobs:
             fi
             echo "push rejected (attempt $attempt): remote advanced; recomputing"
           done
-          echo "::error::version bump could not be pushed after 5 attempts"
+          echo "::error::version bump could not be pushed after 3 attempts"
           exit 1
