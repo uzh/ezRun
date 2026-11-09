@@ -36,8 +36,11 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
 
   if (nrow(input$meta) == 1L && grepl(',', input$meta$Read1)) {
     files <- file.path(param$dataRoot, limma::strsplit2(input$meta$Read1, ','))
-    system("touch input_R1.fastq.gz")
-    sapply(files, function(x) system(paste("cat", x, " >> input_R1.fastq.gz")))
+    ezLog(
+      "Concatenating ", length(files), " Read1 files of sample ",
+      input$getNames(), " into input_R1.fastq.gz"
+    )
+    ezSystem(paste("cat", paste(files, collapse = " "), "> input_R1.fastq.gz"))
     input$setColumn("Read1", file.path(getwd(), "input_R1.fastq.gz"))
 
     if (param$paired && grepl(',', input$meta$Read2)) {
@@ -45,10 +48,11 @@ ezMethodFastpTrim <- function(input = NA, output = NA, param = NA) {
         param$dataRoot,
         limma::strsplit2(input$meta$Read2, ',')
       )
-      system("touch input_R2.fastq.gz")
-      sapply(files, function(x) {
-        system(paste("cat", x, " >> input_R2.fastq.gz"))
-      })
+      ezLog(
+        "Concatenating ", length(files), " Read2 files of sample ",
+        input$getNames(), " into input_R2.fastq.gz"
+      )
+      ezSystem(paste("cat", paste(files, collapse = " "), "> input_R2.fastq.gz"))
       input$setColumn("Read2", file.path(getwd(), "input_R2.fastq.gz"))
     }
     fastpLogMethods(
