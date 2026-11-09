@@ -25,20 +25,28 @@ getTypeCoverageTable = function(resultList, name) {
   return(tbl)
 }
 
-##' @describeIn plotBamStat Renders a type count or coverage table as html, with the rows
-##' ordered into sections (feature types, mRNA regions, unannotated, chromosomes) and
-##' a thick line between the sections.
-kable_type_table <- function(tbl, seqNames, caption, footnoteText) {
+##' @describeIn plotBamStat Assigns the rows of a type count or coverage table to the
+##' sections feature types (1), mRNA regions (2), unannotated (3) and chromosomes (4).
+get_type_table_sections <- function(rowNames, seqNames) {
+  ## the mRNA rows are created in getTargetTypeCounts()
   mrnaRows <- c(
     "mRNA Exons",
     "mRNA Introns",
     "mRNA Promoter 2kb",
     "mRNA Downstream 2kb"
   )
-  sections <- rep(1L, nrow(tbl))
-  sections[rownames(tbl) %in% mrnaRows] <- 2L
-  sections[rownames(tbl) == "unannotated"] <- 3L
-  sections[rownames(tbl) %in% seqNames] <- 4L
+  sections <- rep(1L, length(rowNames))
+  sections[rowNames %in% mrnaRows] <- 2L
+  sections[rowNames == "unannotated"] <- 3L
+  sections[rowNames %in% seqNames] <- 4L
+  sections
+}
+
+##' @describeIn plotBamStat Renders a type count or coverage table as html, with the rows
+##' ordered into sections (feature types, mRNA regions, unannotated, chromosomes) and
+##' a thick line between the sections.
+kable_type_table <- function(tbl, seqNames, caption, footnoteText) {
+  sections <- get_type_table_sections(rownames(tbl), seqNames)
   rowOrder <- order(sections)
   tbl <- tbl[rowOrder, , drop = FALSE]
   sectionEnds <- which(diff(sections[rowOrder]) != 0)
@@ -49,9 +57,44 @@ kable_type_table <- function(tbl, seqNames, caption, footnoteText) {
       position = "left"
     )
   if (length(sectionEnds) > 0) {
-    k <- kableExtra::row_spec(k, sectionEnds, extra_css = "border-bottom: 3px solid #333;")
+    k <- kableExtra::row_spec(
+      k,
+      sectionEnds,
+      extra_css = "border-bottom: 3px solid #333;"
+    )
   }
   kableExtra::footnote(k, general = footnoteText)
+}
+
+##' @describeIn plotBamStat Prints the table of the rows \code{rowsUse} and, collapsed
+##' below it, the table of the low-abundance rows \code{rowsLow}.
+print_type_tables <- function(
+  tbl,
+  rowsUse,
+  rowsLow,
+  seqNames,
+  digits,
+  caption,
+  footnoteText,
+  lowSummary
+) {
+  print(kable_type_table(
+    signif(tbl[rowsUse, , drop = FALSE], digits = digits),
+    seqNames,
+    caption = caption,
+    footnoteText = footnoteText
+  ))
+  if (length(rowsLow) > 0) {
+    cat("\n<details>\n<summary>", lowSummary, "</summary>\n\n", sep = "")
+    print(kable_type_table(
+      signif(tbl[rowsLow, , drop = FALSE], digits = digits),
+      seqNames,
+      caption = paste(caption, "of low-abundance features"),
+      footnoteText = footnoteText
+    ))
+    cat("\n</details>\n\n")
+  }
+  invisible(NULL)
 }
 
 alignmentCountBarPlot <- function(
