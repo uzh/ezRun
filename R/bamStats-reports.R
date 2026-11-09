@@ -25,6 +25,35 @@ getTypeCoverageTable = function(resultList, name) {
   return(tbl)
 }
 
+##' @describeIn plotBamStat Renders a type count or coverage table as html, with the rows
+##' ordered into sections (feature types, mRNA regions, unannotated, chromosomes) and
+##' a thick line between the sections.
+kable_type_table <- function(tbl, seqNames, caption, footnoteText) {
+  mrnaRows <- c(
+    "mRNA Exons",
+    "mRNA Introns",
+    "mRNA Promoter 2kb",
+    "mRNA Downstream 2kb"
+  )
+  sections <- rep(1L, nrow(tbl))
+  sections[rownames(tbl) %in% mrnaRows] <- 2L
+  sections[rownames(tbl) == "unannotated"] <- 3L
+  sections[rownames(tbl) %in% seqNames] <- 4L
+  rowOrder <- order(sections)
+  tbl <- tbl[rowOrder, , drop = FALSE]
+  sectionEnds <- which(diff(sections[rowOrder]) != 0)
+  k <- knitr::kable(tbl, row.names = TRUE, format = "html", caption = caption) |>
+    kableExtra::kable_styling(
+      bootstrap_options = "striped",
+      full_width = FALSE,
+      position = "left"
+    )
+  if (length(sectionEnds) > 0) {
+    k <- kableExtra::row_spec(k, sectionEnds, extra_css = "border-bottom: 3px solid #333;")
+  }
+  kableExtra::footnote(k, general = footnoteText)
+}
+
 alignmentCountBarPlot <- function(
   mmCounts,
   relative = FALSE,

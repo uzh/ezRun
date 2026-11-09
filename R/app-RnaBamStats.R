@@ -610,6 +610,7 @@ getStatsFromBam = function(
       repeatsGff,
       transcriptsForCov = transcriptsForCov
     )
+    result$seqLengths = seqLengths
   }
   gc()
   ## TODO: this getBamMultiMatching should be moved to computeBamStats
