@@ -1036,7 +1036,7 @@ getTargetTypeCounts = function(
       hitsTargetDown = overlapsAny(rr, downRanges, minoverlap = 10)
       result["mRNA Downstream 2kb", ] = c(
         sum(hitsTargetDown),
-        sum(width(IRanges::reduce(promRanges)))
+        sum(width(IRanges::reduce(downRanges)))
       )
       hasAnyHit = hasAnyHit | hitsTargetDown
       gffRanges = c(gffRanges, promRanges, downRanges)
