@@ -1,0 +1,91 @@
+name: Version Bump
+
+# Bump the version in DESCRIPTION and set Date to today after every push to
+# master. The level comes from the branch or commit naming convention in
+# CodingStyle.md:
+#   feat     -> minor (3.23.4 -> 3.24.0): a merge from a feat/ or feature/
+#               branch, or a commit subject starting "feat:" / "feat(scope):"
+#   anything else -> patch (3.23.4 -> 3.23.5)
+# Contributors no longer edit the version by hand; for a major release, bump it
+# in the PR and this workflow leaves it alone.
+#
+# master is unprotected, so the default GITHUB_TOKEN can push the bump
+# directly. Pushes made with GITHUB_TOKEN do not trigger new workflow runs, so
+# there is no loop; the [skip ci] check is belt-and-braces.
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: version-bump-master   # serialise concurrent merges
+  cancel-in-progress: false    # do not abort a running bump
+# GitHub keeps only one pending run per group, so merges that land while a
+# bump is running can share a single bump. That is intended: they ship as
+# one release.
+
+jobs:
+  bump:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master        # live branch tip, not the pinned trigger SHA
+          fetch-depth: 0     # need the pre-push commit to compare versions
+      - name: Bump version and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # If the push already changed the version (manual major bump),
+          # respect it rather than bumping on top. If the pre-push commit is
+          # unreadable (force-push, new branch), bump as usual.
+          before_version=$(git show "${{ github.event.before }}:DESCRIPTION" 2>/dev/null | grep -m1 '^Version:' || true)
+          after_version=$(git show "${{ github.event.after }}:DESCRIPTION" | grep -m1 '^Version:')
+          if [ -z "$before_version" ]; then
+            echo "::warning::pre-push commit ${{ github.event.before }} not readable; bumping anyway"
+          elif [ "$before_version" != "$after_version" ]; then
+            echo "version changed in this push ($before_version -> $after_version); not bumping"
+            exit 0
+          fi
+
+          # Level from the commit subjects of this push only (fixed range), so
+          # the retries below cannot change it.
+          level=patch
+          # Matches "feat: ...", "feat(scope): ...", a GitHub PR merge from a
+          # feat/ branch, and a local `git merge feat/...`.
+          if git log --format=%s "${{ github.event.before }}..${{ github.event.after }}" 2>/dev/null \
+              | grep -qiE "^feat(\([^)]*\))?!?:|^Merge pull request #[0-9]+ from [^/]+/feat(ure)?/|^Merge branch '(feat|feature)/"; then
+            level=minor
+          fi
+          echo "bump level: $level"
+
+          # Retry if a concurrent push advanced master; recompute from its tip
+          # each time so we never emit a duplicate version.
+          for attempt in 1 2 3; do
+            git fetch --quiet origin master
+            git reset --hard FETCH_HEAD
+            current=$(sed -n -E 's/^Version:[[:space:]]*//p' DESCRIPTION | tr -d '[:space:]')
+            if ! [[ "$current" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+              echo "::error::could not parse Version in DESCRIPTION (got '$current'); expected X.Y.Z"
+              exit 1
+            fi
+            major=${BASH_REMATCH[1]} minor=${BASH_REMATCH[2]} patch=${BASH_REMATCH[3]}
+            if [ "$level" = minor ]; then
+              version="${major}.$((minor + 1)).0"
+            else
+              version="${major}.${minor}.$((patch + 1))"
+            fi
+            sed -i -E "s/^Version: .*/Version: ${version}/; s/^Date: .*/Date: $(date -u +%F)/" DESCRIPTION
+            git commit -am "chore(release): bump version to ${version} [skip ci]"
+            if git push origin HEAD:master; then
+              exit 0
+            fi
+            echo "push rejected (attempt $attempt): remote advanced; recomputing"
+          done
+          echo "::error::version bump could not be pushed after 3 attempts"
+          exit 1

@@ -33,3 +33,10 @@ Formatting:
 ## Functions
 
 * Named functions should never rely on a variable of the parent environment. Only exception should be anonymous functions.
+
+## Branches, Pull Requests and Versions
+
+* prefix branch names with the type of change: `feat/` for new functionality, `fix/` for bug fixes, e.g. `feat/nfcore-generic-app`, `fix/ena-download-retry`; other prefixes such as `docs/` or `chore/` are fine
+* start PR titles the same way: `feat: ...`, `fix: ...`, `feat(ScSeurat): ...`
+* do not edit `Version` or `Date` in `DESCRIPTION`; a GitHub Action bumps them after every push to master: a merge from a `feat/` branch (or a `feat:` commit) bumps the minor version (3.23.4 -> 3.24.0), anything else bumps the patch version (3.23.4 -> 3.23.5)
+* for a major release, set `Version` in the PR yourself; the Action then leaves it alone
