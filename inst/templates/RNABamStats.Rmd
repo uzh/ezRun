@@ -123,6 +123,26 @@ ezInteractiveTableRmd(as.data.frame(signif(strandMat, digits=4)), title="Strande
 ```
 
 ```{r MatchTargetTypeCounts, echo=FALSE, results='asis', message=FALSE, fig.width=8, fig.height=7, warning=FALSE}
+seqNames <- unique(unlist(lapply(resultList, function(x) names(x$seqLengths))))
+sectionExplainer <- paste(
+  "The table rows are grouped into up to four sections, separated by thick lines:",
+  "",
+  "1. **Feature types**: gene biotypes (or GTF feature types such as CDS if the annotation has no",
+  "biotypes) and, where available for the reference, repeat classes;",
+  "a read is counted for every type it overlaps by at least 10 bases.",
+  "Since a read can overlap features of several types, this section can add up to more than 100%.",
+  "2. **mRNA regions**: *mRNA Exons* and *mRNA Introns* split the reads that overlap a protein-coding",
+  "transcript (any transcript if the annotation has no biotypes) into those that overlap an exon and",
+  "those that do not; together they are the reads in these gene bodies.",
+  "*mRNA Promoter 2kb* and *mRNA Downstream 2kb* are the 2 kb windows",
+  "upstream and downstream of these transcripts; they often overlap neighbouring genes and are counted",
+  "independently of the other rows.",
+  "3. **unannotated**: reads that overlap none of the features above.",
+  "4. **Chromosomes**: every read is counted once, on the sequence it aligns to.",
+  "",
+  "",
+  sep = "\n"
+)
 for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
   if (!is.null(resultList[[1]][[nm]])){
     readSet = switch(nm,
@@ -147,13 +167,25 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
                   Rowv=FALSE, Colv=FALSE, main="Relative Prevalence [log2]")
       })
       eval(plotCmd)
-      k <- kable(signif(tptUse, digits=3),
-                 row.names=TRUE, format = "html",
-                 caption="Match Count Percentages") %>%
-        kable_styling(bootstrap_options = "striped",
-                      full_width = F, position = "left") %>%
-        footnote(general="Percentage value.")
+      cat("\n", sectionExplainer,
+          "Percentages are relative to the total number of reads (alignments) of the sample.",
+          "Only the chromosome rows add up to 100%, once the chromosomes in the table of",
+          "low-abundance features below are included.\n\n")
+      k <- kableTypeTable(signif(tptUse, digits=3), seqNames,
+                          caption="Match Count Percentages",
+                          footnoteText="Percentage value.")
       print(k)
+      rowsLow = setdiff(rownames(tpt), c(rowsUse, "total"))
+      if (length(rowsLow) > 0){
+        cat(paste0("\n<details>\n<summary>Features with at most ", minPercentage,
+                   "% of the reads in every sample (", length(rowsLow),
+                   " rows)</summary>\n\n"))
+        k <- kableTypeTable(signif(tpt[rowsLow, , drop=FALSE], digits=3), seqNames,
+                            caption="Match Count Percentages of low-abundance features",
+                            footnoteText="Percentage value.")
+        print(k)
+        cat("\n</details>\n\n")
+      }
     }else{
       cat("The plot and table are shown when there are at least two samples!",
           "\n")
@@ -169,13 +201,25 @@ for (nm in c("multiMatchTargetTypeCounts", "uniqueMatchTargetTypeCounts")){
                   Rowv=FALSE, Colv=FALSE, main="Coverage Enrichment")
       })
       eval(plotCmd)
-      k <- kable(signif(tct[rowsUse, ], digits=4),
-                 row.names=TRUE, format = "html",
-                 caption="Read Starts per Base") %>%
-        kable_styling(bootstrap_options = "striped",
-                      full_width = F, position = "left") %>%
-        footnote(general="Read Starts per Base is equivalent to Coverage divided by Read length.")
+      cat("\n", sectionExplainer,
+          "Read starts per base is the read count of a row divided by the total length",
+          "of its features, so the values do not add up within a section. The heatmap shows",
+          "each value relative to the genome-wide average.\n\n")
+      k <- kableTypeTable(signif(tct[rowsUse, , drop=FALSE], digits=4), seqNames,
+                          caption="Read Starts per Base",
+                          footnoteText="Read Starts per Base is equivalent to Coverage divided by Read length.")
       print(k)
+      rowsLow = setdiff(rownames(tct), c(rowsUse, "total"))
+      if (length(rowsLow) > 0){
+        cat(paste0("\n<details>\n<summary>Features with at most ", minPercentage,
+                   "% of the reads in every sample (", length(rowsLow),
+                   " rows)</summary>\n\n"))
+        k <- kableTypeTable(signif(tct[rowsLow, , drop=FALSE], digits=4), seqNames,
+                            caption="Read Starts per Base of low-abundance features",
+                            footnoteText="Read Starts per Base is equivalent to Coverage divided by Read length.")
+        print(k)
+        cat("\n</details>\n\n")
+      }
     }else{
       cat("The plot and table are shown when there are at least two samples!",
           "\n")
