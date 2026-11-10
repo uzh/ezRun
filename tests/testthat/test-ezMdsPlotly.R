@@ -10,6 +10,7 @@ test_that("ezMdsPlotly handles factor names that are not syntactic", {
   design <- data.frame(
     `Time Point` = rep(c("d0", "d7"), 3),
     `Cell-Type` = rep(c("A", "B"), each = 3),
+    row.names = colnames(logSignal),
     check.names = FALSE
   )
   traceNames <- function(p) {
@@ -32,15 +33,80 @@ test_that("ezMdsPlotly works with default ndim and a design column named samples
     ncol = 6,
     dimnames = list(NULL, paste0("S", 1:6))
   )
-  design <- data.frame(samples = rep(c("a", "b"), 3))
+  design <- data.frame(
+    samples = rep(c("a", "b"), 3),
+    row.names = colnames(logSignal)
+  )
   p <- ezMdsPlotly(logSignal, design, main = "mds")
   built <- plotly::plotly_build(p)
   expect_equal(built$x$data[[1]]$type, "scatter3d")
   expect_setequal(vapply(built$x$data, `[[`, "", "name"), c("a", "b"))
   p <- ezMdsPlotly(logSignal, design, ndim = 2, main = "mds")
   traces <- plotly::plotly_build(p)$x$data
-  texts <- setNames(lapply(traces, `[[`, "text"), vapply(traces, `[[`, "", "name"))
+  texts <- setNames(
+    lapply(traces, `[[`, "text"),
+    vapply(traces, `[[`, "", "name")
+  )
   expect_setequal(texts$a, c("S1", "S3", "S5"))
   expect_setequal(texts$b, c("S2", "S4", "S6"))
   expect_error(ezMdsPlotly(logSignal, design, ndim = 1, main = "mds"), "2D")
+})
+
+test_that("ezMdsPlotly matches design rows to samples by name", {
+  skip_if_not_installed("edgeR")
+  skip_if_not_installed("plotly")
+  set.seed(1)
+  logSignal <- matrix(
+    rnorm(600),
+    ncol = 6,
+    dimnames = list(NULL, paste0("S", 1:6))
+  )
+  design <- data.frame(
+    Condition = rep(c("a", "b"), 3),
+    row.names = colnames(logSignal)
+  )
+  shuffled <- design[c(6, 1, 4, 2, 5, 3), , drop = FALSE]
+  traces <- plotly::plotly_build(
+    ezMdsPlotly(logSignal, shuffled, ndim = 2, main = "mds")
+  )$x$data
+  texts <- setNames(
+    lapply(traces, `[[`, "text"),
+    vapply(traces, `[[`, "", "name")
+  )
+  expect_setequal(texts$a, c("S1", "S3", "S5"))
+  expect_setequal(texts$b, c("S2", "S4", "S6"))
+  rownames(shuffled) <- paste0("X", 1:6)
+  expect_error(
+    ezMdsPlotly(logSignal, shuffled, ndim = 2, main = "mds"),
+    "Samples missing from rownames\\(design\\): S1"
+  )
+  noNames <- unname(logSignal)
+  expect_error(
+    ezMdsPlotly(noNames, design, ndim = 2, main = "mds"),
+    "unique column names"
+  )
+  dupNames <- logSignal
+  colnames(dupNames)[2] <- "S1"
+  expect_error(
+    ezMdsPlotly(dupNames, design, ndim = 2, main = "mds"),
+    "unique column names"
+  )
+})
+
+test_that("ezMdsPlotly uses scaled MDS coordinates", {
+  skip_if_not_installed("edgeR")
+  skip_if_not_installed("plotly")
+  set.seed(1)
+  logSignal <- matrix(
+    rnorm(600),
+    ncol = 6,
+    dimnames = list(NULL, paste0("S", 1:6))
+  )
+  design <- data.frame(Condition = rep("a", 6), row.names = colnames(logSignal))
+  mds <- limma::plotMDS(logSignal, plot = FALSE)
+  trace <- plotly::plotly_build(
+    ezMdsPlotly(logSignal, design, ndim = 2, main = "mds")
+  )$x$data[[1]]
+  expect_equal(as.numeric(trace$x), as.numeric(mds$x))
+  expect_equal(as.numeric(trace$y), as.numeric(mds$y))
 })

@@ -142,6 +142,18 @@ ezMdsPlotly <- function(
   if (!ndim %in% c(2, 3)) {
     stop("We only support 3D or 2D mds plot.")
   }
+  sampleNames <- colnames(logSignal)
+  if (is.null(sampleNames) || anyDuplicated(sampleNames)) {
+    stop("logSignal must have unique column names")
+  }
+  missingSamples <- setdiff(sampleNames, rownames(design))
+  if (length(missingSamples) > 0) {
+    stop(
+      "Samples missing from rownames(design): ",
+      paste(missingSamples, collapse = ", ")
+    )
+  }
+  design <- design[colnames(logSignal), , drop = FALSE]
   mds = plotMDS(logSignal, plot = FALSE)
   factorToPlot = colnames(design)[1]
   colorFormula <- as.formula(call("~", as.name(factorToPlot)))
@@ -150,7 +162,12 @@ ezMdsPlotly <- function(
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
-  mdsOut <- mds$eigen.vectors[, 1:ndim]
+  mdsOut <- sweep(
+    mds$eigen.vectors[, 1:ndim],
+    2,
+    sqrt(pmax(mds$eigen.values[1:ndim], 0)),
+    "*"
+  )
 
   if (ndim == 3) {
     colnames(mdsOut) <- c(
