@@ -1527,6 +1527,9 @@ rctd_ref_file <- if (!is.null(param$rctdFile) && param$rctdFile != "") {
 
 ```{r rctd_reference_info, eval=has_annotation && !is.null(rctd_ref_name), results='asis'}
 cat("**RCTD Reference:** ", rctd_ref_name, "\n\n", sep = "")
+# objects analysed before rctdEngine existed ran spacexr
+cat("**RCTD engine:** ",
+    if (!is.null(param$rctdEngineUsed)) param$rctdEngineUsed else "spacexr", "\n\n", sep = "")
 if (!is.null(rctd_ref_file)) {
  cat("**Reference file:** ", rctd_ref_file, "\n\n", sep = "")
 }

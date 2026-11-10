@@ -238,6 +238,9 @@ rctdPyCompile <- function(nSpots) {
 ##'   it can see, which oversubscribes a SLURM allocation).
 ##' @param compile FALSE passes --no-compile; NULL decides by rctdPyCompile
 ##'   (always on a GPU, on CPU only for large inputs).
+##' @param classDf optional data.frame with a \code{class} column and
+##'   cell types as row names (spacexr's class_df), passed as --class-df;
+##'   doublet mode only.
 ##' @param workDir where the h5ad files go.
 ##' @return what spacexr's path yields: row-normalised \code{weights}
 ##'   (spots x types, only the spots RCTD fitted) and, in doublet mode, a
@@ -254,9 +257,13 @@ runRctdPy <- function(
   cores = NULL,
   compile = NULL,
   env = RCTD_PY_ENV,
+  classDf = NULL,
   workDir = file.path(getwd(), "rctd_py")
 ) {
   mode <- match.arg(mode, c("doublet", "full"))
+  if (!is.null(classDf) && mode != "doublet") {
+    stop("runRctdPy: classDf is only supported in doublet mode")
+  }
   if (is.null(compile)) {
     compile <- rctdPyCompile(ncol(counts))
   }
@@ -264,6 +271,14 @@ runRctdPy <- function(
   qFile <- file.path(workDir, "query.h5ad")
   rFile <- file.path(workDir, "reference.h5ad")
   outFile <- file.path(workDir, "result.h5ad")
+  classFile <- NULL
+  if (!is.null(classDf)) {
+    classFile <- file.path(workDir, "class_df.tsv")
+    utils::write.table(
+      data.frame(cell_type = rownames(classDf), class = classDf$class),
+      classFile, sep = "\t", quote = FALSE, row.names = FALSE
+    )
+  }
   anndataR::write_h5ad(
     anndataR::AnnData(
       X = Matrix::t(counts),
@@ -300,12 +315,13 @@ runRctdPy <- function(
   ezSystem(paste(
     "rctd run", qFile, rFile, "--mode", mode, "--umi-min", umiMin,
     if (!is.null(umiMinSigma)) paste("--umi-min-sigma", umiMinSigma),
+    if (!is.null(classFile)) paste("--class-df", classFile),
     "--device", device, if (!compile) "--no-compile", "-o", outFile
   ))
   res <- readRctdPyResult(outFile, mode = mode)
   ## the h5ad copies (~1.5 GB for a Visium HD section) do not belong in the
   ## result folder
-  unlink(c(qFile, rFile, outFile))
+  unlink(c(qFile, rFile, outFile, classFile))
   cells <- rctdResultCells(res$obsNames, colnames(counts))
   kept <- res$kept
   weights <- res$weights[kept, , drop = FALSE]

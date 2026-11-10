@@ -33,7 +33,7 @@ suppressMessages({
 })
 
 ## ---- load the code UNDER TEST, over whatever ezRun is installed ------------
-for (f in c("R/xeniumQcMetrics.R", "R/xeniumCooccurrence.R", "R/app-XeniumSeurat.R")) {
+for (f in c("R/xeniumQcMetrics.R", "R/xeniumCooccurrence.R", "R/rctdUtils.R", "R/app-XeniumSeurat.R")) {
   source(file.path(PKG, f))
 }
 cat("verifying:", PKG, "\n")
@@ -77,7 +77,7 @@ baseParam <- list(
   minCounts = 10, minFeatures = 5, qcNmads = 3,
   clusterResolution = 0.5, lambda = 0.8, nicheResolution = 0.5,
   banksyDims = 30, banksyKgeom = 30,
-  rctdReference = "None", rctdFile = "", rctdClassFile = "",
+  rctdReference = "None", rctdFile = "", rctdClassFile = "", rctdEngine = "rctd-py",
   rctdUMImin = 10, rctdUMIminSigma = 300,
   doSPLIT = FALSE, splitMode = "neighborhood", splitNeighborThreshold = 0.05,
   coocRadius = 30, coocNperm = 100, coocFdr = TRUE,
@@ -192,6 +192,73 @@ pc <- tryCatch({ ezMethodXeniumSeurat(mkInput("PosCtl"), NA,
                error = function(e) paste("ERROR:", conditionMessage(e)))
 setwd(old)
 ok("a valid config still runs to completion", identical(pc, "ran"))
+
+## ---- 5. RCTD engines: rctd-py (default) and spacexr on a planted truth -----
+## The happy path above runs without a reference, so the RCTD code (and the
+## engine switch) would otherwise go untested. Reference = a second synthetic
+## bundle (other seed) with its planted labels; query truth = truth.csv.
+cat("\n=== 5. RCTD engines ===\n")
+REFIN <- file.path(WORK, "refinput")
+system2("Rscript", c(shQuote(gen), shQuote(REFIN), "4000", "300", "11"), stdout = TRUE)
+rm_ <- Matrix::readMM(file.path(REFIN, "cell_feature_matrix", "matrix.mtx.gz"))
+rf <- data.table::fread(file.path(REFIN, "cell_feature_matrix", "features.tsv.gz"), header = FALSE)
+rb <- data.table::fread(file.path(REFIN, "cell_feature_matrix", "barcodes.tsv.gz"), header = FALSE)$V1
+rm_ <- as(rm_, "CsparseMatrix"); dimnames(rm_) <- list(rf$V2, rb)
+rm_ <- rm_[rf$V3 == "Gene Expression", ]
+rt <- data.table::fread(file.path(REFIN, "truth.csv"))
+refTypes <- setNames(factor(rt$cell_type), rt$cell_id)[colnames(rm_)]
+refFile <- file.path(WORK, "synthetic_rctd.rds")
+saveRDS(spacexr::Reference(rm_, refTypes, Matrix::colSums(rm_)), refFile)
+classFile <- file.path(WORK, "synthetic_class.tsv")
+data.table::fwrite(data.table(cell_type = levels(refTypes),
+                              class = ifelse(levels(refTypes) %in% c("Tcell", "Macrophage"), "Immune", levels(refTypes))),
+                   classFile, sep = "\t")
+truth <- data.table::fread(file.path(IN, "truth.csv"))
+truth <- setNames(truth$cell_type, truth$cell_id)
+
+runEngine <- function(nm, extra) {
+  d <- file.path(WORK, nm); dir.create(d, recursive = TRUE); old <- getwd(); setwd(d)
+  on.exit(setwd(old))
+  r <- tryCatch(ezMethodXeniumSeurat(mkInput(nm), NA, modifyList(baseParam, c(list(name = nm, rctdFile = refFile), extra))),
+                error = function(e) paste("ERROR:", conditionMessage(e)))
+  out <- list(res = r, dir = file.path(d, nm))
+  if (identical(r, "Success")) {
+    so <- qs2::qs_read(file.path(out$dir, "scData.qs2"), nthreads = 1)
+    lab <- setNames(as.character(so$RCTD_Main), sub("^[^_]+_", "", colnames(so)))
+    lab <- lab[!is.na(lab)]
+    out$lab <- lab
+    out$acc <- mean(lab == truth[names(lab)])
+    out$log <- readLines(file.path(out$dir, "log.txt"))
+    out$html <- paste(readLines(file.path(out$dir, "00index.html"), warn = FALSE), collapse = "\n")
+  }
+  out
+}
+if (!rctdPyAvailable()) {
+  ok("rctd-py env installed (gi_rctd-py)", FALSE)
+} else {
+  py <- runEngine("EngPy", list(rctdEngine = "rctd-py"))
+  sx <- runEngine("EngSx", list(rctdEngine = "spacexr"))
+  ok("rctd-py run returned Success", identical(py$res, "Success"))
+  ok("spacexr run returned Success", identical(sx$res, "Success"))
+  ok("rctd-py engine actually used (log)", any(grepl("RCTD engine: rctd-py", py$log)))
+  ok("spacexr engine actually used (log)", any(grepl("RCTD engine: spacexr", sx$log)))
+  ok("report names the RCTD engine", grepl("RCTD engine:", py$html))
+  cat(sprintf("       accuracy vs planted truth: rctd-py %.3f (%d cells), spacexr %.3f (%d cells)\n",
+              py$acc %||% NA, length(py$lab), sx$acc %||% NA, length(sx$lab)))
+  ok("rctd-py RCTD_Main >= 90% correct vs planted truth", isTRUE(py$acc >= 0.9))
+  ok("spacexr RCTD_Main >= 90% correct vs planted truth", isTRUE(sx$acc >= 0.9))
+  both <- intersect(names(py$lab), names(sx$lab))
+  agree <- mean(py$lab[both] == sx$lab[both])
+  cat(sprintf("       engines agree on %.3f of %d cells both called\n", agree, length(both)))
+  ok("engines agree on >= 95% of cells both called", isTRUE(agree >= 0.95))
+  cf <- runEngine("EngPyClass", list(rctdEngine = "rctd-py", rctdClassFile = classFile))
+  ok("rctd-py with rctdClassFile runs", identical(cf$res, "Success"))
+  ok("rctd-py class run labels >= 90% correct", isTRUE(cf$acc >= 0.9))
+  sp <- runEngine("EngPySplit", list(rctdEngine = "rctd-py", doSPLIT = TRUE))
+  ok("rctd-py + doSPLIT still returns Success", identical(sp$res, "Success"))
+  ok("rctd-py + doSPLIT: report states why SPLIT did not run",
+     isTRUE(grepl("rctdEngine = spacexr", sp$html)))
+}
 
 ## ---- summary ---------------------------------------------------------------
 cat(sprintf("\n=== %d passed, %d failed ===\n", RESULTS$pass, RESULTS$fail))

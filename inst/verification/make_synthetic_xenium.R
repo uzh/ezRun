@@ -107,6 +107,8 @@ cells <- data.table(
                                nCells, TRUE, prob = c(.55, .30, .15))
 )
 data.table::fwrite(cells, file.path(OUT, "cells.csv.gz"))
+## planted labels, for RCTD accuracy checks (LoadXenium ignores this file)
+data.table::fwrite(data.table(cell_id = bc, cell_type = typeNames[ctIdx]), file.path(OUT, "truth.csv"))
 
 cat(sprintf("synthetic Xenium bundle -> %s\n  %d cells, %d features (%d panel genes), %d planted cell types\n",
             OUT, nCells, nrow(full), nrow(gex), K))

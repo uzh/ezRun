@@ -412,23 +412,49 @@ ezMethodXeniumSeurat <- function(
           umi_min_sigma <- fallback
         }
 
-        # spacexr fits sigma on a random sample() of cells, and with
-        # max_cores > 1 mclapply advances the parent RNG as a side effect, so
-        # RCTD labels are NOT reproducible run-to-run without a fixed seed.
-        set.seed(42)
-        myRCTD <- create.RCTD(
-          query.puck,
-          ref_obj,
-          max_cores = param$cores,
-          UMI_min = umi_min,
-          UMI_min_sigma = umi_min_sigma,
-          class_df = rctd_class_df
-        )
-        myRCTD <- run.RCTD(myRCTD, doublet_mode = 'doublet')
-
-        # Extract results
-        results <- myRCTD@results
-        norm_weights <- normalize_weights(results$weights)
+        # Engine: rctd-py (default) is the same model as spacexr in PyTorch.
+        # spacexr took >4 h (still running) on a 940k-cell TMA where rctd-py
+        # took 27 min on one L40S (p41403 o42586, 2026-11-10); on CPU it uses
+        # param$cores threads. Falls back to spacexr when the env is missing.
+        useRctdPy <- !identical(param$rctdEngine, "spacexr") && rctdPyAvailable()
+        if (!identical(param$rctdEngine, "spacexr") && !useRctdPy) {
+          logMsg(sprintf(
+            "WARNING: rctd-py env %s not installed: falling back to spacexr", RCTD_PY_ENV
+          ))
+        }
+        param$rctdEngineUsed <- if (useRctdPy) {
+          paste0("rctd-py (", RCTD_PY_ENV, ", ",
+                 if (rctdPyHasGpu()) "GPU" else paste(param$cores, "CPU threads"), ")")
+        } else {
+          "spacexr"
+        }
+        logMsg(paste("RCTD engine:", param$rctdEngineUsed))
+        if (useRctdPy) {
+          results <- runRctdPy(
+            counts, coords, ref_obj, umi_min,
+            mode = "doublet", device = "auto", umiMinSigma = umi_min_sigma,
+            cores = param$cores, classDf = rctd_class_df,
+            workDir = file.path(getwd(), "rctd_py")
+          )
+          myRCTD <- NULL
+          norm_weights <- results$weights
+        } else {
+          # spacexr fits sigma on a random sample() of cells, and with
+          # max_cores > 1 mclapply advances the parent RNG as a side effect, so
+          # RCTD labels are NOT reproducible run-to-run without a fixed seed.
+          set.seed(42)
+          myRCTD <- create.RCTD(
+            query.puck,
+            ref_obj,
+            max_cores = param$cores,
+            UMI_min = umi_min,
+            UMI_min_sigma = umi_min_sigma,
+            class_df = rctd_class_df
+          )
+          myRCTD <- run.RCTD(myRCTD, doublet_mode = 'doublet')
+          results <- myRCTD@results
+          norm_weights <- normalize_weights(results$weights)
+        }
 
         # Add to Seurat metadata - Primary cell type assignment.
         # Use RCTD's doublet-mode call (results_df$first_type), NOT argmax of the full-mode
@@ -471,7 +497,12 @@ ezMethodXeniumSeurat <- function(
         # Removes transcript spill-over using the RCTD fit. Adds split.*
         # classification metadata to the main object and saves a separate
         # purified object; the primary clustering/UMAP stay on raw counts.
-        if (isTRUE(param$doSPLIT)) {
+        if (isTRUE(param$doSPLIT) && is.null(myRCTD)) {
+          # SPLIT's RCTD path (run_post_process_RCTD, add_spatial_metric, the
+          # purified re-annotation) needs the spacexr RCTD object.
+          param$splitError <- "SPLIT needs the spacexr RCTD object; rerun with rctdEngine = spacexr to purify"
+          logMsg(paste("SPLIT skipped:", param$splitError))
+        } else if (isTRUE(param$doSPLIT)) {
           logMsg(
             "Running SPLIT spatial purification...")
           # Recorded and surfaced in the report. Previously any failure here was
@@ -970,8 +1001,9 @@ EzAppXeniumSeurat <- setRefClass(
   "EzAppXeniumSeurat",
   contains = "EzApp",
   methods = list(
-    ## Seurat v5, BANKSY (ezRun port) and scater isOutlier unconditional; RCTD (spacexr) only when
-    ## rctdReference/rctdFile is set; SPLIT only when doSPLIT is true (and RCTD).
+    ## Seurat v5, BANKSY (ezRun port) and scater isOutlier unconditional; RCTD only when
+    ## rctdReference/rctdFile is set (rctd-py unless rctdEngine = spacexr, or the env is missing);
+    ## SPLIT only when doSPLIT is true (and RCTD with spacexr).
     citation = function(param = list()) {
       rctd <- isTRUE(nzchar(param$rctdFile)) || (ezIsSpecified(param$rctdReference) && !identical(param$rctdReference, "None"))
       c(
@@ -979,6 +1011,7 @@ EzAppXeniumSeurat <- setRefClass(
         "Singhal, V. et al. BANKSY unifies cell typing and tissue domain segmentation for scalable spatial omics data analysis. Nature Genetics 56, 431-441 (2024). https://doi.org/10.1038/s41588-024-01664-3",
         "McCarthy, D.J. et al. Scater: pre-processing, quality control, normalization and visualization of single-cell RNA-seq data in R. Bioinformatics 33, 1179-1186 (2017). https://doi.org/10.1093/bioinformatics/btw777",
         if (rctd) "Cable, D.M. et al. Robust decomposition of cell type mixtures in spatial transcriptomics. Nature Biotechnology 40, 517-526 (2022). https://doi.org/10.1038/s41587-021-00830-w",
+        if (rctd && !identical(param$rctdEngine, "spacexr")) "Gueguen, P. rctd-py: GPU-accelerated Python implementation of RCTD. https://github.com/p-gueguen/rctd-py",
         if (rctd && isTRUE(as.logical(param$doSPLIT))) "Bilous, M. et al. Resolving sensitivity, specificity and signal contamination in Xenium spatial transcriptomics. Nature Methods 23, 1152-1162 (2026). https://doi.org/10.1038/s41592-026-03089-8"
       )
     },
@@ -1051,6 +1084,11 @@ EzAppXeniumSeurat <- setRefClass(
           Type = "character",
           DefaultValue = "",
           Description = "Manual override: Full path to custom RCTD reference .rds file"
+        ),
+        rctdEngine = ezFrame(
+          Type = "character",
+          DefaultValue = "rctd-py",
+          Description = "RCTD implementation: rctd-py (same model; GPU if the job has one, else CPU) or spacexr (R). SPLIT needs spacexr"
         ),
         rctdClassFile = ezFrame(
           Type = "character",
