@@ -186,10 +186,12 @@ ezMdsPlotly <- function(
   require(plotly)
   mds = plotMDS(logSignal, plot = FALSE)
   factorToPlot = colnames(design)[1]
+  colorFormula <- as.formula(call("~", as.name(factorToPlot)))
   toPlot <- data.frame(
     samples = colnames(logSignal),
     design,
-    stringsAsFactors = FALSE
+    stringsAsFactors = FALSE,
+    check.names = FALSE
   )
   mdsOut <- mds$eigen.vectors[, 1:ndim]
 
@@ -205,7 +207,7 @@ ezMdsPlotly <- function(
       x = ~`Leading logFC dim1`,
       y = ~`Leading logFC dim2`,
       z = ~`Leading logFC dim3`,
-      color = formula(paste0("~", factorToPlot)),
+      color = colorFormula,
       colors = condColors,
       type = 'scatter3d',
       mode = 'markers+text',
@@ -228,8 +230,8 @@ ezMdsPlotly <- function(
         toPlot,
         x = ~`Leading logFC dim1`,
         y = ~`Leading logFC dim2`,
-        color = formula(paste0("~", factorToPlot)),
-        symbol = formula(paste0("~", colnames(design)[2])),
+        color = colorFormula,
+        symbol = as.formula(call("~", as.name(colnames(design)[2]))),
         colors = condColors,
         type = 'scatter',
         mode = 'markers+text',
@@ -241,7 +243,7 @@ ezMdsPlotly <- function(
         toPlot,
         x = ~`Leading logFC dim1`,
         y = ~`Leading logFC dim2`,
-        color = formula(paste0("~", factorToPlot)),
+        color = colorFormula,
         colors = condColors,
         type = 'scatter',
         mode = 'markers+text',
