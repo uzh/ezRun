@@ -130,65 +130,22 @@ ezMdsPlot = function(signal, sampleColors, main) {
   par(bg = 'white')
 }
 
-ezMdsGG2 <- function(
-  signal,
-  design,
-  ndim = 2,
-  main = "MDS plot",
-  addLabels = TRUE
-) {
-  require(edgeR)
-  require(plotly)
-  require(ggrepel)
-  if (ndim != 2) {
-    stop("ggplot2 only produces 2D plot")
-  }
-
-  y <- DGEList(counts = signal, group = colnames(signal))
-  mds <- plotMDS(y, plot = FALSE, ndim = ndim)
-  mdsOut <- mds$cmdscale.out
-  colnames(mdsOut) <- c("Leading logFC dim1", "Leading logFC dim2")
-  toPlot <- as_tibble(design, rownames = "samples")
-  toPlot <- dplyr::bind_cols(toPlot, as_tibble(mdsOut))
-  if (ncol(design) > 1L) {
-    p <- ggplot(toPlot, aes(`Leading logFC dim1`, `Leading logFC dim2`)) +
-      geom_point(
-        aes(colour = colnames(design)[1], shape = colnames(design)[2]),
-        size = 3
-      ) +
-      ggtitle(main) +
-      theme_half_open() +
-      background_grid()
-    if (isTRUE(addLabels)) {
-      p <- p + geom_text_repel(aes(label = samples))
-    }
-  } else {
-    p <- ggplot(toPlot, aes(`Leading logFC dim1`, `Leading logFC dim2`)) +
-      geom_point(aes(colour = colnames(design)[1]), size = 3) +
-      ggtitle(main) +
-      theme_half_open() +
-      background_grid()
-    if (isTRUE(addLabels)) {
-      p <- p + geom_text_repel(aes(label = samples))
-    }
-  }
-  p
-}
-
 ezMdsPlotly <- function(
   logSignal,
   design,
-  ndim = c(3, 2),
+  ndim = 3,
   main,
   condColors = NULL
 ) {
-  require("edgeR")
-  require(plotly)
+  library(edgeR)
+  library(plotly)
+  if (!ndim %in% c(2, 3)) {
+    stop("We only support 3D or 2D mds plot.")
+  }
   mds = plotMDS(logSignal, plot = FALSE)
   factorToPlot = colnames(design)[1]
   colorFormula <- as.formula(call("~", as.name(factorToPlot)))
   toPlot <- data.frame(
-    samples = colnames(logSignal),
     design,
     stringsAsFactors = FALSE,
     check.names = FALSE
@@ -211,7 +168,7 @@ ezMdsPlotly <- function(
       colors = condColors,
       type = 'scatter3d',
       mode = 'markers+text',
-      text = ~samples,
+      text = colnames(logSignal),
       textposition = "top right"
     ) %>%
       plotly::layout(
@@ -235,7 +192,7 @@ ezMdsPlotly <- function(
         colors = condColors,
         type = 'scatter',
         mode = 'markers+text',
-        text = ~samples,
+        text = colnames(logSignal),
         textposition = "top right"
       )
     } else {
@@ -247,7 +204,7 @@ ezMdsPlotly <- function(
         colors = condColors,
         type = 'scatter',
         mode = 'markers+text',
-        text = ~samples,
+        text = colnames(logSignal),
         textposition = "top right"
       )
     }
