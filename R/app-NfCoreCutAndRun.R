@@ -113,36 +113,31 @@ EzAppNfCoreCutAndRun <- setRefClass(
     ## nf-core/cutandrun (ezMethodNfCoreCutAndRun) and the tools of its CITATIONS.md/README that run
     ## with the options the app passes (skip_* left at the pipeline defaults):
     ## - nf-core and Nextflow: the pipeline framework, always.
-    ## - FastQC, Trim Galore/Cutadapt: read QC and trimming, always.
+    ## - Trim Galore/Cutadapt: trimming, always.
     ## - Bowtie 2: alignment to the target and the spike-in genome, always.
-    ## - SAMtools: MAPQ, pair and blacklist filtering of the alignments, always.
     ## - Picard MarkDuplicates: duplicate marking (removal in controls), always.
-    ## - BEDTools, UCSC bedGraphToBigWig: bedGraphs/bigWigs and consensus peaks, always.
-    ## - deepTools: QC, heatmaps and the RPKM/CPM/BPM normalisation (normalisation_mode), always.
-    ## - preseq: library complexity, always unless cmdOptions sets --skip_preseq.
+    ## - BEDTools: spike-in scaled bedGraphs and consensus peaks, always.
+    ## - deepTools bamCoverage: the RPKM/CPM/BPM normalised coverage, only when normalization is
+    ##   one of these (default Spikein uses BEDTools; None leaves the coverage unscaled).
     ## - SEACR / MACS2: the peak caller(s) in --peakcaller (param peakCaller, app default macs2).
-    ## - MultiQC: QC report, always.
     ## - ChIPpeakAnno: ezRun's nearest-TSS annotation of the peak BED files (generateAnnotatedPeaks).
+    ## Not cited (generic BAM utilities, run QC and reports): SAMtools filters (the criteria are
+    ## described instead), UCSC bedGraphToBigWig (format conversion), FastQC, preseq, deepTools QC
+    ## plots and MultiQC.
     citation = function(param = list()) {
-      cmdOptions <- if (is.null(param$cmdOptions)) "" else param$cmdOptions
       callers <- tolower(if (ezIsSpecified(param$peakCaller)) param$peakCaller else "macs2")
-      skipPreseq <- grepl("--skip_preseq(\\s+true)?\\s*($|--)", cmdOptions)
+      norm <- toupper(if (ezIsSpecified(param$normalization)) param$normalization else "SPIKEIN")
       c(
         "Ewels, P.A. et al. The nf-core framework for community-curated bioinformatics pipelines. Nature Biotechnology 38(3), 276-278 (2020). https://doi.org/10.1038/s41587-020-0439-x",
         "Di Tommaso, P. et al. Nextflow enables reproducible computational workflows. Nat Biotechnol 35(4), 316-319 (2017). https://doi.org/10.1038/nbt.3820",
-        "Andrews, S. FastQC: A Quality Control Tool for High Throughput Sequence Data. (2010). https://www.bioinformatics.babraham.ac.uk/projects/fastqc/",
         "Trim Galore. Babraham Bioinformatics. https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/",
         "Martin, M. Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.journal 17(1), 10-12 (2011). https://doi.org/10.14806/ej.17.1.200",
         "Langmead, B. & Salzberg, S.L. Fast gapped-read alignment with Bowtie 2. Nat Methods 9, 357-359 (2012). https://doi.org/10.1038/nmeth.1923",
-        "Danecek, P. et al. Twelve years of SAMtools and BCFtools. GigaScience 10(2), giab008 (2021). https://doi.org/10.1093/gigascience/giab008",
         "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
         "Quinlan, A.R. & Hall, I.M. BEDTools: a flexible suite of utilities for comparing genomic features. Bioinformatics 26, 841-842 (2010). https://doi.org/10.1093/bioinformatics/btq033",
-        "Kent, W.J. et al. BigWig and BigBed: enabling browsing of large distributed datasets. Bioinformatics 26, 2204-2207 (2010). https://doi.org/10.1093/bioinformatics/btq351",
-        "Ramírez, F. et al. deepTools2: a next generation web server for deep-sequencing data analysis. Nucleic Acids Research 44, W160-W165 (2016). https://doi.org/10.1093/nar/gkw257",
-        if (!skipPreseq) "Daley, T. & Smith, A.D. Predicting the molecular complexity of sequencing libraries. Nature Methods 10(4), 325-327 (2013). https://doi.org/10.1038/nmeth.2375",
+        if (norm %in% c("RPKM", "CPM", "BPM")) "Ramírez, F. et al. deepTools2: a next generation web server for deep-sequencing data analysis. Nucleic Acids Research 44, W160-W165 (2016). https://doi.org/10.1093/nar/gkw257",
         if (grepl("seacr", callers)) "Meers, M.P., Tenenbaum, D. & Henikoff, S. Peak calling by Sparse Enrichment Analysis for CUT&RUN chromatin profiling. Epigenetics & Chromatin 12, 42 (2019). https://doi.org/10.1186/s13072-019-0287-4",
         if (grepl("macs2", callers)) "Zhang, Y. et al. Model-based Analysis of ChIP-Seq (MACS). Genome Biology 9, R137 (2008). https://doi.org/10.1186/gb-2008-9-9-r137",
-        "Ewels, P., Magnusson, M., Lundin, S. & Käller, M. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics 32(19), 3047-3048 (2016). https://doi.org/10.1093/bioinformatics/btw354",
         "Zhu, L.J. et al. ChIPpeakAnno: a Bioconductor package to annotate ChIP-seq and ChIP-chip data. BMC Bioinformatics 11, 237 (2010). https://doi.org/10.1186/1471-2105-11-237"
       )
     },
