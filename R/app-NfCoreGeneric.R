@@ -5,12 +5,12 @@ EzAppNfCoreGeneric <- setRefClass(
     ## Shared by every nf-core app on this class (NfCoreDenovotranscriptApp, nf_core_app_factory.rb), so
     ## every entry is gated on param$nfcorePipeline; pipelines not listed here get no references.
     ## denovotranscript (checked against the dev branch, the app's default pipelineVersion): nf-core,
-    ## Nextflow, the pipeline, fastp and FastQC unconditional (their skip flags cannot be set: cmdOptions
-    ## is not passed to nextflow). SortMeRNA with its default SILVA and Rfam rRNA sets only when
+    ## Nextflow, the pipeline and fastp unconditional (its skip flag cannot be set: cmdOptions is not
+    ## passed to nextflow). SortMeRNA with its default SILVA and Rfam rRNA sets only when
     ## remove_ribo_rna is true. Unless qc_only is true: Trinity when assemblers lists trinity or
     ## trinity_no_norm, rnaSPAdes when it lists rnaspades, and EvidentialGene tr2aacds, BUSCO, rnaQUAST,
     ## TransRate (Oyster River Protocol build; runs with the singularity profile) and Salmon always.
-    ## gawk, MultiQC and the containers are not cited.
+    ## FastQC (run QC), gawk, MultiQC and the containers are not cited.
     citation = function(param = list()) {
       if (!identical(param$nfcorePipeline, "denovotranscript")) return(character(0))
       assembly <- !isTRUE(as.logical(param$qc_only))
@@ -24,7 +24,6 @@ EzAppNfCoreGeneric <- setRefClass(
         "Di Tommaso, P. et al. Nextflow enables reproducible computational workflows. Nat Biotechnol 35(4), 316-319 (2017). https://doi.org/10.1038/nbt.3820",
         "nf-core/denovotranscript. nf-core. https://nf-co.re/denovotranscript",
         "Chen, S. Ultrafast one-pass FASTQ data preprocessing, quality control, and deduplication using fastp. iMeta 2(2), e107 (2023). https://doi.org/10.1002/imt2.107",
-        "Andrews, S. FastQC: A Quality Control Tool for High Throughput Sequence Data. (2010). https://www.bioinformatics.babraham.ac.uk/projects/fastqc/",
         if (ribo) "Kopylova, E., Noé, L. & Touzet, H. SortMeRNA: fast and accurate filtering of ribosomal RNAs in metatranscriptomic data. Bioinformatics 28(24), 3211-3217 (2012). https://doi.org/10.1093/bioinformatics/bts611",
         if (ribo) "Quast, C. et al. The SILVA ribosomal RNA gene database project: improved data processing and web-based tools. Nucleic Acids Research 41(D1), D590-D596 (2013). https://doi.org/10.1093/nar/gks1219",
         if (ribo) "Burge, S.W. et al. Rfam 11.0: 10 years of RNA families. Nucleic Acids Research 41(D1), D226-D232 (2013). https://doi.org/10.1093/nar/gks1005",
