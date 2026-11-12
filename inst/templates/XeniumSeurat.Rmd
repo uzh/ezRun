@@ -1908,21 +1908,27 @@ if (n_na > 0) {
  cat("\n\n*Note:* ", n_na, " cells with unassigned cell types are excluded from the dotplot.\n\n", sep = "")
 }
 
-# No subset() here. Seurat v5's subset() copies every layer of every assay
-# (including the dense scale.data), which on a 500k-cell object was a second
-# near-full copy of the object just to drop NA idents -- and DotPlot already
-# drops NA groups. Sanitise the labels on a factor instead.
 cleaned_types <- gsub("[/\\\\]", "_", original_types)
 cleaned_types <- gsub("\\s+", "_", cleaned_types)
 cleaned_types <- make.names(cleaned_types)
 cleaned_types[is.na(original_types)] <- NA
 scData$celltype_clean <- factor(cleaned_types)
 
+# DotPlot does NOT drop NA groups: with any unassigned cell (RCTD reject, or
+# below rctdUMImin) it dies with "replacement has 1 row, data has 0" (Seurat
+# 5.5.1; killed every p41403 o42586 report on 2026-11-11). So plot a small
+# object holding only the assigned cells AND only the plotted genes - not a
+# whole-object subset(), which copied every layer (incl. dense scale.data) of
+# a 500k-cell object.
+dp_obj <- subset(scData, cells = colnames(scData)[!is.na(cleaned_types)],
+                 features = genesToPlot_celltype)
+dp_obj$celltype_clean <- droplevels(dp_obj$celltype_clean)
+
 # No tryCatch fallback here: a swallowed error printed one skimmable line and
 # shipped a report with this whole section silently missing. If the dotplot
 # cannot be drawn, the render must fail so it gets fixed.
 print(
- DotPlot(scData, features = rev(genesToPlot_celltype), group.by = "celltype_clean") +
+ DotPlot(dp_obj, features = rev(genesToPlot_celltype), group.by = "celltype_clean") +
    coord_flip() +
    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
    labs(x = "Gene", y = "Cell type")
@@ -2030,6 +2036,27 @@ if (!exists("celltype_colors")) {
  celltype_colors <- setNames(extended_colors[1:n_celltypes], celltypes_unique)
 }
 
+# VlnPlot fails ("missing value where TRUE/FALSE needed") as soon as the
+# feature or the grouping holds an NA - which every RCTD run with rejected or
+# below-rctdUMImin cells has (p41403 o42586, 2026-11-11). Plot from a data.frame
+# of the non-NA cells instead; no object copy.
+vln_by_celltype <- function(values, groups, title, ylab) {
+ d <- data.frame(value = as.numeric(values), group = as.character(groups))
+ d <- d[!is.na(d$value) & !is.na(d$group), , drop = FALSE]
+ stopifnot(nrow(d) > 0)
+ ggplot(d, aes(x = group, y = value, fill = group)) +
+   geom_violin(scale = "width", linewidth = 0.2) +
+   scale_fill_manual(values = celltype_colors) +
+   scale_x_discrete(labels = x_labels) +
+   stat_summary(fun = median, geom = "crossbar", width = 0.5,
+                color = "white", linewidth = 0.8) +
+   ggtitle(title) + ylab(ylab) +
+   theme_minimal(base_size = 12) +
+   theme(legend.position = "none",
+         axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+         axis.title.x = element_blank())
+}
+
 weight_cols <- grep("^rctd\\.weight\\.", colnames(scData@meta.data), value = TRUE)
 
 if (length(weight_cols) > 0) {
@@ -2057,17 +2084,8 @@ if (length(weight_cols) > 0) {
    }
    x_labels <- setNames(truncate_label(celltypes_unique), celltypes_unique)
 
-   p1 <- VlnPlot(scData, features = "rctd_max_weight",
-                 group.by = celltype_col, pt.size = 0, cols = celltype_colors) +
-     scale_x_discrete(labels = x_labels) +
-     stat_summary(fun = median, geom = "crossbar", width = 0.5,
-                  color = "white", linewidth = 0.8) +
-     ggtitle("RCTD max weight by cell type") +
-     ylab("Max prediction weight") +
-     theme_minimal(base_size = 12) +
-     theme(legend.position = "none",
-           axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
-           axis.title.x = element_blank())
+   p1 <- vln_by_celltype(scData$rctd_max_weight, scData@meta.data[[celltype_col]],
+                         "RCTD max weight by cell type", "Max prediction weight")
    print(p1)
  } else {
    cat("No valid RCTD prediction weights available for violin plot.")
@@ -2084,15 +2102,8 @@ if (length(weight_cols) > 0) {
    }
    x_labels <- setNames(truncate_label(celltypes_unique), celltypes_unique)
 
-   p1 <- VlnPlot(scData, features = "prediction.score.max",
-                 group.by = celltype_col, pt.size = 0, cols = celltype_colors) +
-     scale_x_discrete(labels = x_labels) +
-     stat_summary(fun = median, geom = "crossbar", width = 0.5,
-                  color = "white", linewidth = 0.8) +
-     ggtitle("Prediction score by cell type") +
-     theme_minimal(base_size = 12) +
-     theme(legend.position = "none",
-           axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+   p1 <- vln_by_celltype(scData$prediction.score.max, scData@meta.data[[celltype_col]],
+                         "Prediction score by cell type", "Prediction score")
    print(p1)
  } else {
    cat("Prediction scores/weights not available in metadata.")

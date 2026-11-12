@@ -254,6 +254,18 @@ if (!rctdPyAvailable()) {
   cf <- runEngine("EngPyClass", list(rctdEngine = "rctd-py", rctdClassFile = classFile))
   ok("rctd-py with rctdClassFile runs", identical(cf$res, "Success"))
   ok("rctd-py class run labels >= 90% correct", isTRUE(cf$acc >= 0.9))
+  ## Unassigned cells (rejects / below rctdUMImin) are NA in RCTD_Main. DotPlot and
+  ## VlnPlot died on them at the very end of every real run (p41403 o42586,
+  ## 2026-11-11) while the synthetic runs above assign every cell.
+  na <- runEngine("EngPyNA", list(rctdEngine = "rctd-py", rctdUMImin = 190))
+  ok("rctd-py run with unassigned (NA) cells returns Success", identical(na$res, "Success"))
+  nNA <- if (!is.null(na$lab)) 6000 - length(na$lab) else NA
+  cat(sprintf("       %s cells unassigned (NA RCTD_Main)\n", nNA))
+  ok("that run really has unassigned cells (>= 10%)", isTRUE(nNA >= 600))
+  ## plot titles live inside the embedded PNGs, so match the section headings
+  ok("report with unassigned cells has the cell-type dot plot and violin sections",
+     isTRUE(grepl("Cell type marker dotplot", na$html %||% "") &&
+            grepl("Prediction scores", na$html %||% "")))
   sp <- runEngine("EngPySplit", list(rctdEngine = "rctd-py", doSPLIT = TRUE))
   ok("rctd-py + doSPLIT still returns Success", identical(sp$res, "Success"))
   ok("rctd-py + doSPLIT: report states why SPLIT did not run",
