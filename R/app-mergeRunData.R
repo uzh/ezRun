@@ -223,6 +223,12 @@ EzAppMergeRunData <-
     "EzAppMergeRunData",
     contains = "EzApp",
     methods = list(
+      ## Empty on purpose: the app only concatenates the FASTQ files of the same sample from
+      ## two runs (`cat`, ezMethodMergeRunData :77-105) and rewrites the dataset table;
+      ## no tool or resource that defines the result runs here.
+      citation = function(param = list()) {
+        character(0)
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodMergeRunData

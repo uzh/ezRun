@@ -2,6 +2,44 @@ EzAppNfCoreGeneric <- setRefClass(
   "EzAppNfCoreGeneric",
   contains = "EzApp",
   methods = list(
+    ## Shared by every nf-core app on this class (NfCoreDenovotranscriptApp, nf_core_app_factory.rb), so
+    ## every entry is gated on param$nfcorePipeline; pipelines not listed here get no references.
+    ## denovotranscript (checked against the dev branch, the app's default pipelineVersion): nf-core,
+    ## Nextflow, the pipeline, fastp and FastQC unconditional (their skip flags cannot be set: cmdOptions
+    ## is not passed to nextflow). SortMeRNA with its default SILVA and Rfam rRNA sets only when
+    ## remove_ribo_rna is true. Unless qc_only is true: Trinity when assemblers lists trinity or
+    ## trinity_no_norm, rnaSPAdes when it lists rnaspades, and EvidentialGene tr2aacds, BUSCO, rnaQUAST,
+    ## TransRate (Oyster River Protocol build; runs with the singularity profile) and Salmon always.
+    ## gawk, MultiQC and the containers are not cited.
+    citation = function(param = list()) {
+      if (!identical(param$nfcorePipeline, "denovotranscript")) return(character(0))
+      assembly <- !isTRUE(as.logical(param$qc_only))
+      assemblers <- if (ezIsSpecified(param$assemblers)) param$assemblers else "trinity,rnaspades"
+      assemblers <- trimws(strsplit(assemblers, ",")[[1]])
+      trinity <- assembly && any(c("trinity", "trinity_no_norm") %in% assemblers)
+      spades <- assembly && "rnaspades" %in% assemblers
+      ribo <- isTRUE(as.logical(param$remove_ribo_rna))
+      c(
+        "Ewels, P.A. et al. The nf-core framework for community-curated bioinformatics pipelines. Nat Biotechnol 38(3), 276-278 (2020). https://doi.org/10.1038/s41587-020-0439-x",
+        "Di Tommaso, P. et al. Nextflow enables reproducible computational workflows. Nat Biotechnol 35(4), 316-319 (2017). https://doi.org/10.1038/nbt.3820",
+        "nf-core/denovotranscript. nf-core. https://nf-co.re/denovotranscript",
+        "Chen, S. Ultrafast one-pass FASTQ data preprocessing, quality control, and deduplication using fastp. iMeta 2(2), e107 (2023). https://doi.org/10.1002/imt2.107",
+        "Andrews, S. FastQC: A Quality Control Tool for High Throughput Sequence Data. (2010). https://www.bioinformatics.babraham.ac.uk/projects/fastqc/",
+        if (ribo) "Kopylova, E., Noé, L. & Touzet, H. SortMeRNA: fast and accurate filtering of ribosomal RNAs in metatranscriptomic data. Bioinformatics 28(24), 3211-3217 (2012). https://doi.org/10.1093/bioinformatics/bts611",
+        if (ribo) "Quast, C. et al. The SILVA ribosomal RNA gene database project: improved data processing and web-based tools. Nucleic Acids Research 41(D1), D590-D596 (2013). https://doi.org/10.1093/nar/gks1219",
+        if (ribo) "Burge, S.W. et al. Rfam 11.0: 10 years of RNA families. Nucleic Acids Research 41(D1), D226-D232 (2013). https://doi.org/10.1093/nar/gks1005",
+        if (trinity) "Grabherr, M.G. et al. Full-length transcriptome assembly from RNA-Seq data without a reference genome. Nat Biotechnol 29(7), 644-652 (2011). https://doi.org/10.1038/nbt.1883",
+        if (trinity) "Haas, B.J. et al. De novo transcript sequence reconstruction from RNA-seq using the Trinity platform for reference generation and analysis. Nature Protocols 8(8), 1494-1512 (2013). https://doi.org/10.1038/nprot.2013.084",
+        if (spades) "Bushmanova, E., Antipov, D., Lapidus, A. & Prjibelski, A.D. rnaSPAdes: a de novo transcriptome assembler and its application to RNA-Seq data. GigaScience 8(9), giz100 (2019). https://doi.org/10.1093/gigascience/giz100",
+        if (spades) "Prjibelski, A., Antipov, D., Meleshko, D., Lapidus, A. & Korobeynikov, A. Using SPAdes de novo assembler. Current Protocols in Bioinformatics 70(1), e102 (2020). https://doi.org/10.1002/cpbi.102",
+        if (assembly) "Gilbert, D.G. Longest protein, longest transcript or most expression, for accurate gene reconstruction of transcriptomes? bioRxiv (2019) [preprint, not peer-reviewed]. https://doi.org/10.1101/829184",
+        if (assembly) "Manni, M., Berkeley, M.R., Seppey, M., Simão, F.A. & Zdobnov, E.M. BUSCO update: novel and streamlined workflows along with broader and deeper phylogenetic coverage for scoring of eukaryotic, prokaryotic, and viral genomes. Molecular Biology and Evolution 38(10), 4647-4654 (2021). https://doi.org/10.1093/molbev/msab199",
+        if (assembly) "Bushmanova, E., Antipov, D., Lapidus, A., Suvorov, V. & Prjibelski, A.D. rnaQUAST: a quality assessment tool for de novo transcriptome assemblies. Bioinformatics 32(14), 2210-2212 (2016). https://doi.org/10.1093/bioinformatics/btw218",
+        if (assembly) "Smith-Unna, R., Boursnell, C., Patro, R., Hibberd, J.M. & Kelly, S. TransRate: reference-free quality assessment of de novo transcriptome assemblies. Genome Research 26(8), 1134-1144 (2016). https://doi.org/10.1101/gr.196469.115",
+        if (assembly) "MacManes, M.D. The Oyster River Protocol: a multi-assembler and kmer approach for de novo transcriptome assembly. PeerJ 6, e5428 (2018). https://doi.org/10.7717/peerj.5428",
+        if (assembly) "Patro, R., Duggal, G., Love, M.I., Irizarry, R.A. & Kingsford, C. Salmon provides fast and bias-aware quantification of transcript expression. Nat Methods 14(4), 417-419 (2017). https://doi.org/10.1038/nmeth.4197"
+      )
+    },
     initialize = function() {
       "Initializes the application"
       callSuper()

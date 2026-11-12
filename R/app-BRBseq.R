@@ -458,6 +458,22 @@ EzAppBRBseq <-
     "EzAppBRBseq",
     contains = "EzApp",
     methods = list(
+      ## STAR, STARsolo and the BRB-seq protocol paper unconditional: runBRBStarsolo always maps and
+      ## demultiplexes with STARsolo (with starsoloDir, finished STARsolo runs of the same layout are
+      ## adopted), and the BRB-seq read layout defines the demultiplexing. goseq and GO.db only when
+      ## runCountQC is not false (default TRUE): runBRBCountQC calls ezMethodCountQC with runGO = TRUE
+      ## (GO over-representation of the feature clusters), as cited by EzAppCountQC. samtools (BAM
+      ## index for keepBam), the Y-gene sex check and limma plotMDS (a CountQC plot) are not cited.
+      citation = function(param = list()) {
+        countQC <- !isFALSE(as.logical(param$runCountQC))
+        c(
+          "Dobin, A. et al. STAR: ultrafast universal RNA-seq aligner. Bioinformatics 29(1), 15-21 (2013). https://doi.org/10.1093/bioinformatics/bts635",
+          "Kaminow, B., Yunusov, D. & Dobin, A. STARsolo: accurate, fast and versatile mapping/quantification of single-cell and single-nucleus RNA-seq data. bioRxiv (2021) [preprint, not peer-reviewed]. https://doi.org/10.1101/2021.05.05.442755",
+          "Alpern, D. et al. BRB-seq: ultra-affordable high-throughput transcriptomics enabled by bulk RNA barcoding and sequencing. Genome Biology 20, 71 (2019). https://doi.org/10.1186/s13059-019-1671-x",
+          if (countQC) "Young, M.D., Wakefield, M.J., Smyth, G.K. & Oshlack, A. Gene ontology analysis for RNA-seq: accounting for selection bias. Genome Biology 11, R14 (2010). https://doi.org/10.1186/gb-2010-11-2-r14",
+          if (countQC) "Carlson, M. GO.db: A set of annotation maps describing the entire Gene Ontology. R package. https://doi.org/10.18129/B9.bioc.GO.db"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBRBseq

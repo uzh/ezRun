@@ -14,6 +14,13 @@ EzAppBamBoozle <-
     "EzAppBamBoozle",
     contains = "EzApp",
     methods = list(
+      ## BAMboozle, unconditional: it always runs on the input BAM (ezMethodBamBoozle, :38-49).
+      ## samtools sort and bedtools bamtofastq only convert its output to FASTQ: not cited.
+      citation = function(param = list()) {
+        c(
+          "Ziegenhain, C. & Sandberg, R. BAMboozle removes genetic variation from human sequence data for open data sharing. Nature Communications 12, 6216 (2021). https://doi.org/10.1038/s41467-021-26152-8"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBamBoozle
