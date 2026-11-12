@@ -737,6 +737,11 @@ EzApp <-
                                                "*", "config.csv")))
         }
         param <- if (!is.null(gstore_script_dir)) readRunParameters(dirname(gstore_script_dir)) else list()
+        ## parameters.tsv does not record the result folder; citation() can use it to read what
+        ## the run recorded at run time (e.g. EzAppXeniumSeurat's RCTD engine fallback).
+        if (!is.null(gstore_script_dir) && is.null(param$resultDir)) {
+          param$resultDir <- dirname(gstore_script_dir)
+        }
 
         ## SUSHI's sample_count is the number of job scripts, so a DATASET-mode run (one
         ## script for all samples) reports 1. Its samples are the "samples" parameter; the
