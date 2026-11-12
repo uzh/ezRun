@@ -1326,6 +1326,21 @@ EzAppBWA <-
     "EzAppBWA",
     contains = "EzApp",
     methods = list(
+      ## fastp unconditional (ezMethodFastpTrim always runs). BWA-MEM paper when
+      ## param$algorithm is "mem" (default). aln is not cited: the read-group string is passed
+      ## to `bwa aln` as -R, which there is a search limit (parsed as 0), and samse/sampe get no
+      ## read group, so the aln branch does not run as intended. bwasw is not cited: `bwa bwasw`
+      ## rejects the -R read-group option, so that branch fails.
+      ## Picard MarkDuplicates unless markDuplicates is false (default TRUE, dupBam in
+      ## ezMethodBWA). samtools only converts, sorts and indexes: not cited.
+      citation = function(param = list()) {
+        alg <- if (ezIsSpecified(param$algorithm)) param$algorithm else "mem"
+        c(
+          if (alg == "mem") "Li, H. Aligning sequence reads, clone sequences and assembly contigs with BWA-MEM. arXiv 1303.3997 (2013). https://doi.org/10.48550/arXiv.1303.3997",
+          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
+          if (!isFALSE(as.logical(param$markDuplicates))) "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBWA
@@ -1442,6 +1457,14 @@ EzAppMinimap2 <-
     "EzAppMinimap2",
     contains = "EzApp",
     methods = list(
+      ## minimap2 and fastp unconditional (ezMethodMinimap2 always runs ezMethodFastpTrim, then
+      ## minimap2). samtools only sorts and indexes: not cited.
+      citation = function(param = list()) {
+        c(
+          "Li, H. Minimap2: pairwise alignment for nucleotide sequences. Bioinformatics 34(18), 3094-3100 (2018). https://doi.org/10.1093/bioinformatics/bty191",
+          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodMinimap2

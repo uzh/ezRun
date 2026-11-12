@@ -104,6 +104,27 @@ EzAppSpades <-
     "EzAppSpades",
     contains = "EzApp",
     methods = list(
+      ## fastp: read trimming, always runs (ezMethodFastpTrim call in ezMethodSpades).
+      ## SPAdes: always runs; Prjibelski 2020 is the paper the SPAdes README asks to cite.
+      ## Bankevich 2012: the README asks for it with single-cell data (--sc).
+      ## metaSPAdes / plasmidSPAdes: when --meta / --plasmid is in the SPAdes options
+      ## (spadesBasicOpt, spadesPipeOpt or cmdOptions, all pasted into the spades.py call).
+      ## rnaSPAdes: when --rna is in cmdOptions, the condition ezMethodSpades uses to deliver
+      ## the transcripts.
+      citation = function(param = list()) {
+        spadesOpts <- paste(param$spadesBasicOpt, param$spadesPipeOpt, param$cmdOptions)
+        hasOpt <- function(x, flag) {
+          isTRUE(grepl(paste0("(^|\\s)", flag, "(\\s|$)"), x))
+        }
+        c(
+          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
+          "Prjibelski, A., Antipov, D., Meleshko, D., Lapidus, A. & Korobeynikov, A. Using SPAdes de novo assembler. Current Protocols in Bioinformatics 70(1), e102 (2020). https://doi.org/10.1002/cpbi.102",
+          if (hasOpt(spadesOpts, "--sc")) "Bankevich, A. et al. SPAdes: a new genome assembly algorithm and its applications to single-cell sequencing. Journal of Computational Biology 19(5), 455-477 (2012). https://doi.org/10.1089/cmb.2012.0021",
+          if (hasOpt(spadesOpts, "--meta")) "Nurk, S., Meleshko, D., Korobeynikov, A. & Pevzner, P.A. metaSPAdes: a new versatile metagenomic assembler. Genome Research 27(5), 824-834 (2017). https://doi.org/10.1101/gr.213959.116",
+          if (hasOpt(spadesOpts, "--plasmid")) "Antipov, D., Hartwick, N., Shen, M., Raiko, M., Lapidus, A. & Pevzner, P.A. plasmidSPAdes: assembling plasmids from whole genome sequencing data. Bioinformatics 32(22), 3380-3387 (2016). https://doi.org/10.1093/bioinformatics/btw493",
+          if (hasOpt(param$cmdOptions, "--rna")) "Bushmanova, E., Antipov, D., Lapidus, A. & Prjibelski, A.D. rnaSPAdes: a de novo transcriptome assembler and its application to RNA-Seq data. GigaScience 8(9), giz100 (2019). https://doi.org/10.1093/gigascience/giz100"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSpades

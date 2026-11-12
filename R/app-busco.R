@@ -49,6 +49,19 @@ EzAppBusco <-
     "EzAppBusco",
     contains = "EzApp",
     methods = list(
+      ## BUSCO: always runs (ezMethodBusco); Manni 2021 is the BUSCO v5 paper.
+      ## OrthoDB v10: the lineage datasets of BUSCO 5 (a lineage without suffix gets _odb10);
+      ## left out only when param$lineage names another OrthoDB release. OrthoDB v12 (Tegenfeldt
+      ## 2025, the OrthoDB/BUSCO update that introduced the _odb12 sets) for an _odb12 lineage:
+      ## BUSCO 5.8.0 accepts it and busco-data.ezlab.org serves _odb10 and _odb12 sets only (no
+      ## _odb11 lineages exist, so none is cited).
+      citation = function(param = list()) {
+        c(
+          "Manni, M., Berkeley, M.R., Seppey, M., Simão, F.A. & Zdobnov, E.M. BUSCO update: novel and streamlined workflows along with broader and deeper phylogenetic coverage for scoring of eukaryotic, prokaryotic, and viral genomes. Molecular Biology and Evolution 38(10), 4647-4654 (2021). https://doi.org/10.1093/molbev/msab199",
+          if (!isTRUE(grepl("_odb(?!10)[0-9]+", param$lineage, perl = TRUE))) "Kriventseva, E.V. et al. OrthoDB v10: sampling the diversity of animal, plant, fungal, protist, bacterial and viral genomes for evolutionary and functional annotations of orthologs. Nucleic Acids Research 47(D1), D807-D811 (2019). https://doi.org/10.1093/nar/gky1053",
+          if (isTRUE(grepl("_odb12", param$lineage))) "Tegenfeldt, F., Kuznetsov, D., Manni, M., Berkeley, M., Zdobnov, E.M. & Kriventseva, E.V. OrthoDB and BUSCO update: annotation of orthologs with wider sampling of genomes. Nucleic Acids Research 53(D1), D516-D522 (2025). https://doi.org/10.1093/nar/gkae987"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBusco

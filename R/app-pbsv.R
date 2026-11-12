@@ -104,6 +104,14 @@ EzAppPbsv <-
     "EzAppPbsv",
     contains = "EzApp",
     methods = list(
+      ## pbsv unconditional (discover and call always run in ezMethodPbsv; no paper). SURVIVOR
+      ## stats only summarises the VCF for the report, bgzip/tabix only compress and index:
+      ## not cited.
+      citation = function(param = list()) {
+        c(
+          "pbsv. Pacific Biosciences. https://github.com/PacificBiosciences/pbsv"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodPbsv
