@@ -18,6 +18,18 @@ EzAppTargetedSeqQC <-
     "EzAppTargetedSeqQC",
     contains = "EzApp",
     methods = list(
+      ## Picard (CollectHsMetrics), mosdepth, samtools stats/flagstat/idxstats and MultiQC run for
+      ## every job (.runSampleTargetedQC, ezMethodTargetedSeqQC); the optional MarkDuplicates and
+      ## CollectInsertSizeMetrics are Picard too. VerifyBamID2 is not cited: it runs only when a
+      ## VerifyBamID binary is on PATH, which none of the app's modules provides.
+      citation = function(param = list()) {
+        c(
+          "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+          "Pedersen, B.S. & Quinlan, A.R. Mosdepth: quick coverage calculation for genomes and exomes. Bioinformatics 34(5), 867-868 (2018). https://doi.org/10.1093/bioinformatics/btx699",
+          "Danecek, P. et al. Twelve years of SAMtools and BCFtools. GigaScience 10(2), giab008 (2021). https://doi.org/10.1093/gigascience/giab008",
+          "Ewels, P., Magnusson, M., Lundin, S. & Käller, M. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics 32(19), 3047-3048 (2016). https://doi.org/10.1093/bioinformatics/btw354"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodTargetedSeqQC

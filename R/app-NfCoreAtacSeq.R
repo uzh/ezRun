@@ -70,6 +70,45 @@ EzAppNfCoreAtacSeq <- setRefClass(
   "EzAppNfCoreAtacSeq",
   contains = "EzApp",
   methods = list(
+    ## nf-core/atacseq (buildNfCoreAtacCmd) and the tools of its CITATIONS.md that run with the
+    ## options the app passes (no --genome, --blacklist or --mito_name; skip_* left at defaults):
+    ## - nf-core and Nextflow: the pipeline framework, always.
+    ## - FastQC, Trim Galore/Cutadapt: read QC and trimming, always (skip_trimming false).
+    ## - BWA: alignment (aligner bwa, the pipeline default), always.
+    ## - Picard (MarkDuplicates, metrics), BamTools (read filter): always.
+    ## - SAMtools: flag/MAPQ read filter (BAMTOOLS_FILTER: unmapped, unpaired, duplicates, MAPQ < 1), always.
+    ## - BEDTools, UCSC bedGraphToBigWig: scaled bigWigs and consensus peaks, always.
+    ## - deepTools: TSS/gene-body profiles and fingerprints, always.
+    ## - MACS2: peak calling, always (broad or narrow by peakStyle).
+    ## - HOMER annotatePeaks.pl: peak annotation, always (skip_peak_annotation false).
+    ## - featureCounts: consensus-peak counts, the per-sample Count files of the app, always.
+    ## - DESeq2: PCA/clustering QC of the consensus counts, always (skip_deseq2_qc false).
+    ## - ataqv, MultiQC: ATAC-seq QC and report, always.
+    ## - preseq: only when cmdOptions switches it on (skip_preseq is true by default in 2.1.2).
+    citation = function(param = list()) {
+      cmdOptions <- if (is.null(param$cmdOptions)) "" else param$cmdOptions
+      c(
+        "Ewels, P.A. et al. The nf-core framework for community-curated bioinformatics pipelines. Nature Biotechnology 38(3), 276-278 (2020). https://doi.org/10.1038/s41587-020-0439-x",
+        "Di Tommaso, P. et al. Nextflow enables reproducible computational workflows. Nat Biotechnol 35(4), 316-319 (2017). https://doi.org/10.1038/nbt.3820",
+        "Andrews, S. FastQC: A Quality Control Tool for High Throughput Sequence Data. (2010). https://www.bioinformatics.babraham.ac.uk/projects/fastqc/",
+        "Trim Galore. Babraham Bioinformatics. https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/",
+        "Martin, M. Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.journal 17(1), 10-12 (2011). https://doi.org/10.14806/ej.17.1.200",
+        "Li, H. & Durbin, R. Fast and accurate short read alignment with Burrows-Wheeler transform. Bioinformatics 25(14), 1754-1760 (2009). https://doi.org/10.1093/bioinformatics/btp324",
+        "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+        "Barnett, D.W., Garrison, E.K., Quinlan, A.R., Strömberg, M.P. & Marth, G.T. BamTools: a C++ API and toolkit for analyzing and managing BAM files. Bioinformatics 27(12), 1691-1692 (2011). https://doi.org/10.1093/bioinformatics/btr174",
+        "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
+        "Quinlan, A.R. & Hall, I.M. BEDTools: a flexible suite of utilities for comparing genomic features. Bioinformatics 26, 841-842 (2010). https://doi.org/10.1093/bioinformatics/btq033",
+        "Kent, W.J. et al. BigWig and BigBed: enabling browsing of large distributed datasets. Bioinformatics 26, 2204-2207 (2010). https://doi.org/10.1093/bioinformatics/btq351",
+        "Ramírez, F. et al. deepTools2: a next generation web server for deep-sequencing data analysis. Nucleic Acids Research 44, W160-W165 (2016). https://doi.org/10.1093/nar/gkw257",
+        "Zhang, Y. et al. Model-based Analysis of ChIP-Seq (MACS). Genome Biology 9, R137 (2008). https://doi.org/10.1186/gb-2008-9-9-r137",
+        "Heinz, S. et al. Simple combinations of lineage-determining transcription factors prime cis-regulatory elements required for macrophage and B cell identities. Molecular Cell 38, 576-589 (2010). https://doi.org/10.1016/j.molcel.2010.05.004",
+        "Liao, Y., Smyth, G.K. & Shi, W. featureCounts: an efficient general purpose program for assigning sequence reads to genomic features. Bioinformatics 30(7), 923-930 (2014). https://doi.org/10.1093/bioinformatics/btt656",
+        "Love, M.I., Huber, W. & Anders, S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 15, 550 (2014). https://doi.org/10.1186/s13059-014-0550-8",
+        "Orchard, P., Kyono, Y., Hensley, J., Kitzman, J.O. & Parker, S.C.J. Quantification, dynamic visualization, and validation of bias in ATAC-seq data with ataqv. Cell Systems 10(3), 298-306.e4 (2020). https://doi.org/10.1016/j.cels.2020.02.009",
+        "Ewels, P., Magnusson, M., Lundin, S. & Käller, M. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics 32(19), 3047-3048 (2016). https://doi.org/10.1093/bioinformatics/btw354",
+        if (grepl("--skip_preseq\\s+false", cmdOptions)) "Daley, T. & Smith, A.D. Predicting the molecular complexity of sequencing libraries. Nature Methods 10(4), 325-327 (2013). https://doi.org/10.1038/nmeth.2375"
+      )
+    },
     initialize = function() {
       "Initializes the application using its specific defaults."
       runMethod <<- ezMethodNfCoreAtacSeq
