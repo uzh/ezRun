@@ -277,6 +277,15 @@ EzAppXeniumQC <-
     "EzAppXeniumQC",
     contains = "EzApp",
     methods = list(
+      ## Xenium Onboard Analysis unconditional: every metric, panel and alert in the report is read
+      ## from its output folder (ezMethodXeniumQC: metrics_summary.csv, gene/protein_panel.json,
+      ## analysis_summary.html), and that input is instrument output with no Methods section of its
+      ## own. jsonlite, dplyr and the plotting packages are helpers: not cited.
+      citation = function(param = list()) {
+        c(
+          "10x Genomics. Xenium Onboard Analysis. https://www.10xgenomics.com/support/software/xenium-onboard-analysis"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodXeniumQC

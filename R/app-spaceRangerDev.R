@@ -10,6 +10,27 @@ EzAppSpaceRangerDev <-
     "EzAppSpaceRangerDev",
     contains = "EzApp",
     methods = list(
+      ## spaceranger count unconditional (ezMethodSpaceRangerDev), with the Visium method paper as
+      ## in EzAppSpaceRanger. StarDist (Space Ranger's nucleus segmentation model) only when
+      ## runSegmentation is true and Space Ranger is 4 or later: otherwise --nucleus-segmentation=false
+      ## is passed, and Space Ranger 3 has no segmentation (ezMethodSpaceRangerDev, "--nucleus-segmentation");
+      ## With darkImage=true (specialOptions) the image goes in as --darkimage and no segmentation
+      ## runs, so StarDist is not cited then. The H-slide brightfield image segmentation also needs
+      ## is data, not a parameter: a non-H slide or a missing Image column still cites StarDist
+      ## (data condition, accepted). A missing
+      ## SpaceRangerVersion means the form default 4.1.0. Not cited: samtools (BAM-to-CRAM only),
+      ## cellranger mkref, Biostrings and rtracklayer (reference files), tiffsplit (image page).
+      citation = function(param = list()) {
+        srMajor <- suppressWarnings(as.numeric(sub("\\..*", "", basename(as.character(param$SpaceRangerVersion)))))
+        opt <- tryCatch(parseOptions(param$specialOptions), error = function(e) list())
+        dark <- isTRUE(as.logical(param$darkImage)) || isTRUE(as.logical(opt$darkImage))
+        seg <- isTRUE(as.logical(param$runSegmentation)) && !dark && (length(srMajor) == 0 || isTRUE(srMajor >= 4))
+        c(
+          "10x Genomics. Space Ranger. https://www.10xgenomics.com/support/software/space-ranger",
+          "Ståhl, P.L. et al. Visualization and analysis of gene expression in tissue sections by spatial transcriptomics. Science 353(6294), 78-82 (2016). https://doi.org/10.1126/science.aaf2403",
+          if (seg) "Schmidt, U., Weigert, M., Broaddus, C. & Myers, G. Cell detection with star-convex polygons. Medical Image Computing and Computer Assisted Intervention - MICCAI 2018, Lecture Notes in Computer Science 11071, 265-273 (2018). https://doi.org/10.1007/978-3-030-00934-2_30"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSpaceRangerDev

@@ -14,6 +14,14 @@ EzAppCellRangerATAC <-
     "EzAppCellRangerATAC",
     contains = "EzApp",
     methods = list(
+      ## cellranger-atac count: every job (ezMethodCellRangerATAC); the software and 10x's scATAC-seq
+      ## method paper (Satpathy et al. 2019), both unconditional, as Cell Ranger + Zheng et al. 2017.
+      citation = function(param = list()) {
+        c(
+          "10x Genomics. Cell Ranger ATAC. https://www.10xgenomics.com/support/software/cell-ranger-atac",
+          "Satpathy, A.T. et al. Massively parallel single-cell chromatin landscapes of human immune cell development and intratumoral T cell exhaustion. Nature Biotechnology 37, 925-936 (2019). https://doi.org/10.1038/s41587-019-0206-z"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCellRangerATAC
