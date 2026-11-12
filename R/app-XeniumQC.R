@@ -41,6 +41,7 @@ ezMethodXeniumQC <- function(
   ###Collect Stats from each Xenium output directory
   stats <- data.frame()
   allAlarms <- data.frame()
+  missingMetrics <- character(0)
 
   for (j in 1:nrow(dataset)) {
     sampleName <- rownames(dataset)[j]
@@ -50,6 +51,7 @@ ezMethodXeniumQC <- function(
     metricsFile <- file.path(xeniumPath, 'metrics_summary.csv')
     if (!file.exists(metricsFile)) {
       warning(paste("Metrics file not found for", sampleName, ":", metricsFile))
+      missingMetrics <- c(missingMetrics, metricsFile)
       next
     }
 
@@ -203,6 +205,13 @@ ezMethodXeniumQC <- function(
       dplyr::bind_rows(stats, sampleStats),
       check.names = FALSE, stringsAsFactors = FALSE
     )
+  }
+
+  ## Every region was skipped: say which files are missing instead of failing below on the
+  ## empty table ("undefined columns selected").
+  if (nrow(stats) == 0) {
+    stop("No region has a metrics_summary.csv, so there is nothing to report. Missing:\n",
+         paste(missingMetrics, collapse = "\n"))
   }
 
   # Clean up column names and round numeric values
