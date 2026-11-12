@@ -13,12 +13,12 @@ EzAppSpaceRangerDev <-
       ## spaceranger count unconditional (ezMethodSpaceRangerDev), with the Visium method paper as
       ## in EzAppSpaceRanger. StarDist (Space Ranger's nucleus segmentation model) only when
       ## runSegmentation is true and Space Ranger is 4 or later: otherwise --nucleus-segmentation=false
-      ## is passed, and Space Ranger 3 has no segmentation (ezMethodSpaceRangerDev, "--nucleus-segmentation");
-      ## With darkImage=true (specialOptions) the image goes in as --darkimage and no segmentation
-      ## runs, so StarDist is not cited then. The H-slide brightfield image segmentation also needs
-      ## is data, not a parameter: a non-H slide or a missing Image column still cites StarDist
-      ## (data condition, accepted). A missing
-      ## SpaceRangerVersion means the form default 4.1.0. Not cited: samtools (BAM-to-CRAM only),
+      ## is passed, and Space Ranger 3 has no segmentation (ezMethodSpaceRangerDev, "--nucleus-segmentation").
+      ## With darkImage=true (parameter or specialOptions) the image goes in as --darkimage and no
+      ## segmentation runs, so StarDist is not cited then. Segmentation also needs an H-slide with a
+      ## brightfield image, which is data, not a parameter: a non-H slide or a missing Image column
+      ## still cites StarDist (data condition, accepted). A missing SpaceRangerVersion means the form
+      ## default 4.1.0. Not cited: samtools (BAM-to-CRAM only),
       ## cellranger mkref, Biostrings and rtracklayer (reference files), tiffsplit (image page).
       citation = function(param = list()) {
         srMajor <- suppressWarnings(as.numeric(sub("\\..*", "", basename(as.character(param$SpaceRangerVersion)))))
