@@ -316,6 +316,27 @@ EzAppHUMAnN <-
     "EzAppHUMAnN",
     contains = "EzApp",
     methods = list(
+      ## HUMAnN 4.0.0a2 (conda env gi_qiime2-amplicon-2026.4) has no paper of its own; its docs ask
+      ## for the bioBakery 3 paper. fastp (ezMethodFastpTrim, always), DIAMOND (translated search,
+      ## both modes), MinPath (HUMAnN default --minpath on), UniRef90 and MetaCyc (the protein DB and
+      ## the pathway DB HUMAnN uses) unconditional. Bowtie 2 (nucleotide search against ChocoPhlAn,
+      ## full mode only) unless forceTranslatedOnly is true: full mode also needs a vOct22 MetaPhlAn
+      ## profile with read statistics (ezMethodHUMAnN step 3). That is data-dependent and not in
+      ## the parameters, so Bracken/Kraken input, other MetaPhlAn databases and profiles without
+      ## read statistics (always translated-only) still get Bowtie 2 cited. KEGG unless
+      ## both regroupKEGGKO and inferTaxonomy are false (the KO tables, steps 6 and 6b).
+      citation = function(param = list()) {
+        c(
+          "Beghini, F. et al. Integrating taxonomic, functional, and strain-level profiling of diverse microbial communities with bioBakery 3. eLife 10, e65088 (2021). https://doi.org/10.7554/eLife.65088",
+          "Buchfink, B., Reuter, K. & Drost, H.G. Sensitive protein alignments at tree-of-life scale using DIAMOND. Nature Methods 18, 366-368 (2021). https://doi.org/10.1038/s41592-021-01101-x",
+          if (!isTRUE(as.logical(param$forceTranslatedOnly))) "Langmead, B. & Salzberg, S.L. Fast gapped-read alignment with Bowtie 2. Nat Methods 9, 357-359 (2012). https://doi.org/10.1038/nmeth.1923",
+          "Ye, Y. & Doak, T.G. A parsimony approach to biological pathway reconstruction/inference for genomes and metagenomes. PLoS Computational Biology 5(8), e1000465 (2009). https://doi.org/10.1371/journal.pcbi.1000465",
+          "Suzek, B.E. et al. UniRef clusters: a comprehensive and scalable alternative for improving sequence similarity searches. Bioinformatics 31(6), 926-932 (2015). https://doi.org/10.1093/bioinformatics/btu739",
+          "Caspi, R. et al. The MetaCyc database of metabolic pathways and enzymes - a 2019 update. Nucleic Acids Research 48(D1), D445-D453 (2020). https://doi.org/10.1093/nar/gkz862",
+          if (!isFALSE(as.logical(param$regroupKEGGKO)) || !isFALSE(as.logical(param$inferTaxonomy))) "Kanehisa, M. & Goto, S. KEGG: Kyoto Encyclopedia of Genes and Genomes. Nucleic Acids Research 28(1), 27-30 (2000). https://doi.org/10.1093/nar/28.1.27",
+          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodHUMAnN

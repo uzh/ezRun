@@ -57,6 +57,13 @@ EzAppBracken <-
     "EzAppBracken",
     contains = "EzApp",
     methods = list(
+      ## Bracken (module Tools/Bracken 3.1) is the only tool run (ezMethodBracken); Kraken 2
+      ## classified the reads upstream (KrakenApp) and is cited there.
+      citation = function(param = list()) {
+        c(
+          "Lu, J., Breitwieser, F.P., Thielen, P. & Salzberg, S.L. Bracken: estimating species abundance in metagenomics data. PeerJ Computer Science 3, e104 (2017). https://doi.org/10.7717/peerj-cs.104"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBracken

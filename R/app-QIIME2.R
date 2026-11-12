@@ -301,6 +301,47 @@ EzAppQIIME2 <-
     "ezMethodQIIME2",
     contains = "EzApp",
     methods = list(
+      ## Batch (inst/scripts/QIIME2/unifiedQIIME2Workflow.*.batch): QIIME 2, DADA2, q2-feature-classifier
+      ## (extract-reads + naive Bayes, or a prebuilt classifier), MAFFT + FastTree (align-to-tree-mafft-
+      ## fasttree) and the UniFrac and Faith's PD metrics of core-metrics-phylogenetic (weighted UniFrac
+      ## PERMANOVA in the batch, Faith's PD tests in the report) unconditional; fastp unless run_fastp is false (step 1, default true); PICRUSt2 only
+      ## when run_picrust2 is true (step 18). Report (Qiime2Report.Rmd), unconditional (needs >= 2 groups,
+      ## data-dependent): phyloseq (filtering, rarefaction, richness), vegan adonis2 PERMANOVA + betadisper,
+      ## pairwiseAdonis, ANCOM-BC2, DESeq2, edgeR, LEfSe via microbiomeMarker, ALDEx2; metagenomeSeq only
+      ## in the PICRUSt2 section. Reference: SILVA / Greengenes from the database label, or from the
+      ## prebuilt classifier's file name when classifier_path is set (the classifier then defines the
+      ## taxonomy, the database is not used).
+      citation = function(param = list()) {
+        cp <- as.character(param$classifier_path)
+        ref <- if (length(cp) == 1 && nzchar(cp) && cp != "NONE") basename(cp) else as.character(param$database)
+        ref <- tolower(paste(ref, collapse = " "))
+        picrust <- isTRUE(as.logical(param$run_picrust2))
+        c(
+          "Bolyen, E. et al. Reproducible, interactive, scalable and extensible microbiome data science using QIIME 2. Nature Biotechnology 37, 852-857 (2019). https://doi.org/10.1038/s41587-019-0209-9",
+          if (!isFALSE(as.logical(param$run_fastp))) "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
+          "Callahan, B.J. et al. DADA2: High-resolution sample inference from Illumina amplicon data. Nature Methods 13, 581-583 (2016). https://doi.org/10.1038/nmeth.3869",
+          "Bokulich, N.A. et al. Optimizing taxonomic classification of marker-gene amplicon sequences with QIIME 2's q2-feature-classifier plugin. Microbiome 6, 90 (2018). https://doi.org/10.1186/s40168-018-0470-z",
+          if (grepl("silva", ref)) "Quast, C. et al. The SILVA ribosomal RNA gene database project: improved data processing and web-based tools. Nucleic Acids Research 41(D1), D590-D596 (2013). https://doi.org/10.1093/nar/gks1219",
+          if (grepl("greengenes|^gg[-_]", ref)) "McDonald, D. et al. An improved Greengenes taxonomy with explicit ranks for ecological and evolutionary analyses of bacteria and archaea. The ISME Journal 6, 610-618 (2012). https://doi.org/10.1038/ismej.2011.139",
+          "Katoh, K. & Standley, D.M. MAFFT multiple sequence alignment software version 7: improvements in performance and usability. Molecular Biology and Evolution 30(4), 772-780 (2013). https://doi.org/10.1093/molbev/mst010",
+          "Price, M.N., Dehal, P.S. & Arkin, A.P. FastTree 2 - approximately maximum-likelihood trees for large alignments. PLoS ONE 5(3), e9490 (2010). https://doi.org/10.1371/journal.pone.0009490",
+          "Lozupone, C. & Knight, R. UniFrac: a new phylogenetic method for comparing microbial communities. Applied and Environmental Microbiology 71(12), 8228-8235 (2005). https://doi.org/10.1128/AEM.71.12.8228-8235.2005",
+          "Faith, D.P. Conservation evaluation and phylogenetic diversity. Biological Conservation 61(1), 1-10 (1992). https://doi.org/10.1016/0006-3207(92)91201-3",
+          if (picrust) "Douglas, G.M. et al. PICRUSt2 for prediction of metagenome functions. Nature Biotechnology 38, 685-688 (2020). https://doi.org/10.1038/s41587-020-0548-6",
+          "McMurdie, P.J. & Holmes, S. phyloseq: an R package for reproducible interactive analysis and graphics of microbiome census data. PLoS ONE 8(4), e61217 (2013). https://doi.org/10.1371/journal.pone.0061217",
+          "Anderson, M.J. A new method for non-parametric multivariate analysis of variance. Austral Ecology 26(1), 32-46 (2001). https://doi.org/10.1111/j.1442-9993.2001.01070.pp.x",
+          "Oksanen, J. et al. vegan: Community Ecology Package. R package. https://CRAN.R-project.org/package=vegan",
+          "Martinez Arbizu, P. pairwiseAdonis: Pairwise multilevel comparison using adonis. R package. https://github.com/pmartinezarbizu/pairwiseAdonis",
+          "Lin, H. & Peddada, S.D. Multigroup analysis of compositions of microbiomes with covariate adjustments and repeated measures. Nature Methods 21, 83-91 (2024). https://doi.org/10.1038/s41592-023-02092-7",
+          "Love, M.I., Huber, W. & Anders, S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 15, 550 (2014). https://doi.org/10.1186/s13059-014-0550-8",
+          "Robinson, M.D., McCarthy, D.J. & Smyth, G.K. edgeR: a Bioconductor package for differential expression analysis of digital gene expression data. Bioinformatics 26(1), 139-140 (2010). https://doi.org/10.1093/bioinformatics/btp616",
+          "Segata, N. et al. Metagenomic biomarker discovery and explanation. Genome Biology 12, R60 (2011). https://doi.org/10.1186/gb-2011-12-6-r60",
+          "Cao, Y. et al. microbiomeMarker: an R/Bioconductor package for microbiome marker identification and visualization. Bioinformatics 38(16), 4027-4029 (2022). https://doi.org/10.1093/bioinformatics/btac438",
+          "Fernandes, A.D., Macklaim, J.M., Linn, T.G., Reid, G. & Gloor, G.B. ANOVA-like differential expression (ALDEx) analysis for mixed population RNA-Seq. PLoS ONE 8(7), e67019 (2013). https://doi.org/10.1371/journal.pone.0067019",
+          "Fernandes, A.D. et al. Unifying the analysis of high-throughput sequencing datasets: characterizing RNA-seq, 16S rRNA gene sequencing and selective growth experiments by compositional data analysis. Microbiome 2, 15 (2014). https://doi.org/10.1186/2049-2618-2-15",
+          if (picrust) "Paulson, J.N., Stine, O.C., Bravo, H.C. & Pop, M. Differential abundance analysis for microbial marker-gene surveys. Nature Methods 10, 1200-1202 (2013). https://doi.org/10.1038/nmeth.2658"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodQIIME2
