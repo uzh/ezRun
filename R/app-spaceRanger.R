@@ -10,18 +10,13 @@ EzAppSpaceRanger <-
     "EzAppSpaceRanger",
     contains = "EzApp",
     methods = list(
-      ## spaceranger count unconditional. samtools (CRAM) only when keepAlignment is true.
-      ## rtracklayer unconditional (getCellRangerGEXReference exports the transcriptTypes GTF
-      ## whenever it builds a reference). Biostrings only with a customised reference
-      ## (controlSeqs or secondRef, both declared by SpaceRangerApp.rb; extendThreePrime is read
-      ## by the shared helper but not declared).
+      ## spaceranger count unconditional, with the Visium method paper. Not cited: samtools
+      ## (BAM-to-CRAM conversion with keepAlignment), Biostrings and rtracklayer (writing the
+      ## reference FASTA/GTF for transcriptTypes, controlSeqs or secondRef): file utilities.
       citation = function(param = list()) {
-        custom <- ezIsSpecified(param$controlSeqs) || ezIsSpecified(param$secondRef) || ezIsSpecified(param$extendThreePrime)
         c(
           "10x Genomics. Space Ranger. https://www.10xgenomics.com/support/software/space-ranger",
-          "Ståhl, P.L. et al. Visualization and analysis of gene expression in tissue sections by spatial transcriptomics. Science 353(6294), 78-82 (2016). https://doi.org/10.1126/science.aaf2403",
-          if (isTRUE(as.logical(param$keepAlignment))) "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
-          if (custom) "Pagès, H., Aboyoun, P., Gentleman, R. & DebRoy, S. Biostrings: Efficient manipulation of biological strings. R package. https://doi.org/10.18129/B9.bioc.Biostrings"
+          "Ståhl, P.L. et al. Visualization and analysis of gene expression in tissue sections by spatial transcriptomics. Science 353(6294), 78-82 (2016). https://doi.org/10.1126/science.aaf2403"
         )
       },
       initialize = function() {
