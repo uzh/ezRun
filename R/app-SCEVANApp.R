@@ -123,12 +123,7 @@ ezMethodSCEVANApp <- function(
     )
   }
 
-  # Parse reference cell types (handle comma or newline separation)
-  referenceCellTypes <- param$referenceCellTypes %>%
-    strsplit(",|\n") %>%
-    unlist() %>%
-    trimws() %>%
-    .[. != ""]
+  referenceCellTypes <- parseReferenceCellTypes(param$referenceCellTypes)
 
   if (length(referenceCellTypes) == 0) {
     stop(
@@ -412,6 +407,17 @@ ezMethodSCEVANApp <- function(
 ##'   \item{name}{The name of the application (EzAppSCEVANApp).}
 ##'   \item{appDefaults}{Default parameters for the application.}
 ##' }
+## Reference cell types from the form: one per line, or a single comma-separated line.
+## Splitting a multi-line value on commas too would cut Cell Ontology names such as
+## "CD4-positive, alpha-beta T cell" in two, and neither half matches a label.
+parseReferenceCellTypes <- function(x) {
+  if (!length(x) || is.na(x[1])) return(character(0))
+  x <- x[1]
+  parts <- if (grepl("\n", x, fixed = TRUE)) strsplit(x, "\r?\n")[[1]] else strsplit(x, ",", fixed = TRUE)[[1]]
+  parts <- trimws(parts)
+  parts[nzchar(parts)]
+}
+
 EzAppSCEVANApp <-
   setRefClass(
     "EzAppSCEVANApp",
@@ -441,8 +447,8 @@ EzAppSCEVANApp <-
           # Reference cell types (normal cells)
           referenceCellTypes = ezFrame(
             Type = "character",
-            DefaultValue = "CD4-positive, alpha-beta T cell,CD8-positive, alpha-beta T cell,B cell,natural killer cell,plasma cell",
-            Description = "Comma or newline separated list of cell types to use as normal reference for CNV calling"
+            DefaultValue = "CD4-positive, alpha-beta T cell\nCD8-positive, alpha-beta T cell\nB cell\nnatural killer cell\nplasma cell",
+            Description = "Cell types to use as normal reference for CNV calling: one per line, or a single comma-separated line (names that contain a comma must go one per line)"
           ),
 
           # Sample column
@@ -456,8 +462,7 @@ EzAppSCEVANApp <-
           organism = ezFrame(
             Type = "charVector",
             DefaultValue = "human",
-            Description = "Organism: human or mouse",
-            Values = c("human", "mouse")
+            Description = "Organism: human or mouse"
           ),
 
           # Number of cores
