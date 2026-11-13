@@ -70,6 +70,34 @@ EzAppNfCoreAtacSeq <- setRefClass(
   "EzAppNfCoreAtacSeq",
   contains = "EzApp",
   methods = list(
+    ## nf-core/atacseq (buildNfCoreAtacCmd) and the tools of its CITATIONS.md that run with the
+    ## options the app passes (no --genome, --blacklist or --mito_name; skip_* left at defaults):
+    ## - nf-core and Nextflow: the pipeline framework, always.
+    ## - Trim Galore/Cutadapt: trimming, always (skip_trimming false).
+    ## - BWA: alignment (aligner bwa, the pipeline default), always.
+    ## - Picard MarkDuplicates: duplicate marking, always.
+    ## - BEDTools: scaled coverage tracks and consensus peaks, always.
+    ## - MACS2: peak calling, always (broad or narrow by peakStyle).
+    ## - HOMER annotatePeaks.pl: peak annotation, always (skip_peak_annotation false).
+    ## - featureCounts: consensus-peak counts, the per-sample Count files of the app, always.
+    ## Not cited (generic BAM utilities, run QC and reports): BamTools/SAMtools/pysam read filters
+    ## (the filter criteria are described instead), UCSC bedGraphToBigWig (format conversion),
+    ## FastQC, deepTools profiles/fingerprints, DESeq2 (PCA/clustering QC only, no test), ataqv,
+    ## preseq and MultiQC.
+    citation = function(param = list()) {
+      c(
+        "Ewels, P.A. et al. The nf-core framework for community-curated bioinformatics pipelines. Nature Biotechnology 38(3), 276-278 (2020). https://doi.org/10.1038/s41587-020-0439-x",
+        "Di Tommaso, P. et al. Nextflow enables reproducible computational workflows. Nat Biotechnol 35(4), 316-319 (2017). https://doi.org/10.1038/nbt.3820",
+        "Trim Galore. Babraham Bioinformatics. https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/",
+        "Martin, M. Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.journal 17(1), 10-12 (2011). https://doi.org/10.14806/ej.17.1.200",
+        "Li, H. & Durbin, R. Fast and accurate short read alignment with Burrows-Wheeler transform. Bioinformatics 25(14), 1754-1760 (2009). https://doi.org/10.1093/bioinformatics/btp324",
+        "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
+        "Quinlan, A.R. & Hall, I.M. BEDTools: a flexible suite of utilities for comparing genomic features. Bioinformatics 26, 841-842 (2010). https://doi.org/10.1093/bioinformatics/btq033",
+        "Zhang, Y. et al. Model-based Analysis of ChIP-Seq (MACS). Genome Biology 9, R137 (2008). https://doi.org/10.1186/gb-2008-9-9-r137",
+        "Heinz, S. et al. Simple combinations of lineage-determining transcription factors prime cis-regulatory elements required for macrophage and B cell identities. Molecular Cell 38, 576-589 (2010). https://doi.org/10.1016/j.molcel.2010.05.004",
+        "Liao, Y., Smyth, G.K. & Shi, W. featureCounts: an efficient general purpose program for assigning sequence reads to genomic features. Bioinformatics 30(7), 923-930 (2014). https://doi.org/10.1093/bioinformatics/btt656"
+      )
+    },
     initialize = function() {
       "Initializes the application using its specific defaults."
       runMethod <<- ezMethodNfCoreAtacSeq

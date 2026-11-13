@@ -148,6 +148,16 @@ EzAppGatkRnaHaplotyper <-
     "EzAppGatkRnaHaplotyper",
     contains = "EzApp",
     methods = list(
+      ## GATK SplitNCigarReads + HaplotypeCaller (GVCF) unconditional (ezMethodGatkRnaHaplotyper);
+      ## BQSR with dbsnpFile is GATK too (no separate reference). AddOrReplaceReadGroups only labels,
+      ## rtracklayer only turns the GTF into the exon intervals; neither is cited.
+      citation = function(param = list()) {
+        c(
+          "McKenna, A. et al. The Genome Analysis Toolkit: a MapReduce framework for analyzing next-generation DNA sequencing data. Genome Research 20(9), 1297-1303 (2010). https://doi.org/10.1101/gr.107524.110",
+          "Poplin, R. et al. Scaling accurate genetic variant discovery to tens of thousands of samples. bioRxiv (2017) [preprint, not peer-reviewed]. https://doi.org/10.1101/201178",
+          "DePristo, M.A. et al. A framework for variation discovery and genotyping using next-generation DNA sequencing data. Nature Genetics 43(5), 491-498 (2011). https://doi.org/10.1038/ng.806"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodGatkRnaHaplotyper

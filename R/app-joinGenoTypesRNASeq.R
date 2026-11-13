@@ -451,6 +451,19 @@ EzAppJoinGenoTypesRNASeq <-
     "EzAppJoinGenoTypesRNASeq",
     contains = "EzApp",
     methods = list(
+      ## GATK CombineGVCFs/GenotypeGVCFs unconditional, VariantFiltration (hardFilter) is GATK too.
+      ## bcftools norm unless normalize is false (default TRUE; `if (param$normalize)`, postProcessRnaVcf);
+      ## SnpEff unless snpEff is false (default TRUE; `if (param$snpEff)`, postProcessRnaVcf).
+      ## bcftools view/query for the PASS subset, counts and report sampling are helpers.
+      citation = function(param = list()) {
+        c(
+          "McKenna, A. et al. The Genome Analysis Toolkit: a MapReduce framework for analyzing next-generation DNA sequencing data. Genome Research 20(9), 1297-1303 (2010). https://doi.org/10.1101/gr.107524.110",
+          "Poplin, R. et al. Scaling accurate genetic variant discovery to tens of thousands of samples. bioRxiv (2017) [preprint, not peer-reviewed]. https://doi.org/10.1101/201178",
+          "DePristo, M.A. et al. A framework for variation discovery and genotyping using next-generation DNA sequencing data. Nature Genetics 43(5), 491-498 (2011). https://doi.org/10.1038/ng.806",
+          if (!isFALSE(as.logical(param$normalize))) "Danecek, P. et al. Twelve years of SAMtools and BCFtools. GigaScience 10(2), giab008 (2021). https://doi.org/10.1093/gigascience/giab008",
+          if (!isFALSE(as.logical(param$snpEff))) "Cingolani, P. et al. A program for annotating and predicting the effects of single nucleotide polymorphisms, SnpEff. Fly 6(2), 80-92 (2012). https://doi.org/10.4161/fly.19695"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodJoinGenoTypesRNASeq

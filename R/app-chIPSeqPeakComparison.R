@@ -210,6 +210,20 @@ EzAppChIPSeqPeakComparison <-
   setRefClass("EzAppChIPSeqPeakComparison",
     contains = "EzApp",
     methods = list(
+      ## - GenomicRanges/GenomicAlignments: peak harmonisation, overlap, consensus and the BAM
+      ##   quantification (summarizeOverlaps), always (chIPSeqPeakUtils.R).
+      ## - ENCODE guidelines (Landt et al.): definitions of FRiP, NRF/PBC1/PBC2 and NSC/RSC computed
+      ##   from the BAMs (computeFrip, libraryComplexity, crossCorrelationMetrics); BAM is required.
+      ## - limma: only when normalization is quantile (normalizeSignal).
+      ## - ChIPseeker: annotation of the consensus peaks (annotateConsensus), always.
+      citation = function(param = list()) {
+        c(
+          "Lawrence, M. et al. Software for Computing and Annotating Genomic Ranges. PLoS Computational Biology 9(8), e1003118 (2013). https://doi.org/10.1371/journal.pcbi.1003118",
+          "Landt, S.G. et al. ChIP-seq guidelines and practices of the ENCODE and modENCODE consortia. Genome Research 22(9), 1813-1831 (2012). https://doi.org/10.1101/gr.136184.111",
+          if (identical(param$normalization, "quantile")) "Ritchie, M.E. et al. limma powers differential expression analyses for RNA-sequencing and microarray studies. Nucleic Acids Research 43(7), e47 (2015). https://doi.org/10.1093/nar/gkv007",
+          "Yu, G. et al. ChIPseeker: an R/Bioconductor package for ChIP peak annotation, comparison and visualization. Bioinformatics 31, 2382-2383 (2015). https://doi.org/10.1093/bioinformatics/btv145"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodChIPSeqPeakComparison

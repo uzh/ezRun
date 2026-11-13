@@ -131,6 +131,20 @@ EzAppDiffMethylation <-
     "EzAppDiffMethylation",
     contains = "EzApp",
     methods = list(
+      ## - bsseq only reads, strand-collapses and filters the Bismark coverage files (read.bismark,
+      ##   getCoverage); BSmooth is never run: not cited.
+      ## - dmrseq: differentially methylated regions and large blocks, always.
+      ## - DSS: per-CpG test with smoothing (DMLtest) and DML/DMR calls (Feng et al. for the test,
+      ##   Wu et al. for the smoothing-based DMR calling), always.
+      ## - ChIPpeakAnno: nearest-TSS annotation of the result tables (DiffMethylation.Rmd), always.
+      citation = function(param = list()) {
+        c(
+          "Korthauer, K., Chakraborty, S., Benjamini, Y. & Irizarry, R.A. Detection and accurate false discovery rate control of differentially methylated regions from whole genome bisulfite sequencing. Biostatistics 20(3), 367-383 (2019). https://doi.org/10.1093/biostatistics/kxy007",
+          "Feng, H., Conneely, K.N. & Wu, H. A Bayesian hierarchical model to detect differentially methylated loci from single nucleotide resolution sequencing data. Nucleic Acids Research 42(8), e69 (2014). https://doi.org/10.1093/nar/gku154",
+          "Wu, H. et al. Detection of differentially methylated regions from whole-genome bisulfite sequencing data without replicates. Nucleic Acids Research 43(21), e141 (2015). https://doi.org/10.1093/nar/gkv715",
+          "Zhu, L.J. et al. ChIPpeakAnno: a Bioconductor package to annotate ChIP-seq and ChIP-chip data. BMC Bioinformatics 11, 237 (2010). https://doi.org/10.1186/1471-2105-11-237"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodDiffMethylation

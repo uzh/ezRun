@@ -79,6 +79,15 @@ EzAppPreqc <-
     "EzAppPreqc",
     contains = "EzApp",
     methods = list(
+      ## fastp unconditional (ezMethodFastpTrim always runs first, ezMethodPreqc); SGA preprocess/
+      ## index and preqc unconditional. The example readset is only plotted for comparison.
+      citation = function(param = list()) {
+        c(
+          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
+          "Simpson, J.T. & Durbin, R. Efficient de novo assembly of large genomes using compressed data structures. Genome Research 22(3), 549-556 (2012). https://doi.org/10.1101/gr.126953.111",
+          "Simpson, J.T. Exploring genome characteristics and sequence quality without a reference. Bioinformatics 30(9), 1228-1235 (2014). https://doi.org/10.1093/bioinformatics/btu023"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodPreqc
