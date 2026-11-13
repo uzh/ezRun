@@ -10,6 +10,15 @@ EzAppSpaceRangerSegQC <-
     "EzAppSpaceRangerSeqQC",
     contains = "EzApp",
     methods = list(
+      ## Both unconditional: ezMethodSpaceRangerSegQC always runs spaceranger segment, whose nucleus
+      ## segmentation of the H&E image is 10x's own StarDist model (10x cites Schmidt et al. 2018).
+      ## tiffsplit (picks the TIFF page) is a helper: not cited.
+      citation = function(param = list()) {
+        c(
+          "10x Genomics. Space Ranger. https://www.10xgenomics.com/support/software/space-ranger",
+          "Schmidt, U., Weigert, M., Broaddus, C. & Myers, G. Cell detection with star-convex polygons. Medical Image Computing and Computer Assisted Intervention - MICCAI 2018, Lecture Notes in Computer Science 11071, 265-273 (2018). https://doi.org/10.1007/978-3-030-00934-2_30"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSpaceRangerSegQC

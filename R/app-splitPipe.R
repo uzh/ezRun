@@ -363,6 +363,17 @@ EzAppSplitPipe <-
     "EzAppSplitPipe",
     contains = "EzApp",
     methods = list(
+      ## Parse Biosciences split-pipe: every job (--mode all per sublibrary, or adopted via sublibDir,
+      ## plus --mode comb for several; ezMethodSplitPipe); no publication, so the software is cited.
+      ## SPLiT-seq (Rosenberg et al. 2018): the split-pool barcoding method of Evercode WT, cited
+      ## unconditionally as the technology paper (as Zheng et al. 2017 for Cell Ranger). STAR runs
+      ## inside split-pipe and is not cited separately.
+      citation = function(param = list()) {
+        c(
+          "Parse Biosciences. split-pipe. https://support.parsebiosciences.com",
+          "Rosenberg, A.B. et al. Single-cell profiling of the developing mouse brain and spinal cord with split-pool barcoding. Science 360(6385), 176-182 (2018). https://doi.org/10.1126/science.aam8999"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSplitPipe

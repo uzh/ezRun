@@ -348,6 +348,14 @@ EzAppBDRhapsodySA <-
     "EzAppBDRhapsodySA",
     contains = "EzApp",
     methods = list(
+      ## BD Rhapsody Sequence Analysis Pipeline (`rhapsody pipeline` in ezMethodBdRhapsodySA): every
+      ## job; it has no publication, so the software is cited. STAR (alignment) and IgBLAST (VDJ) run
+      ## inside the vendor pipeline and are not cited separately, as for Cell Ranger.
+      citation = function(param = list()) {
+        c(
+          "BD Biosciences. BD Rhapsody Sequence Analysis Pipeline. https://bd-rhapsody-bioinfo-docs.genomics.bd.com"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBdRhapsodySA

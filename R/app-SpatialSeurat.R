@@ -18,24 +18,47 @@ EzAppSpatialSeurat <-
     "EzAppSpatialSeurat",
     contains = "EzApp",
     methods = list(
-      ## Seurat v5 + SCTransform v2 unconditional; SpotClean only when spotClean is true; SpotSweeper
-      ## only when any of nreads/ngenes/perc_mito is empty; cyclone for human/mouse, Enrichr for
-      ## human/mouse with enrichrDatabase set; Azimuth only when Azimuth is set and not none;
-      ## loupeR export attempted every run.
+      ## Seurat v5 + SCTransform unconditional; BANKSY domains unconditional (a failure stops the
+      ## job); Moran's I is ezRun's own code (spatialStats.R), cell cycle is Seurat CellCycleScoring.
+      ## SpotClean when spotClean; SpotSweeper when any of nreads/ngenes/perc_mito is empty. UCell
+      ## domain annotation with a regionMarkerFile, or for mouse (built-in panel). nnSVG when
+      ## computeNnSVG (appDefault TRUE when absent). Deconvolution with an rctdReference/rctdFile:
+      ## RCTD (Cable), plus rctd-py unless rctdEngine is spacexr; CARD needs MuSiC, which is not
+      ## installed, so CARD is not cited and gives no cell-type weights. decoupleR + PROGENy +
+      ## DoRothEA when computePathwayTFActivity (default TRUE), human/mouse. CellChat v2 when
+      ## computeCellChat (default TRUE). MISTy (computeMisty, default TRUE) and SpatialCellChat
+      ## (computeSpatialCellChat) need the RCTD weights. liana when computeLiana, BayesSpace when
+      ## computeBayesSpace. Enrichr queries for human/mouse with enrichrDatabase; Azimuth when set.
+      ## Not cited: loupeR (Loupe export, writeCloupe), report packages.
       citation = function(param = list()) {
+        on <- function(x, default = FALSE) if (is.null(x)) default else isTRUE(as.logical(x))
         humanMouse <- isTRUE(grepl("^(Homo_sapiens|Mus_musculus)/", param$refBuild))
+        mouse <- isTRUE(grepl("^Mus_musculus/", param$refBuild))
         sweep <- any(c(param$nreads, param$ngenes, param$perc_mito) == "")
+        ref <- isTRUE(nzchar(param$rctdFile)) || (ezIsSpecified(param$rctdReference) && !identical(param$rctdReference, "None"))
+        rctd <- ref && !identical(param$deconvolutionMethod, "CARD")
         c(
           "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",
           "Hafemeister, C. & Satija, R. Normalization and variance stabilization of single-cell RNA-seq data using regularized negative binomial regression. Genome Biology 20, 296 (2019). https://doi.org/10.1186/s13059-019-1874-1",
           "Choudhary, S. & Satija, R. Comparison and evaluation of statistical error models for scRNA-seq. Genome Biology 23, 27 (2022). https://doi.org/10.1186/s13059-021-02584-9",
-          if (isTRUE(as.logical(param$spotClean))) "Ni, Z. et al. SpotClean adjusts for spot swapping in spatial transcriptomics data. Nature Communications 13, 2971 (2022). https://doi.org/10.1038/s41467-022-30587-y",
+          if (on(param$spotClean)) "Ni, Z. et al. SpotClean adjusts for spot swapping in spatial transcriptomics data. Nature Communications 13, 2971 (2022). https://doi.org/10.1038/s41467-022-30587-y",
           if (sweep) "Totty, M. et al. SpotSweeper: spatially aware quality control for spatial transcriptomics. Nature Methods 22, 1520-1530 (2025). https://doi.org/10.1038/s41592-025-02713-3",
-          if (humanMouse) "Scialdone, A. et al. Computational assignment of cell-cycle stage from single-cell transcriptome data. Methods 85, 54-61 (2015). https://doi.org/10.1016/j.ymeth.2015.06.021",
+          "Singhal, V. et al. BANKSY unifies cell typing and tissue domain segmentation for scalable spatial omics data analysis. Nature Genetics 56, 431-441 (2024). https://doi.org/10.1038/s41588-024-01664-3",
+          if (ezIsSpecified(param$regionMarkerFile) || mouse) "Andreatta, M. & Carmona, S.J. UCell: Robust and scalable single-cell gene signature scoring. Computational and Structural Biotechnology Journal 19, 3796-3798 (2021). https://doi.org/10.1016/j.csbj.2021.06.043",
+          if (on(param$computeNnSVG, TRUE)) "Weber, L.M. et al. nnSVG for the scalable identification of spatially variable genes using nearest-neighbor Gaussian processes. Nature Communications 14, 4059 (2023). https://doi.org/10.1038/s41467-023-39748-z",
+          if (rctd) "Cable, D.M. et al. Robust decomposition of cell type mixtures in spatial transcriptomics. Nature Biotechnology 40, 517-526 (2022). https://doi.org/10.1038/s41587-021-00830-w",
+          if (rctd && !identical(param$rctdEngine, "spacexr")) "Gueguen, P. rctd-py: GPU-accelerated Python implementation of RCTD. https://github.com/p-gueguen/rctd-py",
+          if (humanMouse && on(param$computePathwayTFActivity, TRUE)) "Badia-i-Mompel, P. et al. decoupleR: ensemble of computational methods to infer biological activities from omics data. Bioinformatics Advances 2(1), vbac016 (2022). https://doi.org/10.1093/bioadv/vbac016",
+          if (humanMouse && on(param$computePathwayTFActivity, TRUE)) "Schubert, M. et al. Perturbation-response genes reveal signaling footprints in cancer gene expression. Nature Communications 9, 20 (2018). https://doi.org/10.1038/s41467-017-02391-6",
+          if (humanMouse && on(param$computePathwayTFActivity, TRUE)) "Garcia-Alonso, L., Holland, C.H., Ibrahim, M.M., Turei, D. & Saez-Rodriguez, J. Benchmark and integration of resources for the estimation of human transcription factor activities. Genome Research 29, 1363-1375 (2019). https://doi.org/10.1101/gr.240663.118",
+          if (on(param$computeCellChat, TRUE)) "Jin, S., Plikus, M.V. & Nie, Q. CellChat for systematic analysis of cell-cell communication from single-cell transcriptomics. Nature Protocols 20(1), 180-219 (2025). https://doi.org/10.1038/s41596-024-01045-4",
+          if (rctd && on(param$computeMisty, TRUE)) "Tanevski, J., Ramirez Flores, R.O., Gabor, A., Schapiro, D. & Saez-Rodriguez, J. Explainable multiview framework for dissecting spatial relationships from highly multiplexed data. Genome Biology 23, 97 (2022). https://doi.org/10.1186/s13059-022-02663-5",
+          if (rctd && on(param$computeSpatialCellChat)) "Jin, S., Cheng, X. & Su, Y. SpatialCellChat: inference and analysis of cell-cell communication from spatial transcriptomics data. R package. https://github.com/jinworks/SpatialCellChat",
+          if (on(param$computeLiana)) "Dimitrov, D. et al. Comparison of methods and resources for cell-cell communication inference from single-cell RNA-Seq data. Nature Communications 13, 3224 (2022). https://doi.org/10.1038/s41467-022-30755-0",
+          if (on(param$computeBayesSpace)) "Zhao, E. et al. Spatial transcriptomics at subspot resolution with BayesSpace. Nature Biotechnology 39, 1375-1384 (2021). https://doi.org/10.1038/s41587-021-00935-2",
           if (humanMouse && ezIsSpecified(param$enrichrDatabase)) "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128",
           if (humanMouse && ezIsSpecified(param$enrichrDatabase)) "Kuleshov, M.V. et al. Enrichr: a comprehensive gene set enrichment analysis web server 2016 update. Nucleic Acids Research 44(W1), W90-W97 (2016). https://doi.org/10.1093/nar/gkw377",
-          if (ezIsSpecified(param$Azimuth) && !identical(param$Azimuth, "none")) "Hao, Y. et al. Integrated analysis of multimodal single-cell data. Cell 184, 3573-3587 (2021). https://doi.org/10.1016/j.cell.2021.04.048",
-          "10x Genomics. loupeR: Converts Seurat objects to 10x Genomics Loupe files. https://github.com/10XGenomics/loupeR"
+          if (ezIsSpecified(param$Azimuth) && !identical(param$Azimuth, "none")) "Hao, Y. et al. Integrated analysis of multimodal single-cell data. Cell 184, 3573-3587 (2021). https://doi.org/10.1016/j.cell.2021.04.048"
         )
       },
       initialize = function() {
