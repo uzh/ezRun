@@ -121,7 +121,8 @@ loadMageckCountDataset <- function(input, param) {
   rawData <- SummarizedExperiment(
     assays = SimpleList(counts = counts, presentFlag = counts > 0),
     rowData = DataFrame(Gene = gene, isControl = isControl),
-    colData = DataFrame(dataset, conds = conds),
+    # check.names = FALSE keeps "Condition [Factor]" etc. intact for exploreDE
+    colData = DataFrame(dataset, conds = conds, check.names = FALSE),
     metadata = list(
       param = param,
       design = design,
