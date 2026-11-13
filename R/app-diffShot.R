@@ -725,6 +725,52 @@ EzAppDiffShot <-
     "EzAppDiffShot",
     contains = "EzApp",
     methods = list(
+      ## One class for the four DiffShot* SUSHI apps; each hardcodes daMethod, which picks the
+      ## one DA method that runs (ezMethodDiffShot step 5, child Rmd of DiffShot.Rmd):
+      ## ALDEx2 (Fernandes 2013, 2014) plus Gloor 2016 for the effect sizes, which only the
+      ## t-test path computes, i.e. without daCovariates other than grouping (run_aldex2 in
+      ## DiffShot.Rmd);
+      ## ANCOM-BC2 (ancombc2, Lin & Peddada 2024); LEfSe as implemented by
+      ## microbiomeMarker::run_lefse (Segata 2011, Cao 2022); MaAsLin 3 (Nickols 2026).
+      ## MaAsLin3 on HUMAnN input only: preranked GSEA with clusterProfiler/fgsea on MetaCyc
+      ## reaction sets and on the KO gene sets of koGeneSetFiles (KEGG; gut metabolic modules,
+      ## Vieira-Silva 2016) when functionalEnrichment is on (DiffShot_maaslin3_functional.Rmd,
+      ## chunk enrichment). The gate is data-dependent and only approximate: whether the input
+      ## was HUMAnN is not in the parameters, so the GSEA entries are given when koGeneSetFiles
+      ## (empty by default) is set. A HUMAnN run with no KO file still runs the MetaCyc GSEA but
+      ## gets no GSEA references; a taxonomic run with a KO file selected (the form offers it for
+      ## every input) gets them although no GSEA runs. kraken-biom, biomformat, phyloseq (table handling,
+      ## filters, rank agglomeration), humann_join_tables and the lm() species-contribution
+      ## models are support steps and are not cited.
+      citation = function(param = list()) {
+        method <- toupper(gsub("[^A-Za-z0-9]", "", paste(param$daMethod, collapse = "")))
+        aldex <- method == "ALDEX2"
+        maaslin <- method %in% c("MAASLIN3", "MAASLIN")
+        koFiles <- if (ezIsSpecified(param$koGeneSetFiles)) {
+          basename(trimws(unlist(strsplit(param$koGeneSetFiles, ","))))
+        } else {
+          character(0)
+        }
+        covariates <- setdiff(trimws(unlist(strsplit(paste(param$daCovariates, collapse = ","), "[,;]"))),
+                              c("", param$grouping))
+        gsea <- maaslin &&
+          isTRUE(as.logical(if (is.null(param$functionalEnrichment)) TRUE else param$functionalEnrichment)) &&
+          length(koFiles) > 0
+        c(
+          if (aldex) "Fernandes, A.D., Macklaim, J.M., Linn, T.G., Reid, G. & Gloor, G.B. ANOVA-like differential expression (ALDEx) analysis for mixed population RNA-Seq. PLoS ONE 8(7), e67019 (2013). https://doi.org/10.1371/journal.pone.0067019",
+          if (aldex) "Fernandes, A.D. et al. Unifying the analysis of high-throughput sequencing datasets: characterizing RNA-seq, 16S rRNA gene sequencing and selective growth experiments by compositional data analysis. Microbiome 2, 15 (2014). https://doi.org/10.1186/2049-2618-2-15",
+          if (aldex && length(covariates) == 0) "Gloor, G.B., Macklaim, J.M. & Fernandes, A.D. Displaying variation in large datasets: plotting a visual summary of effect sizes. Journal of Computational and Graphical Statistics 25(3), 971-979 (2016). https://doi.org/10.1080/10618600.2015.1131161",
+          if (method %in% c("ANCOMBC", "ANCOMBC2")) "Lin, H. & Peddada, S.D. Multigroup analysis of compositions of microbiomes with covariate adjustments and repeated measures. Nature Methods 21(1), 83-91 (2024). https://doi.org/10.1038/s41592-023-02092-7",
+          if (method == "LEFSE") "Segata, N. et al. Metagenomic biomarker discovery and explanation. Genome Biology 12(6), R60 (2011). https://doi.org/10.1186/gb-2011-12-6-r60",
+          if (method == "LEFSE") "Cao, Y., Dong, Q., Wang, D., Zhang, P., Liu, Y. & Niu, C. microbiomeMarker: an R/Bioconductor package for microbiome marker identification and visualization. Bioinformatics 38(16), 4027-4029 (2022). https://doi.org/10.1093/bioinformatics/btac438",
+          if (maaslin) "Nickols, W.A. et al. MaAsLin 3: refining and extending generalized multivariable linear models for meta-omic association discovery. Nature Methods 23(3), 554-564 (2026). https://doi.org/10.1038/s41592-025-02923-9",
+          if (gsea) "Xu, S. et al. Using clusterProfiler to characterize multiomics data. Nature Protocols 19(11), 3292-3320 (2024). https://doi.org/10.1038/s41596-024-01020-z",
+          if (gsea) "Korotkevich, G., Sukhov, V., Budin, N., Shpak, B., Artyomov, M.N. & Sergushichev, A. Fast gene set enrichment analysis. bioRxiv (2021). https://doi.org/10.1101/060012",
+          if (gsea) "Caspi, R. et al. The MetaCyc database of metabolic pathways and enzymes - a 2019 update. Nucleic Acids Research 48(D1), D445-D453 (2020). https://doi.org/10.1093/nar/gkz862",
+          if (gsea && any(grepl("kegg", koFiles, ignore.case = TRUE))) "Kanehisa, M. & Goto, S. KEGG: Kyoto Encyclopedia of Genes and Genomes. Nucleic Acids Research 28, 27-30 (2000). https://doi.org/10.1093/nar/28.1.27",
+          if (gsea && any(grepl("gut_metabolic", koFiles, ignore.case = TRUE))) "Vieira-Silva, S. et al. Species-function relationships shape ecological properties of the human gut microbiome. Nature Microbiology 1, 16088 (2016). https://doi.org/10.1038/nmicrobiol.2016.88"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodDiffShot
