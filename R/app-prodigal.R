@@ -45,6 +45,12 @@ EzAppProdigal <-
     "EzAppProdigal",
     contains = "EzApp",
     methods = list(
+      ## Prodigal: always runs (ezMethodProdigal).
+      citation = function(param = list()) {
+        c(
+          "Hyatt, D., Chen, G.L., LoCascio, P.F., Land, M.L., Larimer, F.W. & Hauser, L.J. Prodigal: prokaryotic gene recognition and translation initiation site identification. BMC Bioinformatics 11, 119 (2010). https://doi.org/10.1186/1471-2105-11-119"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodProdigal
