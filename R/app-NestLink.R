@@ -49,6 +49,14 @@ EzAppNestLink <-
     "EzAppNestLink",
     contains = "EzApp",
     methods = list(
+      ## NestLink, unconditional: runNGSAnalysis() of the NestLink package always runs
+      ## (ezMethodNestLink, :33); the package asks to cite this paper. The reads come merged
+      ## from FlashApp, so fastp and FLASH are cited there, not here.
+      citation = function(param = list()) {
+        c(
+          "Egloff, P. et al. Engineered peptide barcodes for in-depth analyses of binding protein libraries. Nature Methods 16(5), 421-428 (2019). https://doi.org/10.1038/s41592-019-0389-8"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodNestLink

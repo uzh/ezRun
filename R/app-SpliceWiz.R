@@ -354,6 +354,22 @@ EzAppSpliceWiz <-
     "EzAppSpliceWiz",
     contains = "EzApp",
     methods = list(
+      ## SpliceWiz unconditional (buildRef, processBAM, collateData, filters, ASE test). The test engine
+      ## follows the aseMethod switch in ezMethodSpliceWiz: limma + voom (ASE_limma) for "limma", the
+      ## default and the fallback of the switch; DESeq2 for "DESeq" (ASE_DESeq); edgeR, quasi-likelihood,
+      ## for "edgeR" (ASE_edgeR). rtracklayer (GTF export) and the report packages are not cited.
+      citation = function(param = list()) {
+        aseMethod <- if (ezIsSpecified(param$aseMethod)) param$aseMethod else "limma"
+        limma <- !aseMethod %in% c("DESeq", "edgeR")
+        c(
+          "Wong, A.C.H., Wong, J.J.-L., Rasko, J.E.J. & Schmitz, U. SpliceWiz: interactive analysis and visualization of alternative splicing in R. Briefings in Bioinformatics 25(1), bbad468 (2024). https://doi.org/10.1093/bib/bbad468",
+          if (limma) "Ritchie, M.E. et al. limma powers differential expression analyses for RNA-sequencing and microarray studies. Nucleic Acids Research 43(7), e47 (2015). https://doi.org/10.1093/nar/gkv007",
+          if (limma) "Law, C.W. et al. voom: precision weights unlock linear model analysis tools for RNA-seq read counts. Genome Biology 15, R29 (2014). https://doi.org/10.1186/gb-2014-15-2-r29",
+          if (aseMethod == "DESeq") "Love, M.I., Huber, W. & Anders, S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 15, 550 (2014). https://doi.org/10.1186/s13059-014-0550-8",
+          if (aseMethod == "edgeR") "Robinson, M.D., McCarthy, D.J. & Smyth, G.K. edgeR: a Bioconductor package for differential expression analysis of digital gene expression data. Bioinformatics 26(1), 139-140 (2010). https://doi.org/10.1093/bioinformatics/btp616",
+          if (aseMethod == "edgeR") "Chen, Y. et al. edgeR v4: powerful differential analysis of sequencing data with expanded functionality and improved support for small counts and larger datasets. Nucleic Acids Research 53, gkaf018 (2025). https://doi.org/10.1093/nar/gkaf018"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSpliceWiz

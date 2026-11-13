@@ -458,6 +458,18 @@ EzAppBRBseq <-
     "EzAppBRBseq",
     contains = "EzApp",
     methods = list(
+      ## STAR, STARsolo and the BRB-seq protocol paper unconditional: runBRBStarsolo always maps and
+      ## demultiplexes with STARsolo (with starsoloDir, finished STARsolo runs of the same layout are
+      ## adopted), and the BRB-seq read layout defines the demultiplexing. Not cited (run QC): the
+      ## CountQC report of runBRBCountQC (its goseq GO analysis of the sample clusters, limma plotMDS),
+      ## the Y-gene sex check; samtools only indexes the BAM for keepBam.
+      citation = function(param = list()) {
+        c(
+          "Dobin, A. et al. STAR: ultrafast universal RNA-seq aligner. Bioinformatics 29(1), 15-21 (2013). https://doi.org/10.1093/bioinformatics/bts635",
+          "Kaminow, B., Yunusov, D. & Dobin, A. STARsolo: accurate, fast and versatile mapping/quantification of single-cell and single-nucleus RNA-seq data. bioRxiv (2021) [preprint, not peer-reviewed]. https://doi.org/10.1101/2021.05.05.442755",
+          "Alpern, D. et al. BRB-seq: ultra-affordable high-throughput transcriptomics enabled by bulk RNA barcoding and sequencing. Genome Biology 20, 71 (2019). https://doi.org/10.1186/s13059-019-1671-x"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBRBseq

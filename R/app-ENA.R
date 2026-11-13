@@ -455,6 +455,14 @@ EzAppENA <-
     "EzAppENA",
     contains = "EzApp",
     methods = list(
+      ## A data-fetching utility: no tool shapes the result, only the data source is cited.
+      ## ENA, unconditional: every run downloads the reads listed by the ENA Portal API
+      ## filereport for param$projectID (ezMethodGetEnaData, :129-135, :198-271).
+      citation = function(param = list()) {
+        c(
+          "Yuan, D. et al. The European Nucleotide Archive in 2025. Nucleic Acids Research 54(D1), D120-D127 (2026). https://doi.org/10.1093/nar/gkaf1295"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodGetEnaData
