@@ -813,8 +813,8 @@ if (isTRUE(param$runGO)) {
                                         fmt = "%0.3f"
           )
           enrichrTablePath <- paste0("enrichrTable_", mySel, ".html")
-          ezInteractiveTable(resMerged,
-                             title = paste("Enrichr report for ", mySel)
+          ezInteractiveTableRmd(resMerged,
+                                title = paste("Enrichr report for ", mySel)
           ) |>  DT::saveWidget(enrichrTablePath)
           enrichrLinks[mySel, "Precomputed"] <- ezLink(
             link = enrichrTablePath,
