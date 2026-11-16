@@ -407,16 +407,18 @@ ezMethodSpaceRanger <- function(input = NA, output = NA, param = NA) {
     )
     cts <- Read10X(cmDir, gene.column = 1)
   }
+  ## Sum on the sparse matrix: apply() or data.frame() densify it, which needs
+  ## >100 GB for VisiumHD 16 um bins (o43017: 19k genes x 386k bins, OOM-kill)
   if (is.list(cts)) {
     cts <- cts[['Gene Expression']]
-    bulkData <- apply(cts, 1, sum)
+    bulkData <- Matrix::rowSums(cts)
     ezLogMethods(
       "Pseudo-bulk gene counts were computed by summing the gene expression counts over all ",
       if (grepl("square_016um", cmDir, fixed = TRUE)) "16 um bins" else "spots",
       " under tissue."
     )
   } else {
-    bulkData <- rowSums(data.frame(cts))
+    bulkData <- Matrix::rowSums(cts)
     ezLogMethods(
       "Pseudo-bulk gene counts were computed by summing the counts over all ",
       if (grepl("square_016um", cmDir, fixed = TRUE)) "16 um bins" else "spots",
