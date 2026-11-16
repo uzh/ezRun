@@ -13,9 +13,13 @@ EzAppVisiumHDSeurat <-
       ## Seurat v5 and BANKSY via SeuratWrappers unconditional; scater isOutlier only when nmad is set
       ## and a QC threshold (numis/ngenes/perc_mito) or perc_riboprot is empty; RCTD (Cable) whenever
       ## rctdReference/rctdFile is set (spacexr runs for rctdEngine spacexr and as the fallback when
-      ## rctd-py is not installed); rctd-py only for RCTD with rctdEngine other than spacexr. Enrichr
-      ## (report links/query) runs every time, so unconditional.
+      ## rctd-py is not installed); rctd-py only for RCTD with rctdEngine other than spacexr.
+      ## CellChat v2 when computeCellChat (default TRUE; niches, and cell types with RCTD). MISTy
+      ## (computeMisty, default TRUE), SpatialCellChat (computeSpatialCellChat) and liana
+      ## (computeLiana) need the RCTD weights (visiumhd_step, needsRctd). Not cited: Enrichr, which
+      ## only builds links in the report (enrichRout is NULL, no query is run).
       citation = function(param = list()) {
+        on <- function(x, default = FALSE) if (is.null(x)) default else isTRUE(as.logical(x))
         rctd <- isTRUE(nzchar(param$rctdFile)) || (ezIsSpecified(param$rctdReference) && !identical(param$rctdReference, "None"))
         mad <- ezIsSpecified(param$nmad) && (any(c(param$numis, param$ngenes, param$perc_mito) == "") || !ezIsSpecified(param$perc_riboprot))
         c(
@@ -25,7 +29,10 @@ EzAppVisiumHDSeurat <-
           "Satija Lab. SeuratWrappers: Community-Provided Methods and Extensions for the Seurat Object. https://github.com/satijalab/seurat-wrappers",
           if (rctd) "Cable, D.M. et al. Robust decomposition of cell type mixtures in spatial transcriptomics. Nature Biotechnology 40, 517-526 (2022). https://doi.org/10.1038/s41587-021-00830-w",
           if (rctd && !identical(param$rctdEngine, "spacexr")) "Gueguen, P. rctd-py: GPU-accelerated Python implementation of RCTD. https://github.com/p-gueguen/rctd-py",
-          "Chen, E.Y. et al. Enrichr: interactive and collaborative HTML5 gene list enrichment analysis tool. BMC Bioinformatics 14, 128 (2013). https://doi.org/10.1186/1471-2105-14-128"
+          if (on(param$computeCellChat, TRUE)) "Jin, S., Plikus, M.V. & Nie, Q. CellChat for systematic analysis of cell-cell communication from single-cell transcriptomics. Nature Protocols 20(1), 180-219 (2025). https://doi.org/10.1038/s41596-024-01045-4",
+          if (rctd && on(param$computeMisty, TRUE)) "Tanevski, J., Ramirez Flores, R.O., Gabor, A., Schapiro, D. & Saez-Rodriguez, J. Explainable multiview framework for dissecting spatial relationships from highly multiplexed data. Genome Biology 23, 97 (2022). https://doi.org/10.1186/s13059-022-02663-5",
+          if (rctd && on(param$computeSpatialCellChat)) "Jin, S., Cheng, X. & Su, Y. SpatialCellChat: inference and analysis of cell-cell communication from spatial transcriptomics data. R package. https://github.com/jinworks/SpatialCellChat",
+          if (rctd && on(param$computeLiana)) "Dimitrov, D. et al. Comparison of methods and resources for cell-cell communication inference from single-cell RNA-Seq data. Nature Communications 13, 3224 (2022). https://doi.org/10.1038/s41467-022-30755-0"
         )
       },
       initialize = function() {

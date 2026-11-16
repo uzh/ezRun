@@ -10,6 +10,32 @@ EzAppSTARsolo =
     "EzAppSTARsolo",
     contains = "EzApp",
     methods = list(
+      ## STAR and STARsolo: every job (makeSTARsoloCmd; also the index build in getSTARSoloReference).
+      ## EmptyDrops: cell filtering when soloCellFilter is EmptyDrops_CR (appDefault, not on the form,
+      ## settable through specialOptions, which wins as in ezParam; makeSTARsoloCmd --soloCellFilter);
+      ## STAR's help asks to cite it. velocyto: when soloFeatures contains Velocyto (on by default on
+      ## the form; spliced/unspliced counts by velocyto's rules; makeSTARsoloCmd --soloFeatures).
+      citation = function(param = list()) {
+        opt <- tryCatch(parseOptions(param$specialOptions), error = function(e) list())
+        cellFilter <- if (!is.null(opt$soloCellFilter)) {
+          opt$soloCellFilter
+        } else if (!is.null(param$soloCellFilter)) {
+          param$soloCellFilter
+        } else {
+          "EmptyDrops_CR"
+        }
+        features <- if (is.null(param$soloFeatures)) {
+          c("GeneFull_ExonOverIntron", "Gene", "Velocyto")
+        } else {
+          unlist(strsplit(as.character(param$soloFeatures), ","))
+        }
+        c(
+          "Dobin, A. et al. STAR: ultrafast universal RNA-seq aligner. Bioinformatics 29(1), 15-21 (2013). https://doi.org/10.1093/bioinformatics/bts635",
+          "Kaminow, B., Yunusov, D. & Dobin, A. STARsolo: accurate, fast and versatile mapping/quantification of single-cell and single-nucleus RNA-seq data. bioRxiv (2021) [preprint, not peer-reviewed]. https://doi.org/10.1101/2021.05.05.442755",
+          if (isTRUE(grepl("^EmptyDrops_CR", cellFilter))) "Lun, A.T.L. et al. EmptyDrops: distinguishing cells from empty droplets in droplet-based single-cell RNA sequencing data. Genome Biology 20, 63 (2019). https://doi.org/10.1186/s13059-019-1662-y",
+          if ("Velocyto" %in% trimws(features)) "La Manno, G. et al. RNA velocity of single cells. Nature 560, 494-498 (2018). https://doi.org/10.1038/s41586-018-0414-6"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSTARsolo

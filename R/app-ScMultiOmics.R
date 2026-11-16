@@ -21,7 +21,9 @@ EzAppScMultiOmics <-
       ## runWNN is true. Signac (ATAC) is cited always: whether ATAC files exist depends on the
       ## input data, not on a parameter. ensembldb (EnsDb gene annotation, getATACAnnotation)
       ## only for Human/Mouse. Whether ADT or VDJ (scRepertoire) run, and whether >= 2
-      ## modalities exist for WNN, stays unconditional.
+      ## modalities exist for WNN, stays unconditional. ADTnorm follows adtNorm also for BD input
+      ## (CLR only) and for samples without ADT: both are data conditions (input columns and files),
+      ## which citation(param) cannot see, accepted.
       citation = function(param = list()) {
         c(
           "Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nature Biotechnology 42, 293-304 (2024). https://doi.org/10.1038/s41587-023-01767-y",

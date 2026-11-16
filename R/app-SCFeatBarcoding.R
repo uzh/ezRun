@@ -10,6 +10,13 @@ EzAppSCFeatBarcoding <-
     "EzAppSCFeatBarcoding",
     contains = "EzApp",
     methods = list(
+      ## Empty on purpose: no run of this app can finish, so no step is cited. seurat_to_sce() is
+      ## defined nowhere since library(scanalysis) was removed (7e21e9b9, 2024-11-12), and for human
+      ## and mouse cellsLabelsWithSingleR() is given the species instead of a celldex reference. Once
+      ## fixed: Seurat (HTODemux), SCTransform, scDblFinder, cyclone, AUCell/CellMarker 2.0, SingleR.
+      citation = function(param = list()) {
+        character(0)
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSCFeatBarcoding

@@ -147,6 +147,13 @@ EzAppVisiumQC <-
     "EzAppVisiumQC",
     contains = "EzApp",
     methods = list(
+      ## Empty: ezMethodVisiumQC only compiles the Space Ranger metrics and pseudo-bulk counts of the
+      ## parent SpaceRanger run (cited in that run's own Methods section) into a report. SpotClean
+      ## (read10xRaw/createSlide/visualize*, no spotclean() decontamination) and Seurat
+      ## (SpatialFeaturePlot) only read and plot.
+      citation = function(param = list()) {
+        character(0)
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodVisiumQC
