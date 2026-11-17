@@ -41,7 +41,9 @@ ezMethodGatkDnaHaplotyper = function(input = NA, output = NA, param = NA) {
     )
     ezSystem(cmd)
   } else {
-    ezSystem('mv local.bam withRg.bam')
+    ## the BAM already has read groups; link the input instead of rewriting it
+    ## (there is no local.bam to move)
+    file.symlink(bamFile, "withRg.bam")
   }
 
   if (param$markDuplicates) {

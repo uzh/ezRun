@@ -12,7 +12,6 @@ ezMethodGatkRnaHaplotyper = function(input = NA, output = NA, param = NA) {
   #knownSites = list.files(param$ezRef["refVariantsDir"],pattern='vcf.gz$',full.names = T)
   #dbsnpFile = knownSites[grep('dbsnp.*vcf.gz$', knownSites)]
   dbsnpFile = param$dbsnpFile
-  stopifnot(param$markDuplicates == FALSE)
   #javaCall = paste0("java", " -Djava.io.tmpdir=. -Xmx", param$ram, "g")
   gatkCall = paste0(
     'gatk --java-options "-Djava.io.tmpdir=. -Xmx',
@@ -60,7 +59,25 @@ ezMethodGatkRnaHaplotyper = function(input = NA, output = NA, param = NA) {
     )
     ezSystem(cmd)
   } else {
-    ezSystem('mv local.bam withRg.bam')
+    ## the BAM already has read groups; link the local copy instead of
+    ## rewriting it
+    file.symlink(normalizePath(bamFile), "withRg.bam")
+  }
+
+  if (param$markDuplicates) {
+    ## mark (not remove) duplicates; HaplotypeCaller skips reads flagged as
+    ## duplicates by default
+    cmd = paste(
+      gatkCall,
+      "MarkDuplicates",
+      "-I withRg.bam",
+      "-O dedup.bam",
+      "-M dupmetrics.txt",
+      "--REMOVE_DUPLICATES false",
+      "--TMP_DIR ."
+    )
+    ezSystem(cmd)
+    file.rename("dedup.bam", "withRg.bam")
   }
 
   ezSystem("samtools index withRg.bam")
@@ -164,7 +181,7 @@ EzAppGatkRnaHaplotyper <-
           markDuplicates = ezFrame(
             Type = "logical",
             DefaultValue = FALSE,
-            Description = "not recommended for gene panels, exomes"
+            Description = "mark duplicate reads with GATK MarkDuplicates (not removed; HaplotypeCaller ignores them); not recommended for gene panels, exomes"
           )
         )
       }
