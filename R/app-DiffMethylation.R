@@ -48,7 +48,14 @@ ezMethodDiffMethylation <- function(input = NA, output = NA, param = NA) {
     verbose = TRUE
   )
   sampleNames(bismarkBSseq) <- names(files)
-  pData(bismarkBSseq)$Condition <- conditions
+  # dmrseq() reports differences as the second factor level minus the first;
+  # fix the level order so its beta/stat are sampleGroup - refGroup, matching
+  # DSS (group1 = sampleGroup, group2 = refGroup), regardless of how the group
+  # names sort alphabetically.
+  pData(bismarkBSseq)$Condition <- factor(
+    conditions,
+    levels = c(param$refGroup, param$sampleGroup)
+  )
 
   coverage <- getCoverage(bismarkBSseq, type = "Cov")
 

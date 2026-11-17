@@ -108,8 +108,12 @@ writexl::write_xlsx(asigBlocks,"DMRSeq_topBlocks.xlsx")
 ```{r write data files DSS, include=FALSE}
 dmls <- dssResults$dmls
 dmrs <- dssResults$dmrs
+# DSS::callDMR returns NULL when no region passes the thresholds;
+# callDML returns a (possibly empty) data.frame.
+nDmrsDSS <- if (is.null(dmrs)) 0L else nrow(dmrs)
+nDmlsDSS <- if (is.null(dmls)) 0L else nrow(dmls)
 
-if(!is.null(dmrs)){
+if(nDmrsDSS > 0){
     sigRegionsDSS <- GRanges(dmrs)
     # Annotate significant regions/blocks
     asigRegionsDSS <- data.frame(annotatePeakInBatch(sigRegionsDSS,featureType = 'TSS', AnnotationData = gtf))
@@ -149,7 +153,7 @@ if(!is.null(dmls)){
 ## Differential Analysis Details
 ```{r count statistics1, echo=FALSE, fig.width=5, fig.height=6, message=FALSE, warning=FALSE}
 par(mar=c(10.1,4.1,4.1,2.1))
-barplot(c(Regions_DMR = numSigRegions, Regions_DSS = nrow(dmrs), Blocks = numSigBlocks), col = 'royalblue', las = 2, main = 'Detected Candidates')
+barplot(c(Regions_DMR = numSigRegions, Regions_DSS = nDmrsDSS, Blocks = numSigBlocks), col = 'royalblue', las = 2, main = 'Detected Candidates')
 par(mar=c(5.1,4.1,4.1,2.1))
 ```
 
@@ -178,11 +182,11 @@ text(range_x[2]-0.2 * diff(range_x), mid_y+0.5,
 par(mfrow = c(2, 2))
 if(numSigRegions > 0)
 myBoxplot(sigRegions$stat,'Hypo- and Hypermethylation of candidate regions, DMR')
-if(nrow(dmrs) > 0)
+if(nDmrsDSS > 0)
 myBoxplot(sigRegionsDSS$diff.Methy, 'Hypo- and Hypermethylation of candidate regions, DSS')
 if(numSigBlocks > 0)
 myBoxplot(sigBlocks$stat, 'Hypo- and Hypermethylation of candidate blocks, DMR')
-if(nrow(dmls) > 0)
+if(nDmlsDSS > 0)
 myBoxplot(dmls$diff, 'Hypo- and Hypermethylation of candidate CpG Sites, DSS')
 
 par(mfrow = c(1, 1))
@@ -220,7 +224,7 @@ if(numSigRegions > 0){
 
 ### DSS
 ```{r annotDSS, echo=FALSE, fig.width=8, fig.height=6, message=FALSE, warning=FALSE}
-if(nrow(dmrs) > 0){
+if(nDmrsDSS > 0){
     par(mfrow = c(1, 2))
     par(mar=c(10.1,4.1,4.1,2.1))
     barplot(table(asigRegionsDSS$insideFeature), las = 2, col = 'royalblue', main = 'RegionAnnotation')
