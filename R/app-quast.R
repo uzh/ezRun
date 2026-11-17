@@ -74,6 +74,12 @@ EzAppQuast <-
     "EzAppQuast",
     contains = "EzApp",
     methods = list(
+      ## QUAST: always runs (ezMethodQuast), with or without a reference genome.
+      citation = function(param = list()) {
+        c(
+          "Mikheenko, A., Prjibelski, A., Saveliev, V., Antipov, D. & Gurevich, A. Versatile genome assembly evaluation with QUAST-LG. Bioinformatics 34(13), i142-i150 (2018). https://doi.org/10.1093/bioinformatics/bty266"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodQuast

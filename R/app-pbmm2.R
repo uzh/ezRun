@@ -137,6 +137,14 @@ EzAppPbmm2 <-
     "EzAppPbmm2",
     contains = "EzApp",
     methods = list(
+      ## pbmm2 and minimap2 (the aligner inside pbmm2) unconditional: ezMethodPbmm2 always runs
+      ## `pbmm2 align`. pbmm2 has no paper; its README points to minimap2.
+      citation = function(param = list()) {
+        c(
+          "pbmm2. Pacific Biosciences. https://github.com/PacificBiosciences/pbmm2",
+          "Li, H. New strategies to improve minimap2 alignment accuracy. Bioinformatics 37(23), 4572-4574 (2021). https://doi.org/10.1093/bioinformatics/btab705"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodPbmm2

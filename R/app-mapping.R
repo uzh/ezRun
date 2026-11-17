@@ -1326,6 +1326,17 @@ EzAppBWA <-
     "EzAppBWA",
     contains = "EzApp",
     methods = list(
+      ## fastp unconditional (ezMethodFastpTrim always runs). BWA unconditional: Li 2013 is the
+      ## paper the BWA README gives for the whole package, so it covers mem, aln and bwasw.
+      ## Picard MarkDuplicates unless markDuplicates is false (default TRUE, dupBam in
+      ## ezMethodBWA). samtools only converts, sorts and indexes: not cited.
+      citation = function(param = list()) {
+        c(
+          "Li, H. Aligning sequence reads, clone sequences and assembly contigs with BWA-MEM. arXiv 1303.3997 (2013). https://doi.org/10.48550/arXiv.1303.3997",
+          "Chen, S. fastp 1.0: An ultra-fast all-round tool for FASTQ data quality control and preprocessing. iMeta 4(5), e70078 (2025). https://doi.org/10.1002/imt2.70078",
+          if (!isFALSE(as.logical(param$markDuplicates))) "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodBWA
@@ -1442,6 +1453,14 @@ EzAppMinimap2 <-
     "EzAppMinimap2",
     contains = "EzApp",
     methods = list(
+      ## minimap2 and fastp unconditional (ezMethodMinimap2 always runs ezMethodFastpTrim, then
+      ## minimap2). samtools only sorts and indexes: not cited.
+      citation = function(param = list()) {
+        c(
+          "Li, H. New strategies to improve minimap2 alignment accuracy. Bioinformatics 37(23), 4572-4574 (2021). https://doi.org/10.1093/bioinformatics/btab705",
+          "Chen, S. fastp 1.0: An ultra-fast all-round tool for FASTQ data quality control and preprocessing. iMeta 4(5), e70078 (2025). https://doi.org/10.1002/imt2.70078"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodMinimap2

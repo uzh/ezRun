@@ -49,6 +49,13 @@ EzAppProkka <-
     "EzAppProkka",
     contains = "EzApp",
     methods = list(
+      ## Prokka: always runs (ezMethodProkka); Prokka's own citation (prokka --citation).
+      ## The tools Prokka runs internally are described in that paper and not cited separately.
+      citation = function(param = list()) {
+        c(
+          "Seemann, T. Prokka: rapid prokaryotic genome annotation. Bioinformatics 30(14), 2068-2069 (2014). https://doi.org/10.1093/bioinformatics/btu153"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodProkka
