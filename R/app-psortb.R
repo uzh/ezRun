@@ -71,7 +71,7 @@ EzAppPsortb <-
     contains = "EzApp",
     methods = list(
       ## PSORTb 3.0: always runs (psortb_app call in ezMethodPsortb). seqtk only subsets the
-      ## protein FASTA and is not cited. Kept identical to the EzAppPsortb copy in app-signalp.R.
+      ## protein FASTA and is not cited.
       citation = function(param = list()) {
         c(
           "Yu, N.Y. et al. PSORTb 3.0: improved protein subcellular localization prediction with refined localization subcategories and predictive capabilities for all prokaryotes. Bioinformatics 26(13), 1608-1615 (2010). https://doi.org/10.1093/bioinformatics/btq249"
