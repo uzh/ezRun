@@ -13,13 +13,19 @@ ezMethodMacs3 = function(input = NA, output = NA, param = NA) {
   ## With BAMPE file, --shift cannot be set.
   dataset = input$meta
 
-  ## -g option: mappable genome size
-  ## TODO: the MACS3 defaults should be used or the user should be asked
-  if (param$genomeSize == 0) {
-    gsize <- sum(as.numeric(fasta.seqlengths(param$ezRef["refFastaFile"])))
-    gsize <- round(gsize * 0.8)
-    ezLog("Use calculated gsize: ", gsize)
-    opt <- paste(opt, "-g", as.character(gsize))
+  ## -g option: effective genome size. genomeSize = 0 uses 80% of the
+  ## reference length; any other value is passed to MACS3 as given. A -g or
+  ## --gsize in cmdOptions takes precedence over both.
+  if (!grepl("(^|\\s)(-g|--gsize)(\\s|=)", opt)) {
+    if (param$genomeSize == 0) {
+      gsize <- sum(as.numeric(fasta.seqlengths(param$ezRef["refFastaFile"])))
+      gsize <- round(gsize * 0.8)
+      ezLog("Use calculated gsize: ", gsize)
+    } else {
+      gsize <- param$genomeSize
+      ezLog("Use given gsize: ", gsize)
+    }
+    opt <- paste(opt, "-g", format(gsize, scientific = FALSE))
   }
   ## --keep-dup: behavior towards duplicate tags at the exact same location
   if (!grepl("--keep-dup", opt)) {
@@ -328,7 +334,7 @@ EzAppMacs3 <-
           genomeSize = ezFrame(
             Type = "numeric",
             DefaultValue = 0,
-            Description = "genome size"
+            Description = "effective genome size for MACS3 -g; 0 uses 80% of the reference length"
           ),
           qValue = ezFrame(
             Type = "numeric",

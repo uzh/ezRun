@@ -29,11 +29,26 @@ ezMethodDelly <- function(
     cmd = paste(cmd, "lr -y pb")
   } else if (param$ReadOpt == "ont") {
     cmd = paste(cmd, "lr -y ont")
+  } else {
+    stop("ReadOpt must be sr, pb or ont, not: ", param$ReadOpt)
+  }
+  ## delly -t takes one type or a comma-separated list (e.g. DEL,INV)
+  svTypes <- c("DEL", "INS", "DUP", "INV", "BND", "ALL")
+  if (!all(strsplit(param$types, ",", fixed = TRUE)[[1]] %in% svTypes)) {
+    stop(
+      "types must be one of ",
+      paste(svTypes, collapse = ", "),
+      ", not: ",
+      param$types
+    )
   }
   cmd = paste(
     cmd,
+    "-t",
+    param$types,
     "-g",
     param$ezRef["refFastaFile"],
+    param$cmdOptions,
     bamFile,
     ">",
     ovf,
@@ -93,6 +108,11 @@ EzAppDelly <-
             Type = "character",
             DefaultValue = "sr",
             Description = "input read types: sr, pb, ont. Default is sr"
+          ),
+          types = ezFrame(
+            Type = "character",
+            DefaultValue = "ALL",
+            Description = "SV type to call (delly -t): DEL, INS, DUP, INV, BND or ALL"
           )
         )
       }

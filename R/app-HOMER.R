@@ -10,13 +10,18 @@ EzAppHomerDiffPeaks <-
     "EzAppHomerDiffPeaks",
     contains = "EzApp",
     methods = list(
-      ## HOMER + samtools unconditional; DESeq2 (inside getDifferentialPeaksReplicates.pl) gated on
-      ## >= 2 samples in a group; bedtools gated on non-empty results; ChIPpeakAnno + rtracklayer
-      ## gated on the no-replicate path.
+      ## HOMER + samtools unconditional; DESeq2 or edgeR (degMethod, inside
+      ## getDifferentialPeaksReplicates.pl) gated on >= 2 samples in a group; bedtools gated on
+      ## non-empty results; ChIPpeakAnno + rtracklayer gated on the no-replicate path.
       citation = function(param = list()) {
+        degCitation <- if (identical(param$degMethod, "edgeR")) {
+          "Robinson, M.D., McCarthy, D.J. & Smyth, G.K. edgeR: a Bioconductor package for differential expression analysis of digital gene expression data. Bioinformatics 26(1), 139-140 (2010). https://doi.org/10.1093/bioinformatics/btp616"
+        } else {
+          "Love, M.I., Huber, W. & Anders, S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 15, 550 (2014). https://doi.org/10.1186/s13059-014-0550-8"
+        }
         c(
           "Heinz, S. et al. Simple combinations of lineage-determining transcription factors prime cis-regulatory elements required for macrophage and B cell identities. Molecular Cell 38, 576-589 (2010). https://doi.org/10.1016/j.molcel.2010.05.004",
-          "Love, M.I., Huber, W. & Anders, S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 15, 550 (2014). https://doi.org/10.1186/s13059-014-0550-8",
+          degCitation,
           "Li, H. et al. The Sequence Alignment/Map format and SAMtools. Bioinformatics 25(16), 2078-2079 (2009). https://doi.org/10.1093/bioinformatics/btp352",
           "Quinlan, A.R. & Hall, I.M. BEDTools: a flexible suite of utilities for comparing genomic features. Bioinformatics 26, 841-842 (2010). https://doi.org/10.1093/bioinformatics/btq033",
           "Zhu, L.J. et al. ChIPpeakAnno: a Bioconductor package to annotate ChIP-seq and ChIP-chip data. BMC Bioinformatics 11, 237 (2010). https://doi.org/10.1186/1471-2105-11-237",
@@ -36,12 +41,17 @@ EzAppHomerDiffPeaks <-
           repFoldChange = ezFrame(
             Type = "numeric",
             DefaultValue = 2,
-            Description = "Replicate fold change cutoff for peak identification (calculated by DESeq2)"
+            Description = "Replicate fold change cutoff for peak identification (calculated by degMethod)"
           ),
           repFDR = ezFrame(
             Type = "numeric",
             DefaultValue = 0.05,
-            Description = "Replicate FDR cutoff for peak identification (calculated by DESeq2)"
+            Description = "Replicate FDR cutoff for peak identification (calculated by degMethod)"
+          ),
+          degMethod = ezFrame(
+            Type = "character",
+            DefaultValue = "DESeq2",
+            Description = "Differential test used by getDifferentialPeaksReplicates.pl with replicates: DESeq2 or edgeR"
           ),
           balanced = ezFrame(
             Type = "logical",
@@ -83,6 +93,9 @@ ezMethodHomerDiffPeaks = function(
   on.exit(setwd(cwd))
 
   stopifnot(param$sampleGroup != param$refGroup)
+  if (!param$degMethod %in% c("DESeq2", "edgeR")) {
+    stop("degMethod must be DESeq2 or edgeR, not: ", param$degMethod)
+  }
 
   bamFiles <- input$getFullPaths("BAM")
   targetSamples <- input$getNames()[
@@ -112,7 +125,8 @@ ezMethodHomerDiffPeaks = function(
     ## The experiments with replicates
     outputFile <- basename(output$getColumn("DiffPeak"))
     cmd <- paste(
-      "getDifferentialPeaksReplicates.pl -DESeq2",
+      "getDifferentialPeaksReplicates.pl",
+      paste0("-", param$degMethod),
       "-genome",
       param$refBuildHOMER,
       "-all",

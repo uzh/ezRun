@@ -20,6 +20,9 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   write_csv(nfSampleInfo, nfSampleFile)
 
   blackListFile <- getBlackListFile(input, param)
+  if (!param[['peakStyle']] %in% c("narrow", "broad")) {
+    stop("peakStyle must be narrow or broad, not: ", param[['peakStyle']])
+  }
   prepNFCoreEnv()
   configFile <- writeNextflowLimits(param)
   cmd = paste(
@@ -43,9 +46,9 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
       basename(param$ezRef@refAnnotationFile),
       'genes.bed'
     ),
-    "--blacklist",
-    blackListFile,
-    # if (param[['blacklist']] == "")  "" else paste0("--blacklist ", param[['blacklist']]),
+    ## no blacklist for this build: leave the option out instead of passing
+    ## an empty value
+    if (blackListFile == "") "" else paste("--blacklist", blackListFile),
     ## parameters
     "--dt_calc_all_matrix false",
     "--macs_gsize",
@@ -56,7 +59,10 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
     param[['spikeinGenome']],
     "--normalisation_mode",
     param[['normalization']],
-    if (param[['peakStyle']] == 'broad') "" else "--macs2_narrow_peak",
+    ## cutandrun defaults to narrow peaks, so broad must be requested
+    ## explicitly
+    "--macs2_narrow_peak",
+    if (param[['peakStyle']] == 'broad') "false" else "true",
     ## configuration
     "-work-dir work",
     "-profile apptainer",
@@ -133,8 +139,8 @@ EzAppNfCoreCutAndRun <- setRefClass(
         ),
         peakStyle = ezFrame(
           Type = "character",
-          DefaultValue = "broad",
-          Description = "Run MACS2 in broadPeak mode, otherwise in narrowPeak mode"
+          DefaultValue = "narrow",
+          Description = "MACS2 peak mode: narrow (narrowPeak) or broad (broadPeak)"
         ),
         keepBams = ezFrame(
           Type = "logical",
