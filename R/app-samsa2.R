@@ -95,8 +95,8 @@ EzAppSamsa2 <-
           "Bolger, A.M. et al. Trimmomatic: a flexible trimmer for Illumina sequence data. Bioinformatics 30, 2114-2120 (2014). https://doi.org/10.1093/bioinformatics/btu170",
           "Zhang, J. et al. PEAR: a fast and accurate Illumina Paired-End reAd mergeR. Bioinformatics 30, 614-620 (2014). https://doi.org/10.1093/bioinformatics/btt593",
           "Kopylova, E. et al. SortMeRNA: fast and accurate filtering of ribosomal RNAs in metatranscriptomic data. Bioinformatics 28, 3211-3217 (2012). https://doi.org/10.1093/bioinformatics/bts611",
-          "Buchfink, B. et al. Fast and sensitive protein alignment using DIAMOND. Nature Methods 12, 59-60 (2015). https://doi.org/10.1038/nmeth.3176",
-          "O'Leary, N.A. et al. Reference sequence (RefSeq) database at NCBI: current status, taxonomic expansion, and functional annotation. Nucleic Acids Research 44, D733-D745 (2016). https://doi.org/10.1093/nar/gkv1189"
+          "Buchfink, B.J. et al. Clustering the protein universe of life using DIAMOND DeepClust. Nature Methods 23(4), 724-727 (2026). https://doi.org/10.1038/s41592-026-03030-z",
+          "Goldfarb, T. et al. NCBI RefSeq: reference sequence standards through 25 years of curation and annotation. Nucleic Acids Research 53(D1), D243-D257 (2025). https://doi.org/10.1093/nar/gkae1038"
         )
       },
       initialize = function() {
