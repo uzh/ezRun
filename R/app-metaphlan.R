@@ -75,8 +75,8 @@ EzAppMetaPhlAn <-
       citation = function(param = list()) {
         c(
           "Blanco-Míguez, A. et al. Extending and improving metagenomic taxonomic profiling with uncharacterized species using MetaPhlAn 4. Nature Biotechnology 41, 1633-1644 (2023). https://doi.org/10.1038/s41587-023-01688-w",
-          "Langmead, B. & Salzberg, S.L. Fast gapped-read alignment with Bowtie 2. Nat Methods 9, 357-359 (2012). https://doi.org/10.1038/nmeth.1923",
-          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
+          "Langmead, B., Wilks, C., Antonescu, V. & Charles, R. Scaling read aligners to hundreds of threads on general-purpose processors. Bioinformatics 35(3), 421-432 (2019). https://doi.org/10.1093/bioinformatics/bty648",
+          "Chen, S. fastp 1.0: An ultra-fast all-round tool for FASTQ data quality control and preprocessing. iMeta 4(5), e70078 (2025). https://doi.org/10.1002/imt2.70078"
         )
       },
       initialize = function() {
