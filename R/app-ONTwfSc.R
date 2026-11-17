@@ -8,7 +8,7 @@ ezMethodONTwfSc <- function(input = NA, output = NA, param = NA) {
   sampledataset = input$getFullPaths("Read1")
   samplename = input$getNames()
   refbuild = param$refBuild
-  kitname = param$kitname
+  kitname = param$kitName
   kitversion = param$kitVersion
   expCells = param$expCells
 
@@ -29,7 +29,8 @@ ezMethodONTwfSc <- function(input = NA, output = NA, param = NA) {
     "--out_dir",
     samplename,
     "-profile singularity",
-    "--plot_umaps"
+    "--plot_umaps",
+    param$cmdOptions
   )
   ezSystem(cmd)
   return("Success")
@@ -49,12 +50,12 @@ EzAppONTwfSc <-
         runMethod <<- ezMethodONTwfSc
         name <<- "EzAppONTwfSc"
         appDefaults <<- rbind(
-          expected_cells = ezFrame(
+          expCells = ezFrame(
             Type = "integer",
             DefaultValue = "500",
             Description = "number of expected cells"
           ),
-          kitname = ezFrame(
+          kitName = ezFrame(
             Type = "character",
             DefaultValue = "3prime",
             Description = "10x kit name"
