@@ -186,8 +186,9 @@
     name   = getc(c("name", "peakid", "peak", "id")),
     score  = getc(c("score", "pileup")),
     signalValue = getc(c("signalvalue", "fold_enrichment", "foldenrichment", "fold change")),
-    pValue = getc(c("-log10(pvalue)", "pvalue", "p-value", "log10pvalue")),
-    qValue = getc(c("-log10(qvalue)", "qvalue", "q-value", "fdr", "log10qvalue")),
+    ## MACS3App's annotated _peaks.xlsx prefixes these as "_-log10(...)"
+    pValue = getc(c("-log10(pvalue)", "_-log10(pvalue)", "pvalue", "p-value", "log10pvalue")),
+    qValue = getc(c("-log10(qvalue)", "_-log10(qvalue)", "qvalue", "q-value", "fdr", "log10qvalue")),
     summit = getc(c("abs_summit", "summit")),
     annotation = getc(c("annotation", "feature")),
     geneSymbol = getc(c("gene name", "genesymbol", "symbol", "nearest gene", "gene")),
