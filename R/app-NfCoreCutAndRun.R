@@ -28,7 +28,9 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
   prepNFCoreEnv()
   configFile <- writeNextflowLimits(param)
   cmd = paste(
-    "nextflow run -c",
+    ## same launcher as NfCoreAtacSeq: the /usr/bin/nextflow wrapper on PATH
+    ## fails unless NXF_VER is set ("nextflow jar for version unknown")
+    "/usr/local/ngseq/src/nextflow/nextflow run -c",
     configFile,
     "nf-core/cutandrun",
     "-ansi-log false",
