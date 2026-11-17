@@ -86,11 +86,13 @@ ezMethodDiffMethylation <- function(input = NA, output = NA, param = NA) {
     BPPARAM = params
   )
 
+  # dmrseq's cutoff is the minimum methylation difference for candidate
+  # regions, not a q-value threshold. It must be > 0, so minDelta = 0 (a plain
+  # DSS p-value test) falls back to dmrseq's default of 0.1 for the blocks.
+  param$blockCutoff <- if (param$minDelta > 0) param$minDelta else 0.1
   blocks <- dmrseq(
     bs = bismarkBSseq_filtered,
-    # dmrseq's cutoff is the minimum methylation difference for candidate
-    # regions, not a q-value threshold
-    cutoff = param$minDelta,
+    cutoff = param$blockCutoff,
     testCovariate = "Condition",
     block = TRUE,
     minInSpan = 500,
@@ -159,7 +161,8 @@ EzAppDiffMethylation <-
             DefaultValue = 0.001,
             Description = paste(
               "DSS p-value threshold for CpG sites and regions",
-              "(1 - posterior probability of |difference| > minDelta)"
+              "(1 - posterior probability of |difference| > minDelta;",
+              "p-value if minDelta is 0)"
             )
           ),
           minDelta = ezFrame(
@@ -167,7 +170,7 @@ EzAppDiffMethylation <-
             DefaultValue = 0.1,
             Description = paste(
               "minimum methylation difference (DSS delta and",
-              "dmrseq block candidate cutoff)"
+              "dmrseq block candidate cutoff, 0.1 if minDelta is 0)"
             )
           )
         )

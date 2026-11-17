@@ -53,7 +53,8 @@ settings["sampleGroup:"] = param$sampleGroup
 settings["refGroup:"] = param$refGroup
 settings["qValue region threshold:"] = param$qVal
 settings["DSS p-value threshold (sites and regions):"] = param$qVal_perSite
-settings["minimum methylation difference (DSS delta, dmrseq block cutoff):"] = param$minDelta
+settings["minimum methylation difference for DSS:"] = param$minDelta
+settings["dmrseq block candidate cutoff:"] = param$blockCutoff
 settings["topRegions/Blocks:"] = n
 kable(settings, row.names=TRUE, 
       col.names="Setting", format="html") %>%
