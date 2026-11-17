@@ -142,7 +142,7 @@ EzAppPbmm2 <-
       citation = function(param = list()) {
         c(
           "pbmm2. Pacific Biosciences. https://github.com/PacificBiosciences/pbmm2",
-          "Li, H. Minimap2: pairwise alignment for nucleotide sequences. Bioinformatics 34(18), 3094-3100 (2018). https://doi.org/10.1093/bioinformatics/bty191"
+          "Li, H. New strategies to improve minimap2 alignment accuracy. Bioinformatics 37(23), 4572-4574 (2021). https://doi.org/10.1093/bioinformatics/btab705"
         )
       },
       initialize = function() {

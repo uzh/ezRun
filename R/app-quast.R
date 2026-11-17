@@ -77,7 +77,7 @@ EzAppQuast <-
       ## QUAST: always runs (ezMethodQuast), with or without a reference genome.
       citation = function(param = list()) {
         c(
-          "Gurevich, A., Saveliev, V., Vyahhi, N. & Tesler, G. QUAST: quality assessment tool for genome assemblies. Bioinformatics 29(8), 1072-1075 (2013). https://doi.org/10.1093/bioinformatics/btt086"
+          "Mikheenko, A., Prjibelski, A., Saveliev, V., Antipov, D. & Gurevich, A. Versatile genome assembly evaluation with QUAST-LG. Bioinformatics 34(13), i142-i150 (2018). https://doi.org/10.1093/bioinformatics/bty266"
         )
       },
       initialize = function() {
