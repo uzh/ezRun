@@ -57,7 +57,9 @@ ezMethodSpades = function(
     ezSystem(cmd)
   }
   wddir <- "."
-  if (grepl("--rna", opt)) {
+  if (
+    grepl("(^|\\s)--rna(\\s|$)", paste(basicOpts, param$spadesPipeOpt, opt))
+  ) {
     sfile <- file.path(wddir, "spades/transcripts.fasta")
     cfile <- file.path(wddir, "spades/hard_filtered_transcripts.fasta")
     if (file.exists(sfile)) {
