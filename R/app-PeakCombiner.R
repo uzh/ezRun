@@ -264,6 +264,15 @@ EzAppPeakCombiner <-
     "EzAppPeakCombiner",
     contains = "EzApp",
     methods = list(
+      ## - GenomicRanges: peak support across samples and merging into consensus peaks, always.
+      ## - Rsubread featureCounts: read counts per consensus peak and sample, always.
+      citation = function(param = list()) {
+        c(
+          "Lawrence, M. et al. Software for Computing and Annotating Genomic Ranges. PLoS Computational Biology 9(8), e1003118 (2013). https://doi.org/10.1371/journal.pcbi.1003118",
+          "Liao, Y., Smyth, G.K. & Shi, W. The R package Rsubread is easier, faster, cheaper and better for alignment and quantification of short sequence reads. Nucleic Acids Research 47(8), e47 (2019). https://doi.org/10.1093/nar/gkz114",
+          "Liao, Y., Smyth, G.K. & Shi, W. featureCounts: an efficient general purpose program for assigning sequence reads to genomic features. Bioinformatics 30(7), 923-930 (2014). https://doi.org/10.1093/bioinformatics/btt656"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCombinePeaks

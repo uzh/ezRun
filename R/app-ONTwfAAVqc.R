@@ -62,6 +62,20 @@ EzAppONTwfAAVqc <-
     "EzAppONTwfAAVqc",
     contains = "EzApp",
     methods = list(
+      ## All unconditional: ezMethodONTwfAAVqc always runs the whole EPI2ME wf-aav-qc Nextflow
+      ## workflow. Its tools that define the result: minimap2 (mapping to the combined
+      ## reference), samtools depth (ITR-ITR coverage) and bcftools consensus (one SAMtools/
+      ## BCFtools paper), medaka (transgene plasmid variants and consensus; no paper).
+      ## fastcat ingress and seqkit bam (alignment summary tables) are helpers: not cited.
+      citation = function(param = list()) {
+        c(
+          "wf-aav-qc. Oxford Nanopore Technologies. https://github.com/epi2me-labs/wf-aav-qc",
+          "Di Tommaso, P. et al. Nextflow enables reproducible computational workflows. Nat Biotechnol 35(4), 316-319 (2017). https://doi.org/10.1038/nbt.3820",
+          "Li, H. New strategies to improve minimap2 alignment accuracy. Bioinformatics 37(23), 4572-4574 (2021). https://doi.org/10.1093/bioinformatics/btab705",
+          "medaka. Oxford Nanopore Technologies. https://github.com/nanoporetech/medaka",
+          "Danecek, P. et al. Twelve years of SAMtools and BCFtools. GigaScience 10(2), giab008 (2021). https://doi.org/10.1093/gigascience/giab008"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodONTwfAAVqc

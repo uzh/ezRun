@@ -104,6 +104,16 @@ EzAppDeHost <-
     "EzAppDeHost",
     contains = "EzApp",
     methods = list(
+      ## fastp unconditional (ezMethodFastpTrim always runs first, ezMethodDeHost); Bowtie 2
+      ## unconditional (depleteAgainstReference, R/app-VirDetect.R), against the human
+      ## T2T-CHM13v2.0 genome first unless refBuild is human, then against refBuild. samtools
+      ## only filters the unmapped reads and writes FASTQ, and the genomes are not cited.
+      citation = function(param = list()) {
+        c(
+          "Chen, S. fastp 1.0: An ultra-fast all-round tool for FASTQ data quality control and preprocessing. iMeta 4(5), e70078 (2025). https://doi.org/10.1002/imt2.70078",
+          "Langmead, B., Wilks, C., Antonescu, V. & Charles, R. Scaling read aligners to hundreds of threads on general-purpose processors. Bioinformatics 35(3), 421-432 (2019). https://doi.org/10.1093/bioinformatics/bty648"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodDeHost

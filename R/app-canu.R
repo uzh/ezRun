@@ -59,6 +59,13 @@ EzAppCanu <-
     "EzAppCanu",
     contains = "EzApp",
     methods = list(
+      ## Canu: always runs (ezMethodCanu). HiCanu instead of Canu when canuReadOpt is
+      ## -pacbio-hifi (the read-type flag in ezMethodCanu), as the Canu README asks.
+      citation = function(param = list()) {
+        c(
+          if (isTRUE(grepl("pacbio-hifi", param$canuReadOpt))) "Nurk, S. et al. HiCanu: accurate assembly of segmental duplications, satellites, and allelic variants from high-fidelity long reads. Genome Research 30(9), 1291-1305 (2020). https://doi.org/10.1101/gr.263566.120" else "Koren, S., Walenz, B.P., Berlin, K., Miller, J.R., Bergman, N.H. & Phillippy, A.M. Canu: scalable and accurate long-read assembly via adaptive k-mer weighting and repeat separation. Genome Research 27(5), 722-736 (2017). https://doi.org/10.1101/gr.215087.116"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodCanu

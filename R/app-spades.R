@@ -104,6 +104,14 @@ EzAppSpades <-
     "EzAppSpades",
     contains = "EzApp",
     methods = list(
+      ## fastp: read trimming, always runs (ezMethodFastpTrim call in ezMethodSpades).
+      ## SPAdes: always runs; Prjibelski 2020, the README's "latest paper", covers every mode.
+      citation = function(param = list()) {
+        c(
+          "Chen, S. fastp 1.0: An ultra-fast all-round tool for FASTQ data quality control and preprocessing. iMeta 4(5), e70078 (2025). https://doi.org/10.1002/imt2.70078",
+          "Prjibelski, A., Antipov, D., Meleshko, D., Lapidus, A. & Korobeynikov, A. Using SPAdes de novo assembler. Current Protocols in Bioinformatics 70(1), e102 (2020). https://doi.org/10.1002/cpbi.102"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodSpades

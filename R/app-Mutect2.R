@@ -166,6 +166,16 @@ EzAppMutect2 <-
     "EzAppMutect2",
     contains = "EzApp",
     methods = list(
+      ## GATK Mutect2 + FilterMutectCalls unconditional (ezMethodMutect2). SnpEff only when
+      ## snpEffDB is "mm39" (`if (param$snpEffDB == 'mm39')`, the only database the code supports).
+      ## Picard AddOrReplaceReadGroups only labels BAMs without read groups and is not cited.
+      citation = function(param = list()) {
+        c(
+          "McKenna, A. et al. The Genome Analysis Toolkit: a MapReduce framework for analyzing next-generation DNA sequencing data. Genome Research 20(9), 1297-1303 (2010). https://doi.org/10.1101/gr.107524.110",
+          "Benjamin, D., Sato, T., Cibulskis, K., Getz, G., Stewart, C. & Lichtenstein, L. Calling somatic SNVs and indels with Mutect2. bioRxiv (2019) [preprint, not peer-reviewed]. https://doi.org/10.1101/861054",
+          if (identical(param$snpEffDB, "mm39")) "Cingolani, P. et al. A program for annotating and predicting the effects of single nucleotide polymorphisms, SnpEff. Fly 6(2), 80-92 (2012). https://doi.org/10.4161/fly.19695"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodMutect2

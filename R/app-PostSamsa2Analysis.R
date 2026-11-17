@@ -195,6 +195,17 @@ EzAppPostSamsa2Analysis <-
     "EzAppPostSamsa2Analysis",
     contains = "EzApp",
     methods = list(
+      ## The statistics are SAMSA2's own R scripts (/usr/local/ngseq/src/samsa2/R_scripts/
+      ## run_all_Rscripts.sh), all unconditional: vegan Shannon/Simpson diversity (diversity_stats.R,
+      ## diversity_graphs.R) and DESeq2 control vs experimental (run_DESeq_stats.R; rlog PCA and heatmap).
+      ## EnhancedVolcano and pheatmap only draw plots.
+      citation = function(param = list()) {
+        c(
+          "Westreich, S.T. et al. SAMSA2: a standalone metatranscriptome analysis pipeline. BMC Bioinformatics 19, 175 (2018). https://doi.org/10.1186/s12859-018-2189-z",
+          "Love, M.I., Huber, W. & Anders, S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 15, 550 (2014). https://doi.org/10.1186/s13059-014-0550-8",
+          "Oksanen, J. et al. vegan: Community Ecology Package. R package. https://CRAN.R-project.org/package=vegan"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodPostSamsa2Analysis

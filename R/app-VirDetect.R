@@ -426,6 +426,25 @@ EzAppVirDetect <-
     "EzAppVirDetect",
     contains = "EzApp",
     methods = list(
+      ## fastp (ezMethodFastpTrim, always), Bowtie 2 (human depletion against T2T-CHM13v2.0 unless
+      ## hostBuild is human, host depletion, viral mapping; depleteAgainstReference and
+      ## ezMethodVirDetect) and BEDTools coverage (per-virus coverage and depth) unconditional.
+      ## samtools only filters, converts, subsamples and counts (as in EzAppDeHost), not cited; host
+      ## genomes not cited. Viral database: NCBI RefSeq when virBuild is a refseq build, DBatVir when
+      ## it is the DBatVir build, GenBank for the Virome/GenBank builds (GenBank_20180817 and the
+      ## ICTV VMR MSL38 accession set VMR_MSL38_v2_20231128, both GenBank sequences)
+      ## (/srv/GT/reference/Virome/...); other builds have no citation here.
+      citation = function(param = list()) {
+        vir <- tolower(paste(as.character(param$virBuild), collapse = " "))
+        c(
+          "Chen, S. fastp 1.0: An ultra-fast all-round tool for FASTQ data quality control and preprocessing. iMeta 4(5), e70078 (2025). https://doi.org/10.1002/imt2.70078",
+          "Langmead, B., Wilks, C., Antonescu, V. & Charles, R. Scaling read aligners to hundreds of threads on general-purpose processors. Bioinformatics 35(3), 421-432 (2019). https://doi.org/10.1093/bioinformatics/bty648",
+          "Quinlan, A.R. & Hall, I.M. BEDTools: a flexible suite of utilities for comparing genomic features. Bioinformatics 26(6), 841-842 (2010). https://doi.org/10.1093/bioinformatics/btq033",
+          if (grepl("refseq", vir)) "Goldfarb, T. et al. NCBI RefSeq: reference sequence standards through 25 years of curation and annotation. Nucleic Acids Research 53(D1), D243-D257 (2025). https://doi.org/10.1093/nar/gkae1038",
+          if (grepl("dbatvir", vir)) "Chen, L., Liu, B., Yang, J. & Jin, Q. DBatVir: the database of bat-associated viruses. Database 2014, bau021 (2014). https://doi.org/10.1093/database/bau021",
+          if (grepl("genbank", vir)) "Sayers, E.W. et al. GenBank 2025 update. Nucleic Acids Research 53(D1), D56-D61 (2025). https://doi.org/10.1093/nar/gkae1114"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodVirDetect
