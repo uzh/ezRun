@@ -52,8 +52,8 @@ settings["GroupingColumn:"] = param$grouping
 settings["sampleGroup:"] = param$sampleGroup
 settings["refGroup:"] = param$refGroup
 settings["qValue region threshold:"] = param$qVal
-settings["qValue per Site threshold:"] = param$qVal_perSite
-settings["minimum delta methylation difference for DSS:"] = param$minDelta
+settings["DSS p-value threshold (sites and regions):"] = param$qVal_perSite
+settings["minimum methylation difference (DSS delta, dmrseq block cutoff):"] = param$minDelta
 settings["topRegions/Blocks:"] = n
 kable(settings, row.names=TRUE, 
       col.names="Setting", format="html") %>%
@@ -67,40 +67,39 @@ kable(settings, row.names=TRUE,
 
 ```{r write data files DmrSeq, include=FALSE}
 ##Candidates annotated regions/blocks
+# dmrseq returns NULL when no candidate region passes its cutoff, and NA
+# pval/qval when the permutations yield no candidate regions
+noResults <- function(what) data.frame(result = paste('No', what, 'found'))
+annotateRanges <- function(gr, orderBy) {
+    a <- data.frame(annotatePeakInBatch(gr, featureType = 'TSS', AnnotationData = gtf))
+    a <- merge(a, genesAnnot, by.x = 'feature', by.y = 'gene_id', all.x = TRUE)
+    a <- a[order(a[[orderBy]]),]
+    a[, !(colnames(a) %in% c('index.start','index.end','index.width','peak'))]
+}
+if (is.null(regions)) regions <- GRanges()
+if (is.null(blocks)) blocks <- GRanges()
+
 # Exploring Significant Regions
 regions <- regions[!is.na(regions$beta),]
-sigRegions <- regions[regions$qval <= param$qVal, ]
-numSigRegions <- sum(regions$qval <= param$qVal)
+sigRegions <- regions[which(regions$qval <= param$qVal), ]
+numSigRegions <- length(sigRegions)
 if(numSigRegions < 1){
     cat('No significant regions detected. Instead top', min(length(regions),n),' regions reported \n')
-    sigRegions <- regions[1:min(length(regions),n), ]
+    sigRegions <- regions[seq_len(min(length(regions),n)), ]
 }
 
 # Exploring Significant Blocks
 blocks <- blocks[!is.na(blocks$beta),]
-sigBlocks <- blocks[blocks$qval <= param$qVal, ]
-numSigBlocks <- sum(blocks$qval <= param$qVal)
+sigBlocks <- blocks[which(blocks$qval <= param$qVal), ]
+numSigBlocks <- length(sigBlocks)
 if(numSigBlocks < 1){
     cat('No significant block detected. Instead top',min(length(blocks),n), 'blocks reported \n')
-    sigBlocks <- blocks[1:min(length(blocks),n), ]
+    sigBlocks <- blocks[seq_len(min(length(blocks),n)), ]
 }
-# Annotate significant regions/blocks
-asigRegions <- data.frame(annotatePeakInBatch(sigRegions,featureType = 'TSS', AnnotationData = gtf))
-asigRegions <- merge(asigRegions, genesAnnot, by.x = 'feature', by.y = 'gene_id', all.x = TRUE)
-asigRegions <- asigRegions[order(asigRegions$pval),]
-cols <- colnames(asigRegions)
-cols <- cols[!(cols %in% c('index.start','index.end','index.width','peak'))]
-asigRegions <- asigRegions[,cols]
 
-asigBlocks <- data.frame(annotatePeakInBatch(sigBlocks,featureType = 'TSS', AnnotationData = gtf))
-asigBlocks <- merge(asigBlocks, genesAnnot, by.x = 'feature', by.y = 'gene_id', all.x = TRUE)
-asigBlocks <- asigBlocks[order(asigBlocks$pval),]
-cols <- colnames(asigBlocks)
-cols <- cols[!(cols %in% c('index.start','index.end','index.width','peak'))]
-asigBlocks <- asigBlocks[,cols]
-
-
-# Export the significant regions to XLSX
+# Annotate significant regions/blocks and export them to XLSX
+asigRegions <- if (length(sigRegions) > 0) annotateRanges(sigRegions, 'pval') else noResults('dmrseq regions')
+asigBlocks <- if (length(sigBlocks) > 0) annotateRanges(sigBlocks, 'pval') else noResults('dmrseq blocks')
 writexl::write_xlsx(asigRegions,"DMRSeq_topRegions.xlsx")
 writexl::write_xlsx(asigBlocks,"DMRSeq_topBlocks.xlsx")
 ```
@@ -115,28 +114,13 @@ nDmlsDSS <- if (is.null(dmls)) 0L else nrow(dmls)
 
 if(nDmrsDSS > 0){
     sigRegionsDSS <- GRanges(dmrs)
-    # Annotate significant regions/blocks
-    asigRegionsDSS <- data.frame(annotatePeakInBatch(sigRegionsDSS,featureType = 'TSS', AnnotationData = gtf))
-    asigRegionsDSS <- merge(asigRegionsDSS, genesAnnot, by.x = 'feature', by.y = 'gene_id', all.x = TRUE)
-    asigRegionsDSS <- asigRegionsDSS[order(asigRegionsDSS$diff.Methy),]
-    cols <- colnames(asigRegionsDSS)
-    cols <- cols[!(cols %in% c('index.start','index.end','index.width','peak'))]
-    asigRegionsDSS <- asigRegionsDSS[,cols]
-    writexl::write_xlsx(asigRegionsDSS,"DSS_topRegions.xlsx")        
-    #   writexl::write_xlsx(dmrs, paste0('dmrs_',param$sampleGroup,'_vs_', param$refGroup, '.xlsx'))
+    asigRegionsDSS <- annotateRanges(sigRegionsDSS, 'diff.Methy')
+    writexl::write_xlsx(asigRegionsDSS,"DSS_topRegions.xlsx")
+} else {
+    writexl::write_xlsx(noResults('DSS regions'),"DSS_topRegions.xlsx")
 }
 
-if(!is.null(dmls)){
-    #sigSites <- GRanges(dmls)
-    # Annotate significant regions/blocks
-    #asigSites <- data.frame(annotatePeakInBatch(sigSites,featureType = 'TSS', AnnotationData = gtf))
-    #asigSites <- merge(asigSites, genesAnnot, by.x = 'feature', by.y = 'gene_id', all.x = TRUE)
-    #asigSites <- asigSites[order(asigSites$diff.Methy),]
-    #cols <- colnames(asigSites)
-    #cols <- cols[!(cols %in% c('index.start','index.end','index.width','peak'))]
-    #asigSites <- asigSites[,cols]
-    writexl::write_xlsx(dmls,"DSS_topCpGs.xlsx")        
-}
+writexl::write_xlsx(if (nDmlsDSS > 0) dmls else noResults('DSS CpG sites'),"DSS_topCpGs.xlsx")
 ```
 
 ### Candidate sites/regions/blocks

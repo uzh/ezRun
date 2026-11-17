@@ -88,7 +88,9 @@ ezMethodDiffMethylation <- function(input = NA, output = NA, param = NA) {
 
   blocks <- dmrseq(
     bs = bismarkBSseq_filtered,
-    cutoff = param$qVal,
+    # dmrseq's cutoff is the minimum methylation difference for candidate
+    # regions, not a q-value threshold
+    cutoff = param$minDelta,
     testCovariate = "Condition",
     block = TRUE,
     minInSpan = 500,
@@ -110,7 +112,11 @@ ezMethodDiffMethylation <- function(input = NA, output = NA, param = NA) {
     smoothing = TRUE
   )
   dmlResults <- list()
-  dmlResults[['dmls']] = callDML(dmlTest.sm, p.threshold = param$qVal_perSite)
+  dmlResults[['dmls']] = callDML(
+    dmlTest.sm,
+    delta = param$minDelta,
+    p.threshold = param$qVal_perSite
+  )
   dmlResults[['dmrs']] = callDMR(
     dmlTest.sm,
     delta = param$minDelta,
@@ -151,12 +157,18 @@ EzAppDiffMethylation <-
           qVal_perSite = ezFrame(
             Type = "numeric",
             DefaultValue = 0.001,
-            Description = "fdr cutoff per site"
+            Description = paste(
+              "DSS p-value threshold for CpG sites and regions",
+              "(1 - posterior probability of |difference| > minDelta)"
+            )
           ),
           minDelta = ezFrame(
             Type = "numeric",
             DefaultValue = 0.1,
-            Description = "minimum delta methylation difference"
+            Description = paste(
+              "minimum methylation difference (DSS delta and",
+              "dmrseq block candidate cutoff)"
+            )
           )
         )
       }
