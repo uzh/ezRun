@@ -17,7 +17,9 @@ ezMethodNfCoreCutAndRun <- function(input = NA, output = NA, param = NA) {
 
   nfSampleFile <- file.path('dataset.csv')
   nfSampleInfo = getCutAndRunSampleSheet(input, param)
-  write_csv(nfSampleInfo, nfSampleFile)
+  ## samples without a control (e.g. no IgG) must have an empty control field;
+  ## write_csv would otherwise write the literal string "NA"
+  write_csv(nfSampleInfo, nfSampleFile, na = "")
 
   blackListFile <- getBlackListFile(input, param)
   if (!param[['peakStyle']] %in% c("narrow", "broad")) {
