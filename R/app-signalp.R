@@ -38,22 +38,37 @@ ezMethodSignalP = function(
 
 
 ##' @template app-template
-##' @templateVar method ezMethodPsortb
+##' @templateVar method ezMethodSignalP
 ##' @description Use this reference class to run
-EzAppPsortb <-
+EzAppSignalP <-
   setRefClass(
-    "EzAppPsortb",
+    "EzAppSignalP",
     contains = "EzApp",
     methods = list(
+      citation = function(param = list()) {
+        c(
+          "Almagro Armenteros, J.J. et al. SignalP 5.0 improves signal peptide predictions using deep neural networks. Nature Biotechnology 37(4), 420-423 (2019). https://doi.org/10.1038/s41587-019-0036-z"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
-        runMethod <<- ezMethodPsortb
-        name <<- "EzAppPsortb"
+        runMethod <<- ezMethodSignalP
+        name <<- "EzAppSignalP"
         appDefaults <<- rbind(
           org = ezFrame(
             Type = "character",
-            DefaultValue = "--negative",
-            Description = "type of organism: gram negative/ gram positive bacteria or archea"
+            DefaultValue = "gram-",
+            Description = "type of organism: gram- or gram+ bacteria, arch (Archaea) or euk (Eukarya)"
+          ),
+          oformat = ezFrame(
+            Type = "character",
+            DefaultValue = "short",
+            Description = "output format: long adds per-protein plots, short gives the predictions only"
+          ),
+          pformat = ezFrame(
+            Type = "character",
+            DefaultValue = "png",
+            Description = "plot format for long output: png, eps or none"
           )
         )
       }
