@@ -328,13 +328,13 @@ EzAppHUMAnN <-
       citation = function(param = list()) {
         c(
           "Beghini, F. et al. Integrating taxonomic, functional, and strain-level profiling of diverse microbial communities with bioBakery 3. eLife 10, e65088 (2021). https://doi.org/10.7554/eLife.65088",
-          "Buchfink, B., Reuter, K. & Drost, H.G. Sensitive protein alignments at tree-of-life scale using DIAMOND. Nature Methods 18, 366-368 (2021). https://doi.org/10.1038/s41592-021-01101-x",
-          if (!isTRUE(as.logical(param$forceTranslatedOnly))) "Langmead, B. & Salzberg, S.L. Fast gapped-read alignment with Bowtie 2. Nat Methods 9, 357-359 (2012). https://doi.org/10.1038/nmeth.1923",
+          "Buchfink, B.J. et al. Clustering the protein universe of life using DIAMOND DeepClust. Nature Methods 23(4), 724-727 (2026). https://doi.org/10.1038/s41592-026-03030-z",
+          if (!isTRUE(as.logical(param$forceTranslatedOnly))) "Langmead, B., Wilks, C., Antonescu, V. & Charles, R. Scaling read aligners to hundreds of threads on general-purpose processors. Bioinformatics 35(3), 421-432 (2019). https://doi.org/10.1093/bioinformatics/bty648",
           "Ye, Y. & Doak, T.G. A parsimony approach to biological pathway reconstruction/inference for genomes and metagenomes. PLoS Computational Biology 5(8), e1000465 (2009). https://doi.org/10.1371/journal.pcbi.1000465",
           "Suzek, B.E. et al. UniRef clusters: a comprehensive and scalable alternative for improving sequence similarity searches. Bioinformatics 31(6), 926-932 (2015). https://doi.org/10.1093/bioinformatics/btu739",
           "Caspi, R. et al. The MetaCyc database of metabolic pathways and enzymes - a 2019 update. Nucleic Acids Research 48(D1), D445-D453 (2020). https://doi.org/10.1093/nar/gkz862",
-          if (!isFALSE(as.logical(param$regroupKEGGKO)) || !isFALSE(as.logical(param$inferTaxonomy))) "Kanehisa, M. & Goto, S. KEGG: Kyoto Encyclopedia of Genes and Genomes. Nucleic Acids Research 28(1), 27-30 (2000). https://doi.org/10.1093/nar/28.1.27",
-          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560"
+          if (!isFALSE(as.logical(param$regroupKEGGKO)) || !isFALSE(as.logical(param$inferTaxonomy))) "Kanehisa, M., Furumichi, M., Sato, Y., Matsuura, Y. & Ishiguro-Watanabe, M. KEGG for characterizing genomes and pathways in the biosphere. Nucleic Acids Research 55, gkag1042 (2027). https://doi.org/10.1093/nar/gkag1042",
+          "Chen, S. fastp 1.0: An ultra-fast all-round tool for FASTQ data quality control and preprocessing. iMeta 4(5), e70078 (2025). https://doi.org/10.1002/imt2.70078"
         )
       },
       initialize = function() {

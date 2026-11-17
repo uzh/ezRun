@@ -437,12 +437,12 @@ EzAppVirDetect <-
       citation = function(param = list()) {
         vir <- tolower(paste(as.character(param$virBuild), collapse = " "))
         c(
-          "Chen, S., Zhou, Y., Chen, Y. & Gu, J. fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics 34(17), i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560",
-          "Langmead, B. & Salzberg, S.L. Fast gapped-read alignment with Bowtie 2. Nat Methods 9, 357-359 (2012). https://doi.org/10.1038/nmeth.1923",
+          "Chen, S. fastp 1.0: An ultra-fast all-round tool for FASTQ data quality control and preprocessing. iMeta 4(5), e70078 (2025). https://doi.org/10.1002/imt2.70078",
+          "Langmead, B., Wilks, C., Antonescu, V. & Charles, R. Scaling read aligners to hundreds of threads on general-purpose processors. Bioinformatics 35(3), 421-432 (2019). https://doi.org/10.1093/bioinformatics/bty648",
           "Quinlan, A.R. & Hall, I.M. BEDTools: a flexible suite of utilities for comparing genomic features. Bioinformatics 26(6), 841-842 (2010). https://doi.org/10.1093/bioinformatics/btq033",
-          if (grepl("refseq", vir)) "O'Leary, N.A. et al. Reference sequence (RefSeq) database at NCBI: current status, taxonomic expansion, and functional annotation. Nucleic Acids Research 44, D733-D745 (2016). https://doi.org/10.1093/nar/gkv1189",
+          if (grepl("refseq", vir)) "Goldfarb, T. et al. NCBI RefSeq: reference sequence standards through 25 years of curation and annotation. Nucleic Acids Research 53(D1), D243-D257 (2025). https://doi.org/10.1093/nar/gkae1038",
           if (grepl("dbatvir", vir)) "Chen, L., Liu, B., Yang, J. & Jin, Q. DBatVir: the database of bat-associated viruses. Database 2014, bau021 (2014). https://doi.org/10.1093/database/bau021",
-          if (grepl("genbank", vir)) "Sayers, E.W. et al. GenBank 2023 update. Nucleic Acids Research 51(D1), D141-D144 (2023). https://doi.org/10.1093/nar/gkac1012"
+          if (grepl("genbank", vir)) "Sayers, E.W. et al. GenBank 2025 update. Nucleic Acids Research 53(D1), D56-D61 (2025). https://doi.org/10.1093/nar/gkae1114"
         )
       },
       initialize = function() {

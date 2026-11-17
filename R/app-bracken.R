@@ -61,7 +61,7 @@ EzAppBracken <-
       ## classified the reads upstream (KrakenApp) and is cited there.
       citation = function(param = list()) {
         c(
-          "Lu, J., Breitwieser, F.P., Thielen, P. & Salzberg, S.L. Bracken: estimating species abundance in metagenomics data. PeerJ Computer Science 3, e104 (2017). https://doi.org/10.7717/peerj-cs.104"
+          "Lu, J. et al. Metagenome analysis using the Kraken software suite. Nature Protocols 17(12), 2815-2839 (2022). https://doi.org/10.1038/s41596-022-00738-y"
         )
       },
       initialize = function() {
