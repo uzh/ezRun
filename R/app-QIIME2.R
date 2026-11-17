@@ -301,6 +301,53 @@ EzAppQIIME2 <-
     "ezMethodQIIME2",
     contains = "EzApp",
     methods = list(
+      ## Batch (inst/scripts/QIIME2/unifiedQIIME2Workflow.*.batch): QIIME 2, DADA2, q2-feature-classifier
+      ## with scikit-learn (classify-sklearn after extract-reads + naive Bayes, or a prebuilt classifier),
+      ## MAFFT + FastTree (align-to-tree-mafft-
+      ## fasttree) and the UniFrac and Faith's PD metrics of core-metrics-phylogenetic (weighted UniFrac
+      ## PERMANOVA in the batch, Faith's PD tests in the report) unconditional; fastp unless run_fastp is false (step 1, default true); PICRUSt2 only
+      ## when run_picrust2 is true (step 18), with the EPA-ng, gappa, castor and MinPath it runs
+      ## (picrust2_pipeline.py defaults). Report (Qiime2Report.Rmd), unconditional (needs >= 2 groups,
+      ## data-dependent): phyloseq (filtering, rarefaction, richness), vegan adonis2 PERMANOVA + betadisper,
+      ## pairwiseAdonis, ANCOM-BC2, DESeq2, edgeR, LEfSe via microbiomeMarker, ALDEx2; metagenomeSeq only
+      ## in the PICRUSt2 section. Reference: SILVA / Greengenes from the database label, or from the
+      ## prebuilt classifier's file name when classifier_path is set (the classifier then defines the
+      ## taxonomy, the database is not used).
+      citation = function(param = list()) {
+        cp <- as.character(param$classifier_path)
+        ref <- if (length(cp) == 1 && nzchar(cp) && cp != "NONE") basename(cp) else as.character(param$database)
+        ref <- tolower(paste(ref, collapse = " "))
+        picrust <- isTRUE(as.logical(param$run_picrust2))
+        c(
+          "Bolyen, E. et al. Reproducible, interactive, scalable and extensible microbiome data science using QIIME 2. Nature Biotechnology 37, 852-857 (2019). https://doi.org/10.1038/s41587-019-0209-9",
+          if (!isFALSE(as.logical(param$run_fastp))) "Chen, S. fastp 1.0: An ultra-fast all-round tool for FASTQ data quality control and preprocessing. iMeta 4(5), e70078 (2025). https://doi.org/10.1002/imt2.70078",
+          "Callahan, B.J. et al. DADA2: High-resolution sample inference from Illumina amplicon data. Nature Methods 13, 581-583 (2016). https://doi.org/10.1038/nmeth.3869",
+          "Bokulich, N.A. et al. Optimizing taxonomic classification of marker-gene amplicon sequences with QIIME 2's q2-feature-classifier plugin. Microbiome 6, 90 (2018). https://doi.org/10.1186/s40168-018-0470-z",
+          "Pedregosa, F. et al. Scikit-learn: machine learning in Python. Journal of Machine Learning Research 12, 2825-2830 (2011). https://jmlr.org/papers/v12/pedregosa11a.html",
+          if (grepl("silva", ref)) "Chuvochina, M. et al. SILVA in 2026: a global core biodata resource for rRNA within the DSMZ digital diversity. Nucleic Acids Research 54(D1), D334-D341 (2026). https://doi.org/10.1093/nar/gkaf1247",
+          if (grepl("greengenes|^gg[-_]", ref)) "McDonald, D. et al. An improved Greengenes taxonomy with explicit ranks for ecological and evolutionary analyses of bacteria and archaea. The ISME Journal 6, 610-618 (2012). https://doi.org/10.1038/ismej.2011.139",
+          "Katoh, K. & Standley, D.M. MAFFT multiple sequence alignment software version 7: improvements in performance and usability. Molecular Biology and Evolution 30(4), 772-780 (2013). https://doi.org/10.1093/molbev/mst010",
+          "Price, M.N., Dehal, P.S. & Arkin, A.P. FastTree 2 - approximately maximum-likelihood trees for large alignments. PLoS ONE 5(3), e9490 (2010). https://doi.org/10.1371/journal.pone.0009490",
+          "McDonald, D. et al. Striped UniFrac: enabling microbiome analysis at unprecedented scale. Nature Methods 15(11), 847-848 (2018). https://doi.org/10.1038/s41592-018-0187-8",
+          "Armstrong, G. et al. Efficient computation of Faith's phylogenetic diversity with applications in characterizing microbiomes. Genome Research 31(11), 2131-2137 (2021). https://doi.org/10.1101/gr.275777.121",
+          if (picrust) "Wright, R.J. & Langille, M.G.I. PICRUSt2-SC: an update to the reference database used for functional prediction within PICRUSt2. Bioinformatics 41(5), btaf269 (2025). https://doi.org/10.1093/bioinformatics/btaf269",
+          if (picrust) "Barbera, P. et al. EPA-ng: massively parallel evolutionary placement of genetic sequences. Systematic Biology 68(2), 365-369 (2019). https://doi.org/10.1093/sysbio/syy054",
+          if (picrust) "Czech, L., Barbera, P. & Stamatakis, A. Genesis and Gappa: processing, analyzing and visualizing phylogenetic (placement) data. Bioinformatics 36(10), 3263-3265 (2020). https://doi.org/10.1093/bioinformatics/btaa070",
+          if (picrust) "Louca, S. & Doebeli, M. Efficient comparative phylogenetics on large trees. Bioinformatics 34(6), 1053-1055 (2018). https://doi.org/10.1093/bioinformatics/btx701",
+          if (picrust) "Ye, Y. & Doak, T.G. A parsimony approach to biological pathway reconstruction/inference for genomes and metagenomes. PLoS Computational Biology 5(8), e1000465 (2009). https://doi.org/10.1371/journal.pcbi.1000465",
+          "McMurdie, P.J. & Holmes, S. phyloseq: an R package for reproducible interactive analysis and graphics of microbiome census data. PLoS ONE 8(4), e61217 (2013). https://doi.org/10.1371/journal.pone.0061217",
+          "Anderson, M.J. A new method for non-parametric multivariate analysis of variance. Austral Ecology 26(1), 32-46 (2001). https://doi.org/10.1111/j.1442-9993.2001.01070.pp.x",
+          "Oksanen, J. et al. vegan: Community Ecology Package. R package. https://CRAN.R-project.org/package=vegan",
+          "Martinez Arbizu, P. pairwiseAdonis: Pairwise multilevel comparison using adonis. R package. https://github.com/pmartinezarbizu/pairwiseAdonis",
+          "Lin, H. & Peddada, S.D. Multigroup analysis of compositions of microbiomes with covariate adjustments and repeated measures. Nature Methods 21, 83-91 (2024). https://doi.org/10.1038/s41592-023-02092-7",
+          "Love, M.I., Huber, W. & Anders, S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 15, 550 (2014). https://doi.org/10.1186/s13059-014-0550-8",
+          "Chen, Y., Chen, L., Lun, A.T.L., Baldoni, P.L. & Smyth, G.K. edgeR v4: powerful differential analysis of sequencing data with expanded functionality and improved support for small counts and larger datasets. Nucleic Acids Research 53(2), gkaf018 (2025). https://doi.org/10.1093/nar/gkaf018",
+          "Segata, N. et al. Metagenomic biomarker discovery and explanation. Genome Biology 12, R60 (2011). https://doi.org/10.1186/gb-2011-12-6-r60",
+          "Cao, Y. et al. microbiomeMarker: an R/Bioconductor package for microbiome marker identification and visualization. Bioinformatics 38(16), 4027-4029 (2022). https://doi.org/10.1093/bioinformatics/btac438",
+          "Gloor, G.B., Macklaim, J.M. & Fernandes, A.D. Displaying variation in large datasets: plotting a visual summary of effect sizes. Journal of Computational and Graphical Statistics 25(3), 971-979 (2016). https://doi.org/10.1080/10618600.2015.1131161",
+          if (picrust) "Paulson, J.N., Talukder, H. & Bravo, H.C. Longitudinal differential abundance analysis of microbial marker-gene surveys using smoothing splines. bioRxiv (2017). https://doi.org/10.1101/099457"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodQIIME2

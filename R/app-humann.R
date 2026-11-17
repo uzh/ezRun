@@ -316,6 +316,27 @@ EzAppHUMAnN <-
     "EzAppHUMAnN",
     contains = "EzApp",
     methods = list(
+      ## HUMAnN 4.0.0a2 (conda env gi_qiime2-amplicon-2026.4) has no paper of its own; its docs ask
+      ## for the bioBakery 3 paper. fastp (ezMethodFastpTrim, always), DIAMOND (translated search,
+      ## both modes), MinPath (HUMAnN default --minpath on), UniRef90 and MetaCyc (the protein DB and
+      ## the pathway DB HUMAnN uses) unconditional. Bowtie 2 (nucleotide search against ChocoPhlAn,
+      ## full mode only) unless forceTranslatedOnly is true: full mode also needs a vOct22 MetaPhlAn
+      ## profile with read statistics (ezMethodHUMAnN step 3). That is data-dependent and not in
+      ## the parameters, so Bracken/Kraken input, other MetaPhlAn databases and profiles without
+      ## read statistics (always translated-only) still get Bowtie 2 cited. KEGG unless
+      ## both regroupKEGGKO and inferTaxonomy are false (the KO tables, steps 6 and 6b).
+      citation = function(param = list()) {
+        c(
+          "Beghini, F. et al. Integrating taxonomic, functional, and strain-level profiling of diverse microbial communities with bioBakery 3. eLife 10, e65088 (2021). https://doi.org/10.7554/eLife.65088",
+          "Buchfink, B.J. et al. Clustering the protein universe of life using DIAMOND DeepClust. Nature Methods 23(4), 724-727 (2026). https://doi.org/10.1038/s41592-026-03030-z",
+          if (!isTRUE(as.logical(param$forceTranslatedOnly))) "Langmead, B., Wilks, C., Antonescu, V. & Charles, R. Scaling read aligners to hundreds of threads on general-purpose processors. Bioinformatics 35(3), 421-432 (2019). https://doi.org/10.1093/bioinformatics/bty648",
+          "Ye, Y. & Doak, T.G. A parsimony approach to biological pathway reconstruction/inference for genomes and metagenomes. PLoS Computational Biology 5(8), e1000465 (2009). https://doi.org/10.1371/journal.pcbi.1000465",
+          "Suzek, B.E. et al. UniRef clusters: a comprehensive and scalable alternative for improving sequence similarity searches. Bioinformatics 31(6), 926-932 (2015). https://doi.org/10.1093/bioinformatics/btu739",
+          "Caspi, R. et al. The MetaCyc database of metabolic pathways and enzymes - a 2019 update. Nucleic Acids Research 48(D1), D445-D453 (2020). https://doi.org/10.1093/nar/gkz862",
+          if (!isFALSE(as.logical(param$regroupKEGGKO)) || !isFALSE(as.logical(param$inferTaxonomy))) "Kanehisa, M., Furumichi, M., Sato, Y., Matsuura, Y. & Ishiguro-Watanabe, M. KEGG for characterizing genomes and pathways in the biosphere. Nucleic Acids Research 55, gkag1042 (2027). https://doi.org/10.1093/nar/gkag1042",
+          "Chen, S. fastp 1.0: An ultra-fast all-round tool for FASTQ data quality control and preprocessing. iMeta 4(5), e70078 (2025). https://doi.org/10.1002/imt2.70078"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodHUMAnN

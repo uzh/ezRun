@@ -291,6 +291,18 @@ EzAppKrakenTools <-
     "EzAppKrakenTools",
     contains = "EzApp",
     methods = list(
+      ## Every `tool` is a KrakenTools 1.2.1 script (ezMethodKrakenTools), cited with the Kraken
+      ## suite protocol its README asks for. Krona only for tool kreport2krona with
+      ## k2krona_renderHtml "yes"/"true" (ktIsYes, as the ktImportText branch tests it; Ruby
+      ## default yes).
+      citation = function(param = list()) {
+        c(
+          "Lu, J. et al. Metagenome analysis using the Kraken software suite. Nature Protocols 17, 2815-2839 (2022). https://doi.org/10.1038/s41596-022-00738-y",
+          if (identical(as.character(param$tool), "kreport2krona") &&
+              ktIsYes(param$k2krona_renderHtml))
+            "Ondov, B.D., Bergman, N.H. & Phillippy, A.M. Interactive metagenomic visualization in a Web browser. BMC Bioinformatics 12, 385 (2011). https://doi.org/10.1186/1471-2105-12-385"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodKrakenTools
