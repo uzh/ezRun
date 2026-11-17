@@ -252,6 +252,35 @@ EzAppDiffPeakAnalysis <-
     "EzAppDiffPeakAnalysis",
     contains = "EzApp",
     methods = list(
+      ## - DESeq2: the differential test, always (runDiffPeakDESeq).
+      ## - edgeR: TMM size factors, only when normMethod is TMM (diffPeakSizeFactors).
+      ## - apeglm / ashr: shrunken fold changes for lfcShrink apeglm (default) / ashr
+      ##   (shrinkDiffPeakLfc; computed only with replicates).
+      ## - HOMER: annotatePeaks.pl when annotationMethod is homer (default), and
+      ##   findMotifsGenome.pl when runMotifs is on (default) (annotateConsensusPeaks, runHomerKnownMotifs).
+      ## - ChIPpeakAnno / ChIPseeker: annotationMethod chippeakanno / chipseeker.
+      ## - clusterProfiler, GO.db and the org.*.eg.db of the species: runGoOra on (default) and a
+      ##   human or mouse refBuild (diffPeakGoOra).
+      citation = function(param = list()) {
+        annotation <- if (ezIsSpecified(param$annotationMethod)) param$annotationMethod else "homer"
+        shrink <- if (ezIsSpecified(param$lfcShrink)) param$lfcShrink else "apeglm"
+        species <- if (ezIsSpecified(param$refBuild)) sub("/.*", "", param$refBuild) else ""
+        motifs <- !isFALSE(as.logical(param$runMotifs))
+        go <- !isFALSE(as.logical(param$runGoOra)) && species %in% c("Homo_sapiens", "Mus_musculus")
+        c(
+          "Love, M.I., Huber, W. & Anders, S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology 15, 550 (2014). https://doi.org/10.1186/s13059-014-0550-8",
+          if (identical(param$normMethod, "TMM")) "Robinson, M.D., McCarthy, D.J. & Smyth, G.K. edgeR: a Bioconductor package for differential expression analysis of digital gene expression data. Bioinformatics 26(1), 139-140 (2010). https://doi.org/10.1093/bioinformatics/btp616",
+          if (shrink == "apeglm") "Zhu, A., Ibrahim, J.G. & Love, M.I. Heavy-tailed prior distributions for sequence count data: removing the noise and preserving large differences. Bioinformatics 35(12), 2084-2092 (2019). https://doi.org/10.1093/bioinformatics/bty895",
+          if (shrink == "ashr") "Stephens, M. False discovery rates: a new deal. Biostatistics 18(2), 275-294 (2017). https://doi.org/10.1093/biostatistics/kxw041",
+          if (annotation == "homer" || motifs) "Heinz, S. et al. Simple combinations of lineage-determining transcription factors prime cis-regulatory elements required for macrophage and B cell identities. Molecular Cell 38, 576-589 (2010). https://doi.org/10.1016/j.molcel.2010.05.004",
+          if (annotation == "chippeakanno") "Zhu, L.J. et al. ChIPpeakAnno: a Bioconductor package to annotate ChIP-seq and ChIP-chip data. BMC Bioinformatics 11, 237 (2010). https://doi.org/10.1186/1471-2105-11-237",
+          if (annotation == "chipseeker") "Yu, G. et al. ChIPseeker: an R/Bioconductor package for ChIP peak annotation, comparison and visualization. Bioinformatics 31, 2382-2383 (2015). https://doi.org/10.1093/bioinformatics/btv145",
+          if (go) "Wu, T. et al. clusterProfiler 4.0: A universal enrichment tool for interpreting omics data. The Innovation 2(3), 100141 (2021). https://doi.org/10.1016/j.xinn.2021.100141",
+          if (go) "Carlson, M. GO.db: A set of annotation maps describing the entire Gene Ontology. R package. https://doi.org/10.18129/B9.bioc.GO.db",
+          if (go && species == "Homo_sapiens") "Carlson, M. org.Hs.eg.db: Genome wide annotation for Human. R package. https://doi.org/10.18129/B9.bioc.org.Hs.eg.db",
+          if (go && species == "Mus_musculus") "Carlson, M. org.Mm.eg.db: Genome wide annotation for Mouse. R package. https://doi.org/10.18129/B9.bioc.org.Mm.eg.db"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodDiffPeakAnalysis
