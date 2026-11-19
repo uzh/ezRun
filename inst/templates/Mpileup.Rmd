@@ -31,6 +31,12 @@ output <- ezLoadRobj("output")
 param <- ezLoadRobj("param")
 input <- ezLoadRobj("input")
 gt <- ezLoadRobj("gt")
+## Unphase genotypes (0|1 -> 0/1) and order alleles (1/0 -> 0/1) so the clustering
+## and the chromosome plot see only 0/0, 0/1 and 1/1.
+if (!is.null(gt)) {
+  gt[] <- gsub("|", "/", as.matrix(gt), fixed = TRUE)
+  gt[!is.na(gt) & gt == "1/0"] <- "0/1"
+}
 chromSizes <- ezLoadRobj("chromSizes")
 dataset = input$meta
 samples = input$getNames()

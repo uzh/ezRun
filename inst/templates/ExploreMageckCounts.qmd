@@ -99,6 +99,8 @@ normMethod <- if (!is.null(param$normMethod)) tolower(param$normMethod) else "de
 topN    <- suppressWarnings(as.integer(param$topGeneSize)); if (is.na(topN)) topN <- 100L
 
 ## ── Normalisation (size factors = the median-of-ratios scheme MAGeCK uses) ──
+## Fallbacks are recorded in normNotes and shown in the report (callout + methods).
+normNotes <- character(0)
 normFactors <- tryCatch({
   if (normMethod %in% c("tmm", "cpm")) {
     dge <- edgeR::DGEList(counts = counts)
@@ -109,8 +111,19 @@ normFactors <- tryCatch({
   } else {
     DESeq2::estimateSizeFactorsForMatrix(counts)              # deseq2 (default)
   }
-}, error = function(e) colSums(counts) / mean(colSums(counts)))
-normFactors[!is.finite(normFactors) | normFactors <= 0] <- 1
+}, error = function(e) {
+  normNotes <<- c(normNotes, sprintf(
+    "Size-factor estimation with '%s' failed (%s); library-size scaling (total counts / mean total counts) was used instead.",
+    normMethod, conditionMessage(e)))
+  colSums(counts) / mean(colSums(counts))
+})
+badFactor <- !is.finite(normFactors) | normFactors <= 0
+if (any(badFactor)) {
+  normNotes <- c(normNotes, sprintf(
+    "The size factor of %d sample(s) (%s) was not finite or not positive and was set to 1 (no scaling).",
+    sum(badFactor), paste(samples[badFactor], collapse = ", ")))
+}
+normFactors[badFactor] <- 1
 normCounts <- sweep(counts, 2, normFactors, "/")
 logNorm    <- log2(normCounts + bg)
 
@@ -120,7 +133,18 @@ mat <- tryCatch({
     dds <- DESeq2::DESeqDataSetFromMatrix(round(counts), DataFrame(row.names = samples), ~1)
     SummarizedExperiment::assay(DESeq2::vst(dds, blind = TRUE))
   } else logNorm
-}, error = function(e) logNorm)
+}, error = function(e) {
+  normNotes <<- c(normNotes, sprintf(
+    "The DESeq2 variance-stabilising transformation (vst) failed (%s); clustering and PCA use log2(normalised count + %s) instead.",
+    conditionMessage(e), bg))
+  logNorm
+})
+## Text for the overview table and the methods paragraph.
+normMethodText <- switch(normMethod,
+  tmm = "edgeR TMM scaling (per million)",
+  cpm = "library-size scaling (counts per million)",
+  logmean = "library-size scaling (total counts / mean total counts)",
+  "DESeq2 median-of-ratios size factors")
 
 ## ── Essential / non-essential reference gene sets (Hart CEGv2 / NEGv1) ──
 .readSet <- function(f) {
@@ -204,12 +228,21 @@ info <- data.frame(
     nSamp, nrow(counts), length(unique(gene[!isControl])), sum(isControl),
     length(intersect(geneU[!isControl], essSet)),
     length(intersect(geneU[!isControl], negSet)),
-    normMethod,
+    if (length(normNotes) > 0) paste0(normMethod, " (with fallback, see warning)") else normMethod,
     if (hasRef) sprintf("%s (%s)", refGroup, paste(samples[refIdx], collapse = ", "))
     else if (refGroupSpecified) sprintf("'%s' (not matched)", refGroup)
     else "not set"),
   check.names = FALSE)
 knitr::kable(info)
+```
+
+```{r norm-fallback-callout}
+#| echo: false
+#| results: asis
+if (length(normNotes) > 0) {
+  cat("::: {.callout-warning}\n## Normalisation fallback\n",
+      paste0("- ", normNotes, collapse = "\n"), "\n:::\n\n", sep = "")
+}
 ```
 
 ```{r few-samples-callout}
@@ -499,6 +532,11 @@ geOut <- data.frame(Gene = rownames(geneCounts), geneCounts, check.names = FALSE
 writexl::write_xlsx(sgOut, file.path(outDir, sgFile))
 writexl::write_xlsx(geOut, file.path(outDir, geFile))
 ```
+
+**Normalisation.** Counts were normalised with `r normMethodText`; log2 values
+are log2(normalised count + `r bg`). Sample clustering and PCA use
+`r if (normMethod == "deseq2" && nSamp >= 2 && !any(grepl("vst", normNotes))) "the DESeq2 variance-stabilising transformation (vst, blind)" else "the log2 normalised counts"`.
+`r if (length(normNotes) > 0) paste("Fallbacks applied:", paste(normNotes, collapse = " ")) else ""`
 
 Raw count tables: [`r sgFile`](`r sgFile`){target="_blank"} (sgRNA level) ·
 [`r geFile`](`r geFile`){target="_blank"} (gene level).

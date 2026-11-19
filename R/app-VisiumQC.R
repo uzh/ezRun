@@ -17,11 +17,11 @@ ezMethodVisiumQC <- function(
 
   setwdNew('VisiumQC')
   dataset <- input$meta
-  if (all(grepl('^H', input$getColumn('Slide')))) {
-    param$visiumType <- 'HD'
-  } else {
-    param$visiumType <- 'SD'
-  }
+  ## HD vs SD per sample: HD slide serials start with "H"
+  isHD <- grepl('^H', input$getColumn('Slide'))
+  param$visiumType <- visiumQcType(isHD)
+  param$hdSamples <- rownames(dataset)[isHD]
+  param$sdSamples <- rownames(dataset)[!isHD]
   param$sizeFactors <- as.numeric(unlist(strsplit(param$sizeFactors, ',')))
   ###CollectStats
   for (j in 1:nrow(dataset)) {
@@ -42,6 +42,21 @@ ezMethodVisiumQC <- function(
       ezRead.table(file.path(samplePath, 'metrics_summary.csv'), sep = ','),
       check.names = FALSE
     )
+    if (param$visiumType == 'mixed') {
+      ## SD reports spots, HD squares; keep one common column for both
+      fracCol <- intersect(
+        c(
+          'Fraction Reads in Spots Under Tissue',
+          'Fraction Reads in Squares Under Tissue'
+        ),
+        colnames(sampleStats)
+      )
+      sampleStats[['Fraction Reads Under Tissue']] <- if (length(fracCol) > 0) {
+        sampleStats[[fracCol[1]]]
+      } else {
+        NA_real_
+      }
+    }
     if (j == 1) {
       stats <- sampleStats
     } else {
@@ -52,7 +67,7 @@ ezMethodVisiumQC <- function(
     }
   }
 
-  for (i in 2:ncol(stats)) {
+  for (i in which(vapply(stats, is.numeric, logical(1)))) {
     stats[, i] <- round(stats[, i], 3)
   }
 
@@ -61,9 +76,11 @@ ezMethodVisiumQC <- function(
   colnames(stats) <- gsub('-', '__', colnames(stats))
   ezWrite.table(stats, file = 'metrics_summary.tsv', row.names = FALSE)
 
-  if (param$visiumType == 'SD') {
+  hasSD <- length(param$sdSamples) > 0
+  if (hasSD) {
+    ## SpotClean plots and the spot-size example only for SD samples
     myPlots <- list()
-    for (j in 1:nrow(dataset)) {
+    for (j in which(!isHD)) {
       sampleName <- rownames(dataset)[j]
       samplePath <- file.path(
         param$dataRoot,
@@ -114,10 +131,11 @@ ezMethodVisiumQC <- function(
     }
     write_rds(myPlots, 'myPlots.rds')
 
-    sampleName <- rownames(dataset)[1]
-    samplePath <- samplePath <- file.path(
+    firstSD <- which(!isHD)[1]
+    sampleName <- rownames(dataset)[firstSD]
+    samplePath <- file.path(
       param$dataRoot,
-      dirname(dataset[['Count [Link]']][1])
+      dirname(dataset[['Count [Link]']][firstSD])
     )
     img = Read10X_Image(
       file.path(samplePath, "spatial"),
@@ -132,7 +150,7 @@ ezMethodVisiumQC <- function(
   reportTitle <- 'VisiumQC - MultipleSample QC Metrics'
   makeRmdReport(rmdFile = "VisiumQC.Rmd", reportTitle = reportTitle)
   #CleanUp
-  if (param$visiumType == 'SD') {
+  if (hasSD) {
     ezSystem('rm scData.rds myPlots.rds')
   }
   return("Success")
@@ -168,3 +186,16 @@ EzAppVisiumQC <-
       }
     )
   )
+
+##' @title Visium slide type of a VisiumQC dataset
+##' @param isHD logical vector, TRUE for HD samples.
+##' @return "HD", "SD" or "mixed".
+visiumQcType <- function(isHD) {
+  if (all(isHD)) {
+    "HD"
+  } else if (!any(isHD)) {
+    "SD"
+  } else {
+    "mixed"
+  }
+}

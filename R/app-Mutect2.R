@@ -10,8 +10,14 @@ ezMethodMutect2 = function(input = NA, output = NA, param = NA) {
   sampleBamFile <- input$getFullPaths("BAM")
   genomeSeq = param$ezRef["refFastaFile"]
   if (!param$TumorOnlyMode) {
+    if (!"CtrlBam" %in% input$colNames) {
+      stop(
+        "Mutect2 tumor-normal mode needs a 'CtrlBam' column with the matched ",
+        "normal BAM; add it to the dataset or set TumorOnlyMode = true."
+      )
+    }
     ctrlBamFile <- input$getFullPaths("CtrlBam")
-    sampleNameNormal <- sub('.bam', '', basename(ctrlBamFile))
+    sampleNameNormal <- sub("\\.bam$", "", basename(ctrlBamFile))
   }
   sampleName = input$getNames()
 
@@ -41,7 +47,7 @@ ezMethodMutect2 = function(input = NA, output = NA, param = NA) {
     )
     ezSystem(cmd)
     sampleBamFile <- paste0(sampleName, '.bam')
-    system(paste('samtools index', sampleBamFile))
+    ezSystem(paste('samtools index', sampleBamFile))
   }
   if (!param$TumorOnlyMode) {
     cmd <- paste('samtools view -H', ctrlBamFile, ' | grep \'^@RG\'')
@@ -70,8 +76,20 @@ ezMethodMutect2 = function(input = NA, output = NA, param = NA) {
       )
       ezSystem(cmd)
       ctrlBamFile <- paste0(sampleNameNormal, '.bam')
-      system(paste('samtools index', ctrlBamFile))
+      ezSystem(paste('samtools index', ctrlBamFile))
     }
+    ## Mutect2 -normal must be the SM of the normal BAM's read group, which can
+    ## differ from the file name when the BAM already had read groups.
+    ctrlHeader <- system(paste("samtools view -H", ctrlBamFile), intern = TRUE)
+    normalSamples <- bamReadGroupSamples(ctrlHeader)
+    if (length(normalSamples) != 1) {
+      stop(
+        "The control BAM ", ctrlBamFile, " must have exactly one read-group ",
+        "sample (SM); found: ",
+        if (length(normalSamples) == 0) "none" else paste(normalSamples, collapse = ", ")
+      )
+    }
+    sampleNameNormal <- normalSamples
   }
 
   if (param$snpEffDB == 'mm39') {
@@ -153,7 +171,6 @@ ezMethodMutect2 = function(input = NA, output = NA, param = NA) {
     ezSystem(cmd)
     cmd <- paste("tabix -p vcf", paste0(annotatedOutFile, ".gz"))
     ezSystem(cmd)
-    ezSystem(paste('touch', paste0(sampleName, '_misc.zip')))
   }
   ezSystem(paste('rm', paste0(outFile, '*'), paste0(filteredOutFile, '*')))
 }
@@ -195,3 +212,12 @@ EzAppMutect2 <-
       }
     )
   )
+
+##' @title Sample names (SM) of the read groups in a BAM header
+##' @param headerLines BAM header lines (\code{samtools view -H}).
+##' @return unique SM values of the @RG lines.
+bamReadGroupSamples <- function(headerLines) {
+  rgLines <- grep("^@RG", headerLines, value = TRUE)
+  smFields <- regmatches(rgLines, regexpr("\tSM:[^\t]+", rgLines))
+  unique(sub("^\tSM:", "", smFields))
+}

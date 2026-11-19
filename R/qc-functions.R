@@ -105,7 +105,11 @@ ezComputeBias = function(
     param$expressionName = "est_counts"
     param$nReads = maxReadsPerSample
   }
-  if (!ezIsSpecified(param$nReads)) {
+  if (
+    !ezIsSpecified(param$nReads) ||
+      is.na(suppressWarnings(as.numeric(param$nReads))) ||
+      as.numeric(param$nReads) <= 0
+  ) {
     param$nReads = maxReadsPerSample
   }
 
@@ -143,7 +147,13 @@ ezComputeBias = function(
   setwdNew(resultDir)
 
   ## count with kallisto, align with STAR, and compute coverage profiles
-  for (i in 1:nrow(inputMeta)) {
+  covGff <- NULL
+  covStrandMode <- if (ezIsSpecified(paramList$strandMode)) {
+    paramList$strandMode
+  } else {
+    "both"
+  }
+  for (i in seq_len(nrow(inputMeta))) {
     ezLog(i)
     covStatFile = file.path(resultDir, outMeta[i, "CovStat [File]"])
     countFile = file.path(resultDir, outMeta$`Count [File]`[i])
@@ -178,9 +188,15 @@ ezComputeBias = function(
       param = paramList
     )
 
+    ## coverage along protein-coding transcripts (exons only, 5'->3'),
+    ## not along whole chromosomes of the genomic STAR BAM
+    if (is.null(covGff)) {
+      covGff <- rnaBiasTranscriptGff(ezParam(paramList))
+    }
     ga = ezReadGappedAlignments(outMeta[i, "BAM [File]"])
-    tcList = coverage(ga)
-    transcriptLengthTotal <- elementNROWS(tcList)
+    tcList = getTranscriptCoverage(NULL, covGff, ga, strandMode = covStrandMode)
+    rm(ga)
+    transcriptLengthTotal <- lengths(tcList)
     sampledTranscriptCov <- ezMclapply(
       tcList,
       function(x) {
@@ -476,4 +492,41 @@ getRefBuildMap = function() {
     "Escherichia coli" = "Escherichia_coli/Ensembl/K12_MG1655_ASM584v2/Annotation/Release_2019-01-31"
   )
   return(refBuildMap)
+}
+
+##' @title Protein-coding transcript exons for the RNA bias coverage profiles
+##' @description Loads the reference features and keeps the exons of
+##' protein-coding transcripts (transcript_type, else transcript_biotype), as
+##' RnaBamStats does for its transcript coverage.
+##' @param param an ezParam list with ezRef.
+##' @return a gff data.frame suitable for \code{getTranscriptCoverage}.
+rnaBiasTranscriptGff <- function(param) {
+  gff <- ezLoadFeatures(param)
+  if (is.null(gff)) {
+    stop("RnaBias: no reference features found for refBuild ", param$refBuild)
+  }
+  gff <- gff[gff$type == "exon", ]
+  txType <- ezGffAttributeField(
+    gff$attributes,
+    field = "transcript_type",
+    attrsep = "; *",
+    valuesep = " "
+  )
+  if (all(is.na(txType))) {
+    txType <- ezGffAttributeField(
+      gff$attributes,
+      field = "transcript_biotype",
+      attrsep = "; *",
+      valuesep = " "
+    )
+  }
+  if (any(!is.na(txType))) {
+    gff <- gff[!is.na(txType) & txType %in% c("protein_coding", "mRNA"), ]
+  } else {
+    ezLog(
+      "RnaBias: no transcript biotype in the features; using all transcripts",
+      level = "warn"
+    )
+  }
+  gff
 }

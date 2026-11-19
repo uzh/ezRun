@@ -244,17 +244,28 @@ ezMethodHomerDiffPeaks = function(
     }
     names(gtf) = names_gtf
     if (param$peakMode) {
-      cmd <- paste("findPeaks", targetTagDirs, "-style", param$style, "-o auto")
-      system(cmd)
-      cmd <- paste("findPeaks", baseTagDirs, "-style", param$style, "-o auto")
-      system(cmd)
+      ## explicit output files: with -o auto HOMER 5.1 names the file after the
+      ## style (peaks.txt, regions.txt, tsr.txt, superEnhancers.txt, ...)
+      targetPeakFile <- file.path(targetTagDirs, "homerPeaks.txt")
+      basePeakFile <- file.path(baseTagDirs, "homerPeaks.txt")
+      cmd <- paste("findPeaks", targetTagDirs, "-style", param$style,
+                   "-o", targetPeakFile)
+      ezSystem(cmd)
+      cmd <- paste("findPeaks", baseTagDirs, "-style", param$style,
+                   "-o", basePeakFile)
+      ezSystem(cmd)
+      for (peakFile in c(targetPeakFile, basePeakFile)) {
+        if (!file.exists(peakFile)) {
+          stop("HOMER findPeaks did not write ", peakFile)
+        }
+      }
       cmd <- paste(
         "mergePeaks -d 100",
-        file.path(targetTagDirs, "peaks.txt"),
-        file.path(baseTagDirs, "peaks.txt"),
+        targetPeakFile,
+        basePeakFile,
         "> mergedPeakFile.txt"
       )
-      system(cmd)
+      ezSystem(cmd)
       cmd <- paste(
         "getDifferentialPeaks mergedPeakFile.txt",
         targetTagDirs,
@@ -264,14 +275,19 @@ ezMethodHomerDiffPeaks = function(
         '-P 1',
         "> fullResult.tsv"
       )
-      system(cmd)
+      ezSystem(cmd)
       cmd <- paste(
         "annotatePeaks.pl fullResult.tsv",
         param$refBuildHOMER,
         "-annStats annoStats.txt",
         "> annotatedPeaks.txt"
       )
-      system(cmd)
+      ezSystem(cmd)
+      for (resultFile in c("mergedPeakFile.txt", "fullResult.tsv", "annotatedPeaks.txt")) {
+        if (!file.exists(resultFile) || file.size(resultFile) == 0) {
+          stop("HOMER did not produce ", resultFile)
+        }
+      }
       peakAnnot <- ezRead.table('annotatedPeaks.txt', row.names = NULL)
       colnames(peakAnnot)[1] <- '#PeakID'
       toRemove <- c(

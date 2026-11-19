@@ -16,7 +16,7 @@ ezMethodCombinePeaks <- function(input = NA, output = NA, param = NA) {
   samples <- input$getNames()
   bamFiles <- input$getFullPathsList("BAM")
   peakFiles <- input$getFullPathsList("BED")
-  peaksList <- lapply(peakFiles, import_narrowPeak)
+  peaksList <- lapply(peakFiles, import_macsPeak)
   peaksGrl <- GRangesList(peaksList)
   all_peaks_combined <- unlist(peaksGrl, use.names = FALSE)
 
@@ -166,24 +166,28 @@ ezMethodCombinePeaks <- function(input = NA, output = NA, param = NA) {
   )
   ezWrite.table(countStats, file = 'peakCountStats.txt', row.names = FALSE)
 
-  jsonFileName <- paste0(outFolder, "/igv_session.json")
-  htmlFileName <- paste0(outFolder, "/igv_session.html")
-  bwFiles <- input$getColumn("BigWigFile")
-  ##TODO: bed peakFile
-  jsonFile <- writeIgvSessionFile(
-    param,
-    output,
-    jsonFileName = jsonFileName,
-    bigwigFiles = bwFiles,
-    baseUrl = file.path(PROJECT_BASE_URL)
-  )
-  writeNfCoreIgvHtml(
-    param,
-    jsonFile,
-    title = "MultiSample Coverage Tracks",
-    htmlTemplate = "templates/igvNfCoreTemplate.html",
-    htmlFileName = basename(htmlFileName)
-  )
+  if ("BigWigFile" %in% input$colNames) {
+    jsonFileName <- paste0(outFolder, "/igv_session.json")
+    htmlFileName <- paste0(outFolder, "/igv_session.html")
+    bwFiles <- input$getColumn("BigWigFile")
+    ##TODO: bed peakFile
+    jsonFile <- writeIgvSessionFile(
+      param,
+      output,
+      jsonFileName = jsonFileName,
+      bigwigFiles = bwFiles,
+      baseUrl = file.path(PROJECT_BASE_URL)
+    )
+    writeNfCoreIgvHtml(
+      param,
+      jsonFile,
+      title = "MultiSample Coverage Tracks",
+      htmlTemplate = "templates/igvNfCoreTemplate.html",
+      htmlFileName = basename(htmlFileName)
+    )
+  } else {
+    ezLog("No BigWigFile column in the input dataset; IGV session not written")
+  }
 
   return('success')
 }
@@ -293,15 +297,34 @@ EzAppPeakCombiner <-
     )
   )
 
-import_narrowPeak <- function(f) {
-  import(
-    f,
-    format = "BED",
-    extraCols = c(
+import_macsPeak <- function(f) {
+  ## MACS narrowPeak has 10 columns (signalValue, pValue, qValue, peak offset),
+  ## broadPeak 9 (no peak offset); both carry fold_enrichment as signalValue.
+  firstLines <- readLines(f, n = 200)
+  dataLines <- firstLines[
+    nzchar(firstLines) & !grepl("^(#|track|browser)", firstLines)
+  ]
+  if (length(dataLines) == 0) {
+    stop("No peaks found in ", f)
+  }
+  nCols <- length(strsplit(dataLines[1], "\t")[[1]])
+  extraCols <- switch(
+    as.character(nCols),
+    "10" = c(
       fold_enrichment = "numeric",
       negLog10_pvalue = "numeric",
       negLog10_qvalue = "numeric",
       peakScore = "integer"
+    ),
+    "9" = c(
+      fold_enrichment = "numeric",
+      negLog10_pvalue = "numeric",
+      negLog10_qvalue = "numeric"
+    ),
+    stop(
+      "Peak file ", f, " has ", nCols, " columns; expected a MACS ",
+      "narrowPeak (10) or broadPeak (9) file"
     )
   )
+  rtracklayer::import(f, format = "BED", extraCols = extraCols)
 }

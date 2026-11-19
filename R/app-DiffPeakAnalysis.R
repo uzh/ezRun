@@ -580,7 +580,7 @@ runDiffPeakDESeq <- function(dds, sampleGroup, refGroup, peakAnno = NULL,
     refGroup = refGroup,
     normMethod = normMethod,
     fitAllSamples = isTRUE(fitAllSamples),
-    lfcShrinkType = if (is.null(shrunk)) "none" else lfcShrinkType,
+    lfcShrinkType = if (is.null(shrunk)) "none" else attr(shrunk, "shrinkType"),
     lfcTest = useLfcTest,
     nFitSamples = ncol(mlDds)
   )
@@ -608,33 +608,47 @@ slimDiffPeakDds <- function(mlDds, commonCols) {
 ##' reference level is \code{refGroup}, so the coefficient is
 ##' \code{group_<sampleGroup>_vs_<refGroup>}. If it is not available (or apeglm
 ##' fails) ashr on the contrast is used. Returns NULL when shrinkage fails.
-##' @return Named numeric vector (by peak) or NULL.
+##' @return Named numeric vector (by peak) or NULL. The shrinkage type actually
+##' used ("apeglm" or "ashr") is in \code{attr(x, "shrinkType")}.
 shrinkDiffPeakLfc <- function(mlDds, sampleGroup, refGroup, lfcShrinkType) {
   coefName <- paste0("group_", make.names(sampleGroup), "_vs_", make.names(refGroup))
   contrast <- c("group", sampleGroup, refGroup)
   shrunk <- NULL
+  shrinkType <- NA_character_
   if (lfcShrinkType == "apeglm" && coefName %in% DESeq2::resultsNames(mlDds)) {
     shrunk <- tryCatch(
       DESeq2::lfcShrink(mlDds, coef = coefName, type = "apeglm", quiet = TRUE),
       error = function(e) {
-        ezLog(paste("apeglm shrinkage failed, trying ashr:", conditionMessage(e)))
+        ezLog(paste("apeglm shrinkage failed, trying ashr:", conditionMessage(e)),
+              level = "warn")
         NULL
       }
     )
+    if (!is.null(shrunk)) {
+      shrinkType <- "apeglm"
+    }
+  } else if (lfcShrinkType == "apeglm") {
+    ezLog("apeglm coefficient ", coefName, " not available; using ashr",
+          level = "warn")
   }
   if (is.null(shrunk)) {
     shrunk <- tryCatch(
       DESeq2::lfcShrink(mlDds, contrast = contrast, type = "ashr", quiet = TRUE),
       error = function(e) {
-        ezLog(paste("ashr shrinkage failed:", conditionMessage(e)))
+        ezLog(paste("ashr shrinkage failed:", conditionMessage(e)), level = "warn")
         NULL
       }
     )
+    if (!is.null(shrunk)) {
+      shrinkType <- "ashr"
+    }
   }
   if (is.null(shrunk)) {
     return(NULL)
   }
-  stats::setNames(shrunk$log2FoldChange, rownames(shrunk))
+  out <- stats::setNames(shrunk$log2FoldChange, rownames(shrunk))
+  attr(out, "shrinkType") <- shrinkType
+  out
 }
 
 ##' @title Build the candidate differential-peak table
@@ -810,6 +824,23 @@ writeHomerBed <- function(peaks, file) {
   utils::write.table(bed, file, sep = "\t", quote = FALSE,
     row.names = FALSE, col.names = FALSE)
   invisible(file)
+}
+
+##' @title BED table of peaks for HOMER annotatePeaks.pl
+##' @description Same coordinate convention as \code{writeHomerBed}: BED is
+##' 0-based half-open, the peak table (row names = peak ids) is 1-based inclusive.
+##' @param peaks data.frame with Chr, Start, End and Strand columns.
+##' @return data.frame with Chr, Start (0-based), End, Names, Score, Strand.
+homerAnnotationBed <- function(peaks) {
+  data.frame(
+    Chr = peaks[["Chr"]],
+    Start = as.integer(peaks[["Start"]]) - 1L,
+    End = as.integer(peaks[["End"]]),
+    Names = rownames(peaks),
+    Score = 0,
+    Strand = peaks[["Strand"]],
+    stringsAsFactors = FALSE
+  )
 }
 
 ##' @title Known-motif enrichment of differential peaks with HOMER
@@ -1137,11 +1168,7 @@ annotateConsensusPeaks <- function(gtfFile, peakFile, fastaFile, tool, cores) {
     },
     homer = {
       myPeaks <- ezRead.table(peakFile)
-      bedFileCols <- c("Chr", "Start", "End")
-      bedFile <- myPeaks[, bedFileCols]
-      bedFile$Names <- rownames(myPeaks)
-      bedFile$Score <- 0
-      bedFile$Strand <- myPeaks[["Strand"]]
+      bedFile <- homerAnnotationBed(myPeaks)
       bedFileName <- "peaks.bed"
       write.table(
         bedFile,

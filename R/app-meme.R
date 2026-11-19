@@ -16,12 +16,36 @@ ezMethodMEME = function(input = NA, output = NA, param = NA) {
   opt = param$cmdOptions
   db = param$motifDB
   sampleName = input$getNames()
-  if (param$filterPeaks) {
+  if (isTRUE(as.logical(param$filterPeaks))) {
+    missingCols <- setdiff(c("CalledPeaks", "BED"), input$colNames)
+    if (length(missingCols) > 0) {
+      stop(
+        "filterPeaks = true needs the dataset columns 'CalledPeaks' and 'BED' ",
+        "(MACS3 output); missing: ", paste(missingCols, collapse = ", "),
+        ". Set filterPeaks = false to run MEME on the given sequences."
+      )
+    }
+    ## from specialOptions (e.g. distanceToTSS=2000 minFold=4); no partial
+    ## matching on param$distance
+    distanceToTss <- memeNumericParam(param, "distanceToTSS", 2000)
+    minFold <- memeNumericParam(param, "minFold", 4)
+    ezLog("Peak filter: |distance to TSS| <= ", distanceToTss,
+          ", fold enrichment >= ", minFold)
     param$relPos = c('upstream', 'overlapStart', 'inside', 'includeFeature')
     peaks = readxl::read_xlsx(input$getFullPaths("CalledPeaks"))
-    peaks = peaks[abs(peaks$distancetoFeature) <= param$distance, ]
+    missingPeakCols <- setdiff(
+      c("distancetoFeature", "insideFeature", "fold_enrichment", "name"),
+      colnames(peaks)
+    )
+    if (length(missingPeakCols) > 0) {
+      stop(
+        "The CalledPeaks table ", input$getFullPaths("CalledPeaks"),
+        " lacks the columns: ", paste(missingPeakCols, collapse = ", ")
+      )
+    }
+    peaks = peaks[abs(peaks$distancetoFeature) <= distanceToTss, ]
     peaks = peaks[peaks$insideFeature %in% param$relPos, ]
-    peaks = peaks[abs(peaks$fold_enrichment) >= param$minFold, ]
+    peaks = peaks[abs(peaks$fold_enrichment) >= minFold, ]
     toRemove = which(duplicated(peaks$name))
 
     if (length(toRemove) > 0) {
@@ -135,3 +159,20 @@ EzAppMEME <-
       }
     )
   )
+
+##' @title Numeric MEME parameter with a default
+##' @param param the parameter list.
+##' @param name the exact parameter name (no partial matching).
+##' @param default value used when the parameter is not set.
+##' @return a single number.
+memeNumericParam <- function(param, name, default) {
+  value <- param[[name, exact = TRUE]]
+  if (!ezIsSpecified(value)) {
+    return(default)
+  }
+  value <- suppressWarnings(as.numeric(value))
+  if (length(value) != 1 || is.na(value)) {
+    stop("MEME parameter ", name, " must be a number")
+  }
+  value
+}

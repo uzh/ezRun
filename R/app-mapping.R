@@ -1027,24 +1027,25 @@ ezMethodBWA <- function(input = NA, output = NA, param = NA) {
   refIdx <- getBWAReference(param)
   bamFile <- output$getColumn("BAM")
   trimmedInput <- ezMethodFastpTrim(input = input, param = param)
-  sampleName <- sub(".bam", "", basename(bamFile))
+  sampleName <- sub("\\.bam$", "", basename(bamFile))
+  ## double quotes: ezSystem runs piped commands inside bash -c '...', which
+  ## rejects single quotes; bwa expands the literal \t itself.
   readGroupOpt <- paste0(
-    "\'@RG\\tID:",
+    "\"@RG\\tID:",
     sampleName,
     "\\tSM:",
     sampleName,
     "\\tLB:",
     sampleName,
-    "\\tPL:ILLUMINA\'"
+    "\\tPL:ILLUMINA\""
   )
 
   if (param$algorithm == "aln") {
+    ## bwa aln has no -R; the read group is added by samse/sampe (-r)
     cmd <- paste(
       "bwa",
       param$algorithm,
       param$cmdOptions,
-      "-R",
-      readGroupOpt,
       "-t",
       param$cores,
       refIdx,
@@ -1059,26 +1060,26 @@ ezMethodBWA <- function(input = NA, output = NA, param = NA) {
         "bwa",
         param$algorithm,
         param$cmdOptions,
-        "-R",
-        readGroupOpt,
         "-t",
         param$cores,
         refIdx,
         trimmedInput$getColumn("Read2"),
         ">",
         "read2.sai",
-        "2> bwa.log"
+        "2>> bwa.log"
       )
       ezSystem(cmd)
       cmd <- paste(
         "bwa",
         "sampe",
+        "-r",
+        readGroupOpt,
         refIdx,
         "read1.sai",
         "read2.sai",
         trimmedInput$getColumn("Read1"),
         trimmedInput$getColumn("Read2"),
-        "2> bwa.log",
+        "2>> bwa.log",
         "|",
         "samtools",
         "view -S -b -",
@@ -1089,10 +1090,12 @@ ezMethodBWA <- function(input = NA, output = NA, param = NA) {
       cmd <- paste(
         "bwa",
         "samse",
+        "-r",
+        readGroupOpt,
         refIdx,
         "read1.sai",
         trimmedInput$getColumn("Read1"),
-        "2> bwa.log",
+        "2>> bwa.log",
         "|",
         "samtools",
         "view -S -b -",
@@ -1100,10 +1103,30 @@ ezMethodBWA <- function(input = NA, output = NA, param = NA) {
       )
       ezSystem(cmd)
     }
-  } else {
-    if (param$algorithm == "bwasw" && param$paired) {
+  } else if (param$algorithm == "bwasw") {
+    if (param$paired) {
       stop("paired is not supported for algorithm bwasw")
     }
+    ## bwa bwasw has no -R; add the read group with samtools addreplacerg
+    cmd <- paste(
+      "bwa",
+      param$algorithm,
+      param$cmdOptions,
+      "-t",
+      param$cores,
+      refIdx,
+      trimmedInput$getColumn("Read1"),
+      "2> bwa.log",
+      "|",
+      "samtools addreplacerg",
+      paste0("-r ID:", sampleName),
+      paste0("-r SM:", sampleName),
+      paste0("-r LB:", sampleName),
+      "-r PL:ILLUMINA",
+      "-O BAM -o aligned.bam -"
+    )
+    ezSystem(cmd)
+  } else {
     cmd <- paste(
       "bwa",
       param$algorithm,
@@ -1121,8 +1144,7 @@ ezMethodBWA <- function(input = NA, output = NA, param = NA) {
       "view -S -b -",
       " > aligned.bam"
     )
-    ezLog(cmd)
-    system(cmd)
+    ezSystem(cmd)
   }
   file.remove(trimmedInput$getColumn("Read1"))
   if (param$paired) {
@@ -1620,34 +1642,47 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
   #  writeIgvJnlp(jnlpFile=basename(output$getColumn("IGV Starter")), projectId = sub("\\/.*", "", bamFile),
   #               sessionUrl = paste(PROJECT_BASE_URL, output$getColumn("IGV Session"), sep="/"))
   # }
-  if (grepl('Lambda', ref)) {
+  ## EM-seq control QC: methylation of the Lambda/pUC19 control sites. The
+  ## output dataset links <name>_Meth.png whenever EM_QC is set, so the file is
+  ## always written.
+  if (isTRUE(as.logical(param$EM_QC))) {
     library(ggplot2)
-    dataFile <- paste0(names(bamFile), '.gz.bismark.cov.gz')
-    system(paste('gunzip', dataFile))
-    dataFile <- sub('.gz$', '', dataFile)
+    pngFile <- paste0(names(bamFile), "_Meth.png")
+    dataFileGz <- paste0(names(bamFile), '.gz.bismark.cov.gz')
     minCov <- 20
-    data <- ezRead.table(dataFile, header = FALSE, row.names = NULL)
-    colnames(data) <- c(
-      'Ref',
-      'Pos1',
-      'Pos2',
-      'Meth',
-      'MethCount',
-      'UnmethCount'
-    )
-    data[['Cov']] = data$MethCount + data$UnmethCount
-    data <- data[data$Cov >= minCov, ]
-    p <- ggplot(data, aes(x = Ref, y = Meth)) +
-      geom_boxplot(fill = '#A4A4A4', color = "black") +
-      theme_classic()
-    p <- p + labs(title = sub('.gz.*', '', dataFile))
-    ggsave(
-      paste0(sub('.gz.*', '_Meth.png', dataFile)),
-      p,
-      width = 6,
-      height = 6
-    )
-    system(paste('gzip', dataFile))
+    data <- NULL
+    if (file.exists(dataFileGz)) {
+      data <- ezRead.table(dataFileGz, header = FALSE, row.names = NULL)
+      colnames(data) <- c(
+        'Ref',
+        'Pos1',
+        'Pos2',
+        'Meth',
+        'MethCount',
+        'UnmethCount'
+      )
+      data[['Cov']] = data$MethCount + data$UnmethCount
+      data <- data[data$Cov >= minCov, ]
+    } else {
+      ezLog("EM_QC: coverage file ", dataFileGz, " not found", level = "warn")
+    }
+    if (!is.null(data) && nrow(data) > 0) {
+      p <- ggplot(data, aes(x = Ref, y = Meth)) +
+        geom_boxplot(fill = '#A4A4A4', color = "black") +
+        theme_classic()
+    } else {
+      ezLog("EM_QC: no CpG site with coverage >= ", minCov, level = "warn")
+      p <- ggplot() +
+        annotate(
+          "text",
+          x = 0,
+          y = 0,
+          label = paste0("no sites >= ", minCov, "x coverage")
+        ) +
+        theme_void()
+    }
+    p <- p + labs(title = names(bamFile))
+    ggsave(pngFile, p, width = 6, height = 6)
   }
   return("Success")
 }
@@ -1662,14 +1697,20 @@ ezMethodBismark <- function(input = NA, output = NA, param = NA) {
 ##'   \item{ezRef@@refFastaFile}{ a character specifying the file path to the fasta file.}
 ##' }
 getBismarkReference <- function(param) {
-  refBase <- ifelse(
-    param$ezRef["refIndex"] == "",
+  refIndex <- param$ezRef["refIndex"]
+  isDefaultIndex <- is.na(refIndex) || refIndex == ""
+  refBase <- if (isDefaultIndex) {
     file.path(
       param$ezRef["refBuildDir"],
       "Sequence/WholeGenomeFasta/Bisulfite_Genome/CT_conversion"
-    ),
-    param$ezRef["refIndex"]
-  )
+    )
+  } else {
+    refIndex
+  }
+  if (!isDefaultIndex && !file.exists(dirname(refBase))) {
+    stop("Bismark refIndex not found: ", refBase,
+         " (only the default index location is built automatically)")
+  }
   ## check the ref
   lockFile <- file.path(dirname(refBase), "lock")
   if (!file.exists(dirname(refBase))) {
@@ -1708,7 +1749,9 @@ getBismarkReference <- function(param) {
     ## we assume the index is built and complete
     stop(paste("index not available: ", refBase))
   }
-  return(dirname(param$ezRef@refFastaFile))
+  ## bismark takes the folder that holds Bisulfite_Genome/; for the default
+  ## index this is the WholeGenomeFasta folder of the FASTA
+  return(dirname(dirname(refBase)))
 }
 
 

@@ -31,13 +31,14 @@ EzAppBamBoozle <-
 
 ezMethodBamBoozle = function(input = NA, output = NA, param = NA) {
   bamFile = input$getFullPaths("BAM")
-  file.copy(bamFile, basename(bamFile))
+  localBam <- basename(bamFile)
+  file.copy(bamFile, localBam)
   genomeFa = param$ezRef["refFastaFile"]
-  outFile <- sub('.bam', '_cleaned.bam', basename(bamFile))
+  outFile <- sub("\\.bam$", "_cleaned.bam", localBam)
 
   cmd <- paste(
     'BAMboozle --bam',
-    basename(bamFile),
+    localBam,
     '--fa',
     genomeFa,
     '--out',
@@ -48,28 +49,45 @@ ezMethodBamBoozle = function(input = NA, output = NA, param = NA) {
   )
   ezSystem(cmd)
 
-  fq1 <- sub('.bam', '_R1.fastq', outFile)
-  if (param$paired) {
-    system(paste(
-      'samtools sort -n',
-      outFile,
-      '-@',
+  if (identical(param$outputFormat, "cram")) {
+    cramFile <- basename(output$getColumn("CRAM"))
+    ezSystem(paste(
+      "samtools view -C -T",
+      genomeFa,
+      "-@",
       param$cores,
-      '-o sortedBam.bam'
+      "-o",
+      cramFile,
+      outFile
     ))
-    fq2 <- sub('.bam', '_R2.fastq', outFile)
-    cmd <- paste(
-      'bedtools bamtofastq -i sortedBam.bam',
-      '-fq',
-      fq1,
-      '-fq2',
-      fq2
-    )
+    ezSystem(paste("samtools index", cramFile))
   } else {
-    fq2 <- ''
-    cmd <- paste('bedtools bamtofastq -i', outFile, '-fq', fq1)
+    ## FASTQ names follow the output dataset columns
+    fq1 <- sub("\\.gz$", "", basename(output$getColumn("Read1")))
+    if (param$paired) {
+      ezSystem(paste(
+        'samtools sort -n',
+        outFile,
+        '-@',
+        param$cores,
+        '-o sortedBam.bam'
+      ))
+      fq2 <- sub("\\.gz$", "", basename(output$getColumn("Read2")))
+      cmd <- paste(
+        'bedtools bamtofastq -i sortedBam.bam',
+        '-fq',
+        fq1,
+        '-fq2',
+        fq2
+      )
+    } else {
+      fq2 <- ''
+      cmd <- paste('bedtools bamtofastq -i', outFile, '-fq', fq1)
+    }
+    ezSystem(cmd)
+    ezSystem(paste('pigz --best -p', param$cores, fq1, fq2))
   }
-  system(cmd)
-  system(paste('pigz --best -p', param$cores, fq1, fq2))
-  return('suceess')
+  ## drop the intermediate BAMs (input copy, cleaned and name-sorted BAM)
+  file.remove(intersect(c(localBam, outFile, "sortedBam.bam"), list.files()))
+  return('success')
 }

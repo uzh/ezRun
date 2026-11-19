@@ -20,8 +20,8 @@ EzAppTargetedSeqQC <-
     methods = list(
       ## Picard (CollectHsMetrics), mosdepth, samtools stats/flagstat/idxstats and MultiQC run for
       ## every job (.runSampleTargetedQC, ezMethodTargetedSeqQC); the optional MarkDuplicates and
-      ## CollectInsertSizeMetrics are Picard too. VerifyBamID2 is not cited: it runs only when a
-      ## VerifyBamID binary is on PATH, which none of the app's modules provides.
+      ## CollectInsertSizeMetrics are Picard too. VerifyBamID2 is not cited: a set verifyBamIDSVD
+      ## stops the job early, because none of the app's modules provides a VerifyBamID binary.
       citation = function(param = list()) {
         c(
           "Picard Toolkit. Broad Institute. https://broadinstitute.github.io/picard/",
@@ -103,8 +103,14 @@ ezMethodTargetedSeqQC <- function(input = NA, output = NA, param = NA,
   if (is.null(refFasta) || !file.exists(refFasta)) {
     stop("reference fasta not found; set a valid refBuild (or param$fastaFile)")
   }
-  refDict <- sub("\\.(fa|fasta|fna)$", ".dict", refFasta)
-  refFai <- paste0(refFasta, ".fai")
+
+  ## VerifyBamID2 is not installed on the cluster: fail now instead of after the
+  ## per-sample QC (it used to be skipped silently)
+  if (ezIsSpecified(param$verifyBamIDSVD) && !nzchar(Sys.which("VerifyBamID"))) {
+    stop("verifyBamIDSVD is set but VerifyBamID (VerifyBamID2) is not on the ",
+         "PATH; it is not installed yet. Leave verifyBamIDSVD empty to run ",
+         "the QC without contamination estimates.")
+  }
 
   ## ---- capture design (bait vs target) -----------------------------------
   beds <- .resolveDesignBeds(param$designName, param$vendor)
@@ -124,28 +130,14 @@ ezMethodTargetedSeqQC <- function(input = NA, output = NA, param = NA,
   cores <- as.integer(param$cores)
   covThresholds <- gsub("\\s", "", param$coverageThresholds)
 
-  ## ---- prepare reference indexes if missing ------------------------------
-  if (!file.exists(refFai)) {
-    ezSystem(paste("samtools faidx", refFasta))
-  }
-  if (!file.exists(refDict)) {
-    ezSystem(paste(prepareJavaTools("picard"), "CreateSequenceDictionary",
-                   paste0("R=", refFasta), paste0("O=", refDict)))
-  }
-
-  ## ---- interval lists (once) ---------------------------------------------
-  targetIntervals <- file.path(intervalsDir, "target.interval_list")
-  ezSystem(paste(prepareJavaTools("picard"), "BedToIntervalList",
-                 paste0("I=", targetBed), paste0("O=", targetIntervals),
-                 paste0("SD=", refDict)))
-  if (identical(baitBed, targetBed)) {
-    baitIntervals <- targetIntervals
-  } else {
-    baitIntervals <- file.path(intervalsDir, "bait.interval_list")
-    ezSystem(paste(prepareJavaTools("picard"), "BedToIntervalList",
-                   paste0("I=", baitBed), paste0("O=", baitIntervals),
-                   paste0("SD=", refDict)))
-  }
+  ## ---- reference indexes ----------------------------------------------------
+  ## never write next to the shared reference: if .fai or .dict is missing,
+  ## index a symlinked copy of the FASTA in the job's working directory (next
+  ## to, not inside, the report folder that is delivered)
+  refFasta <- .targetedQcReference(
+    refFasta, localDir = file.path(dirname(reportDir), "targetedSeqQC_ref")
+  )
+  refDict <- sub("\\.(fa|fasta|fna)$", ".dict", refFasta)
 
   ## ---- main-chromosome restriction ---------------------------------------
   samples <- input$getNames()
@@ -160,6 +152,30 @@ ezMethodTargetedSeqQC <- function(input = NA, output = NA, param = NA,
     }
     ezWrite("Restricting QC to ", length(mainChroms), " main chromosome(s); ",
             length(allContigs) - length(mainChroms), " scaffold(s) excluded")
+    ## restrict the design to the same contigs (HsMetrics, mosdepth)
+    sameBeds <- identical(baitBed, targetBed)
+    targetBed <- .filterBedToContigs(
+      targetBed, mainChroms, file.path(intervalsDir, "target.main.bed")
+    )
+    baitBed <- if (sameBeds) {
+      targetBed
+    } else {
+      .filterBedToContigs(baitBed, mainChroms, file.path(intervalsDir, "bait.main.bed"))
+    }
+  }
+
+  ## ---- interval lists (once) ---------------------------------------------
+  targetIntervals <- file.path(intervalsDir, "target.interval_list")
+  ezSystem(paste(prepareJavaTools("picard"), "BedToIntervalList",
+                 paste0("I=", targetBed), paste0("O=", targetIntervals),
+                 paste0("SD=", refDict)))
+  if (identical(baitBed, targetBed)) {
+    baitIntervals <- targetIntervals
+  } else {
+    baitIntervals <- file.path(intervalsDir, "bait.interval_list")
+    ezSystem(paste(prepareJavaTools("picard"), "BedToIntervalList",
+                   paste0("I=", baitBed), paste0("O=", baitIntervals),
+                   paste0("SD=", refDict)))
   }
 
   ## ---- per-sample QC (parallel over BAMs) --------------------------------
@@ -272,6 +288,58 @@ ezMethodTargetedSeqQC <- function(input = NA, output = NA, param = NA,
   list(vendor = "illumina", target = single, bait = single)
 }
 
+##' @describeIn ezMethodTargetedSeqQC Reference FASTA with .fai and .dict. If
+##'   either index is missing next to the shared FASTA, the FASTA is symlinked
+##'   into \code{localDir} and the missing indexes are created there (existing
+##'   ones are symlinked too); the shared reference is never written to.
+.targetedQcReference <- function(refFasta, localDir = "ref") {
+  refFai <- paste0(refFasta, ".fai")
+  refDict <- sub("\\.(fa|fasta|fna)$", ".dict", refFasta)
+  if (file.exists(refFai) && file.exists(refDict)) {
+    return(refFasta)
+  }
+  dir.create(localDir, showWarnings = FALSE)
+  localFasta <- file.path(normalizePath(localDir), basename(refFasta))
+  localFai <- paste0(localFasta, ".fai")
+  localDict <- sub("\\.(fa|fasta|fna)$", ".dict", localFasta)
+  if (!file.exists(localFasta)) {
+    file.symlink(refFasta, localFasta)
+  }
+  if (file.exists(refFai)) {
+    file.symlink(refFai, localFai)
+  } else {
+    ezLog("No .fai next to ", refFasta, "; indexing a local copy in ", localDir)
+    ezSystem(paste("samtools faidx", shQuote(localFasta)))
+  }
+  if (file.exists(refDict)) {
+    file.symlink(refDict, localDict)
+  } else {
+    ezLog("No .dict next to ", refFasta, "; creating it in ", localDir)
+    ezSystem(paste(prepareJavaTools("picard"), "CreateSequenceDictionary",
+                   paste0("R=", localFasta), paste0("O=", localDict)))
+  }
+  localFasta
+}
+
+##' @describeIn ezMethodTargetedSeqQC Keep only the BED records on the given
+##'   contigs (track/browser/comment lines are dropped).
+.filterBedToContigs <- function(bedFile, contigs, outFile) {
+  bedLines <- readLines(bedFile, warn = FALSE)
+  bedLines <- bedLines[nzchar(bedLines) & !grepl("^(#|track|browser)", bedLines)]
+  keep <- sub("\t.*", "", bedLines) %in% contigs
+  if (!any(keep)) {
+    stop("No region of ", bedFile, " lies on the main chromosomes (",
+         paste(head(contigs, 5), collapse = ", "), ", ...); check the contig ",
+         "naming of the design vs the BAM, or set restrictToMainChromosomes = false")
+  }
+  if (any(!keep)) {
+    ezLog(sum(!keep), " of ", length(keep), " regions in ", basename(bedFile),
+          " are not on the main chromosomes and were dropped")
+  }
+  writeLines(bedLines[keep], outFile)
+  outFile
+}
+
 ##' @describeIn ezMethodTargetedSeqQC Read @SQ contig names from a BAM header.
 .bamContigs <- function(bamFile) {
   hdr <- system(paste("samtools view -H", shQuote(bamFile)), intern = TRUE)
@@ -304,6 +372,17 @@ ezMethodTargetedSeqQC <- function(input = NA, output = NA, param = NA,
                    "CREATE_INDEX=true", "ASSUME_SORT_ORDER=coordinate"))
   }
 
+  ## main-chromosome BAM used by every tool below (HsMetrics, mosdepth,
+  ## InsertSize, stats, flagstat, idxstats); removed at the end
+  mainBam <- NULL
+  if (!is.null(mainChroms)) {
+    mainBam <- paste0(prefix, ".mainChroms.bam")
+    ezSystem(paste("samtools view -b -@", threads, "-o", shQuote(mainBam),
+                   shQuote(useBam), paste(mainChroms, collapse = " ")))
+    ezSystem(paste("samtools index -@", threads, shQuote(mainBam)))
+    useBam <- mainBam
+  }
+
   ## Picard CollectHsMetrics (core)
   ezSystem(paste(prepareJavaTools("picard"), "CollectHsMetrics",
                  paste0("INPUT=", useBam),
@@ -321,28 +400,11 @@ ezMethodTargetedSeqQC <- function(input = NA, output = NA, param = NA,
                  "--mapq", mapq, "-t", threads,
                  shQuote(prefix), shQuote(useBam)))
 
-  ## samtools stats/flagstat/idxstats, restricted to main chromosomes if set
-  regionArg <- if (!is.null(mainChroms)) paste(mainChroms, collapse = " ") else ""
-  ezSystem(paste("samtools stats -@", threads, shQuote(useBam), regionArg,
+  ## samtools stats/flagstat/idxstats (main-chromosome BAM if restricted)
+  ezSystem(paste("samtools stats -@", threads, shQuote(useBam),
                  ">", paste0(shQuote(prefix), ".samtools_stats.txt")))
-  if (is.null(mainChroms)) {
-    ezSystem(paste("samtools flagstat -@", threads, shQuote(useBam),
-                   ">", paste0(shQuote(prefix), ".flagstat.txt")))
-  } else {
-    ## flagstat has no region option -> stream a region-limited view. The pipe
-    ## goes into a small shell script because ezSystem() refuses a command that
-    ## contains both a '|' and single quotes; running `bash <script>` sidesteps
-    ## that (no pipe in the ezSystem command itself).
-    flagstatScript <- paste0(prefix, ".flagstat.sh")
-    writeLines(c(
-      "#!/bin/bash",
-      "set -euo pipefail",
-      paste("samtools view -u -@", threads, shQuote(useBam), regionArg,
-            "| samtools flagstat -@", threads, "-",
-            ">", paste0(shQuote(prefix), ".flagstat.txt"))
-    ), flagstatScript)
-    ezSystem(paste("bash", shQuote(flagstatScript)))
-  }
+  ezSystem(paste("samtools flagstat -@", threads, shQuote(useBam),
+                 ">", paste0(shQuote(prefix), ".flagstat.txt")))
   idxOut <- paste0(prefix, ".idxstats.txt")
   ezSystem(paste("samtools idxstats", shQuote(useBam), ">", shQuote(idxOut)))
   if (!is.null(mainChroms)) {
@@ -359,12 +421,20 @@ ezMethodTargetedSeqQC <- function(input = NA, output = NA, param = NA,
                    paste0("H=", prefix, ".insert_size_histogram.pdf")))
   }
 
-  ## optional contamination (VerifyBamID2)
-  if (!is.null(verifyBamIDSVD) && nzchar(verifyBamIDSVD) && Sys.which("VerifyBamID") != "") {
+  ## optional contamination (VerifyBamID2); ezMethodTargetedSeqQC stops early
+  ## when verifyBamIDSVD is set but the binary is missing
+  if (!is.null(verifyBamIDSVD) && nzchar(verifyBamIDSVD)) {
     ezSystem(paste("VerifyBamID", "--SVDPrefix", shQuote(verifyBamIDSVD),
                    "--Reference", shQuote(refFasta),
                    "--BamFile", shQuote(useBam),
                    "--Output", paste0(shQuote(prefix), ".verifybamid")))
+  }
+
+  if (!is.null(mainBam)) {
+    file.remove(intersect(
+      c(mainBam, paste0(mainBam, ".bai")),
+      list.files(dirname(mainBam), full.names = TRUE)
+    ))
   }
 
   return(outDir)

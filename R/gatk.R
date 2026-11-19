@@ -169,3 +169,20 @@
     vcfOutput
   )
 }
+
+##' @title Flag main (assembled, nuclear) chromosomes
+##' @description Works for UCSC (chr1, chrX) and Ensembl (1, X) names. Drops
+##' unplaced/unlocalised/alt contigs (names containing "_" or "."), chrUn*,
+##' *random, the mitochondrial genome (chrM, M, MT) and chrEBV.
+##' @param x character vector of sequence names.
+##' @return logical vector, TRUE for main chromosomes.
+isMainChromosome <- function(x) {
+  x <- as.character(x)
+  !(
+    grepl("[_.]", x) |
+      grepl("^(chr)?Un", x, ignore.case = TRUE) |
+      grepl("random$", x, ignore.case = TRUE) |
+      grepl("^(chr)?(M|MT)$", x, ignore.case = TRUE) |
+      grepl("^(chr)?EBV$", x, ignore.case = TRUE)
+  )
+}

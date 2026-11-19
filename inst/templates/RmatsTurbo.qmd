@@ -43,6 +43,15 @@ dpsiCut     <- as.numeric(param$deltaPSI)
 covCut      <- as.numeric(param$minCoverage)
 topN        <- as.integer(param$topN)
 statModel   <- param$statModel
+## In DARTS mode the PValue column holds the DARTS posterior probability (moved to
+## posteriorProb by the app) and FDR is a Bayesian FDR, not a BH-adjusted p-value.
+isDarts     <- identical(statModel, "darts")
+fdrLabel    <- if (isDarts) "Bayesian FDR" else "adj.p"
+fdrMethod   <- if (isDarts) {
+  "Bayesian FDR from DARTS posterior P(|ΔPSI|>0.05)"
+} else {
+  "Benjamini-Hochberg adjusted p-value"
+}
 
 ## Coverage filter (computed in the app): low-coverage events have FDR = NA (they
 ## were excluded from the FDR recomputation) and are greyed in the volcano.
@@ -120,9 +129,10 @@ computed with **rMATS-turbo** (`r statModel` statistical model, junction counts 
 - Reference build: **`r param$refBuild`**
 - Transcript biotypes: **`r if (ezIsSpecified(param$transcriptTypes)) gsub(",", ", ", paste(param$transcriptTypes, collapse=", ")) else "all"`**
 - Samples analysed: **`r nrow(coldata)`**  (`r nSample[[sampleGroup]]` `r sampleGroup`, `r nSample[[refGroup]]` `r refGroup`)
-- Coverage filter: average junction reads (IJC+SJC) ≥ **`r covCut`** in **both** groups; rMATS is anti-conservative on low-coverage junctions, so low-coverage events are greyed in the volcano and **excluded from the FDR** (multiple-testing) correction, which is recomputed per event type on the passing set.
+- Coverage filter: average junction reads (IJC+SJC) ≥ **`r covCut`** in **both** groups; rMATS is anti-conservative on low-coverage junctions, so low-coverage events are greyed in the volcano and **excluded from the FDR** (multiple-testing) correction, which is recomputed per event type on the passing set (`r fdrMethod`).
 - Events tested: **`r nrow(ase)`** total (**`r sum(ase$passCoverage)`** passed the coverage filter and entered FDR)
-- Significance: adjusted p < **`r fdrCut`** and |ΔPSI| > **`r dpsiCut`**
+- Significance: `r fdrLabel` < **`r fdrCut`** and |ΔPSI| > **`r dpsiCut`**
+`r if (isDarts) "- DARTS mode: the FDR is the expected false-discovery rate of the top-k events ranked by DARTS posterior probability (running mean of 1 - posterior, per event type). rMATS reports no p-value in this mode, so PValue is empty and the posterior is in the posteriorProb column." else ""`
 - Significant events: **`r sum(ase$significant)`**
 
 ΔPSI is the rMATS **IncLevelDifference** = mean(PSI, `r sampleGroup`) −
@@ -165,7 +175,7 @@ brk <- ase |>
 DT::datatable(
   brk,
   caption = paste0("Events per type. 'LowCoverage' = below the coverage filter ",
-                   "(excluded from FDR). 'Significant' = adj.p < ", fdrCut,
+                   "(excluded from FDR). 'Significant' = ", fdrLabel, " < ", fdrCut,
                    " and |ΔPSI| > ", dpsiCut, "."),
   options = list(dom = "t", pageLength = 20), rownames = FALSE
 )
@@ -200,7 +210,9 @@ line marks the filter threshold (`r covCut` reads).
 #| echo: false
 #| fig-width: 6
 #| fig-height: 4.5
-if (!is.null(ase$meanCov)) {
+if (isDarts) {
+  cat("Not shown in DARTS mode: rMATS reports no unfiltered FDR to compare against.\n")
+} else if (!is.null(ase$meanCov)) {
   ## Split by rMATS's OWN significance (FDR_rMATS, computed over all events) so the
   ## plot exposes the low-coverage skew -- NOT our post-filter significance, which
   ## is coverage-bounded by construction and would make the comparison circular.
@@ -249,7 +261,18 @@ if (!is.null(ase$meanCov)) {
 ## FDR position, to show the inflated significance the coverage filter removes.
 vol <- ase |> filter(!is.na(deltaPSI))
 vol <- vol[is.finite(vol$FDR) | is.finite(vol$FDR_rMATS), , drop = FALSE]
+volYLab <- if (isDarts) "−log10 Bayesian FDR (DARTS)" else "−log10 adjusted p"
+volCaption <- if (isDarts) {
+  paste0("FDR = Bayesian FDR from the DARTS posterior P(|ΔPSI|>0.05). ",
+         "Low-coverage events (avg IJC+SJC < ", covCut, " in a group) are not shown.")
+} else {
+  paste0("Low-coverage events (grey; avg IJC+SJC < ", covCut,
+         " in a group) are shown at their rMATS FDR but excluded ",
+         "from the recomputed FDR.")
+}
 if (nrow(vol) > 0) {
+  ## In DARTS mode FDR_rMATS is NA, so low-coverage events have no y position
+  ## and drop out; the y-axis is the Bayesian FDR.
   plotFDR <- ifelse(vol$passCoverage, vol$FDR, vol$FDR_rMATS)
   vol$negLog10FDR <- -log10(pmax(plotFDR, .Machine$double.xmin))
   vol$colourKey <- ifelse(
@@ -279,10 +302,8 @@ if (nrow(vol) > 0) {
     ggrepel::geom_text_repel(data = lab, aes(label = lab), size = 2.6, max.overlaps = 20) +
     scale_colour_manual(values = colourValues, name = "Event type") +
     labs(x = paste0("ΔPSI  (", sampleGroup, " − ", refGroup, ")"),
-         y = "−log10 adjusted p",
-         caption = paste0("Low-coverage events (grey; avg IJC+SJC < ", covCut,
-                          " in a group) are shown at their rMATS FDR but excluded ",
-                          "from the recomputed FDR.")) +
+         y = volYLab,
+         caption = volCaption) +
     theme_bw()
 } else {
   cat("No testable events for the volcano plot.\n")
@@ -295,7 +316,7 @@ if (nrow(vol) > 0) {
 #| echo: false
 keepCols <- intersect(
   c("gene_name", "EventName", "EventType", "EventRegion", "deltaPSI",
-    "abs_deltaPSI", "PValue", "FDR", "minGroupCov"),
+    "abs_deltaPSI", "PValue", "posteriorProb", "FDR", "minGroupCov"),
   colnames(ase)
 )
 tbl <- ase |>
@@ -314,7 +335,11 @@ if (nrow(tbl) == 0) {
              '" target="_blank">', g, "</a>")
     )
   }
-  numCols <- intersect(c("deltaPSI", "abs_deltaPSI", "PValue", "FDR"), colnames(tbl))
+  if (isDarts) {
+    tbl$PValue <- NULL
+  }
+  numCols <- intersect(c("deltaPSI", "abs_deltaPSI", "PValue", "posteriorProb", "FDR"),
+                       colnames(tbl))
   DT::datatable(
     tbl, rownames = FALSE, filter = "top", escape = FALSE,
     extensions = "Buttons",

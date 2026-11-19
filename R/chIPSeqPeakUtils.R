@@ -387,8 +387,15 @@ alignmentStats <- function(bamFiles, cores = 1L, nSub = 1e5) {
 #' @return a one-row \code{data.frame}: NRF, PBC1, PBC2.
 #' @export
 libraryComplexity <- function(bamFile, chunkSize = 5e6) {
-  na <- data.frame(NRF = NA_real_, PBC1 = NA_real_, PBC2 = NA_real_)
+  na <- data.frame(NRF = NA_real_, PBC1 = NA_real_, PBC2 = NA_real_,
+                   note = NA_character_, stringsAsFactors = FALSE)
   if (!.usableFile(bamFile)) return(na)
+  ## On a BAM without duplicates every read start is unique by construction, so
+  ## NRF/PBC would read as "perfect" -- report NA with the reason instead.
+  if (bamDuplicatesRemoved(bamFile)) {
+    na$note <- "duplicates removed upstream; NRF/PBC not computed"
+    return(na)
+  }
   ## Stream the WHOLE BAM in chunks, accumulating counts per unique 5' position
   ## (rname, pos, strand). Subsampling the first-N reads of a coordinate-sorted
   ## BAM biases these metrics badly (reads cluster on one contig), so we scan
@@ -414,7 +421,67 @@ libraryComplexity <- function(bamFile, chunkSize = 5e6) {
   M1 <- sum(agg$N == 1L); M2 <- sum(agg$N == 2L)
   data.frame(NRF = distinct / total,
              PBC1 = if (distinct > 0) M1 / distinct else NA_real_,
-             PBC2 = if (M2 > 0) M1 / M2 else NA_real_)
+             PBC2 = if (M2 > 0) M1 / M2 else NA_real_,
+             note = NA_character_, stringsAsFactors = FALSE)
+}
+
+#' @title Detect whether duplicate reads were removed from a BAM
+#' @description Inspects the \code{CL} fields of the \code{@PG} header lines
+#'   for a step that drops duplicates: Picard \code{REMOVE_DUPLICATES=true},
+#'   \code{samtools view -F} with the 0x400 bit set, \code{markdup -r} and
+#'   \code{rmdup}.
+#' @param bamFile path to the BAM file (header read with \code{samtools view -H},
+#'   as in \code{bamHasMarkedDuplicates}).
+#' @param headerLines optional character vector of header lines; when given,
+#'   \code{bamFile} is ignored.
+#' @return \code{TRUE} if duplicates were removed, \code{FALSE} otherwise.
+#' @export
+bamDuplicatesRemoved <- function(bamFile = NULL, headerLines = NULL) {
+  if (is.null(headerLines)) {
+    if (length(bamFile) != 1 || is.na(bamFile) || !file.exists(bamFile)) {
+      return(FALSE)
+    }
+    headerLines <- tryCatch(
+      system2("samtools", c("view", "-H", shQuote(bamFile)),
+              stdout = TRUE, stderr = FALSE),
+      error = function(e) character(0)
+    )
+  }
+  pgLines <- grep("^@PG", headerLines, value = TRUE)
+  if (length(pgLines) == 0) {
+    return(FALSE)
+  }
+  cl <- ifelse(grepl("\tCL:", pgLines), sub("^.*\tCL:([^\t]*).*$", "\\1", pgLines), "")
+  if (any(grepl("REMOVE_DUPLICATES[= ]+true", cl, ignore.case = TRUE))) {
+    return(TRUE)
+  }
+  if (any(grepl("\\brmdup\\b", cl))) {
+    return(TRUE)
+  }
+  if (any(grepl("markdup\\b.*(\\s-r\\b|--remove-duplicates)", cl))) {
+    return(TRUE)
+  }
+  ## samtools view -F <flag> / --exclude-flags <flag> with the 0x400 bit set
+  flagArgs <- unlist(regmatches(
+    cl, gregexpr("(\\s-F\\s*|--exclude-flags[= ])\\S+", cl)
+  ))
+  if (length(flagArgs) > 0) {
+    flagVals <- sub("^(\\s-F\\s*|--exclude-flags[= ])", "", flagArgs)
+    flagInts <- suppressWarnings(vapply(flagVals, function(v) {
+      if (grepl("^0[xX]", v)) {
+        strtoi(substring(v, 3), 16L)
+      } else if (grepl("^[0-9]+$", v)) {
+        strtoi(v, 10L)
+      } else {
+        ## symbolic flags, e.g. DUP or UNMAP,DUP
+        if (grepl("\\bDUP\\b", v)) 1024L else 0L
+      }
+    }, integer(1)))
+    if (any(!is.na(flagInts) & bitwAnd(flagInts, 1024L) != 0L)) {
+      return(TRUE)
+    }
+  }
+  FALSE
 }
 
 #' @title Per-sample peak statistics

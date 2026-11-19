@@ -71,7 +71,13 @@ ezMethodChIPSeqPeakComparison <- function(input = NA, output = NA, param = NA,
 
   blacklist <- NULL
   if (isTRUE(param$useBlacklist) && nzchar(param$blacklistFile %||% "")) {
-    blacklist <- tryCatch(rtracklayer::import(param$blacklistFile), error = function(e) NULL)
+    blacklist <- tryCatch(
+      rtracklayer::import(param$blacklistFile),
+      error = function(e) {
+        stop("Could not import the blacklist file '", param$blacklistFile, "': ",
+             conditionMessage(e))
+      }
+    )
   }
   harm <- harmonizePeaks(rawPeaks, seqinfo, blacklist = blacklist)
   peaks <- harm$peaks; dropLog <- harm$dropLog
@@ -90,6 +96,20 @@ ezMethodChIPSeqPeakComparison <- function(input = NA, output = NA, param = NA,
     cbind(sample = sampleNames[i], crossCorrelationMetrics(bamFiles[[i]])),
     mc.cores = cores)) else NULL
   bwCor <- if (hasBw) bigwigCorrelation(bwFiles, cores = cores) else NULL
+  ## samples whose BAMs had duplicates removed upstream get NA NRF/PBC and a note
+  complexityNote <- NULL
+  if (!is.null(complexity) && "note" %in% colnames(complexity)) {
+    dedupSamples <- complexity$sample[!is.na(complexity$note)]
+    if (length(dedupSamples) > 0) {
+      complexityNote <- paste0(
+        "NRF/PBC were not computed for ", paste(dedupSamples, collapse = ", "),
+        ": duplicate reads had already been removed from these BAMs (e.g. by ",
+        "the MACS3 app), so every read start is unique and the metrics would ",
+        "always read as good."
+      )
+      ezLog(complexityNote, level = "warn")
+    }
+  }
 
   ## assemble a wide QC table for flagging
   qcWide <- pkStats[, c("sample", "nPeaks")]
@@ -180,7 +200,7 @@ ezMethodChIPSeqPeakComparison <- function(input = NA, output = NA, param = NA,
     peakCol = peakCol, hasBam = hasBam, hasBw = hasBw, hasCtrl = hasCtrl,
     nSamples = nSamples, seqinfo = seqinfo, genomeSize = genomeSize,
     dropLog = dropLog, peakStats = pkStats, alnStats = alnStats,
-    complexity = complexity, frip = frip, ccMetrics = ccMetrics,
+    complexity = complexity, complexityNote = complexityNote, frip = frip, ccMetrics = ccMetrics,
     bwCor = bwCor, qcWide = qcWide, qcFlags = qcFlags,
     jaccard = jaccard, consensus = consensus, occupancy = occupancy,
     consAnno = consAnno, signalMat = signalMat, normMat = normMat,

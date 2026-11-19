@@ -112,6 +112,14 @@ if (.have(chipData$qcFlags) && nrow(chipData$qcFlags) > 0) {
 - **duplicationRate** — fraction of reads flagged as duplicates. **mapq30Fraction** — fraction with MAPQ ≥ 30.
 :::
 
+```{r complexityNote}
+#| results: asis
+if (.have(chipData$complexityNote)) {
+  cat("::: {.callout-warning}\n## NRF/PBC not computed\n",
+      chipData$complexityNote, "\n:::\n\n", sep = "")
+}
+```
+
 ```{r aln}
 if (!chipData$hasBam) {
   .noteHTML("No BAM files in the dataset — alignment QC is unavailable.")

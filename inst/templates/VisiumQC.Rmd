@@ -29,9 +29,20 @@ ezLoadPackage('Seurat')
 library(ezRun)
 data <- ezRead.table("metrics_summary.tsv", row.names = NULL)
 param <- ezLoadRobj("param")
-if (param$visiumType == "SD") {
+## older runs only set visiumType ("SD"/"HD")
+if (is.null(param$hdSamples)) {
+  param$hdSamples <- if (param$visiumType == "HD") data$sampleName else character(0)
+}
+hasSD <- param$visiumType %in% c("SD", "mixed")
+if (hasSD) {
   myPlots <- ezLoadRobj("myPlots")
   scData <- ezLoadRobj("scData")
+}
+hdNote <- if (length(param$hdSamples) > 0) {
+  paste0("\n\nNot available for Visium HD samples; left out: ",
+         paste(param$hdSamples, collapse = ", "), "\n\n")
+} else {
+  ""
 }
 ```
 
@@ -46,7 +57,10 @@ datatable(
   data,
   options = list(pageLength = 20, autoWidth = TRUE), rownames = FALSE)
 mappingStats <- data[,c('Number_of_Reads','umiCounts')]
-if(param$visiumType == 'SD'){
+if ('Fraction_Reads_Under_Tissue' %in% colnames(data)) {
+    ## mixed HD/SD dataset: spots (SD) or squares (HD), per sample
+    mappingStats[['Reads_Under_Tissue']] <- data$Fraction_Reads_Under_Tissue * data$Number_of_Reads - mappingStats[['umiCounts']]
+} else if(param$visiumType == 'SD'){
     mappingStats[['Reads_Under_Tissue']] <- data$Fraction_Reads_in_Spots_Under_Tissue * data$Number_of_Reads - mappingStats[['umiCounts']]
 } else {
     mappingStats[['Reads_Under_Tissue']] <- data$Fraction_Reads_in_Squares_Under_Tissue * data$Number_of_Reads - mappingStats[['umiCounts']]
@@ -80,32 +94,31 @@ for (col in numeric_cols) {
 
 ## Images for Signals per Slide
 ```{r spatial signal plot, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=8}
-if(param$visiumType=='SD'){
-    for (j in 1:length(myPlots)) {
+if (hasSD) {
+    for (j in seq_along(myPlots)) {
     sampleName <- names(myPlots)[j]
     print(myPlots[[sampleName]][['Overview']])
     print(myPlots[[sampleName]][['Tissue']])
     print(myPlots[[sampleName]][['Signal']])
 }
-} else if(param$visiumType=='HD'){
-    cat('\n Not available for HD slides \n')
 }
+cat(hdNote)
 ```
 
 ## Determine Spot Size
 ```{r spatial Dim plot for example sample, echo=FALSE, message=FALSE, warning=FALSE, results='asis', fig.width=8}
-if(param$visiumType=='SD'){
+if (hasSD) {
+   cat('\n\nExample sample: ', names(myPlots)[1], '\n\n')
    imageName <- names(scData@images)
     coord <- GetTissueCoordinates(object = scData@images[[imageName]])
     myRatio <- (max(coord$x) - min(coord$x)) / (max(coord$y) - min(coord$y))
-    for (j in 1:length(param$sizeFactors)){
+    for (j in seq_along(param$sizeFactors)){
         p <- SpatialFeaturePlot(scData, features = "nCount_Spatial", pt.size.factor =  param$sizeFactors[j]) 
         p <- p + theme(legend.position = "right") + theme(aspect.ratio = myRatio) + ggtitle(paste("pt.size.factor = ", param$sizeFactors[j]))
         print(p)
     }
-} else if(param$visiumType=='HD'){
-    cat('\n Not available for HD slides \n')
 }
+cat(hdNote)
 ```
 
 ## SessionInfo

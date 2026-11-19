@@ -257,15 +257,27 @@ ezMethodRmatsTurbo <- function(input = NA, output = NA, param = NA) {
   res$meanCov <- (res$avgCov_sample * n1 + res$avgCov_ref * n2) / (n1 + n2)
   minCov <- as.numeric(param$minCoverage)
   res$passCoverage <- is.finite(res$minGroupCov) & res$minGroupCov >= minCov
-  res$FDR <- NA_real_
-  for (et in unique(res$EventType)) {
-    idx <- res$EventType == et & res$passCoverage
-    res$FDR[idx] <- p.adjust(res$PValue[idx], method = "BH")
+  isDarts <- ezIsSpecified(param$statModel) && param$statModel == "darts"
+  if (isDarts) {
+    ## With --darts-model, rMATS writes the DARTS posterior probability
+    ## P(|dPSI| > 0.05) into the PValue column; it is not a p-value, so a BH
+    ## correction is meaningless. Keep it as posteriorProb and use the Bayesian
+    ## FDR of the top-k set (per event type, coverage-passing events only).
+    res$posteriorProb <- res$PValue
+    res$PValue <- NA_real_
+    res$FDR <- rmatsDartsBayesFdr(res$posteriorProb, res$EventType, res$passCoverage)
+  } else {
+    res$FDR <- NA_real_
+    for (et in unique(res$EventType)) {
+      idx <- res$EventType == et & res$passCoverage
+      res$FDR[idx] <- p.adjust(res$PValue[idx], method = "BH")
+    }
   }
 
   ## surface the useful columns near the front
   front <- c("gene_name", "EventType", "EventName", "EventRegion",
-             "deltaPSI", "abs_deltaPSI", "PValue", "FDR", "passCoverage")
+             "deltaPSI", "abs_deltaPSI", "PValue", "posteriorProb", "FDR",
+             "passCoverage")
   res <- res[, c(intersect(front, colnames(res)),
                  setdiff(colnames(res), front)), drop = FALSE]
 
@@ -432,3 +444,25 @@ EzAppRmatsTurbo <-
       }
     )
   )
+
+##' @title Bayesian FDR from DARTS posterior probabilities
+##' @description For each event type, the coverage-passing events are sorted by
+##' posterior probability (descending) and each event gets the expected FDR of the
+##' top-k set it belongs to: the running mean of (1 - posterior). Events that fail
+##' the coverage filter or have no posterior get NA.
+##' @param post numeric vector of DARTS posterior probabilities P(|dPSI| > 0.05).
+##' @param eventType event type per event (FDR is computed per type).
+##' @param pass logical vector, TRUE for events that pass the coverage filter.
+##' @return numeric vector of Bayesian FDR values, aligned with \code{post}.
+rmatsDartsBayesFdr <- function(post, eventType, pass) {
+  post <- suppressWarnings(as.numeric(post))
+  stopifnot(length(eventType) == length(post), length(pass) == length(post))
+  fdr <- rep(NA_real_, length(post))
+  usable <- !is.na(pass) & pass & is.finite(post)
+  for (et in unique(eventType[usable])) {
+    idx <- which(usable & eventType == et)
+    ord <- idx[order(post[idx], decreasing = TRUE)]
+    fdr[ord] <- cumsum(1 - post[ord]) / seq_along(ord)
+  }
+  fdr
+}
