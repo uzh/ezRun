@@ -117,6 +117,57 @@ ENA_BFABRIC_PYTHON <- "/usr/local/ngseq/miniforge3/envs/gi_py3.12.8/bin/python"
   NA
 }
 
+## ENA lists paired runs with 3 files when some reads lost their mate:
+## <run>.fastq.gz (unpaired) plus <run>_1 / <run>_2. Keep the two mates (and
+## their md5 sums) so that a run has 1 (single-end) or 2 (paired) files.
+## Returns list(ftp, md5) as ';'-separated strings.
+.enaNormaliseFastqFiles <- function(ftp, md5) {
+  files <- strsplit(ftp, ';', fixed = TRUE)[[1]]
+  md5s <- strsplit(ifelse(is.na(md5), '', md5), ';', fixed = TRUE)[[1]]
+  if (length(files) <= 2) {
+    return(list(ftp = ftp, md5 = md5))
+  }
+  idx1 <- grep('_1\\.f(ast)?q(\\.gz)?$', files)
+  idx2 <- grep('_2\\.f(ast)?q(\\.gz)?$', files)
+  if (length(idx1) != 1 || length(idx2) != 1) {
+    stop(
+      "Cannot identify the read 1 / read 2 files among ",
+      length(files), " files: ", ftp
+    )
+  }
+  keep <- c(idx1, idx2)
+  ezLog(
+    "Ignoring unpaired file(s) of a paired run: ",
+    paste(basename(files[-keep]), collapse = ", ")
+  )
+  list(
+    ftp = paste(files[keep], collapse = ';'),
+    md5 = if (length(md5s) == length(files)) {
+      paste(md5s[keep], collapse = ';')
+    } else {
+      md5
+    }
+  )
+}
+
+## Shell command that registers the delivered dataset in production SUSHI as a
+## child of the ENA order dataset. BatchMode makes ssh fail instead of waiting
+## for a password when the key is not accepted.
+.enaSushiRegisterCmd <- function(datasetPath, containerId, datasetName, datasetId) {
+  sprintf(
+    paste0(
+      "ssh -o BatchMode=yes trxcopy@fgcz-h-082 ",
+      "\"bash -lc 'cd /srv/sushi/production/master && ",
+      "bundle exec sushi_fabric --dataset %s --run --input_dataset_application 372 ",
+      "--project %s --dataset_name %s --dataset_id %s'\""
+    ),
+    datasetPath,
+    containerId,
+    datasetName,
+    datasetId
+  )
+}
+
 ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
   require(XML)
   for (i in seq_along(5)) {
@@ -161,14 +212,27 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
       '',
       limma::strsplit2(param$includedSamples, split = ',')
     ))
+    includedSamples <- includedSamples[includedSamples != '']
     toInclude <- which(fastqInfo[['sample_accession']] %in% includedSamples)
-    if (length(toInclude) > 0) {
-      ezLog(paste(
-        'Samples included:',
-        paste(fastqInfo[toInclude, 'sample_accession'], collapse = ", ")
-      ))
-      fastqInfo <- fastqInfo[c(toInclude), ]
+    if (length(toInclude) == 0) {
+      stop(
+        "includedSamples matches no sample_accession of project ",
+        param[['projectID']], ": ", paste(includedSamples, collapse = ", ")
+      )
     }
+    notFound <- setdiff(includedSamples, fastqInfo[['sample_accession']])
+    if (length(notFound) > 0) {
+      ezLog(
+        "includedSamples not found in the project and ignored: ",
+        paste(notFound, collapse = ", "),
+        level = "warn"
+      )
+    }
+    ezLog(paste(
+      'Samples included:',
+      paste(unique(fastqInfo[toInclude, 'sample_accession']), collapse = ", ")
+    ))
+    fastqInfo <- fastqInfo[toInclude, ]
   }
 
   ###Filter fastqInfo for empty fastq_ftp entries
@@ -180,6 +244,16 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
       paste(capture.output(print(fastqInfo[toRemove, ])), collapse = "\n")
     ))
     fastqInfo <- fastqInfo[-c(toRemove), ]
+  }
+
+  ## Paired runs can list an extra file with the unpaired reads; keep the mates only
+  for (i in seq_len(nrow(fastqInfo))) {
+    files <- .enaNormaliseFastqFiles(
+      fastqInfo$fastq_ftp[i],
+      fastqInfo$fastq_md5[i]
+    )
+    fastqInfo$fastq_ftp[i] <- files$ftp
+    fastqInfo$fastq_md5[i] <- files$md5
   }
 
   ##Check sequencing mode and keep only supported mode in mixed cases
@@ -259,7 +333,6 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
       paired = TRUE
       fastqFiles <- strsplit(fastqInfo$fastq_ftp[i], ';')[[1]]
       fastqMd5s <- strsplit(fastqInfo$fastq_md5[i], ';')[[1]]
-      ##cmd = paste0('wget --quiet -t 0 ', 'ftp://', fastqFiles[1],'; wget --quiet -t 0 ', 'ftp://', fastqFiles[2])
       stopifnot(length(fastqFiles) == 2)
       for (k in seq_along(fastqFiles)) {
         .enaDownloadFastq(fastqFiles[k], fastqMd5s[k])
@@ -280,48 +353,28 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
     ezWrite.table(dataset, 'dataset.tsv', row.names = FALSE)
   } else {
     ezLog('Data pooling needed')
-    sampleNames = unique(dataset$Name)
-    for (j in 1:length(sampleNames)) {
-      files_R1 <- basename(dataset[['Read1 [File]']][
-        dataset[['Name']] == sampleNames[j]
-      ])
-      sampleNames[j] = gsub('\\/', '_', gsub(' ', '_', sampleNames[j]))
-      sampleNames[j] = gsub(';', '_', sampleNames[j])
-      pooledR1_File <- paste0(sampleNames[j], '_R1.fastq.gz')
-      ezSystem(paste('touch', pooledR1_File))
-      for (k in 1:length(files_R1)) {
-        ezSystem(paste0('cat ', files_R1[k], '>>', pooledR1_File))
-        ezSystem(paste('rm', files_R1[k]))
-        dataset[['Read1 [File]']] = sub(
-          files_R1[k],
-          pooledR1_File,
-          dataset[['Read1 [File]']]
+    readColumns <- intersect(c('Read1 [File]', 'Read2 [File]'), colnames(dataset))
+    for (sampleName in unique(dataset$Name)) {
+      ## select by the original name; the sanitised stem is only for file names
+      isSample <- dataset[['Name']] == sampleName
+      fileStem <- gsub('[/ ;]', '_', sampleName)
+      for (readColumn in readColumns) {
+        readTag <- if (readColumn == 'Read1 [File]') '_R1' else '_R2'
+        pooledFile <- paste0(fileStem, readTag, '.fastq.gz')
+        sampleFiles <- basename(dataset[[readColumn]][isSample])
+        ezSystem(paste(
+          'cat', paste(shQuote(sampleFiles), collapse = ' '),
+          '>', shQuote(pooledFile)
+        ))
+        ezSystem(paste('rm', paste(shQuote(sampleFiles), collapse = ' ')))
+        dataset[[readColumn]][isSample] <- file.path(
+          dirname(dataset[[readColumn]][isSample]),
+          pooledFile
         )
       }
-      if (paired) {
-        files_R2 <- basename(dataset[['Read2 [File]']][
-          dataset[['Name']] == sampleNames[j]
-        ])
-        sampleNames[j] = gsub('\\/', '_', gsub(' ', '_', sampleNames[j]))
-        sampleNames[j] = gsub(';', '_', sampleNames[j])
-        pooledR2_File <- paste0(sampleNames[j], '_R2.fastq.gz')
-        ezSystem(paste('touch', pooledR2_File))
-        for (k in 1:length(files_R2)) {
-          ezSystem(paste0('cat ', files_R2[k], '>>', pooledR2_File))
-          ezSystem(paste('rm', files_R2[k]))
-          dataset[['Read2 [File]']] = sub(
-            files_R2[k],
-            pooledR2_File,
-            dataset[['Read2 [File]']]
-          )
-        }
-      }
-      dataset[['Read Count']][dataset[['Name']] == sampleNames[j]] = rep(
-        sum(as.numeric(dataset[['Read Count']][
-          dataset[['Name']] == sampleNames[j]
-        ])),
-        length(files_R1)
-      )
+      dataset[['Read Count']][isSample] <- sum(as.numeric(
+        dataset[['Read Count']][isSample]
+      ))
     }
     dataset = dataset[, -grep('md5sum', colnames(dataset))]
     dataset = unique(dataset)
@@ -330,35 +383,32 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
   }
 
   if (param$tarOutput) {
-    for (i in 1:nrow(dataset)) {
-      mySample <- dataset[i, 'Name']
+    readColumns <- intersect(c('Read1 [File]', 'Read2 [File]'), colnames(dataset))
+    ## folder and tar names must not contain '/' (sample titles may)
+    tarStems <- gsub('[/ ;]', '_', dataset$Name)
+    for (i in seq_len(nrow(dataset))) {
+      mySample <- tarStems[i]
       dir.create(mySample)
-      R1File <- basename(dataset[['Read1 [File]']][i])
-      R2File <- basename(dataset[['Read2 [File]']][i])
-      cmd <- paste('mv', file.path(R1File), file.path(R2File), mySample)
-      system(cmd)
-      ##Rename files
-      system(paste(
-        'mv',
-        file.path(mySample, basename(R1File)),
-        file.path(mySample, paste0(mySample, '_S1_L001_R1_001.fastq.gz'))
-      ))
-      system(paste(
-        'mv',
-        file.path(mySample, basename(R2File)),
-        file.path(mySample, paste0(mySample, '_S1_L001_R2_001.fastq.gz'))
-      ))
-      ##tar folder
-      cmd <- paste('tar vcf', paste0(mySample, '.tar'), mySample)
-      system(cmd)
-      ##rm folder
-      system(paste('rm -Rf', mySample))
+      ## move each read file into the sample folder with an Illumina-style name
+      for (readColumn in readColumns) {
+        readTag <- if (readColumn == 'Read1 [File]') 'R1' else 'R2'
+        ezSystem(paste(
+          'mv',
+          shQuote(basename(dataset[[readColumn]][i])),
+          shQuote(file.path(
+            mySample,
+            paste0(mySample, '_S1_L001_', readTag, '_001.fastq.gz')
+          ))
+        ))
+      }
+      ezSystem(paste('tar cf', shQuote(paste0(mySample, '.tar')), shQuote(mySample)))
+      ezSystem(paste('rm -Rf', shQuote(mySample)))
     }
 
     ##Update dataset
     dataset[['RawDataDir [File]']] <- file.path(
       dirname(dataset[['Read1 [File]']])[1],
-      paste0(dataset$Name, '.tar')
+      paste0(tarStems, '.tar')
     )
     dataset[['Read1 [File]']] <- NULL
     dataset[['Read2 [File]']] <- NULL
@@ -376,19 +426,26 @@ ezMethodGetEnaData <- function(input = NA, output = NA, param = NA) {
   )
   ezWrite.table(dataset, datasetPath, row.names = FALSE)
 
-  script_path <- tempfile(fileext = ".sh")
-  script_lines <- c(
-    sprintf(
-      "ssh trxcopy@fgcz-h-082\"bash -lc 'cd /srv/sushi/production/master && bundle exec sushi_fabric --dataset %s --run --input_dataset_application 372 --project %s --dataset_name %s --dataset_id %s '\"",
-      datasetPath,
-      containerId,
-      datasetName,
-      param$datasetId
-    )
+  ## Register the dataset in SUSHI. A failure fails the job: the data are on
+  ## gStore already, but without the SUSHI dataset the order looks delivered
+  ## while it is not.
+  registerCmd <- .enaSushiRegisterCmd(
+    datasetPath,
+    containerId,
+    datasetName,
+    param$datasetId
   )
-  writeLines(script_lines, con = script_path)
-  Sys.chmod(script_path, "700")
-  out <- tryCatch(system(paste('bash', script_path)), error = function(e) NULL)
+  scriptPath <- tempfile(fileext = ".sh")
+  writeLines(c("#!/bin/bash", "set -e", registerCmd), con = scriptPath)
+  res <- system(paste('bash', shQuote(scriptPath)))
+  if (res != 0) {
+    stop(
+      "SUSHI registration failed (exit code ", res, "). The FASTQ files are ",
+      "delivered; register the dataset by running:\n", registerCmd
+    )
+  }
+  ezLog("Registered ", datasetName, " in SUSHI (project ", containerId, ")")
+  return("Success")
 }
 
 createDataset <- function(fastqInfo, myPath, paired = FALSE) {
