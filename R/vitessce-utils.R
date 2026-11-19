@@ -34,8 +34,6 @@ find_python <- function() {
     "/usr/local/ngseq/miniforge3/envs/gi_cellrank2/bin/python",
     "/usr/local/ngseq/miniforge3/envs/gi_bin2cell/bin/python",
     "/usr/local/ngseq/miniforge3/envs/gi_cellbender_0.3.2/bin/python",
-    # FGCZ compute cluster - general purpose env
-    "/usr/local/ngseq/miniforge3/envs/ps_pgueguen/bin/python",
     # System Python
     "/usr/bin/python3",
     Sys.which("python3"),
@@ -75,13 +73,7 @@ get_vitessce_python_script <- function() {
     return(ezrun_path)
   }
 
-  # Second check: Development location (paul-scripts)
-  dev_path <- "/home/pgueguen/git/paul-scripts/Internal_Dev/SeuratXeniumApp/scripts/seurat_to_vitessce_zarr.py"
-  if (file.exists(dev_path)) {
-    return(dev_path)
-  }
-
-  # Third check: Same directory as this script (when sourced)
+  # Second check: Same directory as this script (when sourced)
   if (sys.nframe() > 0) {
     frame_files <- sapply(seq_len(sys.nframe()), function(i) sys.frame(i)$ofile)
     frame_files <- frame_files[!sapply(frame_files, is.null)]
