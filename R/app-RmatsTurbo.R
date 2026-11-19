@@ -351,6 +351,18 @@ EzAppRmatsTurbo <-
     "EzAppRmatsTurbo",
     contains = "EzApp",
     methods = list(
+      ## rMATS (statistical model) and rMATS-turbo (the implementation run) unconditional: ezMethodRmatsTurbo
+      ## always runs rmats.py. PAIRADISE only when statModel is "paired" (--paired-stats, run by rMATS
+      ## through rMATS_R/paired_model.R). statModel "darts" is not cited: the app recomputes a BH FDR from
+      ## the PValue column, which holds the DARTS posterior probability, so that branch gives no valid
+      ## result. samtools (read-length probe) and the report packages are not cited.
+      citation = function(param = list()) {
+        c(
+          "Shen, S. et al. rMATS: robust and flexible detection of differential alternative splicing from replicate RNA-Seq data. Proceedings of the National Academy of Sciences of the USA 111(51), E5593-E5601 (2014). https://doi.org/10.1073/pnas.1419161111",
+          "Wang, Y. et al. rMATS-turbo: an efficient and flexible computational tool for alternative splicing analysis of large-scale RNA-seq data. Nature Protocols 19(4), 1083-1104 (2024). https://doi.org/10.1038/s41596-023-00944-2",
+          if (identical(param$statModel, "paired")) "Demirdjian, L. et al. Detecting allele-specific alternative splicing from population-scale RNA-seq data. American Journal of Human Genetics 107(3), 461-472 (2020). https://doi.org/10.1016/j.ajhg.2020.07.005"
+        )
+      },
       initialize = function() {
         "Initializes the application using its specific defaults."
         runMethod <<- ezMethodRmatsTurbo
