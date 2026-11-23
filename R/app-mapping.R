@@ -213,7 +213,7 @@ getBowtie2Reference <- function(param) {
   if (ezIsSpecified(param$ezRef["refIndex"])) {
     refBase <- param$ezRef["refIndex"]
     stopifnot(file.exists(dirname(refBase)))
-    return(stopifnot)
+    return(refBase)
   }
   ## default values
   refBase <- file.path(
@@ -229,54 +229,54 @@ getBowtie2Reference <- function(param) {
     refBase <- file.path(getwd(), "BOWTIE2Index/customGenome")
   }
 
-  ## check the ref
-  lockFile <- file.path(dirname(refBase), "lock")
-  if (!file.exists(dirname(refBase))) {
-    ## no lock file and no refFiles, so we build the reference
-    dir.create(dirname(refBase))
-    ezWrite(Sys.info(), con = lockFile)
-    wd <- getwd()
-    setwd(dirname(refBase))
-
-    cmd <- paste(
-      "bowtie2-build",
-      "--seed 42 --threads",
-      as.numeric(param$cores),
-      "-f",
-      genomeFastaFiles,
-      basename(refBase)
-    )
-    ezSystem(cmd)
-    ezLogMethods(
-      "A Bowtie2 index of the reference sequences",
-      if (ezIsSpecified(param$secondRef)) " together with the secondRef sequences",
-      " was built with bowtie2-build."
-    )
-    # ezWriteElapsed(job, "done")
-    setwd(wd)
-    file.remove(lockFile)
-  }
-  stopifnot(file.exists(dirname(refBase)))
-  i <- 0
-  while (file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT) {
-    ### somebody else builds and we wait
-    Sys.sleep(60)
-    i <- i + 1
-  }
-  if (file.exists(lockFile)) {
-    stop(paste(
-      "reference building still in progress after",
-      INDEX_BUILD_TIMEOUT,
-      "min"
-    ))
-  }
-  ## there is no lock file
-  refFiles <- list.files(dirname(refBase), basename(refBase))
-  if (length(refFiles) < 2) {
-    ## too few files, we assume the index is incomplete
-    stop(paste("index not available: ", refBase))
-  }
+  ## The lock stays inside the index directory, where older ezRun versions
+  ## look for it. bowtie2-build writes .rev.2.bt2(l) last, and it is moved
+  ## into place last, so its presence marks a complete index.
+  ez_build_reference_once(
+    lockDir = file.path(dirname(refBase), "lock"),
+    isComplete = function() {
+      any(file.exists(paste0(refBase, c(".rev.2.bt2", ".rev.2.bt2l"))))
+    },
+    build = function() {
+      ez_build_bowtie2_index(param, refBase, genomeFastaFiles)
+    },
+    what = "Bowtie2 index"
+  )
   return(refBase)
+}
+
+##' @title Build a Bowtie2 index
+##' @description Runs bowtie2-build in a private directory and moves the index
+##'   files next to \code{refBase}, the .rev.2 file last. Call it only through
+##'   \code{ez_build_reference_once}, which holds the build lock.
+##' @param param a list of parameters, uses \code{cores} and \code{secondRef}.
+##' @param refBase the index prefix, e.g. .../Sequence/BOWTIE2Index/genome.
+##' @param genomeFastaFiles the fasta file(s), comma separated.
+##' @return \code{refBase}, invisibly.
+##' @keywords internal
+ez_build_bowtie2_index <- function(param, refBase, genomeFastaFiles) {
+  buildDir <- ez_new_build_dir(dirname(refBase))
+  on.exit(unlink(buildDir, recursive = TRUE), add = TRUE)
+  cmd <- paste(
+    "bowtie2-build",
+    "--seed 42 --threads",
+    as.numeric(param$cores),
+    "-f",
+    genomeFastaFiles,
+    file.path(buildDir, basename(refBase))
+  )
+  ezSystem(cmd)
+  ez_move_into_place(
+    buildDir,
+    dirname(refBase),
+    last = paste0(basename(refBase), c(".rev.2.bt2", ".rev.2.bt2l"))
+  )
+  ezLogMethods(
+    "A Bowtie2 index of the reference sequences",
+    if (ezIsSpecified(param$secondRef)) " together with the secondRef sequences",
+    " was built with bowtie2-build."
+  )
+  invisible(refBase)
 }
 
 ##' @template app-template
@@ -891,32 +891,35 @@ getSTARReference <- function(param) {
     }
   }
 
-  ## random sleep to avoid parallel ref building
-  Sys.sleep(runif(1, max = 20))
+  ## The index is built in a private directory and renamed to refDir as the
+  ## last step, so an existing refDir/SAindex means a complete index.
+  ez_build_reference_once(
+    lockDir = paste0(refDir, ".lock"),
+    isComplete = function() {
+      file.exists(file.path(refDir, "SAindex"))
+    },
+    build = function() {
+      ez_build_star_index(param, refDir, genomeFastaFiles, gtfFile)
+    },
+    what = "STAR index"
+  )
+  return(refDir)
+}
 
-  lockFile <- paste0(refDir, ".lock")
-  i <- 0
-  while (file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT) {
-    ### somebody else builds and we wait
-    Sys.sleep(60)
-    i <- i + 1
-  }
-  if (i >= INDEX_BUILD_TIMEOUT) {
-    stop(paste(
-      "reference building still in progress after",
-      INDEX_BUILD_TIMEOUT,
-      "min"
-    ))
-  }
-  ## there is no lock file
-  if (file.exists(file.path(refDir, "SAindex"))) {
-    ## we assume the index is built and complete
-    return(refDir)
-  }
-
-  ## no lock file and no refFiles, so we build the reference
-  ezWrite(Sys.info(), con = lockFile)
-  dir.create(refDir)
+##' @title Build a STAR genome index
+##' @description Runs STAR genomeGenerate in a private directory next to
+##'   \code{refDir} and renames it to \code{refDir} when finished. Call it only
+##'   through \code{ez_build_reference_once}, which holds the build lock.
+##' @param param a list of parameters, uses \code{ezRef}, \code{ram} and
+##'   \code{cores}.
+##' @param refDir the final index directory.
+##' @param genomeFastaFiles the genome fasta file(s), space separated.
+##' @param gtfFile the annotation used for the splice junction database.
+##' @return \code{refDir}, invisibly.
+##' @keywords internal
+ez_build_star_index <- function(param, refDir, genomeFastaFiles, gtfFile) {
+  buildDir <- ez_new_build_dir(refDir)
+  on.exit(unlink(buildDir, recursive = TRUE), add = TRUE)
 
   fai <- ezRead.table(
     paste0(param$ezRef["refFastaFile"], ".fai"),
@@ -951,7 +954,7 @@ getSTARReference <- function(param) {
   cmd <- paste(
     "STAR",
     "--runMode genomeGenerate --genomeDir",
-    refDir,
+    buildDir,
     binOpt,
     indexNBasesOpt,
     genomeChrBinNbits,
@@ -967,10 +970,16 @@ getSTARReference <- function(param) {
     "--genomeSAsparseD 2"
   )
   ezSystem(cmd)
-  file.remove(lockFile)
+  ## an incomplete index left by an earlier failed build is replaced
+  if (dir.exists(refDir)) {
+    unlink(refDir, recursive = TRUE)
+  }
+  stopifnot(file.rename(buildDir, refDir))
   ezWriteElapsed(job, "done")
-  file.remove("Log.out")
-  return(refDir)
+  if (file.exists("Log.out")) {
+    file.remove("Log.out")
+  }
+  invisible(refDir)
 }
 
 ##' @template app-template
@@ -1302,40 +1311,43 @@ getBWAReference <- function(param) {
     file.path(param$ezRef["refBuildDir"], "Sequence/BWAIndex/genome.fa"),
     param$ezRef["refIndex"]
   )
-  ## check the ref
-  lockFile <- file.path(dirname(refPath), "lock")
-  i <- 0
-  while (file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT) {
-    ### somebody else builds and we wait
-    Sys.sleep(60)
-    i <- i + 1
-  }
-  if (file.exists(lockFile)) {
-    stop(paste(
-      "reference building still in progress after",
-      INDEX_BUILD_TIMEOUT,
-      "min"
-    ))
-  }
-  if (!file.exists(dirname(refPath))) {
-    ## no lock file and no refFiles, so we build the reference
-    dir.create(dirname(refPath))
-    ezWrite(Sys.info(), con = lockFile)
-    wd <- getwd()
-    setwd(dirname(refPath))
-
-    fastaFile <- param$ezRef["refFastaFile"]
-    file.symlink(from = fastaFile, to = ".")
-    cmd <- paste("bwa", "index", "-a", "bwtsw", basename(fastaFile))
-    ezSystem(cmd)
-    setwd(wd)
-    file.remove(lockFile)
-  }
-  stopifnot(file.exists(dirname(refPath)))
-  if (!file.exists(paste0(refPath, ".sa"))) {
-    stop(paste("sa index not found for:", refPath))
-  }
+  ## The lock stays inside the index directory, where older ezRun versions
+  ## look for it. bwa index writes .sa last, and it is moved into place last,
+  ## so its presence marks a complete index.
+  ez_build_reference_once(
+    lockDir = file.path(dirname(refPath), "lock"),
+    isComplete = function() {
+      file.exists(paste0(refPath, ".sa"))
+    },
+    build = function() {
+      ez_build_bwa_index(param$ezRef["refFastaFile"], refPath)
+    },
+    what = "BWA index"
+  )
   return(refPath)
+}
+
+##' @title Build a BWA index
+##' @description Links the genome fasta into a private directory, runs bwa
+##'   index there and moves link and index files next to \code{refPath}, the
+##'   .sa file last. Call it only through \code{ez_build_reference_once}, which
+##'   holds the build lock.
+##' @param fastaFile the genome fasta file.
+##' @param refPath the indexed fasta path, e.g. .../Sequence/BWAIndex/genome.fa.
+##' @return \code{refPath}, invisibly.
+##' @keywords internal
+ez_build_bwa_index <- function(fastaFile, refPath) {
+  buildDir <- ez_new_build_dir(dirname(refPath))
+  on.exit(unlink(buildDir, recursive = TRUE), add = TRUE)
+  buildFasta <- file.path(buildDir, basename(refPath))
+  stopifnot(file.symlink(from = fastaFile, to = buildFasta))
+  ezSystem(paste("bwa", "index", "-a", "bwtsw", buildFasta))
+  ez_move_into_place(
+    buildDir,
+    dirname(refPath),
+    last = paste0(basename(refPath), ".sa")
+  )
+  invisible(refPath)
 }
 
 ##' @template app-template
@@ -1708,50 +1720,69 @@ getBismarkReference <- function(param) {
     refIndex
   }
   if (!isDefaultIndex && !file.exists(dirname(refBase))) {
-    stop("Bismark refIndex not found: ", refBase,
-         " (only the default index location is built automatically)")
-  }
-  ## check the ref
-  lockFile <- file.path(dirname(refBase), "lock")
-  if (!file.exists(dirname(refBase))) {
-    ## no lock file and no refFiles, so we build the reference
-    dir.create(dirname(refBase))
-    ezWrite(Sys.info(), con = lockFile)
-    wd <- getwd()
-    cmd <- paste(
-      "bismark_genome_preparation",
-      dirname(param$ezRef["refFastaFile"]),
-      "2> bismarkGenomePrep.log"
+    stop(
+      "Bismark refIndex not found: ", refBase,
+      " (only the default index location is built automatically)"
     )
-    ezSystem(cmd)
-
-    # ezWriteElapsed(job, "done")
-    setwd(wd)
-    file.remove(lockFile)
   }
-  stopifnot(file.exists(dirname(refBase)))
-  i <- 0
-  while (file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT) {
-    ### somebody else builds and we wait
-    Sys.sleep(60)
-    i <- i + 1
-  }
-  if (file.exists(lockFile)) {
-    stop(paste(
-      "reference building still in progress after",
-      INDEX_BUILD_TIMEOUT,
-      "min"
-    ))
-  }
-  ## there is no lock file
-  refFiles <- list.files(dirname(refBase), basename(refBase))
-  if (length(refFiles) < 1) {
-    ## we assume the index is built and complete
-    stop(paste("index not available: ", refBase))
+  bisulfiteDir <- dirname(refBase)
+  if (isDefaultIndex) {
+    ## The lock stays inside Bisulfite_Genome/, where older ezRun versions
+    ## look for it. Both converted genomes need their Bowtie2 index; the
+    ## .rev.2 files are moved into place last.
+    ez_build_reference_once(
+      lockDir = file.path(bisulfiteDir, "lock"),
+      isComplete = function() {
+        ctBase <- file.path(bisulfiteDir, "CT_conversion", "BS_CT")
+        gaBase <- file.path(bisulfiteDir, "GA_conversion", "BS_GA")
+        any(file.exists(paste0(ctBase, c(".rev.2.bt2", ".rev.2.bt2l")))) &&
+          any(file.exists(paste0(gaBase, c(".rev.2.bt2", ".rev.2.bt2l"))))
+      },
+      build = function() {
+        ez_build_bismark_index(param$ezRef["refFastaFile"], bisulfiteDir)
+      },
+      what = "Bismark index"
+    )
+  } else {
+    ## a user-supplied index is never built here
+    refFiles <- list.files(bisulfiteDir, basename(refBase))
+    if (length(refFiles) < 1) {
+      stop(paste("index not available: ", refBase))
+    }
   }
   ## bismark takes the folder that holds Bisulfite_Genome/; for the default
   ## index this is the WholeGenomeFasta folder of the FASTA
-  return(dirname(dirname(refBase)))
+  return(dirname(bisulfiteDir))
+}
+
+##' @title Build a Bismark bisulfite genome index
+##' @description Links the genome fasta into a private directory, runs
+##'   bismark_genome_preparation there and moves the resulting CT_conversion
+##'   and GA_conversion directories into \code{bisulfiteDir}, the converted
+##'   genome that is checked first moved last. Call it only through
+##'   \code{ez_build_reference_once}, which holds the build lock.
+##' @param fastaFile the genome fasta file.
+##' @param bisulfiteDir the final Bisulfite_Genome directory next to the fasta.
+##' @return \code{bisulfiteDir}, invisibly.
+##' @keywords internal
+ez_build_bismark_index <- function(fastaFile, bisulfiteDir) {
+  buildDir <- ez_new_build_dir(bisulfiteDir)
+  on.exit(unlink(buildDir, recursive = TRUE), add = TRUE)
+  stopifnot(file.symlink(
+    from = fastaFile,
+    to = file.path(buildDir, basename(fastaFile))
+  ))
+  ezSystem(paste(
+    "bismark_genome_preparation",
+    buildDir,
+    "2> bismarkGenomePrep.log"
+  ))
+  ez_move_into_place(
+    file.path(buildDir, "Bisulfite_Genome"),
+    bisulfiteDir,
+    last = c("GA_conversion", "CT_conversion")
+  )
+  invisible(bisulfiteDir)
 }
 
 

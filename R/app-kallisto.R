@@ -201,22 +201,22 @@ EzAppKallisto <-
   )
 
 
-getKallistoReference = function(param) {
+getKallistoReference <- function(param) {
   ## Get kallisto version for index versioning
-  versionOutput = system2(
+  versionOutput <- system2(
     "kallisto",
     args = "version",
     stdout = TRUE,
     stderr = TRUE
   )[1]
   ## Extract version number (e.g., "kallisto, version 0.51.0" -> "v51-0")
-  versionMatch = regmatches(
+  versionMatch <- regmatches(
     versionOutput,
     regexpr("[0-9]+\\.[0-9]+\\.[0-9]+", versionOutput)
   )
   if (length(versionMatch) > 0) {
-    versionParts = strsplit(versionMatch, "\\.")[[1]]
-    kallistoVersion = paste0(
+    versionParts <- strsplit(versionMatch, "\\.")[[1]]
+    kallistoVersion <- paste0(
       "_v",
       versionParts[1],
       versionParts[2],
@@ -224,17 +224,17 @@ getKallistoReference = function(param) {
       versionParts[3]
     )
   } else {
-    kallistoVersion = ""
+    kallistoVersion <- ""
   }
 
   ## default values
-  pathTranscripts = NULL
+  pathTranscripts <- NULL
   if (ezIsSpecified(param$transcriptFasta)) {
-    refBase = file.path(
+    refBase <- file.path(
       getwd(),
       paste0("kallistoIndex", kallistoVersion, "/transcripts")
     )
-    #paste0(file_path_sans_ext(param$trinityFasta), "_kallistoIndex/transcripts")
+    # paste0(file_path_sans_ext(param$trinityFasta), "_kallistoIndex/transcripts")
   } else {
     if (ezIsSpecified(param$transcriptTypes)) {
       kallistoBase <- paste(sort(param$transcriptTypes), collapse = "-")
@@ -242,7 +242,7 @@ getKallistoReference = function(param) {
     } else {
       kallistoBase <- ""
     }
-    refBase = ifelse(
+    refBase <- ifelse(
       param$ezRef["refIndex"] == "",
       sub(
         ".gtf$",
@@ -262,30 +262,67 @@ getKallistoReference = function(param) {
   ## update if secondRef exists - build a temporary index
   if (ezIsSpecified(param$secondRef)) {
     stopifnot(file.exists(param$secondRef))
-    refBase = file.path(
+    refBase <- file.path(
       getwd(),
       paste0("Custom_kallistoIndex", kallistoVersion, "/transcripts")
     )
   }
 
-  lockFile = paste0(dirname(refBase), ".lock")
-  i = 0
-  while (file.exists(lockFile) && i < INDEX_BUILD_TIMEOUT) {
-    ### somebody else builds and we wait
+  ## A finished index is recognised by its .idx file only. The .idx file is
+  ## moved into place as the very last step of a build, so it is never seen
+  ## half-written.
+  ## The lock is a directory: dir.create() creates it or fails if it already
+  ## exists in one atomic step, so exactly one job can hold it, also across
+  ## nodes. The former lock file (file.exists() followed by a write) let jobs
+  ## that started at the same moment all pass the check and build in parallel
+  ## in the same directory.
+  idxFile <- paste0(refBase, ".idx")
+  lockDir <- paste0(dirname(refBase), ".lock")
+  dir.create(dirname(lockDir), recursive = TRUE, showWarnings = FALSE)
+  hasLock <- FALSE
+  i <- 0
+  while (!file.exists(idxFile)) {
+    if (dir.create(lockDir, showWarnings = FALSE)) {
+      hasLock <- TRUE
+      ## only the job that created the lock ever removes it
+      on.exit(unlink(lockDir, recursive = TRUE), add = TRUE)
+      writeLines(
+        paste0(
+          "host=", Sys.info()[["nodename"]],
+          " pid=", Sys.getpid(),
+          " slurmJob=", Sys.getenv("SLURM_JOB_ID", "none"),
+          " started=", format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+        ),
+        file.path(lockDir, "owner.txt")
+      )
+      break
+    }
+    ## somebody else builds and we wait
+    ownerFile <- file.path(lockDir, "owner.txt")
+    lockOwner <- if (file.exists(ownerFile)) {
+      paste(readLines(ownerFile, warn = FALSE), collapse = " ")
+    } else {
+      "unknown"
+    }
+    if (i >= INDEX_BUILD_TIMEOUT) {
+      stop(
+        "kallisto index building still in progress after ",
+        INDEX_BUILD_TIMEOUT, " min; lock: ", lockDir, " (", lockOwner, ")",
+        ". If that job no longer runs, remove the lock and resubmit."
+      )
+    }
+    if (i == 0) {
+      ezLog("waiting for kallisto index built by another job: ", lockOwner)
+    }
     Sys.sleep(60)
-    i = i + 1
+    i <- i + 1
   }
-  if (file.exists(lockFile)) {
-    stop(paste(
-      "reference building still in progress after",
-      INDEX_BUILD_TIMEOUT,
-      "min"
-    ))
+  if (hasLock && file.exists(idxFile)) {
+    ## another job finished the index between our check and taking the lock
+    hasLock <- FALSE
   }
-  ## there is no lock file
-  refFiles = list.files(dirname(refBase), basename(refBase))
-  if (length(refFiles) > 0) {
-    ## we assume the index is built and complete
+  if (!hasLock) {
+    ## the index is built and complete
     if (
       !ezIsSpecified(param$transcriptFasta) &&
         !ezIsSpecified(param$secondRef) &&
@@ -304,27 +341,31 @@ getKallistoReference = function(param) {
     }
     return(refBase)
   }
-  ## we have to build the reference
-  wd = getwd()
-  dir.create(dirname(refBase), recursive = TRUE)
-  setwd(dirname(refBase))
-  ezWrite(Sys.info(), con = lockFile)
-  on.exit(file.remove(lockFile))
-  on.exit(setwd(wd), add = TRUE)
+  ## we hold the lock and have to build the index
+  ## Build in a private directory next to the final one (same filesystem, so
+  ## the final file.rename is atomic). This keeps the kallisto temp directory
+  ## and any partial files out of the shared reference directory.
+  buildDir <- paste0(
+    dirname(refBase), ".build_", Sys.info()[["nodename"]], "_", Sys.getpid()
+  )
+  unlink(buildDir, recursive = TRUE)
+  dir.create(buildDir)
+  on.exit(unlink(buildDir, recursive = TRUE), add = TRUE, after = FALSE)
+  buildBase <- file.path(buildDir, basename(refBase))
 
-  job = ezJobStart("kallisto index")
+  job <- ezJobStart("kallisto index")
   if (ezIsSpecified(param$transcriptFasta)) {
-    pathTranscripts = param$transcriptFasta
+    pathTranscripts <- param$transcriptFasta
   } else {
-    pathTranscripts <- paste0(refBase, ".fa")
-    transcripts = getTranscriptSequences(param)
+    pathTranscripts <- paste0(buildBase, ".fa")
+    transcripts <- getTranscriptSequences(param)
     if (ezIsSpecified(param$transcriptTypes)) {
       ## Prepare the subset of transcipts sequence
-      seqAnno = ezFeatureAnnotation(
+      seqAnno <- ezFeatureAnnotation(
         param$ezRef@refAnnotationFile,
         dataFeatureType = "transcript"
       )
-      transcriptsUse = rownames(seqAnno)[
+      transcriptsUse <- rownames(seqAnno)[
         seqAnno$type %in% param$transcriptTypes
       ]
       transcriptsUse <- intersect(transcriptsUse, names(transcripts))
@@ -334,15 +375,33 @@ getKallistoReference = function(param) {
     ## If secondRef is specified, add those sequences
     if (ezIsSpecified(param$secondRef)) {
       require(Biostrings)
-      secondRefSeqs = readDNAStringSet(param$secondRef)
-      transcripts = c(transcripts, secondRefSeqs)
+      secondRefSeqs <- readDNAStringSet(param$secondRef)
+      transcripts <- c(transcripts, secondRefSeqs)
     }
 
     writeXStringSet(transcripts, pathTranscripts)
   }
-  cmdTemplate = "kallisto index -i %s.idx %s"
-  cmd = sprintf(cmdTemplate, refBase, pathTranscripts)
+  ## kallisto >= 0.50 writes temporary files to ./tmp unless -T is given
+  tmpOption <- ""
+  if (
+    length(versionMatch) > 0 &&
+      package_version(versionMatch) >= package_version("0.50.0")
+  ) {
+    tmpOption <- paste("-T", file.path(buildDir, "tmp"))
+  }
+  cmd <- sprintf(
+    "kallisto index %s -i %s.idx %s",
+    tmpOption,
+    buildBase,
+    pathTranscripts
+  )
   ezSystem(cmd)
+  ## publish: the .idx file last, it marks the index as complete
+  dir.create(dirname(refBase), recursive = TRUE, showWarnings = FALSE)
+  if (!ezIsSpecified(param$transcriptFasta)) {
+    stopifnot(file.rename(pathTranscripts, paste0(refBase, ".fa")))
+  }
+  stopifnot(file.rename(paste0(buildBase, ".idx"), idxFile))
   if (ezIsSpecified(param$transcriptFasta)) {
     ezLogMethods(
       "The kallisto index (k-mer length 31) was built from the supplied transcript sequences."
