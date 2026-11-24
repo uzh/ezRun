@@ -199,6 +199,152 @@ makeCountResultSummary <- function(param, se) {
   return(as.data.frame(settings))
 }
 
+##' @title Summarises the RNA types of the significant features
+##' @description Counts tested and significant features per RNA class and tests
+##'   whether a class is over-represented among the significant features
+##'   (one-sided Fisher test, significant vs. not significant among the tested
+##'   features). Significance uses the same thresholds as the report plots
+##'   (\code{pValueHighlightThresh}, \code{log2RatioHighlightThresh}).
+##' @param se the result SummarizedExperiment of \code{twoGroupCountComparison}.
+##' @param param the parameter list; uses \code{pValueHighlightThresh} and
+##'   \code{log2RatioHighlightThresh}.
+##' @param level the \code{rowData} column to group by: \code{"type"} (grouped
+##'   class, e.g. short_noncoding) or \code{"biotypes"} (Ensembl biotype).
+##' @return A data.frame with one row per class, sorted by the number of
+##'   significant features, or \code{NULL} when the column is absent.
+##' @keywords internal
+makeRnaTypeSummary <- function(se, param, level = c("type", "biotypes")) {
+  level <- match.arg(level)
+  rd <- rowData(se)
+  if (!level %in% colnames(rd) || is.null(rd$usedInTest)) {
+    return(NULL)
+  }
+  classes <- as.character(rd[[level]])
+  classes[is.na(classes) | classes == ""] <- "unknown"
+  tested <- rd$usedInTest %in% TRUE
+  pThresh <- if (is.null(param$pValueHighlightThresh)) {
+    0.01
+  } else {
+    param$pValueHighlightThresh
+  }
+  lrThresh <- if (is.null(param$log2RatioHighlightThresh)) {
+    0
+  } else {
+    param$log2RatioHighlightThresh
+  }
+  isSig <- tested & !is.na(rd$pValue) & rd$pValue <= pThresh &
+    !is.na(rd$log2Ratio) & abs(rd$log2Ratio) >= lrThresh
+  isUp <- isSig & rd$log2Ratio > 0
+  isDown <- isSig & rd$log2Ratio < 0
+  logMean <- if ("xNorm" %in% names(assays(se))) {
+    rowMeans(log2(1 + assays(se)$xNorm))
+  } else {
+    rep(NA_real_, nrow(se))
+  }
+  featWidth <- if (is.null(rd$featWidth)) {
+    rep(NA_real_, nrow(se))
+  } else {
+    as.numeric(rd$featWidth)
+  }
+
+  classNames <- sort(unique(classes[tested]))
+  nSig <- sum(isSig)
+  nTested <- sum(tested)
+  rows <- lapply(classNames, function(cl) {
+    inClass <- classes == cl
+    sigClass <- isSig & inClass
+    oddsRatio <- NA_real_
+    pValue <- NA_real_
+    if (nSig > 0 && sum(tested & inClass) < nTested) {
+      ft <- fisher.test(
+        factor(inClass[tested], levels = c(FALSE, TRUE)),
+        factor(isSig[tested], levels = c(FALSE, TRUE)),
+        alternative = "greater"
+      )
+      oddsRatio <- unname(ft$estimate)
+      pValue <- ft$p.value
+    }
+    medianOrNA <- function(x) {
+      if (any(sigClass)) median(x[sigClass], na.rm = TRUE) else NA_real_
+    }
+    data.frame(
+      "Class" = cl,
+      "Tested" = sum(tested & inClass),
+      "Significant" = sum(sigClass),
+      "Up" = sum(isUp & inClass),
+      "Down" = sum(isDown & inClass),
+      "% of tested" = 100 * sum(tested & inClass) / max(nTested, 1),
+      "% of significant" = if (nSig > 0) 100 * sum(sigClass) / nSig else NA_real_,
+      "Odds ratio" = oddsRatio,
+      "p-value" = pValue,
+      "Median length (sig.)" = medianOrNA(featWidth),
+      "Median log2 mean count (sig.)" = medianOrNA(logMean),
+      "Median |log2 ratio| (sig.)" = medianOrNA(abs(rd$log2Ratio)),
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+  })
+  if (length(rows) == 0) {
+    return(NULL)
+  }
+  tab <- do.call(rbind, rows)
+  tab <- tab[order(-tab$Significant, -tab$Tested, tab$Class), , drop = FALSE]
+  rownames(tab) <- NULL
+  tab
+}
+
+##' @title Describes the RNA-type composition of the significant features
+##' @description Turns the output of \code{makeRnaTypeSummary} into one or two
+##'   hedged sentences for the report.
+##' @param tab the data.frame returned by \code{makeRnaTypeSummary}.
+##' @param pThresh p-value below which a class counts as over-represented.
+##' @param orThresh odds ratio above which a class counts as over-represented.
+##' @return A character string.
+##' @keywords internal
+describeRnaTypeComposition <- function(tab, pThresh = 1e-3, orThresh = 2) {
+  if (is.null(tab) || nrow(tab) == 0) {
+    return("RNA type annotation is not available for this reference.")
+  }
+  nSig <- sum(tab$Significant)
+  if (nSig == 0) {
+    return("No feature passes the significance thresholds, so there is no RNA-type composition to assess.")
+  }
+  fmtPct <- function(x) paste0(formatC(x, format = "f", digits = 0), "%")
+  top <- tab[1, ]
+  txt <- paste0(
+    fmtPct(top$`% of significant`), " of the ", nSig,
+    " significant features are ", top$Class, "."
+  )
+  isOver <- tab$Class != "protein_coding" & !is.na(tab$`p-value`) &
+    tab$`p-value` < pThresh & !is.na(tab$`Odds ratio`) &
+    tab$`Odds ratio` > orThresh
+  if (any(isOver)) {
+    over <- tab[isOver, , drop = FALSE]
+    parts <- vapply(seq_len(nrow(over)), function(i) {
+      paste0(
+        over$Class[i], " (", fmtPct(over$`% of significant`[i]),
+        " of the significant vs. ", fmtPct(over$`% of tested`[i]),
+        " of the tested features; odds ratio ",
+        formatC(over$`Odds ratio`[i], format = "f", digits = 1),
+        ", p = ", formatC(over$`p-value`[i], format = "g", digits = 2), ")"
+      )
+    }, character(1))
+    txt <- paste0(
+      txt, " Over-represented among the significant features: ",
+      paste(parts, collapse = "; "),
+      ". Changes in short or lowly expressed non-coding features can partly",
+      " reflect technical effects (few reads, multi-mapping, location inside",
+      " introns of a host gene), so these hits may need checking before follow-up."
+    )
+  } else {
+    txt <- paste0(
+      txt, " No non-protein-coding class is clearly over-represented among",
+      " the significant features compared with all tested features."
+    )
+  }
+  txt
+}
+
 makeSignificantCounts <- function(se, pThresh = c(0.1, 0.05, 1 / 10^(2:5))) {
   sigTable <- getSignificantCountsTableSE(se, pThresh = pThresh)
   sigFcTable <- getSignificantFoldChangeCountsTableSE(se, pThresh = pThresh)
@@ -510,6 +656,7 @@ makeResultFile <- function(
   useInInteractiveTable <- c(
     "gene_name",
     "type",
+    "biotypes",
     "description",
     "featWidth",
     "gc",

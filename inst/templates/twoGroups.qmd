@@ -231,6 +231,11 @@ expression between two sample groups, **`r param$sampleGroup`** over
   "Features"        = nrow(se),
   "Method"          = metadata(se)$method %||% NA,
   describe_two_groups_model(param),
+  "Transcript types" = if (ezIsSpecified(param$transcriptTypes)) {
+    paste(param$transcriptTypes, collapse = ", ")
+  } else {
+    "all"
+  },
   "Feature level"   = metadata(se)$featureLevel %||% NA,
   "Reference build" = param$refBuild %||% NA
 )
@@ -341,6 +346,119 @@ knitr::kable(as.data.frame(settings),
 ::: {.callout-note}
 The plots in the following tabs highlight significant genes (thresholds above)
 in <span style="color:#A6CEE3FF">blue</span>.
+:::
+
+## RNA types
+
+```{r rna-type-summary}
+#| include: false
+rnaTypeTab <- makeRnaTypeSummary(se, param, level = "type")
+rnaBiotypeTab <- makeRnaTypeSummary(se, param, level = "biotypes")
+nRnaClasses <- if (is.null(rnaTypeTab)) 0 else sum(rnaTypeTab$Tested > 0)
+## kable() with p-values and percentages rounded for reading
+formatRnaTypeTable <- function(tab) {
+  tab$`% of tested` <- round(tab$`% of tested`, 1)
+  tab$`% of significant` <- round(tab$`% of significant`, 1)
+  tab$`Odds ratio` <- signif(tab$`Odds ratio`, 3)
+  tab$`p-value` <- signif(tab$`p-value`, 2)
+  tab$`Median length (sig.)` <- round(tab$`Median length (sig.)`)
+  tab$`Median log2 mean count (sig.)` <- round(tab$`Median log2 mean count (sig.)`, 1)
+  tab$`Median |log2 ratio| (sig.)` <- round(tab$`Median |log2 ratio| (sig.)`, 2)
+  tab
+}
+```
+
+::: {.callout-note title="What this shows"}
+Which kinds of RNA the significant features are (same thresholds as the plots: see
+Summary). Each class is tested for over-representation among the significant
+features compared with all tested features (one-sided Fisher test); rows with
+p < 0.001 are highlighted in red. Short and lowly expressed hits with large fold
+changes, typically short non-coding RNAs, are more often technical than
+biological.
+
+`r describeRnaTypeComposition(rnaTypeTab)`
+:::
+
+```{r rna-type-table}
+#| echo: false
+#| eval: !expr '!is.null(rnaTypeTab)'
+rnaTypeKable <- kable(
+  formatRnaTypeTable(rnaTypeTab), "html", row.names = FALSE,
+  caption = paste0(
+    "Tested and significant features per RNA class (", sum(rnaTypeTab$Tested),
+    " tested, ", sum(rnaTypeTab$Significant), " significant). ",
+    "The median columns describe the significant features of each class: ",
+    "feature length in nt, log2 mean normalised count over all samples and absolute log2 ratio."
+  )
+) %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left")
+isOverRep <- !is.na(rnaTypeTab$`p-value`) & rnaTypeTab$`p-value` < 1e-3
+if (any(isOverRep)) {
+  rnaTypeKable <- rnaTypeKable %>%
+    row_spec(which(isOverRep), bold = TRUE, color = "white", background = "#D7261E")
+}
+rnaTypeKable
+```
+
+```{r rna-type-plot}
+#| echo: false
+#| eval: !expr '!is.null(rnaTypeTab) && nRnaClasses > 1 && sum(rnaTypeTab$Significant) > 0'
+#| fig-width: 7
+#| fig-height: 5
+#| fig-cap: "RNA-class composition of all tested features and of the up- and down-regulated significant features. Bars show the share of each class; the number of features is printed above each bar and shares of at least 5% are labelled inside."
+rnaClassColours <- c(
+  protein_coding = "#0072B2", long_noncoding = "#E69F00",
+  short_noncoding = "#D55E00", pseudogene = "#999999", rRNA = "#CC79A7",
+  Mt_rRNA = "#F0E442", tRNA = "#009E73", Mt_tRNA = "#56B4E9", unknown = "#666666"
+)
+missingClasses <- setdiff(rnaTypeTab$Class, names(rnaClassColours))
+rnaClassColours <- c(
+  rnaClassColours,
+  setNames(grDevices::gray.colors(length(missingClasses)), missingClasses)
+)
+compData <- bind_rows(
+  tibble(set = "Tested", Class = rnaTypeTab$Class, n = rnaTypeTab$Tested),
+  tibble(set = "Up", Class = rnaTypeTab$Class, n = rnaTypeTab$Up),
+  tibble(set = "Down", Class = rnaTypeTab$Class, n = rnaTypeTab$Down)
+) %>%
+  group_by(set) %>%
+  mutate(total = sum(n), share = if (total[1] > 0) n / total else 0) %>%
+  ungroup() %>%
+  filter(n > 0) %>%
+  mutate(
+    set = factor(set, levels = c("Tested", "Up", "Down")),
+    Class = factor(Class, levels = rev(rnaTypeTab$Class)),
+    label = ifelse(share >= 0.05, paste0(round(100 * share), "%"), "")
+  )
+totals <- compData %>% distinct(set, total)
+ggplot(compData, aes(x = set, y = share, fill = Class)) +
+  geom_col(width = 0.7, colour = "white", linewidth = 0.3) +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.5) +
+  geom_text(
+    data = totals, aes(x = set, y = 1.04, label = paste0("n = ", total)),
+    inherit.aes = FALSE, size = 3.5
+  ) +
+  scale_fill_manual(values = rnaClassColours, breaks = rnaTypeTab$Class) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1.08)) +
+  labs(x = NULL, y = "Share of features", fill = "RNA class") +
+  theme_bw()
+```
+
+::: {.callout-note collapse="true" title="Ensembl biotypes of the significant features"}
+The classes above group Ensembl biotypes. This table shows the individual
+biotypes, for example TEC (to be experimentally confirmed), immunoglobulin and
+T-cell receptor gene segments, snoRNA, snRNA, misc_RNA or Mt_rRNA.
+
+```{r rna-biotype-table}
+#| echo: false
+#| eval: !expr '!is.null(rnaBiotypeTab)'
+kable(
+  formatRnaTypeTable(rnaBiotypeTab), "html", row.names = FALSE,
+  caption = "Tested and significant features per Ensembl biotype."
+) %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, position = "left") %>%
+  scroll_box(height = "400px")
+```
 :::
 
 ## Scatter
