@@ -32,6 +32,96 @@ cleanupTwoGroupsInput <- function(input, param) {
   return(inputMod)
 }
 
+##' @title Describes the statistical model of a two group comparison
+##' @description Builds a human-readable description of the model that
+##'   \code{twoGroupCountComparison} fits, using the dataset column names
+##'   (e.g. \code{~ Genotype + Sex}), for display in the report.
+##' @param param the parameter list stored in \code{metadata(se)$param}; uses
+##'   \code{testMethod}, \code{groupingName}, \code{grouping2Name},
+##'   \code{grouping2}, \code{sampleGroup}, \code{refGroup},
+##'   \code{sampleGroupBaseline}, \code{refGroupBaseline}, \code{deTest} and
+##'   \code{modelMethod}.
+##' @return A named character vector with the elements \code{Model},
+##'   \code{Covariate} (\code{NA} without a second factor) and \code{Test}.
+##' @keywords internal
+describe_two_groups_model <- function(param) {
+  cleanName <- function(x) {
+    trimws(sub("\\s*\\[[^]]*\\]\\s*$", "", x))
+  }
+  groupName <- if (ezIsSpecified(param$groupingName)) {
+    cleanName(param$groupingName)
+  } else {
+    "grouping"
+  }
+  hasCovariate <- ezIsSpecified(param$grouping2)
+  covName <- NA_character_
+  if (hasCovariate) {
+    covName <- if (ezIsSpecified(param$grouping2Name)) {
+      cleanName(param$grouping2Name)
+    } else {
+      "grouping2"
+    }
+  }
+  covType <- if (hasCovariate && is.numeric(param$grouping2)) {
+    "numeric"
+  } else {
+    "categorical"
+  }
+  hasBaseline <- ezIsSpecified(param$sampleGroupBaseline) &&
+    ezIsSpecified(param$refGroupBaseline)
+  contrast <- paste(param$sampleGroup, "vs", param$refGroup)
+  ## baseline correction is only implemented in runGlm()
+  glmContrast <- if (hasBaseline) {
+    paste0(
+      "(", param$sampleGroup, " - ", param$sampleGroupBaseline, ") - (",
+      param$refGroup, " - ", param$refGroupBaseline, ")"
+    )
+  } else {
+    contrast
+  }
+  testMethod <- if (is.null(param$testMethod)) "glm" else param$testMethod
+
+  model <- NA_character_
+  covariate <- NA_character_
+  test <- NA_character_
+  if (testMethod == "deseq2") {
+    model <- paste0("~ ", groupName, if (hasCovariate) paste0(" + ", covName))
+    if (hasCovariate) {
+      covariate <- paste0(covName, " (", covType, ", additive fixed effect)")
+    }
+    test <- paste0(groupName, ": ", contrast, ", DESeq2 Wald test")
+  } else if (testMethod == "glm") {
+    model <- paste0("~ 0 + ", groupName, if (hasCovariate) paste0(" + ", covName))
+    if (hasCovariate) {
+      covariate <- paste0(covName, " (", covType, ", additive fixed effect)")
+    }
+    deTest <- if (ezIsSpecified(param$deTest)) param$deTest else "QL"
+    test <- paste0(
+      groupName, ": ", glmContrast, ", edgeR ",
+      if (deTest == "LR") "likelihood-ratio test" else "quasi-likelihood F-test"
+    )
+  } else if (testMethod == "exactTest") {
+    model <- "none (no regression model)"
+    test <- paste0(groupName, ": ", contrast, ", edgeR exact test")
+  } else if (testMethod == "limma") {
+    model <- paste0("~ ", groupName)
+    if (hasCovariate) {
+      covariate <- paste0(
+        covName, " (blocking factor, within-block correlation via duplicateCorrelation)"
+      )
+    }
+    modelMethod <- if (ezIsSpecified(param$modelMethod)) {
+      param$modelMethod
+    } else {
+      "limma-trend"
+    }
+    test <- paste0(
+      groupName, ": ", contrast, ", limma moderated t-test (", modelMethod, ")"
+    )
+  }
+  c(Model = model, Covariate = covariate, Test = test)
+}
+
 ## TODO: add runLimma function.
 ##' @title Compares the counts of two groups
 ##' @description Compares the counts of two groups with the option to choose from several methods to test them.

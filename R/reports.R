@@ -168,6 +168,9 @@ makeCountResultSummary <- function(param, se) {
   }
   settings["Data Column Used:"] <- metadata(se)$countName
   settings["Method:"] <- metadata(se)$method
+  if (!is.null(param$groupingName) && !is.null(param$testMethod)) {
+    settings["Model:"] <- describe_two_groups_model(param)[["Model"]]
+  }
   if (
     ezIsSpecified(param$sampleGroupBaseline) &&
       ezIsSpecified(param$refGroupBaseline)

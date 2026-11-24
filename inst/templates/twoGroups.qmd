@@ -230,6 +230,7 @@ expression between two sample groups, **`r param$sampleGroup`** over
   ),
   "Features"        = nrow(se),
   "Method"          = metadata(se)$method %||% NA,
+  describe_two_groups_model(param),
   "Feature level"   = metadata(se)$featureLevel %||% NA,
   "Reference build" = param$refBuild %||% NA
 )
