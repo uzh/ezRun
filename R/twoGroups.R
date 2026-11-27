@@ -649,8 +649,10 @@ runLimma <- function(
 ##' @title Writes a two-group result as an exploreDE .h5ad
 ##' @description Writes \code{deResult} next to the report as
 ##'   \code{result--<comparison>.h5ad}, a single file that opens in exploreDE by
-##'   drag and drop, by a \code{?data=} link, or locally. Every pathway term is
-##'   kept; \code{fdrThreshORA} and \code{fdrThreshGSEA} are recorded as the
+##'   drag and drop, by a \code{?data=} link, or locally. It also holds the
+##'   whole \code{deResult}: \code{exploreDE::se_from_h5ad()} rebuilds it
+##'   (identical, environments by contents). Every pathway term is kept;
+##'   \code{fdrThreshORA} and \code{fdrThreshGSEA} are recorded as the
 ##'   thresholds exploreDE calls significant. Never fails the SUSHI job: Any
 ##'   problem is logged and \code{NULL} is returned.
 ##' @param deResult the SummarizedExperiment from \code{twoGroupCountComparison()}.
@@ -663,8 +665,8 @@ writeTwoGroupsH5ad <- function(deResult, param) {
     return(NULL)
   }
   if (!requireNamespace("exploreDE", quietly = TRUE) ||
-    !"enrichment_fdr" %in% names(formals(exploreDE::build_explore_h5ad))) {
-    ezLog("writeTwoGroupsH5ad: exploreDE with build_explore_h5ad(enrichment_fdr) not available; skipping the .h5ad")
+    !all(c("enrichment_fdr", "mirror") %in% names(formals(exploreDE::build_explore_h5ad)))) {
+    ezLog("writeTwoGroupsH5ad: exploreDE with build_explore_h5ad(enrichment_fdr, mirror) not available; skipping the .h5ad")
     return(NULL)
   }
   out <- paste0("result--", param$comparison, ".h5ad")
@@ -696,7 +698,10 @@ writeTwoGroupsH5ad <- function(deResult, param) {
         factors = factorCols,
         de = setNames(list(rowData(deResult)), param$comparison),
         pathways = pathways,
-        enrichment_fdr = list(ora = param$fdrThreshORA, gsea = param$fdrThreshGSEA)
+        enrichment_fdr = list(ora = param$fdrThreshORA, gsea = param$fdrThreshGSEA),
+        ## the whole deResult, so exploreDE::se_from_h5ad() gives it back
+        ## identical(): The .h5ad loses nothing the qs2 holds
+        mirror = deResult
       )
       out
     },
