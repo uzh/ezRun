@@ -276,11 +276,18 @@ ezWrite.table(as.data.frame(colData(se))[, "sf", drop = FALSE],
 )
 
 liveReportLink <- output$getColumn("Live Report")
+h5adFile <- paste0("result--", param$comparison, ".h5ad")
+h5adItem <- if (file.exists(h5adFile)) {
+  paste0("- [", h5adFile, "](", h5adFile, "): The whole result for exploreDE, to drag and drop into the app or open locally")
+} else {
+  ""
+}
 ```
 
 - [`r resultFile$resultFile`](`r resultFile$resultFile`)
 - [Interactive table of significant genes](`r resultFile$resultHtml`)
 - [Live Report and Visualizations](`r liveReportLink`){target="_blank"}
+`r h5adItem`
 
 :::
 

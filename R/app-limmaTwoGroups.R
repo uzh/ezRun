@@ -69,6 +69,11 @@ EzAppLimma <-
             DefaultValue = "log2Ratio",
             Description = "how to rank genes for GSEA"
           ),
+          writeAnnData = ezFrame(
+            Type = "logical",
+            DefaultValue = TRUE,
+            Description = "also write the result as an exploreDE .h5ad (result--<comparison>.h5ad)"
+          ),
           colour = ezFrame(
             Type = "logical",
             DefaultValue = FALSE,
@@ -115,6 +120,8 @@ ezMethodLimma = function(
     writeErrorReport(htmlFile, param = param, error = deResult$error)
     return("Error")
   }
+
+  writeTwoGroupsH5ad(deResult, param)
 
   makeQuartoReport(
     output = output,

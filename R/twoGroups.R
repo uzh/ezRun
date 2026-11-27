@@ -645,3 +645,65 @@ runLimma <- function(
   res$sf <- sf
   return(res)
 }
+
+##' @title Writes a two-group result as an exploreDE .h5ad
+##' @description Writes \code{deResult} next to the report as
+##'   \code{result--<comparison>.h5ad}, a single file that opens in exploreDE by
+##'   drag and drop, by a \code{?data=} link, or locally. Every pathway term is
+##'   kept; \code{fdrThreshORA} and \code{fdrThreshGSEA} are recorded as the
+##'   thresholds exploreDE calls significant. Never fails the SUSHI job: Any
+##'   problem is logged and \code{NULL} is returned.
+##' @param deResult the SummarizedExperiment from \code{twoGroupCountComparison()}.
+##' @param param the app's parameters; \code{groupingName} and
+##'   \code{grouping2Name} must already be set.
+##' @template roxygen-template
+##' @return The file name, or \code{NULL} if nothing was written.
+writeTwoGroupsH5ad <- function(deResult, param) {
+  if (isFALSE(as.logical(param$writeAnnData))) {
+    return(NULL)
+  }
+  if (!requireNamespace("exploreDE", quietly = TRUE) ||
+    !"enrichment_fdr" %in% names(formals(exploreDE::build_explore_h5ad))) {
+    ezLog("writeTwoGroupsH5ad: exploreDE with build_explore_h5ad(enrichment_fdr) not available; skipping the .h5ad")
+    return(NULL)
+  }
+  out <- paste0("result--", param$comparison, ".h5ad")
+  tryCatch(
+    {
+      factorCols <- paste(param$groupingName, "[Factor]")
+      if (ezIsSpecified(param$grouping2Name)) {
+        factorCols <- c(factorCols, paste(param$grouping2Name, "[Factor]"))
+      }
+      organism <- NA_character_
+      if (ezIsSpecified(param$refBuild)) {
+        organism <- gsub("_", " ", strsplit(param$refBuild, "/", fixed = TRUE)[[1]][1], fixed = TRUE)
+      }
+      md <- metadata(deResult)
+      pathways <- if (!is.null(md$enrichResult) || !is.null(md$enrichResultGSEA)) {
+        setNames(list(list(ora = md$enrichResult, gsea = md$enrichResultGSEA)), param$comparison)
+      } else {
+        list()
+      }
+      exploreDE::build_explore_h5ad(
+        x = list(raw = assays(deResult)$counts, normalised = assays(deResult)$xNorm),
+        out = out,
+        omics = "rnaseq",
+        feature_level = param$featureLevel,
+        organism = organism,
+        ref_build = param$refBuild,
+        coldata = colData(deResult),
+        rowdata = rowData(deResult),
+        factors = factorCols,
+        de = setNames(list(rowData(deResult)), param$comparison),
+        pathways = pathways,
+        enrichment_fdr = list(ora = param$fdrThreshORA, gsea = param$fdrThreshGSEA)
+      )
+      out
+    },
+    error = function(e) {
+      ezLog("writeTwoGroupsH5ad: failed to write ", out, ": ", conditionMessage(e))
+      if (file.exists(out)) file.remove(out)
+      NULL
+    }
+  )
+}
