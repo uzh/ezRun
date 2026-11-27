@@ -196,9 +196,9 @@ run_rctd_spots <- function(
 ## p32810-sized Visium HD runs went from 14.7 h (spacexr) to 13 min on a GPU
 ## and 38 min on 8 CPU cores. Since 0.4.0 it matches spacexr: 0.4.3 gave the
 ## same spot_class on all 119,844 bins of that section and the same main
-## type on every non-rejected one.
+## type on every non-rejected one. 0.4.7 adds fused Triton GPU kernels.
 ## RCTD_PY_BIN (a directory holding `rctd`) overrides the env, for testing.
-RCTD_PY_ENV <- "gi_rctd-py_0.4.3"
+RCTD_PY_ENV <- "gi_rctd-py_0.4.7"
 RCTD_PY_CONDA <- "/usr/local/ngseq/miniforge3"
 
 ## TRUE when rctd-py can run: the test override is set or the env exists.
